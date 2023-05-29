@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -6,6 +6,9 @@ package secrets
 import (
 	"context"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -17,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+const rancherDeploymentName = "rancher"
 
 // reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -56,40 +61,85 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		return newRequeueWithDelay(), nil
 	}
 
-	// Get the local ca-bundle secret
-	mcCASecret := corev1.Secret{}
-	err = r.Get(context.TODO(), client.ObjectKey{
-		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      constants.VerrazzanoLocalCABundleSecret,
-	}, &mcCASecret)
-	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			r.log.Errorf("Failed to fetch secret %s/%s: %v",
-				constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err)
+	// Update the Rancher TLS CA secret with the defaultVerrazzanoName TLS Secret value
+	if isVzIngressSecret {
+		if err := r.createOrUpdateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
+			vzconst.RancherTLSCAKey, caKey, caSecret); err != nil {
 			return newRequeueWithDelay(), nil
 		}
+		// Restart Rancher pod to reflect the updated TLS CA secret value in the pod
+		if err := r.restartRancherPod(); err != nil {
+			return newRequeueWithDelay(), err
+		}
+	}
+	// Update the verrazzano-local-ca-bundle secret
+	if err := r.createOrUpdateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
+		"ca-bundle", caKey, caSecret); err != nil {
+		return newRequeueWithDelay(), nil
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) createOrUpdateSecret(namespace string, name string, destCAKey string,
+	sourceCAKey string, sourceSecret corev1.Secret) error {
+	// Get the secret
+	secret := corev1.Secret{}
+	err := r.Get(context.TODO(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, &secret)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			r.log.Errorf("Failed to fetch secret %s/%s: %v", namespace, name, err)
+			return err
+		}
 		// Secret was not found, make a new one
-		mcCASecret = corev1.Secret{}
-		mcCASecret.Name = constants.VerrazzanoLocalCABundleSecret
-		mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
+		secret = corev1.Secret{}
+		secret.Name = name
+		secret.Namespace = namespace
 	}
 
-	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error {
-		if mcCASecret.Data == nil {
-			mcCASecret.Data = make(map[string][]byte)
+	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
 		}
-		zap.S().Debugf("Updating MC CA secret with data from %s key of %s/%s secret ", caKey, caSecret.Namespace, caSecret.Name)
-		mcCASecret.Data["ca-bundle"] = caSecret.Data[caKey]
+		zap.S().Debugf("Updating CA secret with data from %s key of %s/%s secret ", sourceCAKey,
+			sourceSecret.Namespace, sourceSecret.Name)
+		secret.Data[destCAKey] = sourceSecret.Data[sourceCAKey]
 		return nil
 	})
 
 	if err != nil {
-		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s",
-			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err.Error())
-		return newRequeueWithDelay(), nil
+		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s", name, namespace, err.Error())
+		return err
 	}
 
-	r.log.Infof("Created or updated secret %s/%s (result: %v)",
-		constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, result)
-	return ctrl.Result{}, nil
+	r.log.Infof("Created or updated secret %s/%s (result: %v)", name, namespace, result)
+	return nil
+}
+
+// restartRancherPod adds an annotation to the Rancher deployment template to restart the Rancher pods
+func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
+	deployment := appsv1.Deployment{}
+	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
+		Name: rancherDeploymentName}, &deployment); err != nil {
+		r.log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
+			vzconst.RancherSystemNamespace, rancherDeploymentName, err)
+		return err
+	}
+
+	// annotate the deployment to do a restart of the pod
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
+
+	if err := r.Update(context.TODO(), &deployment); err != nil {
+		r.log.ErrorfThrottled("Failed updating Rancher deployment %s/%s to restart pod: %v",
+			deployment.Namespace, deployment.Name, err)
+		return err
+	}
+	r.log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+		deployment.Namespace, deployment.Name)
+	return nil
 }
