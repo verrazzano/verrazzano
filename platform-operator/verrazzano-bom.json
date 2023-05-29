@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230515114238-05e7a995d",
+              "tag": "v1.3.1-20230529121247-74c2dc991",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.3.1-20230515114238-05e7a995d",
+              "tag": "v1.3.1-20230529121247-74c2dc991",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -106,12 +106,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.3-20230524145143-a25ae2d1",
+              "tag": "1.15.3-20230209181608-900a5c7b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230524145143-a25ae2d1",
+              "tag": "1.15.3-20230209181608-900a5c7b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -183,7 +183,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230524145143-a25ae2d1",
+              "tag": "1.15.3-20230209181608-900a5c7b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -199,7 +199,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230515114238-05e7a995d",
+              "tag": "v1.3.1-20230529121247-74c2dc991",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -223,13 +223,13 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.4-20230509184302-df45579",
+              "tag": "v1.5.4-20230529101129-df45579",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230524145143-a25ae2d1",
+              "tag": "1.15.3-20230209181608-900a5c7b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -254,7 +254,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230515114238-05e7a995d",
+              "tag": "v1.3.1-20230529121247-74c2dc991",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230517204511-228d40b314",
+              "tag": "v20.0.1-20230529051244-228d40b314",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -484,7 +484,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.3.1-20230515114238-05e7a995d",
+              "tag": "v1.3.1-20230529121247-74c2dc991",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
