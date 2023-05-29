@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -75,9 +76,18 @@ func WhenCapiInstalledIt(description string, f func()) {
 	})
 }
 
-var _ = t.Describe("Rancher", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("KontainerDriver", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
+		kubeconfig := getKubeConfigOrAbort()
+		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+		}
+		if !vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName) {
+			Skip("Skipping test because Rancher is not configured")
+		}
+
 		var clientset dynamic.Interface
 
 		// Get dynamic client
