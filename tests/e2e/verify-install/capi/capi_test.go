@@ -79,15 +79,17 @@ func WhenCapiInstalledIt(description string, f func()) {
 var _ = t.Describe("KontainerDriver", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
-		kubeconfig := getKubeConfigOrAbort()
-		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
-		}
-		if !vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName) {
-			Skip("Skipping test because Rancher is not configured")
-			return
-		}
+		When("rancher not configured", func() {
+			kubeconfig := getKubeConfigOrAbort()
+			inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+			}
+			if !vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName) {
+				Skip("Skipping test because Rancher is not configured")
+				return
+			}
+		})
 
 		var clientset dynamic.Interface
 
