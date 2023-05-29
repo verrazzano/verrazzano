@@ -172,7 +172,7 @@ func TestInstall(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	setDefaultRootDirectory()
 
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
@@ -234,7 +234,7 @@ func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	setDefaultRootDirectory()
 
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
@@ -290,7 +290,7 @@ func TestReconcile(t *testing.T) {
 	cr := getFluentOperatorCR(true)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	setDefaultRootDirectory()
 	defer helmcli.SetDefaultActionConfigFunction()
 	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
 		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
@@ -525,4 +525,9 @@ func getTestHelmRelease(releaseTime time.Time, releaseStatus release.Status) *re
 		},
 		Version: 1,
 	}
+}
+
+// setDefaultRootDirectory set the VerrazzanoRootDir for Unit tests.
+func setDefaultRootDirectory() {
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
 }
