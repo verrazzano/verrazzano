@@ -281,7 +281,7 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
 	driverVersion, driverChecksum, err := parseRancherBOM(ctx.Log())
 	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to obtain additional Rancher settings from the BOM file: ", err)
+		return fmt.Errorf("Failed to obtain additional Rancher settings from the BOM file: %v", err)
 	}
 
 	// Form the URL for downloading the driver
@@ -298,7 +298,7 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 		// Setup dynamic client
 		dynClient, err := getDynamicClientFunc()
 		if err != nil {
-			return ctx.Log().ErrorNewErr("Failed to get dynamic client: %v", err)
+			return fmt.Errorf("Failed to get dynamic client: %v", err)
 		}
 
 		// Does the object already exist?
@@ -308,11 +308,11 @@ func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
 			if errors.IsNotFound(err) {
 				_, err = createDriver(dynClient, gvr, kontainerDriverObjectName, driverURL, driverChecksum)
 				if err != nil {
-					return ctx.Log().ErrorfNewErr("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+					return fmt.Errorf("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 				}
 				return nil
 			}
-			return ctx.Log().ErrorfNewErr("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+			return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 		}
 
 		// Update the existing record
