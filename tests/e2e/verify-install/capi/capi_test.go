@@ -86,6 +86,7 @@ var _ = t.Describe("KontainerDriver", Label("f:platform-lcm.install"), func() {
 		}
 		if !vzcr.IsComponentStatusEnabled(inClusterVZ, rancher.ComponentName) {
 			Skip("Skipping test because Rancher is not configured")
+			return
 		}
 
 		var clientset dynamic.Interface
