@@ -292,306 +292,308 @@ pipeline {
                     }
                 }
 
-//                 stage('Verify Install') {
-//                     environment {
-//                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-//                     }
-//                     steps {
-//                         runGinkgoRandomize('verify-install')
-//                     }
-//                     post {
-//                         always {
-//                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-//                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-//                         }
-//                     }
-//                 }
-
-//                 stage('Run Acceptance Tests Infra') {
-//                     parallel {
-//                         stage('verify-scripts') {
-//                             steps {
-//                                 runGinkgoRandomize('scripts', "${KUBECONFIG}")
-//                             }
-//                         }
-//                         stage('verify-infra restapi') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-//                             }
-//                             steps {
-//                                 runGinkgoRandomize('verify-infra/restapi')
-//                             }
-//                         }
-//                         stage('verify-infra oam') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-//                             }
-//                             steps {
-//                                 runGinkgoRandomize('verify-infra/oam')
-//                             }
-//                         }
-//                         stage('verify-infra vmi') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-//                             }
-//                             steps {
-//                                 runGinkgoRandomize('verify-infra/vmi')
-//                             }
-//                         }
-//                         stage('security rbac') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-//                             }
-//                             steps {
-//                                 runGinkgo('security/rbac')
-//                             }
-//                         }
-//                         stage('system component metrics') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-//                             }
-//                             steps {
-//                                 runGinkgo('metrics/syscomponents')
-//                             }
-//                         }
-//                         stage ('console') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-//                             }
-//                             steps {
-//                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-//                                     sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
-//                                 }
-//                             }
-//                             post {
-//                                 failure {
-//                                     sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-//                                 }
-//                             }
-//                         }
-//                         stage ('grafana db') {
-//                             when {
-//                                 expression {params.USE_DB_FOR_GRAFANA == true}
-//                             }
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
-//                             }
-//                             steps {
-//                                 runGinkgo('grafana-db')
-//                             }
-//                         }
-//                         stage('opensearch logging') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
-//                             }
-//                             steps {
-//                                 runGinkgo('logging/opensearch')
-//                             }
-//                         }
-//                         stage('system logging') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-//                             }
-//                             steps {
-//                                 runGinkgo('logging/system')
-//                             }
-//                         }
-//                     }
-//                     post {
-//                         always {
-//                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-//                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-//                         }
-//                     }
-//                 }
-
-//                 stage('Run Acceptance Tests Deployments Group 1') {
-//                     parallel {
-//                         stage('istio authorization policy') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-//                             }
-//                             steps {
-//                                 runGinkgo('istio/authz')
-//                             }
-//                         }
-//                         stage('security network policies') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-//                             }
-//                             steps {
-//                                 script {
-//                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
-//                                         runGinkgo('security/netpol')
-//                                     }
-//                                 }
-//                             }
-//                         }
-//                         stage('deployment metrics') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-//                             }
-//                             steps {
-//                                 runGinkgo('metrics/deploymetrics')
-//                             }
-//                         }
-//                         stage('examples logging helidon') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-//                             }
-//                             steps {
-//                                 runGinkgo('logging/helidon')
-//                             }
-//                         }
-//                         stage('examples helidon') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-//                             }
-//                             steps {
-//                                 runGinkgo('examples/helidon')
-//                             }
-//                         }
-//                         stage('examples helidon service template') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
-//                             }
-//                             steps {
-//                                 runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
-//                             }
-//                         }
-//                         stage('examples helidon manualscalertait') {
-//                                                     environment {
-//                                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
-//                                                     }
-//                                                     steps {
-//                                                         runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
-//                                                     }
-//                                                 }
-//
-//                         stage('jaeger helidon') {
-//                             environment {
-//                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
-//                             }
-//                             steps {
-//                                runGinkgo('jaeger/helidon')
-//                             }
-//                         }
-//                         stage('jaeger system') {
-//                             environment {
-//                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
-//                             }
-//                             steps {
-//                                runGinkgo('jaeger/system')
-//                             }
-//                         }
-//                         stage('jwt helidon') {
-//                             when {
-//                                 expression {params.ENABLE_JWT_TESTING == true}
-//                             }
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
-//                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
-//                                 REALM_NAME="test-realm"
-//                             }
-//                             steps {
-//                                 runGinkgo('jwt/helidon')
-//                             }
-//                         }
-//                         stage('jwt helidon svc') {
-//                             when {
-//                                 expression {params.ENABLE_JWT_TESTING == true}
-//                             }
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
-//                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
-//                                 REALM_NAME="test-realm"
-//                             }
-//                             steps {
-//                                 runGinkgo('jwt/helidon-svc')
-//                             }
-//                         }
-//                         stage('examples helidon-metrics') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
-//                             }
-//                             when {
-//                                 expression {params.RUN_SLOW_TESTS == true}
-//                             }
-//                             steps {
-//                                 runGinkgo('examples/helidonmetrics')
-//                             }
-//                         }
-//                         stage('logging trait Helidon workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-//                             }
-//                             steps {
-//                                 runGinkgo('loggingtrait/helidonworkload')
-//                             }
-//                         }
-//                     }
-//                     post {
-//                         always {
-//                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-//                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-//                         }
-//                     }
-//                 }
-
-//                 stage('Run Acceptance Tests Deployments Group 2') {
-//                     parallel {
-//                         stage('opensearch-topology') {
-//                             steps {
-//                                 runGinkgoRandomize('opensearch/topology')
-//                             }
-//                         }
-//                         stage('Ingress & logging trait WebLogic workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-//                             }
-//                             steps {
-//                                 runGinkgo('loggingtrait/weblogicworkload')
-//                             }
-//                         }
-//                         stage('weblogic workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-//                             }
-//                             steps {
-//                                 runGinkgo('workloads/weblogic')
-//                             }
-//                         }
-//                         stage('coherence workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-//                             }
-//                             steps {
-//                                 runGinkgo('workloads/coherence')
-//                             }
-//                         }
-//                         stage('oam workloads') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
-//                             }
-//                             steps {
-//                                 runGinkgo('workloads/oam')
-//                             }
-//                         }
-//                         stage('logging trait Coherence workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-//                             }
-//                             steps {
-//                                 runGinkgo('loggingtrait/coherenceworkload')
-//                             }
-//                         }
-//                     }
-//                 }
-
                 stage('Run OpenSearch Operator tests') {
-                    stage('Install opensearch-operator') {
-                        steps {
-                            runGinkgo('opensearch-operator/install')
+                    stages {
+                        stage('Install opensearch-operator') {
+                            steps {
+                                runGinkgo('opensearch-operator/install')
+                            }
+                        }
+                    }
+                }
+
+                stage('Verify Install') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Infra') {
+                    parallel {
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgoRandomize('scripts', "${KUBECONFIG}")
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+                            }
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+                            }
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+                            }
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                        stage('security rbac') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                            }
+                            steps {
+                                runGinkgo('security/rbac')
+                            }
+                        }
+                        stage('system component metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+                            }
+                            steps {
+                                runGinkgo('metrics/syscomponents')
+                            }
+                        }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                                }
+                            }
+                            post {
+                                failure {
+                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                                }
+                            }
+                        }
+                        stage ('grafana db') {
+                            when {
+                                expression {params.USE_DB_FOR_GRAFANA == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+                            }
+                            steps {
+                                runGinkgo('grafana-db')
+                            }
+                        }
+                        stage('opensearch logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/opensearch')
+                            }
+                        }
+                        stage('system logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/system')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments Group 1') {
+                    parallel {
+                        stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
+                            steps {
+                                runGinkgo('istio/authz')
+                            }
+                        }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/netpol')
+                                    }
+                                }
+                            }
+                        }
+                        stage('deployment metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                            }
+                            steps {
+                                runGinkgo('metrics/deploymetrics')
+                            }
+                        }
+                        stage('examples logging helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                            }
+                            steps {
+                                runGinkgo('logging/helidon')
+                            }
+                        }
+                        stage('examples helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                            }
+                            steps {
+                                runGinkgo('examples/helidon')
+                            }
+                        }
+                        stage('examples helidon service template') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
+                            }
+                            steps {
+                                runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
+                            }
+                        }
+                        stage('examples helidon manualscalertait') {
+                                                    environment {
+                                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
+                                                    }
+                                                    steps {
+                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                                                    }
+                                                }
+
+                        stage('jaeger helidon') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
+                            }
+                            steps {
+                               runGinkgo('jaeger/helidon')
+                            }
+                        }
+                        stage('jaeger system') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
+                            }
+                            steps {
+                               runGinkgo('jaeger/system')
+                            }
+                        }
+                        stage('jwt helidon') {
+                            when {
+                                expression {params.ENABLE_JWT_TESTING == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME="test-realm"
+                            }
+                            steps {
+                                runGinkgo('jwt/helidon')
+                            }
+                        }
+                        stage('jwt helidon svc') {
+                            when {
+                                expression {params.ENABLE_JWT_TESTING == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME="test-realm"
+                            }
+                            steps {
+                                runGinkgo('jwt/helidon-svc')
+                            }
+                        }
+                        stage('examples helidon-metrics') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
+                            }
+                            when {
+                                expression {params.RUN_SLOW_TESTS == true}
+                            }
+                            steps {
+                                runGinkgo('examples/helidonmetrics')
+                            }
+                        }
+                        stage('logging trait Helidon workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/helidonworkload')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments Group 2') {
+                    parallel {
+                        stage('opensearch-topology') {
+                            steps {
+                                runGinkgoRandomize('opensearch/topology')
+                            }
+                        }
+                        stage('Ingress & logging trait WebLogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/weblogicworkload')
+                            }
+                        }
+                        stage('weblogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+                            }
+                            steps {
+                                runGinkgo('workloads/weblogic')
+                            }
+                        }
+                        stage('coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+                            }
+                            steps {
+                                runGinkgo('workloads/coherence')
+                            }
+                        }
+                        stage('oam workloads') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+                            }
+                            steps {
+                                runGinkgo('workloads/oam')
+                            }
+                        }
+                        stage('logging trait Coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/coherenceworkload')
+                            }
                         }
                     }
                 }
