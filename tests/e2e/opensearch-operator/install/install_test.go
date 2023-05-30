@@ -48,10 +48,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}, timeout, pollInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Install opensearch-operator and cluster")
-	Expect(func() error {
-		err := pkg.InstallOpenSearchOperator(t.Logs)
-		return err
-	}).NotTo(HaveOccurred())
+	err := pkg.InstallOpenSearchOperator(t.Logs)
+	Expect(err).NotTo(HaveOccurred())
 
 	beforeSuitePassed = true
 })
