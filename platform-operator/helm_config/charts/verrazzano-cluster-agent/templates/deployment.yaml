@@ -17,6 +17,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
+        sidecar.istio.io/inject: "false"
     spec:
       {{- if .Values.affinity }}
       affinity: {{ toYaml .Values.affinity | nindent 8 }}
