@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -20,12 +19,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -106,15 +102,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	r.Log.Debug("Reconciling multi-cluster agent")
 
 	// Process one iteration of the agent thread
-	err := r.ProcessAgentThread(ctx, agentSecret)
+	err := r.doReconcile(ctx, agentSecret)
 	if err != nil {
 		r.Log.Errorf("failed processing multi-cluster resources: %v", err)
 	}
 	return clusters.NewRequeueWithRandomDelay(requeueDelayMinSeconds, requeueDelayMaxSeconds), nil
 }
 
-// ProcessAgentThread - process one iteration of the agent thread
-func (r *Reconciler) ProcessAgentThread(ctx context.Context, agentSecret corev1.Secret) error {
+// doReconcile - process one iteration of the agent thread
+func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret) error {
 	managedClusterName := string(agentSecret.Data[constants.ClusterNameData])
 
 	// Initialize the syncer object
@@ -220,91 +216,6 @@ func (r *Reconciler) updateMCAgentStateConfigMap(ctx context.Context, managedClu
 	return nil
 }
 
-func (s *Syncer) updateVMCStatus() error {
-	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-	vmc := v1alpha1.VerrazzanoManagedCluster{}
-	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
-	if err != nil {
-		return err
-	}
-
-	curTime := metav1.Now()
-	vmc.Status.LastAgentConnectTime = &curTime
-	apiURL, err := s.GetAPIServerURL()
-	if err != nil {
-		return fmt.Errorf("Failed to get api server url for vmc %s with error %v", vmcName, err)
-	}
-
-	vmc.Status.APIUrl = apiURL
-	prometheusHost, err := s.GetPrometheusHost()
-	if err != nil {
-		return fmt.Errorf("Failed to get api prometheus host to update VMC %s: %v", vmcName, err)
-	}
-	if prometheusHost != "" {
-		vmc.Status.PrometheusHost = prometheusHost
-	}
-
-	// Get the Thanos API ingress URL from the local managed cluster, and populate
-	// it in the VMC status on the admin cluster, so that admin cluster's Thanos query wire up
-	// to the managed cluster
-	thanosAPIHost, err := s.getThanosQueryStoreAPIHost()
-	if err != nil {
-		return fmt.Errorf("Failed to get Thanos query URL to update VMC %s: %v", vmcName, err)
-	}
-
-	// If Thanos is disabled, we want to empty the host so Prometheus federation returns
-	vmc.Status.ThanosQueryStore = thanosAPIHost
-
-	// update status of VMC
-	return s.AdminClient.Status().Update(s.Context, &vmc)
-}
-
-// SyncMultiClusterResources - sync multi-cluster objects
-func (s *Syncer) SyncMultiClusterResources() {
-	// if the MultiClusterApplicationConfiguration CRD does not exist, the other MC resources are
-	// unlikely to exist, and we don't need to sync the resources
-	mcAppConfCRD := apiextv1.CustomResourceDefinition{}
-	if err := s.LocalClient.Get(s.Context,
-		types.NamespacedName{Name: mcAppConfCRDName}, &mcAppConfCRD); err != nil {
-		if apierrors.IsNotFound(err) {
-			s.Log.Debugf("CRD %s not found - skip syncing multicluster resources", mcAppConfCRDName)
-			return
-		}
-		s.Log.Errorf("Failed retrieving CRD %s: %v", mcAppConfCRDName, err)
-	}
-	err := s.syncVerrazzanoProjects()
-	if err != nil {
-		s.Log.Errorf("Failed syncing VerrazzanoProject objects: %v", err)
-	}
-
-	// Synchronize objects one namespace at a time
-	for _, namespace := range s.ProjectNamespaces {
-		err = s.syncSecretObjects(namespace)
-		if err != nil {
-			s.Log.Errorf("Failed to sync Secret objects: %v", err)
-		}
-		err = s.syncMCSecretObjects(namespace)
-		if err != nil {
-			s.Log.Errorf("Failed to sync MultiClusterSecret objects: %v", err)
-		}
-		err = s.syncMCConfigMapObjects(namespace)
-		if err != nil {
-			s.Log.Errorf("Failed to sync MultiClusterConfigMap objects: %v", err)
-		}
-		err = s.syncMCComponentObjects(namespace)
-		if err != nil {
-			s.Log.Errorf("Failed to sync MultiClusterComponent objects: %v", err)
-		}
-		err = s.syncMCApplicationConfigurationObjects(namespace)
-		if err != nil {
-			s.Log.Errorf("Failed to sync MultiClusterApplicationConfiguration objects: %v", err)
-		}
-
-		s.processStatusUpdates()
-
-	}
-}
-
 // Validate the agent secret
 func validateAgentSecret(secret *corev1.Secret) error {
 	// The secret must contain a cluster name
@@ -382,43 +293,4 @@ func discardStatusMessages(statusUpdateChannel chan clusters.StatusUpdateMessage
 	for i := 0; i < length; i++ {
 		<-statusUpdateChannel
 	}
-}
-
-// GetAPIServerURL returns the API Server URL for Verrazzano instance.
-func (s *Syncer) GetAPIServerURL() (string, error) {
-	ingress := &networkingv1.Ingress{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
-	}
-	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
-}
-
-// GetPrometheusHost returns the prometheus host for Verrazzano instance.
-func (s *Syncer) GetPrometheusHost() (string, error) {
-	ingress := &networkingv1.Ingress{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzPrometheusIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
-	}
-	return ingress.Spec.Rules[0].Host, nil
-}
-
-// getThanosQueryStoreAPIHost returns the Thanos Query Store API Endpoint URL for Verrazzano instance.
-func (s *Syncer) getThanosQueryStoreAPIHost() (string, error) {
-	ingress := &networkingv1.Ingress{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: vzconstants.ThanosQueryStoreIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
-	}
-	return ingress.Spec.Rules[0].Host, nil
 }
