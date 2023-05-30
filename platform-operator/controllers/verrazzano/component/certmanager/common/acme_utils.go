@@ -4,36 +4,51 @@
 package common
 
 import (
-	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strings"
 )
 
-func IsLetsEncryptProductionEnv(acme vzapi.Acme) bool {
-	return strings.ToLower(acme.Environment) == letsencryptProduction
+func IsLetsEncryptProductionEnv(acme interface{}) bool {
+	var envName string
+	if v1alpha1LEIssuer, ok := acme.(vzapi.LetsEncryptACMEIssuer); ok {
+		envName = v1alpha1LEIssuer.Environment
+	}
+	if v1beta1LEIssuer, ok := acme.(v1beta1.LetsEncryptACMEIssuer); ok {
+		envName = v1beta1LEIssuer.Environment
+	}
+	if v1alpha1ACME, ok := acme.(vzapi.Acme); ok {
+		envName = v1alpha1ACME.Environment
+	}
+	if v1beta1ACME, ok := acme.(v1beta1.Acme); ok {
+		envName = v1beta1ACME.Environment
+	}
+	return strings.ToLower(envName) == LetsEncryptProduction
 }
 
-func IsLetsEncryptStaging(compContext spi.ComponentContext) bool {
-	acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment
-	return acmeEnvironment != "" && strings.ToLower(acmeEnvironment) != "production"
+func IsLetsEncryptStagingEnv(acme interface{}) bool {
+	var envName string
+	if v1alpha1LEIssuer, ok := acme.(vzapi.LetsEncryptACMEIssuer); ok {
+		envName = v1alpha1LEIssuer.Environment
+	}
+	if v1beta1LEIssuer, ok := acme.(v1beta1.LetsEncryptACMEIssuer); ok {
+		envName = v1beta1LEIssuer.Environment
+	}
+	if v1alpha1ACME, ok := acme.(vzapi.Acme); ok {
+		envName = v1alpha1ACME.Environment
+	}
+	if v1beta1ACME, ok := acme.(v1beta1.Acme); ok {
+		envName = v1beta1ACME.Environment
+	}
+	return strings.ToLower(envName) == LetsEncryptStaging
 }
 
-func convertIfNecessary(vz interface{}) (*vzapi.Verrazzano, error) {
-	if vz == nil {
-		return nil, fmt.Errorf("Unable to convert, nil Verrazzano reference")
+func IsLetsEncryptProvider(acme interface{}) bool {
+	if v1alpha1ACME, ok := acme.(vzapi.Acme); ok {
+		return strings.ToLower(string(v1alpha1ACME.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
 	}
-	if vzv1beta1, ok := vz.(*v1beta1.Verrazzano); ok {
-		cr := &vzapi.Verrazzano{}
-		if err := cr.ConvertFrom(vzv1beta1); err != nil {
-			return nil, err
-		}
-		return cr, nil
+	if v1beta1ACME, ok := acme.(v1beta1.Acme); ok {
+		return strings.ToLower(string(v1beta1ACME.Provider)) == strings.ToLower(string(v1beta1.LetsEncrypt))
 	}
-	cr, ok := vz.(*vzapi.Verrazzano)
-	if !ok {
-		return nil, fmt.Errorf("Unable to convert, not a Verrazzano v1alpha1 reference")
-	}
-	return cr, nil
+	return false
 }
