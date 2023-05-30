@@ -595,8 +595,8 @@
           "name": "prometheus",
           "images": [
             {
-              "image": "prometheus",
-              "tag": "v2.38.0-20230524145024-186a8ee6",
+              "image": "prometheus-jenkins",
+              "tag": "v2.44.0-20230530180138-20978541",
               "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
