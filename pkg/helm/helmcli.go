@@ -144,7 +144,7 @@ func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace stri
 func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
-	args := []string{"--install"}
+	args := []string{"--install", "--history-max", "1"}
 
 	// Do not pass the --reuse-values arg to 'helm upgrade'.  Instead, pass the
 	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
