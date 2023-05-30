@@ -13,7 +13,7 @@ import (
 
 type DNSConfig struct {
 	EnvironmentName string
-	DNSDomain       string
+	DNSSuffix       string
 }
 
 var openSearchCMTemplate = `apiVersion: v1
@@ -26,8 +26,8 @@ data:
       openSearch:
         enable: true
         annotations:
-          cert-manager.io/common-name: opensearch.logging.{{ .EnvironmentName }}.{{ .DNSDomain }}
-          external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .EnvironmentName }}.{{ .DNSDomain }}
+          cert-manager.io/common-name: opensearch.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
+          external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .EnvironmentName }}.{{ .DNSSuffix }}
           external-dns.alpha.kubernetes.io/ttl: "60"
           kubernetes.io/tls-acme: "true"
           nginx.ingress.kubernetes.io/proxy-body-size: 65M
@@ -36,19 +36,19 @@ data:
           nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
         path: /()(.*)
         ingressClassName: verrazzano-nginx
-        host: opensearch.logging.{{ .EnvironmentName }}.{{ .DNSDomain }}
+        host: opensearch.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
         serviceName: verrazzano-authproxy
         portNumber: 8775
         tls:
           - secretName: tls-opensearch-ingress
             hosts:
-              - opensearch.logging.{{ .EnvironmentName }}.{{ .DNSDomain }}
+              - opensearch.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
 
       openSearchDashboards:
         enable: true
         annotations:
-          cert-manager.io/common-name: osd.logging.{{ .EnvironmentName }}.{{ .DNSDomain }}
-          external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .EnvironmentName }}.{{ .DNSDomain }}
+          cert-manager.io/common-name: osd.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
+          external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .EnvironmentName }}.{{ .DNSSuffix }}
           external-dns.alpha.kubernetes.io/ttl: "60"
           kubernetes.io/tls-acme: "true"
           nginx.ingress.kubernetes.io/proxy-body-size: 65M
@@ -57,13 +57,13 @@ data:
           nginx.ingress.kubernetes.io/upstream-vhost: ${service_name}.${namespace}.svc.cluster.local
         path: /()(.*)
         ingressClassName: verrazzano-nginx
-        host: osd.logging.{{ .EnvironmentName }}.{{ .DNSDomain }}
+        host: osd.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
         serviceName: verrazzano-authproxy
         portNumber: 8775
         tls:
           - secretName: tls-osd-ingress
             hosts:
-              - osd.logging.{{ .EnvironmentName }}.{{ .DNSDomain }}
+              - osd.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
     openSearchCluster:
       enabled: true
       name: opensearch
@@ -151,7 +151,7 @@ func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
 		return err
 	}
 	currentEnvironmentName := GetEnvironmentName(cr)
-	currentDNSDomain := GetDNS(cr)
+	currentDNSSuffix := fmt.Sprintf("%s.%s", GetIngressIP(), GetDNS(cr))
 
 	template, err := template.New("openSearchCMTemplate").Parse(openSearchCMTemplate)
 	if err != nil {
@@ -161,7 +161,7 @@ func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
 	var buffer bytes.Buffer
 	err = template.Execute(&buffer, DNSConfig{
 		EnvironmentName: currentEnvironmentName,
-		DNSDomain:       currentDNSDomain,
+		DNSSuffix:       currentDNSSuffix,
 	})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
