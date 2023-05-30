@@ -592,7 +592,7 @@ pipeline {
                     when {
                         expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
                     }
-                    stages {
+                    steps {
                         stage('Install openSearch-operator') {
                             steps {
                                 runGinkgo('opensearch-operator/install')

@@ -11,7 +11,7 @@ import (
 	"text/template"
 )
 
-type Dns struct {
+type DnsConfig struct {
 	EnvironmentName string
 	DNSDomain       string
 }
@@ -164,7 +164,7 @@ func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
 		return err
 	}
 	var buffer bytes.Buffer
-	err = template.Execute(&buffer, Dns{
+	err = template.Execute(&buffer, DnsConfig{
 		EnvironmentName: currentEnvironmentName,
 		DNSDomain:       currentDNSDomain,
 	})
