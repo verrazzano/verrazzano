@@ -5,6 +5,7 @@ package alacarte
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -25,6 +26,11 @@ const (
 	istioAppStack          = "istio-app-stack"
 	clusterManagementStack = "cluster-management-stack"
 	noneProfile            = "none-profile"
+
+	ociConfigSecretName          = "oci"
+	dnsZoneCompartmentOCIDEnvvar = "OCI_ZONE_COMPARTMENT_ID"
+	dnsZoneOCIDEnvvar            = "DNS_ZONE_OCID"
+	dnsZoneNameEnvvar            = "OCI_DNS_ZONE_NAME"
 )
 
 var (
@@ -81,6 +87,13 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.OAM = &vzapi.OAMComponent{Enabled: &trueVal}
 	cr.Spec.Components.Verrazzano = &vzapi.VerrazzanoComponent{Enabled: &trueVal}
 	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{Enabled: &trueVal}
+	cr.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{
+		DNSZoneCompartmentOCID: os.Getenv(dnsZoneCompartmentOCIDEnvvar),
+		DNSZoneOCID:            os.Getenv(dnsZoneOCIDEnvvar),
+		DNSZoneName:            os.Getenv(dnsZoneNameEnvvar),
+		OCIConfigSecret:        ociConfigSecretName,
+	}}
+
 
 	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
 	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
@@ -111,6 +124,7 @@ func (m noneModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(getModifer(updateType)).ToNot(BeNil(), fmt.Sprintf("Provided update type %s was not a supported update type", updateType))
+	os.Getenv("")
 })
 
 var _ = BeforeSuite(beforeSuite)

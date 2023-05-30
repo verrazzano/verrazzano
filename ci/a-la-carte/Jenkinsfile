@@ -4,6 +4,9 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -40,6 +43,10 @@ pipeline {
                 defaultValue: 'my-cert-manager',
                 description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
                 trim: true)
+        // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
+        choice (description: 'OCI region to create the DNS Zone in', name: 'OKE_CLUSTER_REGION',
+            // 1st choice is the default value
+            choices: availableRegions )
     }
 
     environment {
@@ -64,6 +71,16 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+
+        // Environment variables required for OCIDNS
+        OCI_ZONE_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OKE_CLUSTER_REGION = "${params.OKE_CLUSTER_REGION}"
+        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -267,8 +284,17 @@ pipeline {
             }
             steps {
                 sh """
+                    # install third party cert-manager and nginx
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/install_third_party_components.sh
+                """
+
+               script {
+                    env.DNS_ZONE_OCID = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${OCI_ZONE_COMPARTMENT_ID} -s z${zoneId} -k PUBLIC", returnStdout: true)
+                }
+
+                sh """
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                 """
 
                 runGinkgoUpdate('update/a-la-carte', 'app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
