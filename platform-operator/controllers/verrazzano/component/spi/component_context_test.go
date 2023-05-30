@@ -202,7 +202,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			// Tests EffectiveCR method
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results in %s", test.expectedYAML)
+
+			// Compare YAML strings to get proper diffs
+			expectedBytes, _ := yaml.Marshal(expectedVZ)
+			ecrBytes, _ := yaml.Marshal(context.EffectiveCR())
+			a.YAMLEqf(string(expectedBytes), string(ecrBytes), "Unexpected diffs")
+
 			// Tests Log method
 			a.Equal(log, context.Log(), "The log in the context doesn't match the original one")
 		})
