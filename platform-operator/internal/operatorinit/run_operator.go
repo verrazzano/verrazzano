@@ -24,6 +24,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
@@ -31,7 +32,7 @@ import (
 	"time"
 )
 
-const vpoHelmChartName = "vpo-helm-chart"
+const vpoHelmChartConfigMapName = "vpo-helm-chart"
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
@@ -52,14 +53,19 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	}
 	vpoHelmChartConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: vpoHelmChartName,
+			Name:      vpoHelmChartConfigMapName,
+			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 	}
 	err = generateConfigMapFromHelmChartFiles(chartDir, "", files, vpoHelmChartConfigMap)
 	if err != nil {
 		return errors.Wrap(err, "Failed to generate config map containing the verrazzano-platform-operator helm chart")
 	}
-	err = createVPOHelmChartConfigMap(vpoHelmChartConfigMap)
+	kubeClient, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	err = createVPOHelmChartConfigMap(kubeClient, vpoHelmChartConfigMap)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create/update config map containing the verrazzano-platform-operator helm chart")
 	}
@@ -185,13 +191,8 @@ func addKeyForFileToConfigMap(dir string, key string, configMap *corev1.ConfigMa
 }
 
 // createVPOHelmChartConfigMap creates a config map containing the VPO helm chart
-func createVPOHelmChartConfigMap(configMap *corev1.ConfigMap) error {
-	kubeClient, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return err
-	}
-
-	_, err = kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Get(context.TODO(), configMap.Name, metav1.GetOptions{})
+func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *corev1.ConfigMap) error {
+	_, err := kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Get(context.TODO(), configMap.Name, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			_, err = kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
