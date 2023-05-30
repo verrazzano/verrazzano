@@ -78,8 +78,9 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OKE_CLUSTER_REGION = "${params.OKE_CLUSTER_REGION}"
+        OCI_CLI_REGION = "${params.OCI_CLI_REGION}"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+        OCI_CLI_CONFIG_FILE = credentials('oci-dev-api-key-file')
 
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
@@ -287,6 +288,21 @@ pipeline {
                     # install third party cert-manager and nginx
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/install_third_party_components.sh
+                """
+
+                sh """
+                    mkdir -p ~/.oci
+                    cp ${OCI_CLI_CONFIG_FILE} ~/.oci
+                    rm -rf ~/.oci/config
+                    {
+                      echo '[DEFAULT]'
+                      echo 'user=${OCI_CLI_USER}'
+                      echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
+                      echo 'tenancy=${OCI_CLI_TENANCY}'
+                      echo 'region=${OCI_CLI_REGION}'
+                      echo 'key_file=~/.oci/alm.pem'
+                    } >> ~/.oci/config
+                    oci setup repair-file-permissions --file /home/opc/.oci/config
                 """
 
                script {
