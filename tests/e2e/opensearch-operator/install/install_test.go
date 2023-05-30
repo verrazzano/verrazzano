@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
 	"time"
@@ -23,26 +22,22 @@ const (
 
 var (
 	t = framework.NewTestFramework("install")
-	//kubeClientSet *kubernetes.Clientset
+	//client *vpoClient.Clientset
 	//restConfig    *rest.Config
 )
 
 var beforeSuitePassed = false
-var failed = false
 var _ = t.AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
+	CurrentSpecReport().Failed()
 })
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	if failed {
-		dump.ExecuteBugReport()
-	}
 	pkg.UninstallOpenSearchOperator()
 })
 
 var _ = AfterSuite(afterSuite)
-
 var _ = BeforeSuite(beforeSuite)
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	t.Logs.Info(fmt.Sprintf("Creating %s namespace", loggingNamespace))
 	Eventually(func() (*v1.Namespace, error) {
@@ -61,6 +56,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-//var _ = t.Describe("OpenSearch field mappings", func() {
-//
-//})
+var _ = t.Describe("OpenSearch Verify Install", func() {
+	t.It("sts are ready", func() {
+		Eventually(func() bool {
+			isReady, err := pkg.PodsRunning(loggingNamespace, []string{"opensearch"})
+			if err != nil {
+				return false
+			}
+			return isReady
+		}, timeout, pollInterval).Should(BeTrue(), "OpenSearch failed to get to ready state")
+	})
+})
