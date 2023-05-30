@@ -130,3 +130,68 @@ func TestSyncDeregistration(t *testing.T) {
 		})
 	}
 }
+
+// TestVerifyDeregister tests function to decide if the cluster should be deregistered
+// GIVEN objects on the managed cluster used for managed cluster synchronization
+// WHEN deregistration is expected
+// THEN the function returns true
+func TestVerifyDeregister(t *testing.T) {
+	assert := asserts.New(t)
+
+	scheme := k8scheme.Scheme
+	err := clustersv1alpha1.AddToScheme(scheme)
+	assert.NoError(err)
+
+	vmcDeleted := clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         constants.VerrazzanoMultiClusterNamespace,
+			Name:              testClusterName,
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+		},
+	}
+	adminDeleted := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&vmcDeleted).Build()
+
+	vmc := clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      testClusterName,
+		},
+	}
+	admin := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&vmc).Build()
+
+	tests := []struct {
+		name        string
+		adminClient client.Client
+		expectFunc  func(bool, ...interface{}) bool
+	}{
+		{
+			name:        "test nil Admin client",
+			adminClient: nil,
+			expectFunc:  assert.True,
+		},
+		{
+			name:        "test non zero timestamp",
+			adminClient: adminDeleted,
+			expectFunc:  assert.True,
+		},
+		{
+			name:        "test zero deletion timestamp",
+			adminClient: admin,
+			expectFunc:  assert.False,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Syncer{
+				AdminClient:        tt.adminClient,
+				Log:                zap.S(),
+				ManagedClusterName: testClusterName,
+				Context:            context.TODO(),
+			}
+			dereg, err := s.verifyDeregister()
+			assert.NoError(err)
+			tt.expectFunc(dereg)
+		})
+	}
+
+}

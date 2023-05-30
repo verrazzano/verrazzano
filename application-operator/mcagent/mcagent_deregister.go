@@ -16,16 +16,8 @@ import (
 
 // syncMCAgentDeleteResources deletes the managed cluster resources if the correlating admin VMC gets deleted
 func (s *Syncer) syncDeregistration() error {
-	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-	vmc := clustersapi.VerrazzanoManagedCluster{}
-	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
-	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
-		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
+	if shouldDeregister, err := s.verifyDeregister(); err != nil || !shouldDeregister {
 		return err
-	}
-	if err == nil && vmc.DeletionTimestamp.IsZero() {
-		s.Log.Debugf("VMC resource %s/%s has been found and is not being deleted, skipping the MC Agent deregistration", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName)
-		return nil
 	}
 
 	s.Log.Infof("Verrazzano Managed Cluster %s/%s has been deleted, cleaning up managed cluster resources", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName)
@@ -35,7 +27,7 @@ func (s *Syncer) syncDeregistration() error {
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	err = s.LocalClient.Delete(context.TODO(), &mcAgentSec)
+	err := s.LocalClient.Delete(context.TODO(), &mcAgentSec)
 	if client.IgnoreNotFound(err) != nil {
 		s.Log.Errorf("Failed to delete the managed cluster agent secret %s/%s: %v", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace, err)
 		return err
@@ -53,4 +45,23 @@ func (s *Syncer) syncDeregistration() error {
 		return err
 	}
 	return nil
+}
+
+func (s *Syncer) verifyDeregister() (bool, error) {
+	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+	vmc := clustersapi.VerrazzanoManagedCluster{}
+
+	if s.AdminClient == nil {
+		return true, nil
+	}
+	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
+	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
+		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
+		return false, err
+	}
+	if err == nil && vmc.DeletionTimestamp.IsZero() {
+		s.Log.Debugf("VMC resource %s/%s has been found and is not being deleted, skipping the MC Agent deregistration", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName)
+		return false, err
+	}
+	return true, nil
 }
