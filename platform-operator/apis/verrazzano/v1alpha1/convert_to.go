@@ -147,7 +147,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
-		CAPI:                   convertCAPIToV1Beta1(src.CAPI),
+		ClusterAPI:             convertClusterAPIToV1Beta1(src.ClusterAPI),
 	}, nil
 }
 
@@ -753,11 +753,11 @@ func convertRancherBackupToV1Beta1(src *RancherBackupComponent) *v1beta1.Rancher
 	}
 }
 
-func convertCAPIToV1Beta1(src *CAPIComponent) *v1beta1.CAPIComponent {
+func convertClusterAPIToV1Beta1(src *ClusterAPIComponent) *v1beta1.ClusterAPIComponent {
 	if src == nil {
 		return nil
 	}
-	return &v1beta1.CAPIComponent{
+	return &v1beta1.ClusterAPIComponent{
 		Enabled: src.Enabled,
 	}
 }

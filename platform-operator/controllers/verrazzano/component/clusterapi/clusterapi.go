@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package capi
+package clusterapi
 
 import (
 	"bytes"
@@ -87,7 +87,7 @@ func resetClusterAPIDir() {
 	clusterAPIDir = defaultClusterAPIDir
 }
 
-// preInstall implementation for the CAPI Component
+// preInstall implementation for the ClusterAPI Component
 func preInstall(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
@@ -98,7 +98,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	return createClusterctlYaml(ctx)
 }
 
-// preUpgrade implementation for the CAPI Component
+// preUpgrade implementation for the ClusterAPI Component
 func preUpgrade(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {

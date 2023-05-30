@@ -6,10 +6,10 @@ package registry
 import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
 	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -121,7 +121,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), capi.ComponentName)
+	a.Equal(comps[i].Name(), clusterapi.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++

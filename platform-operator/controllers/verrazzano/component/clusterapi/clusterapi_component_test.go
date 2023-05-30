@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package capi
+package clusterapi
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -34,15 +34,15 @@ const (
 	providerLabel                = "cluster.x-k8s.io/provider"
 )
 
-func fakeCAPINew(_ string, _ ...client.Option) (client.Client, error) {
-	return &FakeCAPIClient{}, nil
+func fakeClusterAPINew(_ string, _ ...client.Option) (client.Client, error) {
+	return &FakeClusterAPIClient{}, nil
 }
 
 // TestNewComponent tests the NewComponent function
 // GIVEN a call to NewComponent
 //
 //	WHEN NewComponent is called
-//	THEN a CAPI Component is returned
+//	THEN a ClusterAPI Component is returned
 func TestNewComponent(t *testing.T) {
 	comp := NewComponent()
 	assert.Empty(t, comp)
@@ -52,9 +52,9 @@ func TestNewComponent(t *testing.T) {
 // GIVEN a call to Name
 //
 //	WHEN Name is called
-//	THEN the CAPI Component name is returned
+//	THEN the ClusterAPI Component name is returned
 func TestName(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	name := comp.Name()
 	assert.Equal(t, ComponentName, name)
 }
@@ -63,9 +63,9 @@ func TestName(t *testing.T) {
 // GIVEN a call to Namespace
 //
 //	WHEN Namespace is called
-//	THEN the CAPI Component namespace is returned
+//	THEN the ClusterAPI Component namespace is returned
 func TestNamespace(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	namespace := comp.Namespace()
 	assert.Equal(t, ComponentNamespace, namespace)
 }
@@ -76,7 +76,7 @@ func TestNamespace(t *testing.T) {
 //	WHEN ShouldInstallBeforeUpgrade is called
 //	THEN false is returned
 func TestShouldInstallBeforeUpgrade(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	flag := comp.ShouldInstallBeforeUpgrade()
 	assert.Equal(t, false, flag)
 }
@@ -85,9 +85,9 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 // GIVEN a call to GetDependencies
 //
 //	WHEN GetDependencies is called
-//	THEN the CAPI Component dependencies are returned
+//	THEN the ClusterAPI Component dependencies are returned
 func TestGetDependencies(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	dependencies := comp.GetDependencies()
 	assert.Len(t, dependencies, 1)
 	assert.Equal(t, cmcontroller.ComponentName, dependencies[0])
@@ -100,7 +100,7 @@ func TestGetDependencies(t *testing.T) {
 //	THEN true is returned
 func TestIsReady(t *testing.T) {
 	fakeClient := getReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	assert.True(t, comp.IsReady(compContext))
 }
@@ -112,7 +112,7 @@ func TestIsReady(t *testing.T) {
 //	THEN false is returned
 func TestIsNotReady(t *testing.T) {
 	fakeClient := getNotReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	assert.False(t, comp.IsReady(compContext))
 }
@@ -124,7 +124,7 @@ func TestIsNotReady(t *testing.T) {
 //	THEN true is returned
 func TestIsAvailable(t *testing.T) {
 	fakeClient := getReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	reason, _ := comp.IsAvailable(compContext)
 	assert.Equal(t, "", reason)
@@ -137,13 +137,13 @@ func TestIsAvailable(t *testing.T) {
 //	THEN false is returned
 func TestIsNotAvailable(t *testing.T) {
 	fakeClient := getNotReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	reason, _ := comp.IsAvailable(compContext)
 	assert.Equal(t, "deployment verrazzano-capi/capi-controller-manager not available: 0/1 replicas ready", reason)
 }
 
-// TestIsEnabled verifies CAPI is enabled or disabled as expected
+// TestIsEnabled verifies ClusterAPI is enabled or disabled as expected
 // GIVEN a Verrzzano CR
 //
 //	WHEN IsEnabled is called
@@ -152,19 +152,19 @@ func TestIsEnabled(t *testing.T) {
 	enabled := true
 	disabled := false
 	c := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-	vzWithCAPI := v1alpha1.Verrazzano{
+	vzWithClusterAPI := v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CAPI: &v1alpha1.CAPIComponent{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
 					Enabled: &enabled,
 				},
 			},
 		},
 	}
-	vzNoCAPI := v1alpha1.Verrazzano{
+	vzNoClusterAPI := v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CAPI: &v1alpha1.CAPIComponent{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
 					Enabled: &disabled,
 				},
 			},
@@ -177,12 +177,12 @@ func TestIsEnabled(t *testing.T) {
 	}{
 		{
 			"should be enabled",
-			spi.NewFakeContext(c, &vzWithCAPI, nil, false),
+			spi.NewFakeContext(c, &vzWithClusterAPI, nil, false),
 			true,
 		},
 		{
 			"should not be enabled",
-			spi.NewFakeContext(c, &vzNoCAPI, nil, false),
+			spi.NewFakeContext(c, &vzNoClusterAPI, nil, false),
 			false,
 		},
 	}
@@ -199,9 +199,9 @@ func TestIsEnabled(t *testing.T) {
 // GIVEN a call to GetMinVerrazzanoVersion
 //
 //	WHEN GetMinVerrazzanoVersion is called
-//	THEN the CAPI Component minimum version is returned
+//	THEN the ClusterAPI Component minimum version is returned
 func TestGetMinVerrazzanoVersion(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	version := comp.GetMinVerrazzanoVersion()
 	assert.Equal(t, constants.VerrazzanoVersion1_6_0, version)
 }
@@ -210,10 +210,10 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 // GIVEN a call to GetIngressNames
 //
 //	WHEN GetIngressNames is called
-//	THEN the no CAPI ingresses are returned
+//	THEN the no ClusterAPI ingresses are returned
 func TestGetIngressNames(t *testing.T) {
 	fakeClient := getReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	ingresses := comp.GetIngressNames(compContext)
 	assert.Len(t, ingresses, 0)
@@ -223,10 +223,10 @@ func TestGetIngressNames(t *testing.T) {
 // GIVEN a call to GetCertificateNames
 //
 //	WHEN GetCertificateNames is called
-//	THEN the no CAPI certificates are returned
+//	THEN the no ClusterAPI certificates are returned
 func TestGetCertificateNames(t *testing.T) {
 	fakeClient := getReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	certificates := comp.GetCertificateNames(compContext)
 	assert.Len(t, certificates, 0)
@@ -236,9 +236,9 @@ func TestGetCertificateNames(t *testing.T) {
 // GIVEN a call to GetJSONName
 //
 //	WHEN GetJSONName is called
-//	THEN the CAPI JSON name is returned
+//	THEN the ClusterAPI JSON name is returned
 func TestGetJSONName(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	json := comp.GetJSONName()
 	assert.Equal(t, ComponentJSONName, json)
 }
@@ -250,7 +250,7 @@ func TestGetJSONName(t *testing.T) {
 //	THEN false is returned
 func TestMonitorOverrides(t *testing.T) {
 	fakeClient := getReadyDeployments().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	monitor := comp.MonitorOverrides(compContext)
 	assert.Equal(t, false, monitor)
@@ -262,7 +262,7 @@ func TestMonitorOverrides(t *testing.T) {
 //	WHEN IsOperatorInstallSupported is called
 //	THEN true is returned
 func TestIsOperatorInstallSupported(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	install := comp.IsOperatorInstallSupported()
 	assert.Equal(t, true, install)
 }
@@ -273,7 +273,7 @@ func TestIsOperatorInstallSupported(t *testing.T) {
 //	WHEN IsOperatorUninstallSupported is called
 //	THEN true is returned
 func TestIsOperatorUninstallSupported(t *testing.T) {
-	var comp capiComponent
+	var comp clusterAPIComponent
 	uninstall := comp.IsOperatorUninstallSupported()
 	assert.Equal(t, true, uninstall)
 }
@@ -281,7 +281,7 @@ func TestIsOperatorUninstallSupported(t *testing.T) {
 // TestIsInstalled tests the IsInstalled function
 // GIVEN a call to IsInstalled
 //
-//	WHEN CAPI is installed
+//	WHEN ClusterAPI is installed
 //	THEN true is returned
 func TestIsInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -291,7 +291,7 @@ func TestIsInstalled(t *testing.T) {
 				Name:      capiCMDeployment,
 			},
 		}).Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	installed, err := comp.IsInstalled(compContext)
 	assert.NoError(t, err)
@@ -301,11 +301,11 @@ func TestIsInstalled(t *testing.T) {
 // TestIsNotInstalled tests the IsInstalled function
 // GIVEN a call to IsInstalled
 //
-//	WHEN CAPI is not installed
+//	WHEN ClusterAPI is not installed
 //	THEN false is returned
 func TestIsNotInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	installed, err := comp.IsInstalled(compContext)
 	assert.NoError(t, err)
@@ -315,7 +315,7 @@ func TestIsNotInstalled(t *testing.T) {
 // TestPreInstall tests the PreInstall function
 // GIVEN a call to PreInstall
 //
-//	WHEN CAPI is pre-installed
+//	WHEN ClusterAPI is pre-installed
 //	THEN no error is returned
 func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
@@ -325,7 +325,7 @@ func TestPreInstall(t *testing.T) {
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
 	defer os.RemoveAll(dir)
-	var comp capiComponent
+	var comp clusterAPIComponent
 	err := comp.PreInstall(compContext)
 	assert.NoError(t, err)
 }
@@ -333,15 +333,15 @@ func TestPreInstall(t *testing.T) {
 // TestInstall tests the Install function
 // GIVEN a call to Install
 //
-//	WHEN CAPI is installed
+//	WHEN ClusterAPI is installed
 //	THEN no error is returned
 func TestInstall(t *testing.T) {
-	SetCAPIInitFunc(fakeCAPINew)
+	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	err := comp.Install(compContext)
 	assert.NoError(t, err)
@@ -350,15 +350,15 @@ func TestInstall(t *testing.T) {
 // TestUninstall tests the Uninstall function
 // GIVEN a call to Uninstall
 //
-//	WHEN CAPI is Uninstalled
+//	WHEN ClusterAPI is Uninstalled
 //	THEN no error is returned
 func TestUninstall(t *testing.T) {
-	SetCAPIInitFunc(fakeCAPINew)
+	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	err := comp.Uninstall(compContext)
 	assert.NoError(t, err)
@@ -367,7 +367,7 @@ func TestUninstall(t *testing.T) {
 // TestPreUpgrade tests the PreUpgrade function
 // GIVEN a call to PreUpgrade
 //
-//	WHEN CAPI is pre-upgraded
+//	WHEN ClusterAPI is pre-upgraded
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
@@ -377,20 +377,20 @@ func TestPreUpgrade(t *testing.T) {
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
 	defer os.RemoveAll(dir)
-	var comp capiComponent
+	var comp clusterAPIComponent
 	err := comp.PreUpgrade(compContext)
 	assert.NoError(t, err)
 }
 
-// WHEN CAPI is upgraded
+// WHEN ClusterAPI is upgraded
 // THEN no error is returned
 func TestUpgrade(t *testing.T) {
-	SetCAPIInitFunc(fakeCAPINew)
+	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	var comp capiComponent
+	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	err := comp.Upgrade(compContext)
 	assert.NoError(t, err)
@@ -399,7 +399,7 @@ func TestUpgrade(t *testing.T) {
 // TestValidateUpdate tests webhook updates
 // GIVEN a call to ValidateUpdate
 //
-//	WHEN the CAPI component is updated in a vz v1alpha1 resource
+//	WHEN the ClusterAPI component is updated in a vz v1alpha1 resource
 //	THEN expected result is returned
 func TestValidateUpdate(t *testing.T) {
 	disabled := false
@@ -414,7 +414,7 @@ func TestValidateUpdate(t *testing.T) {
 			old: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
-						CAPI: &v1alpha1.CAPIComponent{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -429,7 +429,7 @@ func TestValidateUpdate(t *testing.T) {
 			new: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
-						CAPI: &v1alpha1.CAPIComponent{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -457,7 +457,7 @@ func TestValidateUpdate(t *testing.T) {
 // TestValidateUpdateV1Beta1 tests webhook updates
 // GIVEN a call to ValidateUpdateV1Beta1
 //
-//	WHEN the CAPI component is updated in a vz v1beta1 resource
+//	WHEN the ClusterAPI component is updated in a vz v1beta1 resource
 //	THEN expected result is returned
 func TestValidateUpdateV1Beta1(t *testing.T) {
 	disabled := false
@@ -472,7 +472,7 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 			old: &v1beta1.Verrazzano{
 				Spec: v1beta1.VerrazzanoSpec{
 					Components: v1beta1.ComponentSpec{
-						CAPI: &v1beta1.CAPIComponent{
+						ClusterAPI: &v1beta1.ClusterAPIComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -487,7 +487,7 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 			new: &v1beta1.Verrazzano{
 				Spec: v1beta1.VerrazzanoSpec{
 					Components: v1beta1.ComponentSpec{
-						CAPI: &v1beta1.CAPIComponent{
+						ClusterAPI: &v1beta1.ClusterAPIComponent{
 							Enabled: &disabled,
 						},
 					},

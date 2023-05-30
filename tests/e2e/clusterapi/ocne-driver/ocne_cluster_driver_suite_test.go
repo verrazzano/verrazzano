@@ -23,7 +23,7 @@ var controlPlaneSubnet string
 var loadBalancerSubnet string
 
 func init() {
-	flag.StringVar(&region, "region", "", "region represents the region where the CAPI cluster will be created")
+	flag.StringVar(&region, "region", "", "region represents the region where the ClusterAPI cluster will be created")
 	flag.StringVar(&userID, "userID", "", "userID represents the user ID")
 	flag.StringVar(&tenancyID, "tenancyID", "", "tenancyID represents the tenancy ID")
 	flag.StringVar(&compartmentID, "compartmentID", "", "compartmentID represents the compartment ID")

@@ -796,7 +796,7 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
-{{- if .Values.capi.enabled }}
+{{- if .Values.clusterAPI.enabled }}
 ---
 # Network policy for capi-controller-manager
 # Ingress: allow connection from Kubernetes API server to port 9443

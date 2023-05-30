@@ -310,9 +310,9 @@ type ComponentSpec struct {
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
 
-	// The CAPI component configuration.
+	// The ClusterAPI component configuration.
 	// +optional
-	CAPI *CAPIComponent `json:"capi,omitempty"`
+	ClusterAPI *ClusterAPIComponent `json:"clusterAPI,omitempty"`
 
 	// ClusterIssuer defines the Cert-Manager ClusterIssuer configuration for Verrazzano
 	// +optional
@@ -600,9 +600,9 @@ type PrometheusPushgatewayComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// CAPIComponent specifies the CAPI configuration.
-type CAPIComponent struct {
-	// If true, then CAPI Providers will be installed.
+// ClusterAPIComponent specifies the Cluster API configuration.
+type ClusterAPIComponent struct {
+	// If true, then Cluster API Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }

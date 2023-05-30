@@ -64,5 +64,5 @@ velero:
 argocd:
   enabled: false
 
-capi:
+clusterAPI:
   enabled: false
