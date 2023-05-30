@@ -124,7 +124,6 @@ func (m noneModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(getModifer(updateType)).ToNot(BeNil(), fmt.Sprintf("Provided update type %s was not a supported update type", updateType))
-	os.Getenv("")
 })
 
 var _ = BeforeSuite(beforeSuite)
