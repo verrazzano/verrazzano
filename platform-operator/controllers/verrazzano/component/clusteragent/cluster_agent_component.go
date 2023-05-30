@@ -70,6 +70,14 @@ func (c clusterAgentComponent) isClusterAgentReady(ctx spi.ComponentContext) boo
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
+// IsReady checks if the cluster agent deployment is ready
+func (c clusterAgentComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return c.isClusterAgentReady(ctx)
+	}
+	return false
+}
+
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
 func (c clusterAgentComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.ClusterAgent != nil {
