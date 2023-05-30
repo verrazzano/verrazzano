@@ -146,11 +146,6 @@ metadata:
   namespace: default`
 
 func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
-	//kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	//if err != nil {
-	//	Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-	//	return err
-	//}
 	cr, err := GetVerrazzano()
 	if err != nil {
 		return err
@@ -177,4 +172,13 @@ func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
 	err = resource.CreateOrUpdateResourceFromBytes(data, log)
 
 	return err
+}
+
+func UninstallOpenSearchOperator() error {
+	err := DeleteConfigMap("default", "dev-opensearch")
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error: %v", err))
+		return err
+	}
+	return nil
 }

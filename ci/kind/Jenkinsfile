@@ -589,28 +589,18 @@ pipeline {
                 }
 
                 stage('Run OpenSearch Operator tests') {
-                    when {
-                        expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
-                    }
                     steps {
-                        stage('Install openSearch-operator') {
-                            steps {
-                                runGinkgo('opensearch-operator/install')
-                            }
-                        }
-                        stage('Verify opensearch is ready') {
-
-                        }
-                        stage('Switch fluentd output') {
-                        }
-                        stage('Run opensearch-operator tests') {
-                            parallel {
-                                stage('examples logging helidon') {
+                        script {
+                            if(params.RUN_OPENSEARCH_OPERATOR_TESTS == true) {
+                                stage('Install openSearch-operator') {
+                                    steps {
+                                        runGinkgo('opensearch-operator/install')
+                                    }
+                                }
+                                stage('Verify opensearch is ready') {
 
                                 }
-                                stage('verify ingress') {
-                                }
-                                stage('opensearch-topology') {
+                                stage('Switch fluentd output') {
                                 }
                             }
                         }

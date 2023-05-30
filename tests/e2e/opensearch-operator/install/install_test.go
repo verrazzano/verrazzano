@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
 	"time"
@@ -27,6 +28,19 @@ var (
 )
 
 var beforeSuitePassed = false
+var failed = false
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
+var afterSuite = t.AfterSuiteFunc(func() {
+	if failed {
+		dump.ExecuteBugReport()
+	}
+	pkg.UninstallOpenSearchOperator()
+})
+
+var _ = AfterSuite(afterSuite)
 
 var _ = BeforeSuite(beforeSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -46,3 +60,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	beforeSuitePassed = true
 })
+
+//var _ = t.Describe("OpenSearch field mappings", func() {
+//
+//})
