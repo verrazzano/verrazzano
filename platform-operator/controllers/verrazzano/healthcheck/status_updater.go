@@ -83,7 +83,7 @@ func (v *VerrazzanoStatusUpdater) Start() {
 					return
 				}
 				if err := v.doUpdate(event); err != nil {
-					v.logger.Errorf("%v", err)
+					v.logger.Errorf("Error updating component status: %v", err)
 				}
 			}
 		}()
