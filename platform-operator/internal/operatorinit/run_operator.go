@@ -148,7 +148,7 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	return nil
 }
 
-// generateConfigMapFromHelmChartFiles generates a config with the files from a given helm chart directory
+// generateConfigMapFromHelmChartFiles generates a config map with the files from a given helm chart directory
 func generateConfigMapFromHelmChartFiles(dir string, key string, files []os.DirEntry, configMap *corev1.ConfigMap) error {
 	for _, file := range files {
 		newKey := file.Name()
@@ -184,13 +184,14 @@ func addKeyForFileToConfigMap(dir string, key string, configMap *corev1.ConfigMa
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
+	// Use "..." as a path separator since "/" is an invalid character for a config map data key
 	keyName := strings.ReplaceAll(key, "/", "...")
 	configMap.Data[keyName] = string(data)
 
 	return nil
 }
 
-// createVPOHelmChartConfigMap creates a config map containing the VPO helm chart
+// createVPOHelmChartConfigMap creates/updates a config map containing the VPO helm chart
 func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *corev1.ConfigMap) error {
 	_, err := kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Get(context.TODO(), configMap.Name, metav1.GetOptions{})
 	if err != nil {
