@@ -594,7 +594,9 @@ pipeline {
                     }
                     stages {
                         stage('Install openSearch-operator') {
-
+                            steps {
+                                runGinkgo('opensearch-operator/install')
+                            }
                         }
                         stage('Verify opensearch is ready') {
 
