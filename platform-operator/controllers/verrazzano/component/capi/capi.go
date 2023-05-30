@@ -13,17 +13,13 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -271,86 +267,33 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	return buf, nil
 }
 
-// createOrUpdateKontainerCR - Create or update the kontainerdrivers.management.cattle.io object that
+// activateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
 // registers the ociocne driver
-func createOrUpdateKontainerCR(ctx spi.ComponentContext) error {
+func activateKontainerDriver(ctx spi.ComponentContext) error {
 	// Nothing to do if Rancher is not enabled
 	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
+
+	// Setup dynamic client
+	dynClient, err := getDynamicClientFunc()
+	if err != nil {
+		return fmt.Errorf("Failed to get dynamic client: %v", err)
+	}
+
+	// Get the driver object
+	var driverObj *unstructured.Unstructured
 	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
-	driverVersion, driverChecksum, err := parseRancherBOM(ctx.Log())
+	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to obtain additional Rancher settings from the BOM file: %v", err)
-	}
-
-	// Form the URL for downloading the driver
-	var ingress = &networkingv1.Ingress{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, ingress)
-	if err != nil {
-		return err
-	}
-	if ingress.Annotations != nil {
-		var driverURL string
-		if commonName, ok := ingress.Annotations["cert-manager.io/common-name"]; ok {
-			driverURL = fmt.Sprintf("https://%s/kontainerdriver/%s/%s/kontainer-engine-driver-%s-linux", commonName, kontainerDriverName, driverVersion, kontainerDriverName)
+		if errors.IsNotFound(err) {
+			return nil
 		}
-		// Setup dynamic client
-		dynClient, err := getDynamicClientFunc()
-		if err != nil {
-			return fmt.Errorf("Failed to get dynamic client: %v", err)
-		}
-
-		// Does the object already exist?
-		var driverObj *unstructured.Unstructured
-		driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				_, err = createDriver(dynClient, gvr, kontainerDriverObjectName, driverURL, driverChecksum)
-				if err != nil {
-					return fmt.Errorf("Failed to create %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
-				}
-				return nil
-			}
-			return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
-		}
-
-		// Update the existing record
-		driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = driverChecksum
-		driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
-		_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
-		return err
-	}
-	return fmt.Errorf("failed to create hosted driver, %s/rancher ingress not ready", "cattle-system")
-}
-
-func parseRancherBOM(log vzlog.VerrazzanoLogger) (string, string, error) {
-	// Get BOM file
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return "", "", log.ErrorNewErr("Failed to get the BOM file: ", err)
+		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 	}
 
-	// Parse Rancher settings for ociocne driver
-	subComponent, err := bomFile.GetSubcomponent("rancher")
-	if err != nil {
-		return "", "", log.ErrorNewErr("Failed to get rancher subcomponent from BOM: %v", err)
-	}
-	image, err := bomFile.FindImage(subComponent, "rancher")
-	if err != nil {
-		return "", "", log.ErrorNewErr("Failed to get rancher image from subcomponent: %v", err)
-	}
-	return image.OCNEDriverVersion, image.OCNEDriverChecksum, nil
-}
-
-func createDriver(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string, driverURL string, checksum string) (*unstructured.Unstructured, error) {
-	driverObj := unstructured.Unstructured{}
-	driverObj.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("KontainerDriver"))
-	driverObj.SetName(name)
-	driverObj.UnstructuredContent()["spec"] = map[string]interface{}{}
+	// Activate the driver
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["builtIn"] = false
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["checksum"] = checksum
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = driverURL
-	return dynClient.Resource(gvr).Create(context.TODO(), &driverObj, metav1.CreateOptions{})
+	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+	return err
 }

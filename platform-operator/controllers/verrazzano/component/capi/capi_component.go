@@ -196,7 +196,7 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 }
 
 func (c capiComponent) PostInstall(ctx spi.ComponentContext) error {
-	return createOrUpdateKontainerCR(ctx)
+	return activateKontainerDriver(ctx)
 }
 
 func (c capiComponent) IsOperatorUninstallSupported() bool {
@@ -260,7 +260,7 @@ func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
 }
 
 func (c capiComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	return createOrUpdateKontainerCR(ctx)
+	return activateKontainerDriver(ctx)
 }
 
 func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
