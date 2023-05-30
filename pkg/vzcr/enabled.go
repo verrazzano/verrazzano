@@ -4,6 +4,7 @@
 package vzcr
 
 import (
+	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -142,6 +143,61 @@ func IsCertManagerWebhookOCIEnabled(cr runtime.Object) bool {
 		}
 	}
 	return false
+}
+
+// IsCertManagerWebhookOCIRequired - Returns true if the ExternalCertManager component is explicitly enabled, OR
+// if all of the following is true:
+// - ACME/LetsEncrypt certificates are configured
+// - OCI DNS is enabled
+// - the ClusterIssuerComponent is enabled
+//
+// This behavior is to allow backwards compatibility with earlier releases where the behavior was not implemented in
+// a separate component, and was implicitly enabled by the other conditions
+func IsCertManagerWebhookOCIRequired(cr runtime.Object) bool {
+	isLetsEncryptConfig, _ := IsLetsEncryptConfig(cr)
+	return IsCertManagerWebhookOCIEnabled(cr) || IsOCIDNSEnabled(cr) && isLetsEncryptConfig && IsClusterIssuerEnabled(cr)
+}
+
+// IsLetsEncryptConfig - Check if cert-type is LetsEncrypt
+func IsLetsEncryptConfig(cr runtime.Object) (bool, error) {
+	if cr == nil {
+		return false, fmt.Errorf("Nil CR passed in")
+	}
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		componentSpec := vzv1alpha1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return false, nil
+		}
+		return componentSpec.ClusterIssuer.IsLetsEncryptIssuer()
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		componentSpec := vzv1beta1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return false, nil
+		}
+		return componentSpec.ClusterIssuer.IsLetsEncryptIssuer()
+	}
+	return false, fmt.Errorf("Illegal configuration state, unable to resolve ClusterIssuerComponent type: %v", cr)
+}
+
+// IsCAConfig - Check if cert-type is CA, if not it is assumed to be Acme
+func IsCAConfig(cr runtime.Object) (bool, error) {
+	if cr == nil {
+		return false, fmt.Errorf("Nil CR passed in")
+	}
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		componentSpec := vzv1alpha1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return true, nil
+		}
+		return componentSpec.ClusterIssuer.IsCAIssuer()
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		componentSpec := vzv1beta1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return true, nil
+		}
+		return componentSpec.ClusterIssuer.IsCAIssuer()
+	}
+	return false, fmt.Errorf("Illegal configuration state, unable to resolve ClusterIssuerComponent type: %v", cr)
 }
 
 // IsKialiEnabled - Returns false only if explicitly disabled in the CR

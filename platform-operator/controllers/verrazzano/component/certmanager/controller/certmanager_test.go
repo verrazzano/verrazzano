@@ -13,6 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -30,9 +31,10 @@ import (
 )
 
 const (
-	profileDir    = "../../../../../manifests/profiles"
-	testNamespace = "testNamespace"
-	testBomFile   = "../../../testdata/test_bom.json"
+	profileDir     = "../../../../../manifests/profiles"
+	testNamespace  = "testNamespace"
+	testBomFile    = "../../../testdata/test_bom.json"
+	defaultBomFile = "../../../../../verrazzano-bom.json"
 )
 
 const (
@@ -80,7 +82,7 @@ func init() {
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = common.GetBoolPtr(true)
+	localvz.Spec.Components.CertManager.Enabled = cmcommonfake.GetBoolPtr(true)
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
@@ -109,7 +111,7 @@ func TestCleanTempFiles(t *testing.T) {
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
-	localvz.Spec.Components.CertManager.Enabled = common.GetBoolPtr(false)
+	localvz.Spec.Components.CertManager.Enabled = cmcommonfake.GetBoolPtr(false)
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
@@ -129,12 +131,15 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 // WHEN a VZ spec is passed with install args
 // THEN the values created properly
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFile)
+	defer config.SetDefaultBomFilePath("")
+
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	defer func() { common.ResetCoreV1ClientFunc() }()
 	common.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})
@@ -445,7 +450,7 @@ func newReplicaSet(name string) *appsv1.ReplicaSet {
 }
 
 func createCertSecretNoParent(name string, namespace string, cn string) (*v1.Secret, error) {
-	fakeCertBytes, err := common.CreateFakeCertBytes(cn, nil)
+	fakeCertBytes, err := cmcommonfake.CreateFakeCertBytes(cn, nil)
 	if err != nil {
 		return nil, err
 	}

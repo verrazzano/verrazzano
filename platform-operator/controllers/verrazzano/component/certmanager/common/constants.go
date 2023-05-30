@@ -3,17 +3,22 @@
 
 package common
 
-// CertManagerConfigComponentName is the name of the CertManager config component
-const CertManagerConfigComponentName = "cert-manager-config"
+const (
+	// ClusterIssuerConfigComponentName is the name of the CertManager config component
+	ClusterIssuerConfigComponentName = "cluster-issuer"
 
-// CertManagerComponentName is the name of the Verrazzano CertManager component
-const CertManagerComponentName = "cert-manager"
+	// CertManagerComponentName is the name of the Verrazzano CertManager component
+	CertManagerComponentName = "cert-manager"
 
-// CertManagerComponentJSONName is the JSON name of the verrazzano component in CRD
-const CertManagerComponentJSONName = "certManager"
+	// CertManagerComponentJSONName is the JSON name of the verrazzano component in CRD
+	CertManagerComponentJSONName = "certManager"
 
-// ExternalDNSComponentJSONName is the JSON name of the verrazzano component in CRD
-const ExternalDNSComponentJSONName = "externalCertManager"
+	// CertManagerOCIDNSComponentName is the name of the OCI DNS webhook component
+	CertManagerOCIDNSComponentName = "verrazzano-ocidns-webhook"
 
-// CertManagerOCIDNSComponentName is the name of the OCI DNS webhook component
-const CertManagerOCIDNSComponentName = "verrazzano-ocidns-webhook"
+	// LetsEncryptProduction - LetsEncrypt production env
+	LetsEncryptProduction = "production"
+
+	// LetsEncryptStaging - LetsEncrypt staging env
+	LetsEncryptStaging = "staging"
+)
