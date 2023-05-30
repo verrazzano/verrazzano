@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 
 	v1 "k8s.io/api/core/v1"
