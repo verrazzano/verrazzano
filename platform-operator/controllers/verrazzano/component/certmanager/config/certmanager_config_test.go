@@ -150,9 +150,9 @@ func runPreChecksTest(t *testing.T, isUpgrade bool, expectErr bool, crdObjs ...c
 
 	var err error
 	if !isUpgrade {
-		err = fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+		err = fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
 	} else {
-		err = fakeComponent.PreUpgrade(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+		err = fakeComponent.PreUpgrade(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
 	}
 	if expectErr {
 		assert.Error(t, err, "Did not get expected error")
