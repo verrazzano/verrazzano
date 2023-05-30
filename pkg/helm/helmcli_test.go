@@ -88,6 +88,8 @@ func TestUpgrade(t *testing.T) {
 			"--namespace",
 			"my_namespace",
 			"--install",
+			"--history-max",
+			"1",
 			"-f",
 			"my-override.yaml",
 		},
@@ -116,6 +118,8 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 			"--namespace",
 			"my_namespace",
 			"--install",
+			"--history-max",
+			"1",
 			"-f",
 			"my-override.yaml",
 			"-f",
@@ -720,11 +724,11 @@ func Test_maskSensitiveData(t *testing.T) {
 	// WHEN the maskSensitiveData function is called
 	// THEN the returned string has sensitive values masked
 	str := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-operator/thirdparty/charts/mysql
-		--wait --namespace keycloak --install -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
+		--wait --namespace keycloak --install --history-max 1 -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
 		-f /tmp/values-145495151.yaml
 		--set imageTag=8.0.26,image=ghcr.io/verrazzano/mysql,mysqlPassword=BgD2SBNaGm,mysqlRootPassword=ydqtBpasQ4`
 	expected := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-operator/thirdparty/charts/mysql
-		--wait --namespace keycloak --install -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
+		--wait --namespace keycloak --install --history-max 1 -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
 		-f /tmp/values-145495151.yaml
 		--set imageTag=8.0.26,image=ghcr.io/verrazzano/mysql,mysqlPassword=*****,mysqlRootPassword=*****`
 	maskedStr := maskSensitiveData(str)
@@ -734,7 +738,7 @@ func Test_maskSensitiveData(t *testing.T) {
 	// WHEN the maskSensitiveData function is called
 	// THEN the returned string is unaltered
 	str = `Running command: /usr/bin/helm upgrade ingress-controller /verrazzano/platform-operator/thirdparty/charts/ingress-nginx
-		--wait --namespace ingress-nginx --install -f /verrazzano/platform-operator/helm_config/overrides/ingress-nginx-values.yaml
+		--wait --namespace ingress-nginx --install --history-max 1 -f /verrazzano/platform-operator/helm_config/overrides/ingress-nginx-values.yaml
 		-f /tmp/values-037653479.yaml --set controller.image.tag=0.46.0-20211005200943-bd017fde2,
 		controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller,
 		defaultBackend.image.tag=0.46.0-20211005200943-bd017fde2,
