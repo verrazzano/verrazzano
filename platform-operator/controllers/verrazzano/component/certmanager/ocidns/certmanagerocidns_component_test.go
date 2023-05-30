@@ -6,11 +6,10 @@ package ocidns
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	fake2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"testing"
@@ -22,22 +21,46 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var (
+	bt = true
+	bf = false
+)
+
 // TestIsCertManagerOciDNSEnabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
-// WHEN cert-manager is enabled with ACME and OCI DNS is configured
+// WHEN cert-manager is enabled with LetsEncrypt and OCI DNS is configured
 // THEN the function returns true
 func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 
-	bt := true
+	leIssuer := vzapi.IssuerConfig{
+		LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+			EmailAddress: acme.EmailAddress,
+			Environment:  acme.Environment,
+		},
+	}
 
+	// Default is false if nothing is configured
 	assert.False(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
 
+	// True if explicitly enabled
+	assert.True(t, NewComponent().IsEnabled(&vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+					Enabled: &bt,
+				},
+			},
+		},
+	}))
+
+	// False if not explicitly enabled, Issuer is enabled, no OCI DNS/LE
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
 		Enabled: &bt,
 	}
 	assert.False(t, NewComponent().IsEnabled(localvz))
 
+	// False - not explicitly enabled, OCI DNS enabled, Issuer is enabled, but no LE certs
 	localvz = vz.DeepCopy()
 	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
 		Enabled: &bt,
@@ -45,52 +68,219 @@ func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
 	assert.False(t, NewComponent().IsEnabled(localvz))
 
+	// True - not explicitly enabled, OCI DNS enabled, LE certs enabled, Issuer is enabled
 	localvz = vz.DeepCopy()
 	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
-		Certificate: vzapi.Certificate{
-			Acme: acme,
-		},
 		Enabled: &bt,
 	}
-	assert.False(t, NewComponent().IsEnabled(localvz))
-
-	localvz = vz.DeepCopy()
-	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
-		Certificate: vzapi.Certificate{
-			Acme: acme,
-		},
-		Enabled: &bt,
+	localvz.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
+		IssuerConfig: leIssuer,
 	}
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
-	assert.True(t, NewComponent().IsEnabled(localvz))
-}
+	assert.True(t, certManagerWebhookOCIComponent{}.IsEnabled(localvz))
 
-// TestIsCertManagerOciDNSDisabledNoCRDs tests the IsCertManagerEnabled fn
-// GIVEN a call to IsCertManagerEnabled
-// WHEN cert-manager is disabled
-// THEN the function returns false
-func TestIsCertManagerOciDNSDisabledNoCRDs(t *testing.T) {
-	localvz := vz.DeepCopy()
-	bf := false
-	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	// False - not explicitly enabled, Issuer is enabled, but no OCI DNS or LE certs
+	localvz = vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Enabled: &bt,
 	}
+	localvz.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
+		IssuerConfig: leIssuer,
+	}
+	assert.False(t, NewComponent().IsEnabled(localvz))
 
-	localvz.Spec.Components.CertManager.Enabled = &bf
+	// False - not explicitly enabled, Issuer is enabled, but no OCI DNS or LE certs
+	localvz = vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Enabled: &bt,
+	}
+	localvz.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
+		IssuerConfig: leIssuer,
+	}
+	assert.False(t, NewComponent().IsEnabled(localvz))
+
+	// False - not explicitly enabled, Issuer is enabled, but no OCI DNS or LE certs
+	localvz = vz.DeepCopy()
+	localvz.Spec.Components.CertManager = &vzapi.CertManagerComponent{
+		Enabled: &bt,
+	}
+	localvz.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
+		IssuerConfig: leIssuer,
+	}
 	assert.False(t, NewComponent().IsEnabled(localvz))
 }
 
-func TestIsCertManagerOciDNSDisabled(t *testing.T) {
-	localvz := vz.DeepCopy()
-	bt := true
-	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(createCertManagerCRDs()...)...).ApiextensionsV1(), nil
-	}
+// TestMonitorOverrides tests MonitorOverrides
+// GIVEN a call to MonitorOverrides
+//
+//	THEN true is returned when the webhook component exists or the MonitorChanges flag is true, false otherwise
+func TestMonitorOverrides(t *testing.T) {
+	asserts := assert.New(t)
 
-	localvz.Spec.Components.CertManager.Enabled = &bt
-	assert.False(t, NewComponent().IsEnabled(localvz))
+	ctx := spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)
+	comp := certManagerWebhookOCIComponent{}
+	asserts.False(comp.MonitorOverrides(ctx))
+
+	localVZ := vz.DeepCopy()
+	localVZ.Spec.Components.CertManagerWebhookOCI = &vzapi.CertManagerWebhookOCIComponent{}
+	ctx = spi.NewFakeContext(nil, localVZ, nil, false)
+	asserts.True(comp.MonitorOverrides(ctx))
+
+	localVZ.Spec.Components.CertManagerWebhookOCI = &vzapi.CertManagerWebhookOCIComponent{
+		InstallOverrides: vzapi.InstallOverrides{MonitorChanges: fake2.GetBoolPtr(true)},
+	}
+	ctx = spi.NewFakeContext(nil, localVZ, nil, false)
+	asserts.True(comp.MonitorOverrides(ctx))
+
+	localVZ.Spec.Components.CertManagerWebhookOCI = &vzapi.CertManagerWebhookOCIComponent{
+		InstallOverrides: vzapi.InstallOverrides{MonitorChanges: fake2.GetBoolPtr(false)},
+	}
+	ctx = spi.NewFakeContext(nil, localVZ, nil, false)
+	asserts.False(comp.MonitorOverrides(ctx))
+
+	localVZ.Spec.Components.CertManagerWebhookOCI = &vzapi.CertManagerWebhookOCIComponent{
+		InstallOverrides: vzapi.InstallOverrides{},
+	}
+	ctx = spi.NewFakeContext(nil, localVZ, nil, false)
+	asserts.True(comp.MonitorOverrides(ctx))
+}
+
+type validationTestStruct struct {
+	name    string
+	old     *vzapi.Verrazzano
+	new     *vzapi.Verrazzano
+	wantErr bool
+}
+
+var simpleValidationTests = []validationTestStruct{
+	{
+		name:    "Implicitly Disabled Empty CR",
+		old:     &vzapi.Verrazzano{},
+		new:     &vzapi.Verrazzano{},
+		wantErr: false,
+	},
+	{
+		name: "ExplicitlyEnabled",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+						Enabled: &bt,
+					},
+				},
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "Issuer and OCI DNS",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						Enabled: &bf,
+					},
+					DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+				},
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "Issuer Enabled with OCI DNS",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						Enabled: &bt,
+					},
+					DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+				},
+			},
+		},
+		wantErr: false,
+	},
+	{
+		name: "Issuer Enabled with OCI DNS and LetsEncrypt",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						Enabled: &bt,
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{},
+						},
+					},
+					DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+				},
+			},
+		},
+		wantErr: false,
+	},
+	//{
+	//	name: "Webhook disabled Issuer Enabled with OCI DNS and LetsEncrypt",
+	//	old:  &vzapi.Verrazzano{},
+	//	new: &vzapi.Verrazzano{
+	//		Spec: vzapi.VerrazzanoSpec{
+	//			Components: vzapi.ComponentSpec{
+	//				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+	//					Enabled: &bf,
+	//				},
+	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+	//					Enabled: &bt,
+	//					IssuerConfig: vzapi.IssuerConfig{
+	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{},
+	//					},
+	//				},
+	//				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+	//			},
+	//		},
+	//	},
+	//	wantErr: true,
+	//},
+	//{
+	//	name: "Webhook disabled Issuer Enabled with OCI DNS and LetsEncrypt",
+	//	old:  &vzapi.Verrazzano{},
+	//	new: &vzapi.Verrazzano{
+	//		Spec: vzapi.VerrazzanoSpec{
+	//			Components: vzapi.ComponentSpec{
+	//				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+	//					Enabled: &bf,
+	//				},
+	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+	//					Enabled: &bt,
+	//					IssuerConfig: vzapi.IssuerConfig{
+	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{},
+	//					},
+	//				},
+	//				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+	//			},
+	//		},
+	//	},
+	//	wantErr: true,
+	//},
+}
+
+// TestValidateInstall tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//
+//	WHEN for various webhook configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateInstall(t *testing.T) {
+	runValidationTests(t, false)
+}
+
+// TestValidateUpdate tests the ValidateUpdate function
+// GIVEN a call to ValidateUpdate
+//
+//	WHEN for various webhook configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateUpdate(t *testing.T) {
+	runValidationTests(t, true)
 }
 
 // TestCertManagerPreInstall tests the PreInstall fn
@@ -178,6 +368,46 @@ func TestDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true)
 
-	comp := certManagerOciDNSComponent{}
+	comp := certManagerWebhookOCIComponent{}
 	assert.True(t, comp.IsReady(ctx))
+}
+
+func runValidationTests(t *testing.T, isUpdate bool) {
+	for _, tt := range simpleValidationTests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
+				tt.wantErr = false
+			}
+			runValidationTest(t, tt, isUpdate, NewComponent())
+		})
+	}
+}
+
+func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
+	//	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	if isUpdate {
+		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+		}
+		v1beta1New := &v1beta1.Verrazzano{}
+		v1beta1Old := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1New)
+		assert.NoError(t, err)
+		err = tt.old.ConvertTo(v1beta1Old)
+		assert.NoError(t, err)
+		if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+		}
+
+	} else {
+		if err := c.ValidateInstall(tt.new); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+		}
+		v1beta1Vz := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1Vz)
+		assert.NoError(t, err)
+		if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+		}
+	}
 }

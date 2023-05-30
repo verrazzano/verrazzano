@@ -210,43 +210,41 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	return kvs
 }
 
-// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
+// appendCAOverrides sets overrides for CA Issuers, LetsEncrypt or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
+	cm := ctx.EffectiveCR().Spec.Components.ClusterIssuer
 	if cm == nil {
-		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
+		return kvs, log.ErrorfThrottledNewErr("Failed to find clusterIssuer component in effective cr")
 	}
 
 	// Configure CA Issuer KVs
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
+	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
 				Value: common.RancherName,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
-				Value: cm.Certificate.Acme.EmailAddress,
+				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
+				Value: cm.LetsEncrypt.Environment,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
+				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
 		})
-		if isUsingDefaultCACertificate(cm) {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   privateCAKey,
-				Value: privateCAValue,
-			})
-		}
+		kvs = append(kvs, bom.KeyValue{
+			Key:   privateCAKey,
+			Value: privateCAValue,
+		})
 	}
 
 	return kvs, nil

@@ -114,7 +114,7 @@ func Test_appendOCIDNSOverrides(t *testing.T) {
 
 			assert.NoError(t, err)
 
-			assert.Len(t, overrides, 1)
+			assert.Len(t, overrides, 2)
 
 			asserts.Equal("ociAuthSecrets[0]", overrides[0].Key)
 			asserts.Equal(tt.config.Spec.Components.DNS.OCI.OCIConfigSecret, overrides[0].Value)
