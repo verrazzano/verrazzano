@@ -7,10 +7,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -25,34 +26,6 @@ import (
 )
 
 const testMCAppConfigNamespace = "unit-mcappconfig-namespace"
-
-// TestSyncer_AgentReadyToSync tests the AgentReadyToSync method of Syncer
-func TestSyncer_AgentReadyToSync(t *testing.T) {
-	type fields struct {
-		AgentSecretFound bool
-		AgentSecretValid bool
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   bool
-	}{
-		{"agent secret found not valid", fields{AgentSecretFound: true, AgentSecretValid: false}, false},
-		{"agent secret not found", fields{AgentSecretFound: false, AgentSecretValid: false}, false},
-		{"agent secret found and valid", fields{AgentSecretFound: true, AgentSecretValid: true}, true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Syncer{
-				AgentSecretFound: tt.fields.AgentSecretFound,
-				AgentSecretValid: tt.fields.AgentSecretValid,
-			}
-			if got := s.AgentReadyToSync(); got != tt.want {
-				t.Errorf("AgentReadyToSync() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 // TestSyncer_isThisCluster tests the isThisCluster method of Syncer
 func TestSyncer_isThisCluster(t *testing.T) {

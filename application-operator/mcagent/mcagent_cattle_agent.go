@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -27,7 +27,7 @@ const cattleAgent = "cattle-cluster-agent"
 // syncCattleClusterAgent syncs the Rancher cattle-cluster-agent deployment
 // and the cattle-credentials secret from the admin cluster to the managed cluster
 // if they have changed in the registration-manifest
-func (s *Syncer) syncCattleClusterAgent(kubeconfigPath string) error {
+func (s *Syncer) syncCattleClusterAgent(currentCattleAgentHash string, kubeconfigPath string) (string, error) {
 	manifestSecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
@@ -35,7 +35,7 @@ func (s *Syncer) syncCattleClusterAgent(kubeconfigPath string) error {
 	}, &manifestSecret)
 
 	if err != nil {
-		return fmt.Errorf("failed to fetch manifest secret for %s cluster: %v", s.ManagedClusterName, err)
+		return currentCattleAgentHash, fmt.Errorf("failed to fetch manifest secret for %s cluster: %v", s.ManagedClusterName, err)
 	}
 	s.Log.Debugf(fmt.Sprintf("Found manifest secret for %s cluster: %s", s.ManagedClusterName, manifestSecret.Name))
 
@@ -45,31 +45,29 @@ func (s *Syncer) syncCattleClusterAgent(kubeconfigPath string) error {
 	cattleAgentResource, cattleCredentialResource := checkForCattleResources(yamlSections)
 	if cattleAgentResource == nil || cattleCredentialResource == nil {
 		s.Log.Debugf("The registration manifest doesn't contain the required resources. Will try to update the cattle-cluster-agent in the next iteration")
-		return nil
+		return currentCattleAgentHash, nil
 	}
 
-	cattleAgentHash := createHash(cattleAgentResource)
+	newCattleAgentHash := createHash(cattleAgentResource)
 
 	// We have a previous hash to compare to
-	if len(s.CattleAgentHash) > 0 {
+	if len(currentCattleAgentHash) > 0 {
 		// If they are the same, do nothing
-		if s.CattleAgentHash == cattleAgentHash {
-			return nil
+		if currentCattleAgentHash == newCattleAgentHash {
+			return currentCattleAgentHash, nil
 		}
 	}
 
 	// No previous hash or the hash has changed
 	// Sync the cattle-agent and update the hash for next iterations
-	s.Log.Infof("No previous cattle hash found or cattle hash has changed. Updating the cattle-cluster-agent")
+	s.Log.Info("No previous cattle hash found or cattle hash has changed. Updating the cattle-cluster-agent")
 	err = updateCattleResources(cattleAgentResource, cattleCredentialResource, s.Log, kubeconfigPath)
 	if err != nil {
-		return fmt.Errorf("failed to update the cattle-cluster-agent on %s cluster: %v", s.ManagedClusterName, err)
+		return currentCattleAgentHash, fmt.Errorf("failed to update the cattle-cluster-agent on %s cluster: %v", s.ManagedClusterName, err)
 	}
-
-	s.CattleAgentHash = cattleAgentHash
 	s.Log.Infof("Successfully synched cattle-cluster-agent")
 
-	return nil
+	return newCattleAgentHash, nil
 }
 
 // checkForCattleResources iterates through the list of resources in the manifest yaml
@@ -128,7 +126,7 @@ func createHash(cattleAgent *gabs.Container) string {
 	sha := sha256.New()
 	sha.Write(data)
 
-	return fmt.Sprintf("%v", sha.Sum(nil))
+	return string(sha.Sum(nil))
 }
 
 // getManifestSecretName returns the manifest secret name for a managed cluster on the admin cluster
