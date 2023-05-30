@@ -20,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
@@ -50,7 +49,7 @@ func TestSimpleMethods(t *testing.T) {
 	asserts.Equal(ComponentNamespace, c.Namespace())
 	asserts.Equal(ComponentJSONName, c.GetJSONName())
 	asserts.False(c.ShouldInstallBeforeUpgrade())
-	asserts.ElementsMatch([]string{networkpolicies.ComponentName, certmanager.ComponentName, webhookoci.ComponentName}, c.GetDependencies())
+	asserts.ElementsMatch([]string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName}, c.GetDependencies())
 	asserts.Equal(constants.VerrazzanoVersion1_0_0, c.GetMinVerrazzanoVersion())
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetIngressNames(nil))
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetCertificateNames(nil))
