@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io"
@@ -88,7 +88,7 @@ func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) er
 	outputFile := filepath.Join(crdManifestDir, crdOutputFile)
 
 	// Write out CRD Manifests for CertManager
-	err := writeCRD(inputFile, outputFile, common.IsOCIDNS(compContext.EffectiveCR()))
+	err := writeCRD(inputFile, outputFile, cmcommon.IsOCIDNS(compContext.EffectiveCR()))
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed writing CRD Manifests for CertManager: %v", err)
 	}
@@ -132,15 +132,10 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	}
 
 	// Verify that we are using CA certs before appending override
-	isCAValue, err := common.IsCA(compContext)
-	if err != nil {
-		err = compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
-		return []bom.KeyValue{}, err
-	}
-	if isCAValue {
-		ns := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace
-		kvs = append(kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: ns})
-	}
+	effectiveCR := compContext.EffectiveCR()
+	clusterIssuerComponent := effectiveCR.Spec.Components.ClusterIssuer
+
+	kvs = append(kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: clusterIssuerComponent.ClusterResourceNamespace})
 	return kvs, nil
 }
 

@@ -25,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -33,16 +34,16 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = common2.CertManagerComponentName
+const ComponentName = cmcommon.CertManagerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = common2.CertManagerComponentJSONName
+const ComponentJSONName = cmcommon.CertManagerComponentJSONName
 
 // ExternalDNSComponentJSONName is the JSON name of the verrazzano component in CRD
-const ExternalDNSComponentJSONName = common2.ExternalDNSComponentJSONName
+//const ExternalDNSComponentJSONName = cmcommon.ExternalDNSComponentJSONName
 
 // certManagerComponent represents an CertManager component
 type certManagerComponent struct {
@@ -96,6 +97,10 @@ func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // IsReady component check
 func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("cert-manager PostUninstall dry run")
+		return true
+	}
 	if c.HelmComponent.IsReady(ctx) {
 		return c.isCertManagerReady(ctx)
 	}
@@ -145,7 +150,6 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
@@ -200,7 +204,7 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func checkExistingCertManager(vz runtime.Object) error {
+func checkExistingCertManager(_ runtime.Object) error {
 	// Check if the cert-manager namespace already exists and is not owned by Verrazzano
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {

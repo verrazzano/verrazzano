@@ -90,6 +90,7 @@ const (
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
 	caCert                     = "ca.crt"
+	customCACertKey            = "tls.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
@@ -231,7 +232,7 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Resource: "clusterrepos",
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
+func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }
 

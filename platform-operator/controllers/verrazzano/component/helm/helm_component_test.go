@@ -48,10 +48,9 @@ import (
 )
 
 const (
-	testBomFilePath     = "../../testdata/test_bom.json"
-	overrideJSON        = "{\"serviceAccount\": {\"create\": false}}"
-	unexpectedError     = "unexpected error"
-	notFoundErrorString = "not found"
+	testBomFilePath = "../../testdata/test_bom.json"
+	overrideJSON    = "{\"serviceAccount\": {\"create\": false}}"
+	unexpectedError = "unexpected error"
 )
 
 var (

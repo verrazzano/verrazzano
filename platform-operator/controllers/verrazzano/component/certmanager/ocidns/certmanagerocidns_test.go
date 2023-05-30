@@ -4,22 +4,17 @@
 package ocidns
 
 import (
-	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -60,10 +55,6 @@ func Test_isCertManagerOciDNSReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
 		WithObjects(newDeployment(ocidnsDeploymentName, false)).
 		Build()
-	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
-		return apiextv1fake.NewSimpleClientset(crtObjectToRuntimeObject(createCertManagerCRDs()...)...).ApiextensionsV1(), nil
-	}
 
 	vz := vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -175,29 +166,4 @@ func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
-}
-
-func crtObjectToRuntimeObject(objs ...clipkg.Object) []runtime.Object {
-	var runtimeObjs []runtime.Object
-	for _, obj := range objs {
-		runtimeObjs = append(runtimeObjs, obj)
-	}
-	return runtimeObjs
-}
-
-func createCertManagerCRDs() []clipkg.Object {
-	var cmCRDs []clipkg.Object
-	for _, crd := range cmcommon.GetRequiredCertManagerCRDNames() {
-		cmCRDs = append(cmCRDs, newCRD(crd))
-	}
-	return cmCRDs
-}
-
-func newCRD(name string) clipkg.Object {
-	crd := &apiextv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	return crd
 }

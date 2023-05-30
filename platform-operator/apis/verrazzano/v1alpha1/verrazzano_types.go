@@ -1180,7 +1180,7 @@ const (
 	LetsEncrypt ProviderType = "LetsEncrypt"
 )
 
-// Acme Deprecated. identifies the LetsEncrypt cert issuer.
+// Deprecated. Acme identifies the LetsEncrypt cert issuer.
 type Acme struct {
 	// Email address of the user.
 	// +optional

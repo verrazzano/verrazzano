@@ -7,14 +7,14 @@ import (
 	"path"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // ExecuteFluentbitFilterAndParser create/delete the Fluentbit Filter & Parser Resource by applying/deleting the fluentbitFilterAndParserTemplate based on the delete flag.
 func ExecuteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitFilterAndParserTemplate, namespace string, delete bool) error {
-	fluentOperator := ctx.EffectiveCR().Spec.Components.FluentOperator
-	if fluentOperator != nil && fluentOperator.Enabled != nil && *fluentOperator.Enabled {
+	if vzcr.IsFluentOperatorEnabled(ctx.EffectiveCR()) {
 		args := make(map[string]interface{})
 		args["namespace"] = namespace
 		templatePath := path.Join(config.GetThirdPartyManifestsDir(), "fluent-operator/"+fluentbitFilterAndParserTemplate)

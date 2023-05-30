@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"io"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"strings"
 	"testing"
@@ -118,7 +117,6 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 	mock := gomock.NewController(t)
 	client := mocks.NewMockClient(mock)
 	a := true
-	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
 	vz := v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
@@ -132,7 +130,10 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	err := ProcessAdditionalCertificates(ctx.Log(), client, &vz)
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	ctx := spi.NewFakeContext(client, &vz, nil, false, profileDir)
+	err := ProcessAdditionalCertificates(ctx.Log(), client, ctx.EffectiveCR())
 	assert.Nil(t, err)
 }
 
@@ -144,13 +145,15 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 func TestProcessAdditionalCertificatesFailure(t *testing.T) {
 	mock := gomock.NewController(t)
 	client := mocks.NewMockClient(mock)
-	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
 	vz := v1alpha1.Verrazzano{}
 	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	err := ProcessAdditionalCertificates(ctx.Log(), client, &vz)
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	ctx := spi.NewFakeContext(client, &vz, nil, false, profileDir)
+	err := ProcessAdditionalCertificates(ctx.Log(), client, ctx.EffectiveCR())
 	assert.Nil(t, err)
 
 }

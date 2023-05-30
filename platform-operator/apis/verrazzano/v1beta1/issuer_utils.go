@@ -22,6 +22,9 @@ func NewDefaultClusterIssuer() *ClusterIssuerComponent {
 
 // IsCAIssuer returns true of the issuer configuration is for a CA issuer, or an error if it is misconfigured
 func (c *ClusterIssuerComponent) IsCAIssuer() (bool, error) {
+	if c.CA == nil && c.LetsEncrypt == nil {
+		return false, fmt.Errorf("Illegal state, either CAIssuer or LetsEncrypt issuer must be configured")
+	}
 	if c.CA != nil && c.LetsEncrypt != nil {
 		return false, fmt.Errorf("Illegal state, can not configure CAIssuer and LetsEncrypt issuer simultaneously")
 	}
