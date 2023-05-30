@@ -66,6 +66,7 @@ pipeline {
                 trim: true)
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
         booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to run opensearch-operator based opensearch tests', name: 'RUN_OPENSEARCH_OPERATOR_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
@@ -587,6 +588,32 @@ pipeline {
                     }
                 }
 
+                stage('Run OpenSearch Operator tests') {
+                    when {
+                        expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
+                    }
+                    stages {
+                        stage('Install openSearch-operator') {
+
+                        }
+                        stage('Verify opensearch is ready') {
+
+                        }
+                        stage('Switch fluentd output') {
+                        }
+                        stage('Run opensearch-operator tests') {
+                            parallel {
+                                stage('examples logging helidon') {
+
+                                }
+                                stage('verify ingress') {
+                                }
+                                stage('opensearch-topology') {
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             post {
