@@ -7,8 +7,4 @@ metadata:
   namespace: {{ .Values.namespace }}
 data:
   verrazzano-versions: |
-    [
-      {{- range .Values.verrazzano.supportedVersions }}
-      "{{ . }}"
-      {{- end }}
-    ]
+    {{ .Values.verrazzano.supportedVersions | toJson }}
