@@ -499,7 +499,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return nil
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -540,7 +540,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return patchRancherIngress(c, ctx.EffectiveCR())
+	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
+		return err
+	}
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // Reconcile for the Rancher component

@@ -151,13 +151,13 @@
               "rancherUI": "v2.7.2-2/release-2.7.2",
               "ocneDriverVersion": "v0.2.0",
               "ocneDriverChecksum": "60cf8205a681a53ab73e6e9d125e741afa681b54cfd72d6c14e906d3e8b71f0c",
-              "tag": "v2.7.3-20230530013907-60c25e59b",
+              "tag": "v2.7.3-20230531122142-235cb673f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230530013907-60c25e59b"
+              "tag": "v2.7.3-20230531122142-235cb673f"
             }
           ]
         },
