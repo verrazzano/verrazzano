@@ -51,7 +51,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), componentChartName),
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), componentChartName),
 			ChartNamespace:            ComponentNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
