@@ -2539,6 +2539,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        # This image will be overridden by the Verrazzano controller
         image: ghcr.io/verrazzano/cluster-api-ocne-bootstrap-controller:20230531214509-c66131d
         imagePullPolicy: IfNotPresent
         livenessProbe:
