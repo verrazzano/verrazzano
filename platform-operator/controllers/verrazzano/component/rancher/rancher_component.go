@@ -6,6 +6,11 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -37,10 +42,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 // ComponentName is the name of the component
@@ -65,6 +66,9 @@ const cattleShellImageName = "rancher-shell"
 
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
+
+const kontainerDriverObjectName = "ociocneengine"
+const kontainerDriverName = "ociocne"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -498,7 +502,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return nil
+	return activateKontainerDriver(ctx)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -539,7 +543,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return patchRancherIngress(c, ctx.EffectiveCR())
+	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
+		return err
+	}
+	return activateKontainerDriver(ctx)
 }
 
 // Reconcile for the Rancher component

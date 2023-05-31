@@ -5,30 +5,14 @@ package capi
 
 import (
 	"bytes"
-	"context"
-	"fmt"
 	"os"
 	"strings"
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
 )
-
-// getDynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
-type getDynamicClientFuncSig func() (dynamic.Interface, error)
-
-// getDynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
-// the function for unit testing
-var getDynamicClientFunc getDynamicClientFuncSig = k8sutil.GetDynamicClient
 
 const clusterctlYamlTemplate = `
 images:
@@ -265,35 +249,4 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 
 	// Return the result containing the processed template
 	return buf, nil
-}
-
-// activateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
-// registers the ociocne driver
-func activateKontainerDriver(ctx spi.ComponentContext) error {
-	// Nothing to do if Rancher is not enabled
-	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
-		return nil
-	}
-
-	// Setup dynamic client
-	dynClient, err := getDynamicClientFunc()
-	if err != nil {
-		return fmt.Errorf("Failed to get dynamic client: %v", err)
-	}
-
-	// Get the driver object
-	var driverObj *unstructured.Unstructured
-	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
-	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
-	}
-
-	// Activate the driver
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
-	return err
 }

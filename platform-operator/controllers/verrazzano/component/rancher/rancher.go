@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -715,4 +717,36 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 	})
 
 	return logoContent, err
+}
+
+// activateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
+// registers the ociocne driver
+func activateKontainerDriver(ctx spi.ComponentContext) error {
+	// Nothing to do if Capi is not enabled
+	if !vzcr.IsCAPIEnabled(ctx.EffectiveCR()) {
+		ctx.Log().Info("MGIANATA - rancher not enabled")
+		return nil
+	}
+
+	// Setup dynamic client
+	dynClient, err := getDynamicClientFunc()
+	if err != nil {
+		return fmt.Errorf("Failed to get dynamic client: %v", err)
+	}
+
+	// Get the driver object
+	var driverObj *unstructured.Unstructured
+	gvr := common.GetRancherMgmtAPIGVRForResource("kontainerdrivers")
+	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+	}
+
+	// Activate the driver
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+	return err
 }

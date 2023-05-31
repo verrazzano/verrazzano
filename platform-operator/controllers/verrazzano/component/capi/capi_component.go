@@ -25,7 +25,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "capi"
 
-// ComponentNamespace - namespace for CAPI providers
+// Namespace for CAPI providers
 const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
@@ -39,8 +39,6 @@ const (
 	ocneProviderName                 = "ocne"
 	ociProviderName                  = "oci"
 	clusterAPIProviderName           = "cluster-api"
-	kontainerDriverObjectName        = "ociocneengine"
-	kontainerDriverName              = "ociocne"
 )
 
 var capiDeployments = []types.NamespacedName{
@@ -195,8 +193,8 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	return err
 }
 
-func (c capiComponent) PostInstall(ctx spi.ComponentContext) error {
-	return activateKontainerDriver(ctx)
+func (c capiComponent) PostInstall(_ spi.ComponentContext) error {
+	return nil
 }
 
 func (c capiComponent) IsOperatorUninstallSupported() bool {
@@ -259,8 +257,8 @@ func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)
 }
 
-func (c capiComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	return activateKontainerDriver(ctx)
+func (c capiComponent) PostUpgrade(_ spi.ComponentContext) error {
+	return nil
 }
 
 func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
