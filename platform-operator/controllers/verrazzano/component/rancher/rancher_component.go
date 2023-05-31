@@ -67,9 +67,6 @@ const cattleShellImageName = "rancher-shell"
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
-const kontainerDriverObjectName = "ociocneengine"
-const kontainerDriverName = "ociocne"
-
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
@@ -502,7 +499,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return activateKontainerDriver(ctx)
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -546,7 +543,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	return activateKontainerDriver(ctx)
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // Reconcile for the Rancher component

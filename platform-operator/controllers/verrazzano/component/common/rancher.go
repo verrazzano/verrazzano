@@ -6,13 +6,17 @@ package common
 import (
 	"context"
 	"crypto/x509"
+	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -157,5 +161,37 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 			err = lastErr
 		}
 	}
+	return err
+}
+
+// ActivateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
+// registers the ociocne driver
+func ActivateKontainerDriver(ctx spi.ComponentContext) error {
+	kontainerDriverObjectName := "ociocneengine"
+	// Nothing to do if Capi is not enabled
+	if !vzcr.IsCAPIEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+
+	// Setup dynamic client
+	dynClient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		return fmt.Errorf("Failed to get dynamic client: %v", err)
+	}
+
+	// Get the driver object
+	var driverObj *unstructured.Unstructured
+	gvr := GetRancherMgmtAPIGVRForResource("kontainerdrivers")
+	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+	}
+
+	// Activate the driver
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 	return err
 }
