@@ -164,17 +164,19 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "Installing Verrazzano on Kind"
-if [ -f "$WORKSPACE/vz" ]; then
-  cd $WORKSPACE
-  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
-else
-  cd ${GO_REPO_PATH}/verrazzano/tools/vz
-  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+# This flag is defaulted to false so that the VZ install proceeds as usual
+if ! [[ ${CR_VALIDATION_TEST} ]]; then
+  echo "Installing Verrazzano on Kind"
+  if [ -f "$WORKSPACE/vz" ]; then
+    cd $WORKSPACE
+    ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  else
+    cd ${GO_REPO_PATH}/verrazzano/tools/vz
+    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  fi
+  result=$?
+  if [[ $result -ne 0 ]]; then
+    exit 1
+  fi
 fi
-result=$?
-if [[ $result -ne 0 ]]; then
-  exit 1
-fi
-
 exit 0

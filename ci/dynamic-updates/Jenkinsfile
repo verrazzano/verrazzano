@@ -74,6 +74,7 @@ pipeline {
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
+        booleanParam (description: 'Whether to run VZ CLI Custom Resource test', name: 'RUN_CR_VALIDATION', defaultValue: false)
     }
 
     environment {
@@ -139,6 +140,8 @@ pipeline {
 
         // how many nodes in the KIND cluster
         KIND_NODE_COUNT = 3
+
+        CR_VALIDATION_TEST = "${params.RUN_CR_VALIDATION}"
     }
 
     stages {
@@ -249,6 +252,24 @@ pipeline {
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                         """
                         script {
+                            if(CR_VALIDATION_TEST){
+                                scriptForPrepareATEnvironmentV1beta1()
+                                sh '''
+                                    if [ -f "$WORKSPACE/vz" ]; then
+                                      cd $WORKSPACE
+                                      ls $WORKSPACE
+                                      pwd $WORKSPACE
+                                      ./vz install --filename ${WORKSPACE}/invalid.yaml --timeout ${INSTALL_TIMEOUT_VALUE}
+                                    else
+                                      cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                                      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+                                    fi
+                                    result=$?
+                                    if [[ $result -ne 0 ]]; then
+                                      exit 1
+                                    fi
+                                '''
+                            }
                             if(params.CRD_API_VERSION == "v1alpha1"){
                                 scriptForPrepareATEnvironmentV1alpha1()
                             }else{
