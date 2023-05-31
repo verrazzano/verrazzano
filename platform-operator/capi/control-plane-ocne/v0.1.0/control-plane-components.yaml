@@ -1276,9 +1276,9 @@ spec:
                 required:
                 - infrastructureRef
                 type: object
-              ocneModuleOperator:
-                description: OCNEModuleOperator deploys the OCNE module operator to
-                  the worker cluster post installation.
+              moduleOperator:
+                description: ModuleOperator deploys the OCNE module operator to the
+                  worker cluster post installation.
                 properties:
                   enabled:
                     description: Enabled sets the operational mode for a specific
@@ -1286,15 +1286,9 @@ spec:
                     type: boolean
                   image:
                     description: Image is used to set various attributes regarding
-                      a specific module. If not set, they are set as per the OCNEImageMeta
+                      a specific module. If not set, they are set as per the ImageMeta
                       definitions.
                     properties:
-                      imagePullSecrets:
-                        description: ImagePullSecrets allows to specify secrets if
-                          the image is being pulled from an authenticated private
-                          registry. if not set, it will be assumed the images are
-                          public.
-                        type: string
                       pullPolicy:
                         description: PullPolicy allows to specify an image pull policy
                           for the container images. if not set, the PullPolicy is
@@ -1310,6 +1304,18 @@ spec:
                           not set, the Tag defined in OCNEMeta will be used instead.
                         type: string
                     type: object
+                  imagePullSecrets:
+                    description: ImagePullSecrets allows to specify secrets if the
+                      image is being pulled from an authenticated private registry.
+                      if not set, it will be assumed the images are public.
+                    items:
+                      properties:
+                        name:
+                          description: Name is name of the secret to be used as image
+                            pull secret
+                          type: string
+                      type: object
+                    type: array
                 type: object
               replicas:
                 description: Number of desired machines. Defaults to 1. When stacked
@@ -1362,8 +1368,8 @@ spec:
                       is "RollingUpdate". Default is RollingUpdate.
                     type: string
                 type: object
-              verrazzanoModuleOperator:
-                description: VerrazzanoModuleOperator deploys the Verrazzano Platform
+              verrazzanoPlatformOperator:
+                description: VerrazzanoPlatformOperator deploys the Verrazzano Platform
                   operator to the worker cluster post installation.
                 properties:
                   enabled:
@@ -1372,15 +1378,9 @@ spec:
                     type: boolean
                   image:
                     description: Image is used to set various attributes regarding
-                      a specific module. If not set, they are set as per the OCNEImageMeta
+                      a specific module. If not set, they are set as per the ImageMeta
                       definitions.
                     properties:
-                      imagePullSecrets:
-                        description: ImagePullSecrets allows to specify secrets if
-                          the image is being pulled from an authenticated private
-                          registry. if not set, it will be assumed the images are
-                          public.
-                        type: string
                       pullPolicy:
                         description: PullPolicy allows to specify an image pull policy
                           for the container images. if not set, the PullPolicy is
@@ -1396,6 +1396,18 @@ spec:
                           not set, the Tag defined in OCNEMeta will be used instead.
                         type: string
                     type: object
+                  imagePullSecrets:
+                    description: ImagePullSecrets allows to specify secrets if the
+                      image is being pulled from an authenticated private registry.
+                      if not set, it will be assumed the images are public.
+                    items:
+                      properties:
+                        name:
+                          description: Name is name of the secret to be used as image
+                            pull secret
+                          type: string
+                      type: object
+                    type: array
                 type: object
               version:
                 description: 'Version defines the desired Kubernetes version. Please
@@ -3060,8 +3072,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        # This image will be overridden by the Verrazzano controller
-        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:20230531064902-7e68c39
+        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:20230531214509-c66131d
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
