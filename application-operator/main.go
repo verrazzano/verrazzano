@@ -1,12 +1,13 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/application-operator/internal/operatorinit"
 	"os"
+
+	"github.com/verrazzano/verrazzano/application-operator/internal/operatorinit"
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -56,6 +57,8 @@ var (
 	certDir               string
 	enableLeaderElection  bool
 	enableWebhooks        bool
+	runAppOperator        bool
+	runClusterAgent       bool
 	runWebhooks           bool
 	runWebhookInit        bool
 )
@@ -74,6 +77,11 @@ func main() {
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
+	flag.BoolVar(&runAppOperator, "run-app-operator", true,
+		"Whether to start application operator controllers")
+	flag.BoolVar(&runClusterAgent, "run-cluster-agent", true,
+		"Whether to start the managed cluster agent")
+
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -91,7 +99,7 @@ func main() {
 	} else if runWebhooks {
 		exitErr = operatorinit.StartWebhookServer(metricsAddr, log, enableLeaderElection, certDir, scheme)
 	} else {
-		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, log, scheme)
+		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, runAppOperator, runClusterAgent, log, scheme)
 	}
 	if exitErr != nil {
 		os.Exit(1)
