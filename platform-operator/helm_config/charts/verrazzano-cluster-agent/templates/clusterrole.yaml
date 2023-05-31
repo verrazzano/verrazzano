@@ -70,10 +70,26 @@ rules:
       - list
       - watch
   - apiGroups:
+      - networking.k8s.io
+    resources:
+      - networkpolicies
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - rbac.authorization.k8s.io
     resources:
+      - clusterroles
+      - roles
       - rolebindings
     verbs:
+      - bind
       - create
       - update
       - delete
