@@ -5,9 +5,13 @@
 #
 
 echo "Installing cert-manager via helm chart"
-echo "Setting clusterResourceNamespace to ${CLUSTER_RESOURCE_NAMESPACE}"
+echo "Setting clusterResourceNamespace to $CLUSTER_RESOURCE_NAMESPACE"
 
 kubectl create ns my-cert-manager
+if [ $CLUSTER_RESOURCE_NAMESPACE != my-cert-manager ]
+then
+  kubectl create ns $CLUSTER_RESOURCE_NAMESPACE
+fi
 
 controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-controller")' | jq .tag -r)
 cainjectorTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-cainjector")' | jq .tag -r)
