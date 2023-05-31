@@ -8,7 +8,6 @@ echo "Installing cert-manager via helm chart"
 echo "Setting clusterResourceNamespace to ${CLUSTER_RESOURCE_NAMESPACE}"
 
 kubectl create ns my-cert-manager
-kubectl apply -f platform-operator/thirdparty/manifests/cert-manager
 
 controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-controller")' | jq .tag -r)
 cainjectorTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-cainjector")' | jq .tag -r)
@@ -17,7 +16,8 @@ helm upgrade cert-manager -n my-cert-manager platform-operator/thirdparty/charts
 --set image.repository=ghcr.io/verrazzano/cert-manager-controller --set image.tag=${controllerTag}  \
 --set cainjector.image.repository=ghcr.io/verrazzano/cert-manager-cainjector --set cainjector.image.tag=${cainjectorTag}  \
 --set webhook.image.repository=ghcr.io/verrazzano/cert-manager-webhook --set webhook.image.tag=${webhookTag} \
---set startupapicheck.enabled=false --set clusterResourceNamespace=${CLUSTER_RESOURCE_NAMESPACE} --install
+--set startupapicheck.enabled=false --set clusterResourceNamespace=${CLUSTER_RESOURCE_NAMESPACE} \
+--set installCRDs=true --install
 
 echo "ensure cert-manager using ghcr.io images"
 if [ ! -z "$(kubectl get po -n my-cert-manager -o yaml | grep quay.io)" ]
