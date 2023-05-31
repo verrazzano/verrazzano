@@ -5,15 +5,23 @@ package pkg
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"text/template"
+	"time"
 )
 
 type DNSConfig struct {
 	EnvironmentName string
 	DNSSuffix       string
+	MasterReplicas  int
+	DataReplicas    int
+	IngestReplicas  int
 }
 
 var openSearchCMTemplate = `apiVersion: v1
@@ -113,7 +121,7 @@ data:
         replicas: 1
       nodePools:
         - component: masters
-          replicas: 3
+          replicas: {{ .MasterReplicas }}
           diskSize: "50Gi"
           resources:
             requests:
@@ -121,7 +129,7 @@ data:
           roles:
             - "cluster_manager"
         - component: data
-          replicas: 3
+          replicas: {{ .DataReplicas }}
           diskSize: "50Gi"
           resources:
             requests:
@@ -129,7 +137,7 @@ data:
           roles:
             - "data"
         - component: ingest
-          replicas: 1
+          replicas: {{ .IngestReplicas }}
           resources:
             requests:
               memory: "2.5Gi"
@@ -145,7 +153,7 @@ metadata:
   name: dev-opensearch
   namespace: default`
 
-func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
+func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ingest int) error {
 	cr, err := GetVerrazzano()
 	if err != nil {
 		return err
@@ -153,23 +161,25 @@ func InstallOpenSearchOperator(log *zap.SugaredLogger) error {
 	currentEnvironmentName := GetEnvironmentName(cr)
 	currentDNSSuffix := fmt.Sprintf("%s.%s", GetIngressIP(), GetDNS(cr))
 
-	template, err := template.New("openSearchCMTemplate").Parse(openSearchCMTemplate)
+	tmpl, err := template.New("openSearchCMTemplate").Parse(openSearchCMTemplate)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 		return err
 	}
 	var buffer bytes.Buffer
-	err = template.Execute(&buffer, DNSConfig{
+	err = tmpl.Execute(&buffer, DNSConfig{
 		EnvironmentName: currentEnvironmentName,
 		DNSSuffix:       currentDNSSuffix,
+		MasterReplicas:  master,
+		DataReplicas:    data,
+		IngestReplicas:  ingest,
 	})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 		return err
 	}
 
-	data := buffer.Bytes()
-	err = resource.CreateOrUpdateResourceFromBytes(data, log)
+	err = resource.CreateOrUpdateResourceFromBytes(buffer.Bytes(), log)
 
 	return err
 }
@@ -181,4 +191,53 @@ func UninstallOpenSearchOperator() error {
 		return err
 	}
 	return nil
+}
+
+func EventuallyPodsReady(log *zap.SugaredLogger, master, data, ingest int) {
+	timeout := 15 * time.Minute
+	pollInterval := 30 * time.Second
+	gomega.Eventually(func() bool {
+		if err := verifyReadyReplicas(master, data, ingest); err != nil {
+			log.Errorf("opensearch pods not ready: %v", err)
+			return false
+		}
+		return true
+	}, timeout, pollInterval).Should(gomega.BeTrue())
+}
+
+func verifyReadyReplicas(master, data, ingest int) error {
+	if err := assertPodsFound(master, labelSelector("masters")); err != nil {
+		return err
+	}
+	if err := assertPodsFound(data, labelSelector("data")); err != nil {
+		return err
+	}
+	if err := assertPodsFound(ingest, labelSelector("ingest")); err != nil {
+		return err
+	}
+	return nil
+}
+
+func assertPodsFound(count int, selector string) error {
+	kubeClientSet, err := k8sutil.GetKubernetesClientset()
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	pods, err := kubeClientSet.CoreV1().Pods("verrazzano-logging").List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return err
+	}
+	if len(pods.Items) != count {
+		return fmt.Errorf("expected %d pods, found %d", count, len(pods.Items))
+	}
+	for _, pod := range pods.Items {
+		for _, status := range pod.Status.ContainerStatuses {
+			if !status.Ready {
+				return fmt.Errorf("container %s/%s is not yet ready", pod.Name, status.Name)
+			}
+		}
+	}
+	return nil
+}
+
+func labelSelector(label string) string {
+	return fmt.Sprintf("opster.io/opensearch-nodepool=%s", label)
 }

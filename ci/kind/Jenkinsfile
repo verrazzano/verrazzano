@@ -294,9 +294,28 @@ pipeline {
 
                 stage('Run OpenSearch Operator tests') {
                     stages {
-                        stage('Install opensearch-operator') {
+                        stage('install and verify opensearch') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-install"
+                            }
                             steps {
                                 runGinkgo('opensearch-operator/install')
+                            }
+                        }
+                        stage('opensearch topology') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-topology"
+                            }
+                            steps {
+                                runGinkgo('opensearch-operator/topology')
+                            }
+                        }
+                        stage('verify opensearch infra') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-infra"
+                            }
+                            steps {
+                                runGinkgo('opensearch-operator/infra')
                             }
                         }
                     }
