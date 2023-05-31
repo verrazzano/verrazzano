@@ -3,8 +3,19 @@
 
 package infra
 
-import "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+import (
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+)
 
 var (
 	t = framework.NewTestFramework("infra")
 )
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Verify OpenSearch infra", func() {
+
+	t.It("ingress is accessible", func() {
+
+	})
+})

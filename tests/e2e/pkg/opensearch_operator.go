@@ -220,7 +220,9 @@ func verifyReadyReplicas(master, data, ingest int) error {
 
 func assertPodsFound(count int, selector string) error {
 	kubeClientSet, err := k8sutil.GetKubernetesClientset()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	pods, err := kubeClientSet.CoreV1().Pods("verrazzano-logging").List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return err
