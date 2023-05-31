@@ -261,7 +261,7 @@ func TestGetSupportedKubernetesVersion(t *testing.T) {
 	assert.Error(t, err)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	var versionArray = []string{"v1.22.0", "v1.23.0", "v1.24.0", "v1.25.0"}
+	var versionArray = []string{"v1.22.0", "v1.23.0", "v1.24.0", "v1.25.0", "v1.26.0"}
 	kubeSupportedVersions, err := getSupportedKubernetesVersions()
 	assert.NoError(t, err)
 	assert.Equal(t, kubeSupportedVersions, versionArray)
