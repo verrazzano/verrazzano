@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-type DNSConfig struct {
+type OSOperatorOverrides struct {
 	EnvironmentName string
 	DNSSuffix       string
 	MasterReplicas  int
@@ -167,7 +167,7 @@ func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ing
 		return err
 	}
 	var buffer bytes.Buffer
-	err = tmpl.Execute(&buffer, DNSConfig{
+	err = tmpl.Execute(&buffer, OSOperatorOverrides{
 		EnvironmentName: currentEnvironmentName,
 		DNSSuffix:       currentDNSSuffix,
 		MasterReplicas:  master,
