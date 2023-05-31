@@ -259,10 +259,10 @@ pipeline {
                                       cd $WORKSPACE
                                       ls $WORKSPACE
                                       pwd $WORKSPACE
-                                      ./vz install --filename ${WORKSPACE}/invalid.yaml --timeout ${INSTALL_TIMEOUT_VALUE}
+                                      ./vz install --filename ${WORKSPACE}/invalid.yaml
                                     else
                                       cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                                      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+                                      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml
                                     fi
                                     result=$?
                                     if [[ $result -ne 0 ]]; then
