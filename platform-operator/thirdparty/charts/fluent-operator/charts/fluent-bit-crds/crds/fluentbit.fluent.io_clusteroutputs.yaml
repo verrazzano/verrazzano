@@ -1352,6 +1352,16 @@ spec:
                     description: Use current time for index generation instead of
                       message record
                     type: boolean
+                  dataStreamMode:
+                    description: When enabled, data will go to a data stream instead
+                      of an index
+                    type: boolean
+                  dataStreamName:
+                    description: Name of the data stream
+                    type: string
+                  dataStreamTemplateName:
+                    description: Index template name
+                    type: string
                   generateID:
                     description: When enabled, generate _id for outgoing records.
                       This prevents duplicate records when retrying OpenSearch.
@@ -1416,14 +1426,6 @@ spec:
                             x-kubernetes-map-type: atomic
                         type: object
                     type: object
-                  dataStreamMode:
-                    type: boolean
-                  dataStreamName:
-                    type: string
-                  templateFile:
-                    type: string
-                  dataStreamTemplateName:
-                    type: string
                   idKey:
                     description: If set, _id will be the value of the key from incoming
                       record and Generate_ID option is ignored.
@@ -1485,6 +1487,12 @@ spec:
                     description: When Include_Tag_Key is enabled, this property defines
                       the key name for the tag.
                     type: string
+                  templateFile:
+                    description: Absolute file path of the index template file
+                    type: string
+                  templateOverwrite:
+                    description: When enabled, the existing index template is overwritten
+                    type: boolean
                   timeKey:
                     description: When Logstash_Format is enabled, each record will
                       get a new timestamp field. The Time_Key property defines the
@@ -2544,19 +2552,6 @@ spec:
                         type: string
                     type: object
                 type: object
-              logLevel:
-                description: 'Set the plugin''s logging verbosity level. Allowed values
-                                are: off, error, warn, info, debug and trace, Defaults to the SERVICE
-                                section''s Log_Level'
-                enum:
-                  - "off"
-                  - error
-                  - warning
-                  - info
-                  - debug
-                  - trace
-                type: string
-
             type: object
         type: object
     served: true

@@ -75,26 +75,10 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, err
 	}
-	for _, image := range images {
-		switch image.Key {
-		case fluentOperatorImageKey:
-			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorImageKey, Value: image.Value})
-		case fluentOperatorInitImageKey:
-			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorInitImageKey, Value: image.Value})
-		case fluentBitImageKey:
-			kvs = append(kvs, bom.KeyValue{Key: fluentBitImageKey, Value: image.Value})
-		case fluentOperatorImageTag:
-			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorImageTag, Value: image.Value})
-		case fluentOperatorInitTag:
-			kvs = append(kvs, bom.KeyValue{Key: fluentOperatorInitTag, Value: image.Value})
-		case fluentBitImageTag:
-			kvs = append(kvs, bom.KeyValue{Key: fluentBitImageTag, Value: image.Value})
-		}
-	}
+	kvs = append(kvs, images...)
 	if len(kvs) < 1 {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to construct fluent-operator related images from BOM")
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
 	return kvs, nil
 }
 

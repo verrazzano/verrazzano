@@ -110,7 +110,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), fluentbitopensearchoutput.ComponentName)
+	a.Equal(comps[i].Name(), fluentbitosoutput.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
 	i++

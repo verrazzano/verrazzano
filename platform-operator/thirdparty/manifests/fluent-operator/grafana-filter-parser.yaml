@@ -68,7 +68,7 @@ metadata:
 spec:
   json:
     timeKey: logtime
-    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

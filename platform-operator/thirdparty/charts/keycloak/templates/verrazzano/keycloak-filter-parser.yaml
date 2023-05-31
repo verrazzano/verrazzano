@@ -6,43 +6,41 @@ kind: FluentBitConfig
 metadata:
   labels:
     fluentbit.verrazzano.io/namespace-config: "verrazzano"
-  name: weblogic-fbc
-  namespace: {{ .Release.Namespace | quote }}
+  name: keycloak-fbc
+  namespace: {{ .Release.Namespace }}
 spec:
   filterSelector:
     matchLabels:
-      verrazzano.io/component: "weblogic"
+      verrazzano.io/component: "keycloak"
   parserSelector:
     matchLabels:
-      verrazzano.io/component: "weblogic"
+      verrazzano.io/component: "keycloak"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
-    verrazzano.io/component: "weblogic"
-  name: weblogic-filter
-  namespace: {{ .Release.Namespace | quote }}
+    verrazzano.io/component: "keycloak"
+  name: keycloak-filter
+  namespace: {{ .Release.Namespace }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
-        parser: weblogic-parser
-    - recordModifier:
-        removeKeys:
-          - timestamp
-  match: 'kube.*weblogic-operator*_weblogic-operator*'
+        parser: keycloak-parser
+  match: "kube.*keycloak*_keycloak*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
-    verrazzano.io/component: "weblogic"
-  name: weblogic-parser
-  namespace: {{ .Release.Namespace | quote }}
+    verrazzano.io/component: "keycloak"
+  name: keycloak-parser
+  namespace: {{ .Release.Namespace }}
 spec:
-  json:
+  regex:
+    regex: '/^.*?(?<logtime>\d{2}:\d{2}:\d{2},\d{3}) (?<level>.*?)( |\t)+\[.*?\]( |\t)+\(.*?\)( |\t)+(?<message>.*)$/'
     timeKey: logtime
-    timeFormat: "%Y-%m-%dT%H:%M:%S.%NZ"
+    timeFormat: "%H:%M:%S,%L"
 {{ end -}}

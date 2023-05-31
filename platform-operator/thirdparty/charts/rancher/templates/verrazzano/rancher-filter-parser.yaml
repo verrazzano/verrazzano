@@ -68,6 +68,6 @@ spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
     timeKey: logtime
-    timeFormat: "%H:%M:%S.%N"
+    timeFormat: "%H:%M:%S.%L"
 {{ end -}}
     

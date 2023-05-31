@@ -40,6 +40,6 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   json:
-    timeKey: "@timestamp"
-    timeFormat: "%Y-%m-%dT%H:%M:%S,%N"
+    timeKey: "@timestamp" 
+    timeFormat: "%Y-%m-%dT%H:%M:%S+%L"
 {{ end -}}

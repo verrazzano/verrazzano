@@ -6,41 +6,43 @@ kind: FluentBitConfig
 metadata:
   labels:
     fluentbit.verrazzano.io/namespace-config: "verrazzano"
-  name: certmanager-fbc
-  namespace: {{ include "cert-manager.namespace" . }}
+  name: weblogic-fbc
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   filterSelector:
     matchLabels:
-      verrazzano.io/component: "certmanager"
+      verrazzano.io/component: "weblogic"
   parserSelector:
     matchLabels:
-      verrazzano.io/component: "certmanager"
+      verrazzano.io/component: "weblogic"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Filter
 metadata:
   labels:
-    verrazzano.io/component: "certmanager"
-  name: certmanager-filter
-  namespace: {{ include "cert-manager.namespace" . }}
+    verrazzano.io/component: "weblogic"
+  name: weblogic-filter
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   filters:
     - parser:
         keyName: log
         reserveData: true
-        parser: certmanager-parser
-  match: "kube.*cert-manager*cert-manager*"
+        parser: weblogic-parser
+    - recordModifier:
+        removeKeys:
+          - timestamp
+  match: 'kube.*weblogic-operator*_weblogic-operator*'
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
 metadata:
   labels:
-    verrazzano.io/component: "certmanager"
-  name: certmanager-parser
-  namespace: {{ include "cert-manager.namespace" . }}
+    verrazzano.io/component: "weblogic"
+  name: weblogic-parser
+  namespace: {{ .Release.Namespace | quote }}
 spec:
-  regex:
-    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+  json:
     timeKey: logtime
-    timeFormat: "%H:%M:%S.%N"
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
 {{ end -}}

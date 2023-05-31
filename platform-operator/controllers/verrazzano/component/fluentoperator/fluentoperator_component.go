@@ -199,7 +199,7 @@ func (c fluentOperatorComponent) Uninstall(context spi.ComponentContext) error {
 
 // Upgrade process the Fluent Operator upgrade.
 func (c fluentOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-	return c.HelmComponent.Install(ctx)
+	return c.HelmComponent.Upgrade(ctx)
 }
 
 // IsReady component check if Fluent Operator is ready or not.

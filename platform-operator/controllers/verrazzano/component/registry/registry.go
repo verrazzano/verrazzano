@@ -71,7 +71,7 @@ func InitRegistry() {
 	componentsRegistry = []spi.Component{
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
 		fluentoperator.NewComponent(),
-		fluentbitopensearchoutput.NewComponent(),
+		fluentbitosoutput.NewComponent(),
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),
