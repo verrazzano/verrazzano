@@ -20,7 +20,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -68,7 +68,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
-			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, cmcontroller.ComponentName, vmo.ComponentName},
+			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, vmo.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},

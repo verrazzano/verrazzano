@@ -14,7 +14,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
+	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -571,7 +571,7 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmissuer.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
 
 	// Expect a call to get the service account
@@ -655,7 +655,7 @@ func TestUninstallStarted(t *testing.T) {
 	setFakeComponentsDisabled()
 	defer registry.ResetGetComponentsFn()
 
-	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmissuer.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
@@ -772,7 +772,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmissuer.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
