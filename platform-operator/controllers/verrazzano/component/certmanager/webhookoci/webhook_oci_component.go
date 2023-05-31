@@ -31,10 +31,10 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// componentChartName is the Webhook Chart name
-	componentChartName = "verrazzano-cert-manager-ocidns-webhook"
+	componentChartName = "cert-manager-webhook-oci"
 
 	// webhookDeploymentName is the Webhook deployment object name
-	webhookDeploymentName = "cert-manager-ocidns-provider"
+	webhookDeploymentName = "cert-manager-webhook-oci"
 )
 
 // certManagerOciDnsComponent represents an CertManager component
