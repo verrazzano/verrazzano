@@ -53,7 +53,7 @@ func init() {
 // THEN true is returned
 func Test_isCertManagerOciDNSReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-		WithObjects(newDeployment(ocidnsDeploymentName, false)).
+		WithObjects(newDeployment(webhookDeploymentName, false)).
 		Build()
 
 	vz := vzapi.Verrazzano{
@@ -71,9 +71,9 @@ func Test_isCertManagerOciDNSReady(t *testing.T) {
 
 	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
 		WithObjects(
-			newDeployment(ocidnsDeploymentName, true),
-			newPod(ComponentNamespace, "cert-manager-ocidns-provider"),
-			newReplicaSet(ComponentNamespace, "cert-manager-ocidns-provider"),
+			newDeployment(webhookDeploymentName, true),
+			newPod(ComponentNamespace, webhookDeploymentName),
+			newReplicaSet(ComponentNamespace, webhookDeploymentName),
 		).
 		Build()
 	assert.True(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, &vz, nil, false)))
@@ -85,7 +85,7 @@ func Test_isCertManagerOciDNSReady(t *testing.T) {
 // THEN false is returned
 func Test_isCertManagerOciDNSNotReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-		WithObjects(newDeployment(ocidnsDeploymentName, false)).
+		WithObjects(newDeployment(webhookDeploymentName, false)).
 		Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -107,7 +107,7 @@ func Test_isCertManagerOciDNSNotReady(t *testing.T) {
 // THEN false is returned
 func Test_isCertManagerOciDNSReadyDisabled(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-		WithObjects(newDeployment(ocidnsDeploymentName, false)).
+		WithObjects(newDeployment(webhookDeploymentName, false)).
 		Build()
 	vz := &vzapi.Verrazzano{}
 	assert.True(t, isCertManagerOciDNSReady(spi.NewFakeContext(client, vz, nil, false)))
