@@ -4,26 +4,35 @@
 package operatorinit
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"sync"
-	"time"
-
+	"context"
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strings"
+	"sync"
+	"time"
 )
+
+const vpoHelmChartConfigMapName = "vpo-helm-chart"
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
@@ -36,6 +45,30 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 
 	registry.InitRegistry()
 	metricsexporter.Init()
+
+	chartDir := config.GetHelmVPOChartsDir()
+	files, err := os.ReadDir(chartDir)
+	if err != nil {
+		return errors.Wrap(err, "Failed to read the verrazzano-platform-operator helm chart directory")
+	}
+	vpoHelmChartConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vpoHelmChartConfigMapName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+	}
+	err = generateConfigMapFromHelmChartFiles(chartDir, "", files, vpoHelmChartConfigMap)
+	if err != nil {
+		return errors.Wrap(err, "Failed to generate config map containing the verrazzano-platform-operator helm chart")
+	}
+	kubeClient, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	err = createVPOHelmChartConfigMap(kubeClient, vpoHelmChartConfigMap)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create/update config map containing the verrazzano-platform-operator helm chart")
+	}
 
 	mgr, err := controllerruntime.NewManager(k8sutil.GetConfigOrDieFromController(), controllerruntime.Options{
 		Scheme:             scheme,
@@ -113,4 +146,61 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	}
 
 	return nil
+}
+
+// generateConfigMapFromHelmChartFiles generates a config map with the files from a given helm chart directory
+func generateConfigMapFromHelmChartFiles(dir string, key string, files []os.DirEntry, configMap *corev1.ConfigMap) error {
+	for _, file := range files {
+		newKey := file.Name()
+		if len(key) != 0 {
+			newKey = key + "/" + file.Name()
+		}
+		if file.IsDir() {
+			files2, err := os.ReadDir(dir + "/" + newKey)
+			if err != nil {
+				return err
+			}
+			err = generateConfigMapFromHelmChartFiles(dir, newKey, files2, configMap)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := addKeyForFileToConfigMap(dir, newKey, configMap)
+			if err != nil {
+				return nil
+			}
+		}
+	}
+
+	return nil
+}
+
+// addKeyForFileToConfigMap adds a key for a file to a config map
+func addKeyForFileToConfigMap(dir string, key string, configMap *corev1.ConfigMap) error {
+	data, err := os.ReadFile(dir + "/" + key)
+	if err != nil {
+		return err
+	}
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+	// Use "..." as a path separator since "/" is an invalid character for a config map data key
+	keyName := strings.ReplaceAll(key, "/", "...")
+	configMap.Data[keyName] = string(data)
+
+	return nil
+}
+
+// createVPOHelmChartConfigMap creates/updates a config map containing the VPO helm chart
+func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *corev1.ConfigMap) error {
+	_, err := kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Get(context.TODO(), configMap.Name, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			_, err = kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+		}
+	} else {
+		_, err = kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	}
+
+	return err
 }

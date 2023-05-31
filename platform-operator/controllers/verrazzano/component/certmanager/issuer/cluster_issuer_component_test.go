@@ -1,18 +1,11 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package config
+package issuer
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"testing"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -21,10 +14,17 @@ import (
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,9 +32,6 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const (
@@ -52,7 +49,7 @@ func TestSimpleMethods(t *testing.T) {
 	asserts.Equal(ComponentNamespace, c.Namespace())
 	asserts.Equal(ComponentJSONName, c.GetJSONName())
 	asserts.False(c.ShouldInstallBeforeUpgrade())
-	asserts.ElementsMatch([]string{networkpolicies.ComponentName, controller.ComponentName, ocidns.ComponentName}, c.GetDependencies())
+	asserts.ElementsMatch([]string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName}, c.GetDependencies())
 	asserts.Equal(constants.VerrazzanoVersion1_0_0, c.GetMinVerrazzanoVersion())
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetIngressNames(nil))
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetCertificateNames(nil))

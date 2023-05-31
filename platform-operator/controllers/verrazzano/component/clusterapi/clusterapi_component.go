@@ -13,7 +13,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -98,7 +99,7 @@ func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of this component.
 func (c clusterAPIComponent) GetDependencies() []string {
-	return []string{cmcontroller.ComponentName}
+	return []string{cmcommon.CertManagerComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
@@ -193,8 +194,8 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	return err
 }
 
-func (c clusterAPIComponent) PostInstall(_ spi.ComponentContext) error {
-	return nil
+func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
+	return common.ActivateKontainerDriver(ctx)
 }
 
 func (c clusterAPIComponent) IsOperatorUninstallSupported() bool {
@@ -257,8 +258,8 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)
 }
 
-func (c clusterAPIComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (c clusterAPIComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	return common.ActivateKontainerDriver(ctx)
 }
 
 func (c clusterAPIComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {

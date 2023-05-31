@@ -6,6 +6,11 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -16,7 +21,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -37,10 +42,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 // ComponentName is the name of the component
@@ -121,7 +122,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmcontroller.ComponentName, clusterapi.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, clusterapi.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -498,7 +499,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return nil
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -539,7 +540,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return patchRancherIngress(c, ctx.EffectiveCR())
+	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
+		return err
+	}
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // Reconcile for the Rancher component

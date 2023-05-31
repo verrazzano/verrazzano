@@ -4570,10 +4570,6 @@ spec:
                             type: string
                           environment:
                             type: string
-                          provider:
-                            type: string
-                        required:
-                        - provider
                         type: object
                     type: object
                   clusterOperator:
