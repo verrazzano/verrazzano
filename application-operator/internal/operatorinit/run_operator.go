@@ -58,15 +58,17 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 	var agentChannel chan clusters.StatusUpdateMessage
 
 	if runClusterAgent {
+		log.Info("Starting agent reconciler for syncing multi-cluster objects")
 		if agentChannel, err = setupClusterAgentReconciler(mgr, log); err != nil {
+			return err
+		}
+		log.Info("Starting multicluster reconcilers")
+		if err := setupMulticlusterReconcilers(mgr, agentChannel, log); err != nil {
 			return err
 		}
 	} else {
 		log.Info("Starting application reconcilers")
 		if err := setupAppReconcilers(mgr, defaultMetricsScraper, log); err != nil {
-			return err
-		}
-		if err := setupMulticlusterReconcilers(mgr, agentChannel, log); err != nil {
 			return err
 		}
 	}
@@ -91,7 +93,6 @@ func setupClusterAgentReconciler(mgr manager.Manager, log *zap.SugaredLogger) (c
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
-	log.Info("Starting agent reconciler for syncing multi-cluster objects")
 	if err := (&mcagent.Reconciler{
 		Client:       mgr.GetClient(),
 		Log:          log.With(vzlog.FieldAgent, "multi-cluster"),
