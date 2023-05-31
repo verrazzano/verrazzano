@@ -32,9 +32,6 @@ spec:
               protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
-            - --run-app-operator=false
-            - --run-webhooks=false
-            - --run-webhook-init=false
             - --run-cluster-agent=true
           resources:
             requests:
