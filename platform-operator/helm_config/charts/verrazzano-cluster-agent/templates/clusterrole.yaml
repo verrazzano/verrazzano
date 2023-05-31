@@ -5,6 +5,22 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: verrazzano-cluster-agent
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        verrazzano.io/aggregate-to-verrazzano-cluster-agent: "true"
+    - matchLabels:
+        verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+    - matchLabels:
+        verrazzano.io/aggregate-to-verrazzano-project-monitor: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-cluster-agent-rules
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-cluster-agent: "true"
 rules:
   - apiGroups:
       - ""
