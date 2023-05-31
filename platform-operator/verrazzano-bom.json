@@ -78,11 +78,11 @@
       ]
     },
     {
-      "name": "verrazzano-ocidns-webhook",
+      "name": "cert-manager-webhook-oci",
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "verrazzano-ocidns-webhook",
+          "name": "cert-manager-webhook-oci",
           "images": [
             {
               "image": "cert-manager-webhook-oci",
