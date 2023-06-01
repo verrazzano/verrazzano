@@ -62,4 +62,5 @@ metadata:
 spec:
   json:
     timeKey: logtime
+    timeKeep: true
     timeFormat: "%Y-%m-%dT%H:%M:%SZ"

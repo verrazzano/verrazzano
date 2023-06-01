@@ -42,5 +42,6 @@ spec:
   regex:
     regex: '/^.*?(?<logtime>\d{2}:\d{2}:\d{2},\d{3}) (?<level>.*?)( |\t)+\[.*?\]( |\t)+\(.*?\)( |\t)+(?<message>.*)$/'
     timeKey: logtime
+    timeKeep: true
     timeFormat: "%H:%M:%S,%L"
 {{ end -}}
