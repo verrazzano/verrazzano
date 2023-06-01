@@ -151,6 +151,10 @@ func (c clusterIssuerComponent) validateConfiguration(new *v1beta1.Verrazzano) e
 		return nil
 	}
 
+	if err := validateCertManagerTypesExist(); err != nil {
+		return err
+	}
+
 	if err := validateConfiguration(new); err != nil {
 		return err
 	}
