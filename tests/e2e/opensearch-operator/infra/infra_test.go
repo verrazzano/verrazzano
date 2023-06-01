@@ -7,6 +7,8 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -21,20 +23,26 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 30 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	loggingNamespace         = "verrazzano-logging"
 )
 
 var (
 	t                        = framework.NewTestFramework("infra")
 	namespace                = pkg.GenerateNamespace("hello-helidon")
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	inClusterVZ              *v1alpha1.Verrazzano
 )
 
+var whenJaegerOperatorEnabledIt = t.WhenMeetsConditionFunc(jaeger.OperatorCondition, jaeger.IsJaegerEnabled)
 var _ = t.AfterEach(func() {})
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	start := time.Now()
+	var err error
+	inClusterVZ, err = pkg.GetVerrazzano()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+	}
 	pkg.DeployHelloHelidonApplication(namespace, "", "enabled", "", "")
-	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	t.Logs.Info("Container image pull check")
 	Eventually(func() bool {
@@ -69,10 +77,19 @@ var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Verify OpenSearch infra", func() {
 
+	t.It("ingress exists", func() {
+		Expect(pkg.IngressesExist(inClusterVZ, loggingNamespace, []string{"opensearch", "opensearch-dashboards"})).To(BeTrue())
+	})
+
 	t.It("verrazzano-system index is present", func() {
 		Eventually(func() bool {
 			return pkg.LogIndexFound("verrazzano-system")
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	})
+
+	whenJaegerOperatorEnabledIt("traces from verrazzano system components should be available in the OS backend storage.", func() {
+		validatorFn := pkg.ValidateSystemTracesInOSFunc(time.Now().Add(-24 * time.Hour))
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	t.Context("hello-helidon application logs are present.", func() {

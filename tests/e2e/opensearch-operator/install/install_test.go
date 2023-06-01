@@ -8,21 +8,27 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	"github.com/verrazzano/verrazzano/tests/e2e/update/fluentd"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 	"time"
 )
 
 const (
-	loggingNamespace     = "verrazzano-logging"
-	clusterName          = "opensearch"
-	OSUrl                = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
-	jaegerOSURLField     = "jaeger.spec.storage.options.es.server-urls"
+	loggingNamespace = "verrazzano-logging"
+	clusterName      = "opensearch"
+	jaegerOSURLField = `
+jaeger:
+  spec:
+    storage:
+      options:
+        es.server-urls:`
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
@@ -43,10 +49,10 @@ func (s *SwitchLoggingOutput) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	}
 	jaegerEnabled, _ := jaeger.IsJaegerEnabled()
 	if jaegerEnabled {
-		jaegerOSURLOverridesYaml := fmt.Sprintf(`%s: %s`, jaegerOSURLField, s.OpenSearchURL)
+		jaegerOSURLOverridesYaml := fmt.Sprintf(`%s %s`, jaegerOSURLField, s.OpenSearchURL)
 		cr.Spec.Components.JaegerOperator.ValueOverrides = pkg.CreateOverridesOrDie(jaegerOSURLOverridesYaml)
 	}
-	t.Logs.Debugf("AuthProxyReplicasModifierV1beta1 CR: %s", marshalCRToString(cr.Spec))
+	t.Logs.Debugf("ModifiedV1beta1 CR: %s", marshalCRToString(cr.Spec))
 }
 
 var _ = t.AfterEach(func() {})
@@ -84,7 +90,9 @@ var _ = t.Describe("Verify opensearch and configure VZ", func() {
 	})
 
 	t.It("switch logging output", func() {
-		v1beta1Modifier := &SwitchLoggingOutput{OpenSearchURL: OSUrl}
+		// Update VZ CR to use new OS url for fluentd and jaeger, if enabled
+		v1beta1Modifier := &SwitchLoggingOutput{OpenSearchURL: constants.DefaultOperatorOSURLWithNS}
+		updateTime := time.Now()
 		Eventually(func() bool {
 			err := update.UpdateCRV1beta1(v1beta1Modifier)
 			if err != nil {
@@ -94,23 +102,17 @@ var _ = t.Describe("Verify opensearch and configure VZ", func() {
 			return true
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to switch OS Url")
 
-		Eventually(func() bool {
-			isReady, err := pkg.PodsRunning("verrazzano-system", []string{"fluentd"})
-			if err != nil {
-				return false
-			}
-			return isReady
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Fluentd failed to get to ready state")
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).NotTo(HaveOccurred())
 
-		if ok, _ := jaeger.IsJaegerEnabled(); ok {
-			Eventually(func() bool {
-				isReady, err := pkg.PodsRunning("verrazzano-monitoring", []string{"jaeger"})
-				if err != nil {
-					return false
-				}
-				return isReady
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Fluentd failed to get to ready state")
-		}
+		// Wait for VZ to be Ready after modifying the CR
+		update.WaitForReadyState(kubeconfigPath, updateTime, longPollingInterval, longWaitTimeout)
+
+		// Verify fluentd is up and ready with new OS URL
+		Eventually(func() {
+			fluentd.ValidateDaemonsetV1beta1(constants.DefaultOperatorOSURLWithNS, constants.VerrazzanoESInternal, "")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Fluentd not ready for %s", constants.DefaultOperatorOSURLWithNS)
+
 	})
 })
 
