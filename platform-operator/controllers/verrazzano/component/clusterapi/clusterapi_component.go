@@ -30,7 +30,7 @@ const ComponentName = "clusterAPI"
 const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
-const ComponentJSONName = "clusterAPI"
+const ComponentJSONName = "cluster-api"
 
 const (
 	capiCMDeployment                 = "capi-controller-manager"
