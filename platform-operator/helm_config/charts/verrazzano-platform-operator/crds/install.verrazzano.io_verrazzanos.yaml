@@ -4582,6 +4582,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  clusterAPI:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   clusterAgent:
                     properties:
                       enabled:
@@ -4619,11 +4624,6 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
-                    type: object
-                  clusterAPI:
-                    properties:
-                      enabled:
-                        type: boolean
                     type: object
                   clusterIssuer:
                     properties:
