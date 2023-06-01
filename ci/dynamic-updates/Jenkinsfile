@@ -260,7 +260,7 @@ pipeline {
                                       ./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml
                                     else
                                       cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                                      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml
+                                      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
                                     fi
                                     result=$?
                                     if [[ $result -ne 0 ]]; then
