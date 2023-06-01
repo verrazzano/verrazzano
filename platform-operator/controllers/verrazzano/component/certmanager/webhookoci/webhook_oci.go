@@ -17,10 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	ocidnsDeploymentName = "cert-manager-ocidns-provider"
-)
-
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
 func isCertManagerOciDNSReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{}
@@ -28,7 +24,7 @@ func isCertManagerOciDNSReady(context spi.ComponentContext) bool {
 		context.Log().Oncef("OCI DNS is not enabled, skipping ready check")
 		return true
 	}
-	deployments = append(deployments, types.NamespacedName{Name: ocidnsDeploymentName, Namespace: ComponentNamespace})
+	deployments = append(deployments, types.NamespacedName{Name: webhookDeploymentName, Namespace: ComponentNamespace})
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }

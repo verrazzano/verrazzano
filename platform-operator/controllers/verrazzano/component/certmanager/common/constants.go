@@ -14,7 +14,7 @@ const (
 	CertManagerComponentJSONName = "certManager"
 
 	// CertManagerWebhookOCIComponentName is the name of the OCI DNS webhook component
-	CertManagerWebhookOCIComponentName = "verrazzano-ocidns-webhook"
+	CertManagerWebhookOCIComponentName = "cert-manager-webhook-oci"
 
 	// LetsEncryptProduction - LetsEncrypt production env
 	LetsEncryptProduction = "production"
