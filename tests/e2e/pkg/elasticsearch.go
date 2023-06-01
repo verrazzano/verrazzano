@@ -12,6 +12,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"go.uber.org/zap"
 	"html/template"
 	"net/http"
 	url2 "net/url"
@@ -495,6 +496,7 @@ func listSystemOpenSearchIndices(kubeconfigPath string) []string {
 	var indexMap map[string]interface{}
 	json.Unmarshal(resp.Body, &indexMap)
 	for name := range indexMap {
+		zap.S().Info(name)
 		list = append(list, name)
 	}
 	return list
@@ -576,6 +578,7 @@ func LogIndexFound(indexName string) bool {
 func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
 	for _, name := range listSystemOpenSearchIndices(kubeconfigPath) {
+		Log(Info, fmt.Sprintf("Found index: %s", name))
 		// If old index or data stream backend index, return true
 		backendIndexRe := regexp.MustCompile(`^\.ds-` + indexName + `-\d+$`)
 		if name == indexName || backendIndexRe.MatchString(name) {

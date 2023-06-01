@@ -93,6 +93,24 @@ var _ = t.Describe("Verify opensearch and configure VZ", func() {
 			}
 			return true
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to switch OS Url")
+
+		Eventually(func() bool {
+			isReady, err := pkg.PodsRunning("verrazzano-system", []string{"fluentd"})
+			if err != nil {
+				return false
+			}
+			return isReady
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Fluentd failed to get to ready state")
+
+		if ok, _ := jaeger.IsJaegerEnabled(); ok {
+			Eventually(func() bool {
+				isReady, err := pkg.PodsRunning("verrazzano-monitoring", []string{"jaeger"})
+				if err != nil {
+					return false
+				}
+				return isReady
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Fluentd failed to get to ready state")
+		}
 	})
 })
 
