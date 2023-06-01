@@ -216,6 +216,11 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
+
+	err = deleteClusterRole(client, vzconstants.VerrazzanoClusterRancherName)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
 }
 
 // getUninstallJobPodName returns the name of the pod for the verrazzano-uninstall job

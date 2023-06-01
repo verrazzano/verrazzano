@@ -65,6 +65,14 @@ spec:
                             app: webhook
                         topologyKey: kubernetes.io/hostname
                       weight: 100
+    certManagerWebhookOCI:
+      enabled: false
+    clusterIssuer:
+      enabled: false
+      clusterResourceNamespace: "cert-manager"
+      letsEncrypt:
+          emailAddress: "myemail"
+          environment: "production"
     clusterOperator:
       enabled: false
     coherenceOperator:

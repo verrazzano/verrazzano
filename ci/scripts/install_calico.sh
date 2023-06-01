@@ -23,6 +23,6 @@ for image_archive in *.tar; do
     kind load image-archive "$image_archive" --name "${CLUSTER_NAME}"
 done
 
-echo "Apply ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests/calico.yaml."
-cd ${CALICO_HOME}/${CALICO_VERSION}/k8s-manifests
+echo "Apply ${CALICO_HOME}/${CALICO_VERSION}/manifests/calico.yaml."
+cd ${CALICO_HOME}/${CALICO_VERSION}/manifests
 kubectl apply -f calico.yaml

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -71,8 +71,14 @@ func (c *certBuilder) buildLetsEncryptStagingChain() error {
 	return nil
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
-	return acme != vzapi.Acme{} && acme.Environment != "production"
+func useAdditionalCAs(issuerConfig *vzapi.ClusterIssuerComponent) bool {
+	if issuerConfig == nil {
+		return false
+	}
+	if isLetsEncrypt, err := issuerConfig.IsLetsEncryptIssuer(); err != nil || !isLetsEncrypt {
+		return false
+	}
+	return issuerConfig.LetsEncrypt.Environment != "production"
 }
 
 func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client, vz *vzapi.Verrazzano) error {
@@ -80,14 +86,17 @@ func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client
 	if !vzcr.IsRancherEnabled(vz) {
 		return nil
 	}
-	cm := vz.Spec.Components.CertManager
+	cm := vz.Spec.Components.ClusterIssuer
+	if cm == nil {
+		return log.ErrorfThrottledNewErr("Cluster issuer not defined in configuration")
+	}
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: CattleSystem,
 			Name:      constants.AdditionalTLS,
 		},
 	}
-	if cm != nil && useAdditionalCAs(cm.Certificate.Acme) {
+	if useAdditionalCAs(cm) {
 		log.Debugf("Creating additional Rancher certificates for non-production environment")
 		return createAdditionalCertificates(log, cli, secret)
 	}

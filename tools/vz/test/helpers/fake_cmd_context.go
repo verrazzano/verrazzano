@@ -6,7 +6,11 @@ package helpers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"k8s.io/client-go/discovery"
+	discoveryFake "k8s.io/client-go/discovery/fake"
+
 	"net/http"
 	"os"
 	"strings"
@@ -118,4 +122,13 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 		IOStreams:  streams,
 		kubeClient: fake.NewSimpleClientset(),
 	}
+}
+
+func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
+	client := rc.kubeClient
+	discoveryClient, ok := client.Discovery().(*discoveryFake.FakeDiscovery)
+	if !ok {
+		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
+	}
+	return discoveryClient, nil
 }

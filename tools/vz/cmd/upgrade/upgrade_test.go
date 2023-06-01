@@ -486,6 +486,9 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	install.SetValidateCRFunc(install.FakeValidateCRFunc)
+	defer install.SetDefaultValidateCRFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -547,6 +550,9 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	install.SetValidateCRFunc(install.FakeValidateCRFunc)
+	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -676,6 +682,9 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	install.SetValidateCRFunc(install.FakeValidateCRFunc)
+	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()

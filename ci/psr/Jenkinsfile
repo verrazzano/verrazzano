@@ -28,7 +28,7 @@ pipeline {
     }
 
     parameters {
-        choice (name: 'KUBERNETES_CLUSTER_VERSION', description: 'Kubernetes Version for KinD Cluster', choices: [ "1.24", "1.23", "1.22", "1.21" ])
+        choice (name: 'KUBERNETES_CLUSTER_VERSION', description: 'Kubernetes Version for KinD Cluster', choices: [ "1.26", "1.25", "1.24", "1.23", "1.22" ])
         string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'master', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
         string (name: 'VERRAZZANO_OPERATOR_IMAGE', defaultValue: 'NONE', trim: true, description: 'Uses a specific Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml from related Verrazzano repo branch will be used to create Verrazzano platform operator manifest')
         string (name: 'KIND_NODE_COUNT', defaultValue: '3', trim: true, description: 'Number of nodes for the KIND cluster for smoke testing')

@@ -196,6 +196,11 @@ func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertio
 	regSecret.Name = constants.MCRegistrationSecret
 	httpMock = addNotFoundMock(httpMock, &regSecret, clusterID)
 
+	expectActiveCluster(httpMock)
+	return httpMock
+}
+
+func expectActiveCluster(httpMock *mocks.MockRequestSender) {
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -207,7 +212,6 @@ func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertio
 			}
 			return resp, nil
 		})
-	return httpMock
 }
 
 func addTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {

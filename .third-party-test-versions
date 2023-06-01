@@ -1,6 +1,6 @@
-# Copyright (C) 2021, Oracle and/or its affiliates.
+# Copyright (C) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-calico-version=3.18.1
+calico-version=3.24.5
 google-chrome-version=90.0.4430.93-1
 chrome-driver-version=90.0.4430.24

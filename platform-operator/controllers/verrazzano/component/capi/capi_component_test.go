@@ -8,7 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -90,7 +90,7 @@ func TestGetDependencies(t *testing.T) {
 	var comp capiComponent
 	dependencies := comp.GetDependencies()
 	assert.Len(t, dependencies, 1)
-	assert.Equal(t, cmcontroller.ComponentName, dependencies[0])
+	assert.Equal(t, cmcommon.CertManagerComponentName, dependencies[0])
 }
 
 // TestIsReady tests the IsReady function
