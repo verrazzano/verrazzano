@@ -12,6 +12,7 @@ import (
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteragent"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -104,6 +105,7 @@ func InitRegistry() {
 		clusteroperator.NewComponent(),
 		argocd.NewComponent(),
 		thanos.NewComponent(),
+		clusteragent.NewComponent(),
 	}
 	getComponentsMap = make(map[string]spi.Component)
 }

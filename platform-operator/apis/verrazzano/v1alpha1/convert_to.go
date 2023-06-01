@@ -148,6 +148,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
 		ClusterAPI:             convertClusterAPIToV1Beta1(src.ClusterAPI),
+		ClusterAgent:           convertClusterAgentToV1Beta1(src.ClusterAgent),
 	}, nil
 }
 
@@ -759,6 +760,16 @@ func convertClusterAPIToV1Beta1(src *ClusterAPIComponent) *v1beta1.ClusterAPICom
 	}
 	return &v1beta1.ClusterAPIComponent{
 		Enabled: src.Enabled,
+	}
+}
+
+func convertClusterAgentToV1Beta1(src *ClusterAgentComponent) *v1beta1.ClusterAgentComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterAgentComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 

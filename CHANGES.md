@@ -14,7 +14,10 @@ Component version updates:
 - WebLogic Monitoring Exporter v2.1.3
 - Jaeger v1.42.0
 - Prometheus Operator v0.64.1
+- Prometheus v2.44.0
+- kube-state-metrics v2.8.2
 - kube-prometheus-stack Helm chart v45.25.0
+- kube-state-metrics Helm chart v5.6.4
 
 Components added:
 - Thanos v0.30.2

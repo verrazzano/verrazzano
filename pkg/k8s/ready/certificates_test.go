@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package ready
 
@@ -42,12 +42,14 @@ func TestCheckCertificatesReady(t *testing.T) {
 		{Name: "mycert", Namespace: "verrazzano-system"},
 		{Name: "mycert2", Namespace: "verrazzano-system"},
 	}
-	cmEnabled := true
+	cmDisabled := false // Validate this for the customer-managed-CM case to ensure we
+	issuerEnabled := true
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+				CertManager:   &v1alpha1.CertManagerComponent{Enabled: &cmDisabled},
+				ClusterIssuer: &v1alpha1.ClusterIssuerComponent{Enabled: &issuerEnabled},
 			},
 		},
 	}
@@ -97,12 +99,14 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 	notReadyExpected := []types.NamespacedName{
 		certNames[1],
 	}
-	cmEnabled := true
+	cmDisabled := false // Validate this for the customer-managed-CM case to ensure we
+	issuerEnabled := true
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+				CertManager:   &v1alpha1.CertManagerComponent{Enabled: &cmDisabled},
+				ClusterIssuer: &v1alpha1.ClusterIssuerComponent{Enabled: &issuerEnabled},
 			},
 		},
 	}
@@ -147,15 +151,26 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 		{Name: "mycert2", Namespace: "verrazzano-system"},
 	}
 
-	cmEnabled := false
+	disabled := false // Validate this for the customer-managed-CM case to ensure we
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+				CertManager:   &v1alpha1.CertManagerComponent{Enabled: &disabled},
+				ClusterIssuer: &v1alpha1.ClusterIssuerComponent{Enabled: &disabled},
 			},
 		},
 	}
+
+	//cmEnabled := false
+	//vz := &v1alpha1.Verrazzano{
+	//	ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
+	//	Spec: v1alpha1.VerrazzanoSpec{
+	//		Components: v1alpha1.ComponentSpec{
+	//			CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+	//		},
+	//	},
+	//}
 
 	client := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
@@ -168,12 +183,14 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 // WHEN I call CertificatesAreReady with an empty certs list
 // THEN true and an empty list of names is returned
 func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
-	cmEnabled := true
+	cmDisabled := false // Validate this for the customer-managed-CM case to ensure we
+	issuerEnabled := true
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+				CertManager:   &v1alpha1.CertManagerComponent{Enabled: &cmDisabled},
+				ClusterIssuer: &v1alpha1.ClusterIssuerComponent{Enabled: &issuerEnabled},
 			},
 		},
 	}

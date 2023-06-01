@@ -151,6 +151,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
 		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
 		ClusterAPI:             convertClusterAPIFromV1Beta1(in.ClusterAPI),
+		ClusterAgent:           convertClusterAgentFromV1Beta1(in.ClusterAgent),
 	}
 }
 
@@ -219,6 +220,16 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 	}
 	return &ClusterAPIComponent{
 		Enabled: in.Enabled,
+	}
+}
+
+func convertClusterAgentFromV1Beta1(in *v1beta1.ClusterAgentComponent) *ClusterAgentComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterAgentComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 

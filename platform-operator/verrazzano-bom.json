@@ -78,11 +78,11 @@
       ]
     },
     {
-      "name": "verrazzano-ocidns-webhook",
+      "name": "cert-manager-webhook-oci",
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "verrazzano-ocidns-webhook",
+          "name": "cert-manager-webhook-oci",
           "images": [
             {
               "image": "cert-manager-webhook-oci",
@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230525175104-c76114c6a",
+              "dashboard": "v2.7.2-20230531141443-f8210f7a3",
               "rancherUI": "v2.7.2-2/release-2.7.2",
               "ocneDriverVersion": "v0.2.0",
               "ocneDriverChecksum": "60cf8205a681a53ab73e6e9d125e741afa681b54cfd72d6c14e906d3e8b71f0c",
-              "tag": "v2.7.3-20230531122142-235cb673f",
+              "tag": "v2.7.3-20230531142637-235cb673f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230531122142-235cb673f"
+              "tag": "v2.7.3-20230531142637-235cb673f"
             }
           ]
         },
@@ -235,11 +235,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230526193452-b637521"
+              "tag": "v0.1.0-20230531223401-6824a09"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230526193452-b637521"
+              "tag": "v0.1.0-20230531223401-6824a09"
             }
           ]
         }
@@ -596,7 +596,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.38.0-20230524145024-186a8ee6",
+              "tag": "v2.44.0-20230531160222-74087370",
               "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
@@ -631,7 +631,8 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.6.0-20230524165333-36212f20",
+              "tag": "v2.8.2-20230531155057-c4a3ac95",
+              "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
