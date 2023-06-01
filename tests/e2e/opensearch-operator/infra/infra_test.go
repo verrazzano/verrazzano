@@ -65,6 +65,8 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = AfterSuite(afterSuite)
+
 var _ = t.Describe("Verify OpenSearch infra", func() {
 
 	t.It("verrazzano-system index is present", func() {
