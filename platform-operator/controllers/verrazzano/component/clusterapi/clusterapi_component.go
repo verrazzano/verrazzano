@@ -24,13 +24,13 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "clusterAPI"
+const ComponentName = "cluster-api"
 
 // Namespace for CAPI providers
 const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
-const ComponentJSONName = "cluster-api"
+const ComponentJSONName = "clusterAPI"
 
 const (
 	capiCMDeployment                 = "capi-controller-manager"
