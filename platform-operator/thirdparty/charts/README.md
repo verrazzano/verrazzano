@@ -40,12 +40,20 @@ helm repo update
 helm fetch jetstack/cert-manager --untar=true --version=${CERT_MANAGER_CHART_VERSION}
 ```
 
+## Cert-Manager Webhook OCI
+
+The `cert-manager-webhook-oci` is maintained by Verrazzano at https://github.com/verrazzano/cert-manager-webhook-oci.
+It is copied from https://github.com/verrazzano/cert-manager-webhook-oci/tree/main/deploy/cert-manager-webhook-oci.
+
+Changes to this chart should be managed in https://github.com/verrazzano/cert-manager-webhook-oci and should be
+copied here.
+
 ## Rancher
 
 The `rancher` folder was created by running the following commands:
 
 ```shell
-export RANCHER_CHART_VERSION=v2.5.7
+export RANCHER_CHART_VERSION=v2.7.2
 rm -rf rancher
 helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
 helm repo update
@@ -57,19 +65,20 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.0.8
+export MYSQL_CHART_VERSION=2.0.10
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
 helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
+mv mysql-innodbcluster mysql
 ```
 
 ## MySQL Operator
 
-The `mysql` folder was created by running the following commands:
+The `mysql-operator` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.0.8
+export MYSQL_OPERATOR_CHART_VERSION=2.0.10
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
@@ -106,7 +115,7 @@ The `wls-operator` folder was created by running the following commands:
 
 ```shell
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
-export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.4
+export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.6
 rm -rf weblogic-operator
 helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update
@@ -174,7 +183,7 @@ The `jaegertracing/jaeger-operator` folder was created by running the following 
 
 ```shell
 export JAEGER_OPERATOR_CHART_REPO=https://jaegertracing.github.io/helm-charts
-export JAEGER_OPERATOR_CHART_VERSION=2.35.0
+export JAEGER_OPERATOR_CHART_VERSION=2.41.0
 rm -rf jaegertracing/jaeger-operator
 mkdir -p jaegertracing
 cd jaegertracing
@@ -201,7 +210,7 @@ helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSIO
 The `argo-cd` folder was created by running the followiong commands:
 
 ```shell
-export ARGOCD_CHART_VERSION=5.16.1
+export ARGOCD_CHART_VERSION=5.34.3
 helm repo add argocd https://argoproj.github.io/argo-helm
 helm repo update
 rm -rf argo-cd
@@ -220,3 +229,14 @@ rm -rf prometheus-community/prometheus-node-exporter
 helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
+### OpenSearch Operator
+
+The `opensearch-operator` folder was created by running the following commands:
+
+```shell
+export OPENSEARCH_OPERATOR_CHART_VERSION=2.2.0
+helm repo add opensearch-operator https://opster.github.io/opensearch-k8s-operator/
+helm repo update
+rm -rf opensearch-operator
+helm fetch opensearch-operator/opensearch-operator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
+```

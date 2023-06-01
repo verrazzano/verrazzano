@@ -1,0 +1,108 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query-frontend
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow auth proxy to forward requests to thanos-query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - verrazzano-authproxy
+      ports:
+        # Store API port
+        - port: 10901
+          protocol: TCP
+        # web ui port
+        - port: 10902
+          protocol: TCP
+    # allow grafana to talk to thanos-query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - system-grafana
+      ports:
+        # http api port
+        - port: 10902
+          protocol: TCP
+    # allow Prometheus to scrape metrics from Thanos query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # api port
+        - port: 10902
+          protocol: TCP
+        # Istio proxy metrics port
+        - port: 15090
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-query
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow thanos-query-frontend to forward requests to thanos-query and
+    # thanos-query to talk to thanos-storegateway
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - thanos
+      ports:
+        # web ui port
+        - port: 10902
+          protocol: TCP
+        # storegateway API endpoint
+        - port: 10901
+          protocol: TCP
+    # allow Prometheus to scrape metrics from Thanos query
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # api port
+        - port: 10902
+          protocol: TCP
+        # Istio proxy metrics port
+        - port: 15090
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress

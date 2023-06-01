@@ -48,7 +48,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                         description: 'Kubernetes Version for KinD Cluster',
                         // 1st choice is the default value
-                        choices: [ "1.24", "1.23", "1.22", "1.21" ])
+                        choices: [ "1.26", "1.25", "1.24", "1.23", "1.22" ])
         choice (description: 'Use instance principal for oci dns tests', name: 'OCI_DNS_AUTH',
                 // 1st choice is the default value
                 choices: [ "user_principal", "instance_principal" ])

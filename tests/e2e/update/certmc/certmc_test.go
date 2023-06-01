@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certmc
@@ -40,13 +40,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	verifyRegistration()
-	verifyScrapeTargets()
+	verifyThanosStore()
 })
 
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	verifyScrapeTargets()
+	verifyThanosStore()
 })
 
 var _ = AfterSuite(afterSuite)
@@ -56,7 +56,7 @@ var _ = t.Describe("Update managed-cluster cert-manager", Label("f:platform-lcm.
 		t.It("managed-cluster cert-manager custom CA", func() {
 			updateCustomCA()
 			verifyCaSync()
-			verifyScrapeTargets()
+			verifyThanosStore()
 		})
 	})
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
@@ -86,7 +86,7 @@ func updateCustomCA() {
 		}
 		originalCMs[managedCluster.Name] = oldCM
 		m := &CertModifier{CertManager: newCM}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	}
 }
 
@@ -101,7 +101,7 @@ func revertToDefaultCertManager() {
 		oldCaCrts[managedCluster.Name] = oldCaCrt
 		oldCm := originalCMs[managedCluster.Name]
 		m := &CertModifier{CertManager: oldCm}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	}
 }
 
@@ -137,29 +137,47 @@ func verifyCaSync() {
 	}
 }
 
-func verifyScrapeTargets() {
+func verifyThanosStore() {
 	for _, managedCluster := range managedClusters {
-		start := time.Now()
-		gomega.Eventually(func() bool {
-			targets, err := pkg.ScrapeTargets()
+		gomega.Eventually(func() (bool, error) {
+			metricsTest, err := pkg.NewMetricsTest(adminCluster.KubeConfigPath, map[string]string{}, managedCluster.KubeConfigPath)
 			if err != nil {
-				return false
+				t.Logs.Errorf("Failed to create metrics test object for cluster: %v", err)
+				return false, err
 			}
-			var target map[string]interface{}
-			for _, item := range targets {
-				t := item.(map[string]interface{})
-				scrapePool := t["scrapePool"].(string)
-				if scrapePool == managedCluster.Name {
-					target = t
+
+			queryStores, err := metricsTest.Source.GetTargets()
+			if err != nil {
+				t.Logs.Errorf("Failed to create get metrics target source: %v", err)
+				return false, err
+			}
+
+			expectedName := fmt.Sprintf("%s:443", managedCluster.GetQueryIngress())
+			for _, store := range queryStores {
+				storeMap, ok := store.(map[string]interface{})
+				if !ok {
+					t.Logs.Infof("Thanos store empty, skipping entry")
+					continue
+				}
+				name, ok := storeMap["name"]
+				if !ok {
+					t.Logs.Infof("Name not found for store, skipping entry")
+					continue
+				}
+				nameString, nameOk := name.(string)
+				if !nameOk {
+					t.Logs.Infof("Name not valid format, skipping entry")
+					continue
+				}
+				if ok {
+					t.Logs.Infof("Found store in Thanos %s, want is equal to %s", nameString, expectedName)
+				}
+				if ok && nameString == expectedName {
+					return true, nil
 				}
 			}
-			health, ok := target["health"]
-			if ok {
-				pkg.Log(pkg.Error, fmt.Sprintf("ScrapeTargets:%v health:%v ok:%v time:%v \n", len(target), health, ok, time.Since(start)))
-				return health.(string) == "up"
-			}
-			return false
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+			return false, nil
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("store of %s is not ready", managedCluster.Name))
 	}
 }
 

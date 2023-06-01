@@ -1,7 +1,8 @@
 # Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
+ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
+FROM $BASE_IMAGE AS build_base
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
@@ -14,17 +15,15 @@ COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-plat
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/*.sh
-
 # Create the verrazzano-platform-operator image
-FROM ghcr.io/oracle/oraclelinux:8-slim AS final
+FROM $BASE_IMAGE AS final
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
-# copy olcne repos needed to install kubectl, istioctl, and helm
+# copy olcne repos needed to install kubectl, istioctl
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos/*.repo /etc/yum.repos.d/
 
-RUN microdnf update -y \
-    && microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.23.11-1.el8 istio-istioctl-1.15.3-1.el8 helm-3.9.2-1.el8 \
+RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.23.11-1.el8 istio-istioctl-1.15.3-2.el8 \
     && microdnf clean all \
     && rm -rf /var/cache/yum /var/lib/rpm/* \
     && groupadd -r verrazzano \
@@ -46,6 +45,10 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/helm_config ./platform-operator/helm_config
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/out/generated-verrazzano-bom.json ./platform-operator/verrazzano-bom.json
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/bootstrap-ocne ./capi/bootstrap-ocne
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/control-plane-ocne ./capi/control-plane-ocne
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/infrastructure-oci ./capi/infrastructure-oci
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/cluster-api ./capi/cluster-api
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses/
 

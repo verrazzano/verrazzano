@@ -47,8 +47,13 @@ spec:
           args:
             - --zap-log-level=info
             - --health-check-period=60
+            {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+            - --experimental-modules=true
+            {{ end }}
           env:
             - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
+            - name: KUBECONFIG
               value: /home/verrazzano/kubeconfig
             {{- if .Values.global.registry }}
             - name: REGISTRY
@@ -65,10 +70,6 @@ spec:
             {{- if .Values.global.clusterOperatorImage }}
             - name: CLUSTER_OPERATOR_IMAGE
               value: {{ .Values.global.clusterOperatorImage }}
-            {{- end }}
-            {{- if .Values.global.imagePullSecrets }}
-            - name: IMAGE_PULL_SECRETS
-              value: {{ join "," .Values.global.imagePullSecrets }}
             {{- end }}
           resources:
             requests:
@@ -122,6 +123,9 @@ spec:
           args:
             - --zap-log-level=info
             - --run-webhook-init=true
+            {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+            - --experimental-modules=true
+            {{ end }}
           resources:
             requests:
               memory: 72Mi
@@ -141,6 +145,10 @@ spec:
           args:
             - --zap-log-level=info
             - --run-webhooks=true
+            - --resource-validation={{ .Values.webhooks.resourceValidation }}
+            {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+            - --experimental-modules=true
+            {{ end }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

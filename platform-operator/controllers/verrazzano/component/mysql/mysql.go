@@ -6,20 +6,17 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -33,8 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 const (
@@ -64,7 +63,7 @@ const (
 	mySQLHookFile          = "platform-operator/scripts/hooks/mysql-hook.sh"
 	serverVersionKey       = "serverVersion"
 	bomSubComponentName    = "mysql-upgrade"
-	mysqlServerImageName   = "mysql-server"
+	mysqlServerImageName   = "community-server"
 	imageRepositoryKey     = "image.repository"
 	mySQLPodName           = "mysql-0"
 	mySQLContainerName     = "mysql"
@@ -178,20 +177,20 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	serverReplicas := 1
 	routerReplicas := 0
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]vzapi.Overrides))
+	overrides, err := override.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]vzapi.Overrides))
 	if err != nil {
 		return false
 	}
 	for _, overrideYaml := range overrides {
 		if strings.Contains(overrideYaml, "serverInstances:") {
-			value, err := common.ExtractValueFromOverrideString(overrideYaml, "serverInstances")
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "serverInstances")
 			if err != nil {
 				return false
 			}
 			serverReplicas = int(value.(float64))
 		}
 		if strings.Contains(overrideYaml, "routerInstances:") {
-			value, err := common.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
 			if err != nil {
 				return false
 			}

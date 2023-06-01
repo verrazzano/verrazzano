@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,6 +20,7 @@ const (
 	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
 	helmConfigDirSuffix          = "/platform-operator/helm_config"
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
+	helmVPOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
@@ -60,6 +62,10 @@ type OperatorConfig struct {
 	// RunWebhookInit Runs the webhook init path instead of the operator reconciler
 	RunWebhookInit bool
 
+	// ResourceRequirementsValidation toggles the suppression of resource requirement validation webhook
+	// default-value: false, disabling the validation
+	ResourceRequirementsValidation bool
+
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
@@ -78,21 +84,26 @@ type OperatorConfig struct {
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
+
+	// ExperimentalModules toggles the VPO to use the experimental modules feature
+	ExperimentalModules bool
 }
 
 // The singleton instance of the operator config
 var instance = OperatorConfig{
-	CertDir:                   "/etc/webhook/certs",
-	MetricsAddr:               ":8080",
-	LeaderElectionEnabled:     false,
-	VersionCheckEnabled:       true,
-	RunWebhookInit:            false,
-	RunWebhooks:               false,
-	WebhookValidationEnabled:  true,
-	VerrazzanoRootDir:         rootDir,
-	HealthCheckPeriodSeconds:  60,
-	MySQLCheckPeriodSeconds:   60,
-	MySQLRepairTimeoutSeconds: 120,
+	CertDir:                        "/etc/webhook/certs",
+	MetricsAddr:                    ":8080",
+	LeaderElectionEnabled:          false,
+	VersionCheckEnabled:            true,
+	RunWebhookInit:                 false,
+	RunWebhooks:                    false,
+	ResourceRequirementsValidation: false,
+	WebhookValidationEnabled:       true,
+	VerrazzanoRootDir:              rootDir,
+	HealthCheckPeriodSeconds:       60,
+	MySQLCheckPeriodSeconds:        60,
+	MySQLRepairTimeoutSeconds:      120,
+	ExperimentalModules:            false,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
@@ -119,6 +130,14 @@ func GetHelmChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmChartsDirSuffix)
+}
+
+// GetHelmVPOChartsDir returns the verrazzano-platform-operator helm charts dir
+func GetHelmVPOChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-platform-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmVPOChartsDirSuffix)
 }
 
 // GetHelmVMOChartsDir returns the verrazzano-monitoring-operator helm charts dir
@@ -223,7 +242,7 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, nginxutil.IngressNGINXNamespace(), constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {

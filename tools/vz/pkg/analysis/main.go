@@ -1,5 +1,6 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package analysis
 
 import (
@@ -23,17 +24,17 @@ var minConfidence int
 var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
-func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
+func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printReportToConsole bool) error {
 	logger = zap.S()
-	return handleMain(vzHelper, directory, reportFile, reportFormat)
+	return handleMain(vzHelper, directory, reportFile, reportFormat, printReportToConsole)
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
-func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
+func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printReportToConsole bool) error {
 	// TODO: how we surface different analysis report types will likely change up, for now it is specified here, and it may also
 	// make sense to treat all cluster dumps the same way whether single or multiple (structure the dumps the same way)
 	// We could also have different types of report output formats as well. For example, the current report format is
-	// presenting issues/actions/supporting data which would be used by someone with technical background to resolve an issue
+	// presentin issues/actions/supporting data which would be used by someone with technical background to resolve an issue
 	// in their environment. We also could generate a more detailed "bug-report-type" which someone could call which would
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
 
@@ -43,12 +44,13 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
 		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
 	}
+	reportContext := helpers.ReportCtx{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, IncludeActions: includeActions, MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
 
 	// Generate a report
-	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
+	err = report.GenerateHumanReport(logger, vzHelper, reportContext)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
-		return fmt.Errorf("\nreport generation failed, exiting")
+		return fmt.Errorf("%s", err.Error())
 	}
 	return nil
 }

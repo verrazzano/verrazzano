@@ -94,16 +94,17 @@ func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *Insta
 		return nil
 	}
 	return &InstanceInfo{
-		ArgoCDURL:     instance.ArgoCDURL,
-		ConsoleURL:    instance.ConsoleURL,
-		KeyCloakURL:   instance.KeyCloakURL,
-		RancherURL:    instance.RancherURL,
-		ElasticURL:    instance.OpenSearchURL,
-		KibanaURL:     instance.OpenSearchDashboardsURL,
-		GrafanaURL:    instance.GrafanaURL,
-		PrometheusURL: instance.PrometheusURL,
-		KialiURL:      instance.KialiURL,
-		JaegerURL:     instance.JaegerURL,
+		ArgoCDURL:      instance.ArgoCDURL,
+		ConsoleURL:     instance.ConsoleURL,
+		KeyCloakURL:    instance.KeyCloakURL,
+		RancherURL:     instance.RancherURL,
+		ElasticURL:     instance.OpenSearchURL,
+		KibanaURL:      instance.OpenSearchDashboardsURL,
+		GrafanaURL:     instance.GrafanaURL,
+		PrometheusURL:  instance.PrometheusURL,
+		KialiURL:       instance.KialiURL,
+		JaegerURL:      instance.JaegerURL,
+		ThanosQueryURL: instance.ThanosQueryURL,
 	}
 }
 
@@ -117,6 +118,8 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	return ComponentSpec{
 		CertManager:            convertCertManagerFromV1Beta1(in.CertManager),
+		ClusterIssuer:          convertClusterIssuerFromV1Beta1(in.ClusterIssuer),
+		CertManagerWebhookOCI:  convertCertManagerWebhookOCIFromV1Beta1(in.CertManagerWebhookOCI),
 		CoherenceOperator:      convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
 		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
@@ -142,10 +145,52 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		PrometheusPushgateway:  convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
 		Rancher:                convertRancherFromV1Beta1(in.Rancher),
 		RancherBackup:          convertRancherBackupFromV1Beta1(in.RancherBackup),
+		Thanos:                 convertThanosFromV1Beta1(in.Thanos),
 		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
 		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
+		CAPI:                   convertCAPIFromV1Beta1(in.CAPI),
+		ClusterAgent:           convertClusterAgentFromV1Beta1(in.ClusterAgent),
+	}
+}
+
+func convertClusterIssuerFromV1Beta1(in *v1beta1.ClusterIssuerComponent) *ClusterIssuerComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterIssuerComponent{
+		Enabled:                  in.Enabled,
+		ClusterResourceNamespace: in.ClusterResourceNamespace,
+		IssuerConfig:             convertIssuerConfigFromV1Beta1(in.IssuerConfig),
+	}
+}
+
+func convertIssuerConfigFromV1Beta1(in v1beta1.IssuerConfig) IssuerConfig {
+	var leIssuer *LetsEncryptACMEIssuer
+	if in.LetsEncrypt != nil {
+		leIssuer = &LetsEncryptACMEIssuer{
+			EmailAddress: in.LetsEncrypt.EmailAddress,
+			Environment:  in.LetsEncrypt.Environment,
+		}
+	}
+	var caIssuer *CAIssuer
+	if in.CA != nil {
+		caIssuer = &CAIssuer{SecretName: in.CA.SecretName}
+	}
+	return IssuerConfig{
+		LetsEncrypt: leIssuer,
+		CA:          caIssuer,
+	}
+}
+
+func convertCertManagerWebhookOCIFromV1Beta1(in *v1beta1.CertManagerWebhookOCIComponent) *CertManagerWebhookOCIComponent {
+	if in == nil {
+		return nil
+	}
+	return &CertManagerWebhookOCIComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
@@ -169,6 +214,25 @@ func convertAuthProxyFromV1Beta1(in *v1beta1.AuthProxyComponent) *AuthProxyCompo
 	}
 }
 
+func convertCAPIFromV1Beta1(in *v1beta1.CAPIComponent) *CAPIComponent {
+	if in == nil {
+		return nil
+	}
+	return &CAPIComponent{
+		Enabled: in.Enabled,
+	}
+}
+
+func convertClusterAgentFromV1Beta1(in *v1beta1.ClusterAgentComponent) *ClusterAgentComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterAgentComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
 func convertCertManagerFromV1Beta1(in *v1beta1.CertManagerComponent) *CertManagerComponent {
 	if in == nil {
 		return nil
@@ -180,16 +244,16 @@ func convertCertManagerFromV1Beta1(in *v1beta1.CertManagerComponent) *CertManage
 	}
 }
 
-func convertCertificateFromV1Beta1(certificate v1beta1.Certificate) Certificate {
+func convertCertificateFromV1Beta1(in v1beta1.Certificate) Certificate {
 	return Certificate{
 		Acme: Acme{
-			Provider:     ProviderType(certificate.Acme.Provider),
-			EmailAddress: certificate.Acme.EmailAddress,
-			Environment:  certificate.Acme.Environment,
+			EmailAddress: in.Acme.EmailAddress,
+			Environment:  in.Acme.Environment,
+			Provider:     ProviderType(in.Acme.Provider),
 		},
 		CA: CA{
-			SecretName:               certificate.CA.SecretName,
-			ClusterResourceNamespace: certificate.CA.ClusterResourceNamespace,
+			ClusterResourceNamespace: in.CA.ClusterResourceNamespace,
+			SecretName:               in.CA.SecretName,
 		},
 	}
 }
@@ -341,6 +405,7 @@ func convertGrafanaFromV1Beta1(in *v1beta1.GrafanaComponent) *GrafanaComponent {
 		Enabled:  in.Enabled,
 		Replicas: in.Replicas,
 		Database: info,
+		SMTP:     in.SMTP,
 	}
 }
 
@@ -560,6 +625,16 @@ func convertClusterOperatorFromV1Beta1(in *v1beta1.ClusterOperatorComponent) *Cl
 	return &ClusterOperatorComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertThanosFromV1Beta1(src *v1beta1.ThanosComponent) *ThanosComponent {
+	if src == nil {
+		return nil
+	}
+	return &ThanosComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(src.InstallOverrides),
 	}
 }
 

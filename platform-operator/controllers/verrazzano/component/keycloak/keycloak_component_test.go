@@ -4,12 +4,16 @@
 package keycloak
 
 import (
-	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -77,6 +81,10 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
+func testActionConfigWithoutInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(false, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
+}
+
 // TestReconcileBeforeInstall tests the Keycloak Reconcile call
 // GIVEN a Keycloak component
 //
@@ -84,12 +92,11 @@ func TestIsEnabled(t *testing.T) {
 // THEN a nil error is returned
 func TestReconcileBeforeInstall(t *testing.T) {
 	// simulate the case that Keycloak is not installed
-	defer helm.SetDefaultRunner()
-	helm.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("not found"),
-	})
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.KeycloakNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(c, &crEnabled, nil, false)

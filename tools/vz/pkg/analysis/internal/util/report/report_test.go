@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package report
 
@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	help "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
@@ -75,8 +76,10 @@ func TestInvalidIssues(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := help.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	assert.NoError(t, GenerateHumanReport(logger, "report", constants.SummaryReport, true, true, true, 8, 8, rc))
-	assert.NoError(t, GenerateHumanReport(logger, "report", constants.BugReportDir, true, true, true, 8, 8, rc))
+	reportCtx := helpers.ReportCtx{ReportFile: "report", ReportFormat: constants.SummaryReport, IncludeSupportData: true, IncludeInfo: true, IncludeActions: true, MinConfidence: 8, MinImpact: 8, PrintReportToConsole: true}
+	assert.NoError(t, GenerateHumanReport(logger, rc, reportCtx))
+	assert.FileExists(t, "report")
+	os.Remove("report")
 }
 
 // We start with a custom issue which is created without being populated. This is

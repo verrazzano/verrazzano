@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 
@@ -22,7 +21,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -38,7 +38,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8sversionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -50,6 +52,9 @@ const ComponentNamespace = common.CattleSystem
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
+
+// CattleGlobalDataNamespace is the multi-cluster namespace for verrazzano
+const CattleGlobalDataNamespace = "cattle-global-data"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
 
@@ -71,6 +76,8 @@ var imageEnvVars = map[string]string{
 	"rancher-webhook":     "RANCHER_WEBHOOK_IMAGE",
 	"rancher-gitjob":      "GITJOB_IMAGE",
 }
+
+var getKubernetesClusterVersion = getKubernetesVersion
 
 type envVar struct {
 	Name      string
@@ -115,7 +122,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, capi.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -177,6 +184,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
+	kvs, err = appendPSPEnabledOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
 	return appendCAOverrides(log, kvs, ctx)
 }
 
@@ -200,43 +211,41 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	return kvs
 }
 
-// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
+// appendCAOverrides sets overrides for CA Issuers, LetsEncrypt or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
+	cm := ctx.EffectiveCR().Spec.Components.ClusterIssuer
 	if cm == nil {
-		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
+		return kvs, log.ErrorfThrottledNewErr("Failed to find clusterIssuer component in effective cr")
 	}
 
 	// Configure CA Issuer KVs
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
+	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
 				Value: common.RancherName,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
-				Value: cm.Certificate.Acme.EmailAddress,
+				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
+				Value: cm.LetsEncrypt.Environment,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
+				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
 		})
-		if isUsingDefaultCACertificate(cm) {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   privateCAKey,
-				Value: privateCAValue,
-			})
-		}
+		kvs = append(kvs, bom.KeyValue{
+			Key:   privateCAKey,
+			Value: privateCAValue,
+		})
 	}
 
 	return kvs, nil
@@ -286,6 +295,47 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
 
 	return createEnvVars(kvs, envList), nil
+}
+
+// appendPSPEnabledOverrides appends overrides to disable PSP if the K8S version is 1.25 or above
+func appendPSPEnabledOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	version, err := getKubernetesClusterVersion()
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the kubernetes version: %v", err)
+	}
+	k8sVersion, err := k8sversionutil.ParseSemantic(version)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to parse Kubernetes version %q: %v", version, err)
+	}
+	// If K8s version is 1.25 or above, set pspEnabled to false
+	pspDisabledVersion := k8sversionutil.MustParseSemantic("1.25.0-0")
+	if k8sVersion.AtLeast(pspDisabledVersion) {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   pspEnabledKey,
+			Value: "false",
+		})
+	}
+	return kvs, nil
+}
+
+// getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+func getKubernetesVersion() (string, error) {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes client config %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes client %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes version %v", err.Error())
+	}
+
+	return versionInfo.String(), nil
 }
 
 // createEnvVars takes in a list of env arguments and creates the extraEnv override arguments
@@ -377,7 +427,6 @@ func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
 // Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
-- Patch Rancher deployment with MKNOD capability
 - Patch Rancher ingress with NGINX/TLS annotations
 */
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
@@ -386,11 +435,6 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
 	}
 	c := ctx.Client()
-	// Set MKNOD Cap on Rancher deployment
-	if err := patchRancherDeployment(c); err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching Rancher deployment: %s", err.Error())
-	}
-	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return log.ErrorfThrottledNewErr("Failed patching Rancher ingress: %s", err.Error())
@@ -440,7 +484,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 
-	err = activateDrivers(log, c)
 	if err != nil {
 		return err
 	}
@@ -456,7 +499,12 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return nil
+	return common.ActivateKontainerDriver(ctx)
+}
+
+// PreUninstall - prepare for Rancher uninstall
+func (r rancherComponent) PreUninstall(ctx spi.ComponentContext) error {
+	return preUninstall(ctx, r.monitor)
 }
 
 // PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
@@ -483,10 +531,6 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-	err := activateDrivers(log, c)
-	if err != nil {
-		return err
-	}
 
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
@@ -496,21 +540,14 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return patchRancherIngress(c, ctx.EffectiveCR())
+	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
+		return err
+	}
+	return common.ActivateKontainerDriver(ctx)
 }
 
-// activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
-func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
-	err := activateOCIDriver(log, c)
-	if err != nil {
-		return err
-	}
-
-	err = activatOKEDriver(log, c)
-	if err != nil {
-		return err
-	}
-
+// Reconcile for the Rancher component
+func (r rancherComponent) Reconcile(ctx spi.ComponentContext) error {
 	return nil
 }
 
@@ -678,6 +715,9 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 			}
 			u, err := dynClient.Resource(resource).Namespace("").Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 			if err != nil {
+				if kerrs.IsNotFound(err) {
+					return false, nil
+				}
 				return false, err
 			}
 

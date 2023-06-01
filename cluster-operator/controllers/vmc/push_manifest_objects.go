@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -19,7 +19,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 		r.log.Progressf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
 		return false, nil
 	}
-	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewVerrazzanoClusterRancherConfig(r.Client, r.RancherIngressHost, r.log)
 	if err != nil || rc == nil {
 		return false, err
 	}

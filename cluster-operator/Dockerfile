@@ -1,7 +1,8 @@
 # Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
+ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
+FROM $BASE_IMAGE AS build_base
 
 # Need to use specific WORKDIR to match verrazzano-cluster-operator's source packages
 WORKDIR /root/go/src/github.com/verrazzano/cluster-operator
@@ -13,11 +14,9 @@ RUN chmod 500 /usr/local/bin/verrazzano-cluster-operator \
     && chmod 500 /root/go/src/github.com/verrazzano/cluster-operator/scripts/wait4webhook.sh
 
 # Create the verrazzano-cluster-operator image
-FROM ghcr.io/oracle/oraclelinux:8-slim AS final
+FROM $BASE_IMAGE AS final
 
-RUN microdnf update -y \
-    && microdnf clean all \
-    && rm -rf /var/cache/yum /var/lib/rpm/* \
+RUN rm -rf /var/cache/yum /var/lib/rpm/* \
     && groupadd -r verrazzano  \
     && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \

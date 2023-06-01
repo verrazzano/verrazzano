@@ -2,10 +2,12 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano-platform-operator
 namespace: verrazzano-install
+createNamespace: true
 namespaceLabelKey: verrazzano.io/namespace
 
 global:
-  imagePullSecrets: []
+  imagePullSecrets:
+    - verrazzano-container-registry
 
 # NOTE: The image value gets set in the bill of materials file (verrazzano-bom.json) during the
 # platform operator docker build.
@@ -39,3 +41,15 @@ webhookAffinity:
                   - verrazzano-platform-operator-webhook
           topologyKey: kubernetes.io/hostname
         weight: 100
+webhooks:
+  resourceValidation: false
+
+# Configuration for experimental features that are under active development
+experimentalFeatures:
+  # Experimental support for Module CRDs and controllers
+  moduleAPI:
+    enabled: false
+
+verrazzano:
+  supportedVersions:
+    - v1.6.0

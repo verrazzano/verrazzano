@@ -8,11 +8,13 @@ import (
 	"fmt"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"io"
@@ -24,15 +26,20 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"strings"
 )
 
 type VZHelper interface {
@@ -43,6 +50,24 @@ type VZHelper interface {
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
+	GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error)
+}
+
+type ReportCtx struct {
+	ReportFile           string
+	ReportFormat         string
+	IncludeSupportData   bool
+	IncludeInfo          bool
+	IncludeActions       bool
+	MinConfidence        int
+	MinImpact            int
+	PrintReportToConsole bool
+}
+
+type ClusterSnapshotCtx struct {
+	BugReportDir         string
+	MoreNS               []string
+	PrintReportToConsole bool
 }
 
 const defaultVerrazzanoTmpl = `apiVersion: install.verrazzano.io/%s
@@ -52,6 +77,10 @@ metadata:
   namespace: default`
 
 const v1beta1MinVersion = "1.4.0"
+
+var (
+	vzVer, k8sVer string
+)
 
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
 	if version == "" {
@@ -186,8 +215,11 @@ func NewScheme() *runtime.Scheme {
 
 // GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
 func GetNamespacesForAllComponents(vz *v1beta1.Verrazzano) []string {
-	allComponents := getAllComponents(vz)
 	var nsList []string
+	if vz == nil {
+		return nsList
+	}
+	allComponents := getAllComponents(vz)
 	for _, eachComp := range allComponents {
 		found, comp := registry.FindComponent(eachComp)
 		if found {
@@ -270,4 +302,71 @@ func GetOperatorYaml(version string) (string, error) {
 		url = fmt.Sprintf(vzconstants.VerrazzanoOperatorURL, version)
 	}
 	return url, nil
+}
+
+// SetK8sVer returns cluster Kubernetes version
+func SetK8sVer() error {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return fmt.Errorf("error getting config from the Controller Runtime: %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("error getting a clientset for the given config %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return fmt.Errorf("error getting kubernetes version %v", err.Error())
+	}
+
+	k8sVer = versionInfo.String()
+	return nil
+}
+
+// SetVzVer set verrazzano version
+func SetVzVer(client *client.Client) error {
+	vz, vzErr := FindVerrazzanoResource(*client)
+	if vzErr != nil {
+		return vzErr
+	}
+	vzVer = vz.Status.Version
+	return nil
+}
+
+// GetVersionOut returns the customised k8s and vz version string
+func GetVersionOut() string {
+	verOut := ""
+	if vzVer != "" {
+		verOut += fmt.Sprintf("\nVerrazzano Version: %s", vzVer)
+	}
+	if k8sVer != "" {
+		verOut += fmt.Sprintf("\nKubernetes Version: %s\n", k8sVer)
+	}
+	return verOut
+}
+
+// VerifyVzInstallNamespaceExists returns existence of verrazzano-install namespace
+func VerifyVzInstallNamespaceExists() bool {
+	pods, err := pkg.ListPods(vzconstants.VerrazzanoInstall, metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, vzconstants.VerrazzanoPlatformOperator) {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckAndRemoveBugReportExistsInDir checks vz bug report exists in dir or not
+func CheckAndRemoveBugReportExistsInDir(dir string) bool {
+	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
+	if fileMatched, _ := filepath.Glob(dir + bugReportFilePattern); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		return true
+	}
+	return false
 }

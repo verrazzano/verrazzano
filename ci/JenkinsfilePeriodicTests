@@ -52,6 +52,11 @@ def JOB_SCENARIO_TAG = env.JOB_NAME.split('/')[0]
 @Field
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
+def ociOsRegion = "us-phoenix-1"
+def ociOsBucket = "verrazzano-builds"
+def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
+def lastStableCommitFile = "last-stable-commit.txt"
+
 pipeline {
     options {
         timeout(time: 12, unit: 'HOURS')
@@ -71,11 +76,28 @@ pipeline {
     }
 
     triggers {
-        cron(branchSpecificSchedule)
+        URLTrigger(
+            cronTabSpec: branchSpecificSchedule,
+            entries: [
+                URLTriggerEntry(
+                    url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
+                    checkETag: false,
+                    checkStatus: true,
+                    statusCode: 403,
+                    checkLastModificationDate: true,
+                    timeout: 200,
+                    requestHeaders: [
+                        RequestHeader( headerName: "Accept" , headerValue: "application/json" )
+                    ],
+                    contentTypes: [
+                        MD5Sum()
+                    ]
+                )
+            ]
+        )
     }
 
     parameters {
-        booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -120,6 +142,7 @@ pipeline {
         OCI_OS_REGION="us-phoenix-1"
 
         PIPELINE_TAG = "periodic"
+        PIPELINE_OWNERS = credentials('periodictests-owners')
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -157,12 +180,10 @@ pipeline {
                 }
             }
         }
-
         stage ('Periodic Test Suites') {
             when {
                 allOf {
                     expression { return runTests() }
-                    expression { params.SKIP_TO_PRIVATE_REGISTRY == false }
                 }
             }
             parallel {
@@ -219,7 +240,7 @@ pipeline {
                        }
                    }
                }
-                stage('Kind Acceptance Tests With HA and Grafana DB on 1.24') {
+                stage('Kind Acceptance Tests With HA and Grafana DB on 1.26') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -227,7 +248,7 @@ pipeline {
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
                                         string(name: 'SCENARIO_TAG', value: "periodic-1"),
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -240,25 +261,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.21') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-2"),
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
-                                   ], wait: true
-                            }
-                        }
-                    }
-                }
                 stage('Kind Acceptance Tests on 1.22') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -266,7 +268,7 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
                                                 string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                                string(name: 'SCENARIO_TAG', value: "periodic-3"),
+                                                string(name: 'SCENARIO_TAG', value: "periodic-2"),
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -285,13 +287,64 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
                                                 string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                                string(name: 'SCENARIO_TAG', value: "periodic-4"),
+                                                string(name: 'SCENARIO_TAG', value: "periodic-3"),
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                                 string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                                 booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.24') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
+                                                string(name: 'SCENARIO_TAG', value: "periodic-4"),
+                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.25') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
+                                                string(name: 'SCENARIO_TAG', value: "periodic-5"),
+                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.25'),
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Verrazzano a-la-carte') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         ], wait: true
                             }
                         }
@@ -342,8 +395,7 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Kind Acceptance Tests on 1.24 Non-Calico') {
+                stage('Kind Acceptance Tests on 1.26 Non-Calico') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -352,7 +404,7 @@ pipeline {
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
                                         string(name: 'SCENARIO_TAG', value: "periodic-5-noncalico"),
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -370,16 +422,20 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.24 sslip.io') {
+                stage('Kind Acceptance Tests on 1.26 sslip.io') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 // test with sslip.io
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
+<<<<<<< HEAD
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
                                         string(name: 'SCENARIO_TAG', value: "periodic-6-sslip"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+=======
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
+>>>>>>> master
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io'),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -403,9 +459,13 @@ pipeline {
                             script {
                                 build job: "verrazzano-dynamic-config-suite/${CLEAN_BRANCH_NAME}",
                                     parameters: [
+<<<<<<< HEAD
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
                                         string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+=======
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
+>>>>>>> master
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -481,7 +541,7 @@ pipeline {
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
                                         string(name: 'SCENARIO_TAG', value: "periodic-1"),
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -500,118 +560,46 @@ pipeline {
                         }
                     }
                 }
+                stage('Verrazzano Distribution and Private Registry') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-distributions-testing/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
+                                    string(name: 'SCENARIO_TAG', value: "periodic-distribution"),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    string(name: 'RUN_TESTS', value: env.IS_PERIODIC_PIPELINE),
+                                ], wait: true
+                        }
+                    }
+                }
             }
         }
-
-        stage("Private Registry") {
-            when {
-                allOf {
-                    expression { return runTests() }
-                    expression { TESTS_FAILED == false }
+        stage('Release Candidate Validation Checks') {
+            steps {
+                script {
+                    releaseValidationChecks()
                 }
             }
-            stages {
-                stage("Build Release Distributions") {
-                    steps {
-                        sh """
-                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
-                        """
-                    }
+        }
+        stage('Update Last Clean Periodic Test') {
+            environment {
+                GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            steps {
+                script {
+                    sh """
+                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
+                    """
                 }
-
-                stage('Private Registry Tests - OCIR') {
-                    when {
-                        allOf {
-                            not { buildingTag() }
-                            anyOf {
-                                branch 'master';
-                                branch 'release-*';
-                            }
-                        }
-                    }
-                    parallel {
-                        stage('Private Registry - Lite Distribution') {
-                            steps {
-                                retry(count: JOB_PROMOTION_RETRIES) {
-                                    script {
-                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                            parameters: [
-                                                string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                                string(name: 'SCENARIO_TAG', value: "periodic-lite-distribution"),
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
-                                                string(name: 'ZIPFILE_LOCATION', value: liteBundle)
-                                            ], wait: true
-                                    }
-                                }
-                            }
-                        }
-                        stage('Private Registry - Full Distribution') {
-                            steps {
-                                retry(count: JOB_PROMOTION_RETRIES) {
-                                    script {
-                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                            parameters: [
-                                                string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                                string(name: 'SCENARIO_TAG', value: "periodic-full-distribution"),
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
-                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
-                                            ], wait: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                stage('Push to OCIR') {
-                    environment {
-                        OCI_CLI_AUTH="api_key"
-                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-                        OCI_CLI_REGION = "us-ashburn-1"
-                        OCI_REGION = "${env.OCI_CLI_REGION}"
-                        // Directory containing the Verrazzano image tar files
-                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
-                    }
-                    steps {
-                        script {
-                            sh """
-                                echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
-                                ci/scripts/push_to_ocir.sh
-                            """
-                        }
-                    }
-                }
-
-                stage('Release Candidate Validation Checks') {
-                    steps {
-                        script {
-                            releaseValidationChecks()
-                        }
-                    }
-                }
-
-                stage('Update Last Clean Periodic Test') {
-                    environment {
-                        GIT_COMMIT_USED = "${env.GIT_COMMIT}"
-                    }
-                    steps {
-                        script {
-                            sh """
-                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
-                            """
-                        }
-                    }
-                    post {
-                        success {
-                            script {
-                                captureDistributionURLs()
-                            }
-                        }
+            }
+            post {
+                success {
+                    script {
+                        captureDistributionURLs()
                     }
                 }
             }
@@ -651,7 +639,7 @@ pipeline {
                         incDescription: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
                         incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
-                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST} ${PIPELINE_OWNERS}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
                     echo "done alerts"
                 }
             }
@@ -695,11 +683,13 @@ def preliminaryChecks() {
     if (periodicsUpToDate) {
         currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
     }
-    if (periodicsUpToDateFailed) {
-        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
-    }
+
     if (params.FORCE) {
         currentBuild.displayName = "${currentBuild.displayName} : FORCE"
+    } else if (periodicsUpToDateFailed) {
+       currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
+       currentBuild.result = 'FAILURE'
+       error('Failing the build since the current commit matches the commit of previously failing periodic build')
     }
 
     if (runTests()) {

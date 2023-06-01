@@ -6,6 +6,22 @@ package registry
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteragent"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -14,7 +30,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -42,6 +57,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
@@ -63,6 +79,19 @@ const (
 	profileDir                = "../../../../manifests/profiles"
 )
 
+var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "none",
+	},
+	Status: v1alpha1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
+	},
+}
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //
@@ -73,7 +102,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 33, "Wrong number of components")
+	a.Len(comps, 38, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -86,9 +115,15 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), nginx.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	a.Equal(comps[i].Name(), cmcontroller.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), cmocidns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), cmconfig.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), capi.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++
@@ -139,6 +174,10 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), clusteroperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), argocd.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), thanos.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), clusteragent.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -201,10 +240,6 @@ func TestComponentDependenciesMet(t *testing.T) {
 			},
 		},
 	).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, nil, true))
 	assert.True(t, ready)
 }
@@ -232,10 +267,6 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
@@ -282,10 +313,6 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		Dependencies:   []string{istio.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusPendingInstall, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
@@ -313,12 +340,26 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
+}
+
+func createRelease(name string, namespace string, releaseStatus release.Status, appVersion string) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      name,
+		Namespace: namespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        releaseStatus,
+			Description:   "Named Release Stub",
+		},
+		Chart: &chart.Chart{Metadata: &chart.Metadata{
+			AppVersion: appVersion,
+		}},
+		Version: 1,
+	}
 }
 
 // TestComponentMultipleDependenciesMet tests ComponentDependenciesMet
@@ -327,12 +368,9 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 //	WHEN I call ComponentDependenciesMet for it
 //	THEN the true is returned if all dependencies are met
 func TestComponentMultipleDependenciesMet(t *testing.T) {
-	comp := helm2.HelmComponent{
-		ReleaseName:    "foo",
-		ChartDir:       "chartDir",
-		ChartNamespace: "bar",
-		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
-	}
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+	InitRegistry()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
 		newPod("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
@@ -348,23 +386,41 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		newReplicaSet(webhookDeploymentName, certManagerNamespace),
 	).Build()
 
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
+	defer helm.SetDefaultActionConfigFunction()
+	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		actionConfig, err := helm.CreateActionConfig(false, certManagerDeploymentName, release.StatusDeployed, vzlog.DefaultLogger(), nil)
+		if err != nil {
+			return nil, err
+		}
+		if settings.Namespace() == vzconst.VerrazzanoSystemNamespace {
+			err = actionConfig.Releases.Create(createRelease("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, release.StatusDeployed, "0.3.0"))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err = actionConfig.Releases.Create(createRelease(certManagerDeploymentName, certManagerNamespace, release.StatusDeployed, "v1.9.1"))
+			if err != nil {
+				return nil, err
+			}
+			err = actionConfig.Releases.Create(createRelease(cainjectorDeploymentName, certManagerNamespace, release.StatusDeployed, "v1.9.1"))
+			if err != nil {
+				return nil, err
+			}
+			err = actionConfig.Releases.Create(createRelease(webhookDeploymentName, certManagerNamespace, release.StatusDeployed, "v1.9.1"))
+			if err != nil {
+				return nil, err
+			}
+		}
 
-	helm.SetChartInfoFunction(func(chartDir string) (helm.ChartInfo, error) {
-		return helm.ChartInfo{
-			AppVersion: "1.0",
-		}, nil
+		return actionConfig, nil
 	})
-	defer helm.SetDefaultChartInfoFunction()
 
-	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
-		return "1.0", nil
-	})
-	defer helm.SetDefaultReleaseAppVersionFunction()
-
+	comp := helm2.HelmComponent{
+		ReleaseName:    "foo",
+		ChartDir:       "chartDir",
+		ChartNamespace: "bar",
+		Dependencies:   []string{oam.ComponentName, cmcontroller.ComponentName},
+	}
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.True(t, ready)
 }
@@ -386,10 +442,6 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, nil),
 		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, nil),
 		newReadyDeployment(webhookDeploymentName, certManagerNamespace, nil)).Build()
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
@@ -552,10 +604,6 @@ func Test_checkDependencyCycles(t *testing.T) {
 //	WHEN I call checkDependencies for it
 //	THEN No error is returned that indicates a cycle in the chain
 func TestRegistryDependencies(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	for _, comp := range GetComponents() {
@@ -606,6 +654,40 @@ func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
 //	THEN returns false if a dependency is disabled and the component status is disabled
 func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
+}
+
+// TestNoneProfileInstalledAllComponentsDisabled Tests the effectiveCR
+// GIVEN when a verrazzano instance with NONE profile
+// WHEN Newcontext is called
+// THEN all components referred from the registry are disabled except for network-policies
+func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
+
+	config.TestProfilesDir = profileDir
+	defer func() { config.TestProfilesDir = "" }()
+	t.Run("TestNoneProfileInstalledAllComponentsDisabled", func(t *testing.T) {
+		a := assert.New(t)
+		log := vzlog.DefaultLogger()
+
+		context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, nil, false)
+		assert.NoError(t, err)
+		a.NotNil(context, "Context was nil")
+		a.NotNil(context.ActualCR(), "Actual CR was nil")
+		a.Equal(basicNoneClusterWithStatus, *context.ActualCR(), "Actual CR unexpectedly modified")
+		a.NotNil(context.EffectiveCR(), "Effective CR was nil")
+		a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+
+		for _, comp := range GetComponents() {
+			// Networkpolicies is expected to be installed always
+			if comp.GetJSONName() == "verrazzanoNetworkPolicies" {
+				continue
+			}
+			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component: %s should be Disabled", comp.Name())
+		}
+	})
 }
 
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {

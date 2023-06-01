@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 #
@@ -16,14 +16,14 @@ spec:
       app: {{ .Values.api.name }}
   action: ALLOW
   rules:
-    # verrazzano-authproxy:8775 <- ingress-controller-ingress-nginx-controller
+    # verrazzano-authproxy:8775,8776 <- ingress-controller-ingress-nginx-controller
     - from:
         - source:
-            namespaces: ["ingress-nginx"]
-            principals: ["cluster.local/ns/ingress-nginx/sa/ingress-controller-ingress-nginx"]
+            namespaces: ["{{ .Values.ingressNGINX.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.ingressNGINX.namespace }}/sa/ingress-controller-ingress-nginx"]
       to:
         - operation:
-            ports: ["{{ .Values.api.port }}"]
+            ports: ["{{ .Values.api.port }}", "{{ .Values.api.grpcPort }}"]
     # verrazzano-authproxy:8775 <- fluentd
     - from:
         - source:

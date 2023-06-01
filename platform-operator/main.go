@@ -7,6 +7,7 @@ import (
 	"flag"
 	"os"
 
+	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -19,7 +20,6 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/operatorinit"
 	"go.uber.org/zap"
@@ -53,6 +53,7 @@ func init() {
 
 	// Add cert-manager components to the scheme
 	_ = cmapiv1.AddToScheme(scheme)
+	_ = acmev1.AddToScheme(scheme)
 
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)
@@ -77,6 +78,8 @@ func main() {
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
+	flag.BoolVar(&config.ResourceRequirementsValidation, "resource-validation",
+		config.ResourceRequirementsValidation, "Enables of resource validation webhooks.")
 	flag.BoolVar(&config.RunWebhooks, "run-webhooks", config.RunWebhooks,
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&config.RunWebhookInit, "run-webhook-init", config.RunWebhookInit,
@@ -91,6 +94,7 @@ func main() {
 		"MySQL check period seconds; set to 0 to disable MySQL checks")
 	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
 		"MySQL repair timeout seconds")
+	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -123,7 +127,6 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
-	registry.InitRegistry()
 	// This allows separation of webhooks and operator
 	var exitErr error
 	if config.RunWebhookInit {

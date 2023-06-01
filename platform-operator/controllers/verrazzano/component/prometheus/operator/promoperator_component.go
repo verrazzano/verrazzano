@@ -1,10 +1,13 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package operator
 
 import (
-	"fmt"
+	"context"
+	networkv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -17,7 +20,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -65,7 +68,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
-			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
+			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, vmo.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
@@ -110,11 +113,17 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
+	if err := deleteNetworkPolicy(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := deleteNetworkPolicy(ctx); err != nil {
+		return err
+	}
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
@@ -157,9 +166,6 @@ func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
 	convertedVZ := installv1beta1.Verrazzano{}
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
 		return err
@@ -177,46 +183,41 @@ func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzan
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
 	return c.validatePrometheusOperator(new)
 }
 
 // getIngressNames - gets the names of the ingresses associated with this component
 func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
-
-	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ns := ComponentNamespace
-		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-			ns = authproxy.ComponentNamespace
-		}
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      constants.PrometheusIngress,
-		})
+	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return ingressNames
 	}
 
-	return ingressNames
+	ns := constants.VerrazzanoSystemNamespace
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		ns = authproxy.ComponentNamespace
+	}
+	return append(ingressNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      constants.PrometheusIngress,
+	})
 }
 
 // getCertificateNames - gets the names of the TLS ingress certificates associated with this component
 func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ns := ComponentNamespace
-		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-			ns = authproxy.ComponentNamespace
-		}
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ns,
-			Name:      prometheusCertificateName,
-		})
+	if !vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return certificateNames
 	}
-
-	return certificateNames
+	ns := constants.VerrazzanoSystemNamespace
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		ns = authproxy.ComponentNamespace
+	}
+	return append(certificateNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      prometheusCertificateName,
+	})
 }
 
 // checkExistingCNEPrometheus checks if Prometheus is already installed
@@ -229,6 +230,23 @@ func checkExistingCNEPrometheus(vz runtime.Object) error {
 		return err
 	}
 	if err := k8sutil.ErrorIfServiceExists(constants.IstioSystemNamespace, istioPrometheus); err != nil {
+		return err
+	}
+	return nil
+}
+
+// PostUninstall is the Prometheus Operator PostInstall SPI function
+func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
+	// delete the legacy prometheus ingress
+	ingress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.PrometheusIngress,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	err := ctx.Client().Delete(context.TODO(), ingress)
+	if err != nil && !errors.IsNotFound(err) {
+		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
 		return err
 	}
 	return nil

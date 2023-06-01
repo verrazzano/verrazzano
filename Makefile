@@ -64,53 +64,55 @@ docker-push-debug: ## build and push all images
 	(cd platform-operator; make docker-push-debug DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
 
 .PHONY: create-test-deploy
-create-test-deploy: docker-push create-test-deploy-common
+create-test-deploy: docker-push create-test-deploy-common ## build and push all images, then create operator.yaml file for Verrazzano deployment
 
 .PHONY: create-test-deploy-debug
-create-test-deploy-debug: docker-push-debug create-test-deploy-common
+create-test-deploy-debug: docker-push-debug create-test-deploy-common ## build and push all images, then create operator.yaml file for Verrazzano deployment (debug)
 
 .PHONY: create-test-deploy-common
-create-test-deploy-common:
+create-test-deploy-common: ## create operator.yaml file for Verrazzano deployment
 	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VZ_CLUSTER_OP_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
 
 .PHONY: test-platform-operator-install
-test-platform-operator-install:
+test-platform-operator-install: ## install VPO from operator.yaml
 	kubectl apply -f platform-operator/build/deploy/operator.yaml
 	kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
 .PHONY: test-platform-operator-remove
-test-platform-operator-remove:
+test-platform-operator-remove: ## delete VPO from operator.yaml
 	kubectl delete -f platform-operator/build/deploy/operator.yaml
 
 .PHONY: test-platform-operator-install-logs
-test-platform-operator-install-logs:
+test-platform-operator-install-logs: ## tail VPO logs
 	kubectl logs -f -n verrazzano-install $(shell kubectl get pods -n verrazzano-install --no-headers | grep "^verrazzano-platform-operator-" | cut -d ' ' -f 1)
 
+##@ Testing
+
 .PHONY: precommit
-precommit: precommit-check precommit-build unit-test-coverage
+precommit: precommit-check precommit-build unit-test-coverage ## run all precommit checks
 
 .PHONY: precommit-nocover
-precommit-nocover: precommit-check precommit-build unit-test
+precommit-nocover: precommit-check precommit-build unit-test ## run precommit checks without code coverage check
 
 .PHONY: precommit-check
-precommit-check: check check-tests copyright-check
+precommit-check: check-tidy check check-tests copyright-check ## run precommit checks without unit testing
 
 .PHONY: precommit-build
-precommit-build:
+precommit-build:  ## go build the project
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm
 .PHONY: unit-test-coverage
-unit-test-coverage:
+unit-test-coverage:  ## run unit tests with coverage
 	${SCRIPT_DIR}/coverage.sh html
 
 .PHONY: unit-test-coverage-ratcheting
-unit-test-coverage-ratcheting:
+unit-test-coverage-ratcheting:  ## run unit tests with coverage ratcheting
 	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test
-unit-test:
-	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
+unit-test:  ## run all unit tests in project
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr|tools/charts-manager/vcm")
 
 #
 #  Compliance check targets
@@ -154,3 +156,8 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
+
+.PHONY: check-tidy
+check-tidy: ## check if go mod tidy results in no changes
+	go mod tidy
+	ci/scripts/check_if_clean_after_generate.sh

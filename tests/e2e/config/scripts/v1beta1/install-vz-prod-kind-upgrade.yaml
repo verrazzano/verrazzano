@@ -26,7 +26,8 @@ spec:
                   - key: rancher-sync
                     operator: In
                     values: [ enabled ]
-    # Prometheus Operator components are not included to account for upgrade tests
+    # Prometheus Operator and Thanos components are not included to account for upgrade tests since this file is used
+    # for installing older versions as well
   volumeClaimSpecTemplates:
     - metadata:
         name: mysql

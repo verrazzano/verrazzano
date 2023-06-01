@@ -224,6 +224,14 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
+            livenessProbe:
+              periodSeconds: 10
+              timeoutSeconds: 65
+              failureThreshold: 3
+            readinessProbe:
+              periodSeconds: 10
+              timeoutSeconds: 50
+              failureThreshold: 3
             labels:
               app: bobbys-front-end
               version: v1
@@ -482,6 +490,14 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
+            livenessProbe:
+              periodSeconds: 10
+              timeoutSeconds: 65
+              failureThreshold: 3
+            readinessProbe:
+              periodSeconds: 10
+              timeoutSeconds: 50
+              failureThreshold: 3
             labels:
               app: bobs-bookstore
               version: v1

@@ -9,48 +9,55 @@ const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use"
 
 // GlobalFlagContext - global flag for specifying which kube config context to use
 const GlobalFlagContext = "context"
-const GlobalFlagContextHelp = "The name of the kubeconfig context to use"
-
-// GlobalFlagHelp - global help flag
-const GlobalFlagHelp = "help"
-
-// Flags that are common to more than one command
+const GlobalFlagContextHelp = "The name of the kubeconfig context to use" // Flags that are common to more than one command
 const (
-	WaitFlag        = "wait"
-	WaitFlagHelp    = "Wait for the command to complete and stream the logs to the console. The wait period is controlled by --timeout."
-	WaitFlagDefault = true
-
-	TimeoutFlag     = "timeout"
-	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
-
-	VPOTimeoutFlag     = "platform-operator-timeout"
-	VPOTimeoutFlagHelp = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
-
-	VersionFlag            = "version"
-	VersionFlagDefault     = "latest"
-	VersionFlagInstallHelp = "The version of Verrazzano to install"
-	VersionFlagUpgradeHelp = "The version of Verrazzano to upgrade to"
-
-	DryRunFlag = "dry-run"
-
-	SetFlag          = "set"
-	SetFlagShorthand = "s"
-	SetFlagHelp      = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
-
-	OperatorFileFlag     = "operator-file"
-	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
-
-	LogFormatFlag = "log-format"
-	LogFormatHelp = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
-
-	FilenameFlag          = "filename"
-	FilenameFlagShorthand = "f"
-	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
-
-	VerboseFlag          = "verbose"
-	VerboseFlagShorthand = "v"
-	VerboseFlagDefault   = false
-	VerboseFlagUsage     = "Enable verbose output."
+	// GlobalFlagHelp - global help flag
+	GlobalFlagHelp           = "help"
+	WaitFlag                 = "wait"
+	WaitFlagHelp             = "Wait for the command to complete and stream the logs to the console. The wait period is controlled by --timeout."
+	WaitFlagDefault          = true
+	TimeoutFlag              = "timeout"
+	TimeoutFlagHelp          = "Limits the amount of time a command will wait to complete"
+	VPOTimeoutFlag           = "platform-operator-timeout"
+	VPOTimeoutFlagHelp       = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
+	VersionFlag              = "version"
+	VersionFlagDefault       = "latest"
+	VersionFlagInstallHelp   = "The version of Verrazzano to install"
+	VersionFlagUpgradeHelp   = "The version of Verrazzano to upgrade to"
+	DryRunFlag               = "dry-run"
+	SetFlag                  = "set"
+	SetFlagShorthand         = "s"
+	SetFlagHelp              = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
+	OperatorFileFlag         = "operator-file" // an alias for the manifests flag
+	OperatorFileDeprecateMsg = "Use --manifests instead"
+	ManifestsFlag            = "manifests"
+	ManifestsShorthand       = "m"
+	ManifestsFlagHelp        = "The location of the manifests used to install or upgrade Verrazzano. This can be a URL or the path to a local file. The default is the verrazzano-platform-operator.yaml file of the specified (or most recent) version of Verrazzano."
+	ImageRegistryFlag        = "image-registry"
+	ImageRegistryFlagHelp    = "The private registry where Verrazzano image repositories are located. If unspecified, the public Verrazzano image registry will be used."
+	ImageRegistryFlagDefault = ""
+	ImagePrefixFlag          = "image-prefix"
+	ImagePrefixFlagHelp      = "The prefix to use for all Verrazzano image names within the private image-registry. If unspecified, the default image prefixes in the Verrazzano image registry will be used."
+	ImagePrefixFlagDefault   = ""
+	LogFormatFlag            = "log-format"
+	LogFormatHelp            = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
+	FilenameFlag             = "filename"
+	FilenameFlagShorthand    = "f"
+	FilenameFlagHelp         = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
+	SkipConfirmationFlagHelp = "Non-interactive mode - assumes the answers to all interactive questions to be 'Y'."
+	SkipConfirmationFlag     = "skip-confirmation"
+	SkipConfirmationShort    = "y"
+	VerboseFlag              = "verbose"
+	VerboseFlagShorthand     = "v"
+	VerboseFlagDefault       = false
+	VerboseFlagUsage         = "Enable verbose output."
+	ReadOnly                 = "read-only file system"
+	AutoBugReportFlag        = "auto-bug-report"
+	AutoBugReportFlagDefault = true
+	AutoBugReportFlagHelp    = "Automatically call vz bug-report if command fails"
+	VzAnalysisReportTmpFile  = "details-*.out"
+	// DatetimeFormat - suffix to vz bug report file in yyyymmddhhmmss format
+	DatetimeFormat = "20060102150405"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
@@ -71,6 +78,8 @@ const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstallove
 const VerrazzanoRequirementsValidatorWebhook = "verrazzano-platform-requirements-validator"
 
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
+
+const VerrazzanoClusterOperator = "verrazzano-cluster-operator"
 
 const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
 
@@ -128,8 +137,8 @@ const (
 	BugReportFileFlagName     = "report-file"
 	BugReportFileFlagValue    = ""
 	BugReportFileFlagShort    = "r"
-	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to bug-report.tar.gz in the current directory."
-	BugReportFileDefaultValue = "bug-report.tar.gz"
+	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to vz-bug-report-datetime-xxxx.tar.gz in the current directory."
+	BugReportFileDefaultValue = "vz-bug-report-dt-*.tar.gz"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
@@ -191,23 +200,4 @@ const (
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
 	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
-)
-
-// Constants for cluster operations
-const (
-	ClusterNameFlagName    = "name"
-	ClusterNameFlagDefault = "vz-capi"
-	ClusterNameFlagHelp    = "The name of the cluster"
-
-	ClusterTypeFlagName    = "type"
-	ClusterTypeFlagDefault = "ocne"
-	ClusterTypeFlagHelp    = "The type of the cluster"
-
-	ClusterImageFlagName    = "image"
-	ClusterImageFlagDefault = ""
-	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
-
-	KubeconfigPathFlagName    = "path"
-	KubeconfigPathFlagDefault = ""
-	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your current kubeconfig"
 )

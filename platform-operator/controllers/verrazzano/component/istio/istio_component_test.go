@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -7,6 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,7 +22,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -255,6 +261,25 @@ var crInstall = &v1alpha1.Verrazzano{
 
 var comp = istioComponent{}
 
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      IstioCoreDNSReleaseName,
+		Namespace: IstioNamespace,
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, IstioCoreDNSReleaseName, release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //
@@ -318,22 +343,24 @@ func TestPostUpgrade(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetCmdRunner(fakeRunner{})
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
+
+	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
 	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
 	a.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
 	if releaseName != "istiocoredns" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+		return fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}
 	if releaseName != "istio-system" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
+		return fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
 	}
-	return []byte("success"), []byte(""), nil
+	return nil
 }
 
 func getMock(t *testing.T) *mocks.MockClient {
@@ -348,14 +375,14 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret, opts ...client.GetOption) error {
 			return nil
 		}).AnyTimes()
 
@@ -366,8 +393,8 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service) error {
+		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service, opts ...client.GetOption) error {
 			svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
 				{
 					IP: "0.0.0.0",
@@ -579,6 +606,11 @@ func getBoolPtr(b bool) *bool {
 }
 
 func Test_istioComponent_ValidateUpdate(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
+
 	disabled := false
 	affinityChange := &v1.Affinity{
 		NodeAffinity: &v1.NodeAffinity{
@@ -815,6 +847,10 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 }
 
 func Test_istioComponent_ValidateUpdateV1Beta1(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	disabled := false
 	nodePortWithoutIPAddressJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.NodePort, "")
 	loadBalancerWithoutIPAddressJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.LoadBalancer, "")
@@ -875,6 +911,10 @@ func Test_istioComponent_ValidateUpdateV1Beta1(t *testing.T) {
 }
 
 func Test_istioComponent_ValidateInstall(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	tests := []struct {
 		name        string
 		vz          *v1alpha1.Verrazzano
@@ -1014,6 +1054,10 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 }
 
 func Test_istioComponent_ValidateInstallV1Beta1(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	ipAddressInvalid := "1.2.3.we"
 	nodePortIPAddressValidJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.NodePort, testExternalIP)
 	nodePortIPAddressInvalidJSON := createIPOverrideJSON(t, externalIPOverrideJSONTemplate, v1beta1.NodePort, ipAddressInvalid)
@@ -1278,6 +1322,10 @@ func TestGetOverrides(t *testing.T) {
 }
 
 func TestValidateInstallWithExistingIstio(t *testing.T) {
+	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
+	}
+	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
@@ -1311,4 +1359,10 @@ func TestValidateInstallWithExistingIstio(t *testing.T) {
 		},
 	}
 	common.RunValidateInstallTest(t, NewComponent, tests...)
+}
+
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	k8scheme.AddToScheme(scheme)
+	return scheme
 }

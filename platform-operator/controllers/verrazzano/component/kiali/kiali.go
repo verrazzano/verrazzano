@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kiali
@@ -129,13 +129,14 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = kialiHostName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = globalconst.VerrazzanoClusterIssuerName
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Kiali ingress: %v", err)
 	}
 	return err
@@ -184,7 +185,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Kiali auth policy: %v", err)
 	}
 	return err

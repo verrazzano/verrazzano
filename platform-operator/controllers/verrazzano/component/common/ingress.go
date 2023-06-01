@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/pkg/vzmap"
@@ -16,6 +17,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type IngressProperties struct {
@@ -92,6 +94,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = qualifiedHostName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzconst.VerrazzanoClusterIssuerName
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
@@ -100,8 +103,19 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		ingress.Annotations = vzmap.UnionStringMaps(ingress.Annotations, props.ExtraAnnotations)
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating ingress %s: %v", props.IngressName, err)
 	}
 	return err
+}
+
+// DeleteSystemComponentIngress deletes an ingress for a Verrazzano system component
+func DeleteSystemComponentIngress(ctx spi.ComponentContext, name string) error {
+	ingress := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	if err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), &ingress)); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete Ingress %s/%s: %v", constants.VerrazzanoSystemNamespace, name, err)
+	}
+	return nil
 }

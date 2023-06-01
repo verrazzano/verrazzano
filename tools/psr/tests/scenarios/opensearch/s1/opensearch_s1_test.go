@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package s1
@@ -32,7 +32,8 @@ var (
 	httpClient     *retryablehttp.Client
 	vmiCredentials *pkg.UsernamePassword
 
-	kubeconfig string
+	kubeconfig  string
+	metricsTest pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -44,6 +45,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
+
+	metricsTest, err = pkg.NewMetricsTest(kubeconfig, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
 })
 
 func sbsFunc() []byte {
@@ -107,7 +113,7 @@ var _ = t.Describe("ops-s1", Label("f:psr-ops-s1"), func() {
 	t.DescribeTable("Verify Opensearch ops-s1 Worker Metrics",
 		func(metricName string) {
 			Eventually(func() bool {
-				return pkg.MetricsExistInCluster(metricName, common.GetMetricLabels(""), kubeconfig)
+				return metricsTest.MetricsExist(metricName, common.GetMetricLabels(""))
 			}, waitTimeout, pollingInterval).Should(BeTrue(),
 				fmt.Sprintf("No metrics found for %s", metricName))
 		},

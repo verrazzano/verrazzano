@@ -4,13 +4,13 @@
 package metricsexporter
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 )
 
 // Constants that hold the times that are used to test various cases of component timestamps being passed
@@ -22,6 +22,10 @@ const (
 	componentFourthTime       string = "2022-07-06T13:59:00Z"
 	unregisteredTestComponent string = "unregistered test component"
 )
+
+func init() {
+	Init()
+}
 
 // TestReconcileCounterIncrement tests the Inc fn of the reconcile counter and the reconcile error counter metrics objects
 // GIVEN a call to Inc

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
@@ -46,10 +46,10 @@ logging:
 
 keycloak:
   enabled: true
-  
+
 rancher:
   enabled: true
-  
+
 console:
   enabled: true
   name: verrazzano-console
@@ -61,6 +61,7 @@ console:
 api:
   name: verrazzano-authproxy
   port: 8775
+  grpcPort: 8776
 
 config:
   envName:
@@ -82,7 +83,7 @@ security:
     "subject-0":
       kind: Group
       name: *default_monitorsGroup
-      
+
 kubernetes:
   service:
     endpoint:
@@ -96,6 +97,9 @@ istio:
   enabled: true
 
 jaegerOperator:
-  enabled: false
+  enabled: true
   namespace: verrazzano-monitoring
   jaegerServiceAccount: jaeger-operator-jaeger
+
+ingressNGINX:
+  namespace: verrazzano-ingress-nginx

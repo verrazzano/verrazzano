@@ -1,0 +1,157 @@
+nodeSelector: {}
+tolerations: []
+manager:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 350Mi
+
+  livenessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /healthz
+      port: 8081
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 3
+    initialDelaySeconds: 10
+
+  readinessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /readyz
+      port: 8081
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 3
+    initialDelaySeconds: 10
+
+  image:
+    repository: public.ecr.aws/opsterio/opensearch-operator
+    ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
+    tag: ""
+    pullPolicy: "Always"
+
+  dnsBase: cluster.local
+
+  # If a watchNamespace is specified, the manager's cache will be restricted to
+  # watch objects in the desired namespace. Defaults is to watch all namespaces.
+  watchNamespace:
+
+kubeRbacProxy:
+  resources:
+    limits:
+      cpu: 50m
+      memory: 50Mi
+    requests:
+      cpu: 25m
+      memory: 25Mi
+
+  livenessProbe:
+    failureThreshold: 3
+    tcpSocket:
+      port: 8443
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 3
+    initialDelaySeconds: 10
+
+  readinessProbe:
+    failureThreshold: 3
+    tcpSocket:
+      port: 8443
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 3
+    initialDelaySeconds: 10
+
+  image: 
+    repository: "gcr.io/kubebuilder/kube-rbac-proxy"
+    tag: "v0.8.0"
+
+ingress:
+  openSearch:
+    enable: true
+    annotations: {}
+    path: /()(.*)
+    ingressClassName: nginx
+    host: chart-example.local
+    serviceName: opensearch
+    portNumber: 9200
+    tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local
+
+  openSearchDashboards:
+    enable: true
+    annotations: {}
+    path: /()(.*)
+    ingressClassName: nginx
+    host: chart-example.local
+    serviceName: opensearch-dashboards
+    portNumber: 5601
+    tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local
+
+
+openSearchCluster:
+  enabled: true
+  name: opensearch
+  security:
+    config:
+      adminCredentialsSecret:
+        name: admin-credentials-secret
+      securityConfigSecret:
+        name: securityconfig-secret
+      adminSecret:
+        name: opensearch-admin-cert
+    tls:
+      transport:
+        generate: false
+        secret:
+          name: opensearch-node-cert
+        adminDn: ["CN=admin,O=verrazzano"]
+        nodesDn: ["CN=opensearch,O=verrazzano"]
+      http:
+        generate: false
+        secret:
+          name: opensearch-master-cert
+  general:
+    httpPort: 9200
+    serviceName: opensearch
+    version: 2.3.0
+    drainDataNodes: true
+  dashboards:
+    opensearchCredentialsSecret:
+      name: admin-credentials-secret
+    additionalConfig:
+      server.name: opensearch-dashboards
+      opensearch_security.auth.type: "proxy"
+      opensearch_security.proxycache.user_header: "X-WEBAUTH-USER"
+      opensearch_security.proxycache.roles_header: "x-proxy-roles"
+      opensearch.requestHeadersAllowlist: "[\"securitytenant\",\"Authorization\",\"x-forwarded-for\",\"X-WEBAUTH-USER\",\"x-proxy-roles\"]"
+      opensearch_security.multitenancy.enabled: "false"
+    tls:
+      enable: true
+      generate: false
+      secret:
+        name: opensearch-dashboards-cert
+    version: 2.3.0
+    enable: true
+    replicas: 1
+  nodePools:
+    - component: masters
+      replicas: 3
+      diskSize: "1Gi"
+      resources:
+        requests:
+          memory: "1Gi"
+      roles:
+        - "data"
+        - "cluster_manager"

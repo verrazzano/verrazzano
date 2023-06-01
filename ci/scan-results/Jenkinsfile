@@ -39,6 +39,8 @@ pipeline {
         OCI_SCAN_BUCKET = "verrazzano-scan-results"
 
         GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-process')
+
+        SCANNER_PATH = "~/scanners"
     }
 
     stages {
@@ -62,6 +64,15 @@ pipeline {
                     sh """
                         git fetch --tags
                         echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
+
+                        # Install Trivy and Grype
+                        mkdir -p ~/scanners
+                        echo "Download and install Grype"
+                        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b ${env.SCANNER_PATH}
+
+                        echo "Download and install Trivy"
+                        curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ${env.SCANNER_PATH}
+
                         echo "Fetching scan results for branch: ${CLEAN_BRANCH_NAME}"
                         ci/scripts/get_branch_scan_results.sh
                         python ci/scripts/generate_html_report.py scan-results/latest-periodic/consolidated.csv scan-results/latest-periodic

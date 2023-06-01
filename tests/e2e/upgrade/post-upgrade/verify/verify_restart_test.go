@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verify
@@ -8,17 +8,16 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	compistio "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -34,6 +33,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -50,7 +52,6 @@ var t = framework.NewTestFramework("verify")
 var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
-
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
@@ -166,6 +167,10 @@ var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func(
 
 var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade"), func() {
 	Context("Checking Deployments for post-upgrade", func() {
+		ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+		if err != nil {
+			Fail(fmt.Sprintf("Failed to get Ingress NGINX namespace: %s", err.Error()))
+		}
 		t.DescribeTable("Deployment should be ready post-upgrade",
 			func(namespace string, componentName string, deploymentName string) {
 				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
@@ -205,11 +210,11 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment prometheus-operator-kube-p-operator", vzconst.PrometheusOperatorNamespace, promoperator.ComponentName, "prometheus-operator-kube-p-operator"),
 			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
 
-			t.Entry("Checking Deployment cert-manager", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager"),
-			t.Entry("Checking Deployment cert-manager-cainjector", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
-			t.Entry("Checking Deployment cert-manager-webhook", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-webhook"),
+			t.Entry("Checking Deployment cert-manager", vzconst.CertManagerNamespace, cmcommon.CertManagerComponentName, "cert-manager"),
+			t.Entry("Checking Deployment cert-manager-cainjector", vzconst.CertManagerNamespace, cmcommon.CertManagerComponentName, "cert-manager-cainjector"),
+			t.Entry("Checking Deployment cert-manager-webhook", vzconst.CertManagerNamespace, cmcommon.CertManagerComponentName, "cert-manager-webhook"),
 
-			t.Entry("Checking Deployment external-dns", externaldns.ComponentNamespace, externaldns.ComponentName, "external-dns"),
+			t.Entry("Checking Deployment external-dns", externaldns.ResolveExernalDNSNamespace(), externaldns.ComponentName, "external-dns"),
 
 			t.Entry("Checking Deployment istiod", compistio.IstioNamespace, compistio.ComponentName, "istiod"),
 			t.Entry("Checking Deployment istio-ingressgateway", compistio.IstioNamespace, compistio.ComponentName, "istio-ingressgateway"),
@@ -218,9 +223,8 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment vmi-system-kiali", constants.VerrazzanoSystemNamespace, kiali.ComponentName, "vmi-system-kiali"),
 
 			t.Entry("Checking Deployment mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
-
-			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
-			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
+			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", ingressNGINXNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
+			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", ingressNGINXNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
 
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),

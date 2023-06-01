@@ -22,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -305,12 +306,12 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 	if err != nil {
 		return err
 	}
-	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
+	return validateInstallOverrides(cr, client)
 }
 
 // validateInstallOverrides validates that the overrides contain only values that are allowed for override
-func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
+func validateInstallOverrides(cr *v1beta1.Verrazzano, client clipkg.Client) error {
+	overrideYAMLs, err := override.GetInstallOverridesYAMLUsingClient(client, cr.Spec.Components.JaegerOperator.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -322,7 +323,7 @@ func validateOverrideYamls(yamlOverrides []string) error {
 	for _, overrideYAML := range yamlOverrides {
 		// Check if there are any Helm chart values that are not allowed to be overridden by the user
 		for _, disallowedOverride := range disallowedOverrides {
-			value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
+			value, err := override.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
 			if err != nil {
 				return err
 			}
@@ -480,12 +481,12 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 
 // getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
 func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
+	overrides, err := override.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return nil, err
 	}
-	for _, override := range overrides {
-		fieldVal, err := common.ExtractValueFromOverrideString(override, field)
+	for _, o := range overrides {
+		fieldVal, err := override.ExtractValueFromOverrideString(o, field)
 		if err != nil {
 			return nil, err
 		}
@@ -765,6 +766,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = globalconst.VerrazzanoClusterIssuerName
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
@@ -772,7 +774,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Jaeger ingress: %v", err)
 	}
 	return err

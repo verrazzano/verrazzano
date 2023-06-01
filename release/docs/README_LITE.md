@@ -12,7 +12,7 @@ Verrazzano includes the following capabilities:
 * DevOps and GitOps enablement
 
 
-Select [Quick Start](https://verrazzano.io/latest/docs/quickstart/) to get started.
+Select [Quick Start](https://verrazzano.io/latest/docs/setup/quickstart/) to get started.
 
 Verrazzano [release versions](https://github.com/verrazzano/verrazzano/releases/) and source code are available at [https://github.com/verrazzano/verrazzano](https://github.com/verrazzano/verrazzano).
 This repository contains a Kubernetes operator for installing Verrazzano and example applications for use with Verrazzano.
@@ -37,6 +37,7 @@ The layout of the Verrazzano distribution is as follows:
        * `dev.yaml`: The standard `dev` profile to install Verrazzano.
        * `prod.yaml`: The standard `prod` profile to install Verrazzano.
        * `managed-cluster.yaml`: The standard `managed-cluster` profile to install Verrazzano
+       * `none.yaml`: The standard `none` profile to install Verrazzano
 
 ## Install Verrazzano
 

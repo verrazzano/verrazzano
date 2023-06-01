@@ -166,11 +166,12 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano, vzHelper VZHel
 	vzJSON, err := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
-		return nil
+		return err
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		return err
 	}
 	return nil
 }

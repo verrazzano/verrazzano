@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kubestatemetrics
@@ -90,9 +90,8 @@ func (c kubeStateMetricsComponent) MonitorOverrides(ctx spi.ComponentContext) bo
 		if ctx.EffectiveCR().Spec.Components.KubeStateMetrics.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.KubeStateMetrics.MonitorChanges
 		}
-		return true
 	}
-	return false
+	return true
 }
 
 // AppendOverrides appends install overrides for the Prometheus kube-state-metrics component's Helm chart

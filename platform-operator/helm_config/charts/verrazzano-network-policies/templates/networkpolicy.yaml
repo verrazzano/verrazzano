@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- if .Values.authproxy.enabled }}
@@ -21,13 +21,15 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: ingress-nginx
+              verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
           podSelector:
             matchLabels:
               app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
           port: 8775
+        - protocol: TCP
+          port: 8776
     - from:
         - namespaceSelector:
             matchLabels:
@@ -129,7 +131,7 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: prometheus
-      ports:    
+      ports:
         - port: 9100
           protocol: TCP
 {{- end }}

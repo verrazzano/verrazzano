@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: install.verrazzano.io/v1beta1
@@ -21,6 +21,8 @@ spec:
             key: test-overrides-secret.yaml
         - values:
             prometheus:
+              thanos:
+                integration: sidecar
               prometheusSpec:
                 replicas: 2
     prometheusAdapter:
@@ -45,4 +47,8 @@ spec:
         rollover:
           minIndexAge: "1d"
     jaegerOperator:
+      enabled: true
+    thanos:
+      enabled: true
+    capi:
       enabled: true

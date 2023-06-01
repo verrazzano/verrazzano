@@ -5,8 +5,14 @@ package fluentd
 
 import (
 	"context"
-	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -19,10 +25,8 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -67,6 +71,44 @@ func init() {
 	// +kubebuilder:scaffold:testScheme
 }
 
+func getChart() *chart.Chart {
+	return &chart.Chart{
+		Metadata: &chart.Metadata{
+			APIVersion: "v1",
+			Name:       "hello",
+			Version:    "0.1.0",
+			AppVersion: "1.0",
+		},
+		Templates: []*chart.File{
+			{Name: "templates/hello", Data: []byte("hello: world")},
+		},
+	}
+}
+
+func createRelease(name string, status release.Status) *release.Release {
+	now := time.Now()
+	return &release.Release{
+		Name:      name,
+		Namespace: "verrazzano-system",
+		Info: &release.Info{
+			FirstDeployed: now,
+			LastDeployed:  now,
+			Status:        status,
+			Description:   "Named Release Stub",
+		},
+		Chart:   getChart(),
+		Version: 1,
+	}
+}
+
+func testActionConfigWithInstalledFluentd(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helmcli.CreateActionConfig(true, "fluentd", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
+}
+
+func testActionConfigWithUninstalledFluentd(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helmcli.CreateActionConfig(true, "fluentd", release.StatusUninstalled, vzlog.DefaultLogger(), createRelease)
+}
+
 func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	sec := getFakeSecret("TestValidateUpdate-es-sec")
@@ -103,7 +145,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
@@ -121,7 +163,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-fluentd-oci",
@@ -420,19 +462,30 @@ func TestInstall(t *testing.T) {
 		},
 	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+		return helmcli.CreateActionConfig(true, ComponentName, release.StatusDeployed, vzlog.DefaultLogger(), func(name string, releaseStatus release.Status) *release.Release {
+			now := time.Now()
+			return &release.Release{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+				Info: &release.Info{
+					FirstDeployed: now,
+					LastDeployed:  now,
+					Status:        releaseStatus,
+					Description:   "Named Release Stub",
+				},
+				Version: 1,
+			}
+		})
 	})
-	defer helmcli.SetDefaultChartStateFunction()
+
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
-}
-
-// fakeUpgrade override the upgrade function during unit tests
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
 }
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
@@ -441,10 +494,8 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned. Otherwise, return error.
 func TestPreUpgrade(t *testing.T) {
-	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
 
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -499,14 +550,8 @@ func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := getFakeComponentContext(c)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helmcli.SetCmdRunner(os.GenericTestRunner{})
-	defer helmcli.SetDefaultRunner()
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
@@ -557,12 +602,11 @@ func TestIsInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart installed
 //	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
-	helmcli.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    nil,
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithInstalledFluentd)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -574,12 +618,11 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart not installed
 //	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
-	helmcli.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("Not installed"),
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledFluentd)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
@@ -591,12 +634,11 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 //	WHEN I call Uninstall with the Fluentd helm chart not installed
 //	THEN ensure that all Fluentd resources are explicitly deleted
 func TestUninstallResources(t *testing.T) {
-	helmcli.SetCmdRunner(os.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte{},
-		Err:    fmt.Errorf("Not installed"),
-	})
-	defer helmcli.SetDefaultRunner()
+	defer helmcli.SetDefaultActionConfigFunction()
+	helmcli.SetActionConfigFunction(testActionConfigWithUninstalledFluentd)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.VerrazzanoSystemNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}

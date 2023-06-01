@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// VerrazzanoClusterIssuerName Name of the Verrazzano Cert-Manager cluster issuer
+const VerrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
+
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano application to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
@@ -49,11 +52,20 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
+// VerrazzanoCAPINamespace is the system namespace for Cluster API resources
+const VerrazzanoCAPINamespace = "verrazzano-capi"
+
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
+// VerrazzanoMonitoringNamespace is the namespace for monitoring components
+const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
+
 // CertManagerNamespace - the CertManager namespace
 const CertManagerNamespace = "cert-manager"
+
+// ExternalDNSNamespace - the ExternalDNS namespace
+const ExternalDNSNamespace = VerrazzanoSystemNamespace
 
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
@@ -66,9 +78,6 @@ const RancherSystemNamespace = "cattle-system"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
-
-// IngressNamespace - the NGINX ingress namespace
-const IngressNamespace = "ingress-nginx"
 
 // PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
 // and its related components.
@@ -130,6 +139,12 @@ const DefaultOpensearchURL = "http://verrazzano-authproxy-opensearch:8775"
 
 // Default Jaeger OpenSearch URL
 const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
+
+// DefaultOperatorOSURL is the default OpenSearch URL for opensearch-operator based OpenSearch
+const DefaultOperatorOSURL = "http://verrazzano-authproxy-opensearch-logging:8775"
+
+// DefaultOperatorOSURLWithNS is the default OpenSearch URL for opensearch-operator based OpenSearch with namespace suffix
+const DefaultOperatorOSURLWithNS = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
 
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
@@ -199,3 +214,9 @@ const (
 	Fluentd               = "fluentd"
 	MySQLOperator         = "mysql-operator"
 )
+
+// ThanosQueryIngress is the name of the ingress for the Thanos Query
+const ThanosQueryIngress = "thanos-query-frontend"
+
+// ThanosQueryStoreIngress is the name of the ingress for the Thanos Query Store API
+const ThanosQueryStoreIngress = "thanos-query-store"

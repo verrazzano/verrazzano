@@ -1,11 +1,11 @@
 {{- if and .Values.thanosRuler.enabled .Values.thanosRuler.podDisruptionBudget.enabled }}
-apiVersion: {{ include "kube-prometheus-stack.pdb.apiVersion" . }}
+apiVersion: {{ ternary "policy/v1" "policy/v1beta1" (semverCompare ">=1.21.0-0" .Capabilities.KubeVersion.Version) }}
 kind: PodDisruptionBudget
 metadata:
-  name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-ruler
+  name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
   namespace: {{ template "kube-prometheus-stack.namespace" . }}
   labels:
-    app: {{ template "kube-prometheus-stack.name" . }}-thanos-ruler
+    app: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 spec:
   {{- if .Values.thanosRuler.podDisruptionBudget.minAvailable }}
@@ -17,5 +17,5 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: thanos-ruler
-      thanos-ruler: {{ template "kube-prometheus-stack.fullname" . }}-thanos-ruler
+      thanos-ruler: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
 {{- end }}

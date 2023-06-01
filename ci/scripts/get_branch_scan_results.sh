@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -84,6 +84,23 @@ mkdir -p ${BOM_DIR}
 SCAN_RESULTS_BASE_DIR=${WORKSPACE}/scan-results
 export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest
 mkdir -p ${SCAN_RESULTS_DIR}
+
+if [[ -z "${SCANNER_PATH}" ]]; then
+  echo "Environment variable SCANNER_PATH is not set"
+else
+  export PATH="${SCANNER_PATH}:${PATH}"
+fi
+
+# The script uses Github CLI and OCI CLI, check whether the CLIs are in PATH
+command -v gh >/dev/null 2>&1 || {
+  echo "Github CLI is not in PATH"
+  exit 1
+}
+
+command -v oci >/dev/null 2>&1 || {
+  echo "OCI CLI is not in PATH"
+  exit 1
+}
 
 # Where the results are kept for the branch depend on what kind of branch it is and where the updated bom is stored:
 #    master, release-* branches are regularly updated using the periodic pipelines only
@@ -180,22 +197,23 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
   MAJOR_MINOR_VERSION=${CLEAN_BRANCH_NAME:8}
   VERSIONS=$(gh release list | cut -f 3 | grep v${MAJOR_MINOR_VERSION})
 
-  # For now get the results for all versions, at some point we should ignore versions that we no longer support
-  for VERSION in ${VERSIONS}
-  do
-    GIT_COMMIT=$(git rev-list -n 1 ${VERSION})
-    echo "Fetching BOM for ${VERSION}"
-    export SCAN_BOM_FILE=${BOM_DIR}/${VERSION}-bom.json
-    get_bom_from_release ${VERSION} ${SCAN_BOM_FILE}
+  # We only are using the latest version. The "gh release list" returns them in order from most recent first, so the first
+  # version returned in the list is the most recent release version for the release-* branch.
+  echo "All versions found: ${VERSIONS}"
+  VERSION=$(echo $VERSIONS | cut -d ' ' -f 1)
 
-    export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/${VERSION}
-    mkdir -p ${SCAN_RESULTS_DIR}
+  GIT_COMMIT=$(git rev-list -n 1 ${VERSION})
+  echo "Fetching BOM for ${VERSION}"
+  export SCAN_BOM_FILE=${BOM_DIR}/${VERSION}-bom.json
+  get_bom_from_release ${VERSION} ${SCAN_BOM_FILE}
 
-    echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
-    ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
-    ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
-    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
-    ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "${VERSION}" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
-    publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
-  done
+  export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/${VERSION}
+  mkdir -p ${SCAN_RESULTS_DIR}
+
+  echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
+  ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
+  ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
+  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
+  ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "${VERSION}" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
+  publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
 fi

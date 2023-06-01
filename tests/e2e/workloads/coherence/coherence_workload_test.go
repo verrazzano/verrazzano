@@ -45,6 +45,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("hello-coherence")
 	expectedPods       = []string{"hello-coh-"}
 	host               = ""
+	metricsTest        pkg.MetricsTest
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -105,6 +106,16 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()), "Coherence Application Failed to Deploy: Gateway is not ready")
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to find Kubeconfig location: %v", err))
+	}
+	metricsTest, err = pkg.NewMetricsTest(kubeconfigPath, map[string]string{})
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	beforeSuitePassed = true
 })
 
@@ -200,7 +211,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 			// Coherence metric fix available only from 1.3.0
 			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfig); ok {
 				Eventually(func() bool {
-					return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "HelloCoherenceRole")
+					return metricsTest.MetricsExist("vendor:coherence_service_messages_local", map[string]string{"role": "HelloCoherenceRole"})
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
 		})
@@ -212,12 +223,12 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("base_jvm_uptime_seconds", "app_oam_dev_name", "hello-appconf")
+						return metricsTest.MetricsExist("base_jvm_uptime_seconds", map[string]string{"app_oam_dev_name": "hello-appconf"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-appconf")
+						return metricsTest.MetricsExist("vendor_requests_count_total", map[string]string{"app_oam_dev_name": "hello-appconf"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)

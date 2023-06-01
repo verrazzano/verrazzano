@@ -4,14 +4,11 @@
 package reconcile
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"reflect"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/pkg/helm"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -24,14 +21,14 @@ import (
 func TestReconcilerUninstallSingleComponent(t *testing.T) {
 	type args struct {
 		spiCtx           spi.ComponentContext
-		UninstallContext *componentUninstallContext
+		UninstallContext *componentTrackerContext
 		comp             spi.Component
 	}
-	compContext := &componentUninstallContext{
-		state: compStateUninstallStart,
+	compContext := &componentTrackerContext{
+		uninstallState: compStateUninstallStart,
 	}
-	compCtxWithUninstall := &componentUninstallContext{
-		state: compStateUninstall,
+	compCtxWithUninstall := &componentTrackerContext{
+		uninstallState: compStateUninstall,
 	}
 
 	mockClient := fake.NewClientBuilder().Build()
@@ -44,12 +41,12 @@ func TestReconcilerUninstallSingleComponent(t *testing.T) {
 			},
 		},
 	}
-	defer helm.SetDefaultRunner()
-	helm.SetCmdRunner(vzos.GenericTestRunner{
-		StdOut: []byte(""),
-		StdErr: []byte("not found"),
-		Err:    fmt.Errorf(unExpectedError),
-	})
+	//defer helm.SetDefaultRunner()
+	//helm.SetCmdRunner(vzos.GenericTestRunner{
+	//	StdOut: []byte(""),
+	//	StdErr: []byte("not found"),
+	//	Err:    fmt.Errorf(unExpectedError),
+	//})
 	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 	defer func() {

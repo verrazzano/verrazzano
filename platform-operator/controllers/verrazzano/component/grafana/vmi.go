@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
@@ -11,6 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
+
+const datasourcesConfigMapName = "vmi-system-datasource"
 
 // updateFunc mutates the VMI struct and ensures the Grafana component is configured properly
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
@@ -27,7 +29,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 	grafana := vmov1.Grafana{
 		Enabled:              grafanaSpec.Enabled != nil && *grafanaSpec.Enabled,
 		DashboardsConfigMap:  "verrazzano-dashboard-provider",
-		DatasourcesConfigMap: "vmi-system-datasource",
+		DatasourcesConfigMap: datasourcesConfigMapName,
 		Resources: vmov1.Resources{
 			RequestMemory: "48Mi",
 		},
@@ -52,6 +54,9 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 			Host:           grafanaSpec.Database.Host,
 			Name:           grafanaSpec.Database.Name,
 		}
+	}
+	if grafanaSpec.SMTP != nil {
+		grafana.SMTP = grafanaSpec.SMTP.DeepCopy()
 	}
 	log.Debugf("VMO grafana spec: %v", grafana)
 	return grafana

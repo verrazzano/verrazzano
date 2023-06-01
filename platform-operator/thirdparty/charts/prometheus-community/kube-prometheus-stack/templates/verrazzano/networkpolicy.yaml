@@ -1,0 +1,53 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-prometheus
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          verrazzano.io/namespace: verrazzano-system
+      podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - verrazzano-authproxy
+          - system-grafana
+          - kiali
+    ports:
+    - port: 9090
+      protocol: TCP
+    - port: 10901
+      protocol: TCP
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          verrazzano.io/namespace: {{ template "kube-prometheus-stack.namespace" . }}
+      podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - jaeger
+    ports:
+    - port: 9090
+      protocol: TCP
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          verrazzano.io/namespace: {{ template "kube-prometheus-stack.namespace" . }}
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/component: query
+    ports:
+    - port: 10901
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+  - Ingress

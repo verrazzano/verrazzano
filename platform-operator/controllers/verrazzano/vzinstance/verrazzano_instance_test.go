@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vzinstance
@@ -43,7 +43,7 @@ func TestGetInstanceInfo(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		List(gomock.Any(), gomock.AssignableToTypeOf(&networkingv1.IngressList{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{
 				{
@@ -149,7 +149,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		List(gomock.Any(), gomock.AssignableToTypeOf(&networkingv1.IngressList{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{
 				{

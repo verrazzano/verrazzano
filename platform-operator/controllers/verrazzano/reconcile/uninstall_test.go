@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"reflect"
 	"testing"
 	"time"
@@ -17,12 +20,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -34,7 +35,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
@@ -176,6 +176,11 @@ func TestReconcileUninstall(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -359,6 +364,11 @@ func TestUninstallVariations(t *testing.T) {
 				k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 				k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
 			}()
+
+			defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+			k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+				return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+			}
 
 			reconciler := newVerrazzanoReconciler(c)
 			result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
@@ -556,7 +566,24 @@ func assertProjectRoleBindings(c client.Client, asserts *assert.Assertions) {
 // WHEN deleteNamespaces is called
 // THEN ensure all the component and shared namespaces are deleted
 func TestDeleteNamespaces(t *testing.T) {
+	runDeleteNamespacesTest(t, true)
+}
+
+// TestDeleteNamespacesCertManagerDisabled tests the deleteNamespaces method for when an externally provisioned CertManager might be in play
+// GIVEN a request to deleteNamespaces
+// WHEN deleteNamespaces is called and CertManager is disabled and the cert-manager namespace exists
+// THEN ensure all the component and shared namespaces are deleted EXCEPT for cert-manager
+func TestDeleteNamespacesCertManagerDisabled(t *testing.T) {
+	runDeleteNamespacesTest(t, false)
+}
+
+func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 	asserts := assert.New(t)
+
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	const fakeNS = "foo"
 	nameSpaces := []client.Object{}
@@ -564,7 +591,7 @@ func TestDeleteNamespaces(t *testing.T) {
 		fakeNS,
 		appoper.ComponentNamespace,
 		authproxy.ComponentNamespace,
-		certmanager.ComponentNamespace,
+		constants.CertManagerNamespace,
 		coherence.ComponentNamespace,
 		console.ComponentNamespace,
 		externaldns.ComponentNamespace,
@@ -575,7 +602,7 @@ func TestDeleteNamespaces(t *testing.T) {
 		keycloak.ComponentNamespace,
 		kiali.ComponentNamespace,
 		mysql.ComponentNamespace,
-		nginx.ComponentNamespace,
+		nginxutil.IngressNGINXNamespace(),
 		oam.ComponentNamespace,
 		opensearch.ComponentNamespace,
 		opensearchdashboards.ComponentNamespace,
@@ -609,8 +636,26 @@ func TestDeleteNamespaces(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
 
+	cr := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &cmEnabled,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(c, cr, nil, false)
+
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger(), false)
+	result, err := reconciler.deleteNamespaces(ctx, false)
+
+	expectedRemainingNamespaces := []string{
+		fakeNS,
+	}
+	if !cmEnabled {
+		expectedRemainingNamespaces = append(expectedRemainingNamespaces, constants.CertManagerNamespace)
+	}
 
 	// Validate the results
 	asserts.NoError(err)
@@ -619,7 +664,11 @@ func TestDeleteNamespaces(t *testing.T) {
 		ns := &corev1.Namespace{}
 		err = c.Get(context.TODO(), types.NamespacedName{Name: n}, ns)
 		if err == nil {
-			asserts.Equal(ns.Name, fakeNS, fmt.Sprintf("Namespace %s should exist", fakeNS))
+			asserts.Contains(expectedRemainingNamespaces, ns.Name, "Namespace %s should exist", ns.Name)
+			//asserts.Equal(ns.Name, fakeNS, fmt.Sprintf("Namespace %s should exist", fakeNS))
+			//if !cmEnabled {
+			//	asserts.Equal(ns.Name, certmanager.ComponentNamespace, fmt.Sprintf("Namespace %s should exist", certmanager.ComponentNamespace))
+			//}
 		} else {
 			asserts.True(errors.IsNotFound(err), fmt.Sprintf("Namespace %s should not exist", n))
 		}
@@ -633,23 +682,15 @@ func TestReconcileUninstall2(t *testing.T) {
 		cr  *vzapi.Verrazzano
 	}
 	helmOverrideNotFound := func() {
-		helm.SetCmdRunner(vzos.GenericTestRunner{
-			StdOut: []byte(""),
-			StdErr: []byte("not found"),
-			Err:    fmt.Errorf(unExpectedError),
-		})
+		helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 	}
 	helmOverrideNoError := func() {
-		helm.SetCmdRunner(vzos.GenericTestRunner{
-			StdOut: []byte(""),
-			StdErr: []byte(""),
-			Err:    nil,
-		})
+		helm.SetActionConfigFunction(testActionConfigWithInstallation)
 	}
-	defer helm.SetDefaultRunner()
+	defer helm.SetDefaultActionConfigFunction()
 	config.TestProfilesDir = relativeProfilesDir
 
-	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.RancherSystemNamespace)
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 	defer func() {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client

@@ -96,7 +96,10 @@ const PrometheusIngress = "vmi-system-prometheus"
 const GlobalImagePullSecName = "verrazzano-container-registry"
 
 // IngressNginxNamespace is the nginx ingress namespace name
-const IngressNginxNamespace = "ingress-nginx"
+const IngressNginxNamespace = "verrazzano-ingress-nginx"
+
+// LegacyIngressNginxNamespace is the old nginx ingress namespace name
+const LegacyIngressNginxNamespace = "ingress-nginx"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
@@ -128,6 +131,9 @@ const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
 // VerrazzanoAuthProxyServicePort is the port exposed by the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServicePort = 8775
 
+// VerrazzanoAuthProxyGRPCServicePort is the port exposed by the Verrazzano auth proxy service for gRPC traffic
+const VerrazzanoAuthProxyGRPCServicePort = 8776
+
 // DefaultEnvironmentName is the default name for install environment
 const DefaultEnvironmentName = "default"
 
@@ -145,6 +151,9 @@ const VerrazzanoVersion1_4_0 = "1.4.0"
 
 // VerrazzanoVersion1_5_0 is the Verrazzano version string for 1.5.0
 const VerrazzanoVersion1_5_0 = "1.5.0"
+
+// VerrazzanoVersion1_6_0 is the Verrazzano version string for 1.6.0
+const VerrazzanoVersion1_6_0 = "1.6.0"
 
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
@@ -203,6 +212,9 @@ const JaegerCollectorService = "service-collector"
 // OverridesFinalizer is a label value for value override object finalizer
 const OverridesFinalizer = "overrides.finalizers.verrazzano.io/finalizer"
 
+// DevComponentFinalizer is a label value for dev components configmap finalizer
+const DevComponentFinalizer = "components.finalizers.verrazzano.io/finalizer"
+
 // ConfigMapKind is a label value for ConfigMap kind
 const ConfigMapKind = "ConfigMap"
 
@@ -243,10 +255,17 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 // VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
 
-const ExternalDNSNamespace = "cert-manager"
-
 // ServiceMonitorNameKubelet indicates the name of serviceMonitor resource for kubelet monitoring
 const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
 
 // ServiceMonitorNameKubeStateMetrics indicates the name of serviceMonitor resource for kube-state-metrics monitoring
 const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"
+
+// ThanosInternalUserSecretName is the name of the secret used to store the VZ internal Thanos user credentials
+const ThanosInternalUserSecretName = "verrazzano-thanos-internal" //nolint:gosec //#gosec G101
+
+// ThanosInternalUserName is the name of the VZ internal Thanos user
+const ThanosInternalUserName = "verrazzano-thanos-internal"
+
+// VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
+const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"

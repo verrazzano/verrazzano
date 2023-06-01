@@ -535,6 +535,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  capi:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -596,6 +601,105 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
+                    type: object
+                  certManagerWebhookOCI:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterAgent:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterIssuer:
+                    properties:
+                      ca:
+                        properties:
+                          secretName:
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      clusterResourceNamespace:
+                        default: cert-manager
+                        type: string
+                      enabled:
+                        default: true
+                        type: boolean
+                      letsEncrypt:
+                        properties:
+                          emailAddress:
+                            type: string
+                          environment:
+                            type: string
+                        type: object
                     type: object
                   clusterOperator:
                     properties:
@@ -963,6 +1067,33 @@ spec:
                       replicas:
                         format: int32
                         type: integer
+                      smtp:
+                        properties:
+                          certFileKey:
+                            type: string
+                          ehloIdentity:
+                            type: string
+                          enabled:
+                            type: boolean
+                          existingSecret:
+                            type: string
+                          fromAddress:
+                            type: string
+                          fromName:
+                            type: string
+                          host:
+                            type: string
+                          keyFileKey:
+                            type: string
+                          passwordKey:
+                            type: string
+                          skipVerify:
+                            type: boolean
+                          startTLSPolicy:
+                            type: string
+                          userKey:
+                            type: string
+                        type: object
                     type: object
                   ingress:
                     properties:
@@ -3124,6 +3255,44 @@ spec:
                           type: object
                         type: array
                     type: object
+                  thanos:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
                   velero:
                     properties:
                       enabled:
@@ -4159,6 +4328,8 @@ spec:
                     type: string
                   rancherUrl:
                     type: string
+                  thanosQueryUrl:
+                    type: string
                 type: object
               state:
                 type: string
@@ -4311,6 +4482,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  capi:
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -4372,6 +4548,105 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
+                    type: object
+                  certManagerWebhookOCI:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterAgent:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterIssuer:
+                    properties:
+                      ca:
+                        properties:
+                          secretName:
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      clusterResourceNamespace:
+                        default: cert-manager
+                        type: string
+                      enabled:
+                        default: true
+                        type: boolean
+                      letsEncrypt:
+                        properties:
+                          emailAddress:
+                            type: string
+                          environment:
+                            type: string
+                        type: object
                     type: object
                   clusterOperator:
                     properties:
@@ -4636,6 +4911,33 @@ spec:
                       replicas:
                         format: int32
                         type: integer
+                      smtp:
+                        properties:
+                          certFileKey:
+                            type: string
+                          ehloIdentity:
+                            type: string
+                          enabled:
+                            type: boolean
+                          existingSecret:
+                            type: string
+                          fromAddress:
+                            type: string
+                          fromName:
+                            type: string
+                          host:
+                            type: string
+                          keyFileKey:
+                            type: string
+                          passwordKey:
+                            type: string
+                          skipVerify:
+                            type: boolean
+                          startTLSPolicy:
+                            type: string
+                          userKey:
+                            type: string
+                        type: object
                     type: object
                   ingressNGINX:
                     properties:
@@ -6040,6 +6342,44 @@ spec:
                           type: object
                         type: array
                     type: object
+                  thanos:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
                   velero:
                     properties:
                       enabled:
@@ -7057,6 +7397,8 @@ spec:
                   prometheusUrl:
                     type: string
                   rancherUrl:
+                    type: string
+                  thanosQueryUrl:
                     type: string
                 type: object
               state:

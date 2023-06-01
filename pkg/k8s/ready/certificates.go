@@ -1,9 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package ready
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"sort"
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -28,11 +29,9 @@ func CertificatesAreReady(client clipkg.Client, log vzlog.VerrazzanoLogger, vz *
 		return true, []types.NamespacedName{}
 	}
 
-	if vz != nil && vz.Spec.Components.CertManager != nil && vz.Spec.Components.CertManager.Enabled != nil {
-		if !*vz.Spec.Components.CertManager.Enabled {
-			log.Oncef("Cert-Manager disabled, skipping certificates check")
-			return true, []types.NamespacedName{}
-		}
+	if !vzcr.IsClusterIssuerEnabled(vz) {
+		log.Oncef("Cert-Manager ClusterIssuer disabled, skipping certificates check")
+		return true, []types.NamespacedName{}
 	}
 
 	log.Oncef("Checking certificates status for %v", certificates)
@@ -77,7 +76,7 @@ func IsCertficateIsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, name 
 		if mostRecent.Status == cmmeta.ConditionTrue && mostRecent.Type == certapiv1.CertificateConditionReady {
 			return true, nil
 		}
-		log.Infof("Certificate %s not ready, reason: %s, message: %s", name, mostRecent.Reason, mostRecent.Message)
+		log.Progressf("Certificate %s not ready, reason: %s, message: %s", name, mostRecent.Reason, mostRecent.Message)
 	}
 	return false, nil
 }

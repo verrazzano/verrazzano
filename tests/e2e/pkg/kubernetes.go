@@ -209,7 +209,9 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 	}
 	deployment, err := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Deployment %s from namespace %s: %v ", deploymentName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Deployment %s from namespace %s: %v ", deploymentName, namespace, err))
+		}
 		return nil, err
 	}
 	return deployment, nil
@@ -239,7 +241,9 @@ func GetStatefulSet(namespace string, stsName string) (*appsv1.StatefulSet, erro
 	}
 	sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), stsName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get StatefulSet %s from namespace %s: %v ", stsName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get StatefulSet %s from namespace %s: %v ", stsName, namespace, err))
+		}
 		return nil, err
 	}
 	return sts, nil
@@ -254,7 +258,9 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 	}
 	daemonset, err := clientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get DaemonSet %s from namespace %s: %v ", daemonSetName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get DaemonSet %s from namespace %s: %v ", daemonSetName, namespace, err))
+		}
 		return nil, err
 	}
 	return daemonset, nil
@@ -269,7 +275,9 @@ func GetService(namespace string, serviceName string) (*corev1.Service, error) {
 	}
 	svc, err := clientSet.CoreV1().Services(namespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		}
 		return nil, err
 	}
 	return svc, nil
@@ -293,7 +301,9 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	}
 	ingressList, err := clientSet.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return ingressList, nil
@@ -308,7 +318,9 @@ func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
 	}
 	ingress, err := clientSet.NetworkingV1().Ingresses(namespace).Get(context.TODO(), ingressName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		}
 		return nil, err
 	}
 	return ingress, nil
@@ -341,7 +353,9 @@ func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceLis
 	}
 	VirtualServiceList, err := clientSet.NetworkingV1beta1().VirtualServices(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return VirtualServiceList, nil
@@ -371,25 +385,12 @@ func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error
 	}
 	certificateList, err := clientSet.Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Certificates in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Certificates in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return certificateList, nil
-}
-
-// GetClusterIssuerList returns a list of cluster issuers
-func GetClusterIssuerList() (*certmanagerv1.ClusterIssuerList, error) {
-	// Get the Cert-manager clientset
-	clientSet, err := k8sutil.GetCertManagerClienset()
-	if err != nil {
-		return nil, err
-	}
-	clusterIssuerList, err := clientSet.ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
-		return nil, err
-	}
-	return clusterIssuerList, nil
 }
 
 // GetIssuerList returns a list of cluster issuers
@@ -401,7 +402,9 @@ func GetIssuerList(namespace string) (*certmanagerv1.IssuerList, error) {
 	}
 	issuerList, err := clientSet.Issuers(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Issuers in namespace %s: %v ", namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Issuers in namespace %s: %v ", namespace, err))
+		}
 		return nil, err
 	}
 	return issuerList, nil
@@ -791,6 +794,50 @@ func IsCertManagerEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.CertManager.Enabled
 }
 
+// IsOCIDNSEnabled returns true if OCI DNS is enabled in the configuration
+func IsOCIDNSEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.DNS == nil || vz.Spec.Components.DNS.OCI == nil {
+		return false
+	}
+	return true
+}
+
+func IsCAIssuerConfig(certConfig v1alpha1.Certificate) (isCAConfig bool, err error) {
+	// Check if Ca or Acme is empty
+	caNotEmpty := certConfig.CA != v1alpha1.CA{}
+	acmeNotEmpty := certConfig.Acme != v1alpha1.Acme{}
+	if caNotEmpty && acmeNotEmpty {
+		return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
+	} else if !caNotEmpty && !acmeNotEmpty {
+		return false, errors.New("Either Acme or CA certificate authorities must be configured")
+	}
+	return caNotEmpty, nil
+}
+
+// IsOCIDNSWebhookEnabled returns true if the Cert Manager component is not set, or the value of its Enabled field otherwise
+func IsOCIDNSWebhookEnabled(kubeconfigPath string) bool {
+	if !IsCertManagerEnabled(kubeconfigPath) || !IsOCIDNSEnabled(kubeconfigPath) {
+		return false
+	}
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	certManager := vz.Spec.Components.CertManager
+	if certManager != nil {
+		isCAConfig, _ := IsCAIssuerConfig(certManager.Certificate)
+		return !isCAConfig
+	}
+	// CM is not defined, so the OCI DNS webhook won't be deployed
+	return false
+}
+
 // IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -838,7 +885,7 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return true
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
 }
@@ -851,9 +898,22 @@ func IsPrometheusEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
-		return true
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.Prometheus.Enabled
+}
+
+// IsIngressEnabled returns false if the IngressNGINX component is not set and the IngressNGINX is enabled, or the value of its Enabled field otherwise
+func IsIngressEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.Ingress == nil || vz.Spec.Components.Ingress.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Ingress.Enabled
 }
 
 // IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
@@ -864,7 +924,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
-		return false
+		return vz.Spec.Profile != v1alpha1.None
 	}
 	return *vz.Spec.Components.KubeStateMetrics.Enabled
 }
@@ -890,7 +950,7 @@ func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.PrometheusNodeExporter == nil || vz.Spec.Components.PrometheusNodeExporter.Enabled == nil {
-		return false
+		return IsPrometheusEnabled(kubeconfigPath)
 	}
 	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
 }
@@ -976,6 +1036,20 @@ func IsVeleroEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Velero.Enabled
 }
 
+// IsRancherEnabled returns false if the Rancher component is not set, or the value of its Enabled field otherwise
+func IsRancherEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.Enabled == nil {
+		// Rancher component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Rancher.Enabled
+}
+
 // IsRancherBackupEnabled returns false if the Rancher Backup component is not set, or the value of its Enabled field otherwise
 func IsRancherBackupEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -989,6 +1063,19 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
+// IsCAPIEnabled returns false if the CAPI component is not set, or the value of its Enabled field otherwise
+func IsCAPIEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.CAPI == nil || vz.Spec.Components.CAPI.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.CAPI.Enabled
+}
+
 // IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise
 func IsArgoCDEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -1000,6 +1087,19 @@ func IsArgoCDEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.ArgoCD.Enabled
+}
+
+// IsClusterAgentEnabled returns true if the Cluster Agent component is not set, or the value of its Enabled field otherwise
+func IsClusterAgentEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.ClusterAgent == nil || vz.Spec.Components.ClusterAgent.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.ClusterAgent.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -1254,7 +1354,9 @@ func GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
 
 	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get cluster role %s: %v", name, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get cluster role %s: %v", name, err))
+		}
 		return nil, err
 	}
 
@@ -1297,7 +1399,9 @@ func GetClusterRoleBinding(name string) (*rbacv1.ClusterRoleBinding, error) {
 
 	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get cluster role binding %s: %v", name, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get cluster role binding %s: %v", name, err))
+		}
 		return nil, err
 	}
 
@@ -1447,7 +1551,9 @@ func GetConfigMap(configMapName string, namespace string) (*corev1.ConfigMap, er
 	cmi := clientset.CoreV1().ConfigMaps(namespace)
 	configMap, err := cmi.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Config Map %s from namespace %s: %v ", configMapName, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get Config Map %s from namespace %s: %v ", configMapName, namespace, err))
+		}
 		return nil, err
 	}
 	return configMap, nil
@@ -1631,7 +1737,9 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	}
 	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get service account %s in namespace %s: %v", name, namespace, err))
+		if !k8serrors.IsNotFound(err) {
+			Log(Error, fmt.Sprintf("Failed to get service account %s in namespace %s: %v", name, namespace, err))
+		}
 		return nil, err
 	}
 	return sa, nil

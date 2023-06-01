@@ -433,6 +433,59 @@ spec:
                         pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                         type: string
                     type: object
+                  smtp:
+                    description: SMTPInfo specifies the SMTP connection information
+                      for the Grafana SMTP notifications.
+                    properties:
+                      certFileKey:
+                        description: The key in the existing SMTP secret containing
+                          the certificate.
+                        type: string
+                      ehloIdentity:
+                        description: Name to be used as client identity for EHLO(Extended
+                          HELO) in SMTP dialog, default is <instance_name>.
+                        type: string
+                      enabled:
+                        description: If true, then the SMTP notifications will be
+                          enabled.
+                        type: boolean
+                      existingSecret:
+                        description: The name of an existing secret containing the
+                          SMTP credentials (username, password, certificate and key
+                          for accessing the SMTP server).
+                        type: string
+                      fromAddress:
+                        description: Address used when sending out emails, default
+                          is admin@grafana.localhost.
+                        type: string
+                      fromName:
+                        description: Name to be used when sending out emails, default
+                          is Grafana.
+                        type: string
+                      host:
+                        description: The address:port connection information for the
+                          SMTP server.
+                        type: string
+                      keyFileKey:
+                        description: The key in the existing SMTP secret containing
+                          the key for the certificate.
+                        type: string
+                      passwordKey:
+                        description: The key in the existing SMTP secret containing
+                          the password.
+                        type: string
+                      skipVerify:
+                        description: If true, do not Verify SSL for SMTP server.
+                        type: boolean
+                      startTLSPolicy:
+                        description: Either “OpportunisticStartTLS”, “MandatoryStartTLS”,
+                          “NoStartTLS”. Default is empty.
+                        type: string
+                      userKey:
+                        description: The key in the existing SMTP secret containing
+                          the username.
+                        type: string
+                    type: object
                   storage:
                     description: Storage details
                     properties:
@@ -972,7 +1025,6 @@ spec:
         required:
         - metadata
         - spec
-        - status
         type: object
     served: true
     storage: true

@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
 set -e
 
+# Given a path, if it does not start with a "/", then convert it to an absolute path
+ensureAbsolutePath() {
+  local pathToEnsure="$1"
+  local startChar=$(echo $1 | cut -c1)
+  if [ "$startChar" == "/" ]; then
+    echo $pathToEnsure
+  else
+    local origDir="$(pwd)"
+    local pathDir="$(dirname $pathToEnsure)"
+    local fileName="$(basename $pathToEnsure)"
+    cd $pathDir
+    local fullPath="$(pwd)/${fileName}"
+    cd $origDir
+    echo $fullPath
+  fi
+}
+
 if [ -z "$1" ]; then
   echo "Root of Verrazzano repository must be specified"
   exit 1
 fi
-VZ_REPO_ROOT="$1"
+VZ_REPO_ROOT="$(ensureAbsolutePath $1)"
 
 if [ -z "$2" ]; then
   echo "Verrazzano development version must be specified"
@@ -29,6 +46,10 @@ if [ -z "$BRANCH_NAME" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$OCI_OS_NAME
   exit 1
 fi
 
+if [ -z "$OCI_OS_DIST_REGION" ]; then
+  echo "OCI_OS_DIST_REGION not specified, defaulted to $OCI_OS_REGION"
+  OCI_OS_DIST_REGION=$OCI_OS_REGION
+fi
 
 # Create the general distribution layout under a given root directory
 createDistributionLayout() {
@@ -127,7 +148,10 @@ captureBundleContents() {
   then
     sort -u -o "${generatedDir}/${textFile}" "${generatedDir}/${textFile}"
   fi
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${textFile} --file ${generatedDir}/${textFile}
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${textFile} --file ${generatedDir}/${textFile}
+  fi
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${textFile} --file ${generatedDir}/${textFile}
   rm ${generatedDir}/${textFile}
 }
 
@@ -155,6 +179,58 @@ buildArchLiteBundle() {
 
   # Clean-up CLI
   rm -f ${distDir}/bin/vz
+}
+
+# Create the layout for the Verrazzano source bundle in a source layout directory that is named
+# with the right naming convention. These steps are needed so that the generated tar.gz will have the
+# right root directory name, and will be stored in a generated dir under the same root dir where the source is present.
+createVZSourceLayout() {
+  local rootDir="$1"
+  local srcLayoutDir="$2"
+
+  cd $rootDir
+  echo "Running go mod vendor ${rootDir}..."
+  go mod vendor
+
+  echo "Creating source layout in ${srcLayoutDir}..."
+
+  local tmp_src_bundle="/tmp/tmp_src_bundle.tar.gz"
+  echo "Creating $tmp_src_bundle from $rootDir"
+  tar czf $tmp_src_bundle .
+
+  mkdir -p $srcLayoutDir
+  cd $srcLayoutDir
+  echo "Expanding $tmp_src_bundle in $(pwd)"
+  tar xzf $tmp_src_bundle
+  rm $tmp_src_bundle
+  cd $rootDir
+}
+
+# Generate Verrazzano source bundle
+generateVZSourceBundle() {
+  echo "Generating source bundle....."
+  local rootDir="$1"
+  local srcLayoutDir="$2"
+  local srcGeneratedDir="$3"
+
+  cd $rootDir
+  mkdir -p $srcGeneratedDir
+
+  local bundleRoot=$(basename $srcLayoutDir)
+  echo "Creating bundle with $bundleRoot as the root dir"
+  cd $srcLayoutDir/..
+  tar czf ${srcGeneratedDir}/${VZ_SRC_BUNDLE} $bundleRoot
+  sha256sum ${srcGeneratedDir}/${VZ_SRC_BUNDLE} > ${srcGeneratedDir}/${VZ_SRC_BUNDLE_SHA256}
+  cd $srcGeneratedDir
+  echo "Uploading Verrazzano source bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} ..."
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} --file ${VZ_SRC_BUNDLE}
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE_SHA256} --file ${VZ_SRC_BUNDLE_SHA256}
+  fi
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE} --file ${VZ_SRC_BUNDLE}
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_SRC_BUNDLE_SHA256} --file ${VZ_SRC_BUNDLE_SHA256}
+  echo "Successfully uploaded ${VZ_SRC_BUNDLE}"
+  cd $rootDir
 }
 
 # Generate Verrazzano lite distribution
@@ -198,8 +274,13 @@ generateVZLiteDistribution() {
   sha256sum ${VZ_LITE_RELEASE_BUNDLE} > ${VZ_LITE_RELEASE_BUNDLE_SHA256}
 
   echo "Upload Verrazzano lite distribution ${generatedDir}/${VZ_LITE_RELEASE_BUNDLE} ..."
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
+
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
+  fi
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
 
   echo "Successfully uploaded ${generatedDir}/${VZ_LITE_RELEASE_BUNDLE}"
 }
@@ -230,11 +311,17 @@ generateVZFullDistribution() {
   captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
+  fi
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
 
   cd ${generatedDir}
   sha256sum ${VZ_FULL_RELEASE_BUNDLE} > ${VZ_FULL_RELEASE_BUNDLE_SHA256}
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+  fi
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
 
   echo "Successfully uploaded ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}"
 }
@@ -247,6 +334,35 @@ includeImageTarFiles() {
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
 
+loadExampleTarFiles() {
+  echo "Generating example image bundle....."
+  local rootDir="$1"
+  local generatedDir="$2"
+
+  mkdir "${generatedDir}"
+
+  example_dirs=("${VZ_REPO_ROOT}/examples/hello-helidon" "${VZ_REPO_ROOT}/examples/todo-list")
+  mapfile -t images < <(grep -r 'image:' "${example_dirs[@]}" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com)(/.+)+:[^"]+' | uniq)
+
+  for image in "${images[@]}"; do
+    echo "pulling ${image}"
+    docker pull "${image}"
+  done
+
+  docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${images[@]}"
+  sha256sum "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" > "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}"
+  cd "${generatedDir}"
+  echo "Uploading example images bundle to $OCI_OS_DIST_REGION in bucket ${OCI_OS_COMMIT_BUCKET} with name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} ..."
+  if [ "${OCI_OS_REGION}" != "${OCI_OS_DIST_REGION}" ]; then
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
+    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256} --file ${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
+  fi
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE} --file ${VZ_EXAMPLE_IMAGES_BUNDLE}
+  oci --region ${OCI_OS_DIST_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256} --file ${VZ_EXAMPLE_IMAGES_BUNDLE_SHA256}
+  echo "Successfully uploaded ${VZ_EXAMPLE_IMAGES_BUNDLE}"
+  cd $rootDir
+}
+
 # generate profiles and remove cruft
 includeProfiles() {
   local rootDir=$1
@@ -256,6 +372,7 @@ includeProfiles() {
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile prod --output-dir ${distDir}
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile dev --output-dir ${distDir}
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile managed-cluster --output-dir ${distDir}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile none --output-dir ${distDir}
 }
 
 # Clean-up workspace after uploading the distribution bundles
@@ -279,12 +396,23 @@ VZ_CLI_DARWIN_ARM64_TARGZ_SHA256="vz-darwin-arm64.tar.gz.sha256"
 
 DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
+# Don't use dev version in the source bundle prefix because the private registry job which
+# runs air-gapped has no way of getting the dev version until it downloads the source
+SRC_BUNDLE_PREFIX="verrazzano-src"
+
+# Source bundles and SHA256 of the source bundles
+VZ_SRC_BUNDLE="${SRC_BUNDLE_PREFIX}.tar.gz"
+VZ_SRC_BUNDLE_SHA256="${VZ_SRC_BUNDLE}.sha256"
+
 # Release bundles and SHA256 of the bundles
 VZ_LITE_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}-lite.zip"
 VZ_LITE_RELEASE_BUNDLE_SHA256="${VZ_LITE_RELEASE_BUNDLE}.sha256"
 
 VZ_FULL_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}.zip"
 VZ_FULL_RELEASE_BUNDLE_SHA256="${VZ_FULL_RELEASE_BUNDLE}.sha256"
+
+VZ_EXAMPLE_IMAGES_BUNDLE="${DISTRIBUTION_PREFIX}-example-images.tar"
+VZ_EXAMPLE_IMAGES_BUNDLE_SHA256="${VZ_EXAMPLE_IMAGES_BUNDLE}.sha256"
 
 # Linux AMD64 and Darwin AMD64 bundles for the lite distribution
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
@@ -300,8 +428,15 @@ VZ_LINUX_ARM64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-arm64.tar.gz.sha256"
 VZ_DARWIN_ARM64_TARGZ="${DISTRIBUTION_PREFIX}-darwin-arm64.tar.gz"
 VZ_DARWIN_ARM64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-darwin-arm64.tar.gz.sha256"
 
+# Directory containing the layout and required files for the Verrazzano source bundle
+VZ_SRC_ROOT="${WORKSPACE}/verrazzano"
+VZ_SRC_GENERATED="${WORKSPACE}/vz-src-generated"
+
 # Directory to contain the files which are common for both types of distribution bundles
 VZ_DISTRIBUTION_COMMON="${WORKSPACE}/vz-distribution-common"
+
+# Directory to contain the example images tar
+VZ_EXAMPLE_IMAGES_GENERATED="${WORKSPACE}/vz-example-images"
 
 # Directory containing the layout and required files for the Verrazzano lite distribution
 VZ_LITE_ROOT="${WORKSPACE}/vz-lite"
@@ -318,6 +453,13 @@ LITE_DARWIN_ARM64_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-lite-darwin-arm64.txt"
 
 LITE_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-lite.txt"
 FULL_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-full.txt"
+
+# Build the example image bundle for air gap testing
+loadExampleTarFiles "${VZ_REPO_ROOT}" "${VZ_EXAMPLE_IMAGES_GENERATED}"
+
+# Build Verrazzano source bundle before we start putting generated files in the VZ_REPO_ROOT
+createVZSourceLayout "${VZ_REPO_ROOT}" "${VZ_SRC_ROOT}"
+generateVZSourceBundle "${VZ_REPO_ROOT}" "${VZ_SRC_ROOT}" "${VZ_SRC_GENERATED}"
 
 # Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles

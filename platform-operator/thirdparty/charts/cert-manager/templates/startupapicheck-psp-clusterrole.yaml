@@ -1,5 +1,6 @@
 {{- if .Values.startupapicheck.enabled }}
 {{- if .Values.global.podSecurityPolicy.enabled }}
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy" }}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -20,5 +21,6 @@ rules:
   verbs:     ['use']
   resourceNames:
   - {{ template "startupapicheck.fullname" . }}
+{{- end }}
 {{- end }}
 {{- end }}

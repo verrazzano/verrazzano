@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -8,12 +8,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"time"
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -42,6 +44,8 @@ vz uninstall
 
 # Uninstall Verrazzano and wait for the command to complete. Timeout the command after 30 minutes.
 vz uninstall --timeout 30m`
+	ConfirmUninstallFlag          = "skip-confirmation"
+	ConfirmUninstallFlagShorthand = "y"
 )
 
 // Number of retries after waiting a second for uninstall job pod to be ready
@@ -70,6 +74,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
+	cmd.PersistentFlags().Bool(constants.AutoBugReportFlag, constants.AutoBugReportFlagDefault, constants.AutoBugReportFlagHelp)
 
 	// Remove CRD's flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
@@ -82,6 +87,8 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
+	// When set to false, uninstall prompt can be suppressed
+	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, "Used to confirm uninstall and suppress prompt")
 	return cmd
 }
 
@@ -96,6 +103,15 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
 		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
+	}
+
+	confirmUninstallFlag, err := cmd.Flags().GetBool(ConfirmUninstallFlag)
+	continueUninstall, err := continueUninstall(confirmUninstallFlag)
+	if err != nil {
+		return err
+	}
+	if !continueUninstall {
+		return nil
 	}
 
 	// Decide whether to stream the old uninstall job log or the VPO log.  With Verrazzano 1.4.0,
@@ -123,18 +139,17 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
-	// Get the log format value
-	logFormat, err := cmdhelpers.GetLogFormat(cmd)
-	if err != nil {
-		return err
-	}
-
 	// Get the VPO timeout
 	vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
 	if err != nil {
 		return err
 	}
 
+	// Get the log format value
+	logFormat, err := cmdhelpers.GetLogFormat(cmd)
+	if err != nil {
+		return err
+	}
 	// Delete the Verrazzano custom resource.
 	err = client.Delete(context.TODO(), vz)
 	if err != nil {
@@ -149,7 +164,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 				return failedToUninstallErr(err)
 			}
 		} else {
-			return failedToUninstallErr(err)
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
@@ -157,9 +172,8 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// Wait for the Verrazzano uninstall to complete.
 	err = waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
 	if err != nil {
-		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
+		return bugreport.AutoBugReport(cmd, vzHelper, err)
 	}
-
 	return nil
 }
 
@@ -199,6 +213,11 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	}
 
 	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteClusterRole(client, vzconstants.VerrazzanoClusterRancherName)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
@@ -504,4 +523,23 @@ func deleteClusterRole(client client.Client, name string) error {
 
 func failedToUninstallErr(err error) error {
 	return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
+}
+
+func continueUninstall(confirmUninstall bool) (bool, error) {
+	if confirmUninstall {
+		return true, nil
+	}
+	var response string
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
+	if scanner.Scan() {
+		response = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+	if response == "y" || response == "Y" {
+		return true, nil
+	}
+	return false, nil
 }

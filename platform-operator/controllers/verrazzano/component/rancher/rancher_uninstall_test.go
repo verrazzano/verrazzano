@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	fakemonitor "github.com/verrazzano/verrazzano/platform-operator/internal/monitor/fake"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -218,6 +218,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 	randPV := "randomPV"
 	randCR := "randomCR"
 	randCRB := "randomCRB"
+	crdRancherOwned := "rancherOwns"
 	rancherCRDName := "definitelyrancher.cattle.io"
 	nonRancherCRDName := "other.cattle"
 
@@ -254,6 +255,12 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 	crbRancher := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
+		},
+	}
+	crbOwnedByRancher := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   crdRancherOwned,
+			Labels: map[string]string{"fleet.cattle.io/managed": "true"},
 		},
 	}
 	crNotRancher := rbacv1.ClusterRole{
@@ -533,6 +540,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 				&crbRancher,
 				&crNotRancher,
 				&crbNotRancher,
+				&crbOwnedByRancher,
 				&controllerCM,
 				&lockCM,
 				&rancherPV,
@@ -585,6 +593,8 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			a.True(apierrors.IsNotFound(err))
 			// ClusterRoleBinding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &rbacv1.ClusterRoleBinding{})
+			a.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: crdRancherOwned}, &rbacv1.ClusterRoleBinding{})
 			a.True(apierrors.IsNotFound(err))
 			if tt.nonRancherTest {
 				// Verify that non-Rancher components did not get cleaned up
@@ -683,7 +693,6 @@ func TestCleanupJob(t *testing.T) {
 	// Expect the job to get created
 	err := runCleanupJob(ctx)
 	a.Error(err)
-	a.Contains(err.Error(), "waiting for job")
 	job := batchv1.Job{}
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
 	a.NoError(err)
@@ -693,4 +702,112 @@ func TestCleanupJob(t *testing.T) {
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
 	a.Error(err)
 	a.True(apierrors.IsNotFound(err))
+}
+
+// TestDeleteRancherFinalizers
+// GIVEN cluster resources with rancher finalizers
+//
+//	WHEN deleteRancherFinalizers is called
+//	THEN expect those resources to have their finalizers removed
+func TestDeleteRancherFinalizers(t *testing.T) {
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	// Namespaces
+	ns1 := newNamespace(constants2.KeycloakNamespace)
+	ns2 := newNamespace(constants2.VerrazzanoSystemNamespace)
+
+	// ClusterRole that contains Rancher finalizers
+	cr1 := newClusterRole("cr1", "default", []string{"test", "test.cattle.io"})
+	crb1 := newClusterRoleBinding("crb1", "default", []string{"test", "test.cattle.io"})
+
+	// Role and RoleBinding that does not contain any Rancher finalizers
+	r1 := newRole("rb1", constants2.VerrazzanoSystemNamespace, []string{"test"})
+	rb1 := newRoleBinding("rb1", constants2.VerrazzanoSystemNamespace, []string{"test"})
+
+	// Role and RoleBinding that does contain Rancher finalizers
+	r2 := newRole("rb2", constants2.VerrazzanoSystemNamespace, []string{"test", "test.cattle.io"})
+	rb2 := newRoleBinding("rb2", constants2.VerrazzanoSystemNamespace, []string{"test", "test.cattle.io"})
+
+	// RoleBinding that does contain Rancher finalizers
+	r3 := newRole("rb3", constants2.KeycloakNamespace, []string{"test", "test.cattle.io"})
+	rb3 := newRoleBinding("rb3", constants2.KeycloakNamespace, []string{"test", "test.cattle.io"})
+
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(ns1, ns2, cr1, crb1, r1, r2, r3, rb1, rb2, rb3).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+	deleteRancherFinalizers(ctx)
+
+	var clusterRole = &rbacv1.ClusterRole{}
+	var clusterRoleBinding = &rbacv1.ClusterRoleBinding{}
+	var role = &rbacv1.Role{}
+	var roleBinding = &rbacv1.RoleBinding{}
+
+	type testCase struct {
+		clipkg.Object
+		expectedFinalizers int
+		destObject         clipkg.Object
+	}
+	testCases := []testCase{
+		{Object: cr1, expectedFinalizers: 0, destObject: clusterRole},
+		{Object: crb1, expectedFinalizers: 0, destObject: clusterRoleBinding},
+		{Object: rb1, expectedFinalizers: 1, destObject: roleBinding},
+		{Object: rb2, expectedFinalizers: 0, destObject: roleBinding},
+		{Object: rb3, expectedFinalizers: 0, destObject: roleBinding},
+		{Object: r1, expectedFinalizers: 1, destObject: role},
+		{Object: r2, expectedFinalizers: 0, destObject: role},
+		{Object: r3, expectedFinalizers: 0, destObject: role},
+	}
+
+	for _, test := range testCases {
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: test.GetNamespace(), Name: test.GetName()}, test.destObject)
+		a.NoError(err)
+		a.Equal(test.expectedFinalizers, len(test.destObject.GetFinalizers()))
+	}
+}
+
+func newNamespace(name string) *v1.Namespace {
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+}
+func newClusterRole(name string, namespace string, finalizers []string) *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:  namespace,
+			Name:       name,
+			Finalizers: finalizers,
+		},
+	}
+}
+
+func newClusterRoleBinding(name string, namespace string, finalizers []string) *rbacv1.ClusterRoleBinding {
+	return &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:  namespace,
+			Name:       name,
+			Finalizers: finalizers,
+		},
+	}
+}
+
+func newRole(name string, namespace string, finalizers []string) *rbacv1.Role {
+	return &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:  namespace,
+			Name:       name,
+			Finalizers: finalizers,
+		},
+	}
+}
+
+func newRoleBinding(name string, namespace string, finalizers []string) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:  namespace,
+			Name:       name,
+			Finalizers: finalizers,
+		},
+	}
 }

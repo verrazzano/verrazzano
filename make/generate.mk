@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -12,9 +12,10 @@ platform-manifests: controller-gen
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: application-manifests
 application-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/clusters/..." output:crd:artifacts:config=$(CRD_PATH)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/oam/..." output:crd:artifacts:config=$(CRD_PATH)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/app/..." output:crd:artifacts:config=$(CRD_PATH)
+	# Put multicluster CRDs in the cluster agent helm chart
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/clusters/..." output:crd:artifacts:config=$(MC_CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "clusters:v1alpha1 oam:v1alpha1 app:v1alpha1" "boilerplate.go.txt"
@@ -38,11 +39,12 @@ generate: controller-gen
 
 # find or download controller-gen
 # download controller-gen if necessary
+CONTROLLER_GEN_PATH := $(shell eval go env GOPATH)
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
 	$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
-	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
+	$(eval CONTROLLER_GEN=$(CONTROLLER_GEN_PATH)/bin/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
 endif

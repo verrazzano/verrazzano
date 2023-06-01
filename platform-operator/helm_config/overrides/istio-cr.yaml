@@ -103,10 +103,3 @@ spec:
 
     sidecarInjectorWebhook:
       rewriteAppHTTPProbe: true
-      neverInjectSelector:
-        - matchExpressions:
-            - { key: app, operator: In, values: [ verrazzano-application-operator, verrazzano-application-operator-webhook, weblogic-operator-webhook, verrazzano-cluster-operator, verrazzano-cluster-operator-webhook, kube-prometheus-stack-operator ] }
-        - matchExpressions:
-            - { key: control-plane, operator: In, values: [ coherence ] }
-        - matchExpressions:
-            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime, prometheus-adapter, jaeger-operator ] }

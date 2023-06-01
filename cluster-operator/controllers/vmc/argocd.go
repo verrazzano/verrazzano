@@ -79,13 +79,17 @@ func (r *VerrazzanoManagedClusterReconciler) registerManagedClusterWithArgoCD(vm
 	var rancherURL = *(vz.Status.VerrazzanoInstance.RancherURL) + k8sClustersPath + clusterID
 
 	// If the managed cluster is not active, we should not attempt to register in Argo CD
-	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, r.log)
 	if err != nil {
 		msg := "Could not create rancher config that authenticates with the admin user"
 		return newArgoCDRegistration(clusterapi.MCRegistrationFailed, msg), err
 	}
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
-	if err != nil || !isActive {
+	if err != nil {
+		msg := fmt.Sprintf("Error checking Rancher status of managed cluster with id %s: %v", clusterID, err)
+		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), err
+	}
+	if !isActive {
 		msg := fmt.Sprintf("Waiting for managed cluster with id %s to become active before registering in Argo CD", clusterID)
 		return newArgoCDRegistration(clusterapi.RegistrationPendingRancher, msg), err
 	}
@@ -117,7 +121,7 @@ func (r *VerrazzanoManagedClusterReconciler) createArgoCDClusterSecret(vmc *clus
 	if err != nil {
 		return err
 	}
-	rc, err := rancherutil.NewRancherConfigForUser(r.Client, vzconst.ArgoCDClusterRancherUsername, secret, r.log)
+	rc, err := rancherutil.NewRancherConfigForUser(r.Client, vzconst.ArgoCDClusterRancherUsername, secret, r.RancherIngressHost, r.log)
 	if err != nil {
 		return err
 	}
@@ -196,7 +200,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		createNewToken = now.After(timeCreated.Add(lifespan * 3 / 4))
 	}
 	if okCreated && !okExpires {
-		//get token by userId/clusterId
+		// get token by userId/clusterId
 		userID, err := r.getArgoCDClusterUserID()
 		if err != nil {
 			return err

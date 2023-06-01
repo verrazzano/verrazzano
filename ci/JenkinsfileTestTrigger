@@ -130,6 +130,7 @@ pipeline {
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    LATEST_RELEASE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} latest-version-for-branch ${VERRAZZANO_DEV_VERSION}").trim()
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
@@ -181,7 +182,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                def latestRelease = getLatestReleaseVersion()
+                                def latestRelease = LATEST_RELEASE_VERSION
                                 build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
@@ -248,7 +249,7 @@ pipeline {
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
                                         string(name: 'SCENARIO_TAG', value: "triggered-4"),
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -265,7 +266,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                def latestRelease = getLatestReleaseVersion()
+                                def latestRelease = LATEST_RELEASE_VERSION
                                 echo "Printing latest release version: ${latestRelease}"
                                 build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
@@ -515,20 +516,4 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
-}
-
-@NonCPS
-List extractReleaseTags(final String fileContent) {
-    List releases = []
-    fileContent.eachLine { tag ->
-        releases << tag
-    }
-    return releases
-}
-
-def getLatestReleaseVersion() {
-    final String releaseTags = readFile(file: "${workspace}/tags.txt")
-    list gitTags = extractReleaseTags(releaseTags)
-    echo "gitTags = ${gitTags}"
-    return gitTags.pop()
 }

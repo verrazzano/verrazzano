@@ -1,14 +1,14 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -67,7 +67,7 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.NGINXControllerServiceName,
-			Namespace: globalconst.IngressNamespace,
+			Namespace: nginxutil.IngressNGINXNamespace(),
 		},
 		Spec: corev1.ServiceSpec{
 			ExternalIPs: []string{"1.2.3.4"},
@@ -89,4 +89,54 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	assert.Equal(t, "host.default.1.2.3.4.nip.io", ingress.Spec.Rules[0].Host)
 	assert.Equal(t, constants.VerrazzanoAuthProxyServiceName, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name)
 	assert.Empty(t, ingress.Annotations["external-dns.alpha.kubernetes.io/target"])
+}
+
+// TestDeleteSystemComponentIngress tests the DeleteSystemComponentIngress function
+func TestDeleteSystemComponentIngress(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			},
+		},
+	}
+
+	// GIVEN a component context and a Verrazzano CR
+	// WHEN  the DeleteSystemComponentIngress function is called when no ingresses are present
+	// THEN  the function call succeeds and no ingress is found
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := DeleteSystemComponentIngress(ctx, testIngressName)
+	assert.NoError(t, err)
+
+	ingress := &netv1.Ingress{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testIngressName}, ingress)
+	assert.Error(t, err)
+
+	// GIVEN a component context and a Verrazzano CR
+	// WHEN  the DeleteSystemComponentIngress function is called with an ingress present
+	// THEN  the function call succeeds and the ingress is deleted
+	ingress = &netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      testIngressName,
+		},
+	}
+	client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(ingress).Build()
+
+	ctx = spi.NewFakeContext(client, vz, nil, false)
+	err = DeleteSystemComponentIngress(ctx, testIngressName)
+	assert.NoError(t, err)
+
+	ingress = &netv1.Ingress{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testIngressName}, ingress)
+	assert.Error(t, err)
 }

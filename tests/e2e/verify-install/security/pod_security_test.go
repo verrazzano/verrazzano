@@ -6,16 +6,19 @@ package security
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"regexp"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +33,7 @@ const (
 	// Only allowed capability in restricted mode
 	capNetBindService = "NET_BIND_SERVICE"
 	capDacOverride    = "DAC_OVERRIDE"
+	capFOwner         = "FOWNER"
 
 	// MySQL ignore pattern; skip mysql-# or mysql-xxxx-xxxx pod names, but not mysql-router-#
 	mysqlPattern = "^mysql-([\\d]+)$"
@@ -53,7 +57,7 @@ var skipPods = map[string][]string{
 	},
 }
 
-var skipContainers = []string{"jaeger-collector", "jaeger-query", "jaeger-agent"}
+var skipContainers = []string{"jaeger-agent"}
 var skipInitContainers = []string{"istio-init", "elasticsearch-init"}
 
 type podExceptions struct {
@@ -139,12 +143,16 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		}
 		Expect(errors).To(BeEmpty())
 	}
+	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail("Error determining ingress-nginx namespace")
+	}
 	t.DescribeTable("Check pod security in system namespaces", testFunc,
 		Entry("Checking pod security in verrazzano-install", "verrazzano-install"),
 		Entry("Checking pod security in verrazzano-system", "verrazzano-system"),
 		Entry("Checking pod security in verrazzano-monitoring", "verrazzano-monitoring"),
 		Entry("Checking pod security in verrazzano-backup", "verrazzano-backup"),
-		Entry("Checking pod security in ingress-nginx", "ingress-nginx"),
+		Entry("Checking pod security in "+ingressNGINXNamespace, ingressNGINXNamespace),
 		Entry("Checking pod security in mysql-operator", "mysql-operator"),
 		Entry("Checking pod security in cert-manager", "cert-manager"),
 		Entry("Checking pod security in keycloak", "keycloak"),

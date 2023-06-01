@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -73,7 +73,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	if vzcr.IsNGINXEnabled(effectiveCR) {
 		dnsSuffix, err = vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+			return ctx.Log().ErrorfThrottledNewErr("Failed getting DNS suffix: %v", err)
 		}
 		envName = vzconfig.GetEnvName(effectiveCR)
 	}

@@ -50,10 +50,13 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
+
 DIST_DIR:=dist
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
+MC_CRD_PATH=../platform-operator/helm_config/charts/verrazzano-cluster-agent/crds
 OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
 .PHONY: build
@@ -85,6 +88,7 @@ install-oam-crds:
 .PHONY: install-verrazzano-crds
 install-verrazzano-crds:
 	kubectl apply -f ${CRD_PATH}
+	kubectl apply -f ${MC_CRD_PATH}
 
 # Install CRDs into a cluster
 .PHONY: install-crds
@@ -98,8 +102,8 @@ uninstall-crds: manifests
 # Generate mocks
 .PHONY: mock-gen
 mock-gen:
-	mockgen -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
-	mockgen -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
+	mockgen --build_flags=--mod=mod -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+	mockgen --build_flags=--mod=mod -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
 
 .PHONY: manifests
 manifests: application-manifests
@@ -149,6 +153,7 @@ docker-build-common:
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull \
+		--build-arg BASE_IMAGE="${VZ_BASE_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push

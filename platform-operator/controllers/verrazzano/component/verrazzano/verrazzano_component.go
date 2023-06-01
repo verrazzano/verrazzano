@@ -13,7 +13,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -62,7 +62,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, authproxy.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
@@ -217,9 +217,6 @@ func (c verrazzanoComponent) checkEnabled(old runtime.Object, new runtime.Object
 	}
 	if vzcr.IsConsoleEnabled(old) && !vzcr.IsConsoleEnabled(new) {
 		return fmt.Errorf("Disabling component console not allowed")
-	}
-	if vzcr.IsPrometheusEnabled(old) && !vzcr.IsPrometheusEnabled(new) {
-		return fmt.Errorf("Disabling component prometheus not allowed")
 	}
 	return nil
 }

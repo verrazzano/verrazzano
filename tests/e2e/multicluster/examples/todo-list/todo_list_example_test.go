@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package todo_list
@@ -37,6 +37,7 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+var metricsTest pkg.MetricsTest
 
 // failed indicates whether any of the tests has failed
 var failed = false
@@ -85,6 +86,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() error {
 		return DeployTodoListApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	var err error
+	metricsTest, err = pkg.NewMetricsTest(adminKubeconfig, map[string]string{}, managedKubeconfig)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to create the Metrics test object: %v", err))
+	}
+
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -236,7 +244,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("scrape_duration_seconds", m, adminKubeconfig)
+				return metricsTest.MetricsExist("scrape_duration_seconds", m)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
 		})
 
@@ -246,7 +254,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = "DNE"
-				return pkg.MetricsExistInCluster("scrape_duration_seconds", m, adminKubeconfig)
+				return metricsTest.MetricsExist("scrape_duration_seconds", m)
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
 
@@ -256,7 +264,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
+				return metricsTest.MetricsExist("container_cpu_cfs_periods_total", m)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
 	})

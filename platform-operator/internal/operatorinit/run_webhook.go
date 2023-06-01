@@ -5,10 +5,12 @@ package operatorinit
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	moduleswebhooks "github.com/verrazzano/verrazzano/platform-operator/apis/modules/webhooks"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
@@ -16,13 +18,14 @@ import (
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
+
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -99,7 +102,7 @@ func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, config internal
 		return fmt.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 	}
 
-	if err := updateWebhookConfigurations(kubeClient, log, conf); err != nil {
+	if err := updateWebhookConfigurations(kubeClient, log, conf, config); err != nil {
 		return err
 	}
 	if err := createOrUpdateNetworkPolicies(conf, log, kubeClient); err != nil {
@@ -136,7 +139,8 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 			},
 		},
 	)
-	// register requirements validator webhooks
+
+	// register requirements validator webhooks.
 	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
 	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
 
@@ -148,11 +152,14 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{BomVersion: bomFile.GetVersion()}})
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
 
+	if config.ExperimentalModules {
+		mgr.GetWebhookServer().Register(moduleswebhooks.ValidateModulesWebhooksPath, &webhook.Admission{Handler: &moduleswebhooks.WebhookV1alpha1{}})
+	}
 	return nil
 }
 
 // updateWebhookConfigurations Creates or updates the webhook configurations as needed
-func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config) error {
+func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config, operatorConfig internalconfig.OperatorConfig) error {
 	log.Debug("Delete old VPO webhook configuration")
 	if err := deleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
 		return fmt.Errorf("Failed to delete old webhook configuration: %v", err)
@@ -187,6 +194,14 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
+
+	if operatorConfig.ExperimentalModules {
+		log.Debug("Updating module webhook configuration")
+		if err := updateValidatingWebhookConfiguration(kubeClient, moduleswebhooks.ValidateModulesWebhookPath); err != nil {
+			return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
+		}
+	}
+
 	return nil
 }
 

@@ -35,6 +35,11 @@ def branchSpecificSchedule = getCronSchedule()
 @Field
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
+def ociOsRegion = "us-phoenix-1"
+def ociOsBucket = "verrazzano-builds"
+def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
+def lastStableCommitFile = "last-stable-commit.txt"
+
 pipeline {
     options {
         timeout(time: 12, unit: 'HOURS')
@@ -55,6 +60,33 @@ pipeline {
 
     triggers {
         cron(branchSpecificSchedule)
+
+    // There is an issue with URLTrigger for backend tests where the polling URL maintains a global state that does not work with specific jobs.
+    // Therefore, the below code is disabled until the global state issue is fixed.
+    // Ex: - Each job has an URL Trigger poll cron schedule
+    //      - When a job’s cron triggers, it checks the state of whether the specific URL X has changed or not.
+    //      - If it has changed, then it triggers only the job whose cron schedule fired off (no other jobs that look for that URL X will trigger)
+    //      - Any other jobs that wake up and poll on URL X will not see it as changing unless it actually changed again since this time
+
+    //        URLTrigger(
+    //            cronTabSpec: branchSpecificSchedule,
+    //            entries: [
+    //                URLTriggerEntry(
+    //                    url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
+    //                    checkETag: false,
+    //                    checkStatus: true,
+    //                    statusCode: 403,
+    //                    checkLastModificationDate: true,
+    //                    timeout: 200,
+    //                    requestHeaders: [
+    //                        RequestHeader( headerName: "Accept" , headerValue: "application/json" )
+    //                    ],
+    //                   contentTypes: [
+    //                        MD5Sum()
+    //                    ]
+    //                )
+    //            ]
+    //        )
     }
 
     parameters {
@@ -100,6 +132,8 @@ pipeline {
         CLEAN_BACKEND_LOCATION = "${WORKSPACE}/last-clean-backend-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
+
+        PIPELINE_OWNERS = credentials('backendtests-owners')
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -167,7 +201,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-analyze-tool-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     ], wait: true
                             }
@@ -215,7 +249,7 @@ pipeline {
                         incDescription: "Verrazzano Backend Tests: ${env.JOB_NAME} - Failed",
                         incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
-                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST} ${PIPELINE_OWNERS}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
                     echo "done alerts"
                 }
             }
@@ -258,11 +292,12 @@ def preliminaryChecks() {
     if (backendTestsUpToDate) {
         currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
     }
-    if (backendTestsUpToDateFailed) {
-        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
-    }
     if (params.FORCE) {
         currentBuild.displayName = "${currentBuild.displayName} : FORCE"
+    } else if (backendTestsUpToDateFailed) {
+       currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
+       currentBuild.result = 'FAILURE'
+       error('Failing the build since the current commit matches the commit of previously failing backend build')
     }
 
     if (runTests()) {

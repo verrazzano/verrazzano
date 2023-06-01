@@ -8,12 +8,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
-
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -21,7 +16,11 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -34,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -51,6 +50,7 @@ const (
 
 	prometheusName     = "prometheus"
 	alertmanagerName   = "alertmanager"
+	thanosName         = "thanos"
 	configReloaderName = "prometheus-config-reloader"
 
 	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
@@ -128,20 +128,10 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	props := common.IngressProperties{
-		IngressName:   constants.PrometheusIngress,
-		HostName:      prometheusHostName,
-		TLSSecretName: prometheusCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
-	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
+	if err := createOrUpdateIngress(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
-		return err
-	}
-	if err := createOrUpdateNetworkPolicies(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdateServiceMonitors(ctx); err != nil {
@@ -303,11 +293,16 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
+	kvs, err = appendThanosImageOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
+
 	// If the cert-manager component is enabled, use it for webhook certificates, otherwise Prometheus Operator
 	// will use the kube-webhook-certgen image
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
-		Value: strconv.FormatBool(vzcr.IsCertManagerEnabled(ctx.EffectiveCR())),
+		Value: strconv.FormatBool(vzcr.IsClusterIssuerEnabled(ctx.EffectiveCR())),
 	})
 
 	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
@@ -357,6 +352,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Add label to the Prometheus Operator pod to avoid a sidecar injection
 	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
+
+	// disable tls if Istio is not enabled
+	if !vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
+	}
 
 	return kvs, nil
 }
@@ -420,8 +420,40 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 			return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", subcomponent, err)
 		}
 		if len(images) > 0 {
-			kvs = append(kvs, bom.KeyValue{Key: helmKey, Value: images[0]})
+			// kube-prometheus-stack helm chart now expects the registry to be specified in a separate helm value
+			reg, imageWithoutReg, _ := strings.Cut(images[0], "/")
+			kvs = append(kvs, bom.KeyValue{Key: helmKey + "Registry", Value: reg})
+			kvs = append(kvs, bom.KeyValue{Key: helmKey, Value: imageWithoutReg})
 		}
+	}
+
+	return kvs, nil
+}
+
+// appendThanosImageOverrides appends overrides for the Thanos image in the Prometheus prometheusSpec and
+// the default base image in prometheusOperator
+func appendThanosImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+	}
+
+	images, err := bomFile.GetImageNameList(thanosName)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", thanosName, err)
+	}
+	if len(images) > 0 {
+		// example: ghcr.io/verrazzano/thanos:v1.2
+		// reg = ghcr.io
+		// repo = verrazzano/thanos:v1.2
+		// repoAndImage = verrazzano/thanos
+		// tag = v1.2
+		reg, repo, _ := strings.Cut(images[0], "/")
+		repoAndImage, tag, _ := strings.Cut(repo, ":")
+		kvs = append(kvs, bom.KeyValue{Key: "prometheus.prometheusSpec.thanos.image", Value: images[0]})
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.thanosImage.registry", Value: reg})
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.thanosImage.repository", Value: repoAndImage})
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.thanosImage.tag", Value: tag})
 	}
 
 	return kvs, nil
@@ -431,7 +463,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzcr.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
+		return fmt.Errorf("Prometheus Operator must be enabled if Prometheus is enabled")
 	}
 	// Validate install overrides for v1beta1.Verrazzano
 	if vz.Spec.Components.PrometheusOperator != nil {
@@ -476,7 +508,6 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	}
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeKey), Value: vol.Name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
-
 	return kvs, nil
 }
 
@@ -519,7 +550,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args := make(map[string]interface{})
 	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
 	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
-	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["nginxNamespace"] = nginxutil.IngressNGINXNamespace()
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 
@@ -619,7 +650,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					}},
 					To: []*securityv1beta1.Rule_To{{
 						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090"},
+							Ports: []string{"9090", "10901"},
 						},
 					}},
 				},
@@ -653,11 +684,27 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 						},
 					}},
 				},
+				{
+					// allow Thanos Query to access Prometheus Thanos sidecar on port 10901
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{
+								fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
+							},
+							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{"10901"},
+						},
+					}},
+				},
 			},
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating Prometheus auth policy: %v", err)
 	}
 	return err
@@ -704,93 +751,31 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateNetworkPolicies creates or updates network policies for this component
-func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
-	netPolicy := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
-
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), netPolicy, func() error {
-		netPolicy.Spec = newNetworkPolicySpec()
+// createOrUpdateIngress creates ingress for the Prometheus endpoint
+func createOrUpdateIngress(ctx spi.ComponentContext) error {
+	// If NGINX is not enabled, skip the ingress creation
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return nil
-	})
-
-	return err
+	}
+	promProps := common.IngressProperties{
+		IngressName:   constants.PrometheusIngress,
+		HostName:      prometheusHostName,
+		TLSSecretName: prometheusCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+	}
+	return common.CreateOrUpdateSystemComponentIngress(ctx, promProps)
 }
 
-// newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
-func newNetworkPolicySpec() netv1.NetworkPolicySpec {
-	tcpProtocol := corev1.ProtocolTCP
-	port := intstr.FromInt(9090)
-
-	return netv1.NetworkPolicySpec{
-		PodSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app.kubernetes.io/name": prometheusName,
-			},
-		},
-		PolicyTypes: []netv1.PolicyType{
-			netv1.PolicyTypeIngress,
-		},
-		Ingress: []netv1.NetworkPolicyIngressRule{
-			{
-				// allow ingress to port 9090 from Auth Proxy, Grafana, and Kiali
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoSystemNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app",
-									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										"verrazzano-authproxy",
-										"system-grafana",
-										"kiali",
-									},
-								},
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &port,
-					},
-				},
-			},
-			{
-				// allow ingress to port 9090 from Jaeger
-				From: []netv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoMonitoringNamespace,
-							},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app",
-									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										"jaeger",
-									},
-								},
-							},
-						},
-					},
-				},
-				Ports: []netv1.NetworkPolicyPort{
-					{
-						Protocol: &tcpProtocol,
-						Port:     &port,
-					},
-				},
-			},
-		},
+// deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
+// upgrading from a previous installation fails if the NetworkPolicy already exists and is not owned by the Helm chart,
+// so we delete it before upgrading.
+func deleteNetworkPolicy(ctx spi.ComponentContext) error {
+	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
+	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
+	if err != nil {
+		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s: %v", networkPolicyName, ComponentNamespace, err)
+		return err
 	}
+	return nil
 }

@@ -135,6 +135,7 @@ data:
   
     local usernameFromToken = auth.usernameFromIdToken(token)
     auth.audit("User "..usernameFromToken.." authenticated and authorized")
+    local userRolesFromToken = auth.getRoles(token)
 
     if backend == 'verrazzano' then
         local args = ngx.req.get_uri_args()
@@ -151,6 +152,7 @@ data:
         end
         -- set the oidc_user
         ngx.var.oidc_user = usernameFromToken
+        ngx.var.oidc_user_roles = userRolesFromToken
         auth.debug("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
 
@@ -179,6 +181,14 @@ data:
     local oidcProviderInClusterUri = nil
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
+
+    function me.getRoles(idToken)
+        local id_token = jwt:load_jwt(idToken)
+        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
+            return table.concat(id_token.payload.realm_access.roles,",")
+        end
+        return ""
+    end
 
     function me.config(opts)
         for key, val in pairs(opts) do
@@ -399,6 +409,10 @@ data:
         return false
     end
 
+    function me.startsWith(ingressHost, start)
+        return string.sub(ingressHost,1,string.len(start)) == start
+    end
+
     local authproxy_prefix = 'verrazzano-authproxy-'
     local in_cluster_namespace = '.verrazzano-system'
     local in_cluster_dns_suffix = '.svc.cluster.local'
@@ -428,6 +442,14 @@ data:
                 check_host = backend..me.hostSuffix
             elseif backend == 'jaeger' then
                 check_host = backend..me.hostSuffix
+            elseif backend == 'thanos-query' then
+                check_host = backend..me.hostSuffix
+            elseif backend == 'thanos-query-store' then
+                check_host = backend..me.hostSuffix
+            elseif backend == 'opensearch-logging' then
+                check_host = 'opensearch.logging'..me.hostSuffix
+            elseif backend == 'osd-logging' then
+                check_host = 'osd.logging'..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
             end
@@ -450,6 +472,10 @@ data:
             if hostname and #hostname > 0 then
                 first, last, backend_name = hostname:find("^([^.]+)")
                 if backend_name and #backend_name > 0 then
+                    -- Append '-logging' if the ingressHost is for OS or OSD from logging namespace
+                    if me.startsWith(ingressHost, 'opensearch.logging') or me.startsWith(ingressHost, 'osd.logging') then
+                        backend_name = backend_name .. '-logging'
+                    end
                     -- Strip the auth proxy prefix from the extracted backend name if present
                     if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
                         backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
@@ -497,8 +523,12 @@ data:
         return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
     end
 
-    function me.makeMonitoringComponentBackendUrl(serviceName, port)
-        return 'http://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
+    function me.makeMonitoringComponentBackendUrl(protocol, serviceName, port)
+        return protocol..'://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
+    end
+
+    function me.makeLoggingComponentBackendUrl(serviceName, port)
+        return 'https://'..serviceName..'.verrazzano-logging.svc.cluster.local'..':'..port
     end
 
     function me.getBackendServerUrlFromName(backend)
@@ -513,7 +543,11 @@ data:
         elseif backend == 'grafana' then
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'prometheus-operator-kube-p-prometheus', '9090')
+        elseif backend == 'thanos-query' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-query-frontend', '9090')
+        elseif backend == 'thanos-query-store' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('grpc', 'thanos-query-grpc', '10901')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl('osd', '5601')
         elseif backend == 'osd' then
@@ -522,10 +556,14 @@ data:
             serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')
         elseif backend == 'opensearch' then
             serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')    
+        elseif backend == 'opensearch-logging' then
+            serverUrl = me.makeLoggingComponentBackendUrl('opensearch', '9200')
+        elseif backend == 'osd-logging' then
+            serverUrl = me.makeLoggingComponentBackendUrl('opensearch-dashboards', '5601')
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
-            serverUrl = me.makeMonitoringComponentBackendUrl('jaeger-operator-jaeger-query', '16686')
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'jaeger-operator-jaeger-query', '16686')
         else
             me.not_found("Invalid backend name '"..backend.."'")
         end
@@ -834,14 +872,15 @@ data:
     function me.isAuthorized(idToken)
         me.debug("Checking for required role '"..requiredRole.."'")
         local id_token = jwt:load_jwt(idToken)
-        if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
-            for _, role in ipairs(id_token.payload.realm_access.roles) do
-                if role == requiredRole then
-                    return true
-                end
-            end
+        local userRoles = me.getRoles(idToken)
+        me.debug("Roles available for users '"..userRoles.."'")
+        if userRoles:match(requiredRole) then
+            me.debug ("Required role '"..requiredRole.."' found")
+            return true
+        else
+            me.debug ("Required role '"..requiredRole.."' not found")
+            return false
         end
-        return false
     end
 
     function me.usernameFromIdToken(idToken)
@@ -1201,6 +1240,10 @@ data:
             allowedOrigins = os.getenv("VZ_GRAFANA_ALLOWED_ORIGINS")
         elseif backend == 'prometheus' then
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
+        elseif backend == 'thanos-query' then
+            allowedOrigins = os.getenv("VZ_THANOS_QUERY_ALLOWED_ORIGINS")
+        elseif backend == 'thanos-query-store' then
+            allowedOrigins = os.getenv("VZ_QUERY_STORE_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'osd' then
@@ -1209,6 +1252,10 @@ data:
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
         elseif backend == 'opensearch' then
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
+        elseif backend == 'opensearch-logging' then
+            allowedOrigins = os.getenv("VZ_OS_LOGGING_ALLOWED_ORIGINS")
+        elseif backend == 'osd-logging' then
+            allowedOrigins = os.getenv("VZ_OSD_LOGGING_ALLOWED_ORIGINS")
         elseif backend == 'kiali' then
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
         elseif backend == 'jaeger' then
@@ -1249,10 +1296,14 @@ data:
     env VZ_CONSOLE_ALLOWED_ORIGINS;
     env VZ_GRAFANA_ALLOWED_ORIGINS;
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
+    env VZ_THANOS_QUERY_ALLOWED_ORIGINS;
+    env VZ_QUERY_STORE_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
     env VZ_JAEGER_ALLOWED_ORIGINS;
+    env VZ_OS_LOGGING_ALLOWED_ORIGINS;
+    env VZ_OSD_LOGGING_ALLOWED_ORIGINS;
 
     events {
         worker_connections  1024;
@@ -1329,9 +1380,12 @@ data:
                 # oauth-proxy ssl certs location: lua_ssl_trusted_certificate /etc/nginx/all-ca-certs.pem;
 
                 set $oidc_user "";
+                set $oidc_user_roles "";
                 set $backend_server_url "";
                 rewrite_by_lua_file /etc/nginx/conf.lua;
                 proxy_set_header X-WEBAUTH-USER $oidc_user;
+                proxy_set_header x-proxy-roles $oidc_user_roles;
+                proxy_set_header x-forwarded-for $proxy_add_x_forwarded_for;
                 proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }
@@ -1340,6 +1394,24 @@ data:
                 stub_status;
                 allow 127.0.0.1;
                 deny all;
+            }
+        }
+
+        # Verrazzano gRPC proxy
+        server {
+            listen       8776 http2;
+            server_name  verrazzano-grpc-proxy;
+
+            location / {
+                lua_ssl_verify_depth 2;
+                lua_ssl_trusted_certificate /etc/nginx/upstream.pem;
+
+                set $oidc_user "";
+                set $backend_server_url "";
+                rewrite_by_lua_file /etc/nginx/conf.lua;
+                proxy_set_header X-WEBAUTH-USER $oidc_user;
+                grpc_pass $backend_server_url;
+                proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }
         }
     }

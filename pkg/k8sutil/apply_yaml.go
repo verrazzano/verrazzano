@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -15,6 +15,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -175,6 +176,11 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 		clientFields = append(clientFields, cf)
 	}
 
+	err = kubectlutil.SetLastAppliedConfigurationAnnotation(obj)
+	if err != nil {
+		return err
+	}
+
 	result, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
 		// For each nested copy of a client field, determine if it needs to be added or merged
 		// with the server.
@@ -207,6 +213,25 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			err = unstructured.SetNestedField(obj.Object, serverField, clientField.name)
 			if err != nil {
 				return err
+			}
+		}
+		// Delete any keys in server obj not included in the client fields.
+		for key := range obj.Object {
+			if key == "kind" || key == "apiVersion" {
+				continue
+			}
+			keyFound := false
+			for _, clientField := range clientFields {
+				if clientField.name == key {
+					keyFound = true
+					break
+				}
+			}
+			if !keyFound {
+				err = unstructured.SetNestedField(obj.Object, nil, key)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil
@@ -269,7 +294,7 @@ func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args map[
 
 // doAction executes the action on a YAML reader
 func (y *YAMLApplier) doAction(reader *bufio.Reader, f action) error {
-	objs, err := y.unmarshall(reader)
+	objs, err := Unmarshall(reader)
 	if err != nil {
 		return err
 	}
@@ -282,8 +307,8 @@ func (y *YAMLApplier) doAction(reader *bufio.Reader, f action) error {
 	return nil
 }
 
-// unmarshall a reader containing YAML to a list of unstructured objects
-func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructured, error) {
+// Unmarshall a reader containing YAML to a list of unstructured objects
+func Unmarshall(reader *bufio.Reader) ([]unstructured.Unstructured, error) {
 	buffer := bytes.Buffer{}
 	objs := []unstructured.Unstructured{}
 

@@ -29,7 +29,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.24", "1.23", "1.22", "1.21" ])
+                choices: [ "1.26", "1.25", "1.24", "1.23", "1.22" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -100,6 +100,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        ENABLE_THANOS_STORE_GATEWAY = true
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -380,6 +381,33 @@ pipeline {
                                 }
                             }
                         }
+                        stage ('grafana db') {
+                            when {
+                                expression {params.USE_DB_FOR_GRAFANA == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+                            }
+                            steps {
+                                runGinkgo('grafana-db')
+                            }
+                        }
+                        stage('opensearch logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/opensearch')
+                            }
+                        }
+                        stage('system logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/system')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -389,7 +417,7 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests Deployments') {
+                stage('Run Acceptance Tests Deployments Group 1') {
                     parallel {
                         stage('istio authorization policy') {
                             environment {
@@ -417,33 +445,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('system logging') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-                            }
-                            steps {
-                                runGinkgo('logging/system')
-                            }
-                        }
-                        stage('opensearch logging') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
-                            }
-                            steps {
-                                runGinkgo('logging/opensearch')
-                            }
-                        }
-                        stage ('grafana db') {
-                            when {
-                                expression {params.USE_DB_FOR_GRAFANA == true}
-                            }
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
-                            }
-                            steps {
-                                runGinkgo('grafana-db')
                             }
                         }
                         stage('examples logging helidon') {
@@ -495,14 +496,6 @@ pipeline {
                                runGinkgo('jaeger/system')
                             }
                         }
-                        stage('jaeger hotrod') {
-                            environment {
-                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-hotrod"
-                            }
-                            steps {
-                               runGinkgo('jaeger/hotrod')
-                            }
-                        }
                         stage('jwt helidon') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}
@@ -529,30 +522,6 @@ pipeline {
                                 runGinkgo('jwt/helidon-svc')
                             }
                         }
-                        stage('weblogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-                            }
-                            steps {
-                                runGinkgo('workloads/weblogic')
-                            }
-                        }
-                        stage('coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-                            }
-                            steps {
-                                runGinkgo('workloads/coherence')
-                            }
-                        }
-                        stage('oam workloads') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
-                            }
-                            steps {
-                                runGinkgo('workloads/oam')
-                            }
-                        }
                         stage('examples helidon-metrics') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
@@ -570,14 +539,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('loggingtrait/helidonworkload')
-                            }
-                        }
-                        stage('logging trait Coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/coherenceworkload')
                             }
                         }
                     }
@@ -602,6 +563,38 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('loggingtrait/weblogicworkload')
+                            }
+                        }
+                        stage('weblogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+                            }
+                            steps {
+                                runGinkgo('workloads/weblogic')
+                            }
+                        }
+                        stage('coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+                            }
+                            steps {
+                                runGinkgo('workloads/coherence')
+                            }
+                        }
+                        stage('oam workloads') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+                            }
+                            steps {
+                                runGinkgo('workloads/oam')
+                            }
+                        }
+                        stage('logging trait Coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/coherenceworkload')
                             }
                         }
                     }
