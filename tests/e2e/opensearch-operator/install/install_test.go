@@ -19,12 +19,14 @@ import (
 )
 
 const (
-	loggingNamespace = "verrazzano-logging"
-	clusterName      = "opensearch"
-	OSUrl            = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
-	jaegerOSURLField = "jaeger.spec.storage.options.es.server-urls"
-	timeout          = 15 * time.Minute
-	pollInterval     = 10 * time.Second
+	loggingNamespace     = "verrazzano-logging"
+	clusterName          = "opensearch"
+	OSUrl                = "http://verrazzano-authproxy-opensearch-logging.verrazzano-system:8775"
+	jaegerOSURLField     = "jaeger.spec.storage.options.es.server-urls"
+	longWaitTimeout      = 20 * time.Minute
+	longPollingInterval  = 20 * time.Second
+	shortPollingInterval = 10 * time.Second
+	shortWaitTimeout     = 5 * time.Minute
 )
 
 var (
@@ -36,7 +38,9 @@ type SwitchLoggingOutput struct {
 }
 
 func (s *SwitchLoggingOutput) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	cr.Spec.Components.Fluentd.OpenSearchURL = s.OpenSearchURL
+	cr.Spec.Components.Fluentd = &v1beta1.FluentdComponent{
+		OpenSearchURL: s.OpenSearchURL,
+	}
 	jaegerEnabled, _ := jaeger.IsJaegerEnabled()
 	if jaegerEnabled {
 		jaegerOSURLOverridesYaml := fmt.Sprintf(`%s: %s`, jaegerOSURLField, s.OpenSearchURL)
@@ -57,7 +61,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 			constants.LabelVerrazzanoNamespace: loggingNamespace,
 		}
 		return pkg.CreateNamespace(loggingNamespace, nsLabels)
-	}, timeout, pollInterval).ShouldNot(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Installing opensearch-operator and cluster")
 	err := pkg.InstallOrUpdateOpenSearchOperator(t.Logs, 3, 3, 1)
@@ -74,7 +78,7 @@ var _ = t.Describe("Verify opensearch and configure vz", func() {
 					return false
 				}
 				return isReady
-			}, timeout, pollInterval).Should(BeTrue(), "OpenSearch failed to get to ready state")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "OpenSearch failed to get to ready state")
 
 			// Verify number of replicas for each nodepool
 			pkg.EventuallyPodsReady(t.Logs, 3, 3, 1)
@@ -91,7 +95,7 @@ var _ = t.Describe("Verify opensearch and configure vz", func() {
 					return false
 				}
 				return true
-			}, timeout, pollInterval).Should(BeTrue(), "Failed to switch OS Url")
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to switch OS Url")
 		})
 	})
 })
