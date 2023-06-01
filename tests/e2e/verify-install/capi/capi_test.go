@@ -27,7 +27,7 @@ import (
 const (
 	waitTimeout       = 5 * time.Minute
 	pollingInterval   = 10 * time.Second
-	minimumK8sVersion = "1.22.0"
+	minimumK8sVersion = "1.24.0"
 )
 
 var t = framework.NewTestFramework("capi")

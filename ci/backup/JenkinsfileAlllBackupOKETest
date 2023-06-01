@@ -48,7 +48,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.26.2", "v1.25.4", "v1.24.1", "v1.23.4", "v1.22.5" ])
+                choices: [ "v1.26.2", "v1.25.4", "v1.24.1" ])
         choice (name: 'CRD_API_VERSION',
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
