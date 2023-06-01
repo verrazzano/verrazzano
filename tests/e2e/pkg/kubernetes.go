@@ -1089,6 +1089,19 @@ func IsArgoCDEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.ArgoCD.Enabled
 }
 
+// IsClusterAgentEnabled returns true if the Cluster Agent component is not set, or the value of its Enabled field otherwise
+func IsClusterAgentEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.ClusterAgent == nil || vz.Spec.Components.ClusterAgent.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.ClusterAgent.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
