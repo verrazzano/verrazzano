@@ -125,7 +125,7 @@ Enforcing current year in copyright string
 Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
 Directories to ignore: [platform-operator/thirdparty .idea]
 
-Copyright scanning target JenkinsfileCRValidation
+Copyright scanning target Jenkinsfile
 Copyright scanning target Makefile
 Copyright scanning target tools/copyright/README.md
 Copyright scanning target tools/copyright/copyright.go
