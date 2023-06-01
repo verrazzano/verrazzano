@@ -209,7 +209,7 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	if err := createEnvoyFilter(compContext.Log(), compContext.Client()); err != nil {
 		return err
 	}
-	if err := common.ExecuteFluentbitFilterAndParser(compContext, fluentbitFilterAndParserTemplate, IstioNamespace, false); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(compContext, fluentbitFilterAndParserTemplate, IstioNamespace, false); err != nil {
 		return err
 	}
 	return nil

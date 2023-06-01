@@ -133,7 +133,7 @@ func (o opensearchComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := common.ExecuteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
 		return err
 	}
 	return nil
@@ -162,7 +162,7 @@ func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall OpenSearch post-install processing
 func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch component post-upgrade")
-	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
 	return common.CheckIngressesAndCerts(ctx, o)

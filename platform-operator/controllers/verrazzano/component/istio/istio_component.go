@@ -222,7 +222,7 @@ func (i istioComponent) Uninstall(context spi.ComponentContext) error {
 // PostUninstall processing for Istio
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 
-	if err := common.ExecuteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, IstioNamespace, true); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, IstioNamespace, true); err != nil {
 		return err
 	}
 	// Delete ClusterRoleBindings and ClusterRoles not removed with istioctl uninstall

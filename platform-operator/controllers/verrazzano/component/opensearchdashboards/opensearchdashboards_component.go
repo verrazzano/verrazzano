@@ -137,7 +137,7 @@ func (d opensearchDashboardsComponent) Uninstall(context spi.ComponentContext) e
 }
 
 func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := common.ExecuteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
 		return err
 	}
 	return nil
@@ -166,7 +166,7 @@ func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall OpenSearch-Dashboards post-install processing
 func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
-	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
 	return common.CheckIngressesAndCerts(ctx, d)

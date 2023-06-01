@@ -127,12 +127,12 @@ func TestValidateUpdate(t *testing.T) {
 			false,
 		},
 		{
-			"Test enabling Fluent Operator",
+			"Test disabling Fluent Operator",
 			args{
 				enabledFluentOperator,
 				disabledFluentOperator,
 			},
-			true,
+			false,
 		},
 		{
 			"Test invalid Overrides",

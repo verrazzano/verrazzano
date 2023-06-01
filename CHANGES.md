@@ -6,7 +6,7 @@ Features:
 - Added Thanos, which supports high availability and long-term storage on top of Prometheus
 - Enhanced the Verrazzano CLI to support installing and upgrading from a private registry and in air-gapped environments
 - Added support for Kubernetes v1.25, and dropped support of Kubernetes v1.21
-- Added Fluent Operator to improve log processing performance, but it will be disabled by default
+- Added Fluent Operator to allow use of Fluent Bit for log processing, but it will be disabled by default
 
 Component version updates:
 

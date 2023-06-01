@@ -501,7 +501,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
 	// Create Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
-	if err = common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
+	if err = common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
 		return err
 	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
@@ -522,7 +522,7 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Delete Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
-	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, true); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, true); err != nil {
 		return err
 	}
 	return postUninstall(ctx, r.monitor)

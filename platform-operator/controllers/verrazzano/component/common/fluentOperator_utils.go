@@ -12,8 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
-// ExecuteFluentbitFilterAndParser create/delete the Fluentbit Filter & Parser Resource by applying/deleting the fluentbitFilterAndParserTemplate based on the delete flag.
-func ExecuteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitFilterAndParserTemplate, namespace string, delete bool) error {
+// CreateOrDeleteFluentbitFilterAndParser create or delete the Fluentbit Filter & Parser Resource by applying/deleting the fluentbitFilterAndParserTemplate based on the delete flag.
+func CreateOrDeleteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitFilterAndParserTemplate, namespace string, delete bool) error {
 	if vzcr.IsFluentOperatorEnabled(ctx.EffectiveCR()) {
 		args := make(map[string]interface{})
 		args["namespace"] = namespace

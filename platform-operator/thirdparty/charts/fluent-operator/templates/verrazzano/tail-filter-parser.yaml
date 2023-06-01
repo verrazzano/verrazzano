@@ -1,7 +1,6 @@
-# Copyright (C) 2023, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Copyright (c) 2023, Oracle and/or its affiliates.
 {{- if .Values.fluentbit.enable -}}
-{{- if .Values.fluentbit.input.tail.enable -}}
+{{- if .Values.fluentbit.input.tail.enable }}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterFilter
 metadata:

@@ -183,7 +183,7 @@ func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, g); err != nil {
 		return err
 	}
-	if err := common.ExecuteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
 	return restartGrafanaPod(ctx)
@@ -202,7 +202,7 @@ func (g grafanaComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (g grafanaComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := common.ExecuteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
 		return err
 	}
 	return nil

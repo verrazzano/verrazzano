@@ -121,7 +121,6 @@ func TestAppendOverrides(t *testing.T) {
 		{Key: fluentBitImageKey, Value: "ghcr.io/verrazzano/fluent-bit"},
 		{Key: fluentOperatorInitTag, Value: "8"},
 		{Key: fluentOperatorInitImageKey, Value: "ghcr.io/oracle/oraclelinux"},
-		{Key: "image.pullSecrets.enabled", Value: "true"},
 	}
 	type args struct {
 		ctx     spi.ComponentContext

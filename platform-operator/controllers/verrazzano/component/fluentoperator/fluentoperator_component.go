@@ -5,7 +5,6 @@ package fluentoperator
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,11 +39,6 @@ const (
 	// HelmChartDir is the name of the helm chart directory
 	HelmChartDir = ComponentName
 )
-
-//var (
-//	// For Unit test purposes
-//	writeFileFunc = os.WriteFile
-//)
 
 // fluentOperatorComponent represents an FluentOperator component
 type fluentOperatorComponent struct {
@@ -109,17 +103,13 @@ func (c fluentOperatorComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v
 	return c.ValidateUpdateV1Beta1(oldBeta, newBeta)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 func (c fluentOperatorComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c fluentOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	// Do not allow disabling active components
-	if err := c.checkEnabled(old, new); err != nil {
-		return err
-	}
 	// Validate install overrides
 	if new.Spec.Components.FluentOperator != nil {
 		if err := v1alpha1.ValidateInstallOverridesV1Beta1(new.Spec.Components.FluentOperator.ValueOverrides); err != nil {
@@ -127,14 +117,6 @@ func (c fluentOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, 
 		}
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
-}
-
-func (c fluentOperatorComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	// Do not allow disabling of any component post-install for now
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
-	}
-	return nil
 }
 
 // PostInstall - post-install
