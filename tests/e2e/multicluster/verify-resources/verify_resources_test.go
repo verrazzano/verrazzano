@@ -39,7 +39,7 @@ var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.regis
 
 		t.It("Create VerrazzanoProject with invalid content", func() {
 			Eventually(func() bool {
-				file, err := pkg.FindTestDataFile("testdata/multicluster/verrazzanoproject-placement-clusters-invalidCR.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/verrazzanoproject-placement-clusters-invalid.yaml")
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Expected an error message creating invalid VerrazzanoProject: %v", err))
 					return false
