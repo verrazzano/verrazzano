@@ -235,8 +235,8 @@ pipeline {
                                     sh """
                                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
                                         ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                                        if [ -f "$WORKSPACE/vz" ]; then
-                                          cd $WORKSPACE
+                                        if [ -f "${WORKSPACE}/vz" ]; then
+                                          cd ${WORKSPACE}
                                           ./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                         else
                                           cd ${GO_REPO_PATH}/verrazzano/tools/vz
@@ -244,7 +244,7 @@ pipeline {
                                         fi
                                         result=$?
                                         kind delete clusters ${CLUSTER_NAME}
-                                        if [[ $result -ne 0 ]]; then
+                                        if [[ ${result} -ne 0 ]]; then
                                         exit 1
                                         fi
                                     """
