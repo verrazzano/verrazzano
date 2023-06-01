@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,7 @@ const (
 	name      = "NAME"
 )
 
-// TestAddAcmeIngressAnnotations verifies if ACME Annotations are added to the Ingress
+// TestAddAcmeIngressAnnotations verifies if LetsEncrypt Annotations are added to the Ingress
 // GIVEN a Rancher Ingress
 //
 //	WHEN addAcmeIngressAnnotations is called
@@ -93,7 +94,11 @@ func TestPatchRancherIngress(t *testing.T) {
 	for _, tt := range tests {
 		c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.in).Build()
 		t.Run(tt.vzapi.Spec.EnvironmentName, func(t *testing.T) {
-			assert.Nil(t, patchRancherIngress(c, &tt.vzapi))
+			// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+			// convert the legacy CertManager config to the ClusterIssuer config
+			ctx := spi.NewFakeContext(c, &tt.vzapi, nil, false, profilesRelativePath)
+
+			assert.Nil(t, patchRancherIngress(c, ctx.EffectiveCR()))
 		})
 	}
 }
@@ -104,8 +109,12 @@ func TestPatchRancherIngress(t *testing.T) {
 //	WHEN patchRancherIngress is called
 //	THEN patchRancherIngress should fail to annotate the Ingress
 func TestPatchRancherIngressNotFound(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the legacy CertManager config to the ClusterIssuer config
 	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
-	err := patchRancherIngress(c, &vzAcmeDev)
+	ctx := spi.NewFakeContext(c, &vzAcmeDev, nil, false, profilesRelativePath)
+
+	err := patchRancherIngress(c, ctx.EffectiveCR())
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
 }

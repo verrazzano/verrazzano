@@ -66,7 +66,7 @@ spec:
   {{- end }}
     tlsSecretName: {{ $secret_name }}
   {{- if (((.Values).router).podSpec) }}
-    podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
+    podSpec: {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
   {{- end }}
   {{ if (((.Values).router).podLabels) }}
     podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}
@@ -214,6 +214,7 @@ spec:
 {{- end -}}
 {{ end }}
 {{ end }}
+
 {{- if ((.Values).serverConfig) }}
   {{- if (((.Values).serverConfig).mycnf) }}
   mycnf: |

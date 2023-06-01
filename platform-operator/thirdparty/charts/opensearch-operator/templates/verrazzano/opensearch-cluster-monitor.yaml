@@ -1,0 +1,57 @@
+# Verrazzano Specific
+# Create ServiceMonitor for Verrazzano Prometheus
+# Required to scrape metrics from OpenSearch
+
+# Check if the ServiceMonitor CRD is installed and the 'verrazzano-monitoring' namespace exists
+# before creating the ServiceMonitor
+{{ if and (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") (lookup "v1" "Namespace" "" "verrazzano-monitoring") -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opensearch-cluster
+  namespace: verrazzano-monitoring
+  labels:
+    release: prometheus-operator
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector: {}
+  endpoints:
+    - path: /_prometheus/metrics
+      enableHttp2: false
+      tlsConfig:
+        ca:
+          secret:
+            name: {{ .Values.openSearchCluster.name }}-monitor-certs
+            key: ca.crt
+        cert:
+          secret:
+            name: {{ .Values.openSearchCluster.name }}-monitor-certs
+            key: tls.crt
+        keySecret:
+          name: {{ .Values.openSearchCluster.name }}-monitor-certs
+          key: tls.key
+        insecureSkipVerify: true
+      scheme: https
+      relabelings:
+        - sourceLabels:
+            - __meta_kubernetes_pod_name
+          regex: opensearch.*
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_pod_container_port_number
+          regex: "9200"
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_namespace
+          action: replace
+          targetLabel: namespace
+        - sourceLabels:
+            - __meta_kubernetes_pod_name
+          action: replace
+          targetLabel: kubernetes_pod_name
+        - action: replace
+          targetLabel: verrazzano_cluster
+          replacement: local
+{{- end }}
