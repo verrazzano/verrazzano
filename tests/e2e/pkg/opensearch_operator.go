@@ -159,7 +159,7 @@ func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ing
 		return err
 	}
 	currentEnvironmentName := GetEnvironmentName(cr)
-	currentDNSSuffix := fmt.Sprintf("%s.%s", GetIngressIP(), GetDNS(cr))
+	currentDNSSuffix := fmt.Sprintf("%s.%s", GetIngressIP(cr), GetDNS(cr))
 
 	tmpl, err := template.New("openSearchCMTemplate").Parse(openSearchCMTemplate)
 	if err != nil {

@@ -5,8 +5,11 @@ package install
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -15,9 +18,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/fluentd"
+
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
-	"time"
 )
 
 const (
@@ -89,10 +92,10 @@ var _ = t.Describe("Verify opensearch and configure VZ", func() {
 		pkg.EventuallyPodsReady(t.Logs, 3, 3, 1)
 	})
 
+	updateTime := time.Now()
 	t.It("switch logging output", func() {
 		// Update VZ CR to use new OS url for fluentd and jaeger, if enabled
 		v1beta1Modifier := &SwitchLoggingOutput{OpenSearchURL: constants.DefaultOperatorOSURLWithNS}
-		updateTime := time.Now()
 		Eventually(func() bool {
 			err := update.UpdateCRV1beta1(v1beta1Modifier)
 			if err != nil {
@@ -101,7 +104,9 @@ var _ = t.Describe("Verify opensearch and configure VZ", func() {
 			}
 			return true
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to switch OS Url")
+	})
 
+	t.It("verify operator OS URL in fluentd", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -109,10 +114,9 @@ var _ = t.Describe("Verify opensearch and configure VZ", func() {
 		update.WaitForReadyState(kubeconfigPath, updateTime, longPollingInterval, longWaitTimeout)
 
 		// Verify fluentd is up and ready with new OS URL
-		Eventually(func() {
-			fluentd.ValidateDaemonsetV1beta1(constants.DefaultOperatorOSURLWithNS, constants.VerrazzanoESInternal, "")
+		Eventually(func() bool {
+			return fluentd.ValidateDaemonsetV1beta1(constants.DefaultOperatorOSURLWithNS, constants.VerrazzanoESInternal, "")
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Fluentd not ready for %s", constants.DefaultOperatorOSURLWithNS)
-
 	})
 })
 

@@ -6,13 +6,17 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -67,23 +71,23 @@ func GetEnvironmentName(cr *vzapi.Verrazzano) string {
 	return constants.DefaultEnvironmentName
 }
 
-func GetIngressIP() string {
-	var externalIP string
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+// GetIngressIP returns the externalIP required to create ingress
+func GetIngressIP(cr *vzapi.Verrazzano) string {
+	if !vzcr.IsNGINXEnabled(cr) {
 		return ""
 	}
-	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
-	svc, err := clientset.CoreV1().Services(constants.IngressNginxNamespace).Get(context.TODO(), constants.NGINXControllerServiceName, metav1.GetOptions{})
+	nginxNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	svc, err := clientset.CoreV1().Services(nginxNamespace).Get(context.TODO(), constants.NGINXControllerServiceName, metav1.GetOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Could not get services quickstart-es-http in sockshop: %v\n", err.Error()))
 		return ""
 	}
+	var externalIP string
 	if len(svc.Spec.ExternalIPs) > 0 {
 		// In case of OLCNE, the Status.LoadBalancer.Ingress field will be empty, so use the external IP if present
 		externalIP = svc.Spec.ExternalIPs[0]

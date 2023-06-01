@@ -5,15 +5,18 @@ package infra
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"time"
 )
 
 const (
@@ -23,7 +26,6 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 30 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	loggingNamespace         = "verrazzano-logging"
 )
 
 var (
@@ -78,7 +80,7 @@ var _ = AfterSuite(afterSuite)
 var _ = t.Describe("Verify OpenSearch infra", func() {
 
 	t.It("ingress exists", func() {
-		Expect(pkg.IngressesExist(inClusterVZ, loggingNamespace, []string{"opensearch", "opensearch-dashboards"})).To(BeTrue())
+		Expect(pkg.IngressesExist(inClusterVZ, constants.VerrazzanoSystemNamespace, []string{"opensearch", "opensearch-dashboards"})).To(BeTrue())
 	})
 
 	t.It("verrazzano-system index is present", func() {
