@@ -91,6 +91,8 @@ else
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
+export TARGET_OPERATOR_FILE
+
 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 echo "Downloading VZ CLI from object storage"
 if [[ -z "$OCI_OS_LOCATION" ]]; then
