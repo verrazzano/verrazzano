@@ -5,7 +5,9 @@ package secrets
 
 import (
 	"context"
+	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"time"
@@ -61,27 +63,30 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		return newRequeueWithDelay(), nil
 	}
 
-	// Update the Rancher TLS CA secret with the defaultVerrazzanoName TLS Secret value
+	// Update the Rancher TLS CA secret with the CA in Verrazzano TLS Secret
 	if isVzIngressSecret {
-		if err := r.createOrUpdateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
-			vzconst.RancherTLSCAKey, caKey, caSecret); err != nil {
+		result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
+			vzconst.RancherTLSCAKey, caKey, caSecret, false)
+		if err != nil {
 			return newRequeueWithDelay(), nil
 		}
-		// Restart Rancher pod to reflect the updated TLS CA secret value in the pod
-		if err := r.restartRancherPod(); err != nil {
-			return newRequeueWithDelay(), err
+		// Restart Rancher pod to have the updated TLS CA secret value reflected in the pod
+		if result == controllerutil.OperationResultUpdated {
+			if err := r.restartRancherPod(); err != nil {
+				return newRequeueWithDelay(), err
+			}
 		}
 	}
 	// Update the verrazzano-local-ca-bundle secret
-	if err := r.createOrUpdateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
-		"ca-bundle", caKey, caSecret); err != nil {
+	if _, err := r.updateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
+		"ca-bundle", caKey, caSecret, true); err != nil {
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoSecretsReconciler) createOrUpdateSecret(namespace string, name string, destCAKey string,
-	sourceCAKey string, sourceSecret corev1.Secret) error {
+func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string, destCAKey string,
+	sourceCAKey string, sourceSecret corev1.Secret, isCreate bool) (controllerutil.OperationResult, error) {
 	// Get the secret
 	secret := corev1.Secret{}
 	err := r.Get(context.TODO(), client.ObjectKey{
@@ -91,7 +96,11 @@ func (r *VerrazzanoSecretsReconciler) createOrUpdateSecret(namespace string, nam
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			r.log.Errorf("Failed to fetch secret %s/%s: %v", namespace, name, err)
-			return err
+			return controllerutil.OperationResultNone, err
+		}
+		if !isCreate {
+			r.log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
+			return controllerutil.OperationResultNone, nil
 		}
 		// Secret was not found, make a new one
 		secret = corev1.Secret{}
@@ -111,11 +120,11 @@ func (r *VerrazzanoSecretsReconciler) createOrUpdateSecret(namespace string, nam
 
 	if err != nil {
 		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s", name, namespace, err.Error())
-		return err
+		return controllerutil.OperationResultNone, err
 	}
 
 	r.log.Infof("Created or updated secret %s/%s (result: %v)", name, namespace, result)
-	return nil
+	return result, nil
 }
 
 // restartRancherPod adds an annotation to the Rancher deployment template to restart the Rancher pods
@@ -123,6 +132,11 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	deployment := appsv1.Deployment{}
 	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
 		Name: rancherDeploymentName}, &deployment); err != nil {
+		if apierrors.IsNotFound(err) {
+			r.log.Debugf("Rancher deployment %s/%s not found, nothing to do",
+				vzconst.RancherSystemNamespace, rancherDeploymentName)
+			return nil
+		}
 		r.log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
 			vzconst.RancherSystemNamespace, rancherDeploymentName, err)
 		return err
@@ -135,9 +149,7 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
 
 	if err := r.Update(context.TODO(), &deployment); err != nil {
-		r.log.ErrorfThrottled("Failed updating Rancher deployment %s/%s to restart pod: %v",
-			deployment.Namespace, deployment.Name, err)
-		return err
+		return vzlog.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
 	}
 	r.log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
 		deployment.Namespace, deployment.Name)
