@@ -257,9 +257,7 @@ pipeline {
                                 sh '''
                                     if [ -f "$WORKSPACE/vz" ]; then
                                       cd $WORKSPACE
-                                      ls $WORKSPACE
-                                      pwd $WORKSPACE
-                                      ./vz install --filename ${WORKSPACE}/invalid.yaml
+                                      ./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml
                                     else
                                       cd ${GO_REPO_PATH}/verrazzano/tools/vz
                                       GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml
