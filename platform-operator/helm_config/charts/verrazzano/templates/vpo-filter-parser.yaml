@@ -28,6 +28,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: vpo-parser1,vpo-parser2
   matchRegex: "kube.*verrazzano-.*operator.*|kube.*verrazzano.*_webhook-init.*"
 ---

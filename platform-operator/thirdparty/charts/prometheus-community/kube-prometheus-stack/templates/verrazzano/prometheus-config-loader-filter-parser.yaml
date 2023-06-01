@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: prometheusconfig-parser
   match: "kube.*prometheus-prometheus-operator*config-reloader*"
 ---

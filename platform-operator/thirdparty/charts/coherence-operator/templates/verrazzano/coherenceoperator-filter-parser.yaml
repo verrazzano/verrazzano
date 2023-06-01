@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: coherenceoperator-parser1,coherenceoperator-parser2
   matchRegex: "kube.*coherence-operator*manager*"
 ---

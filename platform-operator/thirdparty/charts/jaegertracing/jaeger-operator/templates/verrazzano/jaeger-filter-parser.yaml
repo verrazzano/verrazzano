@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: jaeger-parser1,jaeger-parser2,jaeger-parser3
   match: "kube.*jaeger-operator*_jaeger*"
 ---

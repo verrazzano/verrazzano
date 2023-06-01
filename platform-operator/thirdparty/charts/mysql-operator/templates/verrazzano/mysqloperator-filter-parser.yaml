@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: mysqloperator-parser1,mysqloperator-parser2
   match: "kube.*mysql-operator*_mysql-operator*"
 ---

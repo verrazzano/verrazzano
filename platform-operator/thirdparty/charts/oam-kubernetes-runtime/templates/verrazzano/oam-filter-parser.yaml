@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: oam-parser1,oam-parser2
   match: "kube.*oam-kubernetes-runtime*_oam-kubernetes-runtime*"
 ---

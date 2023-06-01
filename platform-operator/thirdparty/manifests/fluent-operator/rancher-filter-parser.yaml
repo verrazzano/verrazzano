@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: cattlefleetsystem-parser1,cattlefleetsystem-parser2,cattlefleetsystem-parser3
   match: "kube.*"
 ---

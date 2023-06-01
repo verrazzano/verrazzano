@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: certmanager-parser
   match: "kube.*cert-manager*cert-manager*"
 ---

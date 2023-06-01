@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: istio-parser
   matchRegex: "kube.var.log.containers.*istio-proxy.*|kube.var.log.containers.*istiod.*istio-system_discovery.*"
 ---

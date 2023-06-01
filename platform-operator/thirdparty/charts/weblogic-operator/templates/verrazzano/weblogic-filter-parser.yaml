@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: weblogic-parser
     - recordModifier:
         removeKeys:

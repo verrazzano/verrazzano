@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: externaldns-parser1,externaldns-parser2
   match: "kube.*external-dns*external-dns*"
 ---

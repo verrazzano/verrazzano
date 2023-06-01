@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: nginx-parser1,nginx-parser2
   match: "kube.*ingress-nginx-controller*"
 ---

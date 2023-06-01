@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: rancher-parser1,rancher-parser2,rancher-parser3
   match: "kube.*thanos*"
 ---

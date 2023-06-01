@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: nodeexporter-parser1,nodeexporter-parser2
   match: "kube.*node-exporter*_node-exporter*"
 ---

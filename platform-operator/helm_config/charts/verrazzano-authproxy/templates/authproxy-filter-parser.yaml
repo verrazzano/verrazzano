@@ -28,6 +28,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: authproxy-parser
   match: "kube.*verrazzano-authproxy*verrazzano-authproxy*"
 ---

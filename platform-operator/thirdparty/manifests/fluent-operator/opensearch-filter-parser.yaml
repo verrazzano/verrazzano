@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: opensearch-parser
   match: "kube.*vmi-system-es*es*"
 ---

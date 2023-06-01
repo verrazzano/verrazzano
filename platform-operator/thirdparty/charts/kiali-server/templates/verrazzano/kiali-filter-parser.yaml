@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: kiali-parser1,kiali-parser2
   match: "kube.*vmi-system-kiali*_vmi-system-kiali*"
 ---

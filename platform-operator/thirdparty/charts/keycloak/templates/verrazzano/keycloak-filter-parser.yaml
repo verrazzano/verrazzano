@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: keycloak-parser
   match: "kube.*keycloak*_keycloak*"
 ---

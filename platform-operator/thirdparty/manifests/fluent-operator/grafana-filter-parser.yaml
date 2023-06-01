@@ -27,6 +27,7 @@ spec:
     - parser:
         keyName: log
         reserveData: true
+        preserveKey: true
         parser: grafana-parser1,grafana-parser2
     - modify:
         conditions:
