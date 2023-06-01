@@ -535,11 +535,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  capi:
-                    properties:
-                      enabled:
-                        type: boolean
-                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -639,6 +634,11 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
+                    type: object
+                  clusterAPI:
+                    properties:
+                      enabled:
+                        type: boolean
                     type: object
                   clusterAgent:
                     properties:
@@ -4482,11 +4482,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  capi:
-                    properties:
-                      enabled:
-                        type: boolean
-                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -4586,6 +4581,11 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
+                    type: object
+                  clusterAPI:
+                    properties:
+                      enabled:
+                        type: boolean
                     type: object
                   clusterAgent:
                     properties:
