@@ -38,7 +38,7 @@ pipeline {
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         string (name: 'CLUSTER_RESOURCE_NAMESPACE',
                 defaultValue: 'my-cert-manager',
-                description: 'The name of the namespace to install the cluster issuer into',
+                description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
                 trim: true)
     }
 
