@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -161,6 +161,9 @@ func (s *Syncer) syncLocalClusterCA() error {
 	if err != nil {
 		return err
 	}
+	if len(localCASecretData) == 0 {
+		return nil
+	}
 
 	// Get the managed cluster CA secret from the admin cluster
 	vmc := clustersapi.VerrazzanoManagedCluster{}
@@ -219,7 +222,7 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 		Namespace: constants.VerrazzanoSystemNamespace,
 		Name:      constants.VerrazzanoIngressTLSSecret,
 	}, &localCASecret)
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		return nil, err
 	}
 	return localCASecret.Data[mcconstants.CaCrtKey], nil

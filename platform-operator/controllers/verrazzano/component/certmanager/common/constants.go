@@ -4,8 +4,8 @@
 package common
 
 const (
-	// ClusterIssuerConfigComponentName is the name of the CertManager config component
-	ClusterIssuerConfigComponentName = "cluster-issuer"
+	// ClusterIssuerComponentName is the name of the CertManager config component
+	ClusterIssuerComponentName = "cluster-issuer"
 
 	// CertManagerComponentName is the name of the Verrazzano CertManager component
 	CertManagerComponentName = "cert-manager"
@@ -13,8 +13,8 @@ const (
 	// CertManagerComponentJSONName is the JSON name of the verrazzano component in CRD
 	CertManagerComponentJSONName = "certManager"
 
-	// CertManagerOCIDNSComponentName is the name of the OCI DNS webhook component
-	CertManagerOCIDNSComponentName = "verrazzano-ocidns-webhook"
+	// CertManagerWebhookOCIComponentName is the name of the OCI DNS webhook component
+	CertManagerWebhookOCIComponentName = "verrazzano-ocidns-webhook"
 
 	// LetsEncryptProduction - LetsEncrypt production env
 	LetsEncryptProduction = "production"

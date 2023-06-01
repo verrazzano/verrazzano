@@ -196,6 +196,10 @@ func TestContextProfilesMerge(t *testing.T) {
 			}
 
 			a.NotNil(context, "Context was nil")
+			if context == nil {
+				return
+			}
+
 			// Tests ActualCR method
 			a.NotNil(context.ActualCR(), "Actual CR was nil")
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")

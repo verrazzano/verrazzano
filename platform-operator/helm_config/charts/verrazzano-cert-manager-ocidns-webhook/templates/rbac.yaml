@@ -98,7 +98,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ include "cert-manager-webhook-oci.fullname" . }}:secret-reader
-  namespace: {{ .Values.certManager.clusterResourceNamespace }}
+  namespace: {{ include "cert-manager-webhook-oci.clusterResourceNamespace" . }}
 rules:
   - apiGroups:
       - ""
@@ -116,7 +116,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ include "cert-manager-webhook-oci.fullname" . }}:secret-reader
-  namespace: {{ .Values.certManager.clusterResourceNamespace }}
+  namespace: {{ include "cert-manager-webhook-oci.clusterResourceNamespace" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

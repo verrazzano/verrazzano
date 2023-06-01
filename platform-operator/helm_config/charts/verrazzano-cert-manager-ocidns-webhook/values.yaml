@@ -11,7 +11,7 @@ groupName: verrazzano.io
 
 certManager:
   namespace: cert-manager
-  clusterResourceNamespace: cert-manager
+  clusterResourceNamespace: ""
   serviceAccountName: cert-manager
 
 image:

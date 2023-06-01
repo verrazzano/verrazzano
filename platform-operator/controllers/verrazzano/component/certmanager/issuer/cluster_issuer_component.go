@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package config
+package issuer
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -10,8 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -20,7 +18,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = cmcommon.ClusterIssuerConfigComponentName
+const ComponentName = cmcommon.ClusterIssuerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
@@ -176,7 +174,7 @@ func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 }
 
 func (c clusterIssuerComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, controller.ComponentName, ocidns.ComponentName}
+	return []string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName}
 }
 
 func (c clusterIssuerComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {

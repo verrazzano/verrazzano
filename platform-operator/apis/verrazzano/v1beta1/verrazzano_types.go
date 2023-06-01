@@ -1101,8 +1101,6 @@ type LetsEncryptACMEIssuer struct {
 	// Environment can be "staging" or "production"
 	// +optional
 	Environment string `json:"environment,omitempty"`
-	// Name of the Acme provider.
-	Provider ProviderType `json:"provider"`
 }
 
 // CA - Deprecated.  Identifies the Certificate Authority cert issuer.

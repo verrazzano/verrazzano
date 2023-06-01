@@ -1,0 +1,10 @@
+# Copyright (C) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verrazzano-meta
+  namespace: {{ .Values.namespace }}
+data:
+  verrazzano-versions: |
+    {{ .Values.verrazzano.supportedVersions | toJson }}

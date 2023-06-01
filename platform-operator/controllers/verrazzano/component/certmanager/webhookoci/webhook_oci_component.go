@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package ocidns
+package webhookoci
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -23,7 +22,7 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = cmcommon.CertManagerOCIDNSComponentName
+	ComponentName = cmcommon.CertManagerWebhookOCIComponentName
 
 	// ComponentJSONName is the Webhook component JSON name in the Verrazzano CR
 	ComponentJSONName = "certManagerOCIWebhook"
@@ -61,7 +60,7 @@ func NewComponent() spi.Component {
 			GetInstallOverridesFunc:   GetOverrides,
 			AppendOverridesFunc:       appendOCIDNSOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
-			Dependencies:              []string{networkpolicies.ComponentName, controller.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -168,7 +167,7 @@ func (c certManagerWebhookOCIComponent) ValidateUpdateV1Beta1(old *v1beta1.Verra
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
-func (c certManagerWebhookOCIComponent) validateConfiguration(new *v1beta1.Verrazzano) error {
+func (c certManagerWebhookOCIComponent) validateConfiguration(_ *v1beta1.Verrazzano) error {
 	//acmeConfig, err := vzcr.IsLetsEncryptConfig(new)
 	//if err != nil {
 	//	return err

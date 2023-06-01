@@ -56,6 +56,9 @@ func convertCertificateToClusterIssuerV1Beta1(effectiveCR *v1beta1.Verrazzano) e
 		effectiveCR.Spec.Components.ClusterIssuer = v1beta1.NewDefaultClusterIssuer()
 	}
 	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
+	if clusterIssuerConfig.IssuerConfig.CA == nil && clusterIssuerConfig.IssuerConfig.LetsEncrypt == nil {
+		clusterIssuerConfig.IssuerConfig.CA = v1beta1.NewDefaultClusterIssuer().CA
+	}
 
 	isDefaultIssuer, err := clusterIssuerConfig.IsDefaultIssuer()
 	if err != nil {
@@ -96,6 +99,9 @@ func convertCertificateToClusterIssuerV1Alpha1(effectiveCR *v1alpha1.Verrazzano)
 		effectiveCR.Spec.Components.ClusterIssuer = v1alpha1.NewDefaultClusterIssuer()
 	}
 	clusterIssuerConfig := effectiveCR.Spec.Components.ClusterIssuer
+	if clusterIssuerConfig.IssuerConfig.CA == nil && clusterIssuerConfig.IssuerConfig.LetsEncrypt == nil {
+		clusterIssuerConfig.IssuerConfig.CA = v1alpha1.NewDefaultClusterIssuer().CA
+	}
 
 	isDefaultIssuer, err := clusterIssuerConfig.IsDefaultIssuer()
 	if err != nil {
@@ -169,24 +175,20 @@ func isCAConfig(certConfig interface{}) (isCAConfig bool, err error) {
 }
 
 func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIssuerConfig interface{}, isDefaultIssuer bool) error {
-	// Check if it's a CA issuer config
-	isCAConfig, err := isCAConfig(cmCertificateConfig)
-	if err != nil {
-		// The certificate object is invalid, do nothing; validators should catch it and returning an error
-		// here will throw off the validators.
-		return nil
-	}
-
 	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
 	if !isDefaultCertificateConfig && !isDefaultIssuer {
 		return fmt.Errorf("Illegal state, both CertManager Certificate and ClusterIssuer components are configured")
 	}
 
 	if !isDefaultIssuer {
-		if !isDefaultCertificateConfig {
-			return fmt.Errorf("Illegal state, can not simultaneously configure both the ClusterIssuerComponent and the CertManagerComponent")
-		}
-		// Don't overwrite an explicitly configured ClusterIssuerComponent
+		return nil
+	}
+
+	// Check if it's a CA issuer config
+	isCAConfig, err := isCAConfig(cmCertificateConfig)
+	if err != nil {
+		// The certificate object is invalid, do nothing; validators should catch it and returning an error
+		// here will throw off the validators.
 		return nil
 	}
 

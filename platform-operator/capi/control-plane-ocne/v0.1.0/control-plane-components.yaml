@@ -109,51 +109,6 @@ spec:
           spec:
             description: OCNEControlPlaneSpec defines the desired state of OCNEControlPlane.
             properties:
-              addons:
-                items:
-                  properties:
-                    chartName:
-                      description: ChartName is the name of the Helm chart in the
-                        repository.
-                      type: string
-                    local:
-                      description: Local indicates whether chart is local or needs
-                        to be pulled in from the internet. When Local is set to true
-                        the RepoURL would be the local path to the chart directory
-                        in the container. By default, Local is set to false.
-                      type: boolean
-                    namespace:
-                      description: ReleaseNamespace is the namespace the Helm release
-                        will be installed on each selected Cluster. If it is not specified,
-                        it will be set to the default namespace.
-                      type: string
-                    releaseName:
-                      description: ReleaseName is the release name of the installed
-                        Helm chart. If it is not specified, a name will be generated.
-                      type: string
-                    repoURL:
-                      description: ChartLocation is the URL of the Helm chart repository.
-                      type: string
-                    uninstall:
-                      description: Uninstall indicates whether chart needs to be cleaned
-                        up from the workload cluster By default it is set to false
-                      type: boolean
-                    valuesTemplate:
-                      description: valuesTemplate is an inline YAML representing the
-                        values for the Helm chart. This YAML supports Go templating
-                        to reference fields from each selected workload Cluster and
-                        programatically create and set values.
-                      type: string
-                    version:
-                      description: Version is the version of the Helm chart. If it
-                        is not specified, the chart will use and be kept up to date
-                        with the latest version.
-                      type: string
-                  required:
-                  - chartName
-                  - repoURL
-                  type: object
-                type: array
               controlPlaneConfig:
                 description: ControlPlaneConfig is a bootstrap OCNEConfigSpec to use
                   for initializing and joining machines to the control plane.
@@ -1321,6 +1276,47 @@ spec:
                 required:
                 - infrastructureRef
                 type: object
+              moduleOperator:
+                description: ModuleOperator deploys the OCNE module operator to the
+                  worker cluster post installation.
+                properties:
+                  enabled:
+                    description: Enabled sets the operational mode for a specific
+                      module. if not set, the Enabled is set to false.
+                    type: boolean
+                  image:
+                    description: Image is used to set various attributes regarding
+                      a specific module. If not set, they are set as per the ImageMeta
+                      definitions.
+                    properties:
+                      pullPolicy:
+                        description: PullPolicy allows to specify an image pull policy
+                          for the container images. if not set, the PullPolicy is
+                          IfNotPresent.
+                        type: string
+                      repository:
+                        description: Repository sets the container registry to pull
+                          images from. if not set, the Repository defined in OCNEMeta
+                          will be used instead.
+                        type: string
+                      tag:
+                        description: Tag allows to specify a tag for the image. if
+                          not set, the Tag defined in OCNEMeta will be used instead.
+                        type: string
+                    type: object
+                  imagePullSecrets:
+                    description: ImagePullSecrets allows to specify secrets if the
+                      image is being pulled from an authenticated private registry.
+                      if not set, it will be assumed the images are public.
+                    items:
+                      properties:
+                        name:
+                          description: Name is name of the secret to be used as image
+                            pull secret
+                          type: string
+                      type: object
+                    type: array
+                type: object
               replicas:
                 description: Number of desired machines. Defaults to 1. When stacked
                   etcd is used only odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
@@ -1371,6 +1367,47 @@ spec:
                     description: Type of rollout. Currently the only supported strategy
                       is "RollingUpdate". Default is RollingUpdate.
                     type: string
+                type: object
+              verrazzanoPlatformOperator:
+                description: VerrazzanoPlatformOperator deploys the Verrazzano Platform
+                  operator to the worker cluster post installation.
+                properties:
+                  enabled:
+                    description: Enabled sets the operational mode for a specific
+                      module. if not set, the Enabled is set to false.
+                    type: boolean
+                  image:
+                    description: Image is used to set various attributes regarding
+                      a specific module. If not set, they are set as per the ImageMeta
+                      definitions.
+                    properties:
+                      pullPolicy:
+                        description: PullPolicy allows to specify an image pull policy
+                          for the container images. if not set, the PullPolicy is
+                          IfNotPresent.
+                        type: string
+                      repository:
+                        description: Repository sets the container registry to pull
+                          images from. if not set, the Repository defined in OCNEMeta
+                          will be used instead.
+                        type: string
+                      tag:
+                        description: Tag allows to specify a tag for the image. if
+                          not set, the Tag defined in OCNEMeta will be used instead.
+                        type: string
+                    type: object
+                  imagePullSecrets:
+                    description: ImagePullSecrets allows to specify secrets if the
+                      image is being pulled from an authenticated private registry.
+                      if not set, it will be assumed the images are public.
+                    items:
+                      properties:
+                        name:
+                          description: Name is name of the secret to be used as image
+                            pull secret
+                          type: string
+                      type: object
+                    type: array
                 type: object
               version:
                 description: 'Version defines the desired Kubernetes version. Please
@@ -3036,7 +3073,7 @@ spec:
             fieldRef:
               fieldPath: metadata.uid
         # This image will be overridden by the Verrazzano controller
-        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230525020552-c2d7135
+        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230531223401-6824a09
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
