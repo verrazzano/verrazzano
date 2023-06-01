@@ -7,6 +7,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -53,7 +54,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	t.Logs.Info(fmt.Sprintf("Creating %s namespace", loggingNamespace))
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
+			constants.LabelVerrazzanoNamespace: loggingNamespace,
 		}
 		return pkg.CreateNamespace(loggingNamespace, nsLabels)
 	}, timeout, pollInterval).ShouldNot(BeNil())
