@@ -302,20 +302,20 @@ pipeline {
                                 runGinkgo('opensearch-operator/install')
                             }
                         }
-                        stage('opensearch topology') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-topology"
-                            }
-                            steps {
-                                runGinkgo('opensearch-operator/topology')
-                            }
-                        }
                         stage('verify opensearch infra') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-infra"
                             }
                             steps {
                                 runGinkgo('opensearch-operator/infra')
+                            }
+                        }
+                        stage('opensearch topology') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-topology"
+                            }
+                            steps {
+                                runGinkgo('opensearch-operator/topology')
                             }
                         }
                     }

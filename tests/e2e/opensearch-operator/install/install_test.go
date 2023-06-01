@@ -68,35 +68,31 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-var _ = t.Describe("Verify opensearch and configure vz", func() {
-	t.Describe("verify install", func() {
-		t.It("opensearch pods are ready", func() {
-			// Check all pods with opensearch prefix
-			Eventually(func() bool {
-				isReady, err := pkg.PodsRunning(loggingNamespace, []string{clusterName})
-				if err != nil {
-					return false
-				}
-				return isReady
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "OpenSearch failed to get to ready state")
+var _ = t.Describe("Verify opensearch and configure VZ", func() {
+	t.It("verify opensearch pods are ready", func() {
+		// Check all pods with opensearch prefix
+		Eventually(func() bool {
+			isReady, err := pkg.PodsRunning(loggingNamespace, []string{clusterName})
+			if err != nil {
+				return false
+			}
+			return isReady
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "OpenSearch failed to get to ready state")
 
-			// Verify number of replicas for each nodepool
-			pkg.EventuallyPodsReady(t.Logs, 3, 3, 1)
-		})
+		// Verify number of replicas for each nodepool
+		pkg.EventuallyPodsReady(t.Logs, 3, 3, 1)
 	})
 
-	t.Describe("configure vz cr", func() {
-		t.It("switch logging output", func() {
-			v1beta1Modifier := &SwitchLoggingOutput{OpenSearchURL: OSUrl}
-			Eventually(func() bool {
-				err := update.UpdateCRV1beta1(v1beta1Modifier)
-				if err != nil {
-					pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
-					return false
-				}
-				return true
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to switch OS Url")
-		})
+	t.It("switch logging output", func() {
+		v1beta1Modifier := &SwitchLoggingOutput{OpenSearchURL: OSUrl}
+		Eventually(func() bool {
+			err := update.UpdateCRV1beta1(v1beta1Modifier)
+			if err != nil {
+				pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
+				return false
+			}
+			return true
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to switch OS Url")
 	})
 })
 
