@@ -82,6 +82,9 @@ func GetIngressIP(cr *vzapi.Verrazzano) string {
 		return ""
 	}
 	nginxNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to determin namespace for ingressNginx %v", err))
+	}
 	svc, err := clientset.CoreV1().Services(nginxNamespace).Get(context.TODO(), constants.NGINXControllerServiceName, metav1.GetOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Could not get services quickstart-es-http in sockshop: %v\n", err.Error()))
