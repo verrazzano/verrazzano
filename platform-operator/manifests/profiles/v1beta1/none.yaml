@@ -14,6 +14,8 @@ spec:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
+    clusterAgent:
+      enabled: false
     coherenceOperator:
       enabled: false
     console:
