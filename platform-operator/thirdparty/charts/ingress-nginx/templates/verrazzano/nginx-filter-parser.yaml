@@ -41,7 +41,7 @@ spec:
   regex:
     regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
     timeKey: logtime
-    timeFormat: "%Y-%m-%dT%H:%M:%S,%L"
+    timeFormat: "%H:%M:%S.%N"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser

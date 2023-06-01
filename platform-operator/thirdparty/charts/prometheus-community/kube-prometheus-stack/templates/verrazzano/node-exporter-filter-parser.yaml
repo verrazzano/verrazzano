@@ -6,7 +6,7 @@ metadata:
   labels:
     fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: nodeexporter-fbc
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   filterSelector:
     matchLabels:
@@ -21,7 +21,7 @@ metadata:
   labels:
     verrazzano.io/component: "nodeexporter"
   name: nodeexporter-filter
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   filters:
     - parser:
@@ -36,7 +36,7 @@ metadata:
   labels:
     verrazzano.io/component: "nodeexporter"
   name: nodeexporter-parser1
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   regex:
     regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*?)msg="(?<message>.*?)"([\s\S]*?)$/'
@@ -49,7 +49,7 @@ metadata:
   labels:
     verrazzano.io/component: "nodeexporter"
   name: nodeexporter-parser2
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   regex:
     regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) (?<message>[\s\S]*?)$/'

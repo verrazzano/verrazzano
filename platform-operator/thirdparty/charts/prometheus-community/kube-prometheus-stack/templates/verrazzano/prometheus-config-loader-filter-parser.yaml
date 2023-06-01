@@ -6,7 +6,7 @@ metadata:
   labels:
     fluentbit.verrazzano.io/namespace-config: "verrazzano"
   name: prometheusconfig-fbc
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   filterSelector:
     matchLabels:
@@ -21,7 +21,7 @@ metadata:
   labels:
     verrazzano.io/component: "prometheusconfig"
   name: prometheusconfig-filter
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   filters:
     - parser:
@@ -36,7 +36,7 @@ metadata:
   labels:
     verrazzano.io/component: "prometheusconfig"
   name: prometheusconfig-parser
-  namespace: {{ template "prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
 spec:
   regex:
     regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/'
