@@ -158,24 +158,6 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 	}
 }
 
-// TestValidateInstall tests the ValidateInstall function
-// GIVEN a call to ValidateInstall
-//
-//	WHEN for various Issuer configurations
-//	THEN an error is returned if anything is misconfigured
-func TestValidateInstall(t *testing.T) {
-	validationTests(t, false)
-}
-
-// TestValidateUpdate tests the ValidateInstall function
-// GIVEN a call to ValidateInstall
-//
-//	WHEN for various Issuer configurations
-//	THEN an error is returned if anything is misconfigured
-func TestValidateUpdate(t *testing.T) {
-	validationTests(t, true)
-}
-
 // TestPostInstallCA tests the PostInstall function
 // GIVEN a call to PostInstall
 //

@@ -4,6 +4,7 @@
 package issuer
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
@@ -28,6 +29,72 @@ func createFakeClient(objs ...runtime.Object) *k8sfake.Clientset {
 const emailAddress = "joeblow@foo.com"
 const secretName = "newsecret"
 const secretNamespace = "ns"
+
+// TestValidateClusterResourceNamespace tests the checkClusterResourceNamespaceExists function
+// GIVEN a call to checkClusterResourceNamespaceExists
+//
+//	THEN an error is returned if the clusterResourceNamespace doesn't exist, or an unxpected client error occurs
+func TestValidateClusterResourceNamespace(t *testing.T) {
+	defer cmcommon.ResetCoreV1ClientFunc()
+
+	namespace := "myns"
+	issuerConfig := v1beta1.ClusterIssuerComponent{ClusterResourceNamespace: namespace}
+
+	assert.Error(t, checkClusterResourceNamespaceExists(&issuerConfig))
+
+	errMsg := "Test client error"
+	cmcommon.GetClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+		return nil, fmt.Errorf(errMsg)
+	}
+	assert.EqualError(t, checkClusterResourceNamespaceExists(&issuerConfig), errMsg)
+
+	cmcommon.GetClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+		return createFakeClient(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}).CoreV1(), nil
+	}
+	assert.NoError(t, checkClusterResourceNamespaceExists(&issuerConfig))
+}
+
+// TestValidateCertManagerTypesExist tests the validateCertManagerTypesExist function
+// GIVEN a call to validateCertManagerTypesExist
+// THEN true is returned when the CRDs exist, or an error otherwise
+func TestValidateCertManagerTypesExist(t *testing.T) {
+	defer resetCheckCertManagerCRDsFunc()
+
+	checkCertManagerCRDFunc = func() (bool, error) {
+		return false, nil
+	}
+	assert.EqualError(t, validateCertManagerTypesExist(),
+		"clusterIssuer component is enabled but could not detect the presence of Cert-Manager")
+
+	unexpectedErrMsg := "unexpected error"
+	checkCertManagerCRDFunc = func() (bool, error) {
+		return false, fmt.Errorf(unexpectedErrMsg)
+	}
+	assert.EqualError(t, validateCertManagerTypesExist(), unexpectedErrMsg)
+
+	checkCertManagerCRDFunc = func() (bool, error) {
+		return true, nil
+	}
+	assert.NoError(t, validateCertManagerTypesExist())
+}
+
+// TestValidateInstall tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//
+//	WHEN for various Issuer configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateInstall(t *testing.T) {
+	validationTests(t, false)
+}
+
+// TestValidateUpdate tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//
+//	WHEN for various Issuer configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateUpdate(t *testing.T) {
+	validationTests(t, true)
+}
 
 var simpleValidationTests = []validationTestStruct{
 	{
