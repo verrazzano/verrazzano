@@ -28,7 +28,7 @@ spec:
         keyName: log
         reserveData: true
         preserveKey: true
-        parser: nodeexporter-parser1,nodeexporter-parser2
+        parser: nodeexporter-parser1,nodeexporter-parser2,nodeexporter-parser3
   match: "kube.*node-exporter*_node-exporter*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
@@ -55,6 +55,20 @@ metadata:
 spec:
   regex:
     regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "nodeexporter"
+  name: nodeexporter-parser3
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)(.*?)level=(?<level>[^ ]+)(?:.*msg="(?<message>[^"]+)")?[\s\S]*?$/'
     timeKey: logtime
     timeKeep: true
     timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"

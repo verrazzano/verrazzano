@@ -28,7 +28,7 @@ spec:
         keyName: log
         reserveData: true
         preserveKey: true
-        parser: jaeger-parser1,jaeger-parser2,jaeger-parser3
+        parser: jaeger-parser1,jaeger-parser2,jaeger-parser3,jaeger-parser4
   match: "kube.*jaeger-operator*_jaeger*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
@@ -40,7 +40,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   regex:
-    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<message>[\s\S]*?)$/'
+    regex: '/^(?<logtime>[\d.e+-]+)\s+(?<level>\w+)\s+(?<message>.+)$/'
     timeKey: logtime
     timeKeep: true
     types: "float"
@@ -54,7 +54,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   regex:
-    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<component>[\.\S]+?) (?<message>[\s\S]*?)$/'
+    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<message>[\s\S]*?)$/'
     timeKey: logtime
     timeKeep: true
     types: "float"
@@ -65,6 +65,20 @@ metadata:
   labels:
     verrazzano.io/component: "jaeger"
   name: jaeger-parser3
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<component>[\.\S]+?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    types: "float"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser4
   namespace: {{ .Release.Namespace }}
 spec:
   regex:

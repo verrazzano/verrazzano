@@ -28,8 +28,22 @@ spec:
         keyName: log
         reserveData: true
         preserveKey: true
-        parser: prometheus-parser1,prometheus-parser2,prometheus-parser3
-  match: "kube.*prometheus-operator*_prometheus*"
+        parser: prometheus-parser1,prometheus-parser2,prometheus-parser3,prometheus-parser4,prometheusconfig-parser
+  match: "kube.*prometheus-operator*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheusconfig-parser
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y/%m/%d %H:%M:%S"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
@@ -72,4 +86,19 @@ spec:
     timeKey: logtime
     timeKeep: true
     timeFormat: "%H:%M:%S.%L"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheus-parser4
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{1,9}Z)(?:.*msg="(?<message>[^"]+)")?[\s\S]*?$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
 {{ end -}}

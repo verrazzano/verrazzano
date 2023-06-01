@@ -14,18 +14,18 @@ import (
 
 // CreateOrDeleteFluentbitFilterAndParser create or delete the Fluentbit Filter & Parser Resource by applying/deleting the fluentbitFilterAndParserTemplate based on the delete flag.
 func CreateOrDeleteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitFilterAndParserTemplate, namespace string, delete bool) error {
+	args := make(map[string]interface{})
+	args["namespace"] = namespace
+	templatePath := path.Join(config.GetThirdPartyManifestsDir(), "fluent-operator/"+fluentbitFilterAndParserTemplate)
+	if delete {
+		if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(templatePath, args); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed Deleting Filter and Parser for Fluent Operator: %v", err)
+		}
+		return nil
+	}
 	if vzcr.IsFluentOperatorEnabled(ctx.EffectiveCR()) {
-		args := make(map[string]interface{})
-		args["namespace"] = namespace
-		templatePath := path.Join(config.GetThirdPartyManifestsDir(), "fluent-operator/"+fluentbitFilterAndParserTemplate)
-		if delete {
-			if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(templatePath, args); err != nil {
-				return ctx.Log().ErrorfNewErr("Failed Deleting Filter and Parser for Fluent Operator: %v", err)
-			}
-		} else {
-			if err := k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyFT(templatePath, args); err != nil {
-				return ctx.Log().ErrorfNewErr("Failed applying Filter and Parser for Fluent Operator: %v", err)
-			}
+		if err := k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyFT(templatePath, args); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed applying Filter and Parser for Fluent Operator: %v", err)
 		}
 	}
 	return nil

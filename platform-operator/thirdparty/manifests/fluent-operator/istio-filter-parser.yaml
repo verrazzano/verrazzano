@@ -29,7 +29,7 @@ spec:
         reserveData: true
         preserveKey: true
         parser: istio-parser
-  matchRegex: "kube.var.log.containers.*istio-proxy.*|kube.var.log.containers.*istiod.*istio-system_discovery.*"
+  match: "kube.*istiod*istio-system*discovery*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: Parser
