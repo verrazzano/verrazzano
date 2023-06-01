@@ -228,6 +228,30 @@ pipeline {
         stage('Acceptance Tests') {
 
             stages {
+                stage('Run VZ CLI Custom Resource Validation'){
+                    steps{
+                        script{
+                            if(CR_VALIDATION_TEST){
+                                    sh """
+                                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
+                                        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                                        if [ -f "$WORKSPACE/vz" ]; then
+                                          cd $WORKSPACE
+                                          ./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
+                                        else
+                                          cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                                          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
+                                        fi
+                                        result=$?
+                                        kind delete clusters ${CLUSTER_NAME}
+                                        if [[ $result -ne 0 ]]; then
+                                        exit 1
+                                        fi
+                                    """
+                            }
+                        }
+                    }
+                }
                 stage('Prepare AT environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -252,22 +276,6 @@ pipeline {
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                         """
                         script {
-                            if(CR_VALIDATION_TEST){
-                                scriptForPrepareATEnvironmentV1beta1()
-                                sh '''
-                                    if [ -f "$WORKSPACE/vz" ]; then
-                                      cd $WORKSPACE
-                                      ./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${TARGET_OPERATOR_FILE}
-                                    else
-                                      cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                                      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
-                                    fi
-                                    result=$?
-                                    if [[ $result -ne 0 ]]; then
-                                      exit 1
-                                    fi
-                                '''
-                            }
                             if(params.CRD_API_VERSION == "v1alpha1"){
                                 scriptForPrepareATEnvironmentV1alpha1()
                             }else{
