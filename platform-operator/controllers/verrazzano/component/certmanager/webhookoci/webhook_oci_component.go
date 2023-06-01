@@ -31,10 +31,10 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// componentChartName is the Webhook Chart name
-	componentChartName = "cert-manager-webhook-oci"
+	componentChartName = cmcommon.CertManagerWebhookOCIComponentName
 
 	// webhookDeploymentName is the Webhook deployment object name
-	webhookDeploymentName = "cert-manager-webhook-oci"
+	webhookDeploymentName = cmcommon.CertManagerWebhookOCIComponentName
 )
 
 // certManagerOciDnsComponent represents an CertManager component
@@ -52,7 +52,7 @@ func NewComponent() spi.Component {
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), componentChartName),
-			ChartNamespace:            ComponentNamespace,
+			ChartNamespace:            constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,

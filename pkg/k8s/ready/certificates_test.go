@@ -162,16 +162,6 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 		},
 	}
 
-	//cmEnabled := false
-	//vz := &v1alpha1.Verrazzano{
-	//	ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
-	//	Spec: v1alpha1.VerrazzanoSpec{
-	//		Components: v1alpha1.ComponentSpec{
-	//			CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
-	//		},
-	//	},
-	//}
-
 	client := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
