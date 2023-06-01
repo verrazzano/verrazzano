@@ -134,6 +134,8 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = namespace
 		client.DryRun = dryRun
+		client.Wait = wait
+		client.MaxHistory = 1
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
@@ -148,11 +150,12 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client.ReleaseName = releaseName
 		client.DryRun = dryRun
 		client.Replace = true
+		client.Wait = wait
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {
-			log.Errorf("Failed running Helm command for release %s",
-				releaseName)
+			log.Errorf("Failed running Helm command for release %s: %v",
+				releaseName, err.Error())
 			return nil, err
 		}
 	}
@@ -388,6 +391,7 @@ func getActionConfig(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, name
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Debugf); err != nil {
 		return nil, err
 	}
+	actionConfig.Releases.MaxHistory = 1
 	return actionConfig, nil
 }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -41,18 +41,22 @@ create_kind_cluster() {
     return 0
   fi
 
-  if [ ${K8S_VERSION} == 1.21 ]; then
-    KIND_IMAGE="v1.21.12@sha256:f316b33dd88f8196379f38feb80545ef3ed44d9197dca1bfd48bcb1583210207"
-  elif [ ${K8S_VERSION} == 1.22 ]; then
-    KIND_IMAGE="v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105"
-  elif [ ${K8S_VERSION} == 1.23 ]; then
-    KIND_IMAGE="v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae"
-  elif [ ${K8S_VERSION} == 1.24 ]; then
-    KIND_IMAGE="v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e"
-  else
-    echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
-    exit 1
-  fi
+   if [ "${K8S_VERSION}" == "1.21" ]; then
+      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.21.14-20230510140100-7d934451"
+    elif [ "${K8S_VERSION}" == "1.22" ]; then
+      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.22.15-20230510133529-7d934451"
+    elif [ "${K8S_VERSION}" == "1.23" ]; then
+      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.23.13-20230510133509-7d934451"
+    elif [ "${K8S_VERSION}" == "1.24" ]; then
+      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.24.10-20230510133459-7d934451"
+    elif [ "${K8S_VERSION}" == "1.25" ]; then
+      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.25.8-20230510133540-7d934451"
+    elif [ "${K8S_VERSION}" == "1.26" ]; then
+      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.26.3-20230512053749-7d934451"
+    else
+      echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
+      exit 1
+   fi
 
   if [ $SETUP_CALICO == true ] ; then
     CALICO_SUFFIX="-calico"
@@ -90,7 +94,6 @@ create_kind_cluster() {
     fi
   fi
 
-
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
   echo "Listing permissions for /dev/null"
@@ -99,16 +102,16 @@ create_kind_cluster() {
   for (( n=2; n<=${NODE_COUNT}; n++ ))
   do
     echo "  - role: worker" >> ${KIND_CONFIG_FILE}
-    echo "    image: kindest/node:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
+    echo "    image: KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
-  sed -i -e "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+  sed -i -e "s|KIND_IMAGE|${KIND_IMAGE}|g" ${KIND_CONFIG_FILE}
 
   # Use a custom API server address if specified; defaults to 127.0.0.1
   echo "Setting the cluster API server address to ${KIND_API_SERVER_ADDRESS}"
   yq -i eval '.networking.apiServerAddress=strenv(KIND_API_SERVER_ADDRESS)' ${KIND_CONFIG_FILE}
 
   cat ${KIND_CONFIG_FILE}
-  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} \
+  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 9 --name ${CLUSTER_NAME} \
     --config=${KIND_CONFIG_FILE}
 }
 

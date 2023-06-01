@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -254,8 +254,8 @@ func TestFetchUnstructuredByReference(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-space", Name: "test-name"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, uns *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-space", Name: "test-name"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, uns *unstructured.Unstructured, opts ...client.GetOption) error {
 			return fmt.Errorf("test-error")
 		})
 	uns, err = FetchUnstructuredByReference(ctx, cli, zap.S(), v1alpha1.QualifiedResourceRelation{
@@ -274,8 +274,8 @@ func TestFetchUnstructuredByReference(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-space", Name: "test-name"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, uns *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-space", Name: "test-name"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, uns *unstructured.Unstructured, opts ...client.GetOption) error {
 			uns.SetNamespace(key.Namespace)
 			uns.SetName(key.Name)
 			return nil

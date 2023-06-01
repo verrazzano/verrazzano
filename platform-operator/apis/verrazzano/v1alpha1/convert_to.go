@@ -115,6 +115,8 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}
 	return v1beta1.ComponentSpec{
 		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
+		ClusterIssuer:          ConvertClusterIssuerToV1Beta1(src.ClusterIssuer),
+		CertManagerWebhookOCI:  ConvertCertManagerWebhookOCIToV1Beta1(src.CertManagerWebhookOCI),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
@@ -145,7 +147,48 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
+		CAPI:                   convertCAPIToV1Beta1(src.CAPI),
+		ClusterAgent:           convertClusterAgentToV1Beta1(src.ClusterAgent),
 	}, nil
+}
+
+func ConvertClusterIssuerToV1Beta1(src *ClusterIssuerComponent) *v1beta1.ClusterIssuerComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterIssuerComponent{
+		Enabled:                  src.Enabled,
+		ClusterResourceNamespace: src.ClusterResourceNamespace,
+		IssuerConfig:             convertIssuerConfig(src.IssuerConfig),
+	}
+}
+
+func convertIssuerConfig(src IssuerConfig) v1beta1.IssuerConfig {
+	var leIssuer *v1beta1.LetsEncryptACMEIssuer
+	if src.LetsEncrypt != nil {
+		leIssuer = &v1beta1.LetsEncryptACMEIssuer{
+			EmailAddress: src.LetsEncrypt.EmailAddress,
+			Environment:  src.LetsEncrypt.Environment,
+		}
+	}
+	var caIssuer *v1beta1.CAIssuer
+	if src.CA != nil {
+		caIssuer = &v1beta1.CAIssuer{SecretName: src.CA.SecretName}
+	}
+	return v1beta1.IssuerConfig{
+		LetsEncrypt: leIssuer,
+		CA:          caIssuer,
+	}
+}
+
+func ConvertCertManagerWebhookOCIToV1Beta1(src *CertManagerWebhookOCIComponent) *v1beta1.CertManagerWebhookOCIComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CertManagerWebhookOCIComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
 }
 
 func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
@@ -492,6 +535,7 @@ func convertGrafanaToV1Beta1(src *GrafanaComponent) *v1beta1.GrafanaComponent {
 		Enabled:  src.Enabled,
 		Replicas: src.Replicas,
 		Database: info,
+		SMTP:     src.SMTP,
 	}
 }
 
@@ -705,6 +749,25 @@ func convertRancherBackupToV1Beta1(src *RancherBackupComponent) *v1beta1.Rancher
 		return nil
 	}
 	return &v1beta1.RancherBackupComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
+func convertCAPIToV1Beta1(src *CAPIComponent) *v1beta1.CAPIComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CAPIComponent{
+		Enabled: src.Enabled,
+	}
+}
+
+func convertClusterAgentToV1Beta1(src *ClusterAgentComponent) *v1beta1.ClusterAgentComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterAgentComponent{
 		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}

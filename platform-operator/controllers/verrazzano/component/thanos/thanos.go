@@ -5,6 +5,7 @@ package thanos
 
 import (
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -26,7 +27,7 @@ const (
 	queryCertificateName = "system-tls-thanos-query"
 
 	// Thanos Query StoreAPI constants
-	queryStoreHostName        = "query-store"
+	queryStoreHostName        = "thanos-query-store"
 	queryStoreCertificateName = "system-tls-query-store"
 )
 
@@ -59,7 +60,19 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	kvs = append(kvs, image...)
 
+	kvs = appendVerrazzanoOverrides(ctx, kvs)
+
 	return appendIngressOverrides(ctx, kvs)
+}
+
+// appendVerrazzanoOverrides appends overrides that are specific to Verrazzano
+// i.e. .Values.verrazzano.*. To start with, there is just one (verrazzano.isIstioEnabled)
+func appendVerrazzanoOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) []bom.KeyValue {
+	enabled := vzcr.IsIstioInjectionEnabled(ctx.EffectiveCR())
+	// isIstioEnabled is used in the Helm chart to determine whether the Thanos service monitors
+	// should use Istio TLS config
+	kvs = append(kvs, bom.KeyValue{Key: "verrazzano.isIstioEnabled", Value: strconv.FormatBool(enabled)})
+	return kvs
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Thanos Component
@@ -144,12 +157,16 @@ func formatIngressOverrides(ctx spi.ComponentContext, props ingressOverridePrope
 		{Key: fmt.Sprintf("%s.extraTls[0].hosts[0]", props.KeyPrefix), Value: props.HostName},
 		{Key: fmt.Sprintf("%s.extraTls[0].secretName", props.KeyPrefix), Value: props.TLSSecretName},
 	}...)
+	ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", props.Subdomain)
 	if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
-		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", props.Subdomain)
 		kvs = append(kvs, []bom.KeyValue{
 			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/target`, props.KeyPrefix), Value: ingressTarget},
 			{Key: fmt.Sprintf(`%s.annotations.external-dns\.alpha\.kubernetes\.io/ttl`, props.KeyPrefix), Value: "60", SetString: true},
 		}...)
 	}
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/common-name`, props.KeyPrefix), Value: props.HostName},
+		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/cluster-issuer`, props.KeyPrefix), Value: vzconst.VerrazzanoClusterIssuerName},
+	}...)
 	return kvs
 }

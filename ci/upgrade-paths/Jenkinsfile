@@ -12,6 +12,13 @@ def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
+def KUBECTL = "kubectl"
+def VZ_CLI = "vz cli"
+def installationMethodsPreupgrade = [ KUBECTL, VZ_CLI ]
+Collections.shuffle(installationMethodsPreupgrade)
+def installationMethodsUpgrade = [ KUBECTL, VZ_CLI ]
+Collections.shuffle(installationMethodsUpgrade)
+
 installerFileName = "install-verrazzano.yaml"
 
 pipeline {
@@ -41,17 +48,23 @@ pipeline {
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
                 // 1st choice is the default value
                 choices: availableRegions )
+        choice (description: 'Verrazzano pre-upgrade installation using either kubectl or vz cli ', name: 'INSTALLATION_METHOD_PREUPGRADE',
+                // 1st choice is the default value
+                choices: installationMethodsPreupgrade )
+        choice (description: 'Verrazzano upgrade installation using either kubectl or vz cli ', name: 'INSTALLATION_METHOD_UPGRADE',
+                // 1st choice is the default value
+                choices: installationMethodsUpgrade )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
                 // 1st choice is the default value
                 choices: [ "VM.Standard.E3.Flex-4-2", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.21.5", "v1.22.5", "v1.23.4", "v1.24.1" ])
+                choices: [ "v1.22.5", "v1.23.4", "v1.24.1", "v1.25.4", "v1.26.2" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.21", "1.22", "1.23", "1.24" ])
+                choices: [ "1.22", "1.23", "1.24", "1.25", "1.26" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.3.0',
                 description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.3.0 release will be installed',
@@ -399,6 +412,21 @@ pipeline {
                         stage('deployment metrics') {
                             steps {
                                 runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
+                            }
+                        }
+                    }
+                }
+                stage('upgrade-platform-operator using kubectl') {
+                    when { expression { return params.INSTALLATION_METHOD_UPGRADE == "kubectl" } }
+                    stages {
+                        stage("upgrade-platform-operator") {
+                            steps {
+                                upgradePlatformOperator()
+                            }
+                        }
+                        stage("Verify Upgrade Required") {
+                            steps {
+                                runGinkgoRandomizeSerial('upgrade/pre-upgrade/verify-upgrade-required')
                             }
                         }
                     }
@@ -861,12 +889,19 @@ def deleteOkeClusters() {
 def getVerrazzanoOperatorYaml() {
     script {
         OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
+        RELEASE_NUMBER=sh(returnStdout: true, script: "echo ${VERSION_FOR_INSTALL} | tail -c4").trim()
+
         sh """
             echo "Platform Operator Configuration"
             cd ${GO_REPO_PATH}/verrazzano
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
-                wget "${OPERATOR_YAML_FILE}" -O ${WORKSPACE}/downloaded-release-operator.yaml
+                if [ "master" == $VERSION_FOR_UPGRADE_ENV ]; then
+                    echo "Downloading operator from object storage"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/release-${RELEASE_NUMBER}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-release-operator.yaml
+                else
+                    echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
+                    wget "${OPERATOR_YAML_FILE}" -O "${WORKSPACE}"/downloaded-release-operator.yaml
+                fi
                 cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
             else
                 echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -920,8 +955,30 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-                # Install Verrazzano
-                ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+                echo "Following is the verrazzano CR file for the installation:"
+                cat ${verrazzanoConfig}
+
+                if [ "${params.INSTALLATION_METHOD_PREUPGRADE}" == "kubectl" ]; then
+                    echo "Installing the Verrazzano Platform Operator"
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                    # create secret in verrazzano-install ns
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                    echo "Wait for Operator to be ready"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                    echo "Applying \$verrazzanoConfig"
+                    # validate is set to false since we are using newer Verrazzano CR yaml when installing an older pre-upgrade version
+                    kubectl apply --validate=false -f ${verrazzanoConfig}
+
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                elif [ "${params.INSTALLATION_METHOD_PREUPGRADE}" == "vz cli" ]; then
+                    # Install Verrazzano
+                    ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --manifests ${WORKSPACE}/acceptance-test-operator.yaml
+                fi
             """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
@@ -936,8 +993,11 @@ def getPlatformOperatorForRelease(){
         //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
+        if(params.VERSION_FOR_UPGRADE == "master"){
+            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
+        
         //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
-        if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
+        }else if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
@@ -962,15 +1022,61 @@ def getLatestReleaseVersion(){
     return latestReleaseBranch
 }
 
+// Upgrade the verrazzano-platform-operator for all clusters
+def upgradePlatformOperator() {
+    script {
+        echo "Downloading target upgrade operator yaml"
+        getPlatformOperatorForRelease()
+
+        def verrazzanoPlatformOperatorUpgradeStages= createClusterExecutionsMap()
+
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count = 1; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count-1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verrazzanoPlatformOperatorUpgradeStages["${key}"] = upgradePlatformOperatorOnCluster(count)
+        }
+        parallel verrazzanoPlatformOperatorUpgradeStages
+    }
+}
+
+// Upgrade the verrazzano-platform-operator for a given cluster
+// - count is the cluster index into the $KUBECONFIG_DIR
+def upgradePlatformOperatorOnCluster(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
+            def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
+            sh """
+                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
+                echo "Upgrading the Verrazzano platform operator"
+                kubectl --kubeconfig=${kubeClusterConfig} apply -f ${upgradeOperatorFile}
+
+                # need to sleep since the old operator needs to transition to terminating state
+                sleep 15
+
+                # ensure operator pod is up
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install rollout status deployment/verrazzano-platform-operator-webhook
+            """
+        }
+    }
+}
+
 // Upgrade Verrazzano
 def upgradeVerrazzano() {
     script {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
-
-        if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        if(params.VERSION_FOR_UPGRADE == "master"){
+            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+        }else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
+        }else{
+            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
         }
 
         echo "Downloading target upgrade operator yaml"
@@ -999,6 +1105,9 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
         script {
             def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
             def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
+
+            def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
             sh """
                 cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
 
@@ -1007,8 +1116,23 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 # Get the install job in verrazzano-install namespace
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
 
-                echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile} --timeout 35m
+                if [ "${params.INSTALLATION_METHOD_UPGRADE}" == "kubectl" ]; then
+                    echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
+                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
+                    cd ${GO_REPO_PATH}/verrazzano
+                    cp ${v8oInstallFile} ${v8oUpgradeFile}
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
+
+                    # Do the upgrade
+                    echo "Following is the verrazzano CR file with the new version:"
+                    cat ${v8oUpgradeFile}
+                    kubectl --kubeconfig=${kubeClusterConfig} patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
+                    # wait for the upgrade to complete
+                    kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
+                    echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
+                    ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --manifests ${upgradeOperatorFile} --timeout 35m
+                fi
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
@@ -1845,9 +1969,13 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
 
 def downloadCLI() {
     script {
+        sh "echo Downloading VZ CLI from object storage"
+        if(VERSION_FOR_UPGRADE_ENV == "master"){
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
+        }else{
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
+        }
         sh """
-            echo "Downloading VZ CLI from object storage"
-            oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
             ${GO_REPO_PATH}/vz version
         """
@@ -1860,6 +1988,11 @@ def setInitValues() {
         VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+        // GIT_COMMIT_TO_USE: contains release branch sha which is used to download the release operator for the tip of a release branch.
+        // If condition is executed only if the upgrade target branch is master.
+        if(params.VERSION_FOR_UPGRADE == 'master'){
+            SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE[0..7]
+        }
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
         // update the description with some meaningful info
         setDisplayName()
@@ -1899,7 +2032,21 @@ def performSourceCodeCheckout() {
             def scmInfo = checkout scm
             env.GIT_COMMIT = scmInfo.GIT_COMMIT
             env.GIT_BRANCH = scmInfo.GIT_BRANCH
-        } else {
+        // The master branch is checked out specifically when the upgrade target branch is master. 
+        // This is done to ensure the master branch upgrade test suites are run after the upgrade is completed.
+        // Since the target upgrade branch is the master, then the tests run after upgrade must also be from the master branch.
+        // This is here to ensure that happens.
+        }else if(params.VERSION_FOR_UPGRADE == 'master'){
+            def scmInfo = checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: 'master']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+        }else {
             echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
             def scmInfo = checkout([
                     $class: 'GitSCM',

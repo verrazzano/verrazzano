@@ -6,6 +6,7 @@ def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
 def VERRAZZANO_DEV_VERSION = ""
+def VZ_BASE_IMAGE = ""
 def tarfilePrefix=""
 def storeLocation=""
 
@@ -105,7 +106,8 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-        OCI_OS_REGION="us-phoenix-1"
+        OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
+        OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -119,6 +121,9 @@ pipeline {
         // used to write to object storage, or fail build if UT coverage does not pass
         FAIL_BUILD_COVERAGE = "${params.FAIL_IF_COVERAGE_DECREASED}"
         UPLOAD_UT_COVERAGE = "${params.UPLOAD_UNIT_TEST_COVERAGE}"
+
+	// File containing base image information
+	BASE_IMAGE_INFO_FILE = "base-image-v1.0.0.txt"
     }
 
     stages {
@@ -155,6 +160,7 @@ pipeline {
                     }
                 }
                 moveContentToGoRepoPath()
+		downloadBaseImageInfoFile()
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -175,6 +181,11 @@ pipeline {
                         SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
+
+                    def imageProps = readProperties file: "${WORKSPACE}/${BASE_IMAGE_INFO_FILE}"
+                    VZ_BASE_IMAGE = imageProps['base-image']
+                    env.VZ_BASE_IMAGE = "${VZ_BASE_IMAGE}"
+                    echo "Verrazzano base image: ${VZ_BASE_IMAGE}"
                 }
             }
         }
@@ -348,7 +359,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.24') {
+        stage('Kind Acceptance Tests on 1.26') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -371,7 +382,7 @@ pipeline {
                     script {
                         build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                             parameters: [
-                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                 string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                 string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),
@@ -431,6 +442,21 @@ pipeline {
             stages{
                 stage("Build Product Zip") {
                     steps {
+                        script {
+                            try {
+                                sh """
+                                     echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                                """
+                            } catch(error) {
+                                echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
+                                retry(4) {
+                                    sleep(30)
+                                    sh """
+                                        echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                                    """
+                                }
+                            }
+                        }
                         script {
                             sh """
                                 ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
@@ -544,6 +570,13 @@ def moveContentToGoRepoPath() {
     """
 }
 
+// Download the file containing the base image name and digest
+def downloadBaseImageInfoFile() {
+    sh """
+        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name verrazzano-base-images/${BASE_IMAGE_INFO_FILE} --file ${WORKSPACE}/${BASE_IMAGE_INFO_FILE}
+    """
+}
+
 // Called in Stage CLI steps
 def buildVerrazzanoCLI(dockerImageTag) {
     sh """
@@ -569,7 +602,7 @@ def checkRepoClean() {
 def buildImages(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-        echo 'Now build...'
+        echo 'Now build using ${env.VZ_BASE_IMAGE} as base image...'
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
         cp $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano-bom.json

@@ -2,11 +2,9 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-// Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
-// - at some point, we can either enable bucket replication or have the pipeline push it to more regions
-//def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-def agentLabel = "phx-large"
-def ocirRegion = "phx"
+def agentLabel = params.DISTRIBUTION_VARIANT == "Lite" ? "phx-large" : "blocked-large"
+def ocirRegion = params.DISTRIBUTION_VARIANT == "Lite" ? "phx" : "fra"
+def ociRegionFull = params.DISTRIBUTION_VARIANT == "Lite" ? "us-phoenix-1" : "eu-frankfurt-1"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
@@ -21,9 +19,9 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image getRunnerImage("${RUNNER_DOCKER_IMAGE}")
             args "${RUNNER_DOCKER_ARGS}"
-            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryUrl "https://${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
@@ -33,13 +31,13 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.24", "1.23", "1.22", "1.21" ])
+                choices: [ "1.26", "1.25", "1.24", "1.23", "1.22" ])
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for testing',
                 choices: ["Full", "Lite"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        description: 'This is the short git commit hash from the source build to be used for downloading from object storage',
                         trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -88,8 +86,9 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
-        OCR_REPO = 'container-registry.oracle.com'
+        OCR_CREDS_USR = "${OCIR_CREDS_USR}"
+        OCR_CREDS_PSW = "${OCIR_CREDS_PSW}"
+        OCR_REPO = "${ocirRegistry}"
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
@@ -98,6 +97,7 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
+        SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE.substring(0, 8)
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -142,10 +142,35 @@ pipeline {
         CLEAN_PERIODIC_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
 
         DISTRIBUTION_VARIANT = "${params.DISTRIBUTION_VARIANT}"
+        AIR_GAPPED = true
     }
 
     stages {
-        stage('Initialize workspace and checkout') {
+        stage('Verify Air-Gapped') {
+            when {
+                expression {
+                    DISTRIBUTION_VARIANT == "Full"
+                }
+            }
+            steps {
+                script {
+                    echo "Checking if we are running in an air-gapped environment"
+                    def exitCode = sh(returnStatus: true, script: 'curl --max-time 20 "http://www.oracle.com"')
+                    if (exitCode == 0) {
+                        echo "curl command to internet succeeded, environment is not air-gapped! Exiting"
+                        AIR_GAPPED = false
+                        sh "exit 1"
+                    }
+                    echo "Verified that we are in an air-gapped environment"
+                }
+            }
+        }
+        stage('Initialize workspace and download/extract vz source tarball') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -153,34 +178,16 @@ pipeline {
                 }
 
                 script {
-                   EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
                     baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
+
+                    srcTar = "ephemeral/${env.BRANCH_NAME}/" + env.SHORT_COMMIT_HASH + "/verrazzano-src.tar.gz"
+                    echo "source tarball: ${srcTar}"
+                    downloadLocation = "${WORKSPACE}/vzsrc.tar.gz"
+                    echo "source tarball download location: ${downloadLocation}"
                 }
 
                 sh """
@@ -192,21 +199,6 @@ pipeline {
                     echo "${NODE_LABELS}"
                 """
 
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
                 script {
                     try {
                         sh """
@@ -225,18 +217,22 @@ pipeline {
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+
+                    echo "Downloading VZ source tarball"
+                    oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${srcTar} --file ${downloadLocation}
+
+                    echo "Extracting source"
+                    tar xvf ${downloadLocation}
+                    tar cf - . | (cd ${GO_REPO_PATH} ; tar xf - ; ls -las)
                 """
 
                 script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "grep verrazzano-development-version ${GO_REPO_PATH}/verrazzano/.verrazzano-development-version | cut -d'=' -f2 | tr -d '\n'")
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + env.SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
                 script {
                     zipFileLoc = params.ZIPFILE_LOCATION
@@ -251,7 +247,12 @@ pipeline {
             }
         }
 
-        stage('Download and extract Tarball') {
+        stage('Download and extract dist tarball') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
              environment {
                  TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
              }
@@ -277,7 +278,7 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
+                        oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_ROOT_DIR) {
@@ -310,6 +311,11 @@ pipeline {
         }
 
         stage('verify distribution') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             environment {
                 VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
@@ -320,15 +326,20 @@ pipeline {
         }
 
         stage('Upload Verrazzano Images') {
-             environment {
-                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
-             }
+            when {
+                expression {
+                    return runPipeline()
+               }
+            }
+            environment {
+                TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+            }
             steps {
                 script {
                     if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r ${ociRegionFull} -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             cd ${TARBALL_DIR}
@@ -336,12 +347,25 @@ pipeline {
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
                         """
                     } else {
+                        try {
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        } catch(error) {
+                            echo "docker login failed, retrying after sleep"
+                            retry(4) {
+                                sleep(30)
+                                sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                """
+                            }
+                        }
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             cd ${TARBALL_DIR}
                             sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/images
                             cd ${TEST_SCRIPTS_DIR}
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r ${ociRegionFull} -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             # Run the image-helper to load the images into the OCIR registry in the runner's region
@@ -354,6 +378,11 @@ pipeline {
             }
         }
         stage('Acceptance Tests') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -389,6 +418,20 @@ pipeline {
                         }
                     }
                 }
+                stage('Load Example Images') {
+                    steps {
+                        script {
+                            exampleImagesTar = "ephemeral/${env.BRANCH_NAME}/" + env.SHORT_COMMIT_HASH + "/verrazzano-${VERRAZZANO_DEV_VERSION}-example-images.tar"
+                            echo "example image tarball: ${exampleImagesTar}"
+                            downloadLocation = "${WORKSPACE}/verrazzano-${VERRAZZANO_DEV_VERSION}-example-images.tar"
+                            echo "example image tarball download location: ${downloadLocation}"
+                        }
+                        sh """
+                            oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
+                            kind load image-archive ${downloadLocation} --name verrazzano
+                        """
+                    }
+                }
                 stage('Run Acceptance Tests') {
                     environment {
                         PRIVATE_REPO="${baseImageRepo}"
@@ -418,48 +461,12 @@ pipeline {
                                         runGinkgoRandomize('verify-infra/vmi')
                                     }
                                 }
-                                stage('istio authorization policy') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                                    }
-                                    steps {
-                                        runGinkgoKeepGoing('istio/authz')
-                                    }
-                                }
                                 stage('security rbac') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                                     }
                                     steps {
                                         runGinkgoKeepGoing('security/rbac')
-                                    }
-                                }
-                                stage('security network policies') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-                                    }
-                                    steps {
-                                        script {
-                                            if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                                runGinkgo('security/netpol')
-                                            }
-                                        }
-                                    }
-                                }
-                                stage('deployment metrics') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-                                    }
-                                    steps {
-                                        runGinkgo('metrics/deploymetrics')
-                                    }
-                                }
-                                stage('examples logging helidon') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                                    }
-                                    steps {
-                                        runGinkgoKeepGoing('logging/helidon')
                                     }
                                 }
                                 stage('examples helidon') {
@@ -470,52 +477,12 @@ pipeline {
                                         runGinkgoKeepGoing('examples/helidon')
                                     }
                                 }
-                                stage('argocd helidon deploy') {
+                                stage('examples todo-list') {
                                     environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-argocd-helidon"
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
                                     }
                                     steps {
-                                        runGinkgoKeepGoing('examples/argocd-helidon')
-                                    }
-                                }
-                                stage('weblogic workload') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-                                    }
-                                    steps {
-                                        runGinkgoFailFast('workloads/weblogic')
-                                    }
-                                }
-                                stage('coherence workload') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-                                    }
-                                    steps {
-                                        runGinkgoKeepGoing('workloads/coherence')
-                                    }
-                                }
-                                stage('Ingress & logging trait WebLogic workload') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                                    }
-                                    steps {
-                                        runGinkgo('loggingtrait/weblogicworkload')
-                                    }
-                                }
-                                stage('logging trait Helidon workload') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-                                    }
-                                    steps {
-                                        runGinkgo('loggingtrait/helidonworkload')
-                                    }
-                                }
-                                stage('logging trait Coherence workload') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-                                    }
-                                    steps {
-                                        runGinkgo('loggingtrait/coherenceworkload')
+                                        runGinkgoKeepGoing('examples/todo')
                                     }
                                 }
                             }
@@ -564,6 +531,11 @@ pipeline {
             }
         }
         stage('Uninstall') {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             options {
                 timeout(time: 30, unit: "MINUTES")
             }
@@ -571,7 +543,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano verrazzano
+                            ${GO_REPO_PATH}/vz uninstall -y --timeout 45m
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
@@ -599,6 +571,11 @@ pipeline {
             }
         }
         stage("Verify Uninstall") {
+            when {
+                expression {
+                    return runPipeline()
+                }
+            }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -624,12 +601,18 @@ pipeline {
 
     post {
         always {
+            script {
+                if (DISTRIBUTION_VARIANT == "Full" && !env.AIR_GAPPED) {
+                    echo "Airgap check failed, not running post actions."
+                    sh "exit 0"
+                }
+            }
             sh """
-                echo "Current execution region: $ocirRegion"
+                echo "Current execution region: ${ociRegionFull}"
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
                 echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -r ${ociRegionFull} -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
 
                 # Copy the generated test reports to WORKSPACE to archive them
                 mkdir -p ${TEST_REPORT_DIR}
@@ -665,6 +648,10 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def runPipeline() {
+    return AIR_GAPPED
 }
 
 def runGinkgoRandomize(testSuitePath) {
@@ -823,4 +810,11 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
+}
+
+def getRunnerImage(runnerImageIn) {
+    if (params.DISTRIBUTION_VARIANT.equals("Full")) {
+        return runnerImageIn.replaceFirst("phx", "fra")
+    }
+    return runnerImageIn
 }

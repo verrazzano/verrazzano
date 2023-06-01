@@ -64,6 +64,7 @@ rules:
       - secrets
       - services
       - pods/exec
+      - namespaces
     verbs:
       - create
       - get
@@ -71,6 +72,15 @@ rules:
       - update
       - watch
       - delete
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - update
+      - watch
   - apiGroups:
       - networking.k8s.io
     resources:
@@ -114,20 +124,4 @@ rules:
       - update
       - get
       - list
-      - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: verrazzano-cluster-registrar
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - create
-      - update
-      - list
-      - get
       - watch

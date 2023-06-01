@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,6 +20,7 @@ const (
 	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
 	helmConfigDirSuffix          = "/platform-operator/helm_config"
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
+	helmVPOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
@@ -130,6 +132,14 @@ func GetHelmChartsDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, helmChartsDirSuffix)
 }
 
+// GetHelmVPOChartsDir returns the verrazzano-platform-operator helm charts dir
+func GetHelmVPOChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-platform-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmVPOChartsDirSuffix)
+}
+
 // GetHelmVMOChartsDir returns the verrazzano-monitoring-operator helm charts dir
 func GetHelmVMOChartsDir() string {
 	if TestHelmConfigDir != "" {
@@ -232,7 +242,7 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, nginxutil.IngressNGINXNamespace(), constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {

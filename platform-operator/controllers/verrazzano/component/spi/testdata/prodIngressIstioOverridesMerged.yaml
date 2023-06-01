@@ -64,6 +64,13 @@ spec:
                             app: webhook
                         topologyKey: kubernetes.io/hostname
                       weight: 100
+    certManagerWebhookOCI:
+      enabled: false
+    clusterIssuer:
+      enabled: true
+      clusterResourceNamespace: "cert-manager"
+      ca:
+        secretName: "verrazzano-ca-certificate-secret"
     clusterOperator:
       enabled: true
     coherenceOperator:
@@ -328,4 +335,6 @@ spec:
     weblogicOperator:
       enabled: true
     argoCD:
+      enabled: false
+    capi:
       enabled: false

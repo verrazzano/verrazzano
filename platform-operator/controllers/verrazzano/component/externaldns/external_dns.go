@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
@@ -6,14 +6,17 @@ package externaldns
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/namespace"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
@@ -28,9 +31,6 @@ import (
 
 // ComponentName is the name of the component
 const (
-	ociSecretFileName      = "oci.yaml"
-	dnsGlobal              = "GLOBAL" //default
-	dnsPrivate             = "PRIVATE"
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 	ownerIDHelmKey         = "txtOwnerId"
 	prefixKey              = "txtPrefix"
@@ -39,10 +39,14 @@ const (
 	clusterRoleBindingName = ComponentName
 )
 
+type isInstalledFuncType func(releaseName string, namespace string) (found bool, err error)
+
+var isLegacyNamespaceInstalledFunc isInstalledFuncType = helm.IsReleaseInstalled
+
 func preInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager PreInstall dry run")
+		compContext.Log().Debug("external-dns PreInstall dry run")
 		return nil
 	}
 
@@ -51,45 +55,43 @@ func preInstall(compContext spi.ComponentContext) error {
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
+		return compContext.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 
-	// Get OCI DNS secret from the verrazzano-install namespace
-	dns := compContext.EffectiveCR().Spec.Components.DNS
-	dnsSecret := v1.Secret{}
-	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: dns.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, &dnsSecret); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to find secret %s in the %s namespace: %v", dns.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace, err)
-	}
-
-	//check if scope value is valid
-	scope := dns.OCI.DNSScope
-	if scope != dnsGlobal && scope != dnsPrivate && scope != "" {
-		return compContext.Log().ErrorfNewErr("Failed, invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", dns.OCI.DNSScope)
-	}
-
-	// Attach compartment field to secret and apply it in the external DNS namespace
-	externalDNSSecret := v1.Secret{}
-	compContext.Log().Debug("Creating the external DNS secret")
-	externalDNSSecret.Namespace = ComponentNamespace
-	externalDNSSecret.Name = dnsSecret.Name
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &externalDNSSecret, func() error {
-		externalDNSSecret.Data = make(map[string][]byte)
-
-		// Verify that the oci secret has one value
-		if len(dnsSecret.Data) != 1 {
-			return compContext.Log().ErrorNewErr("Failed, OCI secret for OCI DNS should be created from one file")
-		}
-
-		// Extract data and create secret in the external DNS namespace
-		for k := range dnsSecret.Data {
-			externalDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("compartment: %s", dns.OCI.DNSZoneCompartmentOCID))...)
-		}
-
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the external DNS secret: %v", err)
+	if err := common.CopyOCIDNSSecret(compContext, ComponentNamespace); err != nil {
+		return err
 	}
 	return nil
+}
+
+// resolveExernalDNSNamespace implements the HelmComponent contract to resolve a component namespace dynamically
+func resolveExernalDNSNamespace(_ string) string {
+	return ResolveExernalDNSNamespace()
+}
+
+// ResolveExernalDNSNamespace Resolves the namespace for External DNS based on an existing legacy instance vs a new one;
+// if External-DNS exists in the cert-manager namespace AND the namespace is owned by Verrazzano, use the existing
+// installed namespace; otherwise we will install it into the verrazzano-system namespace
+//
+// HelmComponent will cache the results when called from that context
+func ResolveExernalDNSNamespace() string {
+	resolvedNamespace := ComponentNamespace
+	logger := vzlog.DefaultLogger()
+	releaseFound, err := isLegacyNamespaceInstalledFunc(ComponentName, legacyNamespace)
+	if err != nil {
+		logger.ErrorfThrottled("Error listing %s helm release %v", err)
+		return ""
+	}
+	isVerrazzanoManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(legacyNamespace)
+	if err != nil {
+		logger.ErrorfThrottled("Error checking if namespace %s is Verrazzano-managed: %v", legacyNamespace, err)
+		return ""
+	}
+	if releaseFound && isVerrazzanoManaged {
+		resolvedNamespace = legacyNamespace
+	}
+	logger.Oncef("Using namespace %s for component %s", resolvedNamespace, ComponentName)
+	return resolvedNamespace
 }
 
 // postUninstall Clean up the cluster role/bindings
@@ -112,14 +114,21 @@ func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	}.Delete()
 }
 
-func (c externalDNSComponent) isExternalDNSReady(compContext spi.ComponentContext) bool {
+func (c *externalDNSComponent) getDeploymentNames(ctx spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{
+		{Name: ComponentName, Namespace: c.HelmComponent.ResolveNamespace(ctx)},
+	}
+}
+
+func (c *externalDNSComponent) isExternalDNSReady(compContext spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
-	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
+	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), c.getDeploymentNames(compContext), 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, releaseName string, namespace string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	oci, err := getOCIDNS(compContext.EffectiveCR())
+	effectiveCR := compContext.EffectiveCR()
+	oci, err := getOCIDNS(effectiveCR)
 	if err != nil {
 		return kvs, err
 	}
@@ -142,8 +151,23 @@ func AppendOverrides(compContext spi.ComponentContext, releaseName string, names
 		{Key: "extraVolumeMounts[0].name", Value: "config"},
 		{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"},
 	}
+	for i, source := range getSources(effectiveCR) {
+		arguments = append(arguments, bom.KeyValue{
+			Key:   fmt.Sprintf("sources[%v]", i),
+			Value: source,
+		})
+	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
+}
+
+func getSources(vz *vzapi.Verrazzano) []string {
+	sources := []string{"ingress", "service"}
+	if vzcr.IsIstioEnabled(vz) {
+		sources = append(sources, "istio-gateway")
+	}
+
+	return sources
 }
 
 func getOCIDNS(vz *vzapi.Verrazzano) (*vzapi.OCI, error) {

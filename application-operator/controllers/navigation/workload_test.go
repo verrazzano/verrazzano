@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -54,8 +54,8 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition, opts ...client.GetOption) error {
 			wlDef.SetNamespace(key.Namespace)
 			wlDef.SetName(key.Name)
 			return nil
@@ -74,8 +74,8 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition, opts ...client.GetOption) error {
 			return fmt.Errorf("test-error")
 		})
 	workload = unstructured.Unstructured{}
@@ -115,8 +115,8 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 	// Expect a call to get the containerized workload definition and return one that populates the child resource kinds.
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition, opts ...client.GetOption) error {
 			wlDef.SetNamespace(key.Namespace)
 			wlDef.SetName(key.Name)
 			wlDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}}
@@ -157,8 +157,8 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, wlDef *oamcore.WorkloadDefinition, opts ...client.GetOption) error {
 			wlDef.SetNamespace(key.Namespace)
 			wlDef.SetName(key.Name)
 			wlDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}}
@@ -224,8 +224,8 @@ func TestComponentFromWorkloadLabels(t *testing.T) {
 
 	// expect a call to fetch the oam application configuration
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: "does-not-match"}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
@@ -247,8 +247,8 @@ func TestComponentFromWorkloadLabels(t *testing.T) {
 
 	// expect a call to fetch the oam application configuration
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
@@ -458,8 +458,8 @@ func TestFetchContainedWorkload(t *testing.T) {
 
 	// expect a call to get the contained resource, return an error
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: containedName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, contained *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: containedName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, contained *unstructured.Unstructured, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{}, "Unable to fetch resource")
 		})
 
@@ -476,8 +476,8 @@ func TestFetchContainedWorkload(t *testing.T) {
 
 	// expect a call to get the contained resource, return it as unstructured
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: containedName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, contained *unstructured.Unstructured) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: containedName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, contained *unstructured.Unstructured, opts ...client.GetOption) error {
 			contained.SetUnstructuredContent(containedResource)
 			contained.SetAPIVersion(containedAPIVersion)
 			contained.SetKind(containedKind)
@@ -518,8 +518,8 @@ func TestLoggingTraitFromWorkloadLabels(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
@@ -541,8 +541,8 @@ func TestLoggingTraitFromWorkloadLabels(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
 				Traits: []oamcore.ComponentTrait{{
 					Trait: runtime.RawExtension{Object: &item}},
@@ -579,8 +579,8 @@ func TestLoggingTraitFromWorkloadLabels(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
 				Traits: []oamcore.ComponentTrait{{
 					Trait: runtime.RawExtension{Object: &item}},
@@ -627,8 +627,8 @@ func TestMetricsTraitFromWorkloadLabels(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
@@ -650,8 +650,8 @@ func TestMetricsTraitFromWorkloadLabels(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
 				Traits: []oamcore.ComponentTrait{{
 					Trait: runtime.RawExtension{Object: &item}},
@@ -688,8 +688,8 @@ func TestMetricsTraitFromWorkloadLabels(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
 				Traits: []oamcore.ComponentTrait{{
 					Trait: runtime.RawExtension{Object: &item}},

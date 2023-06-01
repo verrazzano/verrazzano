@@ -39,6 +39,21 @@ spec:
         # http api port
         - port: 10902
           protocol: TCP
+    # allow Prometheus to scrape metrics from Thanos query-frontend
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # api port
+        - port: 10902
+          protocol: TCP
+        # Istio proxy metrics port
+        - port: 15090
+          protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
@@ -70,6 +85,21 @@ spec:
           protocol: TCP
         # storegateway API endpoint
         - port: 10901
+          protocol: TCP
+    # allow Prometheus to scrape metrics from Thanos query
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # api port
+        - port: 10902
+          protocol: TCP
+        # Istio proxy metrics port
+        - port: 15090
           protocol: TCP
   podSelector:
     matchLabels:

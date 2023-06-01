@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -6,18 +6,20 @@ package helpers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/discovery"
+	discoveryFake "k8s.io/client-go/discovery/fake"
+
 	"net/http"
+	"os"
 	"strings"
 	"time"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,17 +88,10 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 	jsonResp, _ := json.Marshal(releaseResponse)
 
 	// Predefined response for getting operator.yaml
-	operResponse := &corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServiceAccount",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano",
-			Namespace: "verrazzano",
-		},
+	jsonOperResp, err := os.ReadFile("../../test/testdata/operator-file-fake.yaml")
+	if err != nil {
+		panic(err)
 	}
-	jsonOperResp, _ := json.Marshal(operResponse)
 
 	return &http.Client{
 		Timeout: time.Second * 30,
@@ -105,7 +100,7 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       io.NopCloser(bytes.NewBuffer(jsonOperResp)),
-					Header:     http.Header{"Content-Type": {"application/json"}},
+					Header:     http.Header{"Content-Type": {"application/octet-stream"}},
 				}
 			}
 			return &http.Response{
@@ -127,4 +122,13 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 		IOStreams:  streams,
 		kubeClient: fake.NewSimpleClientset(),
 	}
+}
+
+func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
+	client := rc.kubeClient
+	discoveryClient, ok := client.Discovery().(*discoveryFake.FakeDiscovery)
+	if !ok {
+		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
+	}
+	return discoveryClient, nil
 }

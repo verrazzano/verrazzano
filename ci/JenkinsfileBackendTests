@@ -132,6 +132,8 @@ pipeline {
         CLEAN_BACKEND_LOCATION = "${WORKSPACE}/last-clean-backend-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
+
+        PIPELINE_OWNERS = credentials('backendtests-owners')
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -199,7 +201,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-analyze-tool-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.26'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     ], wait: true
                             }
@@ -247,7 +249,7 @@ pipeline {
                         incDescription: "Verrazzano Backend Tests: ${env.JOB_NAME} - Failed",
                         incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
-                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST} ${PIPELINE_OWNERS}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
                     echo "done alerts"
                 }
             }

@@ -6,7 +6,15 @@ spec:
       enabled: false
     authProxy:
       enabled: false
+    capi:
+      enabled: false
     certManager:
+      enabled: false
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    clusterAgent:
       enabled: false
     coherenceOperator:
       enabled: false

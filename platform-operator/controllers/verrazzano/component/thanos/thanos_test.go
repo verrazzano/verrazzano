@@ -6,12 +6,13 @@ package thanos
 import (
 	"context"
 	"fmt"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"strconv"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -100,9 +101,10 @@ func TestAppendOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(bomFilePathOverride)
 	scheme := k8scheme.Scheme
 	falseVal := false
+	trueVal := true
 
 	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: constants.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 		Spec: v1.ServiceSpec{
 			Type: v1.ServiceTypeLoadBalancer,
 		},
@@ -120,6 +122,61 @@ func TestAppendOverrides(t *testing.T) {
 		"image.repository": "verrazzano/thanos",
 		"image.tag":        `v\d+\.\d+\.\d+-.+-.+`,
 	}
+
+	ingressKVs := map[string]string{
+		"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
+		"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
+		"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.11.22.33.44.nip.io",
+		"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.name":               constants.VerrazzanoAuthProxyServiceName,
+		"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.port.number":        strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
+		"queryFrontend.ingress.extraRules[0].http.paths[0].path":                               "/(.*)()",
+		"queryFrontend.ingress.extraRules[0].http.paths[0].pathType":                           string(netv1.PathTypeImplementationSpecific),
+		"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.11.22.33.44.nip.io",
+		"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
+		`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
+		`queryFrontend.ingress.annotations.cert-manager\.io/cluster-issuer`:                    constants2.VerrazzanoClusterIssuerName,
+		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`:                       "thanos-query.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
+		"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
+		"query.ingress.grpc.extraRules[0].host":                                                "thanos-query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
+		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
+		"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
+		"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                              "thanos-query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
+		`query.ingress.grpc.annotations.cert-manager\.io/cluster-issuer`:                       constants2.VerrazzanoClusterIssuerName,
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                          "thanos-query-store.default.11.22.33.44.nip.io",
+	}
+	sslipioKVs := map[string]string{
+		"queryFrontend.ingress.extraRules[0].host":                       "thanos-query.default.11.22.33.44.sslip.io",
+		"queryFrontend.ingress.extraTls[0].hosts[0]":                     "thanos-query.default.11.22.33.44.sslip.io",
+		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`: "thanos-query.default.11.22.33.44.sslip.io",
+		"query.ingress.grpc.extraRules[0].host":                          "thanos-query-store.default.11.22.33.44.sslip.io",
+		"query.ingress.grpc.extraTls[0].hosts[0]":                        "thanos-query-store.default.11.22.33.44.sslip.io",
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:    "thanos-query-store.default.11.22.33.44.sslip.io",
+	}
+	istioEnabledKV := map[string]string{
+		"verrazzano.isIstioEnabled": "true",
+	}
+
+	istioDisabledKV := map[string]string{
+		"verrazzano.isIstioEnabled": "false",
+	}
+
+	externalDNSKVs := map[string]string{
+		"queryFrontend.ingress.extraRules[0].host":                                     "thanos-query.default.mydomain.com",
+		"queryFrontend.ingress.extraTls[0].hosts[0]":                                   "thanos-query.default.mydomain.com",
+		`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`: "verrazzano-ingress.default.mydomain.com",
+		`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:    "60",
+		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`:               "thanos-query.default.mydomain.com",
+		"query.ingress.grpc.extraRules[0].host":                                        "thanos-query-store.default.mydomain.com",
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                      "thanos-query-store.default.mydomain.com",
+		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/target`:    "verrazzano-ingress.default.mydomain.com",
+		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:       "60",
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                  "thanos-query-store.default.mydomain.com",
+	}
+	externalDNSZone := "mydomain.com"
 
 	tests := []struct {
 		name     string
@@ -140,10 +197,10 @@ func TestAppendOverrides(t *testing.T) {
 					},
 				},
 			},
-			extraKVS: map[string]string{
+			extraKVS: mergeMaps(map[string]string{
 				"query.ingress.grpc.enabled":    "false",
 				"queryFrontend.ingress.enabled": "false",
-			},
+			}, istioEnabledKV),
 		},
 		// GIVEN a call to AppendOverrides
 		// WHEN wildcard is enabled
@@ -155,33 +212,13 @@ func TestAppendOverrides(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						DNS: &v1alpha1.DNSComponent{
 							Wildcard: &v1alpha1.Wildcard{
-								Domain: "xip.io",
+								Domain: "sslip.io",
 							},
 						},
 					},
 				},
 			},
-			extraKVS: map[string]string{
-				"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
-				"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
-				"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.11.22.33.44.xip.io",
-				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.name":               constants.VerrazzanoAuthProxyServiceName,
-				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.port.number":        strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
-				"queryFrontend.ingress.extraRules[0].http.paths[0].path":                               "/(.*)()",
-				"queryFrontend.ingress.extraRules[0].http.paths[0].pathType":                           string(netv1.PathTypeImplementationSpecific),
-				"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.11.22.33.44.xip.io",
-				"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
-				`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
-				"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
-				"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
-				"query.ingress.grpc.extraRules[0].host":                                                "query-store.default.11.22.33.44.xip.io",
-				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
-				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
-				"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
-				"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
-				"query.ingress.grpc.extraTls[0].hosts[0]":                                              "query-store.default.11.22.33.44.xip.io",
-				"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
-			},
+			extraKVS: mergeMaps(ingressKVs, istioEnabledKV, sslipioKVs),
 		},
 		// GIVEN a call to AppendOverrides
 		// WHEN wildcard is enabled
@@ -193,37 +230,46 @@ func TestAppendOverrides(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: externalDNSZone,
 							},
 						},
 					},
 				},
 			},
-			extraKVS: map[string]string{
-				"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
-				"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
-				"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.mydomain.com",
-				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.name":               constants.VerrazzanoAuthProxyServiceName,
-				"queryFrontend.ingress.extraRules[0].http.paths[0].backend.service.port.number":        strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
-				"queryFrontend.ingress.extraRules[0].http.paths[0].path":                               "/(.*)()",
-				"queryFrontend.ingress.extraRules[0].http.paths[0].pathType":                           string(netv1.PathTypeImplementationSpecific),
-				"queryFrontend.ingress.extraTls[0].hosts[0]":                                           "thanos-query.default.mydomain.com",
-				"queryFrontend.ingress.extraTls[0].secretName":                                         queryCertificateName,
-				`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`:         "verrazzano-ingress.default.mydomain.com",
-				`queryFrontend.ingress.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:            "60",
-				`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
-				"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
-				"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
-				"query.ingress.grpc.extraRules[0].host":                                                "query-store.default.mydomain.com",
-				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
-				"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
-				"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
-				"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
-				"query.ingress.grpc.extraTls[0].hosts[0]":                                              "query-store.default.mydomain.com",
-				"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
-				`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/target`:            "verrazzano-ingress.default.mydomain.com",
-				`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:               "60",
+			extraKVS: mergeMaps(ingressKVs, istioEnabledKV, externalDNSKVs),
+		},
+		// GIVEN a call to AppendOverrides
+		// WHEN Istio is disabled
+		// THEN isIstioEnabled is set to false
+		{
+			name: "test Istio Disabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Enabled: &falseVal,
+						},
+					},
+				},
 			},
+			extraKVS: mergeMaps(ingressKVs, istioDisabledKV),
+		},
+		// GIVEN a call to AppendOverrides
+		// WHEN Istio is enabled but Istio injection is disabled
+		// THEN isIstioEnabled is set to false
+		{
+			name: "test Istio Injection Disabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Enabled:          &trueVal,
+							InjectionEnabled: &falseVal,
+						},
+					},
+				},
+			},
+			extraKVS: mergeMaps(ingressKVs, istioDisabledKV),
 		},
 	}
 	for _, tt := range tests {
@@ -248,6 +294,18 @@ func TestAppendOverrides(t *testing.T) {
 			}
 		})
 	}
+}
+
+// mergeMaps merges the contents of the given maps, starting from the first, and treating the
+// rest as overlays on top of the first.
+func mergeMaps(mapsToMerge ...map[string]string) map[string]string {
+	mergedMap := map[string]string{}
+	for _, eachMap := range mapsToMerge {
+		for k, v := range eachMap {
+			mergedMap[k] = v
+		}
+	}
+	return mergedMap
 }
 
 // TestPreInstall tests the pre-install for the Thanos component

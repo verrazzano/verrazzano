@@ -1,0 +1,17 @@
+# Verrazzano Specific
+# Create authproxy service for OpenSearch
+# Required for Verrazzano fluentd to connect to OpenSearch
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-authproxy-opensearch-logging
+  namespace: verrazzano-system
+spec:
+  ports:
+    - name: http-authproxy
+      port: 8775
+      protocol: TCP
+      targetPort: 8775
+  selector:
+    app: verrazzano-authproxy

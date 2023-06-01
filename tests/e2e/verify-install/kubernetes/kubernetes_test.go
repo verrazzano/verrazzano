@@ -5,6 +5,8 @@ package kubernetes_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -50,6 +52,10 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
+		ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+		if err != nil {
+			Fail("Error determining ingress-nginx namespace")
+		}
 
 		t.It("the expected number of nodes exist", func() {
 			Eventually(func() (bool, error) {
@@ -83,7 +89,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("verrazzano-system", "verrazzano-system", true),
 			t.Entry("verrazzano-mc", "verrazzano-mc", true),
 			t.Entry("cert-manager", "cert-manager", true),
-			t.Entry("ingress-nginx", "ingress-nginx", true),
+			t.Entry(ingressNGINXNamespace, ingressNGINXNamespace, true),
 		)
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
@@ -100,6 +106,8 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+			//t.Entry("Check external-dns deployment", "external-dns", pkg.IsOCIDNSEnabled(kubeconfigPath)),
+			//t.Entry("Check verrazzano-cert-manager-oci-dns-webhook deployment", "cert-manager-ocidns-provider", pkg.IsOCIDNSWebhookEnabled(kubeconfigPath)),
 		}
 
 		t.DescribeTable("Verrazzano components are deployed,",
@@ -119,7 +127,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		t.DescribeTable("ingress components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					return vzComponentPresent(name, "ingress-nginx")
+					return vzComponentPresent(name, ingressNGINXNamespace)
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
 			t.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
@@ -216,7 +224,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return checkPodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning(ingressNGINXNamespace, expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {

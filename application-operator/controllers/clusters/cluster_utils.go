@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -6,9 +6,10 @@ package clusters
 import (
 	"context"
 	"fmt"
+	"time"
+
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"time"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -363,16 +364,26 @@ func AddFinalizer(ctx context.Context, r client.Client, obj client.Object, final
 	return controllerruntime.Result{}, nil
 }
 
-// GetRandomRequeueDelay returns a random delay to be used for RequeueAfter
+// GetRandomRequeueDelay returns a random delay between 2 and 8 secondsto be used for RequeueAfter
 func GetRandomRequeueDelay() time.Duration {
+	return GetRandomRequeueDelayInRange(2, 8)
+}
+
+// GetRandomRequeueDelayInRange returns a random delay in the given range in seconds, to be used for RequeueAfter
+func GetRandomRequeueDelayInRange(lowSeconds, highSeconds int) time.Duration {
 	// get a jittered delay to use for requeueing reconcile
-	var seconds = rand.IntnRange(2, 8)
+	var seconds = rand.IntnRange(lowSeconds, highSeconds)
 	return time.Duration(seconds) * time.Second
 }
 
 // NewRequeueWithDelay retruns a result set to requeue in 2 to 3 seconds
 func NewRequeueWithDelay() reconcile.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
+}
+
+// NewRequeueWithRandomDelay retruns a result set to requeue after a random delay
+func NewRequeueWithRandomDelay(lowSeconds, highSeconds int) reconcile.Result {
+	return controllerruntime.Result{Requeue: true, RequeueAfter: GetRandomRequeueDelayInRange(lowSeconds, highSeconds)}
 }
 
 // ShouldRequeue returns true if requeue is needed

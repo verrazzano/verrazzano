@@ -96,7 +96,10 @@ const PrometheusIngress = "vmi-system-prometheus"
 const GlobalImagePullSecName = "verrazzano-container-registry"
 
 // IngressNginxNamespace is the nginx ingress namespace name
-const IngressNginxNamespace = "ingress-nginx"
+const IngressNginxNamespace = "verrazzano-ingress-nginx"
+
+// LegacyIngressNginxNamespace is the old nginx ingress namespace name
+const LegacyIngressNginxNamespace = "ingress-nginx"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
@@ -252,8 +255,6 @@ const RancherBackupNamesSpace = "cattle-resources-system"
 // VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
 const VerrazzanoManagedKey = "verrazzano.io/namespace"
 
-const ExternalDNSNamespace = "cert-manager"
-
 // ServiceMonitorNameKubelet indicates the name of serviceMonitor resource for kubelet monitoring
 const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
 
@@ -265,3 +266,6 @@ const ThanosInternalUserSecretName = "verrazzano-thanos-internal" //nolint:gosec
 
 // ThanosInternalUserName is the name of the VZ internal Thanos user
 const ThanosInternalUserName = "verrazzano-thanos-internal"
+
+// VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
+const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"

@@ -80,6 +80,9 @@ const (
 	letsEncryptIngressClassKey = "letsEncrypt.ingress.class"
 	letsEncryptEmailKey        = "letsEncrypt.email"
 	letsEncryptEnvironmentKey  = "letsEncrypt.environment"
+
+	// PSP Enabled key
+	pspEnabledKey = "global.cattle.psp.enabled"
 )
 
 const (
@@ -87,6 +90,7 @@ const (
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
 	caCert                     = "ca.crt"
+	customCACertKey            = "tls.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
@@ -228,7 +232,7 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Resource: "clusterrepos",
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
+func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }
 
@@ -397,46 +401,6 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	}
 
 	log.Once("Successfully deleted Rancher local cluster")
-}
-
-// activateOCIDriver activates the OCI nodeDriver
-func activateOCIDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
-	ociDriver := unstructured.Unstructured{}
-	ociDriver.SetGroupVersionKind(GVKNodeDriver)
-	ociDriverName := types.NamespacedName{Name: NodeDriverOCI}
-	err := c.Get(context.Background(), ociDriverName, &ociDriver)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
-	}
-
-	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
-	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
-	}
-
-	return nil
-}
-
-// activateDrivers activates the oraclecontainerengine kontainerDriver
-func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
-	okeDriver := unstructured.Unstructured{}
-	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
-	okeDriverName := types.NamespacedName{Name: KontainerDriverOKE}
-	err := c.Get(context.Background(), okeDriverName, &okeDriver)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OKE Driver: %s", err.Error())
-	}
-
-	okeDriverMerge := client.MergeFrom(okeDriver.DeepCopy())
-	okeDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &okeDriver, okeDriverMerge)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OKE Driver: %s", err.Error())
-	}
-
-	return nil
 }
 
 // putServerURL updates the server-url Setting

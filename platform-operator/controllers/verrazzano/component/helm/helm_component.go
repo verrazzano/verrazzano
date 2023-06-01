@@ -6,6 +6,7 @@ package helm
 import (
 	ctx "context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/namespace"
 	"os"
 	"sort"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
@@ -210,12 +210,20 @@ func (h HelmComponent) GetMinVerrazzanoVersion() string {
 }
 
 // IsInstalled Indicates whether the component is installed
-func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	if context.IsDryRun() {
-		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
+func (h HelmComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	if ctx.IsDryRun() {
+		ctx.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context))
+	// check to make sure we own the namespace first
+	vzManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(h.resolveNamespace(ctx))
+	if err != nil {
+		return false, err
+	}
+	if !vzManaged {
+		return false, nil
+	}
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(ctx))
 	return installed, nil
 }
 
@@ -241,7 +249,9 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if err != nil {
 		return false
 	}
-	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+
+	resolvedNamespace := h.resolveNamespace(context)
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return false
 	}
@@ -249,15 +259,14 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	ns := h.resolveNamespace(context)
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, resolvedNamespace); deployed {
 		return true
 	}
 	return false
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (h HelmComponent) IsEnabled(_ runtime.Object) bool {
 	return true
 }
 
@@ -491,7 +500,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
-	_, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, false, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -639,6 +648,10 @@ func (h HelmComponent) organizeHelmOverrides(kvs []bom.KeyValue) []helm.HelmOver
 		}
 	}
 	return overrides
+}
+
+func (h HelmComponent) ResolveNamespace(ctx spi.ComponentContext) string {
+	return h.resolveNamespace(ctx)
 }
 
 // resolveNamespace Resolve/normalize the namespace for a Helm-based component

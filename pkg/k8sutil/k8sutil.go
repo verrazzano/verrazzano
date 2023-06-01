@@ -18,9 +18,12 @@ import (
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	apiextv1Client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	k8sversionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -198,6 +201,23 @@ func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, err
 		return nil, err
 	}
 	return goClient.CoreV1(), nil
+}
+
+// GetAPIExtV1ClientFunc is the function to return the ApiextensionsV1Interface
+var GetAPIExtV1ClientFunc = GetAPIExtV1Client
+
+// ResetGetAPIExtV1ClientFunc for unit testing, to reset any overrides to GetAPIExtV1ClientFunc
+func ResetGetAPIExtV1ClientFunc() {
+	GetAPIExtV1ClientFunc = GetAPIExtV1Client
+}
+
+// GetAPIExtV1Client returns the ApiextensionsV1Interface
+func GetAPIExtV1Client() (apiextv1.ApiextensionsV1Interface, error) {
+	goClient, err := GetAPIExtGoClient()
+	if err != nil {
+		return nil, err
+	}
+	return goClient.ApiextensionsV1(), nil
 }
 
 // GetAppsV1Func is the function the AppsV1Interface
@@ -399,21 +419,17 @@ func ExecPodNoTty(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, co
 
 // GetGoClient returns a go-client
 func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+	if fakeClient != nil {
+		return fakeClient, nil
+	}
 	var logger vzlog.VerrazzanoLogger
 	if len(log) > 0 {
 		logger = log[0]
 	}
-	if fakeClient != nil {
-		return fakeClient, nil
-	}
-	config, err := GetConfigFromController()
+	config, err := buildRESTConfig(logger)
 	if err != nil {
-		if logger != nil {
-			logger.Errorf("Failed to get kubeconfig: %v", err)
-		}
 		return nil, err
 	}
-
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		if logger != nil {
@@ -423,6 +439,30 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 	}
 
 	return kubeClient, err
+}
+
+// GetAPIExtGoClient returns an API Extensions go-client
+func GetAPIExtGoClient() (apiextv1Client.Interface, error) {
+	config, err := buildRESTConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+	apiextClient, err := apiextv1Client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return apiextClient, err
+}
+
+func buildRESTConfig(logger vzlog.VerrazzanoLogger) (*rest.Config, error) {
+	config, err := GetConfigFromController()
+	if err != nil {
+		if logger != nil {
+			logger.Errorf("Failed to get kubeconfig: %v", err)
+		}
+		return nil, err
+	}
+	return config, nil
 }
 
 // GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data
@@ -519,4 +559,39 @@ func ErrorIfServiceExists(namespace string, names ...string) error {
 func setConfigQPSBurst(config *rest.Config) {
 	config.Burst = APIServerBurst
 	config.QPS = APIServerQPS
+}
+
+// GetKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+func GetKubernetesVersion() (string, error) {
+	config, err := GetConfigFromController()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes client config %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes client %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get kubernetes version %v", err.Error())
+	}
+	return versionInfo.String(), nil
+}
+
+func IsMinimumk8sVersion(expectedK8sVersion string) (bool, error) {
+	version, err := GetKubernetesVersion()
+	if err != nil {
+		return false, fmt.Errorf("Failed to get the kubernetes version: %v", err)
+	}
+	k8sVersion, err := k8sversionutil.ParseSemantic(version)
+	if err != nil {
+		return false, fmt.Errorf("Failed to parse Kubernetes version %q: %v", k8sVersion, err)
+	}
+	parsedExpectedK8sVersion := k8sversionutil.MustParseSemantic(expectedK8sVersion)
+	if k8sVersion.AtLeast(parsedExpectedK8sVersion) {
+		return true, nil
+	}
+	return false, nil
 }

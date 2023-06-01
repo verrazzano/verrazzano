@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -47,7 +47,7 @@ func TestGetClusterName(t *testing.T) {
 
 	// Repeat test for registration secret not found, then local registration secret should be used
 	cli.EXPECT().
-		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
 
 	expectMCRegistrationSecret(cli, "mycluster1", MCLocalRegistrationSecretFullName, 1)
@@ -57,11 +57,11 @@ func TestGetClusterName(t *testing.T) {
 
 	// Repeat test for registration secret and local secret not found
 	cli.EXPECT().
-		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
 
 	cli.EXPECT().
-		Get(gomock.Any(), MCLocalRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), MCLocalRegistrationSecretFullName, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCLocalRegistrationSecretFullName.Name))
 
 	name = GetClusterName(context.TODO(), cli)
@@ -339,9 +339,9 @@ func TestUpdateClusterLevelStatus(t *testing.T) {
 func expectMCRegistrationSecret(cli *mocks.MockClient, clusterName string, secreteNameFullName types.NamespacedName, times int) {
 	regSecretData := map[string][]byte{constants.ClusterNameData: []byte(clusterName)}
 	cli.EXPECT().
-		Get(gomock.Any(), secreteNameFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), secreteNameFullName, gomock.Not(gomock.Nil()), gomock.Any()).
 		Times(times).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret, opts ...client.GetOption) error {
 			secret.Name = secreteNameFullName.Name
 			secret.Namespace = secreteNameFullName.Namespace
 			secret.Data = regSecretData
@@ -474,8 +474,8 @@ func TestShouldRequeue(t *testing.T) {
 
 func expectGetAndDeleteAppConfig(t *testing.T, cli *mocks.MockClient, name types.NamespacedName, deleteErr error) {
 	cli.EXPECT().
-		Get(gomock.Any(), name, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *v1alpha2.ApplicationConfiguration) error {
+		Get(gomock.Any(), name, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *v1alpha2.ApplicationConfiguration, opts ...client.GetOption) error {
 			appConfig.Name = name.Name
 			appConfig.Namespace = name.Namespace
 			return nil

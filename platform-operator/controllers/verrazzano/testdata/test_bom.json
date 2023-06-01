@@ -168,6 +168,58 @@
       ]
     },
     {
+      "name": "capi-cluster-api",
+      "version": "v1.3.3",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-cluster-api",
+          "images": [
+            {
+              "image": "cluster-api-controller",
+              "tag": "v1.3.3-20230427222746-876fe3dc9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "capi-oci",
+      "version": "v0.8.1",
+      "subcomponents": [
+        {
+          "repository": "oracle",
+          "name": "capi-oci",
+          "images": [
+            {
+              "image": "cluster-api-oci-controller",
+              "tag": "v0.8.1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "capi-ocne",
+      "version": "v0.1.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-ocne",
+          "images": [
+            {
+              "image": "cluster-api-ocne-bootstrap-controller",
+              "tag": "v0.1.0-20230427222244-4ef1141"
+            },
+            {
+              "image": "cluster-api-ocne-control-plane-controller",
+              "tag": "v0.1.0-20230427222244-4ef1141"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano",
       "subcomponents": [
         {
@@ -276,11 +328,6 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
-            },
-            {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
-              "helmFullImageKey": "fluentdImage"
             }
           ]
         }
@@ -332,7 +379,7 @@
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "mysql-server",
+              "image": "community-server",
               "tag": "8.0.30",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
@@ -349,7 +396,7 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "mysql-router",
+              "image": "community-router",
               "tag": "8.0.30"
             }
           ]
@@ -365,7 +412,7 @@
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
+              "image": "community-operator",
               "tag": "8.0.30-2.0.6",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package system
@@ -6,26 +6,30 @@ package system
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"regexp"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
-	systemNamespace           = "verrazzano-system"
-	installNamespace          = "verrazzano-install"
-	certMgrNamespace          = "cert-manager"
-	keycloakNamespace         = "keycloak"
-	cattleSystemNamespace     = "cattle-system"
+	systemNamespace           = constants.VerrazzanoSystemNamespace
+	installNamespace          = constants.VerrazzanoInstallNamespace
+	capiNamespace             = constants.VerrazzanoCAPINamespace
+	certMgrNamespace          = constants.CertManagerNamespace
+	keycloakNamespace         = constants.KeycloakNamespace
+	cattleSystemNamespace     = constants.RancherSystemNamespace
 	fleetLocalSystemNamespace = "cattle-fleet-local-system"
-	nginxNamespace            = "ingress-nginx"
 	monitoringNamespace       = "monitoring"
 	shortPollingInterval      = 10 * time.Second
 	shortWaitTimeout          = 5 * time.Minute
@@ -34,7 +38,7 @@ const (
 )
 
 var (
-	noExceptions    = []*regexp.Regexp{}
+	noExceptions    []*regexp.Regexp
 	istioExceptions = []*regexp.Regexp{
 		regexp.MustCompile(`^-A .*$`),
 		regexp.MustCompile(`^-N .*$`),
@@ -58,9 +62,18 @@ var (
 	}
 )
 
+var ingressNGINXNamespace string
+
 var t = framework.NewTestFramework("system-logging")
 
-var beforeSuite = t.BeforeSuiteFunc(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	var err error
+	ingressNGINXNamespace, err = nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
+	if err != nil {
+		Fail("Error determining ingress-nginx namespace")
+	}
+
+})
 var _ = BeforeSuite(beforeSuite)
 var failed = false
 var _ = t.AfterEach(func() {
@@ -215,7 +228,7 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 		// GIVEN existing system logs
 		// WHEN the index for the ingress-nginx namespace is retrieved
 		// THEN verify that it is found
-		indexName, err := pkg.GetOpenSearchSystemIndex(nginxNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(ingressNGINXNamespace)
 		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
@@ -277,6 +290,27 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 		if !validateFleetSystemLogs() {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in cattle-fleet-local-system index")
+		}
+	})
+
+	t.It("contains capi index with valid records", func() {
+		// Only run test if capi is enabled
+		vz, err := pkg.GetVerrazzanoV1beta1()
+		Expect(err).To(Not(HaveOccurred()))
+		if vzcr.IsCAPIEnabled(vz) {
+			// GIVEN existing system logs
+			// WHEN the Opensearch index for the verrazzano-capi namespace is retrieved
+			// THEN verify that it is found
+			indexName, err := pkg.GetOpenSearchSystemIndex(capiNamespace)
+			Expect(err).To(BeNil())
+			Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find Opensearch index %s", capiNamespace))
+
+			if !validateCapiSystemLogs() {
+				// Don't fail for invalid logs until this is stable.
+				t.Logs.Info(fmt.Sprintf("Found problems with log records in %s index", capiNamespace))
+			}
 		}
 	})
 
@@ -471,7 +505,7 @@ func validateKeycloakLogs() bool {
 func validateIngressNginxLogs() bool {
 	return validateOpensearchRecords(
 		noLevelOpensearchRecordValidator,
-		func() (string, error) { return pkg.GetOpenSearchSystemIndex(nginxNamespace) },
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(ingressNGINXNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
 		searchTimeWindow,
@@ -513,6 +547,16 @@ func validateFleetSystemLogs() bool {
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(fleetLocalSystemNamespace) },
 		"kubernetes.namespace_name",
 		"fleet-system",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateCapiSystemLogs() bool {
+	return validateOpensearchRecords(
+		allOpensearchRecordValidator,
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(capiNamespace) },
+		"kubernetes.namespace_name",
+		capiNamespace,
 		searchTimeWindow,
 		noExceptions)
 }

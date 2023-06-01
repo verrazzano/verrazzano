@@ -5,7 +5,9 @@ package keycloak
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -92,6 +94,9 @@ func TestReconcileBeforeInstall(t *testing.T) {
 	// simulate the case that Keycloak is not installed
 	defer helm.SetDefaultActionConfigFunction()
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1WithNamespace(constants.KeycloakNamespace)
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(c, &crEnabled, nil, false)

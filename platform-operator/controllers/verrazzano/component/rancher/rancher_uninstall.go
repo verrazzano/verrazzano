@@ -58,7 +58,6 @@ var rancherSystemNS = []string{
 	"cattle-fleet-clusters-system",
 	"cattle-fleet-system",
 	"cattle-fleet-local-system",
-	"tigera-operator",
 	"cattle-impersonation-system",
 	"rancher-operator-system",
 	"cattle-csp-adapter-system",
@@ -452,7 +451,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoles: %v", err)
 	}
 	for i := range crList.Items {
-		err = deleteMatchingObject(ctx, roleMatch, &crList.Items[i])
+		err = deleteMatchingObject(ctx, roleMatch, []string{}, &crList.Items[i])
 		if err != nil {
 			return err
 		}
@@ -465,7 +464,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoleBindings: %v", err)
 	}
 	for i := range crbList.Items {
-		err = deleteMatchingObject(ctx, roleMatch, &crbList.Items[i])
+		err = deleteMatchingObject(ctx, roleMatch, []string{"fleet.cattle.io/managed"}, &crbList.Items[i])
 		if err != nil {
 			return err
 		}
@@ -478,7 +477,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the RoleBindings: %v", err)
 	}
 	for i := range rblist.Items {
-		err = deleteMatchingObject(ctx, []string{"^rb-"}, &rblist.Items[i])
+		err = deleteMatchingObject(ctx, []string{"^rb-"}, []string{}, &rblist.Items[i])
 		if err != nil {
 			return err
 		}
@@ -491,7 +490,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the PersistentVolumes: %v", err)
 	}
 	for i := range pvList.Items {
-		err = deleteMatchingObject(ctx, []string{"pvc-", "ocid1.volume"}, &pvList.Items[i])
+		err = deleteMatchingObject(ctx, []string{"pvc-", "ocid1.volume"}, []string{}, &pvList.Items[i])
 		if err != nil {
 			return err
 		}
@@ -500,12 +499,23 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 }
 
 // deleteMatchingObjects is a helper function that deletes objects in an object list that match any of the object names using regex
-func deleteMatchingObject(ctx spi.ComponentContext, matches []string, obj client.Object) error {
-	objectMatch, err := regexp.MatchString(strings.Join(matches, "|"), obj.GetName())
+func deleteMatchingObject(ctx spi.ComponentContext, nameMatches []string, labelMatches []string, obj client.Object) error {
+	nameMatch, err := regexp.MatchString(strings.Join(nameMatches, "|"), obj.GetName())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to verify that the %s %s is from Rancher: %v", obj.GetObjectKind().GroupVersionKind().String(), obj.GetName(), err)
 	}
-	if objectMatch {
+	labelMatch := false
+	if !nameMatch {
+		// Check if a label match
+		objLabels := obj.GetLabels()
+		for _, label := range labelMatches {
+			_, labelMatch = objLabels[label]
+			if labelMatch {
+				break
+			}
+		}
+	}
+	if nameMatch || labelMatch {
 		err = resource.Resource{
 			Name:      obj.GetName(),
 			Namespace: obj.GetNamespace(),
