@@ -1,11 +1,10 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package fluentd
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -122,22 +121,11 @@ func (c fluentdComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c fluentdComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	// Do not allow disabling active components
-	if err := c.checkEnabled(old, new); err != nil {
-		return err
-	}
+
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
-}
-
-func (c fluentdComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	// Do not allow disabling of any component post-install for now
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
-	}
-	return nil
 }
 
 // PostInstall - post-install, clean up temp files

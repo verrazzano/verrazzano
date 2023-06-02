@@ -26,16 +26,20 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.24", "1.23", "1.22", "1.21" ])
+                choices: [ "1.26", "1.25", "1.24" ])
         string (name: 'GIT_COMMIT_TO_USE',
-                        defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs',
-                        trim: true)
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
-                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        string (name: 'CLUSTER_RESOURCE_NAMESPACE',
+                defaultValue: 'my-cert-manager',
+                description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
+                trim: true)
     }
 
     environment {
@@ -211,7 +215,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack')
+                runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
             }
 
             post {
@@ -259,6 +263,7 @@ pipeline {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                CLUSTER_RESOURCE_NAMESPACE = "${params.CLUSTER_RESOURCE_NAMESPACE}"
             }
             steps {
                 sh """
@@ -266,7 +271,7 @@ pipeline {
                     ci/scripts/install_third_party_components.sh
                 """
 
-                runGinkgoUpdate('update/a-la-carte', 'app-stack')
+                runGinkgoUpdate('update/a-la-carte', 'app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
             }
 
             post {
@@ -323,7 +328,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'istio-app-stack')
+                runGinkgoUpdate('update/a-la-carte', 'istio-app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
             }
 
             post {
@@ -388,7 +393,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack')
+                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
             }
 
             post {
@@ -445,7 +450,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'none-profile')
+                runGinkgoUpdate('update/a-la-carte', 'none-profile', "${params.CLUSTER_RESOURCE_NAMESPACE}")
             }
 
             post {
@@ -687,12 +692,12 @@ def runGinkgo(testSuitePath) {
     }
 }
 
-def runGinkgoUpdate(testSuitePath, updateTypeVal = '') {
+def runGinkgoUpdate(testSuitePath, updateTypeVal = '', clusterResourceNamespace = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}"
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace=""${clusterResourceNamespace}""
             fi
         """
     }

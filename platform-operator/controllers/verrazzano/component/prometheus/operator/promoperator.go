@@ -6,9 +6,9 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path"
 	"strconv"
+	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -16,6 +16,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -281,14 +282,18 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
-	// Replace default images for subcomponents Alertmanager, Prometheus, and Thanos
+	// Replace default images for subcomponents Alertmanager and Prometheus
 	defaultImages := map[string]string{
 		// format "subcomponentName": "helmDefaultKey"
 		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
 		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
-		thanosName:       "prometheus.prometheusSpec.thanos.image",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
+	if err != nil {
+		return kvs, err
+	}
+
+	kvs, err = appendThanosImageOverrides(ctx, kvs)
 	if err != nil {
 		return kvs, err
 	}
@@ -297,7 +302,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// will use the kube-webhook-certgen image
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
-		Value: strconv.FormatBool(vzcr.IsCertManagerEnabled(ctx.EffectiveCR())),
+		Value: strconv.FormatBool(vzcr.IsClusterIssuerEnabled(ctx.EffectiveCR())),
 	})
 
 	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
@@ -415,8 +420,40 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 			return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", subcomponent, err)
 		}
 		if len(images) > 0 {
-			kvs = append(kvs, bom.KeyValue{Key: helmKey, Value: images[0]})
+			// kube-prometheus-stack helm chart now expects the registry to be specified in a separate helm value
+			reg, imageWithoutReg, _ := strings.Cut(images[0], "/")
+			kvs = append(kvs, bom.KeyValue{Key: helmKey + "Registry", Value: reg})
+			kvs = append(kvs, bom.KeyValue{Key: helmKey, Value: imageWithoutReg})
 		}
+	}
+
+	return kvs, nil
+}
+
+// appendThanosImageOverrides appends overrides for the Thanos image in the Prometheus prometheusSpec and
+// the default base image in prometheusOperator
+func appendThanosImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+	}
+
+	images, err := bomFile.GetImageNameList(thanosName)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", thanosName, err)
+	}
+	if len(images) > 0 {
+		// example: ghcr.io/verrazzano/thanos:v1.2
+		// reg = ghcr.io
+		// repo = verrazzano/thanos:v1.2
+		// repoAndImage = verrazzano/thanos
+		// tag = v1.2
+		reg, repo, _ := strings.Cut(images[0], "/")
+		repoAndImage, tag, _ := strings.Cut(repo, ":")
+		kvs = append(kvs, bom.KeyValue{Key: "prometheus.prometheusSpec.thanos.image", Value: images[0]})
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.thanosImage.registry", Value: reg})
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.thanosImage.repository", Value: repoAndImage})
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.thanosImage.tag", Value: tag})
 	}
 
 	return kvs, nil

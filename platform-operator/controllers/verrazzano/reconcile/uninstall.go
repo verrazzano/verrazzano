@@ -5,17 +5,17 @@ package reconcile
 
 import (
 	"context"
+
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/ocne"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -54,7 +54,7 @@ const (
 
 type cmCleanupFuncType func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error
 
-var cmCleanupFunc cmCleanupFuncType = cmconfig.UninstallCleanup
+var cmCleanupFunc cmCleanupFuncType = cmissuer.UninstallCleanup
 
 // old node-exporter constants replaced with prometheus-operator node-exporter
 const (
@@ -301,9 +301,6 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
 func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
-	if err := ocne.DeleteOCNEMetadataConfigMap(context.Background()); err != nil {
-		return ctrl.Result{}, err
-	}
 	if err := r.deleteIstioCARootCert(ctx); err != nil {
 		return ctrl.Result{}, err
 	}

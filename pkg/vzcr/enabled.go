@@ -4,6 +4,7 @@
 package vzcr
 
 import (
+	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,15 +85,15 @@ func IsIstioInjectionEnabled(cr runtime.Object) bool {
 	return true
 }
 
-// IsCAPIEnabled - Returns false only if CAPI is explicitly disabled by the user
-func IsCAPIEnabled(cr runtime.Object) bool {
+// IsClusterAPIEnabled - Returns false only if ClusterAPI is explicitly disabled by the user
+func IsClusterAPIEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
-		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CAPI != nil && vzv1alpha1.Spec.Components.CAPI.Enabled != nil {
-			return *vzv1alpha1.Spec.Components.CAPI.Enabled
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterAPI != nil && vzv1alpha1.Spec.Components.ClusterAPI.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterAPI.Enabled
 		}
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
-		if vzv1beta1 != nil && vzv1beta1.Spec.Components.CAPI != nil && vzv1beta1.Spec.Components.CAPI.Enabled != nil {
-			return *vzv1beta1.Spec.Components.CAPI.Enabled
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterAPI != nil && vzv1beta1.Spec.Components.ClusterAPI.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterAPI.Enabled
 		}
 	}
 	return true
@@ -110,6 +111,93 @@ func IsCertManagerEnabled(cr runtime.Object) bool {
 		}
 	}
 	return true
+}
+
+// IsClusterIssuerEnabled - Returns false only if the ClusterIssuerComponent is explicitly disabled
+func IsClusterIssuerEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterIssuer != nil &&
+			vzv1alpha1.Spec.Components.ClusterIssuer.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterIssuer.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterIssuer != nil &&
+			vzv1beta1.Spec.Components.ClusterIssuer.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterIssuer.Enabled
+		}
+	}
+	return true
+}
+
+// IsCertManagerWebhookOCIEnabled - Returns true IFF the ExternalCertManager component is explicitly enabled
+func IsCertManagerWebhookOCIEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CertManagerWebhookOCI != nil &&
+			vzv1alpha1.Spec.Components.CertManagerWebhookOCI.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.CertManagerWebhookOCI.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.CertManagerWebhookOCI != nil &&
+			vzv1beta1.Spec.Components.CertManagerWebhookOCI.Enabled != nil {
+			return *vzv1beta1.Spec.Components.CertManagerWebhookOCI.Enabled
+		}
+	}
+	return false
+}
+
+// IsCertManagerWebhookOCIRequired - Returns true if the ExternalCertManager component is explicitly enabled, OR
+// if all of the following is true:
+// - ACME/LetsEncrypt certificates are configured
+// - OCI DNS is enabled
+// - the ClusterIssuerComponent is enabled
+//
+// This behavior is to allow backwards compatibility with earlier releases where the behavior was not implemented in
+// a separate component, and was implicitly enabled by the other conditions
+func IsCertManagerWebhookOCIRequired(cr runtime.Object) bool {
+	isLetsEncryptConfig, _ := IsLetsEncryptConfig(cr)
+	return IsCertManagerWebhookOCIEnabled(cr) || IsOCIDNSEnabled(cr) && isLetsEncryptConfig && IsClusterIssuerEnabled(cr)
+}
+
+// IsLetsEncryptConfig - Check if cert-type is LetsEncrypt
+func IsLetsEncryptConfig(cr runtime.Object) (bool, error) {
+	if cr == nil {
+		return false, fmt.Errorf("Nil CR passed in")
+	}
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		componentSpec := vzv1alpha1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return false, nil
+		}
+		return componentSpec.ClusterIssuer.IsLetsEncryptIssuer()
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		componentSpec := vzv1beta1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return false, nil
+		}
+		return componentSpec.ClusterIssuer.IsLetsEncryptIssuer()
+	}
+	return false, fmt.Errorf("Illegal configuration state, unable to resolve ClusterIssuerComponent type: %v", cr)
+}
+
+// IsCAConfig - Check if cert-type is CA, if not it is assumed to be Acme
+func IsCAConfig(cr runtime.Object) (bool, error) {
+	if cr == nil {
+		return false, fmt.Errorf("Nil CR passed in")
+	}
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		componentSpec := vzv1alpha1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return true, nil
+		}
+		return componentSpec.ClusterIssuer.IsCAIssuer()
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		componentSpec := vzv1beta1.Spec.Components
+		if componentSpec.ClusterIssuer == nil {
+			return true, nil
+		}
+		return componentSpec.ClusterIssuer.IsCAIssuer()
+	}
+	return false, fmt.Errorf("Illegal configuration state, unable to resolve ClusterIssuerComponent type: %v", cr)
 }
 
 // IsKialiEnabled - Returns false only if explicitly disabled in the CR
@@ -496,6 +584,20 @@ func IsThanosEnabled(cr runtime.Object) bool {
 		}
 	}
 	return false
+}
+
+// IsClusterAgentEnabled returns false only if Cluster Agent is explicitly disabled in the CR
+func IsClusterAgentEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterAgent != nil && vzv1alpha1.Spec.Components.ClusterAgent.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterAgent.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterAgent != nil && vzv1beta1.Spec.Components.ClusterAgent.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterAgent.Enabled
+		}
+	}
+	return true
 }
 
 // IsComponentStatusEnabled checks if the component is enabled by looking at the component status State field

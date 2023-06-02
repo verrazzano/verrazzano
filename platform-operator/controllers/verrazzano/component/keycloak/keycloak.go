@@ -9,11 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strings"
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
@@ -1289,7 +1289,7 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		ctx.Log().Errorf("Component Keycloak failed creating %s role: stdout = %s, stderr = %s", roleName, stdout, stderr)
 		return err
 	}
-	ctx.Log().Once("Component Keycloak successfully created the %s role", roleName)
+	ctx.Log().Oncef("Component Keycloak successfully created the %s role", roleName)
 	return nil
 }
 

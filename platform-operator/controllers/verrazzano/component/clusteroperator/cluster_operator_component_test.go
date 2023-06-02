@@ -5,24 +5,27 @@ package clusteroperator
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
-	"github.com/verrazzano/verrazzano/pkg/rancherutil"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -130,6 +133,71 @@ func TestIsReadyFalse(t *testing.T) {
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, false)
 	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// TestPreInstall that the verrazzano-cluster-registrar ClusterRole has the VPO as its Helm release
+// name, if it exists, after PreInstall is called.
+func TestPreInstall(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+	runPreInstallUpgradeTests(t, clustOpComp.PreInstall)
+}
+
+// TestPreUpgrade that the verrazzano-cluster-registrar ClusterRole has the VPO as its Helm release
+// name, if it exists, after PreUpgrade is called.
+func TestPreUpgrade(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+	runPreInstallUpgradeTests(t, clustOpComp.PreUpgrade)
+}
+
+func runPreInstallUpgradeTests(t *testing.T, preInstallUpgradeFunc func(ctx spi.ComponentContext) error) {
+	preInstallUpgradeTestCases := []struct {
+		name              string
+		clusterRoleExists bool
+		existingHelmRel   string
+		existingHelmNS    string
+		expectErr         bool
+	}{
+		{"no ClusterRole exists", false, "", "", false},
+		{"ClusterRole exists with no Helm annotations", true, "", "", false},
+		{"ClusterRole exists with cluster operator Helm release", true, ComponentName, ComponentNamespace, false},
+		{"ClusterRole exists with some other Helm release", true, "somerelease", "somenamespace", false},
+		{"ClusterRole exists with VPO Helm release", true, constants.VerrazzanoPlatformOperatorHelmName, constants.VerrazzanoInstallNamespace, false},
+	}
+	for _, tt := range preInstallUpgradeTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			objs := []client.Object{}
+			if tt.clusterRoleExists {
+				annotations := map[string]string{}
+				if tt.existingHelmRel != "" {
+					annotations[helmReleaseNameAnnotation] = tt.existingHelmRel
+				}
+				if tt.existingHelmNS != "" {
+					annotations[helmReleaseNamespaceAnnotation] = tt.existingHelmNS
+				}
+				clusterRole := rbacv1.ClusterRole{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        vzconst.VerrazzanoClusterRancherName,
+						Annotations: annotations,
+					},
+				}
+				objs = append(objs, &clusterRole)
+			}
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
+			ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, true)
+			err := preInstallUpgradeFunc(ctx)
+			assert.NoError(t, err)
+			clusterRoleNsn := types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}
+			updatedClusterRole := rbacv1.ClusterRole{}
+			err = c.Get(context.TODO(), clusterRoleNsn, &updatedClusterRole)
+			if tt.clusterRoleExists {
+				assert.NoError(t, err)
+				assert.Equal(t, constants.VerrazzanoPlatformOperatorHelmName, updatedClusterRole.Annotations[helmReleaseNameAnnotation])
+				assert.Equal(t, constants.VerrazzanoInstallNamespace, updatedClusterRole.Annotations[helmReleaseNamespaceAnnotation])
+			} else {
+				assert.True(t, errors.IsNotFound(err))
+			}
+		})
+	}
 }
 
 // TestPostInstall that the RoleTemplate gets created

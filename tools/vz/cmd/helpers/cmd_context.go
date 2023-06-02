@@ -1,10 +1,12 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
 
 import (
+	"fmt"
 	"io"
+	"k8s.io/client-go/discovery"
 	"net/http"
 
 	"k8s.io/client-go/dynamic"
@@ -65,7 +67,6 @@ func (rc *RootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interfac
 	if err != nil {
 		return nil, err
 	}
-
 	return dynamic.NewForConfig(config)
 }
 
@@ -99,4 +100,13 @@ func NewRootCmdContext(streams genericclioptions.IOStreams) *RootCmdContext {
 	return &RootCmdContext{
 		IOStreams: streams,
 	}
+}
+
+func (rc *RootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
+	client, _ := rc.GetKubeClient(cmd)
+	discoveryClient, ok := client.Discovery().(*discovery.DiscoveryClient)
+	if !ok {
+		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
+	}
+	return discoveryClient, nil
 }

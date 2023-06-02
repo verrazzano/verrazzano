@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -53,12 +53,11 @@ func TestSyncer_syncCattleClusterAgent(t *testing.T) {
 		Log:                log,
 		ManagedClusterName: "cluster1",
 		Context:            context.TODO(),
-		CattleAgentHash:    "",
 	}
 
-	err = s.syncCattleClusterAgent(kubeConfigPath)
+	newCattleAgentHash, err := s.syncCattleClusterAgent("", kubeConfigPath)
 	asserts.NoError(err)
-	asserts.NotEmpty(s.CattleAgentHash)
+	asserts.NotEmpty(newCattleAgentHash)
 }
 
 // TestSyncer_syncCattleClusterAgentNoRancherManifest tests the syncCattleClusterAgent of Syncer
@@ -83,12 +82,11 @@ func TestSyncer_syncCattleClusterAgentNoRancherManifest(t *testing.T) {
 		Log:                log,
 		ManagedClusterName: "cluster1",
 		Context:            context.TODO(),
-		CattleAgentHash:    "",
 	}
 
-	err = s.syncCattleClusterAgent("")
+	newCattleAgentHash, err := s.syncCattleClusterAgent("", "")
 	asserts.NoError(err)
-	asserts.Empty(s.CattleAgentHash)
+	asserts.Empty(newCattleAgentHash)
 }
 
 // TestSyncer_syncCattleClusterAgentHashExists tests the syncCattleClusterAgent of Syncer
@@ -123,26 +121,25 @@ func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
 		Log:                log,
 		ManagedClusterName: "cluster1",
 		Context:            context.TODO(),
-		CattleAgentHash:    previousCattleAgentHash,
 	}
 
 	// GIVEN a call to syncCattleClusterAgent
 	// WHEN a hash already exists
 	// THEN if the hash has changed, update the resources and the hash
-	err = s.syncCattleClusterAgent(kubeConfigPath)
+	newCattleAgentHash, err := s.syncCattleClusterAgent(previousCattleAgentHash, kubeConfigPath)
 	asserts.NoError(err)
-	asserts.NotEmpty(s.CattleAgentHash)
-	asserts.NotEqual(previousCattleAgentHash, s.CattleAgentHash)
+	asserts.NotEmpty(newCattleAgentHash)
+	asserts.NotEqual(previousCattleAgentHash, newCattleAgentHash)
 
-	previousCattleAgentHash = s.CattleAgentHash
+	previousCattleAgentHash = newCattleAgentHash
 
 	// GIVEN a call to syncCattleClusterAgent
 	// WHEN a hash already exists
 	// THEN if the hash has not changed, do nothing
-	err = s.syncCattleClusterAgent("")
+	newerCattleAgentHash, err := s.syncCattleClusterAgent(previousCattleAgentHash, "")
 	asserts.NoError(err)
-	asserts.NotEmpty(s.CattleAgentHash)
-	asserts.Equal(previousCattleAgentHash, s.CattleAgentHash)
+	asserts.NotEmpty(newerCattleAgentHash)
+	asserts.Equal(previousCattleAgentHash, newerCattleAgentHash)
 }
 
 // newServer returns a httptest server which the

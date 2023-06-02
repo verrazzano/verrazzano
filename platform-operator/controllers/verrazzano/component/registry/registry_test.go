@@ -4,20 +4,23 @@
 package registry
 
 import (
+	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteragent"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -99,7 +102,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 37, "Wrong number of components")
+	a.Len(comps, 38, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -120,7 +123,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), capi.ComponentName)
+	a.Equal(comps[i].Name(), clusterapi.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++
@@ -173,6 +176,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), argocd.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), thanos.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), clusteragent.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -656,10 +661,10 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 // WHEN Newcontext is called
 // THEN all components referred from the registry are disabled except for network-policies
 func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
-	defer func() { common.ResetNewClientFunc() }()
-	common.SetNewClientFunc(func(opts clipkg.Options) (clipkg.Client, error) {
-		return fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil
-	})
+	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+	}
 
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()

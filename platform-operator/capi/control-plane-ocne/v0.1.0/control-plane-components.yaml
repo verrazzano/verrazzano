@@ -1276,6 +1276,47 @@ spec:
                 required:
                 - infrastructureRef
                 type: object
+              moduleOperator:
+                description: ModuleOperator deploys the OCNE module operator to the
+                  worker cluster post installation.
+                properties:
+                  enabled:
+                    description: Enabled sets the operational mode for a specific
+                      module. if not set, the Enabled is set to false.
+                    type: boolean
+                  image:
+                    description: Image is used to set various attributes regarding
+                      a specific module. If not set, they are set as per the ImageMeta
+                      definitions.
+                    properties:
+                      pullPolicy:
+                        description: PullPolicy allows to specify an image pull policy
+                          for the container images. if not set, the PullPolicy is
+                          IfNotPresent.
+                        type: string
+                      repository:
+                        description: Repository sets the container registry to pull
+                          images from. if not set, the Repository defined in OCNEMeta
+                          will be used instead.
+                        type: string
+                      tag:
+                        description: Tag allows to specify a tag for the image. if
+                          not set, the Tag defined in OCNEMeta will be used instead.
+                        type: string
+                    type: object
+                  imagePullSecrets:
+                    description: ImagePullSecrets allows to specify secrets if the
+                      image is being pulled from an authenticated private registry.
+                      if not set, it will be assumed the images are public.
+                    items:
+                      properties:
+                        name:
+                          description: Name is name of the secret to be used as image
+                            pull secret
+                          type: string
+                      type: object
+                    type: array
+                type: object
               replicas:
                 description: Number of desired machines. Defaults to 1. When stacked
                   etcd is used only odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
@@ -1326,6 +1367,47 @@ spec:
                     description: Type of rollout. Currently the only supported strategy
                       is "RollingUpdate". Default is RollingUpdate.
                     type: string
+                type: object
+              verrazzanoPlatformOperator:
+                description: VerrazzanoPlatformOperator deploys the Verrazzano Platform
+                  operator to the worker cluster post installation.
+                properties:
+                  enabled:
+                    description: Enabled sets the operational mode for a specific
+                      module. if not set, the Enabled is set to false.
+                    type: boolean
+                  image:
+                    description: Image is used to set various attributes regarding
+                      a specific module. If not set, they are set as per the ImageMeta
+                      definitions.
+                    properties:
+                      pullPolicy:
+                        description: PullPolicy allows to specify an image pull policy
+                          for the container images. if not set, the PullPolicy is
+                          IfNotPresent.
+                        type: string
+                      repository:
+                        description: Repository sets the container registry to pull
+                          images from. if not set, the Repository defined in OCNEMeta
+                          will be used instead.
+                        type: string
+                      tag:
+                        description: Tag allows to specify a tag for the image. if
+                          not set, the Tag defined in OCNEMeta will be used instead.
+                        type: string
+                    type: object
+                  imagePullSecrets:
+                    description: ImagePullSecrets allows to specify secrets if the
+                      image is being pulled from an authenticated private registry.
+                      if not set, it will be assumed the images are public.
+                    items:
+                      properties:
+                        name:
+                          description: Name is name of the secret to be used as image
+                            pull secret
+                          type: string
+                      type: object
+                    type: array
                 type: object
               version:
                 description: 'Version defines the desired Kubernetes version. Please
@@ -2875,6 +2957,17 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - events
   verbs:
   - create
@@ -2979,8 +3072,9 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230421153459-16a5418
-        imagePullPolicy: Always
+        # This image will be overridden by the Verrazzano controller
+        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v0.1.0-20230531223401-6824a09
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
             path: /healthz

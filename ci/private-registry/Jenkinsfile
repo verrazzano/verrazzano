@@ -2,9 +2,9 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = "blocked-large"
-def ocirRegion = "fra"
-def ociRegionFull     = "eu-frankfurt-1"
+def agentLabel = params.DISTRIBUTION_VARIANT == "Lite" ? "phx-large" : "blocked-large"
+def ocirRegion = params.DISTRIBUTION_VARIANT == "Lite" ? "phx" : "fra"
+def ociRegionFull = params.DISTRIBUTION_VARIANT == "Lite" ? "us-phoenix-1" : "eu-frankfurt-1"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
@@ -19,7 +19,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image getRunnerImage("${RUNNER_DOCKER_IMAGE}")
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "https://${ocirRegistry}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -31,7 +31,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.24", "1.23", "1.22", "1.21" ])
+                choices: [ "1.26", "1.25", "1.24" ])
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for testing',
                 choices: ["Full", "Lite"])
@@ -147,6 +147,11 @@ pipeline {
 
     stages {
         stage('Verify Air-Gapped') {
+            when {
+                expression {
+                    DISTRIBUTION_VARIANT == "Full"
+                }
+            }
             steps {
                 script {
                     echo "Checking if we are running in an air-gapped environment"
@@ -214,7 +219,7 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano
 
                     echo "Downloading VZ source tarball"
-                    oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${srcTar} --file ${downloadLocation}
+                    oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${srcTar} --file ${downloadLocation}
 
                     echo "Extracting source"
                     tar xvf ${downloadLocation}
@@ -273,7 +278,7 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
+                        oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_ROOT_DIR) {
@@ -321,20 +326,20 @@ pipeline {
         }
 
         stage('Upload Verrazzano Images') {
-             when {
-                 expression {
-                     return runPipeline()
-                }
-             }
-             environment {
-                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
-             }
+            when {
+                expression {
+                    return runPipeline()
+               }
+            }
+            environment {
+                TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+            }
             steps {
                 script {
                     if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r eu-frankfurt-1 -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r ${ociRegionFull} -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             cd ${TARBALL_DIR}
@@ -342,12 +347,25 @@ pipeline {
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
                         """
                     } else {
+                        try {
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        } catch(error) {
+                            echo "docker login failed, retrying after sleep"
+                            retry(4) {
+                                sleep(30)
+                                sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                """
+                            }
+                        }
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             cd ${TARBALL_DIR}
                             sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/images
                             cd ${TEST_SCRIPTS_DIR}
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r eu-frankfurt-1 -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -r ${ociRegionFull} -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             # Run the image-helper to load the images into the OCIR registry in the runner's region
@@ -409,7 +427,7 @@ pipeline {
                             echo "example image tarball download location: ${downloadLocation}"
                         }
                         sh """
-                            oci --region eu-frankfurt-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
+                            oci --region ${ociRegionFull} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${exampleImagesTar} --file ${downloadLocation}
                             kind load image-archive ${downloadLocation} --name verrazzano
                         """
                     }
@@ -525,7 +543,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano verrazzano
+                            ${GO_REPO_PATH}/vz uninstall -y --timeout 45m
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
@@ -584,7 +602,7 @@ pipeline {
     post {
         always {
             script {
-                if (!env.AIR_GAPPED) {
+                if (DISTRIBUTION_VARIANT == "Full" && !env.AIR_GAPPED) {
                     echo "Airgap check failed, not running post actions."
                     sh "exit 0"
                 }
@@ -792,4 +810,11 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
+}
+
+def getRunnerImage(runnerImageIn) {
+    if (params.DISTRIBUTION_VARIANT.equals("Full")) {
+        return runnerImageIn.replaceFirst("phx", "fra")
+    }
+    return runnerImageIn
 }

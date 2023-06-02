@@ -6,8 +6,6 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"sync"
 	"testing"
@@ -16,6 +14,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -572,9 +571,8 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmissuer.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
-	expectCertManagerCRDChecks(mock)
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -657,9 +655,8 @@ func TestUninstallStarted(t *testing.T) {
 	setFakeComponentsDisabled()
 	defer registry.ResetGetComponentsFn()
 
-	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmissuer.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
-	expectCertManagerCRDChecks(mock)
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
@@ -775,9 +772,8 @@ func TestUninstallSucceeded(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer func() { cmCleanupFunc = cmconfig.UninstallCleanup }()
+	defer func() { cmCleanupFunc = cmissuer.UninstallCleanup }()
 	cmCleanupFunc = func(log vzlog.VerrazzanoLogger, cli client.Client, namespace string) error { return nil }
-	expectCertManagerCRDChecks(mock)
 
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
@@ -1245,18 +1241,6 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		}).AnyTimes()
-}
-
-// expectCertManagerCRDChecks expects a call to check for the CertManager CRDs
-func expectCertManagerCRDChecks(mock *mocks.MockClient) {
-	// Expect a call to get the ServiceAccount - return that it exists
-	for _, crdName := range common.GetRequiredCertManagerCRDNames() {
-		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Name: crdName}, gomock.Not(gomock.Nil()), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, crd *v1.CustomResourceDefinition, opts ...client.GetOption) error {
-				return nil
-			}).AnyTimes()
-	}
 }
 
 // expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns

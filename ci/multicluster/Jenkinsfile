@@ -47,11 +47,11 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.24.1", "v1.22.5", "v1.23.4", "v1.21.5" ])
+                choices: [ "v1.26.2", "v1.25.4", "v1.24.1"])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.24", "1.22", "1.23", "1.21" ])
+                choices: [ "1.26", "1.25", "1.24" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -436,11 +436,6 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
-                stage('verify-argocd') {
-                    steps {
-                        runGinkgo('multicluster/verify-argocd', '${TEST_DUMP_ROOT}/verify-argocd')
-                    }
-                }
                 stage("verify-dns-update") {
                     steps {
                         script {
@@ -469,6 +464,11 @@ pipeline {
                         runGinkgoRandomize('verify-install')
                     }
                 }
+                stage('verify-argocd') {
+                                    steps {
+                                        runGinkgo('multicluster/verify-argocd', '${TEST_DUMP_ROOT}/verify-argocd')
+                                    }
+                                }
                 stage('verify-rancher') {
                     steps {
                         runGinkgo('multicluster/verify-rancher', '${TEST_DUMP_ROOT}/verify-rancher')
@@ -833,7 +833,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
               ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
 
                 echo "Installing the Verrazzano Platform Operator"
-                time ${VZ_COMMAND} install --operator-file ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
+                time ${VZ_COMMAND} install --manifests ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
             """
         }
     }
