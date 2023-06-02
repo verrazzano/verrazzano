@@ -4,6 +4,7 @@
 package common
 
 import (
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"strings"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -24,7 +25,7 @@ func IsLetsEncryptProductionEnv(acme interface{}) bool {
 	if v1beta1ACME, ok := acme.(v1beta1.Acme); ok {
 		envName = v1beta1ACME.Environment
 	}
-	return strings.ToLower(envName) == LetsEncryptProduction
+	return strings.ToLower(envName) == cmconstants.LetsEncryptProduction
 }
 
 func IsLetsEncryptStagingEnv(acme interface{}) bool {
@@ -41,7 +42,7 @@ func IsLetsEncryptStagingEnv(acme interface{}) bool {
 	if v1beta1ACME, ok := acme.(v1beta1.Acme); ok {
 		envName = v1beta1ACME.Environment
 	}
-	return strings.ToLower(envName) == LetsEncryptStaging
+	return strings.ToLower(envName) == cmconstants.LetsEncryptStaging
 }
 
 func IsLetsEncryptProvider(acme interface{}) bool {

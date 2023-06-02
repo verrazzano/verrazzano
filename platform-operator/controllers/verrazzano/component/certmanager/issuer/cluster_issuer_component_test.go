@@ -5,6 +5,7 @@ package issuer
 
 import (
 	"context"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"testing"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -49,7 +50,7 @@ func TestSimpleMethods(t *testing.T) {
 	asserts.Equal(ComponentNamespace, c.Namespace())
 	asserts.Equal(ComponentJSONName, c.GetJSONName())
 	asserts.False(c.ShouldInstallBeforeUpgrade())
-	asserts.ElementsMatch([]string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName}, c.GetDependencies())
+	asserts.ElementsMatch([]string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName}, c.GetDependencies())
 	asserts.Equal(constants.VerrazzanoVersion1_0_0, c.GetMinVerrazzanoVersion())
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetIngressNames(nil))
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetCertificateNames(nil))
