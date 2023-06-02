@@ -153,6 +153,8 @@ func (c clusterIssuerComponent) validateConfiguration(new *v1beta1.Verrazzano) e
 	}
 
 	if err := validateCertManagerTypesExist(); !isCertManagerEnabled && err != nil {
+		// If CM is disabled and no CRDs are present, the issuer won't work
+		// (customer-managed Cert-Manager case)
 		return err
 	}
 
