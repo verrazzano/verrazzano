@@ -127,8 +127,9 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 
 func TestCleanupRancherResources(t *testing.T) {
 	const (
-		nd1 = "nd1"
-		nd2 = "nd2"
+		nd1                  = "nd1"
+		nd2                  = "nd2"
+		dynamicSchemaND2Name = "ds2"
 	)
 
 	nodeDriver1 := &unstructured.Unstructured{}
@@ -137,9 +138,34 @@ func TestCleanupRancherResources(t *testing.T) {
 	nodeDriver2 := nodeDriver1.DeepCopy()
 	nodeDriver2.SetName(nd2)
 
+	// dynamic schema with owner reference that should be removed
+	dynamicSchemaND1 := &unstructured.Unstructured{}
+	dynamicSchemaND1.SetGroupVersionKind(GVKDynamicSchema)
+	dynamicSchemaND1.SetName(ociCloudCredentialSchemaName)
+	dynamicSchemaND1.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: nodeDriver1.GetAPIVersion(),
+			Kind:       nodeDriver1.GetKind(),
+			Name:       nodeDriver1.GetName(),
+			UID:        "xyz",
+		},
+	})
+
+	// dynamic schema with owner reference that should be preserved, and the schema deleted
+	dynamicSchemaND2 := dynamicSchemaND1.DeepCopy()
+	dynamicSchemaND1.SetName(dynamicSchemaND2Name)
+	dynamicSchemaND1.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: nodeDriver2.GetAPIVersion(),
+			Kind:       nodeDriver2.GetKind(),
+			Name:       nodeDriver2.GetName(),
+			UID:        "abc",
+		},
+	})
+
 	scheme := getScheme()
 	scheme.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2)
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2, dynamicSchemaND1, dynamicSchemaND2)
 	prevGetDynamicClientFunc := getDynamicClientFunc
 	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
 	defer func() {
@@ -154,12 +180,24 @@ func TestCleanupRancherResources(t *testing.T) {
 	err := cleanupRancherResources(ctx, fakeClient)
 	assert.NoError(t, err)
 
+	// Check node drivers are no longer found
 	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd1, metav1.GetOptions{})
 	assert.True(t, apierrors.IsNotFound(err))
 	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd2, metav1.GetOptions{})
 	assert.True(t, apierrors.IsNotFound(err))
+
+	// Check validating webhook configuration is no longer found
 	err = fakeClient.Get(ctx, types.NamespacedName{
 		Name: CAPIValidatingWebhook,
 	}, &adminv1.ValidatingWebhookConfiguration{})
 	assert.True(t, apierrors.IsNotFound(err))
+
+	ds1, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, ociCloudCredentialSchemaName, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Len(t, ds1.GetOwnerReferences(), 0)
+	// Check schemas are deleted/preserved according to their owner references
+	ds2, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, dynamicSchemaND2Name, metav1.GetOptions{})
+	assert.NoError(t, err)
+	// Cascading delete does not happen with fake client, so we check if owner reference is still present
+	assert.NotNil(t, ds2.GetOwnerReferences())
 }

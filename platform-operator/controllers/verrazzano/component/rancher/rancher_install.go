@@ -82,6 +82,21 @@ func cleanupRancherResources(ctx context.Context, c client.Client) error {
 		return err
 	}
 
+	// Patch dynamic schemas that we need to preserve
+	for _, schema := range cloudCredentialSchemas {
+		dynamicSchema, err := di.Resource(dynamicSchemaGVR).Get(ctx, schema, metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		} else if dynamicSchema != nil {
+			// Remove owner references so cascading delete of the node driver does not also delete the dynamic schema
+			dynamicSchema.SetOwnerReferences([]metav1.OwnerReference{})
+			_, err = di.Resource(dynamicSchemaGVR).Update(ctx, dynamicSchema, metav1.UpdateOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Delete the Rancher CAPI webhook, which conflicts with the community CAPI webhook
 	vwhc := &adminv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{

@@ -55,16 +55,24 @@ const (
 	// note: VZ-5241 In Rancher 2.6.3 the agent was moved from cattle-fleet-system ns
 	// to a new cattle-fleet-local-system ns, the rancher-operator-system ns was
 	// removed, and the rancher-operator is no longer deployed
-	FleetSystemNamespace      = "cattle-fleet-system"
-	FleetLocalSystemNamespace = "cattle-fleet-local-system"
-	defaultSecretNamespace    = "cert-manager"
-	rancherTLSSecretName      = "tls-ca"
-	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
-	fleetAgentDeployment      = "fleet-agent"
-	fleetControllerDeployment = "fleet-controller"
-	gitjobDeployment          = "gitjob"
-	rancherWebhookDeployment  = "rancher-webhook"
+	FleetSystemNamespace         = "cattle-fleet-system"
+	FleetLocalSystemNamespace    = "cattle-fleet-local-system"
+	defaultSecretNamespace       = "cert-manager"
+	rancherTLSSecretName         = "tls-ca"
+	defaultVerrazzanoName        = "verrazzano-ca-certificate-secret"
+	fleetAgentDeployment         = "fleet-agent"
+	fleetControllerDeployment    = "fleet-controller"
+	gitjobDeployment             = "gitjob"
+	rancherWebhookDeployment     = "rancher-webhook"
+	ociCloudCredentialSchemaName = "ocicredentialconfig"
 )
+
+var cloudCredentialSchemas = []string{
+	ociCloudCredentialSchemaName,
+	"azurecredentialconfig",
+	"googlecredentialconfig",
+	"amazonec2credentialconfig",
+}
 
 // Helm Chart setter keys
 const (
@@ -188,6 +196,7 @@ const (
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
+var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
 var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
 
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
@@ -238,6 +247,12 @@ var nodeDriverGVR = schema.GroupVersionResource{
 	Group:    "management.cattle.io",
 	Version:  "v3",
 	Resource: "nodedrivers",
+}
+
+var dynamicSchemaGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "dynamicschemas",
 }
 
 func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
