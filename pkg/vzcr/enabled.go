@@ -85,15 +85,15 @@ func IsIstioInjectionEnabled(cr runtime.Object) bool {
 	return true
 }
 
-// IsCAPIEnabled - Returns false only if CAPI is explicitly disabled by the user
-func IsCAPIEnabled(cr runtime.Object) bool {
+// IsClusterAPIEnabled - Returns false only if ClusterAPI is explicitly disabled by the user
+func IsClusterAPIEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
-		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CAPI != nil && vzv1alpha1.Spec.Components.CAPI.Enabled != nil {
-			return *vzv1alpha1.Spec.Components.CAPI.Enabled
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterAPI != nil && vzv1alpha1.Spec.Components.ClusterAPI.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterAPI.Enabled
 		}
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
-		if vzv1beta1 != nil && vzv1beta1.Spec.Components.CAPI != nil && vzv1beta1.Spec.Components.CAPI.Enabled != nil {
-			return *vzv1beta1.Spec.Components.CAPI.Enabled
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterAPI != nil && vzv1beta1.Spec.Components.ClusterAPI.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterAPI.Enabled
 		}
 	}
 	return true

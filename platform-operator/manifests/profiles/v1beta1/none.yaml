@@ -6,7 +6,7 @@ spec:
       enabled: false
     authProxy:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false
     certManager:
       enabled: false

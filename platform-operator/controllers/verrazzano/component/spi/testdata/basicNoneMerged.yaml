@@ -289,5 +289,5 @@ spec:
       enabled: false
     thanos:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false

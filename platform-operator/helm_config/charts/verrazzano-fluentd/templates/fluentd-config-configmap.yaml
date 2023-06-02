@@ -677,7 +677,7 @@ data:
     # filter to parse verrazzano-capi namespace container log files
     <filter kubernetes.**verrazzano-capi**>
       @type parser
-      @id capi
+      @id clusterapi
       key_name log
       reserve_data true
       emit_invalid_record_to_error true

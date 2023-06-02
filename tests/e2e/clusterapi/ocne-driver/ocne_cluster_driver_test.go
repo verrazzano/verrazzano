@@ -149,7 +149,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
-	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsCAPIEnabled(kubeconfigPath) {
+	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsClusterAPIEnabled(kubeconfigPath) {
 		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
 	}
 
@@ -282,7 +282,7 @@ func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) e
 	return createClusterTemplate.Execute(buffer, *data)
 }
 
-// Creates an OCNE cluster through CAPI
+// Creates an OCNE cluster through ClusterAPI
 func createCluster(clusterName string) error {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster")
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)

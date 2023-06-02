@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package capi
+package clusteragent
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 )
 
-func TestCapi(test *testing.T) {
+func TestClusterAgent(test *testing.T) {
 	t.RegisterFailHandler()
-	ginkgo.RunSpecs(test, "CAPI Test Suite")
+	ginkgo.RunSpecs(test, "Cluster Agent Suite")
 }
