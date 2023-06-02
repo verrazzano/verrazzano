@@ -243,8 +243,8 @@ pipeline {
                                           GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "${WORKSPACE}"/invalid.yaml --manifests "${WORKSPACE}"/downloaded-vpo.yaml
                                         fi
                                         result=$?
-                                        kind delete clusters "${CLUSTER_NAME}"
-                                        if [[ "${result}" -ne 0 ]]; then
+                                        kind delete clusters verrazzano
+                                        if [[ "$result" -ne 0 ]]; then
                                         exit 1
                                         fi
                                     """
