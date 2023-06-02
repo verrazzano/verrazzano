@@ -4,15 +4,7 @@
 package operatorinit
 
 import (
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
@@ -22,11 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/namespace"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
-	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -36,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, defaultMetricsScraper string, runClusterAgent bool, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, defaultMetricsScraper string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog2.DefaultLogger())
 	if err != nil {
 		return err
@@ -55,22 +45,9 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 
-	var agentChannel chan clusters.StatusUpdateMessage
-
-	if runClusterAgent {
-		log.Info("Starting agent reconciler for syncing multi-cluster objects")
-		if agentChannel, err = setupClusterAgentReconciler(mgr, log); err != nil {
-			return err
-		}
-		log.Info("Starting multicluster reconcilers")
-		if err := setupMulticlusterReconcilers(mgr, agentChannel, log); err != nil {
-			return err
-		}
-	} else {
-		log.Info("Starting application reconcilers")
-		if err := setupAppReconcilers(mgr, defaultMetricsScraper, log); err != nil {
-			return err
-		}
+	log.Info("Starting application reconcilers")
+	if err := setupAppReconcilers(mgr, defaultMetricsScraper, log); err != nil {
+		return err
 	}
 
 	// Initialize the metricsExporter
@@ -87,73 +64,6 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 	return err
-}
-
-func setupClusterAgentReconciler(mgr manager.Manager, log *zap.SugaredLogger) (chan clusters.StatusUpdateMessage, error) {
-	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
-	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
-
-	if err := (&mcagent.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log.With(vzlog.FieldAgent, "multi-cluster"),
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create managed cluster agent controller: %v", err)
-		return nil, err
-	}
-	return agentChannel, nil
-}
-
-func setupMulticlusterReconcilers(mgr manager.Manager, agentChannel chan clusters.StatusUpdateMessage, log *zap.SugaredLogger) error {
-	if err := (&multiclustersecret.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterSecretKind, err)
-		return err
-	}
-	if err := (&multiclustercomponent.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterComponentKind, err)
-		return err
-	}
-	if err := (&multiclusterconfigmap.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.MultiClusterConfigMapKind, err)
-		return err
-	}
-	if err := (&multiclusterapplicationconfiguration.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
-		return err
-	}
-	scheme := mgr.GetScheme()
-	vmcclient.AddToScheme(scheme)
-	if err := (&verrazzanoproject.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       scheme,
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.VerrazzanoProjectKind, err)
-		return err
-	}
-	return nil
 }
 
 func setupAppReconcilers(mgr manager.Manager, defaultMetricsScraper string, log *zap.SugaredLogger) error {
