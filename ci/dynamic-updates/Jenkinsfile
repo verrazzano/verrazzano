@@ -258,10 +258,10 @@ pipeline {
                                 sh """
                                     if [ -f "$WORKSPACE/vz" ]; then
                                         cd "\$WORKSPACE"
-                                        ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests "\$OPERATOR_YAML"
+                                        ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests "${OPERATOR_YAML}"
                                     else
                                         cd "\$GO_REPO_PATH"/verrazzano/tools/vz
-                                        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests "\$OPERATOR_YAML"
+                                        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests "${OPERATOR_YAML}"
                                     fi
                                     kind delete clusters "\$CLUSTER_NAME"
                                 """  
