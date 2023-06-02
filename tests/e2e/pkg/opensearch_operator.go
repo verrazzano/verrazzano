@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// OSOperatorOverrides are overrides to the opensearch-operator helm
 type OSOperatorOverrides struct {
 	EnvironmentName string
 	DNSSuffix       string
@@ -153,6 +154,8 @@ metadata:
   name: dev-opensearch
   namespace: default`
 
+// InstallOrUpdateOpenSearchOperator creates or updates the CM for the dev-controller
+// to install or upgrade the opensearch-operator helm chart
 func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ingest int) error {
 	cr, err := GetVerrazzano()
 	if err != nil {
@@ -184,6 +187,8 @@ func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ing
 	return err
 }
 
+// UninstallOpenSearchOperator delete the CM so that the dev-controller
+// can uninstall opensearch-operator helm
 func UninstallOpenSearchOperator() error {
 	err := DeleteConfigMap("default", "dev-opensearch")
 	if err != nil {
@@ -193,6 +198,7 @@ func UninstallOpenSearchOperator() error {
 	return nil
 }
 
+// EventuallyPodsReady check whether the required number of master, data and ingest pods are ready or not
 func EventuallyPodsReady(log *zap.SugaredLogger, master, data, ingest int) {
 	timeout := 15 * time.Minute
 	pollInterval := 30 * time.Second

@@ -293,6 +293,9 @@ pipeline {
                 }
 
                 stage('Run OpenSearch Operator tests') {
+                    when {
+                        {expression {params.USE_DB_FOR_GRAFANA == true}
+                    }
                     stages {
                         stage('install and verify opensearch') {
                             environment {
