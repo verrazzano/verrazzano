@@ -543,7 +543,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	return common.ActivateKontainerDriver(ctx)
+	if err := common.ActivateKontainerDriver(ctx); err != nil {
+		return err
+	}
+	return cleanupRancherResources(context.TODO(), ctx.Client())
 }
 
 // Reconcile for the Rancher component

@@ -211,19 +211,6 @@ func createServerURLSetting() unstructured.Unstructured {
 	return serverURLSetting
 }
 
-func createOciDriver() unstructured.Unstructured {
-	ociDriver := unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
-				"active": false,
-			},
-		},
-	}
-	ociDriver.SetGroupVersionKind(GVKNodeDriver)
-	ociDriver.SetName(NodeDriverOCI)
-	return ociDriver
-}
-
 func createOkeDriver() unstructured.Unstructured {
 	okeDriver := unstructured.Unstructured{
 		Object: map[string]interface{}{
