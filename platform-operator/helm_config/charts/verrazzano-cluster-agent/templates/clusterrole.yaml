@@ -5,14 +5,37 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: verrazzano-cluster-agent
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        verrazzano.io/aggregate-to-verrazzano-cluster-agent: "true"
+    - matchLabels:
+        verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+    - matchLabels:
+        verrazzano.io/aggregate-to-verrazzano-project-monitor: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-cluster-agent-rules
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-cluster-agent: "true"
 rules:
   - apiGroups:
       - ""
     resources:
       - namespaces
+      - secrets
+      - configmaps
     verbs:
-      - list
+      - create
+      - delete
+      - deletecollection
       - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - ""
@@ -32,10 +55,45 @@ rules:
     verbs:
       - patch
   - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - networking.k8s.io
     resources:
       - ingresses
     verbs:
+      - list
+      - watch
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - networkpolicies
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - roles
+      - rolebindings
+    verbs:
+      - bind
+      - create
+      - update
+      - delete
+      - get
       - list
       - watch
   - apiGroups:

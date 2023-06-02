@@ -69,7 +69,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 	{Namespace: vzconst.ArgoCDNamespace, Name: "argocd"},
-	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "capi"},
+	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "clusterAPI"},
 }
 
 var (
@@ -141,7 +141,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
 	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
 	overrides.ArgoCD = &argoCDValues{Enabled: vzcr.IsArgoCDEnabled(effectiveCR)}
-	overrides.Capi = &capiValues{Enabled: vzcr.IsCAPIEnabled(effectiveCR)}
+	overrides.ClusterAPI = &clusterAPIValues{Enabled: vzcr.IsClusterAPIEnabled(effectiveCR)}
 	return nil
 }
 

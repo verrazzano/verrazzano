@@ -287,5 +287,5 @@ spec:
       enabled: false
     argoCD:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false

@@ -320,9 +320,13 @@ type ComponentSpec struct {
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
 
-	// The CAPI component configuration.
+	// The ClusterAPI component configuration.
 	// +optional
-	CAPI *CAPIComponent `json:"capi,omitempty"`
+	ClusterAPI *ClusterAPIComponent `json:"clusterAPI,omitempty"`
+
+	// The ClusterAgent configuration.
+	// +optional
+	ClusterAgent *ClusterAgentComponent `json:"clusterAgent,omitempty"`
 
 	// ClusterIssuer defines the Cert-Manager ClusterIssuer configuration for Verrazzano
 	// +optional
@@ -615,9 +619,9 @@ type PrometheusPushgatewayComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// CAPIComponent specifies the CAPI configuration.
-type CAPIComponent struct {
-	// If true, then CAPI Providers will be installed.
+// ClusterAPIComponent specifies the Cluster API configuration.
+type ClusterAPIComponent struct {
+	// If true, then Cluster API Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
@@ -635,6 +639,20 @@ type CertManagerComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/cert-manager/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ClusterAgentComponent configures the Cluster Agent
+type ClusterAgentComponent struct {
+	// If true, then Cluster Agent will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-agent/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`

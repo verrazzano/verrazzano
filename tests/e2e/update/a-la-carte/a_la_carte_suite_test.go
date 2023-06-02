@@ -12,9 +12,12 @@ import (
 )
 
 var updateType string
+var clusterResourceNamespace string
 
 func init() {
 	flag.StringVar(&updateType, "updateType", "", "updateType is the type of update to perform")
+	flag.StringVar(&clusterResourceNamespace, "clusterResourceNamespace", "my-cert-manager", "the cluster issuer namespace")
+
 }
 func TestALaCarte(t *testing.T) {
 	RegisterFailHandler(Fail)

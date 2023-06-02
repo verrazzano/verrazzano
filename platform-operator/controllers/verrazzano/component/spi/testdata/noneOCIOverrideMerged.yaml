@@ -66,6 +66,8 @@ spec:
                       weight: 100
     certManagerWebhookOCI:
       enabled: false
+    clusterAgent:
+      enabled: false
     clusterIssuer:
       enabled: false
       clusterResourceNamespace: "cert-manager"
@@ -290,5 +292,5 @@ spec:
       enabled: false
     thanos:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false

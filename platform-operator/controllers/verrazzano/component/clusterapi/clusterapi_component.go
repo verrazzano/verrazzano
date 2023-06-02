@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package capi
+package clusterapi
 
 import (
 	"context"
@@ -24,13 +24,13 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "capi"
+const ComponentName = "cluster-api"
 
 // Namespace for CAPI providers
 const ComponentNamespace = constants.VerrazzanoCAPINamespace
 
 // ComponentJSONName is the JSON name of the component in CRD
-const ComponentJSONName = "capi"
+const ComponentJSONName = "clusterAPI"
 
 const (
 	capiCMDeployment                 = "capi-controller-manager"
@@ -75,85 +75,85 @@ func ResetCAPIInitFunc() {
 	capiInitFunc = clusterapi.New
 }
 
-type capiComponent struct {
+type clusterAPIComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return capiComponent{}
+	return clusterAPIComponent{}
 }
 
 // Name returns the component name.
-func (c capiComponent) Name() string {
+func (c clusterAPIComponent) Name() string {
 	return ComponentName
 }
 
 // Namespace returns the component namespace.
-func (c capiComponent) Namespace() string {
+func (c clusterAPIComponent) Namespace() string {
 	return ComponentNamespace
 }
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
-func (c capiComponent) ShouldInstallBeforeUpgrade() bool {
+func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
 }
 
 // GetDependencies returns the dependencies of this component.
-func (c capiComponent) GetDependencies() []string {
+func (c clusterAPIComponent) GetDependencies() []string {
 	return []string{cmcommon.CertManagerComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
-func (c capiComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c clusterAPIComponent) IsReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), capiDeployments, 1, prefix)
 }
 
 // IsAvailable indicates whether a component is Available for end users.
-func (c capiComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available v1alpha1.ComponentAvailability) {
+func (c clusterAPIComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available v1alpha1.ComponentAvailability) {
 	return (&ready.AvailabilityObjects{DeploymentNames: capiDeployments}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsEnabled returns true if component is enabled for installation.
-func (c capiComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsCAPIEnabled(effectiveCR)
+func (c clusterAPIComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzcr.IsClusterAPIEnabled(effectiveCR)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
-func (c capiComponent) GetMinVerrazzanoVersion() string {
+func (c clusterAPIComponent) GetMinVerrazzanoVersion() string {
 	return vpoconstants.VerrazzanoVersion1_6_0
 }
 
 // GetIngressNames returns the list of ingress names associated with the component
-func (c capiComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+func (c clusterAPIComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
 
 // GetCertificateNames returns the list of expected certificates used by this component
-func (c capiComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+func (c clusterAPIComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
 
 // GetJSONName returns the json name of the verrazzano component in CRD
-func (c capiComponent) GetJSONName() string {
+func (c clusterAPIComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (c capiComponent) GetOverrides(object runtime.Object) interface{} {
+func (c clusterAPIComponent) GetOverrides(object runtime.Object) interface{} {
 	return nil
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
-func (c capiComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (c clusterAPIComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (c capiComponent) IsOperatorInstallSupported() bool {
+func (c clusterAPIComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-// IsInstalled checks to see if CAPI is installed
-func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+// IsInstalled checks to see if ClusterAPI is installed
+func (c clusterAPIComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.Deployment{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
@@ -166,11 +166,11 @@ func (c capiComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return true, nil
 }
 
-func (c capiComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-func (c capiComponent) Install(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
@@ -194,19 +194,19 @@ func (c capiComponent) Install(ctx spi.ComponentContext) error {
 	return err
 }
 
-func (c capiComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
 	return common.ActivateKontainerDriver(ctx)
 }
 
-func (c capiComponent) IsOperatorUninstallSupported() bool {
+func (c clusterAPIComponent) IsOperatorUninstallSupported() bool {
 	return true
 }
 
-func (c capiComponent) PreUninstall(_ spi.ComponentContext) error {
+func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) Uninstall(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
@@ -228,15 +228,15 @@ func (c capiComponent) Uninstall(ctx spi.ComponentContext) error {
 	return capiClient.Delete(deleteOptions)
 }
 
-func (c capiComponent) PostUninstall(_ spi.ComponentContext) error {
+func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c capiComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return preUpgrade(ctx)
 }
 
-func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
@@ -258,33 +258,33 @@ func (c capiComponent) Upgrade(ctx spi.ComponentContext) error {
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)
 }
 
-func (c capiComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c clusterAPIComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return common.ActivateKontainerDriver(ctx)
 }
 
-func (c capiComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+func (c clusterAPIComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	return nil
 }
 
-func (c capiComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+func (c clusterAPIComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return nil
 }
 
-func (c capiComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+func (c clusterAPIComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	return nil
 }
 
-func (c capiComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+func (c clusterAPIComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return nil
 }
 
-// Reconcile reconciles the CAPI component
-func (c capiComponent) Reconcile(ctx spi.ComponentContext) error {
+// Reconcile reconciles the ClusterAPI component
+func (c clusterAPIComponent) Reconcile(ctx spi.ComponentContext) error {
 	return nil
 }
