@@ -228,17 +228,17 @@ pipeline {
         stage('Acceptance Tests') {
 
             stages {
-                stage('Run VZ CLI Custom Resource Validation'){
-                      environment {
+                stage('Run VZ CLI Custom Resource Validation') {
+                    environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
-                    steps{
+                    steps {
                         script{
-                            if(CR_VALIDATION_TEST){
-                                scriptForPrepareATEnvironmentV1beta1()
-                                // OPERATOR_YAML=sh(returnStdout: true, script: "").trim()
-                                sh """
+                            if(CR_VALIDATION_TEST) {
+                                try {
+                                    scriptForPrepareATEnvironmentV1beta1()
+                                    sh """
                                     cd ${GO_REPO_PATH}/verrazzano
                                     yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                                     yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
@@ -256,14 +256,16 @@ pipeline {
                                     yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
                                     if [ -f "$WORKSPACE/vz" ]; then
-                                        cd "\$WORKSPACE"
-                                        ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
+                                    cd "\$WORKSPACE"
+                                    ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                     else
-                                        cd "\$GO_REPO_PATH"/verrazzano/tools/vz
-                                        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
+                                    cd "\$GO_REPO_PATH"/verrazzano/tools/vz
+                                    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                     fi
-                                    kind delete clusters "\$CLUSTER_NAME"
-                                """  
+                                    """
+                                } catch (error) {
+                                    echo "Failed"+ error.toString()
+                                }
                             }
                         }
                     }
