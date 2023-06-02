@@ -23,7 +23,7 @@ Component version updates:
 Components added:
 - Thanos v0.30.2
 - Fluent Operator v2.2.0
-- FluentbitOpensearchOutput 1.0.0
+- FluentbitOpensearchOutput v1.0.0
 
 Fixes:
 
