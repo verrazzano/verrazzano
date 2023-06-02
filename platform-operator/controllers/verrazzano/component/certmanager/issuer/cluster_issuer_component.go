@@ -152,10 +152,17 @@ func (c clusterIssuerComponent) validateConfiguration(new *v1beta1.Verrazzano) e
 		return nil
 	}
 
-	if err := validateCertManagerTypesExist(); !isCertManagerEnabled && err != nil {
-		// If CM is disabled and no CRDs are present, the issuer won't work
-		// (customer-managed Cert-Manager case)
-		return err
+	if !isCertManagerEnabled {
+		if err := validateCertManagerTypesExist(); err != nil {
+			// If CM is disabled and no CRDs are present, the issuer won't work
+			// (customer-managed Cert-Manager case)
+			return err
+		}
+
+		// Validate that the clusterResourceNamespace exists
+		if err := checkClusterResourceNamespaceExists(new.Spec.Components.ClusterIssuer); err != nil {
+			return err
+		}
 	}
 
 	if err := validateConfiguration(new); err != nil {

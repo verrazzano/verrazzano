@@ -99,10 +99,6 @@ func validateIssuerConfig(issuerComponent *v1beta1.ClusterIssuerComponent) error
 		return nil
 	}
 
-	if err := checkClusterResourceNamespaceExists(issuerComponent); err != nil {
-		return err
-	}
-
 	// Check if Ca or Acme is empty
 	isCAConfig, err := issuerComponent.IsCAIssuer()
 	if err != nil {
