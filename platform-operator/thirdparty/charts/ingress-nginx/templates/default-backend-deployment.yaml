@@ -19,6 +19,11 @@ spec:
   replicas: {{ .Values.defaultBackend.replicaCount }}
 {{- end }}
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- if .Values.defaultBackend.updateStrategy }}
+  strategy:
+    {{ toYaml .Values.defaultBackend.updateStrategy | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.defaultBackend.minReadySeconds }}
   template:
     metadata:
     {{- if .Values.defaultBackend.podAnnotations }}
@@ -67,7 +72,6 @@ spec:
             runAsUser: {{ .Values.defaultBackend.image.runAsUser }}
             runAsNonRoot: {{ .Values.defaultBackend.image.runAsNonRoot }}
             allowPrivilegeEscalation: {{ .Values.defaultBackend.image.allowPrivilegeEscalation }}
-            privileged: {{ .Values.defaultBackend.image.privileged }}
             readOnlyRootFilesystem: {{ .Values.defaultBackend.image.readOnlyRootFilesystem}}
         {{- if .Values.defaultBackend.extraEnvs }}
           env: {{ toYaml .Values.defaultBackend.extraEnvs | nindent 12 }}
