@@ -958,6 +958,14 @@ func TestPostInstall(t *testing.T) {
 //	WHEN PostUpgrade is called
 //	THEN PostUpgrade should return nil
 func TestPostUpgrade(t *testing.T) {
+	s := getScheme()
+	s.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(s)
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()
 	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
