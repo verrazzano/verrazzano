@@ -292,38 +292,6 @@ pipeline {
                     }
                 }
 
-                stage('Run OpenSearch Operator tests') {
-                    when {
-                        expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
-                    }
-                    stages {
-                        stage('install and verify opensearch') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-install"
-                            }
-                            steps {
-                                runGinkgo('opensearch-operator/install')
-                            }
-                        }
-                        stage('verify opensearch infra') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-infra"
-                            }
-                            steps {
-                                runGinkgo('opensearch-operator/infra')
-                            }
-                        }
-                        stage('opensearch topology') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-topology"
-                            }
-                            steps {
-                                runGinkgo('opensearch-operator/topology')
-                            }
-                        }
-                    }
-                }
-
                 stage('Verify Install') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
@@ -615,6 +583,38 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('loggingtrait/coherenceworkload')
+                            }
+                        }
+                    }
+                }
+
+                stage('Run OpenSearch Operator tests') {
+                    when {
+                        expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
+                    }
+                    stages {
+                        stage('install and verify opensearch') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-install"
+                            }
+                            steps {
+                                runGinkgo('opensearch-operator/install')
+                            }
+                        }
+                        stage('verify opensearch infra') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-infra"
+                            }
+                            steps {
+                                runGinkgo('opensearch-operator/infra')
+                            }
+                        }
+                        stage('opensearch topology') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-topology"
+                            }
+                            steps {
+                                runGinkgo('opensearch-operator/topology')
                             }
                         }
                     }
