@@ -16,3 +16,6 @@ fluentbit:
   input:
     tail:
       readFromHead: true
+  filter:
+    kubernetes:
+      labels: true
