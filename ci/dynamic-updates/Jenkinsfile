@@ -264,7 +264,8 @@ pipeline {
                                     fi
                                     """
                                 } catch (error) {
-                                    echo "Failed"+ error.toString()
+                                    sh "kind delete cluster ${CLUSTER_NAME}"
+                                    echo "Failed: "+ error.toString()
                                 }
                             }
                         }
