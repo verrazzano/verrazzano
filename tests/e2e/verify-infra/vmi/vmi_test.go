@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"io"
 	"net/http"
 	"os"
@@ -21,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
@@ -739,7 +739,7 @@ func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
 
 func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) &&
-		vzcr.IsComponentStatusEnabled(vz, cmcommon.CertManagerComponentName) &&
+		vzcr.IsComponentStatusEnabled(vz, cmconstants.CertManagerComponentName) &&
 		vzcr.IsComponentStatusEnabled(vz, keycloak.ComponentName)
 }
 

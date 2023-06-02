@@ -6,6 +6,7 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -15,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -30,13 +30,13 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = cmcommon.CertManagerComponentName
+const ComponentName = cmconstants.CertManagerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = cmcommon.CertManagerComponentJSONName
+const ComponentJSONName = cmconstants.CertManagerComponentJSONName
 
 // ExternalDNSComponentJSONName is the JSON name of the verrazzano component in CRD
 //const ExternalDNSComponentJSONName = cmcommon.ExternalDNSComponentJSONName

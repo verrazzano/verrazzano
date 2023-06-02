@@ -6,6 +6,7 @@ package kiali
 import (
 	"context"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -17,7 +18,6 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -62,7 +62,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_1_0,
 			AvailabilityObjects: &ready.AvailabilityObjects{
