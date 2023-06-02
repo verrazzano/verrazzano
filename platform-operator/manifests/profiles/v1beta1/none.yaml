@@ -16,6 +16,10 @@ spec:
           clusterResourceNamespace: "cert-manager"
     clusterAgent:
       enabled: false
+    clusterIssuer:
+      enabled: false
+    clusterOperator:
+      enabled: false
     coherenceOperator:
       enabled: false
     console:
