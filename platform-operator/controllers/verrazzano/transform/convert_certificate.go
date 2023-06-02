@@ -4,31 +4,11 @@
 package transform
 
 import (
-	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-)
-
-var (
-	emptyCertConfigV1Alpha1 = v1alpha1.Certificate{}
-
-	defaultCertConfigV1Alpha1 = v1alpha1.Certificate{
-		CA: v1alpha1.CA{
-			SecretName:               constants.DefaultVerrazzanoCASecretName,
-			ClusterResourceNamespace: constants.CertManagerNamespace,
-		},
-	}
-
-	emptyCertConfigV1Beta1 = v1beta1.Certificate{}
-
-	defaultCertConfigV1Beta1 = v1beta1.Certificate{
-		CA: v1beta1.CA{
-			SecretName:               constants.DefaultVerrazzanoCASecretName,
-			ClusterResourceNamespace: constants.CertManagerNamespace,
-		},
-	}
+	cmvalidate "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/validate"
 )
 
 // convertCertificateToClusterIssuerV1Beta1 Ensures backwards compatibility between the newer ClusterIssuerComponent
@@ -42,7 +22,7 @@ func convertCertificateToClusterIssuerV1Beta1(effectiveCR *v1beta1.Verrazzano) e
 		effectiveCR.Spec.Components.CertManager = &v1beta1.CertManagerComponent{}
 	}
 	certManagerConfig := effectiveCR.Spec.Components.CertManager
-	if isEmptyCertificateConfig(certManagerConfig.Certificate) {
+	if cmvalidate.IsEmptyCertificateConfig(certManagerConfig.Certificate) {
 		certManagerConfig.Certificate = v1beta1.Certificate{
 			CA: v1beta1.CA{
 				SecretName:               constants.DefaultVerrazzanoCASecretName,
@@ -85,7 +65,7 @@ func convertCertificateToClusterIssuerV1Alpha1(effectiveCR *v1alpha1.Verrazzano)
 		effectiveCR.Spec.Components.CertManager = &v1alpha1.CertManagerComponent{}
 	}
 	certManagerConfig := effectiveCR.Spec.Components.CertManager
-	if isEmptyCertificateConfig(certManagerConfig.Certificate) {
+	if cmvalidate.IsEmptyCertificateConfig(certManagerConfig.Certificate) {
 		certManagerConfig.Certificate = v1alpha1.Certificate{
 			CA: v1alpha1.CA{
 				SecretName:               constants.DefaultVerrazzanoCASecretName,
@@ -117,65 +97,8 @@ func convertCertificateToClusterIssuerV1Alpha1(effectiveCR *v1alpha1.Verrazzano)
 	return nil
 }
 
-func isDefaultCertificateConfig(certificateConfig interface{}) bool {
-	if v1alpha1Config, ok := certificateConfig.(v1alpha1.Certificate); ok {
-		return v1alpha1Config == defaultCertConfigV1Alpha1
-	}
-	if v1beta1Config, ok := certificateConfig.(v1beta1.Certificate); ok {
-		return v1beta1Config == defaultCertConfigV1Beta1
-	}
-	return false
-}
-
-func isEmptyCertificateConfig(certificateConfig interface{}) bool {
-	if v1alpha1Config, ok := certificateConfig.(v1alpha1.Certificate); ok {
-		return v1alpha1Config == emptyCertConfigV1Alpha1
-	}
-	if v1beta1Config, ok := certificateConfig.(v1beta1.Certificate); ok {
-		return v1beta1Config == emptyCertConfigV1Beta1
-	}
-	return false
-}
-
-func isNotDefaultCANamespace(certManagerConfig interface{}) bool {
-	if v1alpha1Config, ok := certManagerConfig.(v1alpha1.Certificate); ok {
-		return len(v1alpha1Config.CA.ClusterResourceNamespace) > 0 &&
-			v1alpha1Config.CA.ClusterResourceNamespace != constants.CertManagerNamespace
-	}
-	if v1beta11Config, ok := certManagerConfig.(v1beta1.Certificate); ok {
-		return len(v1beta11Config.CA.ClusterResourceNamespace) > 0 &&
-			v1beta11Config.CA.ClusterResourceNamespace != constants.CertManagerNamespace
-	}
-	return false
-}
-
-func isCAConfig(certConfig interface{}) (isCAConfig bool, err error) {
-	var caNotEmpty bool
-	if certv1alpha1, ok := certConfig.(v1alpha1.Certificate); ok {
-		// Check if Ca or Acme is empty
-		caNotEmpty = certv1alpha1.CA != v1alpha1.CA{}
-		acmeNotEmpty := certv1alpha1.Acme != v1alpha1.Acme{}
-		if caNotEmpty && acmeNotEmpty {
-			return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
-		} else if !caNotEmpty && !acmeNotEmpty {
-			return false, errors.New("Either Acme or CA certificate authorities must be configured")
-		}
-	}
-	if certv1beta1, ok := certConfig.(v1beta1.Certificate); ok {
-		// Check if Ca or Acme is empty
-		caNotEmpty = certv1beta1.CA != v1beta1.CA{}
-		acmeNotEmpty := certv1beta1.Acme != v1beta1.Acme{}
-		if caNotEmpty && acmeNotEmpty {
-			return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
-		} else if !caNotEmpty && !acmeNotEmpty {
-			return false, errors.New("Either Acme or CA certificate authorities must be configured")
-		}
-	}
-	return caNotEmpty, nil
-}
-
 func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIssuerConfig interface{}, isDefaultIssuer bool) error {
-	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
+	isDefaultCertificateConfig := cmvalidate.IsDefaultCertificateConfig(cmCertificateConfig)
 	if !isDefaultCertificateConfig && !isDefaultIssuer {
 		return fmt.Errorf("Illegal state, both CertManager Certificate and ClusterIssuer components are configured")
 	}
@@ -185,14 +108,14 @@ func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIss
 	}
 
 	// Check if it's a CA issuer config
-	isCAConfig, err := isCAConfig(cmCertificateConfig)
+	isCAConfig, err := cmvalidate.IsCAConfig(cmCertificateConfig)
 	if err != nil {
 		// The certificate object is invalid, do nothing; validators should catch it and returning an error
 		// here will throw off the validators.
 		return nil
 	}
 
-	if isEmptyCertificateConfig(cmCertificateConfig) {
+	if cmvalidate.IsEmptyCertificateConfig(cmCertificateConfig) {
 		return nil
 	}
 
@@ -215,7 +138,7 @@ func doConversion(cmCertificateConfig interface{}, clusterIssuerConfig interface
 			}
 		}
 		// Update the clusterResourceNamespace if it is not the default
-		if isNotDefaultCANamespace(certV1Alpha1) {
+		if cmvalidate.IsNotDefaultCANamespace(certV1Alpha1) {
 			issuerV1Alpha1.ClusterResourceNamespace = certV1Alpha1.CA.ClusterResourceNamespace
 		}
 		return nil
@@ -235,7 +158,7 @@ func doConversion(cmCertificateConfig interface{}, clusterIssuerConfig interface
 			}
 		}
 		// Update the clusterResourceNamespace if it is not the default
-		if isNotDefaultCANamespace(certV1Beta1) {
+		if cmvalidate.IsNotDefaultCANamespace(certV1Beta1) {
 			issuerV1Beta1.ClusterResourceNamespace = certV1Beta1.CA.ClusterResourceNamespace
 		}
 		return nil

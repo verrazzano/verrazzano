@@ -33,6 +33,20 @@ var (
 			SecretName:               customSecret,
 		},
 	}
+
+	defaultCertConfigV1Alpha1 = v1alpha1.Certificate{
+		CA: v1alpha1.CA{
+			SecretName:               constants.DefaultVerrazzanoCASecretName,
+			ClusterResourceNamespace: constants.CertManagerNamespace,
+		},
+	}
+
+	defaultCertConfigV1Beta1 = v1beta1.Certificate{
+		CA: v1beta1.CA{
+			SecretName:               constants.DefaultVerrazzanoCASecretName,
+			ClusterResourceNamespace: constants.CertManagerNamespace,
+		},
+	}
 )
 
 // TestConvertCertificateToClusterIssuerV1Beta1 tests the convertCertificateToClusterIssuerV1Beta1 function

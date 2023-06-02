@@ -87,6 +87,33 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			},
 			numberOfErrors: 0,
 		},
+		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapi.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							IssuerConfig: vzapi.IssuerConfig{
+								LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
 	}
 	config.TestProfilesDir = testProfilesDirectory
 	defer func() {
@@ -167,6 +194,33 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 				},
 			},
 			numberOfErrors: 0,
+		},
+		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			vz: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Certificate: vzapibeta.Certificate{
+								Acme: vzapibeta.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapibeta.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapibeta.ClusterIssuerComponent{
+							IssuerConfig: vzapibeta.IssuerConfig{
+								LetsEncrypt: &vzapibeta.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
 		},
 	}
 
@@ -271,6 +325,34 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			},
 			numberOfErrors: 2,
 		},
+		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapi.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							IssuerConfig: vzapi.IssuerConfig{
+								LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
 	}
 	config.TestProfilesDir = testProfilesDirectory
 	defer func() {
@@ -359,6 +441,34 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			numberOfErrors: 1,
 		},
 		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			old:  &vzapibeta.Verrazzano{},
+			new: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Certificate: vzapibeta.Certificate{
+								Acme: vzapibeta.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapibeta.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapibeta.ClusterIssuerComponent{
+							IssuerConfig: vzapibeta.IssuerConfig{
+								LetsEncrypt: &vzapibeta.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
+		{
 
 			name: disabledCertAndIngress,
 			old:  &vzapibeta.Verrazzano{},
@@ -385,6 +495,7 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			c := ComponentValidatorImpl{}
 			got := c.ValidateUpdateV1Beta1(tt.old, tt.new)
 			if len(got) != tt.numberOfErrors {
+				t.Logf("Errors: %v", got)
 				t.Errorf("ValidateUpdate() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
 			}
 		})
