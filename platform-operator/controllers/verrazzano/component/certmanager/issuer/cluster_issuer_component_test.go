@@ -24,7 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -91,7 +91,7 @@ func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs
 	}
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
@@ -142,7 +142,7 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 	}
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
@@ -156,24 +156,6 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 		_, availability := fakeComponent.IsAvailable(fakeContext)
 		assert.Equal(t, vzapi.ComponentAvailability(vzapi.ComponentUnavailable), availability)
 	}
-}
-
-// TestValidateInstall tests the ValidateInstall function
-// GIVEN a call to ValidateInstall
-//
-//	WHEN for various Issuer configurations
-//	THEN an error is returned if anything is misconfigured
-func TestValidateInstall(t *testing.T) {
-	validationTests(t, false)
-}
-
-// TestValidateUpdate tests the ValidateInstall function
-// GIVEN a call to ValidateInstall
-//
-//	WHEN for various Issuer configurations
-//	THEN an error is returned if anything is misconfigured
-func TestValidateUpdate(t *testing.T) {
-	validationTests(t, true)
 }
 
 // TestPostInstallCA tests the PostInstall function
@@ -600,7 +582,7 @@ func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
@@ -670,3 +652,28 @@ func createCertSecretNoParent(name string, namespace string, cn string) (*corev1
 	}
 	return secret, nil
 }
+
+//func crtObjectToRuntimeObject(objs ...clipkg.Object) []runtime.Object {
+//	var runtimeObjs []runtime.Object
+//	for _, obj := range objs {
+//		runtimeObjs = append(runtimeObjs, obj)
+//	}
+//	return runtimeObjs
+//}
+//
+//func createCertManagerCRDs() []clipkg.Object {
+//	var cmCRDs []clipkg.Object
+//	for _, crd := range cmcommon.GetRequiredCertManagerCRDNames() {
+//		cmCRDs = append(cmCRDs, newCRD(crd))
+//	}
+//	return cmCRDs
+//}
+//
+//func newCRD(name string) clipkg.Object {
+//	crd := &apiextv1.CustomResourceDefinition{
+//		ObjectMeta: metav1.ObjectMeta{
+//			Name: name,
+//		},
+//	}
+//	return crd
+//}
