@@ -19,7 +19,7 @@ var _ v1beta1.ComponentValidator = ComponentValidatorImpl{}
 func (c ComponentValidatorImpl) ValidateInstall(vz *v1alpha1.Verrazzano) []error {
 	var errs []error
 
-	effectiveCR, err := transform.GetEffectiveCR(vz)
+	effectiveCR, err := transform.GetEffectiveCR(vz, true)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -37,7 +37,7 @@ func (c ComponentValidatorImpl) ValidateInstall(vz *v1alpha1.Verrazzano) []error
 func (c ComponentValidatorImpl) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) []error {
 	var errs []error
 
-	effectiveCR, err := transform.GetEffectiveV1beta1CR(vz)
+	effectiveCR, err := transform.GetEffectiveV1beta1CR(vz, true)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -55,12 +55,12 @@ func (c ComponentValidatorImpl) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) [
 func (c ComponentValidatorImpl) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) []error {
 	var errs []error
 
-	effectiveNew, err := transform.GetEffectiveCR(new)
+	effectiveNew, err := transform.GetEffectiveCR(new, true)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
 	}
-	effectiveOld, err := transform.GetEffectiveCR(old)
+	effectiveOld, err := transform.GetEffectiveCR(old, true)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -77,12 +77,12 @@ func (c ComponentValidatorImpl) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1
 func (c ComponentValidatorImpl) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) []error {
 	var errs []error
 
-	effectiveNew, err := transform.GetEffectiveV1beta1CR(new)
+	effectiveNew, err := transform.GetEffectiveV1beta1CR(new, true)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
 	}
-	effectiveOld, err := transform.GetEffectiveV1beta1CR(old)
+	effectiveOld, err := transform.GetEffectiveV1beta1CR(old, true)
 	if err != nil {
 		errs = append(errs, err)
 		return errs

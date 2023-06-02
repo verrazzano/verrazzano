@@ -142,7 +142,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateUpgradeDone:
 			log.Once("Verrazzano successfully upgraded all existing components and will now install any new components")
-			effectiveCR, _ := transform.GetEffectiveCR(cr)
+			effectiveCR, _ := transform.GetEffectiveCR(cr, false)
 			componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()

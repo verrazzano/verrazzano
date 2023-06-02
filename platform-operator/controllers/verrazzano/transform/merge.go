@@ -20,7 +20,7 @@ const (
 // GetEffectiveCR Creates an "effective" v1alpha1.Verrazzano CR based on the user defined resource merged with the profile definitions
 // - Effective CR == base profile + declared profiles + ActualCR (in order)
 // - last definition wins
-func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error) {
+func GetEffectiveCR(actualCR *v1alpha1.Verrazzano, validate bool) (*v1alpha1.Verrazzano, error) {
 	if actualCR == nil {
 		return nil, nil
 	}
@@ -41,7 +41,7 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 	effectiveCR.Status = v1alpha1.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
 
 	// Align the ClusterIssuer configurations between CertManager and ClusterIssuer components
-	if err := convertCertificateToClusterIssuerV1Alpha1(effectiveCR); err != nil {
+	if err := convertCertificateToClusterIssuerV1Alpha1(effectiveCR); err != nil && validate {
 		return nil, err
 	}
 
@@ -51,7 +51,7 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 // GetEffectiveV1beta1CR Creates an "effective" v1beta1.Verrazzano CR based on the user defined resource merged with the profile definitions
 // - Effective CR == base profile + declared profiles + ActualCR (in order)
 // - last definition wins
-func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, error) {
+func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano, validate bool) (*v1beta1.Verrazzano, error) {
 	if actualCR == nil {
 		return nil, nil
 	}
@@ -72,7 +72,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 	effectiveCR.Status = v1beta1.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
 
 	// Align the ClusterIssuer configurations between CertManager and ClusterIssuer components
-	if err := convertCertificateToClusterIssuerV1Beta1(effectiveCR); err != nil {
+	if err := convertCertificateToClusterIssuerV1Beta1(effectiveCR); err != nil && validate {
 		return nil, err
 	}
 

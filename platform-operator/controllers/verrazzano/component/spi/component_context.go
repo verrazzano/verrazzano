@@ -19,11 +19,11 @@ var _ ComponentContext = componentContext{}
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano, dryRun bool) (ComponentContext, error) {
 	// Generate the effective CR based on the declared profile and any overrides in the user-supplied one
-	effectiveCR, err := transform.GetEffectiveCR(actualCR)
+	effectiveCR, err := transform.GetEffectiveCR(actualCR, false)
 	if err != nil {
 		return nil, err
 	}
-	effectiveV1beta1CR, err := transform.GetEffectiveV1beta1CR(actualV1beta1CR)
+	effectiveV1beta1CR, err := transform.GetEffectiveV1beta1CR(actualV1beta1CR, false)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +62,12 @@ func NewFakeContext(c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta
 		defer func() { config.TestProfilesDir = "" }()
 
 		var err error
-		effectiveCR, err = transform.GetEffectiveCR(actualCR)
+		effectiveCR, err = transform.GetEffectiveCR(actualCR, true)
 		if err != nil {
 			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
 		}
-		effectiveV1beta1CR, err = transform.GetEffectiveV1beta1CR(actualV1beta1CR)
+		effectiveV1beta1CR, err = transform.GetEffectiveV1beta1CR(actualV1beta1CR, true)
 		if err != nil {
 			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
