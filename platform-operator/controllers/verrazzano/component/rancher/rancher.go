@@ -104,6 +104,7 @@ const (
 )
 
 const (
+	CAPIMutatingWebhook               = "mutating-webhook-configuration"
 	CAPIValidatingWebhook             = "validating-webhook-configuration"
 	SettingServerURL                  = "server-url"
 	KontainerDriverOKE                = "oraclecontainerengine"

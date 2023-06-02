@@ -97,13 +97,22 @@ func cleanupRancherResources(ctx context.Context, c client.Client) error {
 		}
 	}
 
-	// Delete the Rancher CAPI webhook, which conflicts with the community CAPI webhook
+	// Delete the Rancher CAPI webhooks, which conflicts with the community CAPI webhooks
 	vwhc := &adminv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: CAPIValidatingWebhook,
 		},
 	}
 	err = c.Delete(ctx, vwhc)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	mwhc := &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: CAPIMutatingWebhook,
+		},
+	}
+	err = c.Delete(ctx, mwhc)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}

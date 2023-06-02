@@ -175,6 +175,10 @@ func TestCleanupRancherResources(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: CAPIValidatingWebhook,
 		},
+	}, &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: CAPIMutatingWebhook,
+		},
 	}).Build()
 	ctx := context.TODO()
 	err := cleanupRancherResources(ctx, fakeClient)
@@ -186,10 +190,14 @@ func TestCleanupRancherResources(t *testing.T) {
 	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd2, metav1.GetOptions{})
 	assert.True(t, apierrors.IsNotFound(err))
 
-	// Check validating webhook configuration is no longer found
+	// Check Rancher CAPI webhooks are no longer found
 	err = fakeClient.Get(ctx, types.NamespacedName{
 		Name: CAPIValidatingWebhook,
 	}, &adminv1.ValidatingWebhookConfiguration{})
+	assert.True(t, apierrors.IsNotFound(err))
+	err = fakeClient.Get(ctx, types.NamespacedName{
+		Name: CAPIMutatingWebhook,
+	}, &adminv1.MutatingWebhookConfiguration{})
 	assert.True(t, apierrors.IsNotFound(err))
 
 	ds1, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, ociSchemaName, metav1.GetOptions{})
