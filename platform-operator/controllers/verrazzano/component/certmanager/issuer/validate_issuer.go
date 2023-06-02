@@ -88,7 +88,7 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 // - Validates the CA or LetsEncrypt configurations if necessary
 // - returns an error if anything is misconfigured
 func validateConfiguration(vz *v1beta1.Verrazzano) (err error) {
-	if err := validateComponentConfigurationV1Beta1(vz); err != nil {
+	if err := validateCertificate(vz.Spec.Components.CertManager); err != nil {
 		return err
 	}
 	return validateIssuerConfig(vz.Spec.Components.ClusterIssuer)
@@ -159,30 +159,6 @@ func validateCertManagerTypesExist() error {
 		return fmt.Errorf("%s component is enabled but could not detect the presence of Cert-Manager", ComponentJSONName)
 	}
 	return nil
-}
-
-// validateComponentConfigurationV1Beta1 validates that only one of either the ClusterIssuerComponent or the
-// CertManager.Certificate field can be configured with non-defaults at the same time.
-func validateComponentConfigurationV1Beta1(vz *v1beta1.Verrazzano) error {
-
-	//certManagerComp := vz.Spec.Components.CertManager
-	//clusterIssuerComp := vz.Spec.Components.ClusterIssuer
-
-	// NOTE: Disable this for now, since we can't distinguish between a user edit and the merged profile settings;
-	// we may have to do this validation in the ComponentValidatorImpl before the EffectiveCR is generated
-	//
-	// We only allow configuring either the deprecated CertManager Certificate field, or the ClusterIssuerComponent
-	//if certManagerComp != nil && clusterIssuerComp != nil {
-	//	isDefaultIssuer, err := clusterIssuerComp.IsDefaultIssuer()
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if !isDefaultIssuer && !isDefaultCertificateConfiguration(certManagerComp.Certificate) {
-	//		return fmt.Errorf("Can not simultaneously configure both the CertManager and ClusterIssuer components")
-	//	}
-	//}
-
-	return validateCertificate(vz.Spec.Components.CertManager)
 }
 
 func validateCertificate(comp *v1beta1.CertManagerComponent) error {

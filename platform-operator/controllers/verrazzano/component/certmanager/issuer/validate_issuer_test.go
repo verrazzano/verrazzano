@@ -205,46 +205,46 @@ var simpleValidationTests = []validationTestStruct{
 		wantErr:     false,
 		crdsPresent: false,
 	},
-	//{
-	//	name: "CertManager and ClusterIssuer both explicitly configured",
-	//	old:  &vzapi.Verrazzano{},
-	//	new: &vzapi.Verrazzano{
-	//		Spec: vzapi.VerrazzanoSpec{
-	//			Components: vzapi.ComponentSpec{
-	//				CertManager: &vzapi.CertManagerComponent{
-	//					Enabled: getBoolPtr(false),
-	//					Certificate: vzapi.Certificate{
-	//						CA: vzapi.CA{
-	//							ClusterResourceNamespace: secretNamespace,
-	//							SecretName:               secretName,
-	//						},
-	//					},
-	//				},
-	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
-	//					IssuerConfig: vzapi.IssuerConfig{
-	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
-	//							EmailAddress: emailAddress,
-	//							Environment:  letsEncryptStaging,
-	//						},
-	//					},
-	//				},
-	//				DNS: &vzapi.DNSComponent{
-	//					OCI: &vzapi.OCI{
-	//						DNSScope:               "GLOBAL",
-	//						DNSZoneCompartmentOCID: "ocid",
-	//						DNSZoneOCID:            "zoneOcid",
-	//						DNSZoneName:            "zoneName",
-	//						OCIConfigSecret:        "oci",
-	//					},
-	//				},
-	//			},
-	//		},
-	//	},
-	//	caSecret: &corev1.Secret{
-	//		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
-	//	},
-	//	wantErr: true,
-	//},
+	{
+		name: "CertManager and ClusterIssuer both explicitly configured",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(false),
+						Certificate: vzapi.Certificate{
+							CA: vzapi.CA{
+								ClusterResourceNamespace: secretNamespace,
+								SecretName:               secretName,
+							},
+						},
+					},
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+								EmailAddress: emailAddress,
+								Environment:  letsEncryptStaging,
+							},
+						},
+					},
+					DNS: &vzapi.DNSComponent{
+						OCI: &vzapi.OCI{
+							DNSScope:               "GLOBAL",
+							DNSZoneCompartmentOCID: "ocid",
+							DNSZoneOCID:            "zoneOcid",
+							DNSZoneName:            "zoneName",
+							OCIConfigSecret:        "oci",
+						},
+					},
+				},
+			},
+		},
+		caSecret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
+		},
+		wantErr: true,
+	},
 	{
 		name: "CertManager Component Custom CA",
 		old:  &vzapi.Verrazzano{},
