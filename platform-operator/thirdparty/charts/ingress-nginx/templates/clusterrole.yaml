@@ -16,13 +16,18 @@ metadata:
   name: {{ include "ingress-nginx.namespacedfullname" . }}
 rules:
   - apiGroups:
-      - ""
+      - discovery.k8s.io
     resources:
       - configmaps
       - endpoints
       - nodes
       - pods
       - secrets
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
 {{- if not .Values.controller.scope.enabled }}
       - namespaces
 {{- end}}
