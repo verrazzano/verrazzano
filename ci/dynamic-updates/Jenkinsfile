@@ -229,11 +229,32 @@ pipeline {
 
             stages {
                 stage('Run VZ CLI Custom Resource Validation'){
+                      environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                    }
                     steps{
                         script{
                             if(CR_VALIDATION_TEST){
                                 OPERATOR_YAML=sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml").trim()
                                 scriptForPrepareATEnvironmentV1beta1()
+                                sh """
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.kiali.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.istio.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.oam.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.fluentd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.prometheus.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                """
                                 sh """
                                     if [ -f "$WORKSPACE/vz" ]; then
                                         cd "\$WORKSPACE"
