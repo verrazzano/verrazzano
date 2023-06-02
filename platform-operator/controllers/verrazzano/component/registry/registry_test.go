@@ -92,6 +92,19 @@ var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
 	},
 }
 
+var basicV1Beta1NoneClusterWithStatus = v1beta1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1beta1.VerrazzanoSpec{
+		Profile: "none",
+	},
+	Status: v1beta1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1beta1.InstanceInfo{},
+	},
+}
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //
@@ -656,6 +669,39 @@ func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
 }
 
+// TestV1Beta1NoneProfileInstalledAllComponentsDisabled Tests the EffectiveV1Beta1CR
+// GIVEN when a verrazzano instance with NONE profile
+// WHEN Newcontext is called
+// THEN all components referred from the registry are disabled except for network-policies
+//func TestV1Beta1NoneProfileInstalledAllComponentsDisabled(t *testing.T) {
+//	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+//	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
+//		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
+//	}
+//
+//	config.TestProfilesDir = profileDir
+//	defer func() { config.TestProfilesDir = "" }()
+//	a := assert.New(t)
+//	log := vzlog.DefaultLogger()
+//
+//	context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, &basicV1Beta1NoneClusterWithStatus, false)
+//	assert.NoError(t, err)
+//	a.NotNil(context, "Context was nil")
+//	a.NotNil(context.ActualCRV1Beta1(), "Actual v1beta1 CR was nil")
+//	a.Equal(basicNoneClusterWithStatus, *context.ActualCRV1Beta1(), "Actual v1beta1 CR unexpectedly modified")
+//	a.NotNil(context.EffectiveCRV1Beta1(), "Effective v1beta1 CR was nil")
+//	a.Equal(v1beta1.VerrazzanoStatus{}, context.EffectiveCRV1Beta1().Status, "Effective v1beta1 CR status not empty")
+//
+//	transform.GetEffectiveV1beta1CR(&basicV1Beta1NoneClusterWithStatus)
+//	for _, comp := range GetComponents() {
+//		// Networkpolicies is expected to be installed always
+//		if comp.GetJSONName() == "verrazzanoNetworkPolicies" {
+//			continue
+//		}
+//		assert.False(t, comp.IsEnabled(context.EffectiveCRV1Beta1()), "Component: %s should be Disabled", comp.Name())
+//	}
+//}
+
 // TestNoneProfileInstalledAllComponentsDisabled Tests the effectiveCR
 // GIVEN when a verrazzano instance with NONE profile
 // WHEN Newcontext is called
@@ -672,24 +718,33 @@ func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
 		a := assert.New(t)
 		log := vzlog.DefaultLogger()
 
-		context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, nil, false)
+		context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, &basicV1Beta1NoneClusterWithStatus, false)
+		context.EffectiveCRV1Beta1()
 		assert.NoError(t, err)
 		a.NotNil(context, "Context was nil")
+
+		// Verify the v1alpha1 Actual and effective CR status
 		a.NotNil(context.ActualCR(), "Actual CR was nil")
 		a.Equal(basicNoneClusterWithStatus, *context.ActualCR(), "Actual CR unexpectedly modified")
 		a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 		a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+
+		// Verify the v1beta1 Actual and effective CR status
+		a.NotNil(context.ActualCRV1Beta1(), "Actual v1beta1 CR was nil")
+		a.Equal(basicV1Beta1NoneClusterWithStatus, *context.ActualCRV1Beta1(), "Actual v1beta1 CR unexpectedly modified")
+		a.NotNil(context.EffectiveCRV1Beta1(), "Effective v1beta1 CR was nil")
+		a.Equal(v1beta1.VerrazzanoStatus{}, context.EffectiveCRV1Beta1().Status, "Effective v1beta1 CR status not empty")
 
 		for _, comp := range GetComponents() {
 			// Networkpolicies is expected to be installed always
 			if comp.GetJSONName() == "verrazzanoNetworkPolicies" {
 				continue
 			}
-			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component: %s should be Disabled", comp.Name())
+			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component %s not disabled in v1alpha1 \"none\" profile", comp.Name())
+			assert.False(t, comp.IsEnabled(context.EffectiveCRV1Beta1()), "Component %s not disabled in v1beta1 \"none\" profile", comp.Name())
 		}
 	})
 }
-
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {
 	const compName = coherence.ComponentName
 	comp := fakeComponent{name: "foo", enabled: true, dependencies: []string{compName}}
