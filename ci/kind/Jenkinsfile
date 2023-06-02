@@ -294,7 +294,7 @@ pipeline {
 
                 stage('Run OpenSearch Operator tests') {
                     when {
-                        {expression {params.USE_DB_FOR_GRAFANA == true}
+                        expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
                     }
                     stages {
                         stage('install and verify opensearch') {
