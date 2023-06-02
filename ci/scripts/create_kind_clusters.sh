@@ -100,7 +100,7 @@ create_kind_cluster() {
     echo "  - role: worker" >> ${KIND_CONFIG_FILE}
     echo "    image: KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
-  sed -i -e "s|KIND_IMAGE|${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+  sed -i -e "s|KIND_IMAGE|${KIND_IMAGE}|g" ${KIND_CONFIG_FILE}
 
   # Use a custom API server address if specified; defaults to 127.0.0.1
   echo "Setting the cluster API server address to ${KIND_API_SERVER_ADDRESS}"
