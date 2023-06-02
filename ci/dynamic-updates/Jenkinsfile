@@ -237,7 +237,7 @@ pipeline {
                         script{
                             if(CR_VALIDATION_TEST){
                                 scriptForPrepareATEnvironmentV1beta1()
-                                OPERATOR_YAML=sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml").trim()
+                                // OPERATOR_YAML=sh(returnStdout: true, script: "").trim()
                                 sh """
                                     cd ${GO_REPO_PATH}/verrazzano
                                     yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
@@ -254,12 +254,13 @@ pipeline {
                                     yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                                     yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                                     yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
                                     if [ -f "$WORKSPACE/vz" ]; then
                                         cd "\$WORKSPACE"
-                                        ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests "${OPERATOR_YAML}"
+                                        ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                     else
                                         cd "\$GO_REPO_PATH"/verrazzano/tools/vz
-                                        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests "${OPERATOR_YAML}"
+                                        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                     fi
                                     kind delete clusters "\$CLUSTER_NAME"
                                 """  
