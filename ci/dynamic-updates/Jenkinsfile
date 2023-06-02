@@ -232,22 +232,18 @@ pipeline {
                     steps{
                         script{
                             if(CR_VALIDATION_TEST){
-                                    sh """
-                                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
-                                        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                                        if [ -f "${WORKSPACE}/vz" ]; then
-                                          cd "${WORKSPACE}"
-                                          ./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
-                                        else
-                                          cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                                          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
-                                        fi
-                                        result=$?
-                                        kind delete clusters verrazzano
-                                        if [[ "$result" -ne 0 ]]; then
-                                        exit 1
-                                        fi
-                                    """
+                                OPERATOR_YAML=sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml").trim()
+                                sh """
+                                    ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                                    if [ -f "$WORKSPACE/vz" ]; then
+                                        cd "\$WORKSPACE"
+                                        ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests "\$OPERATOR_YAML"
+                                    else
+                                        cd "\$GO_REPO_PATH"/verrazzano/tools/vz
+                                        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests "\$OPERATOR_YAML"
+                                    fi
+                                    kind delete clusters "\$CLUSTER_NAME"
+                                """  
                             }
                         }
                     }
