@@ -80,8 +80,6 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OCI_CLI_REGION}"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
-        OCI_CLI_CONFIG_FILE = credentials('oci-dev-api-key-file')
-
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -292,7 +290,7 @@ pipeline {
 
                 sh """
                     mkdir -p ~/.oci
-                    cp ${OCI_CLI_CONFIG_FILE} ~/.oci
+                    cp ${OCI_CLI_KEY_FILE} ~/.oci
                     rm -rf ~/.oci/config
                     {
                       echo '[DEFAULT]'
@@ -300,7 +298,7 @@ pipeline {
                       echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
                       echo 'tenancy=${OCI_CLI_TENANCY}'
                       echo 'region=${OCI_CLI_REGION}'
-                      echo 'key_file=~/.oci/alm.pem'
+                      echo 'key_file=~/.oci/oci-api-key.pem'
                     } >> ~/.oci/config
                     oci setup repair-file-permissions --file /home/opc/.oci/config
                 """
