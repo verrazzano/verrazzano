@@ -196,10 +196,6 @@ const (
 )
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
-var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
-var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
-var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
-
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
 var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
 var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")

@@ -28,6 +28,10 @@ const (
 	name      = "NAME"
 )
 
+var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
+var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
+var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
+
 // TestAddAcmeIngressAnnotations verifies if LetsEncrypt Annotations are added to the Ingress
 // GIVEN a Rancher Ingress
 //
