@@ -40,6 +40,14 @@ helm repo update
 helm fetch jetstack/cert-manager --untar=true --version=${CERT_MANAGER_CHART_VERSION}
 ```
 
+## Cert-Manager Webhook OCI
+
+The `cert-manager-webhook-oci` is maintained by Verrazzano at https://github.com/verrazzano/cert-manager-webhook-oci.
+It is copied from https://github.com/verrazzano/cert-manager-webhook-oci/tree/main/deploy/cert-manager-webhook-oci.
+
+Changes to this chart should be managed in https://github.com/verrazzano/cert-manager-webhook-oci and should be
+copied here.
+
 ## Rancher
 
 The `rancher` folder was created by running the following commands:

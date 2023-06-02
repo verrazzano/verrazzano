@@ -294,5 +294,5 @@ spec:
       enabled: true
     argoCD:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false

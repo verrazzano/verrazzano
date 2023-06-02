@@ -328,11 +328,6 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
-            },
-            {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
-              "helmFullImageKey": "fluentdImage"
             }
           ]
         }

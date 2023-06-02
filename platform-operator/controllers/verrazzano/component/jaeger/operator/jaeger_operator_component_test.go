@@ -1229,6 +1229,9 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 						CertManager: &vzapi.CertManagerComponent{
 							Enabled: &falseValue,
 						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							Enabled: &falseValue,
+						},
 					},
 				},
 			},
@@ -1245,6 +1248,9 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						CertManager: &vzapi.CertManagerComponent{
+							Enabled: &falseValue,
+						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
 							Enabled: &falseValue,
 						},
 						DNS: &vzapi.DNSComponent{

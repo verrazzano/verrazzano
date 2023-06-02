@@ -69,3 +69,6 @@ capi:
 
 fluentOperator:
   enabled: false
+
+clusterAPI:
+  enabled: false

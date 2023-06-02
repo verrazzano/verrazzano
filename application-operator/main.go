@@ -57,7 +57,6 @@ var (
 	certDir               string
 	enableLeaderElection  bool
 	enableWebhooks        bool
-	runAppOperator        bool
 	runClusterAgent       bool
 	runWebhooks           bool
 	runWebhookInit        bool
@@ -77,10 +76,8 @@ func main() {
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
-	flag.BoolVar(&runAppOperator, "run-app-operator", true,
-		"Whether to start application operator controllers")
-	flag.BoolVar(&runClusterAgent, "run-cluster-agent", true,
-		"Whether to start the managed cluster agent")
+	flag.BoolVar(&runClusterAgent, "run-cluster-agent", false,
+		"Runs in cluster agent mode; if true, starts the managed cluster agent reconciler; otherwise runs the main operator reconcile loop")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -98,8 +95,10 @@ func main() {
 		exitErr = operatorinit.WebhookInit(certDir, log)
 	} else if runWebhooks {
 		exitErr = operatorinit.StartWebhookServer(metricsAddr, log, enableLeaderElection, certDir, scheme)
+	} else if runClusterAgent {
+		exitErr = operatorinit.StartClusterAgent(metricsAddr, enableLeaderElection, log, scheme)
 	} else {
-		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, runAppOperator, runClusterAgent, log, scheme)
+		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, log, scheme)
 	}
 	if exitErr != nil {
 		os.Exit(1)

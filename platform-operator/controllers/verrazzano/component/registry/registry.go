@@ -8,10 +8,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
 	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteragent"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
@@ -81,7 +82,7 @@ func InitRegistry() {
 		cmocidns.NewComponent(),
 		cmconfig.NewComponent(),
 		externaldns.NewComponent(),
-		capi.NewComponent(),
+		clusterapi.NewComponent(),
 		rancher.NewComponent(),
 		verrazzano.NewComponent(),
 		vmo.NewComponent(),
@@ -108,6 +109,7 @@ func InitRegistry() {
 		clusteroperator.NewComponent(),
 		argocd.NewComponent(),
 		thanos.NewComponent(),
+		clusteragent.NewComponent(),
 	}
 	getComponentsMap = make(map[string]spi.Component)
 }

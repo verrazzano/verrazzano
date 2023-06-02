@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
@@ -33,17 +34,22 @@ import (
 
 var mcNamespace = types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}
 var vzTLSSecret = types.NamespacedName{Name: constants.VerrazzanoIngressSecret, Namespace: constants.VerrazzanoSystemNamespace}
+var rancherTLSCASecret = types.NamespacedName{Name: constants2.RancherTLSCA, Namespace: constants2.RancherSystemNamespace}
 var additionalTLSSecret = types.NamespacedName{Name: constants2.AdditionalTLS, Namespace: constants2.RancherSystemNamespace}
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
+var rancherDeployment = types.NamespacedName{Name: rancherDeploymentName, Namespace: constants2.RancherSystemNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
 
 const addnlTLSData = "YWRkaXRpb25hbCB0bHMgc2VjcmV0" // "additional tls secret"
 
-// TestCreateLocalCABundle tests the Reconcile method for the following use cases
+// TestCreateCABundle tests the Reconcile method for the following use cases
 // GIVEN a request to reconcile the verrazzano-tls secret OR the tls-additional-ca secret
-// WHEN the local-ca-bundle secret doesn't exist
-// THEN the local-ca-bundle secret is updated
-func TestCreateLocalCABundle(t *testing.T) {
+// WHEN the reconciliation is for the tls-additional-ca secret or for the verrazzano-tls secret and the
+// tls-additional-ca secret does not exist
+// THEN the local-ca-bundle secret is created or updated
+// WHEN the reconciliation is for verrazzano-tls secret and the tls-additional-ca secret does not exist
+// THEN the Rancher tls-ca secret is created or updated
+func TestCreateCABundle(t *testing.T) {
 	tests := []struct {
 		secretName     string
 		secretNS       string
@@ -96,12 +102,12 @@ func TestCreateLocalCABundle(t *testing.T) {
 			expectGetAdditionalTLS(t, mock, tt.addnlTLSExists, "")
 		}
 
-		// only expect reconcile to happen if we are reconciling the additional TLS secret, OR
+		// Expect a get call to secret to happen only if we are reconciling the additional TLS secret, OR
 		// we are reconciling another secret but the additional TLS secret does NOT exist
 		if isAddnlTLSSecret || !tt.addnlTLSExists {
-			expectGetCalls(t, mock, tt.secretNS, tt.secretName, tt.secretKey, tt.secretData)
-			expectUpdateLocalSecret(t, mock, tt.secretData)
+			expectGetCalls(t, mock, tt.secretNS, tt.secretName, tt.secretKey, tt.secretData, isAddnlTLSSecret)
 		}
+		expectUpdateCalls(t, mock, tt.secretData, isAddnlTLSSecret, tt.addnlTLSExists)
 
 		// Create and make the request
 		request := newRequest(tt.secretNS, tt.secretName)
@@ -542,7 +548,8 @@ func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, n
 		})
 }
 
-func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secretName string, secretKey string, secretData string) {
+func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secretName string, secretKey string,
+	secretData string, isAddnlTLSSecret bool) {
 	// Expect  a call to get the verrazzano-mc namespace
 	mock.EXPECT().
 		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil()), gomock.Any()).
@@ -560,6 +567,25 @@ func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secre
 			return nil
 		}).MinTimes(1)
 
+	// Expect a get call to Rancher TLS CA secret and Rancher deployment to happen only if we are not reconciling the
+	// additional TLS secret, and we are reconciling another secret but the additional TLS secret does NOT exist
+	if !isAddnlTLSSecret {
+		mock.EXPECT().
+			Get(gomock.Any(), rancherTLSCASecret, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+				secret.Name = rancherTLSCASecret.Name
+				secret.Namespace = rancherTLSCASecret.Namespace
+				return nil
+			}).MinTimes(1)
+		mock.EXPECT().
+			Get(gomock.Any(), rancherDeployment, gomock.Not(gomock.Nil()), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment, opts ...client.GetOption) error {
+				deployment.Name = rancherDeployment.Name
+				deployment.Namespace = rancherDeployment.Namespace
+				return nil
+			}).MinTimes(1)
+	}
+
 	// Expect a call to get the local ca bundle secret
 	mock.EXPECT().
 		Get(gomock.Any(), vzLocalCaBundleSecret, gomock.Not(gomock.Nil()), gomock.Any()).
@@ -570,17 +596,47 @@ func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secre
 		}).MinTimes(1)
 }
 
-func expectUpdateLocalSecret(t *testing.T, mock *mocks.MockClient, expectedSecretData string) {
+func expectUpdateCalls(t *testing.T, mock *mocks.MockClient, expectedSecretData string, isAddnlTLSSecret bool,
+	addnlTLSExists bool) {
 	asserts := assert.New(t)
-	// Expect a call to update the verrazzano-local-ca-bundle
+	secretUpdateCount := 0
+	deploymentUpdateCount := 0
+	// only expect update to secrets to happen if we are reconciling the additional TLS secret, OR
+	// we are reconciling another secret but the additional TLS secret does NOT exist
+	if isAddnlTLSSecret {
+		secretUpdateCount = 1
+	} else if !isAddnlTLSSecret && !addnlTLSExists {
+		// expect a Rancher TLS CA secret update call as well when Verrazzano TLS secret is reconciled
+		secretUpdateCount = 2
+		// expect a deployment update call only when Rancher TLS CA secret is updated
+		deploymentUpdateCount = 1
+	}
+
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
-			asserts.Equal(vzLocalCaBundleSecret.Name, secret.Name, "wrong secret name")
-			asserts.Equal(vzLocalCaBundleSecret.Namespace, secret.Namespace, "wrong secret namespace")
-			asserts.Equal([]byte(expectedSecretData), secret.Data["ca-bundle"], "wrong secret ca-bundle")
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
+			// Expect a call to update the Rancher deployment
+			asserts.Equal(rancherDeploymentName, deployment.Name, "wrong deployment name")
+			asserts.Equal(constants2.RancherSystemNamespace, deployment.Namespace, "wrong deployment namespace")
+			asserts.Contains(deployment.Spec.Template.ObjectMeta.Annotations, constants2.VerrazzanoRestartAnnotation,
+				"restart annotation is not present")
 			return nil
-		}).MinTimes(1)
+		}).Times(deploymentUpdateCount)
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			// Expect a call to update the verrazzano-local-ca-bundle or Rancher TLS CA secret
+			if secret.Name == vzLocalCaBundleSecret.Name {
+				asserts.Equal(vzLocalCaBundleSecret.Name, secret.Name, "wrong secret name")
+				asserts.Equal(vzLocalCaBundleSecret.Namespace, secret.Namespace, "wrong secret namespace")
+				asserts.Equal([]byte(expectedSecretData), secret.Data["ca-bundle"], "wrong secret ca-bundle")
+			} else {
+				asserts.Equal(rancherTLSCASecret.Name, secret.Name, "wrong secret name")
+				asserts.Equal(rancherTLSCASecret.Namespace, secret.Namespace, "wrong secret namespace")
+				asserts.Equal([]byte(expectedSecretData), secret.Data[constants2.RancherTLSCAKey], "wrong secret ca-bundle")
+			}
+			return nil
+		}).Times(secretUpdateCount)
 }
 
 func expectNothingForWrongSecret(t *testing.T, mock *mocks.MockClient) {

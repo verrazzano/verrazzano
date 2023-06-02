@@ -181,7 +181,11 @@ func TestAppendOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
+				// Handles the customer-managed CM case
 				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &falseValue,
+				},
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
 					Enabled: &trueValue,
 				},
 				Keycloak: &vzapi.KeycloakComponent{
@@ -191,7 +195,7 @@ func TestAppendOverrides(t *testing.T) {
 		},
 	}
 
-	ctx := spi.NewFakeContext(client, vz, nil, false)
+	ctx := spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
 
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
@@ -210,7 +214,8 @@ func TestAppendOverrides(t *testing.T) {
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.prometheusDefaultBaseImage"), "verrazzano/prometheus:"))
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheus.prometheusSpec.thanos.image"), "ghcr.io/verrazzano/thanos:"))
 
-	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
+	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"),
+		"Value prometheusOperator.admissionWebhooks.certManager.enabled was disabled with the ClusterIssuer enabled")
 
 	// GIVEN a Verrazzano CR with the CertManager component disabled
 	// WHEN the AppendOverrides function is called
@@ -222,6 +227,9 @@ func TestAppendOverrides(t *testing.T) {
 				CertManager: &vzapi.CertManagerComponent{
 					Enabled: &falseValue,
 				},
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
 				Keycloak: &vzapi.KeycloakComponent{
 					Enabled: &falseValue,
 				},
@@ -229,14 +237,15 @@ func TestAppendOverrides(t *testing.T) {
 		},
 	}
 
-	ctx = spi.NewFakeContext(client, vz, nil, false)
+	ctx = spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
 	kvs = make([]bom.KeyValue, 0)
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 32)
 
-	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
+	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"),
+		"Value prometheusOperator.admissionWebhooks.certManager.enabled was enabled with the ClusterIssuer disabled")
 
 	// GIVEN a Verrazzano CR with Prometheus disabled
 	// WHEN the AppendOverrides function is called
@@ -251,7 +260,7 @@ func TestAppendOverrides(t *testing.T) {
 		},
 	}
 
-	ctx = spi.NewFakeContext(client, vz, nil, false)
+	ctx = spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
 	kvs = make([]bom.KeyValue, 0)
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
