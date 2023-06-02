@@ -11,7 +11,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	networking "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -70,4 +73,37 @@ func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingre
 // addCAIngressAnnotations annotate ingress with custom CA specific values
 func addCAIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingress) {
 	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s.%s auth", name, dnsSuffix)
+}
+
+// cleanupRancherResources cleans up Rancher resources that are no longer supported
+func cleanupRancherResources(ctx context.Context, c client.Client) error {
+	di, err := getDynamicClientFunc()
+	if err != nil {
+		return err
+	}
+
+	// Delete the Rancher CAPI webhook, which conflicts with the community CAPI webhook
+	vwhc := &adminv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: CAPIValidatingWebhook,
+		},
+	}
+	err = c.Delete(ctx, vwhc)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	// Delete any node drivers, which are no longer supported
+	items, err := di.Resource(nodeDriverGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, item := range items.Items {
+		err = di.Resource(nodeDriverGVR).Delete(ctx, item.GetName(), metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
 }

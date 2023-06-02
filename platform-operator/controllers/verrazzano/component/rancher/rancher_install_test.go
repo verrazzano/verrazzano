@@ -4,8 +4,14 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -116,5 +122,44 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 
 	err := patchRancherIngress(c, ctx.EffectiveCR())
 	assert.NotNil(t, err)
+	assert.True(t, apierrors.IsNotFound(err))
+}
+
+func TestCleanupRancherResources(t *testing.T) {
+	const (
+		nd1 = "nd1"
+		nd2 = "nd2"
+	)
+
+	nodeDriver1 := &unstructured.Unstructured{}
+	nodeDriver1.SetGroupVersionKind(GVKNodeDriver)
+	nodeDriver1.SetName(nd1)
+	nodeDriver2 := nodeDriver1.DeepCopy()
+	nodeDriver2.SetName(nd2)
+
+	scheme := getScheme()
+	scheme.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2)
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&adminv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: CAPIValidatingWebhook,
+		},
+	}).Build()
+	ctx := context.TODO()
+	err := cleanupRancherResources(ctx, fakeClient)
+	assert.NoError(t, err)
+
+	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd1, metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err))
+	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd2, metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err))
+	err = fakeClient.Get(ctx, types.NamespacedName{
+		Name: CAPIValidatingWebhook,
+	}, &adminv1.ValidatingWebhookConfiguration{})
 	assert.True(t, apierrors.IsNotFound(err))
 }

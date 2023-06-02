@@ -96,9 +96,9 @@ const (
 )
 
 const (
+	CAPIValidatingWebhook             = "validating-webhook-configuration"
 	SettingServerURL                  = "server-url"
 	KontainerDriverOKE                = "oraclecontainerengine"
-	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	ClusterKind                       = "Cluster"
@@ -188,6 +188,8 @@ const (
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
+var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
+
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
 var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
 var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")
@@ -230,6 +232,12 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Group:    "catalog.cattle.io",
 	Version:  "v1",
 	Resource: "clusterrepos",
+}
+
+var nodeDriverGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "nodedrivers",
 }
 
 func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
