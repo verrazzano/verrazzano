@@ -6,9 +6,16 @@ fluentbit:
     - configMap:
         name: fluent-bit-os-config
       name: fluent-bit-os-config
+    - hostPath:
+        path: /run/log/journal
+        type: ""
+      name: run-log-journal
   additionalVolumesMounts:
     - mountPath: /fluent-bit/etc/opensearch-config
       name: fluent-bit-os-config
+      readOnly: true
+    - mountPath: /run/log/journal
+      name: run-log-journal
       readOnly: true
   namespaceFluentBitCfgSelector:
     matchLabels:
@@ -16,6 +23,9 @@ fluentbit:
   input:
     tail:
       readFromHead: true
+    systemd:
+      path: "/run/log/journal"
+      stripUnderscores: "on"
   filter:
-    kubernetes:
-      labels: true
+    systemd:
+      enable: false

@@ -455,6 +455,8 @@ func TestPostUninstall(t *testing.T) {
 			},
 		},
 	}
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	defer func() { config.TestThirdPartyManifestDir = "" }()
 	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := NewComponent().PostUninstall(ctx)
 	assert.NoError(t, err)

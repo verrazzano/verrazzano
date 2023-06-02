@@ -371,6 +371,8 @@ func TestUninstall(t *testing.T) {
 func TestPostUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	defer func() { config.TestThirdPartyManifestDir = "" }()
 	err := NewComponent().PostUninstall(ctx)
 	assert.NoError(t, err)
 }
