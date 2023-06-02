@@ -141,7 +141,7 @@ func TestCleanupRancherResources(t *testing.T) {
 	// dynamic schema with owner reference that should be removed
 	dynamicSchemaND1 := &unstructured.Unstructured{}
 	dynamicSchemaND1.SetGroupVersionKind(GVKDynamicSchema)
-	dynamicSchemaND1.SetName(ociCloudCredentialSchemaName)
+	dynamicSchemaND1.SetName(ociSchemaName)
 	dynamicSchemaND1.SetOwnerReferences([]metav1.OwnerReference{
 		{
 			APIVersion: nodeDriver1.GetAPIVersion(),
@@ -192,7 +192,7 @@ func TestCleanupRancherResources(t *testing.T) {
 	}, &adminv1.ValidatingWebhookConfiguration{})
 	assert.True(t, apierrors.IsNotFound(err))
 
-	ds1, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, ociCloudCredentialSchemaName, metav1.GetOptions{})
+	ds1, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, ociSchemaName, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, ds1.GetOwnerReferences(), 0)
 	// Check schemas are deleted/preserved according to their owner references
