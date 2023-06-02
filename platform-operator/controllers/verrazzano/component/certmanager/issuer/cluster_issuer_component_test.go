@@ -653,28 +653,3 @@ func createCertSecretNoParent(name string, namespace string, cn string) (*corev1
 	}
 	return secret, nil
 }
-
-//func crtObjectToRuntimeObject(objs ...clipkg.Object) []runtime.Object {
-//	var runtimeObjs []runtime.Object
-//	for _, obj := range objs {
-//		runtimeObjs = append(runtimeObjs, obj)
-//	}
-//	return runtimeObjs
-//}
-//
-//func createCertManagerCRDs() []clipkg.Object {
-//	var cmCRDs []clipkg.Object
-//	for _, crd := range cmcommon.GetRequiredCertManagerCRDNames() {
-//		cmCRDs = append(cmCRDs, newCRD(crd))
-//	}
-//	return cmCRDs
-//}
-//
-//func newCRD(name string) clipkg.Object {
-//	crd := &apiextv1.CustomResourceDefinition{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name: name,
-//		},
-//	}
-//	return crd
-//}
