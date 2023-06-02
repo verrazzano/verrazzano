@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: v1
@@ -82,7 +82,7 @@ spec:
               name: data
       containers:
         - name: mysql
-          image: "ghcr.io/verrazzano/mysql:8.0.29"
+          image: "ghcr.io/verrazzano/community-server:8.0.33"
           imagePullPolicy: "IfNotPresent"
           resources:
             requests:
