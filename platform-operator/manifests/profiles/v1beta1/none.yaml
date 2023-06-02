@@ -18,6 +18,8 @@ spec:
       enabled: false
     clusterIssuer:
       enabled: false
+    clusterOperator:
+      enabled: false
     coherenceOperator:
       enabled: false
     console:
