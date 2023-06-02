@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
@@ -34,8 +35,13 @@ var (
 		"use of the certManager.certificate field is deprecated "
 )
 
+// ValidateActualConfigurationV1Beta1 Validates the unmodified user configuration for the ClusterIssuer and CertManager components
 func ValidateActualConfigurationV1Beta1(vz *v1beta1.Verrazzano) []error {
 	var errs []error
+	if !vzcr.IsCertManagerEnabled(vz) || !vzcr.IsClusterIssuerEnabled(vz) {
+		//if one or the other is disabled, there's no conflict
+		return errs
+	}
 	clusterIssuerComponent := vz.Spec.Components.ClusterIssuer
 	certManagerComponent := vz.Spec.Components.CertManager
 	if certManagerComponent != nil && clusterIssuerComponent != nil {
@@ -47,8 +53,13 @@ func ValidateActualConfigurationV1Beta1(vz *v1beta1.Verrazzano) []error {
 	return errs
 }
 
+// ValidateActualConfigurationV1Alpha1 - Validates the unmodified user configuration for the ClusterIssuer and CertManager components
 func ValidateActualConfigurationV1Alpha1(vz *v1alpha1.Verrazzano) []error {
 	var errs []error
+	if !vzcr.IsCertManagerEnabled(vz) || !vzcr.IsClusterIssuerEnabled(vz) {
+		//if one or the other is disabled, there's no conflict
+		return errs
+	}
 	clusterIssuerComponent := vz.Spec.Components.ClusterIssuer
 	certManagerComponent := vz.Spec.Components.CertManager
 	if certManagerComponent != nil && clusterIssuerComponent != nil {
