@@ -147,11 +147,12 @@ func (c clusterIssuerComponent) validateConfiguration(new *v1beta1.Verrazzano) e
 		return err
 	}
 
-	if !c.IsEnabled(new) && !vzcr.IsCertManagerEnabled(new) {
+	isCertManagerEnabled := vzcr.IsCertManagerEnabled(new)
+	if !c.IsEnabled(new) && !isCertManagerEnabled {
 		return nil
 	}
 
-	if err := validateCertManagerTypesExist(); err != nil {
+	if err := validateCertManagerTypesExist(); !isCertManagerEnabled && err != nil {
 		return err
 	}
 

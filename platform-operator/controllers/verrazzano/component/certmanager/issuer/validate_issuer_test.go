@@ -170,6 +170,40 @@ var simpleValidationTests = []validationTestStruct{
 		},
 		expectedClusterResourceNamespace: secretNamespace,
 		wantErr:                          false,
+		crdsPresent:                      true,
+	},
+	{
+		name: "CertManager Disabled Issuer Enabled No CRDs present",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(false),
+					},
+					ClusterIssuer: vzapi.NewDefaultClusterIssuer(),
+				},
+			},
+		},
+		wantErr:     true,
+		crdsPresent: false,
+	},
+	{
+		// Case where CM is enabled, and the issuer is enabled, but before CM is installed
+		name: "CertManager Enabled Issuer Enabled No CRDs present",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(true),
+					},
+					ClusterIssuer: vzapi.NewDefaultClusterIssuer(),
+				},
+			},
+		},
+		wantErr:     false,
+		crdsPresent: false,
 	},
 	//{
 	//	name: "CertManager and ClusterIssuer both explicitly configured",
@@ -363,24 +397,26 @@ type validationTestStruct struct {
 	expectedClusterResourceNamespace string
 	coreV1Cli                        func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
 	caSecret                         *corev1.Secret
+	crdsPresent                      bool
 	wantErr                          bool
 }
 
 func validationTests(t *testing.T, isUpdate bool) {
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
 	defer resetCheckCertManagerCRDsFunc()
-	checkCertManagerCRDFunc = func() (bool, error) {
-		return true, nil
-	}
 
 	tests := simpleValidationTests
 	tests = append(tests, issuerConfigurationTests...)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("Running test %s", tt.name)
 			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
 				tt.wantErr = false
 			}
 			c := NewComponent()
+			checkCertManagerCRDFunc = func() (bool, error) {
+				return tt.crdsPresent, nil
+			}
 			cmcommon.GetClientFunc = getTestClient(tt)
 			runValidationTest(t, tt, isUpdate, c)
 		})
