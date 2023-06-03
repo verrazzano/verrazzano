@@ -4,14 +4,21 @@
 package validator
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -32,13 +39,27 @@ const testProfilesDirectory string = "../../../manifests/profiles"
 // WHEN ValidateInstall is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
-	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
-		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	corev1Client := func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: constants.CertManagerNamespace,
+					Labels: map[string]string{
+						constants.LabelVerrazzanoNamespace: constants.CertManagerNamespace,
+					},
+				},
+			}).CoreV1(), nil
 	}
+	k8sutil.GetCoreV1Func = corev1Client
+	cmcommon.GetClientFunc = corev1Client
 	k8sutil.GetAppsV1Func = func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error) {
 		return k8sfake.NewSimpleClientset().AppsV1(), nil
 	}
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(createCertManagerCRDs()...).ApiextensionsV1(), nil
+	}
 
 	tests := []struct {
 		name           string
@@ -66,6 +87,33 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			},
 			numberOfErrors: 0,
 		},
+		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapi.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							IssuerConfig: vzapi.IssuerConfig{
+								LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
 	}
 	config.TestProfilesDir = testProfilesDirectory
 	defer func() {
@@ -73,6 +121,8 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
 		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+		cmcommon.ResetCoreV1ClientFunc()
+		k8sutil.ResetGetAPIExtV1ClientFunc()
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -97,9 +147,23 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
 	}
 	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
-	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
-		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	corev1Client := func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: constants.CertManagerNamespace,
+					Labels: map[string]string{
+						constants.LabelVerrazzanoNamespace: constants.CertManagerNamespace,
+					},
+				},
+			}).CoreV1(), nil
 	}
+	k8sutil.GetCoreV1Func = corev1Client
+	cmcommon.GetClientFunc = corev1Client
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(createCertManagerCRDs()...).ApiextensionsV1(), nil
+	}
+
 	k8sutil.GetAppsV1Func = func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error) {
 		return k8sfake.NewSimpleClientset().AppsV1(), nil
 	}
@@ -131,6 +195,33 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 			},
 			numberOfErrors: 0,
 		},
+		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			vz: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Certificate: vzapibeta.Certificate{
+								Acme: vzapibeta.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapibeta.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapibeta.ClusterIssuerComponent{
+							IssuerConfig: vzapibeta.IssuerConfig{
+								LetsEncrypt: &vzapibeta.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
 	}
 
 	config.TestProfilesDir = testProfilesDirectory
@@ -139,6 +230,8 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
 		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
 		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+		cmcommon.ResetCoreV1ClientFunc()
+		k8sutil.ResetGetAPIExtV1ClientFunc()
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -159,6 +252,22 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 // WHEN ValidateUpdate is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
+	corev1Client := func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: constants.CertManagerNamespace,
+					Labels: map[string]string{
+						constants.LabelVerrazzanoNamespace: constants.CertManagerNamespace,
+					},
+				},
+			}).CoreV1(), nil
+	}
+	k8sutil.GetCoreV1Func = corev1Client
+	cmcommon.GetClientFunc = corev1Client
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(createCertManagerCRDs()...).ApiextensionsV1(), nil
+	}
 	tests := []struct {
 		name           string
 		old            *vzapi.Verrazzano
@@ -216,9 +325,41 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			},
 			numberOfErrors: 2,
 		},
+		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapi.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							IssuerConfig: vzapi.IssuerConfig{
+								LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
 	}
 	config.TestProfilesDir = testProfilesDirectory
-	defer func() { config.TestProfilesDir = "" }()
+	defer func() {
+		config.TestProfilesDir = ""
+		cmcommon.ResetCoreV1ClientFunc()
+		k8sutil.ResetGetAPIExtV1ClientFunc()
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ComponentValidatorImpl{}
@@ -235,10 +376,30 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 // WHEN ValidateUpdateV1Beta1 is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
+	corev1Client := func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset(
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: constants.CertManagerNamespace,
+					Labels: map[string]string{
+						constants.LabelVerrazzanoNamespace: constants.CertManagerNamespace,
+					},
+				},
+			}).CoreV1(), nil
+	}
+	k8sutil.GetCoreV1Func = corev1Client
+	cmcommon.GetClientFunc = corev1Client
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+		return apiextv1fake.NewSimpleClientset(createCertManagerCRDs()...).ApiextensionsV1(), nil
+	}
 	vzconfig.GetControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects().Build(), nil
 	}
-	defer func() { vzconfig.GetControllerRuntimeClient = validators.GetClient }()
+	defer func() {
+		vzconfig.GetControllerRuntimeClient = validators.GetClient
+		cmcommon.ResetCoreV1ClientFunc()
+		k8sutil.ResetGetAPIExtV1ClientFunc()
+	}()
 	tests := []struct {
 		name           string
 		old            *vzapibeta.Verrazzano
@@ -280,6 +441,34 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			numberOfErrors: 1,
 		},
 		{
+			name: "CertManager Certificates and ClusterIssuer configured",
+			old:  &vzapibeta.Verrazzano{},
+			new: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Certificate: vzapibeta.Certificate{
+								Acme: vzapibeta.Acme{
+									EmailAddress: "joe@blow.com",
+									Environment:  "production",
+									Provider:     vzapibeta.LetsEncrypt,
+								},
+							},
+						},
+						ClusterIssuer: &vzapibeta.ClusterIssuerComponent{
+							IssuerConfig: vzapibeta.IssuerConfig{
+								LetsEncrypt: &vzapibeta.LetsEncryptACMEIssuer{
+									EmailAddress: "foo@bar.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
+		{
 
 			name: disabledCertAndIngress,
 			old:  &vzapibeta.Verrazzano{},
@@ -306,6 +495,7 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			c := ComponentValidatorImpl{}
 			got := c.ValidateUpdateV1Beta1(tt.old, tt.new)
 			if len(got) != tt.numberOfErrors {
+				t.Logf("Errors: %v", got)
 				t.Errorf("ValidateUpdate() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
 			}
 		})
@@ -316,4 +506,21 @@ func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	k8scheme.AddToScheme(scheme)
 	return scheme
+}
+
+func createCertManagerCRDs() []runtime.Object {
+	var runtimeObjs []runtime.Object
+	for _, crd := range cmcommon.GetRequiredCertManagerCRDNames() {
+		runtimeObjs = append(runtimeObjs, newCRD(crd))
+	}
+	return runtimeObjs
+}
+
+func newCRD(name string) client.Object {
+	crd := &v1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	return crd
 }
