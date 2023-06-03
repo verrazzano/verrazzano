@@ -45,7 +45,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.24", "1.25", "1.26" ])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0, v1.1, v1.2",
+                defaultValue: "v1.0, v1.1, v1.2, v1.3",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
