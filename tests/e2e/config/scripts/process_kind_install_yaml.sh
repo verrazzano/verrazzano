@@ -15,6 +15,9 @@ DNS_WILDCARD_DOMAIN=${2:-""}
 INSTALL_PROFILE=${INSTALL_PROFILE:-"dev"}
 API_VERSION="v1beta1"
 
+EXTERNAL_CERTMANAGER=${EXTERNAL_CERTMANAGER:-"false"}
+EXTERNAL_CERTMANAGER_NAMESPACE=${EXTERNAL_CERTMANAGER_NAMESPACE:-"cert-manager"}
+
 if [ -z "${INSTALL_CONFIG_TO_EDIT}" ]; then
   echo "Please pass in a valid Verrazzano configuration file"
 fi
@@ -65,6 +68,25 @@ elif [ -n "${SYSTEM_LOG_ID}" ] && [ $API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.fluentd.oci.apiSecret = \"oci-fluentd\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.opensearch.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.opensearchDashboards.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
+if [ "${EXTERNAL_CERTMANAGER}" == "true" ]; then
+  echo "Deploying an external Cert-Manager instance and disabling the Verrazzano-managed one"
+
+  set -x
+  kubectl create ns ${EXTERNAL_CERTMANAGER_NAMESPACE} || true
+  helm repo add jetstack https://charts.jetstack.io
+  helm repo update
+  helm upgrade --install cert-manager jetstack/cert-manager \
+    --namespace "${EXTERNAL_CERTMANAGER_NAMESPACE}" \
+    --version v1.11.0 \
+    --set installCRDs=true
+  kubectl rollout status deployment -n ${EXTERNAL_CERTMANAGER_NAMESPACE} cert-manager-webhook --timeout 5m --v 8
+  set +x
+
+  # Disable Cert-Manager in the configuration
+  yq -i eval ".spec.components.certManager.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.clusterIssuer.clusterIssuerNamespace = \"${EXTERNAL_CERTMANAGER_NAMESPACE}\""
 fi
 
 echo """

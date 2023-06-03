@@ -77,6 +77,13 @@ pipeline {
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
+        booleanParam (name: 'EXTERNAL_CERTMANAGER',
+                description: 'Use an externally managed cert-manager.',
+                defaultValue: false)
+        string (name: 'EXTERNAL_CERTMANAGER_NAMESPACE',
+                description: 'Namespace for externally managed cert-manager.',
+                defaultValue: "cert-manager",
+                trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
@@ -1182,6 +1189,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
             sh """
                 mkdir -p "${KUBECONFIG_DIR}/${count}"
                 export PATH=${HOME}/go/bin:${PATH}
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 cd ${GO_REPO_PATH}/verrazzano
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath
