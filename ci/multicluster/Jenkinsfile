@@ -84,6 +84,10 @@ pipeline {
                 description: 'Namespace for externally managed cert-manager.',
                 defaultValue: "cert-manager",
                 trim: true)
+        string (name: 'EXTERNAL_CERTMANAGER_CLUSTERRESOURCENAMESPACE',
+                description: 'Namespace to use for the clusterResourceNamespace for the externally managed cert-manager.',
+                defaultValue: "cert-manager",
+                trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
