@@ -65,17 +65,23 @@ elif [ -n "${SYSTEM_LOG_ID}" ] && [ $API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.opensearchDashboards.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
+echo """
+EXTERNAL_CERTMANAGER=${EXTERNAL_CERTMANAGER}
+EXTERNAL_CERTMANAGER_NAMESPACE=${EXTERNAL_CERTMANAGER_NAMESPACE}
+EXTERNAL_CERTMANAGER_CLUSTERRESOURCENAMESPACE=${EXTERNAL_CERTMANAGER_CLUSTERRESOURCENAMESPACE}
+"""
+set -x
+
 if [ "${EXTERNAL_CERTMANAGER}" == "true" ]; then
   echo "Deploying an external Cert-Manager instance and disabling the Verrazzano-managed one"
 
-  set -x
   ${SCRIPT_DIR}/install-cm.sh ${EXTERNAL_CERTMANAGER_NAMESPACE} ${EXTERNAL_CERTMANAGER_CLUSTERRESOURCENAMESPACE}
 
   # Disable Cert-Manager in the configuration
   yq -i eval ".spec.components.certManager.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.clusterIssuer.clusterIssuerNamespace = \"${EXTERNAL_CERTMANAGER_CLUSTERRESOURCENAMESPACE}\""
-  set +x
 fi
+set +x
 
 echo """
 Verrazzano configuration:
