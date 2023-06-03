@@ -29,7 +29,7 @@ spec:
         keyName: log
         reserveData: true
         preserveKey: true
-        parser: authproxy-parser
+        parser: authproxy-parser1,authproxy-parser2
   match: "kube.*verrazzano-authproxy*verrazzano-authproxy*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
@@ -37,10 +37,24 @@ kind: Parser
 metadata:
   labels:
     verrazzano.io/component: "authproxy"
-  name: authproxy-parser
+  name: authproxy-parser1
   namespace: {{ .Values.namespace }}
 spec:
   json:
     timeKey: "@timestamp" 
     timeFormat: "%Y-%m-%dT%H:%M:%S+%L"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "authproxy"
+  name: authproxy-parser2
+  namespace: {{ .Values.namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})(.*?)\[(?<level>[^ ]+)\][\s](?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y/%m/%d %H:%M:%S"
 {{ end -}}
