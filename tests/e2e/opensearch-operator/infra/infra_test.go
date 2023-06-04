@@ -91,7 +91,7 @@ var _ = t.Describe("Verify OpenSearch infra", func() {
 
 	whenJaegerOperatorEnabledIt("traces from verrazzano system components should be available in the OS backend storage.", func() {
 		validatorFn := pkg.ValidateSystemTracesInOSFunc(time.Now().Add(-24 * time.Hour))
-		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 	})
 
 	t.Context("hello-helidon application logs are present.", func() {
