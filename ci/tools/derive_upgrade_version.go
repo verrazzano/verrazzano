@@ -166,6 +166,19 @@ func getInterimRelease(releaseTags []string) string {
 	majorVersionValue := parseInt(latestReleaseTagSplit[0])
 	minorInterimVersionValue := parseInt(latestReleaseTagSplit[1]) - 1
 
+	// Handles the case where only two or less minor releases are available for upgrade
+	// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x, then return 1.5.0
+	// as an interim release
+	firstReleaseTag := releaseTags[0]
+	//Split the string excluding prefix 'v' into major and minor version values
+	firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
+	firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
+	firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
+	if firstMajorVersionValue == majorVersionValue && minorInterimVersionValue == firstMinorVersionValue {
+		minorInterimVersionValue = parseInt(latestReleaseTagSplit[1])
+		return fmt.Sprintf("v%d.%d.0\n", majorVersionValue, minorInterimVersionValue)
+	}
+
 	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
 	if minorInterimVersionValue < 0 {
 		minorInterimVersionValue = 0
