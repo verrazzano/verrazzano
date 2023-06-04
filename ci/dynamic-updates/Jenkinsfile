@@ -228,7 +228,7 @@ pipeline {
         stage('Acceptance Tests') {
 
             stages {
-                stage('Run VZ CLI Custom Resource Validation') {
+                stage('VZ CLI Custom Resource Validation Tests') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -264,8 +264,10 @@ pipeline {
                                     fi
                                     """
                                 } catch (error) {
-                                    sh "kind delete clusters ${CLUSTER_NAME}"
-                                    echo "Failed: "+ error.toString()
+                                    sh """
+                                    kind delete clusters ${CLUSTER_NAME}
+                                    sudo service docker restart
+                                    """
                                 }
                             }
                         }
