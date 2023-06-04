@@ -266,7 +266,7 @@ pipeline {
                                 } catch (error) {
                                     sh """
                                     kind delete clusters ${CLUSTER_NAME}
-                                    sudo service docker restart
+                                    service docker restart
                                     """
                                 }
                             }
