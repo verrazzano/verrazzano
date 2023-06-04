@@ -58,6 +58,16 @@ func TestGetInterimReleaseWithMajorVersion(t *testing.T) {
 	assert.Equal(t, "v1.5.0\n", getInterimRelease(releaseTags))
 }
 
+// TestGetInterimReleaseNotMoreThanTwoMinorVersions Tests the getInterimRelease function
+// WHEN there are no more than two minor release tags
+// THEN interim release version with the first patch release of the last minor release is expected
+func TestGetInterimReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
+	pwd, _ := os.Getwd()
+	parseCliArgs([]string{pwd, "install-version"})
+	releaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v1.5.1"}
+	assert.Equal(t, "v1.5.0\n", getInterimRelease(releaseTags))
+}
+
 // TestGetLatestReleaseForBranch tests the getLatestReleaseForCurrentBranch function
 // WHEN Verrazzano development version input is given from a current branch
 // THEN latest release with one minor release difference is expected.
