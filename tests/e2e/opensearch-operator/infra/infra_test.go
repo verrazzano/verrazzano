@@ -5,6 +5,9 @@ package infra
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -92,6 +95,20 @@ var _ = t.Describe("Verify OpenSearch infra", func() {
 	whenJaegerOperatorEnabledIt("traces from verrazzano system components should be available in the OS backend storage.", func() {
 		validatorFn := pkg.ValidateSystemTracesInOSFunc(time.Now().Add(-24 * time.Hour))
 		Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
+	})
+
+	t.It("prometheus should scrape opensearch metrics", func() {
+		verifyScrapeTargets := func() (bool, error) {
+			targets := []string{"serviceMonitor/verrazzano-monitoring/opensearch-cluster"}
+			if vzcr.IsComponentStatusEnabled(inClusterVZ, prometheusOperator.ComponentName) {
+				if !vzcr.IsComponentStatusEnabled(inClusterVZ, nginx.ComponentName) {
+					return pkg.ScrapeTargetsHealthyFromExec(targets)
+				}
+				return pkg.ScrapeTargetsHealthy(targets)
+			}
+			return true, nil
+		}
+		Eventually(verifyScrapeTargets, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	})
 
 	t.Context("hello-helidon application logs are present.", func() {
