@@ -389,7 +389,8 @@ auth:
 	actualIssuer, err := createACMEIssuerObject(ctx.Log(), ctx.Client(), ctx.EffectiveCR(), ctx.EffectiveCR().Spec.Components.ClusterIssuer)
 	assert.NoError(t, err)
 	assert.NotNil(t, actualIssuer)
-	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
+	assert.Equal(t, expectedIssuer.Name, actualIssuer.Name)
+	assert.Equal(t, expectedIssuer.Spec, actualIssuer.Spec)
 }
 
 // TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
