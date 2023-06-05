@@ -593,7 +593,7 @@ pipeline {
                         expression {params.RUN_OPENSEARCH_OPERATOR_TESTS == true}
                     }
                     stages {
-                        stage('install and verify opensearch') {
+                        stage('install and verify opensearch operator') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-operator-install"
                             }
