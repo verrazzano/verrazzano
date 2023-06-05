@@ -13,7 +13,6 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -353,7 +352,7 @@ func getFluentOSOutputCR(enabled bool) *v1alpha1.Verrazzano {
 // createTestRegistrationSecret returns a registration secret for unit test purpose.
 func createTestRegistrationSecret(kvs map[string]string) *corev1.Secret {
 	s := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: v1.ObjectMeta{
 			Name:      constants.MCRegistrationSecret,
 			Namespace: ComponentNamespace,
 		},
