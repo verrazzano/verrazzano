@@ -47,6 +47,9 @@ pipeline {
         choice (description: 'OCI region to create the DNS Zone in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
+        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
+            // 1st choice is the default value
+            choices: [ "GLOBAL","PRIVATE" ])
     }
 
     environment {
@@ -293,7 +296,7 @@ pipeline {
                 """
 
                script {
-                    env.DNS_ZONE_OCID = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${OCI_ZONE_COMPARTMENT_ID} -s z${zoneId} -k PUBLIC", returnStdout: true)
+                    env.DNS_ZONE_OCID = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${OCI_ZONE_COMPARTMENT_ID} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                 }
 
                 runGinkgoUpdate('update/a-la-carte', 'app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
