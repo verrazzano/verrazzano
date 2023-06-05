@@ -264,10 +264,8 @@ pipeline {
                                     fi
                                     """
                                 } catch (error) {
-                                    sh """
-                                    kind delete clusters ${CLUSTER_NAME}
-                                    service docker restart
-                                    """
+                                    echo "Error caught as expected\nProceeding with network prune:"
+                                    sh 'docker network prune'
                                 }
                             }
                         }
