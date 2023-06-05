@@ -235,7 +235,7 @@ pipeline {
                     }
                     steps {
                         script{
-                            if(CR_VALIDATION_TEST == true) {
+                            if (params.RUN_CR_VALIDATION) {
                                 try {
                                     scriptForPrepareATEnvironmentV1beta1()
                                     sh """
