@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -31,6 +30,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -85,41 +85,7 @@ var (
 	letsEncryptStagingCACommonNames    = []string{"(STAGING) Artificial Apricot R3", "(STAGING) Bogus Broccoli X2", "(STAGING) Ersatz Edamame E1"}
 )
 
-// Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
-//const clusterIssuerLookupTemplate = `
-//apiVersion: cert-manager.io/v1
-//kind: ClusterIssuer
-//metadata:
-//  name: verrazzano-cluster-issuer`
-
-// Template for ClusterIssuer for Acme certificates
-// const clusterIssuerTemplate = `
-// apiVersion: cert-manager.io/v1
-// kind: ClusterIssuer
-// metadata:
-//
-//	name: {{.ClusterIssuerName}}
-//
-// spec:
-//
-//	acme:
-//	  email: {{.Email}}
-//	  server: "{{.Server}}"
-//	  preferredChain: ""
-//	  privateKeySecretRef:
-//	    name: {{.AcmeSecretName}}
-//	  solvers:
-//	    - dns01:
-//	        webhook:
-//	          groupName: verrazzano.io
-//	          solverName: oci
-//	          config:
-//	            compartmentOCID: {{ .CompartmentOCID }}
-//	            useInstancePrincipals: {{ .UseInstancePrincipals }}
-//	            ociProfileSecretName: {{.SecretName}}
-//	            ociProfileSecretKey: "oci.yaml"
-//	            ociZoneName: {{.OCIZoneName}}`
-
+// webhookTemplate is the YAML template for the Let's Encrypt / OCI DNS webhook configuration
 const webhookTemplate = `config:
     compartmentOCID: {{ .CompartmentOCID }}
     useInstancePrincipals: {{ .UseInstancePrincipals }}
@@ -506,15 +472,6 @@ func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templ
 
 	return &clusterIssuer, nil
 }
-
-//func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
-//	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
-//	if err := yaml.Unmarshal([]byte(clusterIssuerLookupTemplate), ciObject); err != nil {
-//		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
-//	}
-//	return ciObject, nil
-//
-//}
 
 // createOrUpdateCAResources Create or update the CA ClusterIssuer
 // - returns OperationResultNone/error on error
