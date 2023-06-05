@@ -265,7 +265,7 @@ pipeline {
                                     """
                                 } catch (error) {
                                     echo "Error caught as expected\nProceeding with network prune:"
-                                    sh 'docker network prune'
+                                    sh 'docker network prune -f'
                                 }
                             }
                         }
