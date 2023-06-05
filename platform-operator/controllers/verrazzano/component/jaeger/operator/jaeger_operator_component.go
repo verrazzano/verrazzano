@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -15,7 +16,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -87,7 +87,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName, opensearch.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName, opensearch.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 		},

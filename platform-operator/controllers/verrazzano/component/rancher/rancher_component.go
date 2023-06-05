@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,7 +22,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -122,7 +122,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, clusterapi.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, clusterapi.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -543,7 +543,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	return common.ActivateKontainerDriver(ctx)
+	if err := common.ActivateKontainerDriver(ctx); err != nil {
+		return err
+	}
+	return cleanupRancherResources(context.TODO(), ctx.Client())
 }
 
 // Reconcile for the Rancher component
