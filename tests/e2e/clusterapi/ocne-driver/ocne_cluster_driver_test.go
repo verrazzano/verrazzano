@@ -32,6 +32,61 @@ const (
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 30 * time.Second
 	clusterName                  = "strudel2"
+	newCreateClusterPayloadTemplate = `{
+		"dockerRootDir": "/var/lib/docker",
+		"enableClusterAlerting": false,
+		"enableClusterMonitoring": false,
+		"enableNetworkPolicy": false,
+		"windowsPreferedCluster": false,
+		"type": "cluster",
+		"name": "{{.ClusterName}}",
+		"ociocneEngineConfig": {
+			"applyYamls": [],
+			"calicoImagePath": "olcne",
+			"cloudCredentialId": "{{.CloudCredentialID}}",
+			"clusterCidr": "10.96.0.0/16",
+			"clusterName": "{{.ClusterName}}",
+			"compartmentId": "{{.CompartmentID}}",
+			"controlPlaneMemoryGbs": 16,
+			"controlPlaneOcpus": 2,
+			"controlPlaneShape": "VM.Standard.E4.Flex",
+			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
+			"controlPlaneVolumeGbs": 100,
+			"corednsImageTag": "v1.9.3",
+			"displayName": "{{.ClusterName}}",
+			"driverName": "ociocneengine",
+			"etcdImageTag": "3.5.6",
+			"imageDisplayName": "Oracle-Linux-8.7-2023.04.25-0",
+			"imageId": "",
+			"installCalico": true,
+			"installCcm": true,
+			"installVerrazzano": false,
+			"kubernetesVersion": "v1.25.7",
+			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
+			"name": "",
+			"nodePools": [
+				"{\"name\":\"pool-i4ybc\",\"replicas\":1,\"memory\":16,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+			],
+			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
+			"nodeShape": "VM.Standard.E4.Flex",
+			"numControlPlaneNodes": 1,
+			"numWorkerNodes": 1,
+			"ocneVersion": "1.6",
+			"podCidr": "10.244.0.0/16",
+			"privateRegistry": "",
+			"proxyEndpoint": "",
+			"region": "{{.Region}}",
+			"skipOcneInstall": false,
+			"tigeraImageTag": "v1.29.0",
+			"type": "ociocneEngineConfig",
+			"useNodePvEncryption": true,
+			"vcnId": "{{.VcnID}}",
+			"verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+			"verrazzanoTag": "v1.6.0",
+			"verrazzanoVersion": "v1.6.0",
+			"workerNodeSubnet": "{{.WorkerNodeSubnet}}"
+		}
+	}`
 	createClusterPayloadTemplate = `{
 		"dockerRootDir": "/var/lib/docker",
 		"enableClusterAlerting": false,
@@ -143,8 +198,6 @@ type capiClusterData struct {
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	Skip("Temporarily skipping the test suite since the test suite is not passing/unstable")
-
 	//TODO oci get to check it's working
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -275,7 +328,7 @@ func createCloudCredential(credentialName string) (string, error) {
 }
 
 func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) error {
-	createClusterTemplate, err := template.New("cloudCredentials").Parse(createClusterPayloadTemplate)
+	createClusterTemplate, err := template.New("cloudCredentials").Parse(newCreateClusterPayloadTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to create the create cluster template: %v", err)
 	}
