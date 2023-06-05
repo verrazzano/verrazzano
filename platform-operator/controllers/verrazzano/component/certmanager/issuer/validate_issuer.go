@@ -4,8 +4,11 @@
 package issuer
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/mail"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -21,6 +24,12 @@ const (
 	preOccupiedspace       = len(longestSystemURLPrefix) + 2
 )
 
+var checkCertManagerCRDFunc = cmcommon.CertManagerCRDsExist
+
+func resetCheckCertManagerCRDsFunc() {
+	checkCertManagerCRDFunc = cmcommon.CertManagerCRDsExist
+}
+
 // validateLongestHostName - validates that the longest possible host name for a system endpoint
 // is not greater than 64 characters
 func validateLongestHostName(effectiveCR runtime.Object) error {
@@ -33,7 +42,6 @@ func validateLongestHostName(effectiveCR runtime.Object) error {
 			spaceOccupied = spaceOccupied + len(dnsSuffix)
 			return fmt.Errorf("Failed: spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
 		}
-
 		return fmt.Errorf("Failed: spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
 	}
 	return nil
@@ -80,13 +88,13 @@ func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
 // - Validates the CA or LetsEncrypt configurations if necessary
 // - returns an error if anything is misconfigured
 func validateConfiguration(vz *v1beta1.Verrazzano) (err error) {
-	if err := validateComponentConfigurationV1Beta1(vz); err != nil {
+	if err := validateCertificate(vz.Spec.Components.CertManager); err != nil {
 		return err
 	}
-	return validateIssuerConfig(err, vz.Spec.Components.ClusterIssuer)
+	return validateIssuerConfig(vz.Spec.Components.ClusterIssuer)
 }
 
-func validateIssuerConfig(err error, issuerComponent *v1beta1.ClusterIssuerComponent) error {
+func validateIssuerConfig(issuerComponent *v1beta1.ClusterIssuerComponent) error {
 	if issuerComponent == nil {
 		return nil
 	}
@@ -105,6 +113,20 @@ func validateIssuerConfig(err error, issuerComponent *v1beta1.ClusterIssuerCompo
 	}
 	// Validate the LetsEncrypt config otherwise
 	return validateAcmeConfiguration(*issuerComponent.LetsEncrypt)
+}
+
+func checkClusterResourceNamespaceExists(issuerComponent *v1beta1.ClusterIssuerComponent) error {
+	client, err := cmcommon.GetClientFunc()
+	if err != nil {
+		return err
+	}
+	if _, err := client.Namespaces().Get(context.TODO(), issuerComponent.ClusterResourceNamespace, metav1.GetOptions{}); err != nil {
+		if errors2.IsNotFound(err) {
+			return fmt.Errorf("configured clusterResourceNamespace \"%s\" for %s component does not exist", issuerComponent.ClusterResourceNamespace, ComponentJSONName)
+		}
+		return err
+	}
+	return nil
 }
 
 func validateCAConfiguration(ca *v1beta1.CAIssuer, clusterResourceNamespace string) error {
@@ -128,32 +150,15 @@ func validateAcmeConfiguration(acme v1beta1.LetsEncryptACMEIssuer) error {
 	return nil
 }
 
-// validateComponentConfigurationV1Beta1 validates that only one of either the ClusterIssuerComponent or the
-// CertManager.Certificate field can be configured with non-defaults at the same time.
-func validateComponentConfigurationV1Beta1(vz *v1beta1.Verrazzano) error {
-
-	certManagerComp := vz.Spec.Components.CertManager
-	clusterIssuerComp := vz.Spec.Components.ClusterIssuer
-
-	if certManagerComp == nil && clusterIssuerComp == nil {
-		return nil
+func validateCertManagerTypesExist() error {
+	ok, err := checkCertManagerCRDFunc()
+	if err != nil {
+		return err
 	}
-
-	// NOTE: Disable this for now, since we can't distinguish between a user edit and the merged profile settings;
-	// we may have to do this validation in the ComponentValidatorImpl before the EffectiveCR is generated
-	//
-	// We only allow configuring either the deprecated CertManager Certificate field, or the ClusterIssuerComponent
-	//if certManagerComp != nil && clusterIssuerComp != nil {
-	//	isDefaultIssuer, err := clusterIssuerComp.IsDefaultIssuer()
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if !isDefaultIssuer && !isDefaultCertificateConfiguration(certManagerComp.Certificate) {
-	//		return fmt.Errorf("Can not simultaneously configure both the CertManager and ClusterIssuer components")
-	//	}
-	//}
-
-	return validateCertificate(certManagerComp)
+	if !ok {
+		return fmt.Errorf("%s component is enabled but could not detect the presence of Cert-Manager", ComponentJSONName)
+	}
+	return nil
 }
 
 func validateCertificate(comp *v1beta1.CertManagerComponent) error {
@@ -203,14 +208,3 @@ func validateCertificateAcmeConfiguration(acme v1beta1.Acme) error {
 	}
 	return nil
 }
-
-//func isDefaultCertificateConfiguration(cmCert v1beta1.Certificate) bool {
-//	var emptyCertConfig = v1beta1.Certificate{}
-//	defaultCertConfig := v1beta1.Certificate{
-//		CA: v1beta1.CA{
-//			SecretName:               constants.DefaultVerrazzanoCASecretName,
-//			ClusterResourceNamespace: constants.CertManagerNamespace,
-//		},
-//	}
-//	return cmCert == emptyCertConfig || cmCert == defaultCertConfig
-//}

@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -16,7 +17,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -65,7 +65,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, cmcommon.CertManagerComponentName, mysql.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, mysql.ComponentName},
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       AppendKeycloakOverrides,

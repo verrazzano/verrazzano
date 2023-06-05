@@ -28,6 +28,16 @@ func TestGetInstallReleaseWithMajorRelease(t *testing.T) {
 	assert.Equal(t, "v1.5.0\n", getInstallRelease(releaseTags))
 }
 
+// TestGetInstallReleaseNotMoreThanTwoMinorVersions Tests the getInstallRelease function
+// WHEN there are no more than two minor release tags
+// THEN install release version with the first minor release is expected
+func TestGetInstallReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
+	pwd, _ := os.Getwd()
+	parseCliArgs([]string{pwd, "install-version"})
+	releaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v1.5.1"}
+	assert.Equal(t, "v1.4.2\n", getInstallRelease(releaseTags))
+}
+
 // TestGetInterimReleaseWithoutMajorVersion Tests the getInterimRelease function
 // WHEN with git release tags major version change does not exist
 // THEN interim release version with one minor release difference is expected
@@ -45,6 +55,16 @@ func TestGetInterimReleaseWithMajorVersion(t *testing.T) {
 	pwd, _ := os.Getwd()
 	parseCliArgs([]string{pwd, "interim-version"})
 	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "2.0.0"}
+	assert.Equal(t, "v1.5.0\n", getInterimRelease(releaseTags))
+}
+
+// TestGetInterimReleaseNotMoreThanTwoMinorVersions Tests the getInterimRelease function
+// WHEN there are no more than two minor release tags
+// THEN interim release version with the first patch release of the last minor release is expected
+func TestGetInterimReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
+	pwd, _ := os.Getwd()
+	parseCliArgs([]string{pwd, "install-version"})
+	releaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v1.5.1"}
 	assert.Equal(t, "v1.5.0\n", getInterimRelease(releaseTags))
 }
 
