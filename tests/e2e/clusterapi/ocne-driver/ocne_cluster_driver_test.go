@@ -32,7 +32,7 @@ const (
 	waitTimeout                  = 30 * time.Minute
 	pollingInterval              = 30 * time.Second
 	clusterName                  = "strudel2"
-	newCreateClusterPayloadTemplate = `{
+	createClusterPayloadTemplate = `{
 		"dockerRootDir": "/var/lib/docker",
 		"enableClusterAlerting": false,
 		"enableClusterMonitoring": false,
@@ -86,61 +86,6 @@ const (
 			"verrazzanoVersion": "v1.6.0",
 			"workerNodeSubnet": "{{.WorkerNodeSubnet}}"
 		}
-	}`
-	createClusterPayloadTemplate = `{
-		"dockerRootDir": "/var/lib/docker",
-		"enableClusterAlerting": false,
-		"enableClusterMonitoring": false,
-		"enableNetworkPolicy": false,
-		"windowsPreferedCluster": false,
-		"type": "cluster",
-		"name": "{{.ClusterName}}",
-		"ociocneEngineConfig": {
-			"calicoImagePath": "olcne",
-			"calicoImageRegistry": "container-registry.oracle.com",
-			"ccmImage": "ghcr.io/oracle/cloud-provider-oci:v1.24.0",
-			"cloudCredentialId": "{{.CloudCredentialID}}",
-			"clusterCidr": "10.96.0.0/16",
-			"compartmentId": "{{.CompartmentID}}",
-			"controlPlaneMemoryGbs": 16,
-			"controlPlaneOcpus": 2,
-			"controlPlaneRegistry": "container-registry.oracle.com/olcne",
-			"controlPlaneShape": "VM.Standard.E4.Flex",
-			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
-			"controlPlaneVolumeGbs": 100,
-			"csiRegistry": "k8s.gcr.io/sig-storage",
-			"displayName": "{{.ClusterName}}",
-			"driverName": "ociocneengine",
-			"imageDisplayName": "Oracle-Linux-8.7-2023.04.25-0",
-			"imageId": "",
-			"installCalico": true,
-			"installCcm": true,
-			"installCsi": true,
-			"installVerrazzano": false,
-			"kubernetesVersion": "v1.24.8",
-			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
-			"name": "",
-			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
-			"numControlPlaneNodes": 1,
-			"ociCsiImage": "ghcr.io/oracle/cloud-provider-oci:v1.24.0",
-			"podCidr": "192.168.0.0/16",
-			"proxyEndpoint": "",
-			"region": "{{.Region}}",
-			"skipOcneInstall": false,
-			"useNodePvEncryption": true,
-			"vcnId": "{{.VcnID}}",
-			"verrazzanoImage": "ghcr.io/verrazzano/verrazzano-platform-operator:v1.5.2-20230315235330-0326ee67",
-			"verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
-			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
-			"type": "ociocneEngineConfig",
-			"clusterName": "",
-			"nodeShape": "VM.Standard.E4.Flex",
-			"numWorkerNodes": 1,
-			"nodePools": [],
-			"applyYamls": []
-		},
-		"cloudCredentialId": "{{.CloudCredentialID}}",
-		"labels": {}
 	}`
 	cloudCredentialsRequestBodyTemplate = `{
 		"_name": "{{.CredentialName}}",
@@ -328,7 +273,7 @@ func createCloudCredential(credentialName string) (string, error) {
 }
 
 func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) error {
-	createClusterTemplate, err := template.New("cloudCredentials").Parse(newCreateClusterPayloadTemplate)
+	createClusterTemplate, err := template.New("cloudCredentials").Parse(createClusterPayloadTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to create the create cluster template: %v", err)
 	}
