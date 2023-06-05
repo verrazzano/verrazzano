@@ -9,12 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -25,9 +27,13 @@ import (
 )
 
 const (
-	ComponentName      = "fluentbit-opensearch-output"
-	ComponentJSONName  = "fluentbitOpensearchOutput"
-	ComponentNamespace = constants.VerrazzanoSystemNamespace
+	ComponentName                  = "fluentbit-opensearch-output"
+	ComponentJSONName              = "fluentbitOpensearchOutput"
+	ComponentNamespace             = constants.VerrazzanoSystemNamespace
+	OverrideApplicationHostKey     = "application.host"
+	OverrideApplicationPasswordKey = "system.httpPassword.valueFrom.secretKeyRef.name"
+	OverrideSystemHostKey          = "system.host"
+	OverrideSystemPasswordKey      = "system.httpPassword.valueFrom.secretKeyRef.name"
 )
 
 type fluentbitOpensearchOutput struct {
@@ -46,6 +52,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_6_0,
 			GetInstallOverridesFunc:   getOverrides,
 			Dependencies:              []string{fluentoperator.ComponentName},
+			AppendOverridesFunc:       AppendOverrides,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -129,4 +136,19 @@ func checkOpensearchSecretExists(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// AppendOverrides appends the Overrides for fluentbitOpensearchOutput.
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return kvs, err
+	}
+	if registrationSecret != nil {
+		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationHostKey, Value: string(registrationSecret.Data[constants.OpensearchURLData])})
+		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemHostKey, Value: string(registrationSecret.Data[constants.OpensearchURLData])})
+		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationPasswordKey, Value: constants.MCRegistrationSecret})
+		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemPasswordKey, Value: constants.MCRegistrationSecret})
+	}
+	return kvs, nil
 }
