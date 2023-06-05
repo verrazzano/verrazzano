@@ -289,21 +289,6 @@ pipeline {
                 """
 
                 sh """
-                    mkdir -p ~/.oci
-                    cp ${OCI_CLI_KEY_FILE} ~/.oci
-                    rm -rf ~/.oci/config
-                    {
-                      echo '[DEFAULT]'
-                      echo 'user=${OCI_CLI_USER}'
-                      echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
-                      echo 'tenancy=${OCI_CLI_TENANCY}'
-                      echo 'region=${OCI_CLI_REGION}'
-                      echo 'key_file=~/.oci/oci-api-key.pem'
-                    } >> ~/.oci/config
-                    oci setup repair-file-permissions --file /home/opc/.oci/config
-                """
-
-                sh """
                     ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                 """
 
