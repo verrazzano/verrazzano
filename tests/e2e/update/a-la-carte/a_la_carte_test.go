@@ -94,7 +94,6 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		OCIConfigSecret:        ociConfigSecretName,
 	}}
 
-
 	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
 	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
 		ClusterResourceNamespace: clusterResourceNamespace,
