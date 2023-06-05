@@ -174,11 +174,11 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	}
 
 	// Apply the cert-manager manifest, patching if needed
-	log.Debug("Applying cert-manager crds")
-	err := c.applyManifest(compContext)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
-	}
+	//log.Debug("Applying cert-manager crds")
+	//err := c.applyManifest(compContext)
+	//if err != nil {
+	//	return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
+	//}
 	return c.HelmComponent.PreInstall(compContext)
 }
 

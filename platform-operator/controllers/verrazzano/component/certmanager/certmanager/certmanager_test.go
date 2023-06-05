@@ -92,12 +92,12 @@ func TestIsCertManagerEnabled(t *testing.T) {
 // GIVEN a call to writeCRD
 // WHEN the input file exists
 // THEN the output should have ocidns added.
-func TestWriteCRD(t *testing.T) {
-	inputFile := "../../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
-	outputFile := "../../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
-	err := writeCRD(inputFile, outputFile, true)
-	assert.NoError(t, err)
-}
+//func TestWriteCRD(t *testing.T) {
+//	inputFile := "../../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
+//	outputFile := "../../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
+//	err := writeCRD(inputFile, outputFile, true)
+//	assert.NoError(t, err)
+//}
 
 // TestCleanTempFiles tests cleaning up temp files
 // GIVEN a call to cleanTempFiles
@@ -125,7 +125,7 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFile)
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 1)
+	assert.Len(t, kvs, 2)
 }
 
 // TestAppendCertManagerOverridesWithInstallArgs tests the AppendOverrides fn
@@ -143,8 +143,9 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 1)
+	assert.Len(t, kvs, 2)
 	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})
+	assert.Contains(t, kvs, bom.KeyValue{Key: installCRDsKey, Value: "true"})
 }
 
 // TestCertManagerPreInstall tests the PreInstall fn

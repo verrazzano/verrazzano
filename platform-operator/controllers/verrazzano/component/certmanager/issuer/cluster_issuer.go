@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -85,36 +86,46 @@ var (
 )
 
 // Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
-const clusterIssuerLookupTemplate = `
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: verrazzano-cluster-issuer`
+//const clusterIssuerLookupTemplate = `
+//apiVersion: cert-manager.io/v1
+//kind: ClusterIssuer
+//metadata:
+//  name: verrazzano-cluster-issuer`
 
 // Template for ClusterIssuer for Acme certificates
-const clusterIssuerTemplate = `
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: {{.ClusterIssuerName}}
-spec:
-  acme:
-    email: {{.Email}}
-    server: "{{.Server}}"
-    preferredChain: ""
-    privateKeySecretRef:
-      name: {{.AcmeSecretName}}
-    solvers:
-      - dns01:
-          webhook:
-            groupName: verrazzano.io
-            solverName: oci
-            config:
-              compartmentOCID: {{ .CompartmentOCID }}
-              useInstancePrincipals: {{ .UseInstancePrincipals }}
-              ociProfileSecretName: {{.SecretName}}
-              ociProfileSecretKey: "oci.yaml"
-              ociZoneName: {{.OCIZoneName}}`
+// const clusterIssuerTemplate = `
+// apiVersion: cert-manager.io/v1
+// kind: ClusterIssuer
+// metadata:
+//
+//	name: {{.ClusterIssuerName}}
+//
+// spec:
+//
+//	acme:
+//	  email: {{.Email}}
+//	  server: "{{.Server}}"
+//	  preferredChain: ""
+//	  privateKeySecretRef:
+//	    name: {{.AcmeSecretName}}
+//	  solvers:
+//	    - dns01:
+//	        webhook:
+//	          groupName: verrazzano.io
+//	          solverName: oci
+//	          config:
+//	            compartmentOCID: {{ .CompartmentOCID }}
+//	            useInstancePrincipals: {{ .UseInstancePrincipals }}
+//	            ociProfileSecretName: {{.SecretName}}
+//	            ociProfileSecretKey: "oci.yaml"
+//	            ociZoneName: {{.OCIZoneName}}`
+
+const webhookTemplate = `config:
+    compartmentOCID: {{ .CompartmentOCID }}
+    useInstancePrincipals: {{ .UseInstancePrincipals }}
+    ociProfileSecretName: {{.SecretName}}
+    ociProfileSecretKey: "oci.yaml"
+    ociZoneName: {{.OCIZoneName}}`
 
 // Template data for ClusterIssuer
 type templateData struct {
@@ -369,18 +380,22 @@ func (c clusterIssuerComponent) verrazzanoCertManagerResourcesReady(ctx spi.Comp
 func createOrUpdateAcmeResources(log vzlog.VerrazzanoLogger, client crtclient.Client, vz *vzapi.Verrazzano, config *vzapi.ClusterIssuerComponent) (opResult controllerutil.OperationResult, err error) {
 	opResult = controllerutil.OperationResultNone
 	// Create a lookup object
-	getCIObject, err := createAcmeCusterIssuerLookupObject(log)
+	clusterIssuerObj := &certv1.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VerrazzanoClusterIssuerName,
+		},
+	}
 	if err != nil {
 		return opResult, err
 	}
 	// Update or create the unstructured object
 	log.Debug("Applying ClusterIssuer with OCI DNS")
-	if opResult, err = controllerutil.CreateOrUpdate(context.TODO(), client, getCIObject, func() error {
-		ciObject, err := createACMEIssuerObject(log, client, vz, config)
+	if opResult, err = controllerutil.CreateOrUpdate(context.TODO(), client, clusterIssuerObj, func() error {
+		newIssuerObj, err := createACMEIssuerObject(log, client, vz, config)
 		if err != nil {
 			return err
 		}
-		getCIObject.Object["spec"] = ciObject.Object["spec"]
+		clusterIssuerObj.Spec = newIssuerObj.Spec
 		return nil
 	}); err != nil {
 		return opResult, log.ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
@@ -388,7 +403,7 @@ func createOrUpdateAcmeResources(log vzlog.VerrazzanoLogger, client crtclient.Cl
 	return opResult, nil
 }
 
-func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client, vz *vzapi.Verrazzano, config *vzapi.ClusterIssuerComponent) (*unstructured.Unstructured, error) {
+func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client, vz *vzapi.Verrazzano, config *vzapi.ClusterIssuerComponent) (*certv1.ClusterIssuer, error) {
 	// Initialize Acme variables for the cluster issuer
 	var ociDNSConfigSecret string
 	var ociDNSZoneName string
@@ -434,14 +449,13 @@ func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client,
 		}
 	}
 
-	ciObject, err := createAcmeClusterIssuer(log, clusterIssuerData)
-	return ciObject, err
+	return createAcmeClusterIssuer(log, clusterIssuerData)
 }
 
-func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templateData) (*unstructured.Unstructured, error) {
+func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templateData) (*certv1.ClusterIssuer, error) {
 	var buff bytes.Buffer
-	// Parse the template string and create the template object
-	issuerTemplate, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
+
+	issuerTemplate, err := template.New("clusterIssuer").Parse(webhookTemplate)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to parse the ClusterIssuer yaml template: %v", err)
 	}
@@ -452,22 +466,55 @@ func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templ
 		return nil, log.ErrorfNewErr("Failed to execute the ClusterIssuer template: %v", err)
 	}
 
-	// Create an unstructured object from the template output
-	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
-	if err := yaml.Unmarshal(buff.Bytes(), ciObject); err != nil {
-		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
+	rawJSON, err := yaml.YAMLToJSON(buff.Bytes())
+	if err != nil {
+		return nil, err
 	}
-	return ciObject, nil
+
+	// Parse the template string and create the template object
+	clusterIssuer := certv1.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VerrazzanoClusterIssuerName,
+		},
+	}
+	clusterIssuer.Spec = certv1.IssuerSpec{
+		IssuerConfig: certv1.IssuerConfig{
+			ACME: &acmev1.ACMEIssuer{
+				Email:  clusterIssuerData.Email,
+				Server: clusterIssuerData.Server,
+				PrivateKey: certmetav1.SecretKeySelector{
+					LocalObjectReference: certmetav1.LocalObjectReference{
+						Name: clusterIssuerData.AcmeSecretName,
+					},
+				},
+				Solvers: []acmev1.ACMEChallengeSolver{
+					{
+						DNS01: &acmev1.ACMEChallengeSolverDNS01{
+							Webhook: &acmev1.ACMEIssuerDNS01ProviderWebhook{
+								GroupName:  "verrazzano.io",
+								SolverName: "oci",
+								Config: &apiext.JSON{
+									Raw: rawJSON,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return &clusterIssuer, nil
 }
 
-func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
-	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
-	if err := yaml.Unmarshal([]byte(clusterIssuerLookupTemplate), ciObject); err != nil {
-		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
-	}
-	return ciObject, nil
-
-}
+//func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
+//	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
+//	if err := yaml.Unmarshal([]byte(clusterIssuerLookupTemplate), ciObject); err != nil {
+//		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
+//	}
+//	return ciObject, nil
+//
+//}
 
 // createOrUpdateCAResources Create or update the CA ClusterIssuer
 // - returns OperationResultNone/error on error
