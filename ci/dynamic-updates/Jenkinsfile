@@ -142,6 +142,7 @@ pipeline {
         KIND_NODE_COUNT = 3
 
         CR_VALIDATION_TEST = "${params.RUN_CR_VALIDATION}"
+        CONNECT_JENKINS_RUNNER_TO_NETWORK = true
     }
 
     stages {
@@ -237,7 +238,11 @@ pipeline {
                         script{
                             if (params.RUN_CR_VALIDATION) {
                                 try {
-                                    scriptForPrepareATEnvironmentV1beta1()
+                                     if(params.CRD_API_VERSION == "v1alpha1"){
+                                        scriptForPrepareATEnvironmentV1alpha1()
+                                    }else{
+                                        scriptForPrepareATEnvironmentV1beta1()
+                                    }
                                     sh """
                                     cd ${GO_REPO_PATH}/verrazzano
                                     yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
@@ -258,14 +263,15 @@ pipeline {
                                     if [ -f "$WORKSPACE/vz" ]; then
                                     cd "\$WORKSPACE"
                                     ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
+                                    ./vz install --set profile=trash --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                     else
                                     cd "\$GO_REPO_PATH"/verrazzano/tools/vz
                                     GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
+                                    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --set profile=trash --manifests ${WORKSPACE}/downloaded-vpo.yaml
                                     fi
                                     """
                                 } catch (error) {
-                                    echo "Error caught as expected\nProceeding with network prune:"
-                                    sh 'docker network prune -f'
+                                    echo "Error caught as expected"
                                 }
                             }
                         }
@@ -275,9 +281,11 @@ pipeline {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        CONNECT_JENKINS_RUNNER_TO_NETWORK = false
                     }
                     steps {
                         sh """
+                            echo ${CONNECT_JENKINS_RUNNER_TO_NETWORK}
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
@@ -1029,7 +1037,7 @@ def scriptForPrepareATEnvironmentV1beta1(){
         yq -i eval '.spec.components.ingressNGINX.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.opensearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${CONNECT_JENKINS_RUNNER_TO_NETWORK}
     """
 }
 
@@ -1040,6 +1048,6 @@ def scriptForPrepareATEnvironmentV1alpha1(){
         yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${CONNECT_JENKINS_RUNNER_TO_NETWORK}
     """
 }
