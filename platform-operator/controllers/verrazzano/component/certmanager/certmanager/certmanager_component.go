@@ -6,7 +6,6 @@ package certmanager
 import (
 	"context"
 	"fmt"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
@@ -25,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -175,11 +175,11 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	}
 
 	// Apply the cert-manager manifest, patching if needed
-	//log.Debug("Applying cert-manager crds")
-	//err := c.applyManifest(compContext)
-	//if err != nil {
-	//	return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
-	//}
+	log.Debug("Applying cert-manager crds")
+	err := c.applyManifest(compContext)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
+	}
 	return c.HelmComponent.PreInstall(compContext)
 }
 
