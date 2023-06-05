@@ -13,16 +13,19 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -280,6 +283,60 @@ func TestMonitorOverrides(t *testing.T) {
 	assert.False(t, monitor, "Monitoring of install overrides should be disabled")
 }
 
+// TestAppendOverrides test the AppendOverrides function for fluentbitOpensearchOutput.
+// GIVEN a FluentbitOpensearchOutput component
+// WHEN I call AppendOverrides function with FluentbitOpensearchOutput context
+// THEN Override should be from the Cluster registration secret, otherwise no overrides should be there.
+func TestAppendOverrides(t *testing.T) {
+	const testURL = "https://xyz.com"
+	registrationSecret := createTestRegistrationSecret(map[string]string{
+		constants.OpensearchURLData: testURL,
+	})
+	expectedKVSWithOverride := []bom.KeyValue{
+		{Key: OverrideApplicationHostKey, Value: testURL},
+		{Key: OverrideSystemHostKey, Value: testURL},
+		{Key: OverrideApplicationPasswordKey, Value: constants.MCRegistrationSecret},
+		{Key: OverrideSystemPasswordKey, Value: constants.MCRegistrationSecret},
+		{Key: OverrideApplicationUserKey, Value: constants.MCRegistrationSecret},
+		{Key: OverrideSystemUserKey, Value: constants.MCRegistrationSecret},
+	}
+	expectedKVS := []bom.KeyValue{}
+	cr := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				FluentbitOpensearchOutput: &v1alpha1.FluentbitOpensearchOutputComponent{},
+			},
+		},
+	}
+	var tests = []struct {
+		name     string
+		ctx      spi.ComponentContext
+		expected []bom.KeyValue
+	}{
+		{
+			"uses fluentbitOpensearchOutput URL and credentials if no registration secret",
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), cr, nil, false),
+			expectedKVS,
+		},
+		{
+			"uses registration secret for overrides if present",
+			spi.NewFakeContext(fake.NewClientBuilder().WithObjects(registrationSecret).Build(), cr, nil, false),
+			expectedKVSWithOverride,
+		},
+	}
+
+	for _, tt := range tests {
+		got, err := AppendOverrides(tt.ctx, "", "", "", []bom.KeyValue{})
+		if err != nil {
+			t.Errorf("AppendOverrides() error = %v", err)
+			return
+		}
+		if !reflect.DeepEqual(got, tt.expected) {
+			t.Errorf("AppendOverrides() got = %v, want %v", got, tt.expected)
+		}
+	}
+}
+
 // getFluentOSOutputCR returns the Verrazzano CR with enabled/disabled FluentbitOpensearchOutput based on the passed argument.
 func getFluentOSOutputCR(enabled bool) *v1alpha1.Verrazzano {
 	return &v1alpha1.Verrazzano{
@@ -291,4 +348,19 @@ func getFluentOSOutputCR(enabled bool) *v1alpha1.Verrazzano {
 			},
 		},
 	}
+}
+
+// createTestRegistrationSecret returns a registration secret for unit test purpose.
+func createTestRegistrationSecret(kvs map[string]string) *corev1.Secret {
+	s := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.MCRegistrationSecret,
+			Namespace: ComponentNamespace,
+		},
+	}
+	s.Data = map[string][]byte{}
+	for k, v := range kvs {
+		s.Data[k] = []byte(v)
+	}
+	return s
 }

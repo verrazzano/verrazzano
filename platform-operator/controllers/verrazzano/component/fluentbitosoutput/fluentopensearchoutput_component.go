@@ -31,9 +31,11 @@ const (
 	ComponentJSONName              = "fluentbitOpensearchOutput"
 	ComponentNamespace             = constants.VerrazzanoSystemNamespace
 	OverrideApplicationHostKey     = "application.host"
-	OverrideApplicationPasswordKey = "system.httpPassword.valueFrom.secretKeyRef.name"
+	OverrideApplicationPasswordKey = "application.httpPassword.valueFrom.secretKeyRef.name"
+	OverrideApplicationUserKey     = "application.httpUser.valueFrom.secretKeyRef.name"
 	OverrideSystemHostKey          = "system.host"
 	OverrideSystemPasswordKey      = "system.httpPassword.valueFrom.secretKeyRef.name"
+	OverrideSystemUserKey          = "system.httpUser.valueFrom.secretKeyRef.name"
 )
 
 type fluentbitOpensearchOutput struct {
@@ -149,6 +151,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemHostKey, Value: string(registrationSecret.Data[constants.OpensearchURLData])})
 		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationPasswordKey, Value: constants.MCRegistrationSecret})
 		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemPasswordKey, Value: constants.MCRegistrationSecret})
+		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationUserKey, Value: constants.MCRegistrationSecret})
+		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemUserKey, Value: constants.MCRegistrationSecret})
 	}
 	return kvs, nil
 }
