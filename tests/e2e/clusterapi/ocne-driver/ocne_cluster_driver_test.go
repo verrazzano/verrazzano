@@ -85,7 +85,9 @@ const (
 			"verrazzanoTag": "v1.6.0",
 			"verrazzanoVersion": "v1.6.0",
 			"workerNodeSubnet": "{{.WorkerNodeSubnet}}"
-		}
+		},
+		"cloudCredentialId": "{{.CloudCredentialID}}",
+		"labels": {}
 	}`
 	cloudCredentialsRequestBodyTemplate = `{
 		"_name": "{{.CredentialName}}",
