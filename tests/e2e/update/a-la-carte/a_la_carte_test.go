@@ -27,6 +27,8 @@ const (
 	clusterManagementStack = "cluster-management-stack"
 	noneProfile            = "none-profile"
 
+	ocidnsType = "ocidns"
+
 	ociConfigSecretName          = "oci"
 	dnsZoneCompartmentOCIDEnvvar = "OCI_ZONE_COMPARTMENT_ID"
 	dnsZoneOCIDEnvvar            = "DNS_ZONE_OCID"
@@ -87,12 +89,16 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.OAM = &vzapi.OAMComponent{Enabled: &trueVal}
 	cr.Spec.Components.Verrazzano = &vzapi.VerrazzanoComponent{Enabled: &trueVal}
 	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{Enabled: &trueVal}
-	cr.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{
-		DNSZoneCompartmentOCID: os.Getenv(dnsZoneCompartmentOCIDEnvvar),
-		DNSZoneOCID:            os.Getenv(dnsZoneOCIDEnvvar),
-		DNSZoneName:            os.Getenv(dnsZoneNameEnvvar),
-		OCIConfigSecret:        ociConfigSecretName,
-	}}
+	if dnsType == ocidnsType {
+		cr.Spec.Components.DNS = &vzapi.DNSComponent{
+			OCI: &vzapi.OCI{
+				DNSZoneCompartmentOCID: os.Getenv(dnsZoneCompartmentOCIDEnvvar),
+				DNSZoneOCID:            os.Getenv(dnsZoneOCIDEnvvar),
+				DNSZoneName:            os.Getenv(dnsZoneNameEnvvar),
+				OCIConfigSecret:        ociConfigSecretName,
+			},
+		}
+	}
 
 	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
 	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
