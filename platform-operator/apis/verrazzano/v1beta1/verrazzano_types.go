@@ -828,7 +828,7 @@ type IngressNginxComponent struct {
 	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the ingress
 	// type is `NodePort`, then a valid and accessible IP address must be specified using the `controller.service.externalIPs`
 	// key in the [InstallOverrides](#install.verrazzano.io/v1beta1.InstallOverrides). For sample usage, see
-	// <a href="../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../docs/networking/traffic/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 }
@@ -1189,17 +1189,17 @@ type InstallOverrides struct {
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
 	// For sample usage, see
-	// <a href="../../../docs/customize/installationoverrides/#configmap">ConfigMapRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#configmap">ConfigMapRef</a>.
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
 	// For sample usage, see
-	// <a href="../../../docs/customize/installationoverrides/#secret">SecretRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#secret">SecretRef</a>.
 	// +optional
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
 	// For sample usage, see
-	// <a href="../../../docs/customize/installationoverrides/#values">Values</a>.
+	// <a href="../../../docs/setup/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }
