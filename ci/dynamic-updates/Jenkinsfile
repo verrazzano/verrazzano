@@ -1036,7 +1036,7 @@ def scriptForPrepareATEnvironmentV1beta1(){
         yq -i eval '.spec.components.ingressNGINX.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.opensearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${CONNECT_JENKINS_RUNNER_TO_NETWORK}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
     """
 }
 
@@ -1047,6 +1047,6 @@ def scriptForPrepareATEnvironmentV1alpha1(){
         yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${CONNECT_JENKINS_RUNNER_TO_NETWORK}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
     """
 }
