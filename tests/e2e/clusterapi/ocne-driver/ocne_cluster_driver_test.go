@@ -172,7 +172,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	// TODO: delete cloud credential(s)
+	// Delete the credential
+	deleteCredential(cloudCredentialID)
+
+	// Verify the credential is deleted
+	Eventually(func() (bool, error) { return IsCredentialDeleted(cloudCredentialID) }, waitTimeout, pollingInterval).Should(
+		BeTrue(), fmt.Sprintf("Cloud credential %s is not deleted", cloudCredentialID))
 })
 var _ = AfterSuite(afterSuite)
 
@@ -194,19 +199,39 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	t.Context("OCNE cluster delete", func() {
 		t.It("delete OCNE cluster", func() {
-			// Create the cluster
+			// Delete the cluster
 			Eventually(func() error {
 				return deleteCluster(clusterName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
 		t.It("Check OCNE cluster is deleted", func() {
-			// Verify the cluster is active
+			// Verify the cluster is deleted
 			Eventually(func() (bool, error) { return IsClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
+				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
 		})
 	})
 })
+
+func deleteCredential(credID string) {
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s%s", "v3/cloudCredentials/", credID))
+	helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusNoContent, nil, t.Logs)
+}
+
+func IsCredentialDeleted(credID string) (bool, error) {
+	jsonBody, err := getCredential(credID)
+	if err != nil {
+		return false, err
+	}
+	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
+	fmt.Println("jsonData: " + jsonData)
+	return jsonData == "[]", nil
+}
+
+func getCredential(credID string) (*gabs.Container, error) {
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s%s", "v3/cloudcredentials?id=", credID))
+	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+}
 
 func deleteCluster(clusterName string) error {
 	clusterID, err := getClusterIDFromName(clusterName)
