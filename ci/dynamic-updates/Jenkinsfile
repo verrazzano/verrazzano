@@ -235,7 +235,7 @@ pipeline {
                     }
                     steps {
                         script{
-                            if (params.RUN_CR_VALIDATION) {
+                            if (params.SKIP_VERRAZZANO_INSTALL_PARAM) {
                                 try {
                                      if(params.CRD_API_VERSION == "v1alpha1"){
                                         scriptForPrepareATEnvironmentV1alpha1()
