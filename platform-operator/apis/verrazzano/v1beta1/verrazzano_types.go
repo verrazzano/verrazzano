@@ -447,7 +447,7 @@ type OpenSearchComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// A list of OpenSearch node groups. For sample usage, see
-	// <a href="../../../../docs/customize/opensearch/">Customize OpenSearch</a>.
+	// <a href="../../../docs/observability/logging/configure-opensearch/opensearch/">Customize OpenSearch</a>.
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
