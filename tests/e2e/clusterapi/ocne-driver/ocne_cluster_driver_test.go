@@ -176,7 +176,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	deleteCredential(cloudCredentialID)
 
 	// Verify the credential is deleted
-	Eventually(func() (bool, error) { return IsCredentialDeleted(cloudCredentialID) }, waitTimeout, pollingInterval).Should(
+	Eventually(func() (bool, error) { return isCredentialDeleted(cloudCredentialID) }, waitTimeout, pollingInterval).Should(
 		BeTrue(), fmt.Sprintf("Cloud credential %s is not deleted", cloudCredentialID))
 })
 var _ = AfterSuite(afterSuite)
@@ -192,7 +192,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 		t.It("Check OCNE cluster is active", func() {
 			// Verify the cluster is active
-			Eventually(func() (bool, error) { return IsClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
+			Eventually(func() (bool, error) { return isClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
 		})
 	})
@@ -207,7 +207,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 		t.It("Check OCNE cluster is deleted", func() {
 			// Verify the cluster is deleted
-			Eventually(func() (bool, error) { return IsClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
+			Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
 		})
 	})
@@ -218,7 +218,7 @@ func deleteCredential(credID string) {
 	helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusNoContent, nil, t.Logs)
 }
 
-func IsCredentialDeleted(credID string) (bool, error) {
+func isCredentialDeleted(credID string) (bool, error) {
 	jsonBody, err := getCredential(credID)
 	if err != nil {
 		return false, err
@@ -251,7 +251,7 @@ func deleteCluster(clusterName string) error {
 	return nil
 }
 
-func IsClusterDeleted(clusterName string) (bool, error) {
+func isClusterDeleted(clusterName string) (bool, error) {
 	jsonBody, err := getCluster(clusterName)
 	if err != nil {
 		return false, err
@@ -343,7 +343,7 @@ func createCluster(clusterName string) error {
 }
 
 // Returns true if the cluster currently exists and is Active
-func IsClusterActive(clusterName string) (bool, error) {
+func isClusterActive(clusterName string) (bool, error) {
 	jsonBody, err := getCluster(clusterName)
 	if err != nil {
 		return false, err
