@@ -47,7 +47,7 @@ spec:
                   to scrape metrics from the Prometheus endpoint on the managed cluster.
                   If Rancher is enabled on the admin cluster, this will be automatically
                   populated by Verrazzano. Otherwise, if you disabled Rancher, see
-                  the pre-registration <a href="../../../../docs/setup/mc-install/advanced-mc-install/#preregistration-setup">instructions</a>
+                  the pre-registration <a href="../../../docs/setup/mc-install/advanced-mc-install/#preregistration-setup">instructions</a>
                   for how to create this Secret.
                 type: string
               description:
