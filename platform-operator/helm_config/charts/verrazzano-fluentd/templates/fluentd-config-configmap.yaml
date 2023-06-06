@@ -1116,7 +1116,7 @@ data:
                   "type":"keyword",
                   "ignore_above":256
                 },
-                "typed":{
+                "ip":{
                   "type": "ip",
                   "ignore_malformed": true
                 }
@@ -1130,7 +1130,7 @@ data:
                   "type":"keyword",
                   "ignore_above":256
                 },
-                "typed":{
+                "ip":{
                   "type": "ip",
                   "ignore_malformed": true
                 }
@@ -1144,7 +1144,7 @@ data:
                   "type":"keyword",
                   "ignore_above":256
                 },
-                "typed":{
+                "integer":{
                   "type": "integer"
                 }
               }
@@ -1157,7 +1157,7 @@ data:
                   "type":"keyword",
                   "ignore_above":256
                 },
-                "typed":{
+                "integer":{
                   "type": "integer"
                 }
               }
@@ -1170,7 +1170,7 @@ data:
                   "type":"keyword",
                   "ignore_above":256
                 },
-                "typed":{
+                "integer":{
                   "type": "integer"
                 }
               }
