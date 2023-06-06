@@ -32,9 +32,9 @@ controller:
           "protocol":"$server_protocol"
         }
       }'
-  portName: http-metrics
   metrics:
     enabled: true
+    portName: http-metrics
   publishService:
     enabled: true
   service:
