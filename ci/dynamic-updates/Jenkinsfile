@@ -74,7 +74,7 @@ pipeline {
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
-        booleanParam (description: 'Whether to run VZ CLI Custom Resource test', name: 'RUN_CR_VALIDATION', defaultValue: false)
+        booleanParam (description: 'Whether to skip the VZ install in the prepare environment script', name: 'SKIP_VERRAZZANO_INSTALL_PARAM', defaultValue: false)
     }
 
     environment {
@@ -141,8 +141,7 @@ pipeline {
         // how many nodes in the KIND cluster
         KIND_NODE_COUNT = 3
 
-        CR_VALIDATION_TEST = "${params.RUN_CR_VALIDATION}"
-        CONNECT_JENKINS_RUNNER_TO_NETWORK = true
+        SKIP_VERRAZZANO_INSTALL = "${params.SKIP_VERRAZZANO_INSTALL_PARAM}"
     }
 
     stages {
@@ -281,7 +280,7 @@ pipeline {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                        CONNECT_JENKINS_RUNNER_TO_NETWORK = false
+                        SKIP_VERRAZZANO_INSTALL = false
                     }
                     steps {
                         sh """

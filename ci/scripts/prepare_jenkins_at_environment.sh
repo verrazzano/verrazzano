@@ -29,80 +29,83 @@ TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test
 INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT:-30m}
 ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
 
-cd ${GO_REPO_PATH}/verrazzano
-echo "tests will execute" > ${TESTS_EXECUTED_FILE}
-echo "Create Kind cluster"
-cd ${TEST_SCRIPTS_DIR}
-./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true "${CONNECT_JENKINS_RUNNER_TO_NETWORK}" true $INSTALL_CALICO "NONE" ${KIND_NODE_COUNT}
-if [ $? -ne 0 ]; then
-    mkdir $WORKSPACE/kind-logs
-    kind export logs $WORKSPACE/kind-logs
-    echo "Kind cluster creation failed"
-    exit 1
-fi
+clusterNames=$(kind get clusters)
+if [[ $clusterNames == *"${CLUSTER_NAME}"* ]]; then
+    echo "${CLUSTER_NAME} already exists"
+    echo "Skipping kind cluster creation"
+else
+  cd ${GO_REPO_PATH}/verrazzano
+  echo "tests will execute" > ${TESTS_EXECUTED_FILE}
+  echo "Create Kind cluster"
+  cd ${TEST_SCRIPTS_DIR}
+  ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO "NONE" ${KIND_NODE_COUNT}
+  if [ $? -ne 0 ]; then
+      mkdir $WORKSPACE/kind-logs
+      kind export logs $WORKSPACE/kind-logs
+      echo "Kind cluster creation failed"
+      exit 1
+  fi
 
-if [ $INSTALL_CALICO == true ]; then
+  if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
     cd ${GO_REPO_PATH}/verrazzano
     ./ci/scripts/install_calico.sh "${CLUSTER_NAME}"
-fi
-
-# With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
-# be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
-# with maximum wait period of 5 minutes.
-kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
-kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
-echo "Listing pods in kube-system namespace ..."
-kubectl get pods -n kube-system
-
-echo "Install metallb"
-cd ${GO_REPO_PATH}/verrazzano
-./tests/e2e/config/scripts/install-metallb.sh
-if [ $? -ne 0 ]; then
-    mkdir $WORKSPACE/kind-logs
-    kind export logs $WORKSPACE/kind-logs
-    echo "Metalllb installation failed"
-    exit 1
-fi
-
-echo "Create Image Pull Secrets"
-cd ${GO_REPO_PATH}/verrazzano
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-
-echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
-cd ${GO_REPO_PATH}/verrazzano
-
-TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
-if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
-  # Derive the name of the operator.yaml file, copy or generate the file, then install
-  if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-      echo "Using operator.yaml from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-      cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
-  else
-      echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
   fi
-else
-  # The operator.yaml filename was provided, install using that file.
-  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  TARGET_OPERATOR_FILE=${OPERATOR_YAML}
-fi
+  # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
+  # be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
+  # with maximum wait period of 5 minutes.
+  kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
+  kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
+  echo "Listing pods in kube-system namespace ..."
+  kubectl get pods -n kube-system
 
-VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-echo "Downloading VZ CLI from object storage"
-if [[ -z "$OCI_OS_LOCATION" ]]; then
-  OCI_OS_LOCATION="$BRANCH_NAME/$(git rev-parse --short=8 HEAD)"
-fi
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
-tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
+  echo "Install metallb"
+  cd ${GO_REPO_PATH}/verrazzano
+  ./tests/e2e/config/scripts/install-metallb.sh
+  if [ $? -ne 0 ]; then
+      mkdir $WORKSPACE/kind-logs
+      kind export logs $WORKSPACE/kind-logs
+      echo "Metalllb installation failed"
+      exit 1
+  fi
 
-# Create the verrazzano-install namespace
-kubectl create namespace verrazzano-install
+  echo "Create Image Pull Secrets"
+  cd ${GO_REPO_PATH}/verrazzano
+  ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+  ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+  ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-# if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
+  echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
+  cd ${GO_REPO_PATH}/verrazzano
+
+  TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
+  if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
+    # Derive the name of the operator.yaml file, copy or generate the file, then install
+    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+        echo "Using operator.yaml from object storage"
+        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+        cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
+    else
+        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
+    fi
+  else
+    # The operator.yaml filename was provided, install using that file.
+    echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+    TARGET_OPERATOR_FILE=${OPERATOR_YAML}
+  fi
+  VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+  echo "Downloading VZ CLI from object storage"
+  if [[ -z "$OCI_OS_LOCATION" ]]; then
+    OCI_OS_LOCATION="$BRANCH_NAME/$(git rev-parse --short=8 HEAD)"
+  fi
+  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
+  tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
+
+  # Create the verrazzano-install namespace
+  kubectl create namespace verrazzano-install
+
+  # if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
 if [ $USE_DB_FOR_GRAFANA == true ]; then
   # create the necessary secrets
   MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
@@ -164,8 +167,10 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+fi
+
 # This flag is defaulted to false so that the VZ install proceeds as usual
-if ! [[ ${CR_VALIDATION_TEST} ]]; then
+if ! [[ ${SKIP_VERRAZZANO_INSTALL} ]]; then
   echo "Installing Verrazzano on Kind"
   if [ -f "$WORKSPACE/vz" ]; then
     cd $WORKSPACE
