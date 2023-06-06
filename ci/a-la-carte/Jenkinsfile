@@ -52,7 +52,6 @@ pipeline {
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
-
     }
 
     environment {
@@ -281,7 +280,7 @@ pipeline {
         }
 
 
-        stage('Install App stack with external cert-manager and ingress-nginx') {
+        stage('Install app stack with external cert-manager and ingress-nginx') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -295,21 +294,17 @@ pipeline {
                     ci/scripts/install_third_party_components.sh
                 """
 
-               script {
+                script {
                     if (params.DNS_TYPE == "ocidns") {
                         env.DNS_ZONE_OCID = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${OCI_ZONE_COMPARTMENT_ID} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                     }
-               }
 
-                sh """
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
-                """
+                    sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
+                    """
+                }
 
                 runGinkgoUpdate('update/a-la-carte', 'app-stack')
-
-                sh """
-                    kubectl get vz -A -o yaml
-                """
             }
 
             post {
@@ -323,7 +318,7 @@ pipeline {
             }
         }
 
-        stage('Verify App stack with external cert-manager and ingress-nginx') {
+        stage('Verify app stack with external cert-manager and ingress-nginx') {
             parallel {
                 stage('verify-install/promstack') {
                     environment {
@@ -563,11 +558,14 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-//             if (params.DNS_TYPE == "ocidns") {
-//                  sh """
-//                     ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
-//                  """
-//             }
+            script {
+                if (params.DNS_TYPE == "ocidns") {
+                     sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
+                     """
+                }
+            }
+
             deleteCluster()
         }
         failure {
