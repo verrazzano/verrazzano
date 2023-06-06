@@ -6,20 +6,21 @@ package grafana
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -31,6 +32,9 @@ const (
 
 	// grafanaCertificateName is the name of the TLS certificate used for ingress
 	grafanaCertificateName = "system-tls-grafana"
+
+	// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Grafana.
+	fluentbitFilterAndParserTemplate = "grafana-filter-parser.yaml"
 )
 
 // ComponentJSONName is the JSON name of the component in the Verrazzano CRD
@@ -60,7 +64,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns
@@ -163,7 +167,6 @@ func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
-
 	return common.EnsureGrafanaDatabaseSecret(ctx)
 }
 
@@ -178,6 +181,9 @@ func (g grafanaComponent) Install(ctx spi.ComponentContext) error {
 // PostInstall checks post install conditions
 func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, g); err != nil {
+		return err
+	}
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
 	return restartGrafanaPod(ctx)
@@ -196,6 +202,9 @@ func (g grafanaComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (g grafanaComponent) PostUninstall(context spi.ComponentContext) error {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
+		return err
+	}
 	return nil
 }
 

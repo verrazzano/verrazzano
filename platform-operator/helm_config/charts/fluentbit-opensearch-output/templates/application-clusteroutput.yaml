@@ -1,0 +1,43 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+{{- if .Values.application.enabled }}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-application-clusteroutput
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  matchRegex: {{ .Values.application.matchRegex }}
+  retry_limit: "no_limits"
+  opensearch:
+    {{- if .Values.application.host}}
+    host: {{ .Values.application.host }}
+    {{- end}}
+    {{- if .Values.application.port}}
+    port: {{ .Values.application.port }}
+    {{- end}}
+    {{- if .Values.application.dataStreamMode}}
+    dataStreamMode: {{ .Values.application.dataStreamMode }}
+    {{- end}}
+    {{- if .Values.application.dataStreamName}}
+    dataStreamName: {{ .Values.application.dataStreamName }}
+    {{- end}}
+    {{- if .Values.application.dataStreamTemplateName}}
+    dataStreamTemplateName: {{ .Values.application.dataStreamTemplateName }}
+    {{- end}}
+    {{- if .Values.application.templateFile}}
+    templateFile: {{ .Values.application.templateFile }}
+    {{- end}}
+    {{- if .Values.application.httpUser }}
+    httpUser:
+{{  toYaml .Values.application.httpUser | indent 6 }}
+    {{- end}}
+    {{- if .Values.application.httpPassword }}
+    httpPassword:
+{{ toYaml .Values.application.httpPassword | indent 6 }}
+    {{- end}}
+    suppressTypeName: true
+{{- end }}
+{{ end -}}

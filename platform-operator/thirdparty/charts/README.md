@@ -207,7 +207,7 @@ helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSIO
 
 ### Argo CD
 
-The `argo-cd` folder was created by running the followiong commands:
+The `argo-cd` folder was created by running the following commands:
 
 ```shell
 export ARGOCD_CHART_VERSION=5.34.3
@@ -240,3 +240,16 @@ helm repo update
 rm -rf opensearch-operator
 helm fetch opensearch-operator/opensearch-operator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
 ```
+
+### Fluent Operator
+
+The `fluent-operator` folder was created by running the following commands:
+
+```shell
+export FLUENT_OPERATOR_CHART_VERSION=2.2.0
+helm repo add fluent https://fluent.github.io/helm-charts
+helm repo update
+rm -rf fluent-operator
+helm fetch fluent/fluent-operator --untar=true --version=${FLUENT_OPERATOR_CHART_VERSION}
+```
+

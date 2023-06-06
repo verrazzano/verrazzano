@@ -5,9 +5,11 @@ package vzcr
 
 import (
 	"fmt"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // IsPrometheusEnabled - Returns false only if explicitly disabled in the CR
@@ -254,6 +256,35 @@ func IsFluentdEnabled(cr runtime.Object) bool {
 		}
 	}
 	return true
+}
+
+// IsFluentOperatorEnabled - Returns true IFF the FluentOperator component is explicitly enabled
+func IsFluentOperatorEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.FluentOperator != nil && vzv1alpha1.Spec.Components.FluentOperator.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.FluentOperator.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.FluentOperator != nil && vzv1beta1.Spec.Components.FluentOperator.Enabled != nil {
+			return *vzv1beta1.Spec.Components.FluentOperator.Enabled
+		}
+	}
+	return false
+}
+
+// IsFluentbitOpensearchOutputEnabled - Returns true IFF the FluentbitOpensearchOutput component is explicitly enabled
+func IsFluentbitOpensearchOutputEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.FluentbitOpensearchOutput != nil && vzv1alpha1.Spec.Components.FluentbitOpensearchOutput.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.FluentbitOpensearchOutput.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.FluentbitOpensearchOutput != nil && vzv1beta1.Spec.Components.FluentbitOpensearchOutput.Enabled != nil {
+			return *vzv1beta1.Spec.Components.FluentbitOpensearchOutput.Enabled
+		}
+	}
+	return false
+
 }
 
 // IsConsoleEnabled - Returns false only if explicitly disabled in the CR
