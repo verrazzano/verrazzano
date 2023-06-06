@@ -237,7 +237,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack')
             }
 
             post {
@@ -305,7 +305,7 @@ pipeline {
                     """
                 }
 
-                runGinkgoUpdate('update/a-la-carte', 'app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'app-stack')
 
                 sh """
                     kubectl get vz -A -o yaml
@@ -366,7 +366,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'istio-app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'istio-app-stack')
             }
 
             post {
@@ -431,7 +431,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack')
             }
 
             post {
@@ -488,7 +488,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'none-profile', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'none-profile')
             }
 
             post {
@@ -735,12 +735,12 @@ def runGinkgo(testSuitePath) {
     }
 }
 
-def runGinkgoUpdate(testSuitePath, updateTypeVal = '', clusterResourceNamespace = '') {
+def runGinkgoUpdate(testSuitePath, updateTypeVal = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace=""${clusterResourceNamespace}""
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace="${params.CLUSTER_RESOURCE_NAMESPACE}" --dnsType="${params.DNS_TYPE}"
             fi
         """
     }
