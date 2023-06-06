@@ -284,6 +284,7 @@ pipeline {
                     }
                     steps {
                         sh """
+                            echo "The value of SKIP_VERRAZZANO_INSTALL: ${SKIP_VERRAZZANO_INSTALL}"
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}

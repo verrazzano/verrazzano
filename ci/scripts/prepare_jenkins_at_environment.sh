@@ -106,69 +106,70 @@ else
   kubectl create namespace verrazzano-install
 
   # if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
-if [ $USE_DB_FOR_GRAFANA == true ]; then
-  # create the necessary secrets
-  MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
-  MYSQL_PASSWORD=$(openssl rand -base64 12)
-  ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
-  USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
-  USER=$(echo -n "grafana" | base64)
+  if [ $USE_DB_FOR_GRAFANA == true ]; then
+    # create the necessary secrets
+    MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
+    MYSQL_PASSWORD=$(openssl rand -base64 12)
+    ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
+    USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
+    USER=$(echo -n "grafana" | base64)
 
-  kubectl apply -f - <<-EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: grafana-db
-  namespace: verrazzano-install
-type: Opaque
-data:
-  root-password: $ROOT_SECRET
-  username: $USER
-  password: $USER_SECRET
+    kubectl apply -f - <<-EOF
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: grafana-db
+        namespace: verrazzano-install
+      type: Opaque
+      data:
+        root-password: $ROOT_SECRET
+        username: $USER
+        password: $USER_SECRET
 EOF
-  # deploy MySQL instance
-  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+    # deploy MySQL instance
+    kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+  fi
+
+  # create secret in verrazzano-install ns
+  ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+  # optionally create a cluster dump snapshot for verifying uninstalls
+  if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
+    ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
+  fi
+
+  # Configure the custom resource to install Verrazzano on Kind
+  VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
+  ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+  # If grafana is using a DB add the database configuration to the VZ file
+  if [ $USE_DB_FOR_GRAFANA == true ]; then
+    ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+  fi
+
+  # If Thanos Store Gateway flag is set, create the storage provider secret and update the Thanos overrides in the VZ file
+  if [ $ENABLE_THANOS_STORE_GATEWAY == true ]; then
+    ./tests/e2e/config/scripts/configure_thanos_storegateway_install.sh ${INSTALL_CONFIG_FILE_KIND}
+  fi
+
+  cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
+
+  echo "Creating Override ConfigMap"
+  kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+  if [ $? -ne 0 ]; then
+    echo "Could not create Override ConfigMap"
+    exit 1
+  fi
+
+  echo "Creating Override Secret"
+  kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+  if [ $? -ne 0 ]; then
+    echo "Could not create Override Secret"
+    exit 1
+  fi
+
 fi
 
-# create secret in verrazzano-install ns
-./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-# optionally create a cluster dump snapshot for verifying uninstalls
-if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
-  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
-fi
-
-# Configure the custom resource to install Verrazzano on Kind
-VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
-./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
-# If grafana is using a DB add the database configuration to the VZ file
-if [ $USE_DB_FOR_GRAFANA == true ]; then
-  ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
-fi
-
-# If Thanos Store Gateway flag is set, create the storage provider secret and update the Thanos overrides in the VZ file
-if [ $ENABLE_THANOS_STORE_GATEWAY == true ]; then
-  ./tests/e2e/config/scripts/configure_thanos_storegateway_install.sh ${INSTALL_CONFIG_FILE_KIND}
-fi
-
-cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
-
-echo "Creating Override ConfigMap"
-kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
-if [ $? -ne 0 ]; then
-  echo "Could not create Override ConfigMap"
-  exit 1
-fi
-
-echo "Creating Override Secret"
-kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
-if [ $? -ne 0 ]; then
-  echo "Could not create Override Secret"
-  exit 1
-fi
-
-fi
-
+echo ${SKIP_VERRAZZANO_INSTALL}
 # This flag is defaulted to false so that the VZ install proceeds as usual
 if ! [[ ${SKIP_VERRAZZANO_INSTALL} ]]; then
   echo "Installing Verrazzano on Kind"
