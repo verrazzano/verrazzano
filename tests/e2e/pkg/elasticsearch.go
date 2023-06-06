@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"html/template"
 	"net/http"
@@ -342,14 +343,35 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
+	// Return the os ingress host from the verrazzano-logging namespace if it exists
+	// Else return the vmi ingress as usual
+	useloggingNSIngress, _ := osIngressInLoggingNSExists()
 	ingressList, _ := clientset.NetworkingV1().Ingresses(VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest" {
+		if !useloggingNSIngress && (ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest") {
+			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
+			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+		} else if useloggingNSIngress && ingress.Name == "opensearch" {
 			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
 	}
 	return ""
+}
+
+// osIngressInLoggingNSExists return true if fluentd is configured to use operator based OS
+func osIngressInLoggingNSExists() (bool, error) {
+	cr, err := GetVerrazzano()
+
+	if err != nil {
+		return false, nil
+	}
+
+	if cr.Spec.Components.Fluentd != nil &&
+		cr.Spec.Components.Fluentd.ElasticsearchURL == constants.DefaultOperatorOSURLWithNS {
+		return true, nil
+	}
+	return false, nil
 }
 
 // getOpenSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
