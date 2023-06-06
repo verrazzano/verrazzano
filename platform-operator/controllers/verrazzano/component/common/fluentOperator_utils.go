@@ -6,6 +6,8 @@ package common
 import (
 	"path"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -18,7 +20,7 @@ func CreateOrDeleteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitF
 	args["namespace"] = namespace
 	templatePath := path.Join(config.GetThirdPartyManifestsDir(), "fluent-operator/"+fluentbitFilterAndParserTemplate)
 	if delete {
-		if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(templatePath, args); err != nil {
+		if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(templatePath, args); err != nil && !meta.IsNoMatchError(err) {
 			return ctx.Log().ErrorfNewErr("Failed Deleting Filter and Parser for Fluent Operator: %v", err)
 		}
 		return nil
