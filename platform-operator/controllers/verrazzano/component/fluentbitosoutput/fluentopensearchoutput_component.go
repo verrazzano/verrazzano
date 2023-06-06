@@ -4,6 +4,10 @@
 package fluentbitosoutput
 
 import (
+	"context"
+	"net/url"
+	"path/filepath"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,9 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	"context"
-	"path/filepath"
 )
 
 const (
@@ -36,6 +37,15 @@ const (
 	OverrideSystemHostKey          = "system.host"
 	OverrideSystemPasswordKey      = "system.httpPassword.valueFrom.secretKeyRef.name"
 	OverrideSystemUserKey          = "system.httpUser.valueFrom.secretKeyRef.name"
+	OverrideApplicationPortKey     = "application.port"
+	OverrideSystemPortKey          = "system.port"
+	OverrideSystemTLSKey           = "system.tls.enabled"
+	OverrideSystemCAFileKey        = "system.tls.caFile"
+	OverrideSystemCertKey          = "system.tls.crtFile"
+	OverrideApplicationTLSKey      = "application.tls.enabled"
+	OverrideApplicationCAFileKey   = "application.tls.caFile"
+	OverrideApplicationCertKey     = "application.tls.crtFile"
+	FluentBitCertPath              = "/etc/ssl/certs/ca-bundle.crt"
 )
 
 type fluentbitOpensearchOutput struct {
@@ -147,12 +157,34 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 	if registrationSecret != nil {
-		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationHostKey, Value: string(registrationSecret.Data[constants.OpensearchURLData])})
-		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemHostKey, Value: string(registrationSecret.Data[constants.OpensearchURLData])})
-		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationPasswordKey, Value: constants.MCRegistrationSecret})
-		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemPasswordKey, Value: constants.MCRegistrationSecret})
-		kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationUserKey, Value: constants.MCRegistrationSecret})
-		kvs = append(kvs, bom.KeyValue{Key: OverrideSystemUserKey, Value: constants.MCRegistrationSecret})
+		opensearchURL := string(registrationSecret.Data[constants.OpensearchURLData])
+		getFluentOSOutputOverrides(opensearchURL, kvs)
 	}
+
+	return kvs, nil
+}
+
+func getFluentOSOutputOverrides(OpensearchURL string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// extracting the Hostname only from the URL
+	urlObject, err := url.Parse(OpensearchURL)
+	if err != nil {
+		return kvs, err
+	}
+	host := urlObject.Hostname()
+	port := urlObject.Port()
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationHostKey, Value: host})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemHostKey, Value: host})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationPortKey, Value: port})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemPortKey, Value: port})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationPasswordKey, Value: constants.MCRegistrationSecret})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemPasswordKey, Value: constants.MCRegistrationSecret})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationUserKey, Value: constants.MCRegistrationSecret})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemUserKey, Value: constants.MCRegistrationSecret})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemTLSKey, Value: "true"})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemCAFileKey, Value: fluentoperator.OverrideFbVolumeMountPathValue + "/" + fluentoperator.CACertName})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemCertKey, Value: FluentBitCertPath})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationTLSKey, Value: "true"})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationCAFileKey, Value: fluentoperator.OverrideFbVolumeMountPathValue + "/" + fluentoperator.CACertName})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationCertKey, Value: FluentBitCertPath})
 	return kvs, nil
 }
