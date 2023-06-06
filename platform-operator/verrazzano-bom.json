@@ -175,11 +175,11 @@
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.6.0-20230605071848-22d5a53"
+              "tag": "v0.6.0-20230503174321-22d5a53"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.6.0-20230605071848-22d5a53"
+              "tag": "v0.6.0-20230503174321-22d5a53"
             },
             {
               "image": "rancher-gitjob",
