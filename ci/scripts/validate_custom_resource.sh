@@ -6,22 +6,21 @@
 
 OPERATOR_YAML=$1
 VPO_YAML=$2
+VALIDATION_ERROR="ValidationError"
 cd "$WORKSPACE"
-ERROR1=$(./vz install --filename "$OPERATOR_YAML" --manifests "$VPO_YAML" 2>&1 >/dev/null)
-ERROR2=$(./vz install --set trash=foo --manifests "$VPO_YAML" 2>&1 >/dev/null)
- 
-ERR1=$(echo "$ERROR1" | grep ValidationError)
-if [[ "$ERR1" -eq 0 ]]; then
-    exit 0
+
+ERROR1=$(./vz install --filename "$OPERATOR_YAML" --manifests "$VPO_YAML" 2>&1 >/dev/null)  
+if [[ "$ERROR1" =~ .*"$VALIDATION_ERROR".* ]]; then
+    echo "Error: $VALIDATION_ERROR was caught as expected"
 else 
-    echo "Expected ValidationError in invalidCR.yaml" 
+    echo "Expected $VALIDATION_ERROR in invalidCR.yaml" 
     exit 1
 fi
 
-ERR2=$(echo "$ERROR2" | grep ValidationError)
-if [[ "$ERR2" -eq 0 ]]; then
-    exit 0
+ERROR2=$(./vz install --set trash=foo --manifests "$VPO_YAML" 2>&1 >/dev/null)
+if [[ "$ERR2" =~ .*"$VALIDATION_ERROR".* ]]; then
+    echo "Error was caught as expected"
 else
-    echo "Expected ValidationError from field(s) trash=foo"
+    echo "Expected $VALIDATION_ERROR from field(s) trash=foo"
     exit 1
 fi
