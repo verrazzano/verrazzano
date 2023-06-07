@@ -299,15 +299,6 @@ pipeline {
             }
         }
 
-        stage("Dummy sleep") {
-            steps {
-                sh """
-                     echo "sleeping"
-                """
-                sleep(60)
-            }
-        }
-
         stage("OCNE Cluster Driver Tests") {
             steps {
                 sh """
