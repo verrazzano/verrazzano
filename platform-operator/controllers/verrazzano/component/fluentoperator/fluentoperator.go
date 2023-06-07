@@ -5,6 +5,7 @@ package fluentoperator
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -22,27 +24,21 @@ import (
 )
 
 const (
-	fluentbitDaemonSet               = "fluent-bit"
-	fluentOperatorImageKey           = "operator.container.repository"
-	fluentBitImageKey                = "fluentbit.image.repository"
-	fluentOperatorInitImageKey       = "operator.initcontainer.repository"
-	fluentOperatorImageTag           = "operator.container.tag"
-	fluentOperatorInitTag            = "operator.initcontainer.tag"
-	fluentBitImageTag                = "fluentbit.image.tag"
-	clusterOutputDirectory           = ComponentName
-	fluentbitConfigMap               = fluentbitDaemonSet + "-os-config"
-	fluentbitConfigMapFile           = "fluentbit-config-configmap.yaml"
-	overrideSecretVolumeName         = "secret-volume"
-	overrideFbVolumeNameKey          = "fluentbit.additionalVolumes[3].secret.name"
-	overrideFbVolumeSecretNameKey    = "fluentbit.additionalVolumes[3].secret.secretName"
-	overrideFbVolumeSecretKeyKey     = "fluentbit.additionalVolumes[3].secret.items[0].key"
-	overrideFbVolumeSecretPathKey    = "fluentbit.additionalVolumes[3].secret.items[0].path"
-	overrideFbVolumeMountNameKey     = "fluentbit.additionalVolumesMounts[3].name"
-	overrideFbVolumeMountPathKey     = "fluentbit.additionalVolumesMounts[3].readOnly"
-	overrideFbVolumeMountReadOnlyKey = "fluentbit.additionalVolumesMounts[3].mountPath"
-	OverrideFbVolumeMountPathValue   = "/fluent-bit/etc/secret"
-	CACertName                       = "ca-cert"
-	OpenSearchCABundle               = "es-ca-bundle"
+	fluentbitDaemonSet         = "fluent-bit"
+	fluentOperatorImageKey     = "operator.container.repository"
+	fluentBitImageKey          = "fluentbit.image.repository"
+	fluentOperatorInitImageKey = "operator.initcontainer.repository"
+	fluentOperatorImageTag     = "operator.container.tag"
+	fluentOperatorInitTag      = "operator.initcontainer.tag"
+	fluentBitImageTag          = "fluentbit.image.tag"
+	clusterOutputDirectory     = ComponentName
+	fluentbitConfigMap         = fluentbitDaemonSet + "-os-config"
+	fluentbitConfigMapFile     = "fluentbit-config-configmap.yaml"
+	fluentOperatorOverrideFile = "fluent-operator-values.yaml"
+	tmpFilePrefix              = "verrazzano-fluentOperator-overrides-"
+	tmpSuffix                  = "yaml"
+	tmpFileCreatePattern       = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern        = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
 var (
@@ -96,15 +92,17 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, err
 	}
+	args := make(map[string]interface{})
 	if registrationSecret != nil {
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeNameKey, Value: overrideSecretVolumeName})
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeSecretKeyKey, Value: OpenSearchCABundle})
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeSecretPathKey, Value: CACertName})
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeSecretNameKey, Value: constants.MCRegistrationSecret})
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountNameKey, Value: overrideSecretVolumeName})
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountPathKey, Value: OverrideFbVolumeMountPathValue})
-		kvs = append(kvs, bom.KeyValue{Key: overrideFbVolumeMountReadOnlyKey, Value: "true"})
+		args["isManagedCluster"] = true
+		args["secretName"] = constants.MCRegistrationSecret
 	}
+	overridesFileName, err := generateOverrideFile(filepath.Join(config.GetHelmOverridesDir(), fluentOperatorOverrideFile), args)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to create override file for FluentOperator")
+	}
+	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
 	return kvs, nil
 }
 
@@ -120,4 +118,24 @@ func applyFluentBitConfigMap(compContext spi.ComponentContext) error {
 		return compContext.Log().ErrorfNewErr("Failed applying FluentBit ConfigMap: %v", err)
 	}
 	return nil
+}
+
+// cleanTempFiles - Clean up the override temp files in the temp dir
+func cleanTempFiles(ctx spi.ComponentContext) {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Failed deleting temp files: %v", err)
+	}
+}
+
+// generateOverrideFile generates the override file for fluentOperator by rendering the fluentOperatorOverrideFile template with the arguments set by FluentOperator Component.
+func generateOverrideFile(templatePath string, args map[string]interface{}) (string, error) {
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
+	if err != nil {
+		return "", err
+	}
+	err = common.RenderTemplateInFile(templatePath, args, file)
+	if err != nil {
+		return "", err
+	}
+	return file.Name(), nil
 }

@@ -46,6 +46,8 @@ const (
 	OverrideApplicationCAFileKey   = "application.tls.caFile"
 	OverrideApplicationCertKey     = "application.tls.crtFile"
 	FluentBitCertPath              = "/etc/ssl/certs/ca-bundle.crt"
+	CACertPath                     = "/fluent-bit/etc/secret"
+	CACertName                     = "ca-cert.crt"
 )
 
 type fluentbitOpensearchOutput struct {
@@ -138,11 +140,11 @@ func checkOpensearchSecretExists(ctx spi.ComponentContext) error {
 		}, secret)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
+				ctx.Log().Progressf("Component FluentbitOpensearchOutput waiting for the secret %s/%s to exist",
 					constants.VerrazzanoSystemNamespace, secretName)
 				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
-			ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
+			ctx.Log().Errorf("Component FluentbitOpensearchOutput failed to get the secret %s/%s: %v",
 				constants.VerrazzanoSystemNamespace, secretName, err)
 			return err
 		}
@@ -181,10 +183,10 @@ func getFluentOSOutputOverrides(OpensearchURL string, kvs []bom.KeyValue) ([]bom
 	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationUserKey, Value: constants.MCRegistrationSecret})
 	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemUserKey, Value: constants.MCRegistrationSecret})
 	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemTLSKey, Value: "true"})
-	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemCAFileKey, Value: fluentoperator.OverrideFbVolumeMountPathValue + "/" + fluentoperator.CACertName})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemCAFileKey, Value: CACertPath + "/" + CACertName})
 	kvs = append(kvs, bom.KeyValue{Key: OverrideSystemCertKey, Value: FluentBitCertPath})
 	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationTLSKey, Value: "true"})
-	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationCAFileKey, Value: fluentoperator.OverrideFbVolumeMountPathValue + "/" + fluentoperator.CACertName})
+	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationCAFileKey, Value: CACertPath + "/" + CACertName})
 	kvs = append(kvs, bom.KeyValue{Key: OverrideApplicationCertKey, Value: FluentBitCertPath})
 	return kvs, nil
 }

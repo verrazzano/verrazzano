@@ -60,7 +60,6 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "fluent-operator-values.yaml"),
 			AppendOverridesFunc:       appendOverrides,
 			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   getOverrides,
