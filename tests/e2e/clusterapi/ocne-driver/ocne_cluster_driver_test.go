@@ -354,29 +354,36 @@ func isClusterActive(clusterName string) (bool, error) {
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
 	cmd.CommandArgs = cmdArgs
 	response := helpers.Runner(&cmd, t.Logs)
-	t.Logs.Info("All CAPI clusters:")
-	t.Logs.Info((&response.StandardOut).String())
+	t.Logs.Infof("+++ All CAPI clusters =  %s +++", (&response.StandardOut).String())
 
-	cmdArgs  = []string{}
+	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Info("All management clusters:")
-	t.Logs.Info((&response.StandardOut).String())
+	t.Logs.Infof("+++ All management clusters =  %s +++", (&response.StandardOut).String())
 
-	cmdArgs  = []string{}
+	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Info("All provisioning clusters:")
-	t.Logs.Info((&response.StandardOut).String())
+	t.Logs.Infof("+++ All provisioning clusters =  %s +++", (&response.StandardOut).String())
 
-	cmdArgs  = []string{}
+	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Info("All CAPI machines:")
-	t.Logs.Info((&response.StandardOut).String())
+	t.Logs.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
+
+	clusterID, err := getClusterIDFromName(clusterName)
+	if err != nil {
+		t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "clusterctl", "describe cluster", clusterID, "-n", clusterID)
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+	t.Logs.Infof("+++ ClusterCTL OutPut =  %s +++", (&response.StandardOut).String())
 
 	//t.Logs.Infof("jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
