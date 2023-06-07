@@ -1024,16 +1024,16 @@ def runCustomResourceValidation(){
         export ERROR1="\$(./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
         export ERROR2="\$(./vz install --set trash=foo --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
 
-        export ERR1="\$(echo $ERROR1 | grep ValidationError)"
-        if [[ "$ERR1" -eq 0 ]]; then
+        export ERR1="\$(echo ${ERROR1} | grep ValidationError)"
+        if [[ ${ERR1} -eq 0 ]]; then
             exit 0
         else 
             echo "Expected ValidationError in invalidCR.yaml" 
             exit 1
         fi
 
-        export ERR2="\$(echo $ERROR2 | grep ValidationError)"
-        if [[ "$ERR2" -eq 0 ]]; then
+        export ERR2="\$(echo ${ERROR2} | grep ValidationError)"
+        if [[ ${ERR2} -eq 0 ]]; then
             exit 0
         else
             echo "Expected ValidationError from field(s) trash=foo"
