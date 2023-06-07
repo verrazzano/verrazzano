@@ -74,10 +74,8 @@ func getVersionConfigMapData() (string, error) {
 		return "", errors.New("failed to find image tag for Platform Operator")
 	}
 
-	versions := []map[string]string{
-		{
-			b.GetVersion(): vpoTag,
-		},
+	versions := map[string]string{
+		b.GetVersion(): vpoTag,
 	}
 
 	data, err := json.Marshal(versions)
