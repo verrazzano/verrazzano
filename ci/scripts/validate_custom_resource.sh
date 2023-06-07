@@ -18,7 +18,7 @@ else
 fi
 
 ERROR2=$(./vz install --set trash=foo --manifests "$VPO_YAML" 2>&1 >/dev/null)
-if [[ "$ERR2" =~ .*"$VALIDATION_ERROR".* ]]; then
+if [[ "$ERROR2" =~ .*"$VALIDATION_ERROR".* ]]; then
     echo "Error was caught as expected"
 else
     echo "Expected $VALIDATION_ERROR from field(s) trash=foo"
