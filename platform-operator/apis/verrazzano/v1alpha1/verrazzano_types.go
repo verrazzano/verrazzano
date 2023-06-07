@@ -479,7 +479,7 @@ type ElasticsearchComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// A list of values to use during the OpenSearch installation. Each argument is specified as either a `name/value` or
 	// `name/valueList` pair. For sample usage, see
-	// <a href="../../../../docs/customize/opensearch/">Customize OpenSearch</a>.
+	// <a href="../../../docs/observability/logging/configure-opensearch/opensearch/">Customize OpenSearch</a>.
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
@@ -892,7 +892,7 @@ type IngressNginxComponent struct {
 	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the ingress
 	// type is `NodePort`, then a valid and accessible IP address must be specified using the `controller.service.externalIPs`
 	// key in NGINXInstallArgs. For sample usage, see
-	// <a href="../../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../docs/networking/traffic/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 }
@@ -902,7 +902,7 @@ type IstioIngressSection struct {
 	// The Istio ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the
 	// Istio ingress type is `NodePort`, then a valid and accessible IP address must be specified using the
 	// `gateways.istio-ingressgateway.externalIPs` key in IstioInstallArgs. For sample usage, see
-	// <a href="../../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../docs/networking/traffic/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 	// The list port configurations used by the Istio ingress.
@@ -1333,17 +1333,17 @@ type InstallOverrides struct {
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#configmap">ConfigMapRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#configmap">ConfigMapRef</a>.
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#secret">SecretRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#secret">SecretRef</a>.
 	// +optional
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
+	// <a href="../../../docs/setup/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }
