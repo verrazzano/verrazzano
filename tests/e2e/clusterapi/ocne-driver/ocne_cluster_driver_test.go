@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -168,6 +169,19 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		cloudCredentialID, err = createCloudCredential("testing-creds")
 		return err
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	var cmd helpers.BashCommand
+	var cmdArgs []string
+	url := fmt.Sprintf("%s/meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", rancherURL, cloudCredentialID, compartmentID, region)
+	cmdArgs = append(cmdArgs, "curl", "-k", "--location", "--request", "POST")
+	cmdArgs = append(cmdArgs, url)
+	cmdArgs = append(cmdArgs, "--header", strconv.Quote("Content-Type: application/json"))
+	cmdArgs = append(cmdArgs, "--header", strconv.Quote(fmt.Sprintf("Authorization: Bearer %s", helpers.GetRancherLoginToken(t.Logs))))
+	cmdArgs = append(cmdArgs, "--data", "''")
+	cmd.CommandArgs = cmdArgs
+	response := helpers.Runner(&cmd, t.Logs)
+	t.Logs.Infof("+++ Fetch Node images =  %s +++", (&response.StandardOut).String())
+
 })
 var _ = BeforeSuite(beforeSuite)
 
