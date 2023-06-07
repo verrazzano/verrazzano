@@ -120,12 +120,14 @@ func (c fluentOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, 
 
 // PostInstall - post-install
 func (c fluentOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
+	cleanTempFiles(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade FluentOperator component post-upgrade processing
 func (c fluentOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("FluentOperator-Operator component post-upgrade")
+	cleanTempFiles(ctx)
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
