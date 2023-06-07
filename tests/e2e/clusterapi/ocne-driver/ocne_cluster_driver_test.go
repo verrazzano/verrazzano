@@ -5,7 +5,9 @@ package ocnedriver
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -437,9 +439,13 @@ func setupRequest(rancherBaseURL, urlPath string) (string, string) {
 
 func debug() {
 	url := fmt.Sprintf("%s/meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", rancherURL, cloudCredentialID, compartmentID, region)
+	t.Logs.Infof("URL = %s", url)
 	method := "POST"
 	payload := strings.NewReader(``)
 	client := &http.Client{}
+	client.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	req, err := http.NewRequest(method, url, payload)
 	if err != nil {
 		fmt.Println(err)
@@ -459,5 +465,5 @@ func debug() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(string(body))
+	spew.Dump(string(body))
 }
