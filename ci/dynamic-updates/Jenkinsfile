@@ -1021,10 +1021,10 @@ def runCustomResourceValidation(){
         ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
         cd ${WORKSPACE}
-        ERROR1="\$(./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
-        ERROR2="\$(./vz install --set trash=foo --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
+        export ERROR1="\$(./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
+        export ERROR2="\$(./vz install --set trash=foo --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
 
-        ERR1="\$(echo $ERROR1 | grep ValidationError)"
+        export ERR1="\$(echo $ERROR1 | grep ValidationError)"
         if [[ "$ERR1" -eq 0 ]]; then
             exit 0
         else 
@@ -1032,7 +1032,7 @@ def runCustomResourceValidation(){
             exit 1
         fi
 
-        ERR2="\$(echo $ERROR2 | grep ValidationError)"
+        export ERR2="\$(echo $ERROR2 | grep ValidationError)"
         if [[ "$ERR2" -eq 0 ]]; then
             exit 0
         else
