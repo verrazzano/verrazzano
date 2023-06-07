@@ -348,6 +348,33 @@ func isClusterActive(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	var cmd helpers.BashCommand
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
+	cmd.CommandArgs = cmdArgs
+	response := helpers.Runner(&cmd, t.Logs)
+	t.Logs.Info("All CAPI clusters:")
+	t.Logs.Info(fmt.Sprintf("%s", response.StandardOut))
+
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+	t.Logs.Info("All management clusters:")
+	t.Logs.Info(fmt.Sprintf("%s", response.StandardOut))
+
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+	t.Logs.Info("All provisioning clusters:")
+	t.Logs.Info(fmt.Sprintf("%s", response.StandardOut))
+
+	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+	t.Logs.Info("All CAPI machines:")
+	t.Logs.Info(fmt.Sprintf("%s", response.StandardOut))
+
 	//t.Logs.Infof("jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
