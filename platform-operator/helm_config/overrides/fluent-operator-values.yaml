@@ -1,0 +1,31 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+fluentbit:
+  additionalVolumes:
+    - configMap:
+        name: fluent-bit-os-config
+      name: fluent-bit-os-config
+    - hostPath:
+        path: /run/log/journal
+        type: ""
+      name: run-log-journal
+  additionalVolumesMounts:
+    - mountPath: /fluent-bit/etc/opensearch-config
+      name: fluent-bit-os-config
+      readOnly: true
+    - mountPath: /run/log/journal
+      name: run-log-journal
+      readOnly: true
+  namespaceFluentBitCfgSelector:
+    matchLabels:
+      fluentbit.verrazzano.io/namespace-config: verrazzano
+  input:
+    tail:
+      readFromHead: true
+    systemd:
+      path: "/run/log/journal"
+      stripUnderscores: "on"
+  filter:
+    systemd:
+      enable: false

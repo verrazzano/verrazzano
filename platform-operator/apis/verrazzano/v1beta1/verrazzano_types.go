@@ -352,6 +352,14 @@ type ComponentSpec struct {
 	// +optional
 	Fluentd *FluentdComponent `json:"fluentd,omitempty"`
 
+	// The FluentOperator component configuration.
+	// +optional
+	FluentOperator *FluentOperatorComponent `json:"fluentOperator,omitempty"`
+
+	// The FluentbitOpensearchOutput component configuration.
+	// +optional
+	FluentbitOpensearchOutput *FluentbitOpensearchOutputComponent `json:"fluentbitOpensearchOutput,omitempty"`
+
 	// The Grafana component configuration.
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
@@ -439,6 +447,19 @@ type ComponentSpec struct {
 	// The WebLogic Kubernetes Operator component configuration.
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+}
+
+type FluentbitOpensearchOutputComponent struct {
+	// If true, then the FluentbitOpensearchOutput will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/fluentbit-opensearch-output/values.yaml%}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
 }
 
 // OpenSearchComponent specifies the OpenSearch configuration.
@@ -1011,6 +1032,20 @@ type WebLogicOperatorComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/weblogic-operator/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// FluentOperatorComponent specifies the Fluent Operator configuration.
+type FluentOperatorComponent struct {
+	// If true, then the Fluent Operator will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/fluent-operator/values.yaml%}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`

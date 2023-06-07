@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230531141443-f8210f7a3",
+              "dashboard": "v2.7.2-20230606170311-f093c099b",
               "rancherUI": "v2.7.2-3/release-2.7.2",
               "ocneDriverVersion": "v0.4.0",
               "ocneDriverChecksum": "7088762cf8640ea8d7051b5ff1b028ff58743687e269bb2f210fe13c3f490c44",
-              "tag": "v2.7.3-20230605145449-9b3517ec7",
+              "tag": "v2.7.3-20230606171358-9b3517ec7",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230605145449-9b3517ec7"
+              "tag": "v2.7.3-20230606171358-9b3517ec7"
             }
           ]
         },
@@ -235,11 +235,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230605154718-6b2af66"
+              "tag": "v0.1.0-20230606212653-adc792c"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230605154718-6b2af66"
+              "tag": "v0.1.0-20230606212653-adc792c"
             }
           ]
         }
@@ -452,6 +452,37 @@
               "image": "coherence-operator",
               "tag": "3.2.10",
               "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fluent-operator",
+      "version": "2.2.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluent-operator",
+          "images": [
+            {
+              "image": "fluent-operator",
+              "tag": "v2.2.0-20230526122409-3662eb4",
+              "helmFullImageKey": "operator.container.repository",
+              "helmTagKey": "operator.container.tag"
+            },
+            {
+              "image": "fluent-bit",
+              "tag": "v2.0.11-20230526122435-3bff26487",
+              "helmFullImageKey": "fluentbit.image.repository",
+              "helmTagKey": "fluentbit.image.tag"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "8",
+              "helmFullImageKey": "operator.initcontainer.repository",
+              "helmTagKey": "operator.initcontainer.tag"
             }
           ]
         }
