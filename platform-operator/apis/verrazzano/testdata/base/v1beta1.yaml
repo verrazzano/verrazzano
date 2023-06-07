@@ -90,6 +90,10 @@ spec:
       enabled: true
       opensearchSecret: verrazzano-es-internal
       opensearchURL: http://verrazzano-authproxy-opensearch:8775
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: true
     ingressNGINX:

@@ -67,6 +67,8 @@ spec:
                       weight: 100
     certManagerWebhookOCI:
       enabled: false
+    clusterAgent:
+      enabled: false
     clusterIssuer:
       enabled: false
       clusterResourceNamespace: "cert-manager"
@@ -108,6 +110,10 @@ spec:
       enabled: false
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
       elasticsearchSecret: verrazzano-es-internal
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: false
     ingress:
@@ -289,5 +295,5 @@ spec:
       enabled: false
     thanos:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false

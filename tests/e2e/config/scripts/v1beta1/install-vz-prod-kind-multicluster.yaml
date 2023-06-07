@@ -11,7 +11,7 @@ spec:
     persistentVolumeClaim:
       claimName: vmi     # set storage for the metrics stack
   components:
-    capi:
+    clusterAPI:
       enabled: true
     keycloak:
       mysql:

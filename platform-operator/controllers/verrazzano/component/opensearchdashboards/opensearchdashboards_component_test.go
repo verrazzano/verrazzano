@@ -10,6 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -76,7 +77,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 //	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
-	expArray := []string{"verrazzano-monitoring-operator"}
+	expArray := []string{"verrazzano-monitoring-operator", fluentoperator.ComponentName}
 	assert.Equal(t, expArray, strArray)
 
 }
@@ -233,6 +234,8 @@ func TestUninstall(t *testing.T) {
 func TestPostUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	defer func() { config.TestThirdPartyManifestDir = "" }()
 	err := NewComponent().PostUninstall(ctx)
 	assert.NoError(t, err)
 }

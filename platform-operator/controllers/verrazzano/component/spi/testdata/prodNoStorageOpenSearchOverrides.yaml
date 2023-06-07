@@ -128,6 +128,10 @@ spec:
       elasticsearchSecret: verrazzano-es-internal
       elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
       enabled: true
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: true
     ingress:
@@ -313,7 +317,7 @@ spec:
       enabled: true
     argoCD:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false
   defaultVolumeSource:
     emptyDir: {}

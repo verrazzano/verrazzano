@@ -302,7 +302,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// will use the kube-webhook-certgen image
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
-		Value: strconv.FormatBool(vzcr.IsCertManagerEnabled(ctx.EffectiveCR())),
+		Value: strconv.FormatBool(vzcr.IsClusterIssuerEnabled(ctx.EffectiveCR())),
 	})
 
 	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {

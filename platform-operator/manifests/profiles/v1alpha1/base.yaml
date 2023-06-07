@@ -21,7 +21,7 @@ spec:
                         values:
                           - verrazzano-authproxy
                   topologyKey: kubernetes.io/hostname
-    capi:
+    clusterAPI:
       enabled: false
     certManager:
       enabled: true
@@ -273,4 +273,8 @@ spec:
     weblogicOperator:
       enabled: true
     argoCD:
+      enabled: false
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
       enabled: false

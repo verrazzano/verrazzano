@@ -1,0 +1,67 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{- if .Values.fluentbit.enable -}}
+{{- if .Values.fluentbit.input.systemd.enable }}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: systemd-input-record-filter
+spec:
+  filters:
+    - recordModifier:
+        records:
+          - "tag systemd"
+          - "cluster_name local"
+  match: "service.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: systemd-input-kubelet-filter
+spec:
+  filters:
+    - kubernetes:
+        useJournal: true
+        useKubelet: true
+  match: "service.kubelet"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: systemd-input-systemd-filter
+spec:
+  filters:
+    - grep:
+        exclude: 'SYSTEMD_UNIT /sshd@.*\.service/'
+  match: "service*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: systemd-input-docker-filter
+spec:
+  filters:
+    - parser:
+        keyName: MESSAGE
+        reserveData: true
+        parser: systemd-docker-parser
+  matchRegex: "service.docker"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: systemd-docker-parser
+spec:
+  regex:
+    regex: '/^time="(?<time>[^)]*)" level=(?<severity>[^ ]*) msg="(?<message>[^"]*)"( err="(?<error>[^"]*)")?( statusCode=($<status_code>\d+))?/'
+{{- end }}
+{{- end }}

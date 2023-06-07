@@ -958,6 +958,14 @@ func TestPostInstall(t *testing.T) {
 //	WHEN PostUpgrade is called
 //	THEN PostUpgrade should return nil
 func TestPostUpgrade(t *testing.T) {
+	s := getScheme()
+	s.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(s)
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()
 	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
@@ -1114,7 +1122,6 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		},
 	}
 	serverURLSetting := createServerURLSetting()
-	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
 	rancherPod := newPod("cattle-system", "rancher")
 	rancherPod.Status = corev1.PodStatus{
@@ -1124,12 +1131,12 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	// Create both fake ComponentContexts with the profiles dir to create an EffectiveCR; this is required to
 	// convert the legacy CertManager config to the ClusterIssuer config
 	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret,
-		&adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &kcIngress, rancherPod).
+		&adminSecret, &rancherPodList.Items[0], &serverURLSetting, &okeDriver, &kcIngress, rancherPod).
 		Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, nil, false, profilesRelativePath)
 
 	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret,
-		&adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &kcIngress, rancherPod).
+		&adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &okeDriver, &kcIngress, rancherPod).
 		Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false, profilesRelativePath)
 
