@@ -236,42 +236,7 @@ pipeline {
                     steps {
                         script{
                             if (params.SKIP_VERRAZZANO_INSTALL_PARAM == true) {
-                                try {
-                                     if(params.CRD_API_VERSION == "v1alpha1"){
-                                        scriptForPrepareATEnvironmentV1alpha1()
-                                    }else{
-                                        scriptForPrepareATEnvironmentV1beta1()
-                                    }
-                                    sh """
-                                    cd ${GO_REPO_PATH}/verrazzano
-                                    yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.kiali.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.istio.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.applicationOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.oam.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.fluentd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.prometheus.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
-                                    if [ -f "$WORKSPACE/vz" ]; then
-                                    cd "\$WORKSPACE"
-                                    ./vz install --filename "\$WORKSPACE"/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
-                                    ./vz install --set profile=trash --manifests ${WORKSPACE}/downloaded-vpo.yaml
-                                    else
-                                    cd "\$GO_REPO_PATH"/verrazzano/tools/vz
-                                    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename "\$WORKSPACE"/invalid.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml
-                                    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --set profile=trash --manifests ${WORKSPACE}/downloaded-vpo.yaml
-                                    fi
-                                    """
-                                } catch (error) {
-                                    echo "Error caught as expected"
-                                }
+                                runCustomResourceValidation()
                             }
                         }
                     }
@@ -1049,3 +1014,31 @@ def scriptForPrepareATEnvironmentV1alpha1(){
         ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
     """
 }
+
+def runCustomResourceValidation(){
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
+        cd ${WORKSPACE}
+        ERROR1="\$(./vz install --filename ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
+        ERROR2="\$(./vz install --set trash=foo --manifests ${WORKSPACE}/downloaded-vpo.yaml 2>&1 >/dev/null)"
+
+        ERR1="\$(echo $ERROR1 | grep ValidationError)"
+        if [[ "$ERR1" -eq 0 ]]; then
+            exit 0
+        else 
+            echo "Expected ValidationError in invalidCR.yaml" 
+            exit 1
+        fi
+
+        ERR2="\$(echo $ERROR2 | grep ValidationError)"
+        if [[ "$ERR2" -eq 0 ]]; then
+            exit 0
+        else
+            echo "Expected ValidationError from field(s) trash=foo"
+            exit 1
+        fi
+    """
+}
+

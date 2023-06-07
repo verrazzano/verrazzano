@@ -169,6 +169,12 @@ else
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
+
+if [[ ${SKIP_VERRAZZANO_INSTALL} == "true" ]]; then
+  echo "Skipping Verrazzano install"
+  exit 0
+fi
+
 # This flag is defaulted to false so that the VZ install proceeds as usual
 if [[ ${SKIP_VERRAZZANO_INSTALL} == "false" ]]; then
   echo "Installing Verrazzano on Kind"
