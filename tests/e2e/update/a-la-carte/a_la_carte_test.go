@@ -120,8 +120,7 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			ValueOverrides: []vzapi.Overrides{
 				{
 					Values: &apiextensionsv1.JSON{
-						Raw: []byte(fmt.Sprintf(`
-certManager:
+						Raw: []byte(fmt.Sprintf(`certManager:
   namespace: my-cert-manager
   clusterResourceNamespace: %s`, clusterResourceNamespace)),
 					},
