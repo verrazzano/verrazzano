@@ -6,6 +6,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 // def agentLabel = "largeexperimental"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 
 pipeline {
     options {
@@ -45,6 +46,9 @@ pipeline {
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
+        choice (description: 'OCI region to launch CAPI clusters in', name: 'CAPI_CLUSTER_REGION',
+                    // 1st choice is the default value
+                    choices: availableRegions )
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to use a database for Grafana persistence', name: 'USE_DB_FOR_GRAFANA', defaultValue: false)
@@ -163,7 +167,7 @@ pipeline {
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_tenancy_name = credentials('oci-tenancy-name')
         TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
+        TF_VAR_region = "${params.CAPI_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
@@ -171,6 +175,32 @@ pipeline {
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
+
+        // CAPI variables
+        OCI_USER_ID = credentials('oci-user-ocid')
+        OCI_CREDENTIALS_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_TENANCY_ID = credentials('oci-tenancy')
+        OCI_REGION = <change me>
+        export OCI_COMPARTMENT_ID=<change me>
+        export OCI_IMAGE_ID=<change me>
+
+        export OCI_TENANCY_ID_B64="$(echo -n "$OCI_TENANCY_ID" | base64 | tr -d '\n')";
+        export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "$OCI_CREDENTIALS_FINGERPRINT" | base64 | tr -d '\n')";
+        export OCI_USER_ID_B64="$(echo -n "$OCI_USER_ID" | base64 | tr -d '\n')";
+        export OCI_REGION_B64="$(echo -n "$OCI_REGION" | base64 | tr -d '\n')";
+        export OCI_CREDENTIALS_KEY_B64=$(base64 < <path_to_private_key_file> | tr -d '\n')
+        export OCI_CREDENTIALS_KEY=$(awk -v ORS='\\n' '1' <path_to_private_key_file>);
+
+
+        export OCI_SSH_KEY=$(< <path_to_public_ssh_key_for_spinning_off_new_instances>);
+
+        export CONTROL_PLANE_MACHINE_COUNT=1;
+        export OCI_NODE_MACHINE_TYPE_OCPUS=4;
+        export OCI_NODE_BOOT_VOLUME=150;
+        export OCI_VCN_ID=<change me>;
+        export OCI_SUBNET_ID=<change me>;
+        export OCI_SUBNET_CIDR=100.101.68.0/24;
+        export NETWORK_PROXY=<change me>
     }
 
     stages {
@@ -301,6 +331,25 @@ pipeline {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         cd ${WORKSPACE}/tests/e2e
+                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                    """
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('verify-install-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('test-capi') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        git clone https://github.com/verrazzano/cluster-api-provider-ocne.git && cd $_
+
                         ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
                     """
                 }

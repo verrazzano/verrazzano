@@ -1,0 +1,404 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - ${POD_CIDR=192.168.0.0/16}
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+        - ${CLUSTER_CIDR=10.128.0.0/12}
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+    kind: OCNEControlPlane
+    name: ${CLUSTER_NAME}-control-plane
+    namespace: ${NAMESPACE}
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: OCICluster
+    name: ${CLUSTER_NAME}
+    namespace: ${NAMESPACE}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${CLUSTER_NAME}-user-credentials
+  namespace:  ${NAMESPACE}
+type: Opaque
+data:
+  tenancy: ${OCI_TENANCY_ID_B64}
+  user: ${OCI_USER_ID_B64}
+  key: ${OCI_CREDENTIALS_KEY_B64}
+  fingerprint: ${OCI_CREDENTIALS_FINGERPRINT_B64}
+  passphrase: ""
+  region: ${OCI_REGION_B64}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIClusterIdentity
+metadata:
+  name: ${CLUSTER_NAME}-cluster-identity
+  namespace: ${NAMESPACE}
+spec:
+  type: UserPrincipal
+  principalSecret:
+    name: ${CLUSTER_NAME}-user-credentials
+    namespace: ${NAMESPACE}
+  allowedNamespaces: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCICluster
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  compartmentId: ${OCI_COMPARTMENT_ID}
+  identityRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: OCIClusterIdentity
+    name: ${CLUSTER_NAME}-cluster-identity
+    namespace: ${NAMESPACE}
+  networkSpec:
+    skipNetworkManagement: true
+    vcn:
+      id: ${OCI_VCN_ID}
+      subnets:
+        - id: ${OCI_SUBNET_ID}
+          role: control-plane-endpoint
+          name: control-plane-endpoint
+          cidr: ${OCI_SUBNET_CIDR}
+          type: private
+        - id: ${OCI_SUBNET_ID}
+          role: control-plane
+          name: control-plane
+          cidr: ${OCI_SUBNET_CIDR}
+          type: private
+        - id: ${OCI_SUBNET_ID}
+          role: worker
+          name: worker
+          cidr: ${OCI_SUBNET_CIDR}
+          type: private
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: OCNEControlPlane
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+  namespace: ${NAMESPACE}
+spec:
+  moduleOperator:
+    enabled: true
+  controlPlaneConfig:
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+          - localhost
+          - 127.0.0.1
+      dns:
+        imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+        imageTag: ${DNS_TAG=v1.9.3}
+      etcd:
+        local:
+          imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+          imageTag: ${ETCD_TAG=3.5.6}
+      networking: {}
+      scheduler: {}
+      imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+          provider-id: oci://{{ ds["id"] }}
+    joinConfiguration:
+      discovery: {}
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+          provider-id: oci://{{ ds["id"] }}
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: OCIMachineTemplate
+      name: ${CLUSTER_NAME}-control-plane
+      namespace: ${NAMESPACE}
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
+  version: ${KUBERNETES_VERSION=v1.25.7}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      bootVolumeSizeInGBs: "${OCI_NODE_BOOT_VOLUME=100}"
+      compartmentId: ${OCI_COMPARTMENT_ID}
+      imageId: ${OCI_IMAGE_ID}
+      isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=false}
+      metadata:
+        ssh_authorized_keys: ${OCI_SSH_KEY}
+      shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
+      shapeConfig:
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=2}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      bootVolumeSizeInGBs: "${OCI_NODE_BOOT_VOLUME=100}"
+      compartmentId: ${OCI_COMPARTMENT_ID}
+      imageId: ${OCI_IMAGE_ID}
+      isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=false}
+      metadata:
+        ssh_authorized_keys: ${OCI_SSH_KEY}
+      shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
+      shapeConfig:
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=2}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+kind: OCNEConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      clusterConfiguration:
+        imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: external
+            provider-id: oci://{{ ds["id"] }}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${NODE_MACHINE_COUNT=1}
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+          kind: OCNEConfigTemplate
+          name: ${CLUSTER_NAME}-md-0
+      clusterName: ${CLUSTER_NAME}
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: OCIMachineTemplate
+        name: ${CLUSTER_NAME}-md-0
+      version: ${KUBERNETES_VERSION=v1.25.7}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-ccm-configmap
+  namespace: ${NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  cloud-controller-manager.yaml: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: oci-cloud-controller-manager
+      namespace: kube-system
+    stringData:
+      cloud-provider.yaml: |-
+        auth:
+          region: ${OCI_REGION}
+          tenancy: ${OCI_TENANCY_ID}
+          compartment: ${OCI_COMPARTMENT_ID}
+          user: ${OCI_USER_ID}
+          key: "${OCI_CREDENTIALS_KEY}"
+          fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
+          key_passphrase: 
+        vcn: ${OCI_VCN_ID}
+        loadBalancer:
+          subnet1: ${OCI_SUBNET_ID}
+          securityListManagementMode: All
+          disableSecurityListManagement: false
+        useInstancePrincipals: false
+        # compartment configures Compartment within which the cluster resides.
+        compartment: ${OCI_COMPARTMENT_ID}
+        # Optional rate limit controls for accessing OCI API
+        rateLimiter:
+          rateLimitQPSRead: 20.0
+          rateLimitBucketRead: 5
+          rateLimitQPSWrite: 20.0
+          rateLimitBucketWrite: 5
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+  namespace: ${NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-csi-configmap
+  namespace: ${NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-oci-csi
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  csi.yaml: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: oci-volume-provisioner
+      namespace: kube-system
+    stringData:
+      config.yaml: |-
+        auth:
+          region: ${OCI_REGION}
+          tenancy: ${OCI_TENANCY_ID}
+          compartment: ${OCI_COMPARTMENT_ID}
+          user: ${OCI_USER_ID}
+          key: "${OCI_CREDENTIALS_KEY}"
+          fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
+          key_passphrase:
+        vcn: ${OCI_VCN_ID}
+        loadBalancer: 
+          subnet1: ${OCI_SUBNET_ID}
+          securityListManagementMode: All
+          disableSecurityListManagement: false 
+        useInstancePrincipals: false
+        # compartment configures Compartment within which the cluster resides.
+        compartment: ${OCI_COMPARTMENT_ID}
+        # Optional rate limit controls for accessing OCI API
+        rateLimiter:
+          rateLimitQPSRead: 20.0
+          rateLimitBucketRead: 5
+          rateLimitQPSWrite: 20.0
+          rateLimitBucketWrite: 5
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-oci-csi
+  namespace: ${NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-ccm-module-resource
+  namespace: ${NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-ccm-module-cr
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  ccm-module.yaml: |
+    apiVersion: platform.verrazzano.io/v1alpha1
+    kind: Module
+    metadata:
+      name: oci-ccm
+      namespace: default
+    spec:
+      moduleName: oci-ccm
+      targetNamespace: kube-system
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-ccm-module-cr
+  namespace: ${NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-calico-module-resource
+  namespace: ${NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-calico-module-cr
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  calico.yaml: |
+    apiVersion: platform.verrazzano.io/v1alpha1
+    kind: Module
+    metadata:
+      name: calico
+      namespace: default
+    spec:
+      moduleName: calico
+      targetNamespace: default
+      overrides:
+        - values:
+            tigeraOperator:
+              version: ${TIGERA_TAG=v1.29.0}
+            installation:
+              cni:
+                type: Calico
+              calicoNetwork:
+                bgp: Disabled
+                ipPools:
+                  - cidr: ${POD_CIDR}
+                    encapsulation: VXLAN
+              registry: ${OCNE_IMAGE_REPOSITORY}
+              imagePath: ${OCNE_IMAGE_PATH}
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-calico-module-cr
+  namespace: ${NAMESPACE}
