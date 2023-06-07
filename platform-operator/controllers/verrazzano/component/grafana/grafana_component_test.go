@@ -8,25 +8,28 @@ import (
 	"testing"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
-	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	v1 "k8s.io/api/core/v1"
 	nw "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
@@ -122,7 +125,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 // WHEN we call GetDependencies on the Grafana component
 // THEN the call returns a string array listing all the dependencies of the component
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator", "verrazzano-grafana-dashboards"}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator", "verrazzano-grafana-dashboards", fluentoperator.ComponentName}, NewComponent().GetDependencies())
 }
 
 // TestGetJSONName tests the GetJSONName function for the Grafana component
@@ -452,6 +455,8 @@ func TestPostUninstall(t *testing.T) {
 			},
 		},
 	}
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	defer func() { config.TestThirdPartyManifestDir = "" }()
 	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := NewComponent().PostUninstall(ctx)
 	assert.NoError(t, err)

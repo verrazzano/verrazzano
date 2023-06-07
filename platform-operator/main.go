@@ -115,10 +115,6 @@ func main() {
 		internalconfig.SetDefaultBomFilePath(bomOverride)
 	}
 
-	if !validators.IsKubernetesVersionSupported() {
-		os.Exit(1)
-	}
-
 	// Log the Verrazzano version
 	version, err := validators.GetCurrentBomVersion()
 	if err == nil {

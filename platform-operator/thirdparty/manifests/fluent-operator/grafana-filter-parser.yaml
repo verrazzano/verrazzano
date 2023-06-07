@@ -1,0 +1,101 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: grafana-fbc
+  namespace: {{ .namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "grafana"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "grafana"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-filter
+  namespace: {{ .namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: grafana-parser1,grafana-parser2,grafana-parser3
+    - modify:
+        conditions:
+          - keyDoesNotExist:
+              message: ""
+              "@message": ""
+        rules:
+          - add:
+              "message": "\"\""
+    - modify:
+        conditions:
+          - keyExists: "@message"
+        rules:
+          - copy:
+              "@message": "message"
+    - modify:
+        conditions:
+          - keyDoesNotExist:
+              level: ""
+              "@level": ""
+        rules:
+          - add:
+              "level": "\"\""
+    - modify:
+        conditions:
+          - keyExists: "@level"
+        rules:
+          - copy:
+              "@level": "level"
+  match: "kube.*vmi-system-grafana*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-parser1
+  namespace: {{ .namespace }}
+spec:
+  json:
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-parser2
+  namespace: {{ .namespace }}
+spec:
+  regex:
+    regex: '/^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<level>\S+) msg="(?<message>.*?)".*?$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "grafana"
+  name: grafana-parser3
+  namespace: {{ .namespace }}
+spec:
+  regex:
+    regex: '/^\[(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\][\s](?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%d %H:%M:%S"

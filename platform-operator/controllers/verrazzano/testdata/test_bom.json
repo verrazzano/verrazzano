@@ -728,6 +728,37 @@
           ]
         }
       ]
+    },
+    {
+      "name": "fluent-operator",
+      "version": "2.2.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluent-operator",
+          "images": [
+            {
+              "image": "fluent-operator",
+              "tag": "v2.2.0-20230526122409-3662eb4",
+              "helmFullImageKey": "operator.container.repository",
+              "helmTagKey": "operator.container.tag"
+            },
+            {
+              "image": "fluent-bit",
+              "tag": "v2.0.11-20230526122435-3bff26487",
+              "helmFullImageKey": "fluentbit.image.repository",
+              "helmTagKey": "fluentbit.image.tag"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "8",
+              "helmFullImageKey": "operator.initcontainer.repository",
+              "helmTagKey": "operator.initcontainer.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
