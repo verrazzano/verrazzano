@@ -35,8 +35,8 @@ func CreateOrDeleteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitF
 	return nil
 }
 
-// RenderTemplateInFile to render the file provided in the specific path with the arguments provided. Store the output template in outputFile.
-func RenderTemplateInFile(templatePath string, args map[string]interface{}, outputFile *os.File) error {
+// RenderTemplate to render the file provided in the specific path with the arguments provided. Store the output template in outputFile.
+func RenderTemplate(templatePath string, args map[string]interface{}, outputFile *os.File) error {
 	templateName := path.Base(templatePath)
 	tmpl, err := template.New(templateName).
 		ParseFiles(templatePath)

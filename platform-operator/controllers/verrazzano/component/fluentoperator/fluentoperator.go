@@ -133,7 +133,7 @@ func generateOverrideFile(templatePath string, args map[string]interface{}) (str
 	if err != nil {
 		return "", err
 	}
-	err = common.RenderTemplateInFile(templatePath, args, file)
+	err = common.RenderTemplate(templatePath, args, file)
 	if err != nil {
 		return "", err
 	}
