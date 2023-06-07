@@ -5,6 +5,8 @@ package alacarte
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"time"
 
@@ -12,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
 const (
@@ -27,7 +28,8 @@ const (
 	clusterManagementStack = "cluster-management-stack"
 	noneProfile            = "none-profile"
 
-	ocidnsType = "ocidns"
+	ocidnsType      = "ocidns"
+	letsEncryptType = "letsEncrypt"
 
 	ociConfigSecretName          = "oci"
 	dnsZoneCompartmentOCIDEnvvar = "OCI_ZONE_COMPARTMENT_ID"
@@ -101,8 +103,31 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 
 	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
-	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
+
+	clusterIssuer := &vzapi.ClusterIssuerComponent{
 		ClusterResourceNamespace: clusterResourceNamespace,
+	}
+	if certificateType == letsEncryptType {
+		clusterIssuer.LetsEncrypt = &vzapi.LetsEncryptACMEIssuer{
+			EmailAddress: "jane.doe@mycompany.com",
+			Environment:  "staging",
+		}
+	}
+	cr.Spec.Components.ClusterIssuer = clusterIssuer
+
+	cr.Spec.Components.CertManagerWebhookOCI = &vzapi.CertManagerWebhookOCIComponent{
+		InstallOverrides: vzapi.InstallOverrides{
+			ValueOverrides: []vzapi.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte(fmt.Sprintf(`
+certManager:
+  namespace: my-cert-manager
+  clusterResourceNamespace: %s`, clusterResourceNamespace)),
+					},
+				},
+			},
+		},
 	}
 }
 

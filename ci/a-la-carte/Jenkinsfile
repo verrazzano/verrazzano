@@ -43,7 +43,7 @@ pipeline {
                 defaultValue: 'my-cert-manager',
                 description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
                 trim: true)
-        choice (description: 'Whether to use wildcard DNS or OCIDNS', name: 'DNS_TYPE',
+        choice (description: 'Specifies  DNS type. Values: wildcard, ocidns. Default: wildcard', name: 'DNS_TYPE',
             // 1st choice is the default value
             choices: ["wildcard","ocidns"] )
         choice (description: 'OCI region to create the DNS Zone in', name: 'OKE_CLUSTER_REGION',
@@ -52,6 +52,9 @@ pipeline {
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
+        choice (description: 'Specifies certificate issuer. Values: default, letsEncrypt. Default: default', name: 'CERTIFICATE_TYPE',
+            // 1st choice is the default value
+            choices: [ "default", "letsEncrypt" ])
     }
 
     environment {
@@ -305,6 +308,11 @@ pipeline {
                 }
 
                 runGinkgoUpdate('update/a-la-carte', 'app-stack')
+
+                sh """
+                    kubectl get vz -A -o yaml
+                """
+
             }
 
             post {
@@ -738,7 +746,7 @@ def runGinkgoUpdate(testSuitePath, updateTypeVal = '') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace="${params.CLUSTER_RESOURCE_NAMESPACE}" --dnsType="${params.DNS_TYPE}"
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace="${params.CLUSTER_RESOURCE_NAMESPACE}" --dnsType="${params.DNS_TYPE}" --certificateType="${params.CERTIFICATE_TYPE}"
             fi
         """
     }
