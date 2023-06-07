@@ -1,6 +1,6 @@
 controller:
   admissionWebhooks:
     certManager:
-      enabled: true
+      enabled: {{ .Values.spec.components.clusterIssuer.enabled | default true }}
   service:
     type: ClusterIP
