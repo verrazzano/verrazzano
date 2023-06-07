@@ -1731,3 +1731,99 @@ func TestIsComponentEnabled(t *testing.T) {
 		})
 	}
 }
+
+// TestIsFluentOperatorEnabled tests the IsFluentOperatorEnabled function
+// GIVEN a call to IsFluentOperatorEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsFluentOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsFluentOperatorEnabled(nil))
+	asserts.False(IsFluentOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsFluentOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentOperator: &vzapi.FluentOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsFluentOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentOperator: &vzapi.FluentOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentOperator: &vzapi.FluentOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsFluentOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentOperator: &installv1beta1.FluentOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentOperator: &installv1beta1.FluentOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsFluentbitOpensearchOutputEnabled tests the IsFluentbitOpensearchOutputEnabled function
+// GIVEN a call to IsFluentbitOpensearchOutputEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default).
+func TestIsFluentbitOpensearchOutputEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsFluentbitOpensearchOutputEnabled(nil))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentbitOpensearchOutput: &vzapi.FluentbitOpensearchOutputComponent{},
+			},
+		}}))
+	asserts.True(IsFluentbitOpensearchOutputEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentbitOpensearchOutput: &vzapi.FluentbitOpensearchOutputComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentbitOpensearchOutput: &vzapi.FluentbitOpensearchOutputComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsFluentbitOpensearchOutputEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentbitOpensearchOutput: &installv1beta1.FluentbitOpensearchOutputComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentbitOpensearchOutput: &installv1beta1.FluentbitOpensearchOutputComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}

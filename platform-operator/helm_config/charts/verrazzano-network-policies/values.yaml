@@ -64,5 +64,11 @@ velero:
 argocd:
   enabled: false
 
+capi:
+  enabled: false
+
+fluentOperator:
+  enabled: false
+
 clusterAPI:
   enabled: false
