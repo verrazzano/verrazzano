@@ -160,14 +160,18 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	if registrationSecret != nil {
 		opensearchURL := string(registrationSecret.Data[constants.OpensearchURLData])
-		getFluentOSOutputOverrides(opensearchURL, kvs)
+		kvs, err = getFluentOSOutputOverrides(opensearchURL, kvs)
+		if err != nil {
+			return kvs, err
+		}
 	}
 
 	return kvs, nil
 }
 
+// getFluentOSOutputOverrides gets the Overrides for fluentbitOpensearchOutput in managed cluster.
 func getFluentOSOutputOverrides(OpensearchURL string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// extracting the Hostname only from the URL
+	// extracting the Hostname from the URL
 	urlObject, err := url.Parse(OpensearchURL)
 	if err != nil {
 		return kvs, err

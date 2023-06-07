@@ -41,7 +41,6 @@ spec:
     suppressTypeName: true
     {{- if .Values.application.tls.enabled }}
     tls:
-      enabled: {{ .Values.application.tls.enabled }}
       caFile: {{ .Values.application.tls.caFile }}
       crtFile: {{ .Values.application.tls.crtFile }}
     {{- end }}
