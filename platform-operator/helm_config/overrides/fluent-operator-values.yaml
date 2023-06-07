@@ -29,3 +29,6 @@ fluentbit:
   filter:
     systemd:
       enable: false
+    kubernetes:
+      labels: true
+      annotations: true
