@@ -1408,6 +1408,16 @@ spec:
                           type: string
                       type: object
                     type: array
+                  privateRegistry:
+                    description: PrivateRegistry sets the private registry settings
+                      for installing Verrazzano.
+                    properties:
+                      enabled:
+                        description: Enabled sets a flag to determine if a private
+                          registry will be used when installing Verrazzano. if not
+                          set, the Enabled is set to false.
+                        type: boolean
+                    type: object
                 type: object
               version:
                 description: 'Version defines the desired Kubernetes version. Please
