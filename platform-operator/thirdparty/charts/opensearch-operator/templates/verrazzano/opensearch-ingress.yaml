@@ -1,0 +1,79 @@
+# Verrazzano Specific
+# Create ingress for OpenSearch and OpenSearch Dashboards with Verrazzano authproxy as backend
+# Required to access OpenSearch and OpenSearch Dashboards through Verrazzano Keycloak
+
+{{- if .Values.ingress.openSearch.enable }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opensearch
+  namespace: verrazzano-system
+{{- with .Values.ingress.openSearch.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  {{- if .Values.ingress.openSearch.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.openSearch.ingressClassName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.openSearch.host | quote }}
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: {{ .Values.ingress.openSearch.path }}
+            backend:
+              service:
+                name: {{ .Values.ingress.openSearch.serviceName }}
+                port:
+                  number: {{ .Values.ingress.openSearch.portNumber }}
+{{- if .Values.ingress.openSearch.tls }}
+  tls:
+  {{- range .Values.ingress.openSearch.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+---
+{{- if and (.Values.ingress.openSearchDashboards.enable) (.Values.openSearchCluster.dashboards.enable) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opensearch-dashboards
+  namespace: verrazzano-system
+{{- with .Values.ingress.openSearchDashboards.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  {{- if .Values.ingress.openSearchDashboards.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.openSearchDashboards.ingressClassName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.openSearchDashboards.host | quote }}
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: {{ .Values.ingress.openSearchDashboards.path }}
+            backend:
+              service:
+                name: {{ .Values.ingress.openSearchDashboards.serviceName }}
+                port:
+                  number: {{ .Values.ingress.openSearchDashboards.portNumber }}
+{{- if .Values.ingress.openSearchDashboards.tls }}
+  tls:
+  {{- range .Values.ingress.openSearchDashboards.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+{{- end }}
+---

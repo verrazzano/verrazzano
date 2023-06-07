@@ -64,7 +64,15 @@ const (
 	fleetControllerDeployment = "fleet-controller"
 	gitjobDeployment          = "gitjob"
 	rancherWebhookDeployment  = "rancher-webhook"
+	ociSchemaName             = "ocicredentialconfig"
 )
+
+var cloudCredentialSchemas = []string{
+	ociSchemaName,
+	"azurecredentialconfig",
+	"googlecredentialconfig",
+	"amazonec2credentialconfig",
+}
 
 // Helm Chart setter keys
 const (
@@ -90,14 +98,16 @@ const (
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
 	caCert                     = "ca.crt"
+	customCACertKey            = "tls.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
 
 const (
+	CAPIMutatingWebhook               = "mutating-webhook-configuration"
+	CAPIValidatingWebhook             = "validating-webhook-configuration"
 	SettingServerURL                  = "server-url"
 	KontainerDriverOKE                = "oraclecontainerengine"
-	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	ClusterKind                       = "Cluster"
@@ -186,7 +196,6 @@ const (
 )
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
-var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
 var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
 var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")
@@ -231,7 +240,19 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Resource: "clusterrepos",
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
+var nodeDriverGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "nodedrivers",
+}
+
+var dynamicSchemaGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "dynamicschemas",
+}
+
+func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }
 

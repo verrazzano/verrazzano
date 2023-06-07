@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -65,22 +65,22 @@ func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*unstructured.Un
 
 // MergeSetFlags merges yaml representing a set flag passed on the command line with a
 // verrazano install resource.  A merged verrazzano install resource is returned.
-func MergeSetFlags(gv schema.GroupVersion, vz clipkg.Object, overlayYAML string) (clipkg.Object, error) {
+func MergeSetFlags(gv schema.GroupVersion, vz clipkg.Object, overlayYAML string) (clipkg.Object, *unstructured.Unstructured, error) {
 	baseYAML, err := yaml.Marshal(vz)
 	if err != nil {
-		return vz, err
+		return vz, nil, err
 	}
 	vzYAML, err := overlayVerrazzano(gv, string(baseYAML), overlayYAML)
 	if err != nil {
-		return vz, err
+		return vz, nil, err
 	}
 
 	obj := &unstructured.Unstructured{}
 	err = yaml.Unmarshal([]byte(vzYAML), obj)
 	if err != nil {
-		return obj, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
+		return obj, nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
-	return obj, nil
+	return obj, obj, nil
 }
 
 // overlayVerrazzano overlays over base using JSON strategic merge.

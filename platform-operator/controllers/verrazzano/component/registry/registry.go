@@ -8,15 +8,18 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteragent"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -68,6 +71,8 @@ func ResetGetComponentsFn() {
 func InitRegistry() {
 	componentsRegistry = []spi.Component{
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
+		fluentoperator.NewComponent(),
+		fluentbitosoutput.NewComponent(),
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),
@@ -77,7 +82,7 @@ func InitRegistry() {
 		cmocidns.NewComponent(),
 		cmconfig.NewComponent(),
 		externaldns.NewComponent(),
-		capi.NewComponent(),
+		clusterapi.NewComponent(),
 		rancher.NewComponent(),
 		verrazzano.NewComponent(),
 		vmo.NewComponent(),
@@ -104,6 +109,7 @@ func InitRegistry() {
 		clusteroperator.NewComponent(),
 		argocd.NewComponent(),
 		thanos.NewComponent(),
+		clusteragent.NewComponent(),
 	}
 	getComponentsMap = make(map[string]spi.Component)
 }

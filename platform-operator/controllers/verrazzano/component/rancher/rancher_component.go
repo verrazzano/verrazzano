@@ -6,28 +6,12 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/gertd/go-pluralize"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,10 +21,29 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
+
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // ComponentName is the name of the component
@@ -65,6 +68,9 @@ const cattleShellImageName = "rancher-shell"
 
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
+
+// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
+const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -121,7 +127,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmcontroller.ComponentName, capi.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, clusterapi.ComponentName, fluentoperator.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -210,43 +216,41 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	return kvs
 }
 
-// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
+// appendCAOverrides sets overrides for CA Issuers, LetsEncrypt or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
+	cm := ctx.EffectiveCR().Spec.Components.ClusterIssuer
 	if cm == nil {
-		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
+		return kvs, log.ErrorfThrottledNewErr("Failed to find clusterIssuer component in effective cr")
 	}
 
 	// Configure CA Issuer KVs
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
+	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
 				Value: common.RancherName,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
-				Value: cm.Certificate.Acme.EmailAddress,
+				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
+				Value: cm.LetsEncrypt.Environment,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
+				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
 		})
-		if isUsingDefaultCACertificate(cm) {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   privateCAKey,
-				Value: privateCAValue,
-			})
-		}
+		kvs = append(kvs, bom.KeyValue{
+			Key:   privateCAKey,
+			Value: privateCAValue,
+		})
 	}
 
 	return kvs, nil
@@ -496,11 +500,14 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
-
+	// Create Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
+	if err = common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
+		return err
+	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return nil
+	return common.ActivateKontainerDriver(ctx)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -513,6 +520,10 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("Rancher postUninstall dry run")
 		return nil
+	}
+	// Delete Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, true); err != nil {
+		return err
 	}
 	return postUninstall(ctx, r.monitor)
 }
@@ -541,7 +552,13 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return patchRancherIngress(c, ctx.EffectiveCR())
+	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
+		return err
+	}
+	if err := common.ActivateKontainerDriver(ctx); err != nil {
+		return err
+	}
+	return cleanupRancherResources(context.TODO(), ctx.Client())
 }
 
 // Reconcile for the Rancher component

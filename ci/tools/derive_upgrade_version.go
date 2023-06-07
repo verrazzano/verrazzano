@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"os"
 	"os/exec"
 	"strconv"
@@ -15,6 +16,7 @@ const (
 	VersionForInstall             = "install-version"
 	InterimVersionForUpgrade      = "interim-version"
 	LatestVersionForCurrentBranch = "latest-version-for-branch"
+	VersionsGTE                   = "versions-gte"
 )
 
 var (
@@ -36,17 +38,25 @@ func main() {
 
 	//Extract release tags from git tag command.
 	releaseTags := getReleaseTags(workspace, excludeReleaseTags)
-	if versionType == InterimVersionForUpgrade {
+	switch versionType {
+	case InterimVersionForUpgrade:
 		interimRelease := getInterimRelease(releaseTags)
 		fmt.Print(interimRelease)
-	} else if versionType == VersionForInstall {
+	case VersionForInstall:
 		installRelease := getInstallRelease(releaseTags)
 		fmt.Print(installRelease)
-	} else if versionType == LatestVersionForCurrentBranch {
+	case LatestVersionForCurrentBranch:
 		latestRelease := getLatestReleaseForCurrentBranch(releaseTags)
 		fmt.Println(latestRelease)
-	} else {
+	case VersionsGTE:
+		tagsAfter, err := getTagsGTE(releaseTags, excludeReleaseTags[0])
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(tagsAfter)
+	default:
 		fmt.Printf("invalid command line argument for derive version type \n")
+		os.Exit(1)
 	}
 }
 
@@ -70,12 +80,14 @@ func parseCliArgs(args []string) {
 
 	if len(args) > 2 {
 		for index, arg := range args {
+			// Remove any ',' or ']' suffixes and remove any '[' prefix
+			trimArg := strings.TrimPrefix(strings.TrimSuffix(strings.TrimSuffix(arg, ","), "]"), "[")
 			if index > 1 {
 				if versionType == LatestVersionForCurrentBranch {
-					developmentVersion = arg
+					developmentVersion = trimArg
 					return
 				}
-				excludeReleaseTags = append(excludeReleaseTags, arg)
+				excludeReleaseTags = append(excludeReleaseTags, trimArg)
 			}
 		}
 	}
@@ -154,6 +166,19 @@ func getInterimRelease(releaseTags []string) string {
 	majorVersionValue := parseInt(latestReleaseTagSplit[0])
 	minorInterimVersionValue := parseInt(latestReleaseTagSplit[1]) - 1
 
+	// Handles the case where only two or less minor releases are available for upgrade
+	// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x, then return 1.5.0
+	// as an interim release
+	firstReleaseTag := releaseTags[0]
+	//Split the string excluding prefix 'v' into major and minor version values
+	firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
+	firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
+	firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
+	if firstMajorVersionValue == majorVersionValue && minorInterimVersionValue == firstMinorVersionValue {
+		minorInterimVersionValue = parseInt(latestReleaseTagSplit[1])
+		return fmt.Sprintf("v%d.%d.0\n", majorVersionValue, minorInterimVersionValue)
+	}
+
 	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
 	if minorInterimVersionValue < 0 {
 		minorInterimVersionValue = 0
@@ -193,6 +218,17 @@ func getInstallRelease(releaseTags []string) string {
 	majorVersionValue := parseInt(latestReleaseTagSplit[0])
 	minorInstallVersionValue := parseInt(latestReleaseTagSplit[1]) - 2
 
+	// Handles the case where only two or less minor releases are available for upgrade
+	// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x
+	// Get the first supported release tag for upgrade
+	firstReleaseTag := releaseTags[0]
+	//Split the string excluding prefix 'v' into major and minor version values
+	firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
+	firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
+	firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
+	if firstMajorVersionValue == majorVersionValue && minorInstallVersionValue < firstMinorVersionValue {
+		minorInstallVersionValue = firstMinorVersionValue
+	}
 	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
 	if minorInstallVersionValue < 0 {
 		majorVersionValue = parseInt(latestReleaseTagSplit[0]) - 1
@@ -242,6 +278,32 @@ func getInstallRelease(releaseTags []string) string {
 
 	// Return the interim release tag
 	return fmt.Sprintf("v%s\n", installRelease)
+}
+
+func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
+	builder := strings.Builder{}
+
+	o, err := semver.NewSemVersion(oldestAllowedVersion)
+	if err != nil {
+		return "", err
+	}
+
+	for _, tag := range tags {
+		var t = tag
+		if tag[0] == 'v' || tag[0] == 'V' {
+			t = tag[1:]
+		}
+		tagVersion, err := semver.NewSemVersion(t)
+		if err != nil {
+			return "", err
+		}
+		if tagVersion.IsGreaterThanOrEqualTo(o) {
+			builder.WriteString(tag)
+			builder.WriteString("\n")
+		}
+	}
+
+	return builder.String(), nil
 }
 
 func parseInt(s string) int {

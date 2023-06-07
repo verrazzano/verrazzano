@@ -1,10 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
 
 import (
 	"errors"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"io"
 	"net/http"
 	"strings"
@@ -88,7 +89,8 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			err := copyDefaultCACertificate(log, tt.c, tt.vz)
+			ctx := spi.NewFakeContext(tt.c, tt.vz, nil, false, profilesRelativePath)
+			err := copyDefaultCACertificate(log, tt.c, ctx.EffectiveCR())
 			if tt.isErr {
 				assert.NotNil(t, err)
 			} else {
@@ -106,29 +108,48 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 func TestIsUsingDefaultCACertificate(t *testing.T) {
 	var tests = []struct {
 		testName string
-		*vzapi.CertManagerComponent
+		*vzapi.ClusterIssuerComponent
 		out bool
 	}{
 		{
-			"no CA",
+			"no Issuer",
 			nil,
 			false,
 		},
 		{
-			"acme CA",
-			vzAcmeDev.Spec.Components.CertManager,
+			"LetsEncrypt Issuer",
+			&vzapi.ClusterIssuerComponent{
+				IssuerConfig: vzapi.IssuerConfig{
+					LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+						EmailAddress: "myemail@fooo.com",
+						Environment:  "staging",
+					},
+				},
+			},
 			false,
 		},
 		{
-			"private CA",
-			vzDefaultCA.Spec.Components.CertManager,
+			"Default CA",
+			vzapi.NewDefaultClusterIssuer(),
 			true,
+		},
+		{
+			"Custom CA",
+			&vzapi.ClusterIssuerComponent{
+				ClusterResourceNamespace: "customnamespace",
+				IssuerConfig: vzapi.IssuerConfig{
+					CA: &vzapi.CAIssuer{
+						SecretName: "customSecret",
+					},
+				},
+			},
+			false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			assert.Equal(t, tt.out, isUsingDefaultCACertificate(tt.CertManagerComponent))
+			assert.Equal(t, tt.out, isUsingDefaultCACertificate(tt.ClusterIssuerComponent))
 		})
 	}
 }
@@ -179,9 +200,11 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			common.HTTPDo = tt.httpDo
-			err := common.ProcessAdditionalCertificates(log, c, tt.vz)
+			ctx := spi.NewFakeContext(c, tt.vz, nil, false, profilesRelativePath)
+			err := common.ProcessAdditionalCertificates(log, c, ctx.EffectiveCR())
 			if tt.isErr {
 				assert.NotNil(t, err)
+				assert.True(t, strings.Contains(err.Error(), "boom"))
 			} else {
 				assert.Nil(t, err)
 			}

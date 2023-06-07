@@ -5,13 +5,15 @@ package helm
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"reflect"
 	"testing"
+
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -19,14 +21,22 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -35,19 +45,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
-	testBomFilePath     = "../../testdata/test_bom.json"
-	overrideJSON        = "{\"serviceAccount\": {\"create\": false}}"
-	unexpectedError     = "unexpected error"
-	notFoundErrorString = "not found"
+	testBomFilePath = "../../testdata/test_bom.json"
+	overrideJSON    = "{\"serviceAccount\": {\"create\": false}}"
+	unexpectedError = "unexpected error"
 )
 
 var (

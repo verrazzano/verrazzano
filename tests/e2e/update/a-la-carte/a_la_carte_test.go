@@ -70,7 +70,7 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 	cr.Spec.Components.ApplicationOperator = &vzapi.ApplicationOperatorComponent{Enabled: &trueVal}
 	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{Enabled: &trueVal}
-	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
+	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{Enabled: &trueVal}
 	cr.Spec.Components.Fluentd = &vzapi.FluentdComponent{Enabled: &trueVal}
 	cr.Spec.Components.Grafana = &vzapi.GrafanaComponent{Enabled: &trueVal}
 	cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{Enabled: &trueVal}
@@ -81,6 +81,11 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.OAM = &vzapi.OAMComponent{Enabled: &trueVal}
 	cr.Spec.Components.Verrazzano = &vzapi.VerrazzanoComponent{Enabled: &trueVal}
 	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{Enabled: &trueVal}
+
+	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{Enabled: &falseVal}
+	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{
+		ClusterResourceNamespace: clusterResourceNamespace,
+	}
 }
 
 func (m istioAppStackModifier) ModifyCR(cr *vzapi.Verrazzano) {

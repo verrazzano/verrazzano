@@ -152,7 +152,7 @@ pipeline {
                 stage('Prepare AT environment') {
                     environment {
                         VERRAZZANO_OPERATOR_IMAGE="NONE"
-                        KIND_KUBERNETES_CLUSTER_VERSION="1.22"
+                        KIND_KUBERNETES_CLUSTER_VERSION="1.24"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"

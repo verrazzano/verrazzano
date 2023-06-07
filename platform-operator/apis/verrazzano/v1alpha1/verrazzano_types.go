@@ -320,9 +320,13 @@ type ComponentSpec struct {
 	// +optional
 	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
 
-	// The CAPI component configuration.
+	// The ClusterAPI component configuration.
 	// +optional
-	CAPI *CAPIComponent `json:"capi,omitempty"`
+	ClusterAPI *ClusterAPIComponent `json:"clusterAPI,omitempty"`
+
+	// The ClusterAgent configuration.
+	// +optional
+	ClusterAgent *ClusterAgentComponent `json:"clusterAgent,omitempty"`
 
 	// ClusterIssuer defines the Cert-Manager ClusterIssuer configuration for Verrazzano
 	// +optional
@@ -361,6 +365,14 @@ type ComponentSpec struct {
 	// The Fluentd component configuration.
 	// +optional
 	Fluentd *FluentdComponent `json:"fluentd,omitempty"`
+
+	// The FluentOperator component configuration.
+	// +optional
+	FluentOperator *FluentOperatorComponent `json:"fluentOperator,omitempty"`
+
+	// The FluentbitOpensearchOutput component configuration.
+	// +optional
+	FluentbitOpensearchOutput *FluentbitOpensearchOutputComponent `json:"fluentbitOpensearchOutput,omitempty"`
 
 	// The Grafana component configuration.
 	// +optional
@@ -447,6 +459,19 @@ type ComponentSpec struct {
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 }
 
+type FluentbitOpensearchOutputComponent struct {
+	// If true, then the FluentbitOpensearchOutput will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/fluentbit-opensearch-output/values.yaml%}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
 	// If true, then OpenSearch will be installed.
@@ -454,7 +479,7 @@ type ElasticsearchComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// A list of values to use during the OpenSearch installation. Each argument is specified as either a `name/value` or
 	// `name/valueList` pair. For sample usage, see
-	// <a href="../../../../docs/customize/opensearch/">Customize OpenSearch</a>.
+	// <a href="../../../docs/observability/logging/configure-opensearch/opensearch/">Customize OpenSearch</a>.
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
@@ -615,9 +640,9 @@ type PrometheusPushgatewayComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// CAPIComponent specifies the CAPI configuration.
-type CAPIComponent struct {
-	// If true, then CAPI Providers will be installed.
+// ClusterAPIComponent specifies the Cluster API configuration.
+type ClusterAPIComponent struct {
+	// If true, then Cluster API Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
@@ -635,6 +660,20 @@ type CertManagerComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/cert-manager/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ClusterAgentComponent configures the Cluster Agent
+type ClusterAgentComponent struct {
+	// If true, then Cluster Agent will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-agent/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
@@ -853,7 +892,7 @@ type IngressNginxComponent struct {
 	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the ingress
 	// type is `NodePort`, then a valid and accessible IP address must be specified using the `controller.service.externalIPs`
 	// key in NGINXInstallArgs. For sample usage, see
-	// <a href="../../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../docs/networking/traffic/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 }
@@ -863,7 +902,7 @@ type IstioIngressSection struct {
 	// The Istio ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the
 	// Istio ingress type is `NodePort`, then a valid and accessible IP address must be specified using the
 	// `gateways.istio-ingressgateway.externalIPs` key in IstioInstallArgs. For sample usage, see
-	// <a href="../../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../docs/networking/traffic/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 	// The list port configurations used by the Istio ingress.
@@ -1076,6 +1115,20 @@ type WebLogicOperatorComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// FluentOperatorComponent specifies the Fluent Operator configuration.
+type FluentOperatorComponent struct {
+	// If true, then the Fluent Operator will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/fluent-operator/values.yaml%}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
 // VeleroComponent specifies the Velero configuration.
 type VeleroComponent struct {
 	// If true, then Velero will be installed.
@@ -1155,7 +1208,7 @@ const (
 	LetsEncrypt ProviderType = "LetsEncrypt"
 )
 
-// Acme Deprecated. identifies the LetsEncrypt cert issuer.
+// Deprecated. Acme identifies the LetsEncrypt cert issuer.
 type Acme struct {
 	// Email address of the user.
 	// +optional
@@ -1280,17 +1333,17 @@ type InstallOverrides struct {
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#configmap">ConfigMapRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#configmap">ConfigMapRef</a>.
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#secret">SecretRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#secret">SecretRef</a>.
 	// +optional
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
+	// <a href="../../../docs/setup/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }

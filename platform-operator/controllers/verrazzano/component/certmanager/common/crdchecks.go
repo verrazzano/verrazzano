@@ -4,7 +4,6 @@
 package common
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 )
 
@@ -21,21 +20,8 @@ func GetRequiredCertManagerCRDNames() []string {
 	return certManagerCRDNames
 }
 
-// CertManagerExistsInCluster returns an error if the CRDs do not exist in the cluster
-// - used in situations where only an error can be returned
-func CertManagerExistsInCluster(log vzlog.VerrazzanoLogger) error {
-	exists, err := CertManagerCrdsExist()
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return log.ErrorfThrottledNewErr("CertManager CRDs not found in cluster")
-	}
-	return nil
-}
-
-// CertManagerCrdsExist returns true if the Cert-Manager CRDs exist in the cluster, false otherwise
-func CertManagerCrdsExist() (bool, error) {
+// CertManagerCRDsExist returns true if the Cert-Manager CRDs exist in the cluster, false otherwise
+func CertManagerCRDsExist() (bool, error) {
 	crdsExist, err := common.CheckCRDsExist(GetRequiredCertManagerCRDNames())
 	if err != nil {
 		return false, err

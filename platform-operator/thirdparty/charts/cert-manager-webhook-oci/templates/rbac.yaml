@@ -1,0 +1,159 @@
+# Portions of the code in this file are derived from https://github.com/cert-manager/webhook-example/blob/master/deploy/example-webhook/templates/rbac.yaml
+# Portions of the code in this file are derived from https://gitlab.com/dn13/cert-manager-webhook-oci/-/blob/1.1.0/deploy/cert-manager-webhook-oci/templates/rbac.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 2 }}
+{{- end }}
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+---
+# Grant the webhook permission to read the ConfigMap containing the Kubernetes
+# apiserver's requestheader-ca-certificate.
+# This ConfigMap is automatically created by the Kubernetes apiserver.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:webhook-authentication-reader
+  namespace: kube-system
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "cert-manager-webhook-oci.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:auth-delegator
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "cert-manager-webhook-oci.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Grant cert-manager permission to validate using our apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:domain-solver
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+  - apiGroups:
+      - {{ .Values.groupName }}
+    resources:
+      - '*'
+    verbs:
+      - 'create'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:domain-solver
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:domain-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ .Values.certManager.serviceAccountName }}
+    namespace: {{ .Values.certManager.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:secret-reader
+  namespace: {{ include "cert-manager-webhook-oci.clusterResourceNamespace" . }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    {{- with .Values.ociAuthSecrets }}
+    resourceNames:
+    {{ toYaml . | indent 2 }}
+    {{- end }}
+    verbs:
+      - "get"
+      - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:secret-reader
+  namespace: {{ include "cert-manager-webhook-oci.clusterResourceNamespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:secret-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "cert-manager-webhook-oci.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:flowcontrol
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups:
+      - flowcontrol.apiserver.k8s.io
+    resources:
+      - "*"
+    verbs:
+      - "get"
+      - "watch"
+      - "list"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:flowcontrol
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}:flowcontrol
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "cert-manager-webhook-oci.fullname" . }}
+    namespace: {{ .Release.Namespace }}

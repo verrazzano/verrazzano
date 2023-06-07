@@ -7,17 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"io"
 	"net/http"
 	"os"
@@ -29,7 +19,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
@@ -739,7 +739,7 @@ func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
 
 func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) &&
-		vzcr.IsComponentStatusEnabled(vz, cmcontroller.ComponentName) &&
+		vzcr.IsComponentStatusEnabled(vz, cmconstants.CertManagerComponentName) &&
 		vzcr.IsComponentStatusEnabled(vz, keycloak.ComponentName)
 }
 

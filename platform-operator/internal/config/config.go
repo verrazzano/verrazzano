@@ -4,11 +4,13 @@
 package config
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 const (
@@ -20,6 +22,7 @@ const (
 	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
 	helmConfigDirSuffix          = "/platform-operator/helm_config"
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
+	helmVPOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
@@ -39,6 +42,9 @@ var TestHelmConfigDir string
 
 // TestProfilesDir is needed for unit tests
 var TestProfilesDir string
+
+// TestThirdPartyManifestDir is needed for unit tests
+var TestThirdPartyManifestDir string
 
 // OperatorConfig specifies the Verrazzano Platform Operator Config
 type OperatorConfig struct {
@@ -131,6 +137,14 @@ func GetHelmChartsDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, helmChartsDirSuffix)
 }
 
+// GetHelmVPOChartsDir returns the verrazzano-platform-operator helm charts dir
+func GetHelmVPOChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-platform-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmVPOChartsDirSuffix)
+}
+
 // GetHelmVMOChartsDir returns the verrazzano-monitoring-operator helm charts dir
 func GetHelmVMOChartsDir() string {
 	if TestHelmConfigDir != "" {
@@ -203,6 +217,9 @@ func GetThirdPartyDir() string {
 }
 
 func GetThirdPartyManifestsDir() string {
+	if TestThirdPartyManifestDir != "" {
+		return TestThirdPartyManifestDir
+	}
 	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyManifestsDirSuffix)
 }
 

@@ -4,35 +4,45 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/capi"
-	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/config"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
-	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/ocidns"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	"testing"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmconfig "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
+	cmocidns "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/webhookoci"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteragent"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -60,13 +70,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const (
@@ -90,6 +94,19 @@ var basicNoneClusterWithStatus = v1alpha1.Verrazzano{
 	},
 }
 
+var basicV1Beta1NoneClusterWithStatus = v1beta1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-none",
+	},
+	Spec: v1beta1.VerrazzanoSpec{
+		Profile: "none",
+	},
+	Status: v1beta1.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &v1beta1.InstanceInfo{},
+	},
+}
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //
@@ -100,8 +117,12 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 37, "Wrong number of components")
+	a.Len(comps, 40, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), fluentbitosoutput.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
 	i++
@@ -121,7 +142,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), externaldns.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), capi.ComponentName)
+	a.Equal(comps[i].Name(), clusterapi.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++
@@ -174,6 +195,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), argocd.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), thanos.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), clusteragent.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -668,24 +691,33 @@ func TestNoneProfileInstalledAllComponentsDisabled(t *testing.T) {
 		a := assert.New(t)
 		log := vzlog.DefaultLogger()
 
-		context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, nil, false)
+		context, err := spi.NewContext(log, fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &basicNoneClusterWithStatus, &basicV1Beta1NoneClusterWithStatus, false)
+		context.EffectiveCRV1Beta1()
 		assert.NoError(t, err)
 		a.NotNil(context, "Context was nil")
+
+		// Verify the v1alpha1 Actual and effective CR status
 		a.NotNil(context.ActualCR(), "Actual CR was nil")
 		a.Equal(basicNoneClusterWithStatus, *context.ActualCR(), "Actual CR unexpectedly modified")
 		a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 		a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+
+		// Verify the v1beta1 Actual and effective CR status
+		a.NotNil(context.ActualCRV1Beta1(), "Actual v1beta1 CR was nil")
+		a.Equal(basicV1Beta1NoneClusterWithStatus, *context.ActualCRV1Beta1(), "Actual v1beta1 CR unexpectedly modified")
+		a.NotNil(context.EffectiveCRV1Beta1(), "Effective v1beta1 CR was nil")
+		a.Equal(v1beta1.VerrazzanoStatus{}, context.EffectiveCRV1Beta1().Status, "Effective v1beta1 CR status not empty")
 
 		for _, comp := range GetComponents() {
 			// Networkpolicies is expected to be installed always
 			if comp.GetJSONName() == "verrazzanoNetworkPolicies" {
 				continue
 			}
-			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component: %s should be Disabled", comp.Name())
+			assert.False(t, comp.IsEnabled(context.EffectiveCR()), "Component %s not disabled in v1alpha1 \"none\" profile", comp.Name())
+			assert.False(t, comp.IsEnabled(context.EffectiveCRV1Beta1()), "Component %s not disabled in v1beta1 \"none\" profile", comp.Name())
 		}
 	})
 }
-
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {
 	const compName = coherence.ComponentName
 	comp := fakeComponent{name: "foo", enabled: true, dependencies: []string{compName}}

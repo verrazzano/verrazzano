@@ -40,6 +40,14 @@ helm repo update
 helm fetch jetstack/cert-manager --untar=true --version=${CERT_MANAGER_CHART_VERSION}
 ```
 
+## Cert-Manager Webhook OCI
+
+The `cert-manager-webhook-oci` is maintained by Verrazzano at https://github.com/verrazzano/cert-manager-webhook-oci.
+It is copied from https://github.com/verrazzano/cert-manager-webhook-oci/tree/main/deploy/cert-manager-webhook-oci.
+
+Changes to this chart should be managed in https://github.com/verrazzano/cert-manager-webhook-oci and should be
+copied here.
+
 ## Rancher
 
 The `rancher` folder was created by running the following commands:
@@ -57,7 +65,7 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.0.9
+export MYSQL_CHART_VERSION=2.0.10
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
@@ -70,7 +78,7 @@ mv mysql-innodbcluster mysql
 The `mysql-operator` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.0.9
+export MYSQL_OPERATOR_CHART_VERSION=2.0.10
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
@@ -199,7 +207,7 @@ helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSIO
 
 ### Argo CD
 
-The `argo-cd` folder was created by running the followiong commands:
+The `argo-cd` folder was created by running the following commands:
 
 ```shell
 export ARGOCD_CHART_VERSION=5.34.3
@@ -232,3 +240,16 @@ helm repo update
 rm -rf opensearch-operator
 helm fetch opensearch-operator/opensearch-operator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
 ```
+
+### Fluent Operator
+
+The `fluent-operator` folder was created by running the following commands:
+
+```shell
+export FLUENT_OPERATOR_CHART_VERSION=2.2.0
+helm repo add fluent https://fluent.github.io/helm-charts
+helm repo update
+rm -rf fluent-operator
+helm fetch fluent/fluent-operator --untar=true --version=${FLUENT_OPERATOR_CHART_VERSION}
+```
+

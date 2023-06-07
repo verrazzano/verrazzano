@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package transform
@@ -6,7 +6,6 @@ package transform
 import (
 	"strings"
 
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzprofiles "github.com/verrazzano/verrazzano/pkg/profiles"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -40,14 +39,12 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 		return nil, err
 	}
 	effectiveCR.Status = v1alpha1.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
-	// if Certificate in CertManager is empty, set it to default CA
-	var emptyCertConfig = v1alpha1.Certificate{}
-	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
-		effectiveCR.Spec.Components.CertManager.Certificate.CA = v1alpha1.CA{
-			SecretName:               constants.DefaultVerrazzanoCASecretName,
-			ClusterResourceNamespace: constants.CertManagerNamespace,
-		}
+
+	// Align the ClusterIssuer configurations between CertManager and ClusterIssuer components
+	if err := convertCertificateToClusterIssuerV1Alpha1(effectiveCR); err != nil {
+		return nil, err
 	}
+
 	return effectiveCR, nil
 }
 
@@ -73,13 +70,11 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 		return nil, err
 	}
 	effectiveCR.Status = v1beta1.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
-	// if Certificate in CertManager is empty, set it to default CA
-	var emptyCertConfig = v1beta1.Certificate{}
-	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
-		effectiveCR.Spec.Components.CertManager.Certificate.CA = v1beta1.CA{
-			SecretName:               constants.DefaultVerrazzanoCASecretName,
-			ClusterResourceNamespace: constants.CertManagerNamespace,
-		}
+
+	// Align the ClusterIssuer configurations between CertManager and ClusterIssuer components
+	if err := convertCertificateToClusterIssuerV1Beta1(effectiveCR); err != nil {
+		return nil, err
 	}
+
 	return effectiveCR, nil
 }

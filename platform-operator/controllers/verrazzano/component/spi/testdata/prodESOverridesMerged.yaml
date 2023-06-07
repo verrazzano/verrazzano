@@ -74,6 +74,13 @@ spec:
                             app: webhook
                         topologyKey: kubernetes.io/hostname
                       weight: 100
+    certManagerWebhookOCI:
+      enabled: false
+    clusterIssuer:
+      enabled: true
+      clusterResourceNamespace: "cert-manager"
+      ca:
+        secretName: "verrazzano-ca-certificate-secret"
     clusterOperator:
       enabled: true
     coherenceOperator:
@@ -127,6 +134,10 @@ spec:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
       elasticsearchSecret: verrazzano-es-internal
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: true
     ingress:
@@ -312,5 +323,5 @@ spec:
       enabled: true
     argoCD:
       enabled: false
-    capi:
+    clusterAPI:
       enabled: false

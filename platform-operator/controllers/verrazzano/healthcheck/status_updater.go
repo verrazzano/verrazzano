@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package healthcheck
@@ -83,7 +83,7 @@ func (v *VerrazzanoStatusUpdater) Start() {
 					return
 				}
 				if err := v.doUpdate(event); err != nil {
-					v.logger.Errorf("%v", err)
+					v.logger.Errorf("Error updating component status: %v", err)
 				}
 			}
 		}()

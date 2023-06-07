@@ -50,5 +50,5 @@ spec:
       enabled: true
     thanos:
       enabled: true
-    capi:
+    clusterAPI:
       enabled: true

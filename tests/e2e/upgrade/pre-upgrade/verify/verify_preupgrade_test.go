@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
@@ -102,13 +103,34 @@ func updateConfigMap() {
 	}, waitTimeout, shortPollingInterval).Should(BeNil())
 }
 
+// 'It' Wrapper to only run spec if the VMI Prometheus is installed
+func WhenVmiPrometheusInstalledIt(description string, f func()) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.It(description, func() {
+			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		})
+	}
+	notSupported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		t.It(description, func() {
+			Fail(fmt.Sprintf("Failed to check Verrazzano version less than 1.4.0: %s", err.Error()))
+		})
+	}
+	if notSupported {
+		t.Logs.Infof("Skipping check '%v', the VMI Prometheus is not installed", description)
+	} else {
+		t.It(description, f)
+	}
+}
+
 var _ = t.Describe("Update prometheus configmap", Label("f:platform-lcm.upgrade", "f:observability.monitoring.prom"), func() {
 	// Verify that prometheus configmap is updated
 	// GIVEN the prometheus configmap is created
 	// WHEN the upgrade has not started and vmo pod is not restarted
 	// THEN the file updated prometheus configmap contains updated scrape interval and test job
 	t.Context("check prometheus configmap", func() {
-		t.It("before upgrade", func() {
+		WhenVmiPrometheusInstalledIt("before upgrade", func() {
 			Eventually(func() bool {
 				_, scrapeConfigs, _, err := pkg.GetPrometheusConfig()
 				if err != nil {
