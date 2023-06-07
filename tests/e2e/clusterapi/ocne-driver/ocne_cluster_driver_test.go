@@ -357,18 +357,21 @@ func isClusterActive(clusterName string) (bool, error) {
 	t.Logs.Info("All CAPI clusters:")
 	t.Logs.Info((&response.StandardOut).String())
 
+	cmdArgs  = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Info("All management clusters:")
 	t.Logs.Info((&response.StandardOut).String())
 
+	cmdArgs  = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Info("All provisioning clusters:")
 	t.Logs.Info((&response.StandardOut).String())
 
+	cmdArgs  = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
