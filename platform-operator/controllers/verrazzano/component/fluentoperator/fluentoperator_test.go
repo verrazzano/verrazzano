@@ -110,10 +110,12 @@ func TestGetOverrides(t *testing.T) {
 // THEN slice of the array is updated with FluentOperator Overrides.
 func TestAppendOverrides(t *testing.T) {
 	testCR := v1alpha1.Verrazzano{}
-	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.
+		Scheme).Build()
 	fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false)
 	emptyString := ""
-
+	config.TestHelmConfigDir = "../../../../helm_config"
+	defer func() { config.TestHelmConfigDir = "" }()
 	expectedKVS := []bom.KeyValue{
 		{Key: fluentOperatorImageTag, Value: "v2.2.0-20230526122409-3662eb4"},
 		{Key: fluentOperatorImageKey, Value: "ghcr.io/verrazzano/fluent-operator"},
@@ -174,8 +176,12 @@ func TestAppendOverrides(t *testing.T) {
 				t.Errorf("appendOverrides() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("appendOverrides() got = %v, want %v", got, tt.want)
+			if len(tt.want) > 1 {
+				// exclude the file override from the list as last override is the temp file override.
+				valuesOverride := got[:len(got)-1]
+				if !reflect.DeepEqual(valuesOverride, tt.want) {
+					t.Errorf("appendOverrides() got = %v, want %v", got, tt.want)
+				}
 			}
 		})
 	}

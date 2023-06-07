@@ -39,5 +39,10 @@ spec:
 {{ toYaml .Values.system.httpPassword | indent 6 }}
     {{- end}}
     suppressTypeName: true
+    {{- if .Values.system.tls.enabled }}
+    tls:
+      caFile: {{ .Values.system.tls.caFile }}
+      crtFile: {{ .Values.system.tls.crtFile }}
+    {{- end }}
 {{- end }}
 {{ end -}}
