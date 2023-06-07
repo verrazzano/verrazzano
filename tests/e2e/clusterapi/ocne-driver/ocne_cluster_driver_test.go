@@ -6,9 +6,9 @@ package ocnedriver
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -170,17 +170,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	var cmd helpers.BashCommand
-	var cmdArgs []string
-	url := fmt.Sprintf("%s/meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", rancherURL, cloudCredentialID, compartmentID, region)
-	cmdArgs = append(cmdArgs, "curl", "-k", "--location", "--request", "POST")
-	cmdArgs = append(cmdArgs, url)
-	cmdArgs = append(cmdArgs, "--header", strconv.Quote("Content-Type: application/json"))
-	cmdArgs = append(cmdArgs, "--header", strconv.Quote(fmt.Sprintf("Authorization: Bearer %s", helpers.GetRancherLoginToken(t.Logs))))
-	cmdArgs = append(cmdArgs, "--data", "''")
-	cmd.CommandArgs = cmdArgs
-	response := helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ Fetch Node images =  %s +++", (&response.StandardOut).String())
+	debug()
 
 })
 var _ = BeforeSuite(beforeSuite)
@@ -443,4 +433,31 @@ func setupRequest(rancherBaseURL, urlPath string) (string, string) {
 	requestURL := fmt.Sprintf("%s/%s", rancherBaseURL, urlPath)
 	t.Logs.Infof("requestURL: %s", requestURL)
 	return requestURL, adminToken
+}
+
+func debug() {
+	url := fmt.Sprintf("%s/meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", rancherURL, cloudCredentialID, compartmentID, region)
+	method := "POST"
+	payload := strings.NewReader(``)
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", helpers.GetRancherLoginToken(t.Logs)))
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
 }
