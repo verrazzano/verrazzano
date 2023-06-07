@@ -1211,6 +1211,8 @@ func TestPostUninstall(t *testing.T) {
 		},
 	).Build()
 
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	defer func() { config.TestThirdPartyManifestDir = "" }()
 	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	assert.NoError(t, iComp.PostUninstall(compContext))

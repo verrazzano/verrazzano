@@ -115,43 +115,56 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 	}
 }
 
+// convertFluentbitOpensearchOutputFromV1Beta1 converts the v1beta1 FluentbitOpensearchOutputComponent to v1alpha1 FluentbitOpensearchOutputComponent
+func convertFluentbitOpensearchOutputFromV1Beta1(in *v1beta1.FluentbitOpensearchOutputComponent) *FluentbitOpensearchOutputComponent {
+	if in == nil {
+		return nil
+	}
+	return &FluentbitOpensearchOutputComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
 func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 	return ComponentSpec{
-		CertManager:            convertCertManagerFromV1Beta1(in.CertManager),
-		ClusterIssuer:          convertClusterIssuerFromV1Beta1(in.ClusterIssuer),
-		CertManagerWebhookOCI:  convertCertManagerWebhookOCIFromV1Beta1(in.CertManagerWebhookOCI),
-		CoherenceOperator:      convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
-		ApplicationOperator:    convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
-		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
-		OAM:                    convertOAMFromV1Beta1(in.OAM),
-		Console:                convertConsoleFromV1Beta1(in.Console),
-		ClusterOperator:        convertClusterOperatorFromV1Beta1(in.ClusterOperator),
-		DNS:                    convertDNSFromV1Beta1(in.DNS),
-		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
-		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
-		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		Ingress:                convertIngressNGINXFromV1Beta1(in.IngressNGINX),
-		Istio:                  convertIstioFromV1Beta1(in.Istio),
-		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
-		Kiali:                  convertKialiFromV1Beta1(in.Kiali),
-		Keycloak:               convertKeycloakFromV1Beta1(in.Keycloak),
-		Kibana:                 convertOSDFromV1Beta1(in.OpenSearchDashboards),
-		KubeStateMetrics:       convertKubeStateMetricsFromV1Beta1(in.KubeStateMetrics),
-		MySQLOperator:          convertMySQLOperatorFromV1Beta1(in.MySQLOperator),
-		Prometheus:             convertPrometheusFromV1Beta1(in.Prometheus),
-		PrometheusAdapter:      convertPrometheusAdapterFromV1Beta1(in.PrometheusAdapter),
-		PrometheusNodeExporter: convertPrometheusNodeExporterFromV1Beta1(in.PrometheusNodeExporter),
-		PrometheusOperator:     convertPrometheusOperatorFromV1Beta1(in.PrometheusOperator),
-		PrometheusPushgateway:  convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
-		Rancher:                convertRancherFromV1Beta1(in.Rancher),
-		RancherBackup:          convertRancherBackupFromV1Beta1(in.RancherBackup),
-		Thanos:                 convertThanosFromV1Beta1(in.Thanos),
-		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
-		Velero:                 convertVeleroFromV1Beta1(in.Velero),
-		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
-		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
-		ClusterAPI:             convertClusterAPIFromV1Beta1(in.ClusterAPI),
-		ClusterAgent:           convertClusterAgentFromV1Beta1(in.ClusterAgent),
+		CertManager:               convertCertManagerFromV1Beta1(in.CertManager),
+		ClusterIssuer:             convertClusterIssuerFromV1Beta1(in.ClusterIssuer),
+		CertManagerWebhookOCI:     convertCertManagerWebhookOCIFromV1Beta1(in.CertManagerWebhookOCI),
+		CoherenceOperator:         convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
+		ApplicationOperator:       convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
+		AuthProxy:                 convertAuthProxyFromV1Beta1(in.AuthProxy),
+		OAM:                       convertOAMFromV1Beta1(in.OAM),
+		Console:                   convertConsoleFromV1Beta1(in.Console),
+		ClusterOperator:           convertClusterOperatorFromV1Beta1(in.ClusterOperator),
+		DNS:                       convertDNSFromV1Beta1(in.DNS),
+		Elasticsearch:             convertOpenSearchFromV1Beta1(in.OpenSearch),
+		Fluentd:                   convertFluentdFromV1Beta1(in.Fluentd),
+		FluentOperator:            convertFluentOperatorFromV1Beta1(in.FluentOperator),
+		FluentbitOpensearchOutput: convertFluentbitOpensearchOutputFromV1Beta1(in.FluentbitOpensearchOutput),
+		Grafana:                   convertGrafanaFromV1Beta1(in.Grafana),
+		Ingress:                   convertIngressNGINXFromV1Beta1(in.IngressNGINX),
+		Istio:                     convertIstioFromV1Beta1(in.Istio),
+		JaegerOperator:            convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
+		Kiali:                     convertKialiFromV1Beta1(in.Kiali),
+		Keycloak:                  convertKeycloakFromV1Beta1(in.Keycloak),
+		Kibana:                    convertOSDFromV1Beta1(in.OpenSearchDashboards),
+		KubeStateMetrics:          convertKubeStateMetricsFromV1Beta1(in.KubeStateMetrics),
+		MySQLOperator:             convertMySQLOperatorFromV1Beta1(in.MySQLOperator),
+		Prometheus:                convertPrometheusFromV1Beta1(in.Prometheus),
+		PrometheusAdapter:         convertPrometheusAdapterFromV1Beta1(in.PrometheusAdapter),
+		PrometheusNodeExporter:    convertPrometheusNodeExporterFromV1Beta1(in.PrometheusNodeExporter),
+		PrometheusOperator:        convertPrometheusOperatorFromV1Beta1(in.PrometheusOperator),
+		PrometheusPushgateway:     convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
+		Rancher:                   convertRancherFromV1Beta1(in.Rancher),
+		RancherBackup:             convertRancherBackupFromV1Beta1(in.RancherBackup),
+		Thanos:                    convertThanosFromV1Beta1(in.Thanos),
+		WebLogicOperator:          convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
+		Velero:                    convertVeleroFromV1Beta1(in.Velero),
+		Verrazzano:                convertVerrazzanoFromV1Beta1(in.Verrazzano),
+		ArgoCD:                    convertArgoCDFromV1Beta1(in.ArgoCD),
+		ClusterAPI:                convertClusterAPIFromV1Beta1(in.ClusterAPI),
+		ClusterAgent:              convertClusterAgentFromV1Beta1(in.ClusterAgent),
 	}
 }
 
@@ -364,6 +377,17 @@ func convertFluentdFromV1Beta1(in *v1beta1.FluentdComponent) *FluentdComponent {
 		ElasticsearchSecret: in.OpenSearchSecret,
 		OCI:                 convertOCILoggingConfigurationFromV1Beta1(in.OCI),
 		InstallOverrides:    convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+// // convertFluentOperatorFromV1Beta1 converts the v1beta1 FluentOperatorComponent to v1alpha1 FluentOperatorComponent
+func convertFluentOperatorFromV1Beta1(in *v1beta1.FluentOperatorComponent) *FluentOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &FluentOperatorComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 

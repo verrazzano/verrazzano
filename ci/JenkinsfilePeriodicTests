@@ -499,6 +499,11 @@ pipeline {
             }
         }
         stage('Release Candidate Validation Checks') {
+            when {
+                allOf {
+                    expression { return runTests() }
+                }
+            }
             steps {
                 script {
                     releaseValidationChecks()
@@ -508,6 +513,11 @@ pipeline {
         stage('Update Last Clean Periodic Test') {
             environment {
                 GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            when {
+                allOf {
+                    expression { return runTests() }
+                }
             }
             steps {
                 script {
