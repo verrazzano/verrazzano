@@ -327,7 +327,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-                    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             sh """
                 if [ "${keepOKEClusterOnFailure}" == "false" ]; then
