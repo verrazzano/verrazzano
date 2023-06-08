@@ -7,13 +7,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
@@ -32,7 +33,7 @@ import (
 const (
 	shortWaitTimeout             = 5 * time.Minute
 	shortPollingInterval         = 10 * time.Second
-	waitTimeout                  = 120 * time.Minute
+	waitTimeout                  = 60 * time.Minute
 	pollingInterval              = 30 * time.Second
 	clusterName                  = "strudel2"
 	createClusterPayloadTemplate = `{
