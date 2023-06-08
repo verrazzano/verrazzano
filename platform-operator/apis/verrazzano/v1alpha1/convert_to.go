@@ -402,7 +402,7 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 	if src.Storage != nil {
 		dst.Storage = src.Storage
 	}
-	if src.Replicas > 0 {
+	if *src.Replicas > 0 {
 		dst.Replicas = src.Replicas
 	}
 	if src.Resources != nil {
@@ -450,7 +450,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 	for _, arg := range args {
 		switch arg.Name {
 		case masterNodeReplicas:
-			if err := setIntValue(&masterNode.Replicas, arg); err != nil {
+			if err := setIntValue(masterNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case masterNodeMemory:
@@ -462,7 +462,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 				Size: arg.Value,
 			}
 		case dataNodeReplicas:
-			if err := setIntValue(&dataNode.Replicas, arg); err != nil {
+			if err := setIntValue(dataNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case dataNodeMemory:
@@ -474,7 +474,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 				Size: arg.Value,
 			}
 		case ingestNodeReplicas:
-			if err := setIntValue(&ingestNode.Replicas, arg); err != nil {
+			if err := setIntValue(ingestNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case ingestNodeMemory:
@@ -486,7 +486,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 
 	nodes := map[string]v1beta1.OpenSearchNode{}
 	addNode := func(node *v1beta1.OpenSearchNode) {
-		if node.Replicas > 0 {
+		if *node.Replicas > 0 {
 			nodes[node.Name] = *node
 		}
 	}

@@ -5,6 +5,7 @@ package spi
 import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -161,7 +162,7 @@ var noneElasticSearchOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: common.Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -295,7 +296,7 @@ var devElasticSearchOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: common.Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -401,7 +402,7 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: common.Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -413,7 +414,7 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-data",
-						Replicas: 6,
+						Replicas: common.Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -425,7 +426,7 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-ingest",
-						Replicas: 6,
+						Replicas: common.Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -450,7 +451,7 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: common.Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -462,7 +463,7 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-data",
-						Replicas: 6,
+						Replicas: common.Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -474,7 +475,7 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-ingest",
-						Replicas: 6,
+						Replicas: common.Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -572,19 +573,19 @@ var prodNoStorageOSOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 0,
+						Replicas: common.Int32Ptr(0),
 					},
 					{
 						Name:     "es-data",
-						Replicas: 0,
+						Replicas: common.Int32Ptr(0),
 					},
 					{
 						Name:     "es-ingest",
-						Replicas: 0,
+						Replicas: common.Int32Ptr(0),
 					},
 					{
 						Name:     "custom",
-						Replicas: 3,
+						Replicas: common.Int32Ptr(3),
 						Roles: []vmov1.NodeRole{
 							vmov1.DataRole,
 							vmov1.IngestRole,

@@ -135,9 +135,9 @@ func getNodeRoleCounts(opensearch *v1beta1.OpenSearchComponent) (map[vmov1.NodeR
 	totalNodes := int32(0)
 	for _, group := range opensearch.Nodes {
 		for _, role := range group.Roles {
-			numberNodes[role] += group.Replicas
+			numberNodes[role] += *group.Replicas
 		}
-		totalNodes += group.Replicas
+		totalNodes += *group.Replicas
 	}
 	return numberNodes, totalNodes
 }
