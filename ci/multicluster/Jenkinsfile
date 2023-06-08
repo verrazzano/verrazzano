@@ -154,7 +154,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-multicluster.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_MINIMAL = "{GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-minimal.yaml"
+        INSTALL_CONFIG_FILE_MINIMAL = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-minimal.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -363,7 +363,7 @@ pipeline {
                                     steps {
                                         script {
                                             configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
-                                            configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", params.ACME_ENVIRONMENT)
+                                            configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -373,14 +373,14 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
@@ -796,7 +796,7 @@ def installVerrazzano() {
         def verrazzanoInstallStages = [:]
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            def installerPath="${KUBECONFIG_DIR}/${count}/${minimumFileName}"
+            def installerPath="${KUBECONFIG_DIR}/${count}/${minimalFileName}"
             def key = "vz-mgd-${count-1}"
             if (count == 1) {
                 key = "vz-admin"
@@ -1109,7 +1109,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
     }
 }
 
-def configureMinimumInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
+def configureMinimalInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
         // Concatenate the variable args into a single string
         String allArgs = ""
@@ -1119,7 +1119,7 @@ def configureMinimumInstallers(installResourceTemplate, configProcessorScript, S
 
         // start at 2 to skip the admin cluster
         for(int count=2; count<=clusterCount; count++) {
-            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimumFileName}"
+            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimalFileName}"
             def installProfile = env.NONE_PROFILE
             def envName = "mgd${count-1}"
             sh """
