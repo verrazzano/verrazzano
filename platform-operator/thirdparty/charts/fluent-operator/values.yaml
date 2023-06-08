@@ -83,6 +83,10 @@ fluentbit:
   additionalVolumes: []
   # Pod volumes to mount into the container's filesystem.
   additionalVolumesMounts: []
+  # Environment variables that can be passed to fluentbit pods
+  envVars: []
+  #  - name: FOO
+  #    value: "bar"
 
   # Remove the above empty volumes and volumesMounts, and then set additionalVolumes and additionalVolumesMounts as below if you want to collect node exporter metrics
   # additionalVolumes:

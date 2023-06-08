@@ -74,6 +74,7 @@ pipeline {
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
+        booleanParam (description: 'Whether to skip the VZ install in the prepare environment script', name: 'SKIP_VERRAZZANO_INSTALL_PARAM', defaultValue: false)
     }
 
     environment {
@@ -139,6 +140,8 @@ pipeline {
 
         // how many nodes in the KIND cluster
         KIND_NODE_COUNT = 3
+
+        SKIP_VERRAZZANO_INSTALL = "${params.SKIP_VERRAZZANO_INSTALL_PARAM}"
     }
 
     stages {
@@ -225,10 +228,24 @@ pipeline {
         stage('Acceptance Tests') {
 
             stages {
+                stage('VZ CLI Custom Resource Validation Tests') {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                    }
+                    steps {
+                        script{
+                            if (params.SKIP_VERRAZZANO_INSTALL_PARAM == true) {
+                                runCustomResourceValidation()
+                            }
+                        }
+                    }
+                }
                 stage('Prepare AT environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        SKIP_VERRAZZANO_INSTALL = false
                     }
                     steps {
                         sh """
@@ -997,3 +1014,13 @@ def scriptForPrepareATEnvironmentV1alpha1(){
         ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
     """
 }
+
+def runCustomResourceValidation(){
+    sh """
+       cd ${GO_REPO_PATH}/verrazzano
+       ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+       oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
+       ci/scripts/validate_custom_resource.sh ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml ${WORKSPACE}/downloaded-vpo.yaml
+    """
+}
+
