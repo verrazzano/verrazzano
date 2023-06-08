@@ -652,7 +652,8 @@ type CapiProvider struct {
 
 // OCNEProvider configuration
 type OCNEProvider struct {
-	// Version is the OCNE version, which specifies the configuration for the bootstrap and controlPlane
+	// Version is the OCNE version, which specifies the configuration to derive the values for
+	// bootstrap and controlPlane.
 	// +optional
 	Version string `json:"version,omitempty"`
 
@@ -671,7 +672,7 @@ type OCNEProvider struct {
 // versions of builtin provider components are used.
 type DefaultProviders struct {
 	// +optional
-	OCNE OCNEProvider `json:"OCNE,omitempty"`
+	OCNE OCNEProvider `json:"ocne,omitempty"`
 
 	// Core is the CAPI controller manager image
 	// +optional
@@ -683,16 +684,16 @@ type DefaultProviders struct {
 }
 
 type ClusterAPIComponentGlobal struct {
-	// Registry to pull the images from
+	// Registry to pull the provider images from.
 	// +optional
 	Registry string `json:"registry,omitempty"`
 
 	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling
-	// any of the images specified in the ClusterAPIComponent. The default is to use the global image pull secret settings.
+	// the provider images.
 	// +optional
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
-	// PullPolicy is the image pull policy.
+	// PullPolicy is the image pull policy for pulling provider images.
 	// +optional
 	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
 }
@@ -708,7 +709,7 @@ type ClusterAPIComponent struct {
 
 	// DefaultProviders is the set of builtin providers.
 	// +optional
-	DefaultProviders DefaultProviders `json:"DefaultProviders,omitempty"`
+	DefaultProviders DefaultProviders `json:"defaultProviders,omitempty"`
 }
 
 // ClusterIssuerComponent configures the Verrazzano ClusterIssuer
