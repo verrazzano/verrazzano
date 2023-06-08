@@ -14,8 +14,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -466,5 +464,4 @@ func debug() {
 		fmt.Println(err)
 		return
 	}
-	spew.Dump(string(body))
 }
