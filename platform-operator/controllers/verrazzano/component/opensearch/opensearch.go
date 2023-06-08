@@ -56,7 +56,7 @@ func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
 	objects := &ready.AvailabilityObjects{}
 	if vzcr.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
 		for _, node := range vz.Spec.Components.Elasticsearch.Nodes {
-			if node.Replicas < 1 {
+			if *node.Replicas < 1 {
 				continue
 			}
 			nodeControllerName := getNodeControllerName(node)
@@ -81,7 +81,7 @@ func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
 }
 
 func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix string) bool {
-	if node.Replicas < 1 {
+	if *node.Replicas < 1 {
 		return true
 	}
 	nodeControllerName := getNodeControllerName(node)
@@ -91,7 +91,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 		return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: ComponentNamespace,
-		}}, node.Replicas, prefix)
+		}}, *node.Replicas, prefix)
 	}
 
 	// Data nodes have N = node.Replicas number of deployment objects.
@@ -103,7 +103,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 		Name:      nodeControllerName,
 		Namespace: ComponentNamespace,
-	}}, node.Replicas, prefix)
+	}}, *node.Replicas, prefix)
 }
 
 func getNodeControllerName(node vzapi.OpenSearchNode) string {
@@ -113,7 +113,7 @@ func getNodeControllerName(node vzapi.OpenSearchNode) string {
 func dataDeploymentObjectKeys(node vzapi.OpenSearchNode, nodeControllerName string) []types.NamespacedName {
 	var dataDeployments []types.NamespacedName
 	var i int32
-	for i = 0; i < node.Replicas; i++ {
+	for i = 0; i < *node.Replicas; i++ {
 		dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
 		dataDeployments = append(dataDeployments, types.NamespacedName{
 			Name:      dataDeploymentName,
@@ -139,7 +139,7 @@ func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 			for _, role := range node.Roles {
 				if role == nodeType {
-					replicas += node.Replicas
+					replicas += *node.Replicas
 				}
 			}
 		}

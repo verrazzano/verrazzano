@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -354,15 +355,15 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Nodes: []vzapi.OpenSearchNode{
 				{
 					Name:     "es-master",
-					Replicas: 2,
+					Replicas: common.Int32Ptr(2),
 				},
 				{
 					Name:     "es-data",
-					Replicas: 2,
+					Replicas: common.Int32Ptr(2),
 				},
 				{
 					Name:     "es-ingest",
-					Replicas: 2,
+					Replicas: common.Int32Ptr(2),
 				},
 			},
 		},
@@ -388,7 +389,7 @@ func TestFindESReplicas(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 4, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(4), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(7), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(8), Roles: []vmov1.NodeRole{"ingest"}}},
 				},
 			},
 		},
@@ -430,7 +431,7 @@ func TestNodesToObjectKeys(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"ingest"}}},
 				},
 			},
 		},
@@ -457,7 +458,7 @@ func TestIsSingleDataNodeCluster(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 4, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(4), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(7), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(8), Roles: []vmov1.NodeRole{"ingest"}}},
 				},
 			},
 		},
@@ -579,7 +580,7 @@ func TestIsOSNodeReady(t *testing.T) {
 	).Build()
 	masterNode := vzapi.OpenSearchNode{
 		Name:     "es-master",
-		Replicas: 1,
+		Replicas: common.Int32Ptr(1),
 		Roles: []vmov1.NodeRole{
 			vmov1.MasterRole,
 		},
@@ -587,7 +588,7 @@ func TestIsOSNodeReady(t *testing.T) {
 
 	dataNode := vzapi.OpenSearchNode{
 		Name:     "es-data",
-		Replicas: 2,
+		Replicas: common.Int32Ptr(2),
 		Roles: []vmov1.NodeRole{
 			vmov1.DataRole,
 		},

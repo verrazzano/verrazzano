@@ -48,7 +48,7 @@ func createVZ(opensearch *vzapi.ElasticsearchComponent) *vzapi.Verrazzano {
 func createNG(name string, replicas int32, roles []vmov1.NodeRole) vzapi.OpenSearchNode {
 	return vzapi.OpenSearchNode{
 		Name:     name,
-		Replicas: replicas,
+		Replicas: &replicas,
 		Roles:    roles,
 	}
 }

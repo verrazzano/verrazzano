@@ -413,7 +413,7 @@ func TestIsMultiNodeCluster(t *testing.T) {
 	multiNodeVZ := mkVZ(true)
 	multiNodeVZ.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
 		{
-			Replicas: 3,
+			Replicas: Int32Ptr(3),
 		},
 	}
 	var tests = []struct {
