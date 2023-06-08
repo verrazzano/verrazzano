@@ -1121,6 +1121,7 @@ def configureMinimumInstallers(installResourceTemplate, configProcessorScript, S
         for(int count=2; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimumFileName}"
             def installProfile = env.NONE_PROFILE
+            def envName = "mgd${count-1}"
             sh """
                 cd ${GO_REPO_PATH}/verrazzano
                 # Copy the template config over for the mgd cluster profile configuration
