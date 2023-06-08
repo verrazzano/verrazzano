@@ -1077,30 +1077,6 @@ def runGinkgoAdmin(testSuitePath) {
     """
 }
 
-def configureMinimumInstallers(installResourceTemplate, String... extraArgs) {
-    script {
-        // Concatenate the variable args into a single string
-        String allArgs = ""
-        extraArgs.each { allArgs += it + " " }
-
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-
-        // start at 2 to skip the admin cluster
-        for(int count=2; count<=clusterCount; count++) {
-            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimumFileName}"
-            def installProfile = env.NONE_PROFILE
-            sh """
-                mkdir -p "${KUBECONFIG_DIR}/${count}"
-                export PATH=${HOME}/go/bin:${PATH}
-                cd ${GO_REPO_PATH}/verrazzano
-                # Copy the template config over for the mgd cluster profile configuration
-                cp $installResourceTemplate $destinationPath
-                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $allArgs
-            """
-        }
-    }
-}
-
 // Configure the Admin and Managed cluster installer custom resources
 def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
@@ -1124,6 +1100,28 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
             sh """
                 mkdir -p "${KUBECONFIG_DIR}/${count}"
                 export PATH=${HOME}/go/bin:${PATH}
+                cd ${GO_REPO_PATH}/verrazzano
+                # Copy the template config over for the mgd cluster profile configuration
+                cp $installResourceTemplate $destinationPath
+                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $allArgs
+            """
+        }
+    }
+}
+
+def configureMinimumInstallers(installResourceTemplate, String... extraArgs) {
+    script {
+        // Concatenate the variable args into a single string
+        String allArgs = ""
+        extraArgs.each { allArgs += it + " " }
+
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+
+        // start at 2 to skip the admin cluster
+        for(int count=2; count<=clusterCount; count++) {
+            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimumFileName}"
+            def installProfile = env.NONE_PROFILE
+            sh """
                 cd ${GO_REPO_PATH}/verrazzano
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath
