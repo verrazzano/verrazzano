@@ -14,6 +14,7 @@ Component version updates:
 - WebLogic Kubernetes Operator v4.0.6
 - WebLogic Monitoring Exporter v2.1.3
 - Jaeger v1.42.0
+- NGINX Ingress Controller v1.7.1
 - Prometheus Operator v0.64.1
 - Prometheus v2.44.0
 - kube-state-metrics v2.8.2
