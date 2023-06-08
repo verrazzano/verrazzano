@@ -6,10 +6,9 @@ package rancher
 import (
 	"context"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,6 +53,16 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 		return err
 	}
 	if isCAIssuer {
+		// Only create the tls-ca secret on the first pass; after the initial creation the secret controller will handle any upates
+		// to it based on updates to verrazzano-system/verrazzano-tls
+		//if err := c.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecretName, Namespace: common.CattleSystem}, &v1.Secret{}); err != nil {
+		//	if !errors.IsNotFound(err) {
+		//		return err
+		//	}
+		//	log.Progressf("Rancher private CA secret")
+		//	return nil
+		//}
+		//log.Progressf("Creating Rancher private CA secret")
 		caSecretNamespace := clusterIssuer.ClusterResourceNamespace
 		caSecretName := clusterIssuer.CA.SecretName
 		namespacedName := types.NamespacedName{
@@ -79,7 +88,7 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 				Name:      rancherTLSSecretName,
 			},
 		}
-		log.Debugf("Copying default Verrazzano secret to Rancher namespace")
+		log.Infof("Copying updating Rancher private CA bundle")
 		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
 			rancherCaSecret.Data = map[string][]byte{
 				caCertsPem: caSecret.Data[certKey],
