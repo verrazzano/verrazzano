@@ -378,10 +378,10 @@ func isClusterActive(clusterName string) (bool, error) {
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
 
-	clusterID, err := getClusterIDFromName(clusterName)
-	if err != nil {
-		t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-	}
+	// clusterID, err := getClusterIDFromName(clusterName)
+	// if err != nil {
+	// 	t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	// }
 
 	// cmdArgs = []string{}
 	// cmdArgs = append(cmdArgs, "clusterctl", "describe cluster", clusterID, "-n", clusterID)
