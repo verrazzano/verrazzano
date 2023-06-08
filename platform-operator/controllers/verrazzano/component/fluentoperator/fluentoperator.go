@@ -39,6 +39,7 @@ const (
 	tmpSuffix                  = "yaml"
 	tmpFileCreatePattern       = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern        = tmpFilePrefix + ".*\\." + tmpSuffix
+	adminClusterName           = "local"
 )
 
 var (
@@ -93,8 +94,10 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 	args := make(map[string]interface{})
+	args["clusterName"] = adminClusterName
 	if registrationSecret != nil {
 		args["isManagedCluster"] = true
+		args["clusterName"] = string(registrationSecret.Data[constants.ClusterNameData])
 		args["secretName"] = constants.MCRegistrationSecret
 	}
 	overridesFileName, err := generateOverrideFile(filepath.Join(config.GetHelmOverridesDir(), fluentOperatorOverrideFile), args)
