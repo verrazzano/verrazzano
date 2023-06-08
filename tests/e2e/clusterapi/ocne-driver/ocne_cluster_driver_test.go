@@ -464,4 +464,5 @@ func debug() {
 		fmt.Println(err)
 		return
 	}
+	t.Logs.Infof("+++ DEBUG = %v +++", body)
 }
