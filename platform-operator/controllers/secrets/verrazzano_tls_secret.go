@@ -72,7 +72,6 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		}
 		// Restart Rancher pod to have the updated TLS CA secret value reflected in the pod
 		if result == controllerutil.OperationResultUpdated {
-			r.log.Progress("Rancher private CA bundle updated, restarting Rancher pods")
 			if err := r.restartRancherPod(); err != nil {
 				return newRequeueWithDelay(), err
 			}
