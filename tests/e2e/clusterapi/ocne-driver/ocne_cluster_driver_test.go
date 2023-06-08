@@ -5,9 +5,7 @@ package ocnedriver
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -171,8 +169,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	debug()
-
+	Eventually(func() error {
+		return validateCloudCredential()
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 })
 var _ = BeforeSuite(beforeSuite)
 
@@ -410,6 +409,20 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
 }
 
+// Sends a test request to check that the cloud credential is confiugred properly
+func validateCloudCredential() error {
+	urlPath := fmt.Sprintf("meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", cloudCredentialID, compartmentID, region)
+	requestURL, adminToken := setupRequest(rancherURL, urlPath)
+	t.Logs.Infof("validateCloudCredential URL = %s", requestURL)
+	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
+		return err
+	}
+	t.Logs.Infof("Validate cloud credential response: %s", fmt.Sprint(res))
+	return nil
+}
+
 func replaceWhitespaceToLiteral(s string) string {
 	modified := strings.ReplaceAll(s, "\n", `\n`)
 	modified = strings.ReplaceAll(modified, "\t", `\t`)
@@ -434,35 +447,4 @@ func setupRequest(rancherBaseURL, urlPath string) (string, string) {
 	requestURL := fmt.Sprintf("%s/%s", rancherBaseURL, urlPath)
 	t.Logs.Infof("requestURL: %s", requestURL)
 	return requestURL, adminToken
-}
-
-func debug() {
-	url := fmt.Sprintf("%s/meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", rancherURL, cloudCredentialID, compartmentID, region)
-	t.Logs.Infof("URL = %s", url)
-	method := "POST"
-	payload := strings.NewReader(``)
-	client := &http.Client{}
-	client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	req, err := http.NewRequest(method, url, payload)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", helpers.GetRancherLoginToken(t.Logs)))
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	t.Logs.Infof("+++ DEBUG = %v +++", body)
 }
