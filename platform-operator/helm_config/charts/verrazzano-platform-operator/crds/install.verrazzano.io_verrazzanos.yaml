@@ -637,8 +637,87 @@ spec:
                     type: object
                   clusterAPI:
                     properties:
+                      defaultProviders:
+                        properties:
+                          core:
+                            properties:
+                              image:
+                                properties:
+                                  pullPolicy:
+                                    type: string
+                                  registry:
+                                    type: string
+                                  repository:
+                                    type: string
+                                  tag:
+                                    type: string
+                                type: object
+                            type: object
+                          oci:
+                            properties:
+                              image:
+                                properties:
+                                  pullPolicy:
+                                    type: string
+                                  registry:
+                                    type: string
+                                  repository:
+                                    type: string
+                                  tag:
+                                    type: string
+                                type: object
+                            type: object
+                          ocne:
+                            properties:
+                              bootstrap:
+                                properties:
+                                  image:
+                                    properties:
+                                      pullPolicy:
+                                        type: string
+                                      registry:
+                                        type: string
+                                      repository:
+                                        type: string
+                                      tag:
+                                        type: string
+                                    type: object
+                                type: object
+                              controlPlane:
+                                properties:
+                                  image:
+                                    properties:
+                                      pullPolicy:
+                                        type: string
+                                      registry:
+                                        type: string
+                                      repository:
+                                        type: string
+                                      tag:
+                                        type: string
+                                    type: object
+                                type: object
+                              version:
+                                type: string
+                            type: object
+                        type: object
                       enabled:
                         type: boolean
+                      global:
+                        properties:
+                          imagePullSecrets:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            type: array
+                          pullPolicy:
+                            type: string
+                          registry:
+                            type: string
+                        type: object
                     type: object
                   clusterAgent:
                     properties:
@@ -4660,8 +4739,87 @@ spec:
                     type: object
                   clusterAPI:
                     properties:
+                      defaultProviders:
+                        properties:
+                          core:
+                            properties:
+                              image:
+                                properties:
+                                  pullPolicy:
+                                    type: string
+                                  registry:
+                                    type: string
+                                  repository:
+                                    type: string
+                                  tag:
+                                    type: string
+                                type: object
+                            type: object
+                          oci:
+                            properties:
+                              image:
+                                properties:
+                                  pullPolicy:
+                                    type: string
+                                  registry:
+                                    type: string
+                                  repository:
+                                    type: string
+                                  tag:
+                                    type: string
+                                type: object
+                            type: object
+                          ocne:
+                            properties:
+                              bootstrap:
+                                properties:
+                                  image:
+                                    properties:
+                                      pullPolicy:
+                                        type: string
+                                      registry:
+                                        type: string
+                                      repository:
+                                        type: string
+                                      tag:
+                                        type: string
+                                    type: object
+                                type: object
+                              controlPlane:
+                                properties:
+                                  image:
+                                    properties:
+                                      pullPolicy:
+                                        type: string
+                                      registry:
+                                        type: string
+                                      repository:
+                                        type: string
+                                      tag:
+                                        type: string
+                                    type: object
+                                type: object
+                              version:
+                                type: string
+                            type: object
+                        type: object
                       enabled:
                         type: boolean
+                      global:
+                        properties:
+                          imagePullSecrets:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            type: array
+                          pullPolicy:
+                            type: string
+                          registry:
+                            type: string
+                        type: object
                     type: object
                   clusterAgent:
                     properties:
