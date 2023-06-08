@@ -646,15 +646,19 @@ type CapiProvider struct {
 	Image CapiProviderImage `json:"image,omitempty"`
 }
 
+// OCNEProvider configuration
 type OCNEProvider struct {
+	// Version is the OCNE version, which specifies the configuration for the bootstrap and controlPlane
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// Bootstrap is the bootstrap controller manager image
+	// Bootstrap is the bootstrap controller manager image.  If this information is provided it overrides
+	// any values derived from the version field.
 	// +optional
 	Bootstrap CapiProvider `json:"bootstrap,omitempty"`
 
-	// ControlPlane is the control plane controller manager image
+	// ControlPlane is the control plane controller manager image.  If this information is provided it
+	// overrides any values derived from the version field.
 	// +optional
 	ControlPlane CapiProvider `json:"controlPlane,omitempty"`
 }
