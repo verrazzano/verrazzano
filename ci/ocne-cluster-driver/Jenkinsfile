@@ -17,7 +17,7 @@ pipeline {
         skipDefaultCheckout true
         copyArtifactPermission('*');
         timestamps ()
-        timeout(time: 3, unit: 'HOURS')
+        timeout(time: 1, unit: 'HOURS')
     }
 
     agent {
@@ -479,7 +479,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo --timeout=3h -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- \
+            ginkgo --timeout=1h -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- \
                 --region="${env.TF_VAR_region}" \
                 --userID="${env.TF_VAR_user_id}" \
                 --tenancyID="${env.TF_VAR_tenancy_id}" \
