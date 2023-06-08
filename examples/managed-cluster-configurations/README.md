@@ -1,6 +1,7 @@
-# Verrazzano Managed Cluster Install Configuration
+# Verrazzano Managed Cluster Install Configurations
 
-These examples show some smaller footprint Verrazzano managed cluster install configurations.
+These examples show some additional, smaller footprint Verrazzano managed cluster install configurations besides the
+recommended `managed-cluster` profile.
 
 The `minimal.yaml` file is provided as an example of the smallest possible managed cluster configuration.
 
