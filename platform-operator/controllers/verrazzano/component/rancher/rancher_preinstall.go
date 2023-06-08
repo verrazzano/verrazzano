@@ -43,6 +43,16 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if isUsingCACertificate(cm) {
+		// Only create the tls-ca secret on the first pass; after the initial creation the secret controller will handle any upates
+		// to it based on updates to verrazzano-system/verrazzano-tls
+		//if err := c.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecretName, Namespace: common.CattleSystem}, &v1.Secret{}); err != nil {
+		//	if !errors.IsNotFound(err) {
+		//		return err
+		//	}
+		//	log.Progressf("Rancher private CA secret")
+		//	return nil
+		//}
+		//log.Progressf("Creating Rancher private CA secret")
 		// Using the default self-signed, or a Custom CA, copy the secret as Rancher needs it
 		caSecretNamespace := cm.Certificate.CA.ClusterResourceNamespace
 		caSecretName := cm.Certificate.CA.SecretName

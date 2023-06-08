@@ -10,12 +10,15 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	logcmn "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -32,6 +35,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -395,7 +400,15 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	}
 	log.Debugf("Patched Rancher ingress")
 
-	return nil
+	return r.checkRestartRequired(ctx)
+}
+
+func (r rancherComponent) Upgrade(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	if err := r.HelmComponent.Upgrade(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
+	}
+	return r.checkRestartRequired(ctx)
 }
 
 // IsReady component check
@@ -716,5 +729,46 @@ func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
 	if err = createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx, rancherUsername); err != nil {
 		return err
 	}
+	return nil
+}
+
+const rancherDeploymentName = "rancher"
+
+func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
+	if r.isRancherReady(ctx) {
+		// If the pods are not restarted by the install operation, do a rolling restart to pick up any changes
+		ctx.Log().Progressf("Restarting Rancher deployment")
+		if err := restartRancherDeployment(ctx.Log(), ctx.Client()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func restartRancherDeployment(log vzlog.VerrazzanoLogger, c client.Client) error {
+	deployment := appsv1.Deployment{}
+	if err := c.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
+		Name: rancherDeploymentName}, &deployment); err != nil {
+		if kerrs.IsNotFound(err) {
+			log.Debugf("Rancher deployment %s/%s not found, nothing to do",
+				vzconst.RancherSystemNamespace, rancherDeploymentName)
+			return nil
+		}
+		log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
+			vzconst.RancherSystemNamespace, rancherDeploymentName, err)
+		return err
+	}
+
+	// annotate the deployment to do a restart of the pod
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
+
+	if err := c.Update(context.TODO(), &deployment); err != nil {
+		return logcmn.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
+	}
+	log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+		deployment.Namespace, deployment.Name)
 	return nil
 }
