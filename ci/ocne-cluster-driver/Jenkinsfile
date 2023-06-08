@@ -17,7 +17,6 @@ pipeline {
         skipDefaultCheckout true
         copyArtifactPermission('*');
         timestamps ()
-        timeout(time: 1, unit: 'HOURS')
     }
 
     agent {
