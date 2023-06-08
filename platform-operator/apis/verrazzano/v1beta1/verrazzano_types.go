@@ -627,11 +627,15 @@ type PrometheusPushgatewayComponent struct {
 
 // CapiProviderImage is the configuration of a provider image
 type CapiProviderImage struct {
+	// Registry to pull the image from.  Overrides any global setting for registry.
+	// +optional
+	Registry string `json:"registry,omitempty"`
+
 	// Repository to pull the image from.
 	// +optional
 	Repository string `json:"repository,omitempty"`
 
-	// PullPolicy is the image pull policy.
+	// PullPolicy is the image pull policy.  Overrides any global setting for pull policy.
 	// +optional
 	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
 
@@ -679,6 +683,7 @@ type DefaultProviders struct {
 }
 
 type ClusterAPIComponentGlobal struct {
+	// Registry to pull the images from
 	// +optional
 	Registry string `json:"registry,omitempty"`
 
