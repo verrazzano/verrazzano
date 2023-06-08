@@ -363,7 +363,7 @@ pipeline {
                                     steps {
                                         script {
                                             configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
-                                            configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, params.ACME_ENVIRONMENT)
+                                            configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -373,14 +373,14 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, params.WILDCARD_DNS_DOMAIN)
+                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, params.WILDCARD_DNS_DOMAIN)
+                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
@@ -1109,7 +1109,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
     }
 }
 
-def configureMinimumInstallers(installResourceTemplate, String... extraArgs) {
+def configureMinimumInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
         // Concatenate the variable args into a single string
         String allArgs = ""
