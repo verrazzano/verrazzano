@@ -625,11 +625,81 @@ type PrometheusPushgatewayComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// CapiProviderImage is the configuration of a provider image
+type CapiProviderImage struct {
+	// Repository to pull the image from.
+	// +optional
+	Repository string `json:"repository,omitempty"`
+
+	// PullPolicy is the image pull policy.
+	// +optional
+	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
+
+	// Tag is the image tag to use.
+	// +optional
+	Tag string `json:"tag,omitempty"`
+}
+
+// CapiProvider is the configuration of a single provider image
+type CapiProvider struct {
+	// +optional
+	Image CapiProviderImage `json:"image,omitempty"`
+}
+
+type OCNEProvider struct {
+	// +optional
+	Version string `json:"version,omitempty"`
+
+	// Bootstrap is the bootstrap controller manager image
+	// +optional
+	Bootstrap CapiProvider `json:"bootstrap,omitempty"`
+
+	// ControlPlane is the control plane controller manager image
+	// +optional
+	ControlPlane CapiProvider `json:"controlPlane,omitempty"`
+}
+
+// DefaultProviders contains configuration information for customizing which
+// versions of builtin provider components are used.
+type DefaultProviders struct {
+	// +optional
+	OCNE OCNEProvider `json:"OCNE,omitempty"`
+
+	// Core is the CAPI controller manager image
+	// +optional
+	Core CapiProvider `json:"core,omitempty"`
+
+	// OCI is the CAPI OCI controller manager image
+	// +optional
+	OCI CapiProvider `json:"oci,omitempty"`
+}
+
+type ClusterAPIComponentGlobal struct {
+	// +optional
+	Registry string `json:"registry,omitempty"`
+
+	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling
+	// any of the images specified in the ClusterAPIComponent. The default is to use the global image pull secret settings.
+	// +optional
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+
+	// PullPolicy is the image pull policy.
+	// +optional
+	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
+}
+
 // ClusterAPIComponent specifies the Cluster API configuration.
 type ClusterAPIComponent struct {
 	// If true, then Cluster API Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+
+	// +optional
+	Global ClusterAPIComponentGlobal `json:"global,omitempty"`
+
+	// DefaultProviders is the set of builtin providers.
+	// +optional
+	DefaultProviders DefaultProviders `json:"DefaultProviders,omitempty"`
 }
 
 // ClusterIssuerComponent configures the Verrazzano ClusterIssuer
