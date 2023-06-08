@@ -260,7 +260,11 @@ func (in *ClusterAPIComponent) DeepCopyInto(out *ClusterAPIComponent) {
 		*out = new(bool)
 		**out = **in
 	}
-	in.Global.DeepCopyInto(&out.Global)
+	if in.Global != nil {
+		in, out := &in.Global, &out.Global
+		*out = new(ClusterAPIComponentGlobal)
+		(*in).DeepCopyInto(*out)
+	}
 	out.DefaultProviders = in.DefaultProviders
 }
 

@@ -719,12 +719,13 @@ type ClusterAPIComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 
+	// Global settings for Cluster API providers
 	// +optional
-	Global ClusterAPIComponentGlobal `json:"global,omitempty"`
+	Global *ClusterAPIComponentGlobal `json:"global,omitempty"`
 
 	// DefaultProviders is the set of builtin providers.
 	// +optional
-	DefaultProviders DefaultProviders `json:"defaultProviders,omitempty"`
+	DefaultProviders *DefaultProviders `json:"defaultProviders,omitempty"`
 }
 
 // CertManagerComponent specifies the cert-manager configuration.

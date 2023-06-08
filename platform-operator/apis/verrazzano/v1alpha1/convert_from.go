@@ -232,8 +232,28 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 		return nil
 	}
 	return &ClusterAPIComponent{
-		Enabled: in.Enabled,
+		Enabled:          in.Enabled,
+		Global:           convertClusterApiGlobalFromV1Beta1(in.Global),
+		DefaultProviders: convertClusterApiDefaultProviders(in.DefaultProviders),
 	}
+}
+
+func convertClusterApiGlobalFromV1Beta1(global *v1beta1.ClusterAPIComponentGlobal) *ClusterAPIComponentGlobal {
+	if global == nil {
+		return nil
+	}
+	return &ClusterAPIComponentGlobal{
+		Registry:         global.Registry,
+		ImagePullSecrets: global.ImagePullSecrets,
+		PullPolicy:       global.PullPolicy,
+	}
+}
+
+func convertClusterApiDefaultProviders(defaultProviders *v1beta1.DefaultProviders) *DefaultProviders {
+	if defaultProviders == nil {
+		return nil
+	}
+	return &DefaultProviders{}
 }
 
 func convertClusterAgentFromV1Beta1(in *v1beta1.ClusterAgentComponent) *ClusterAgentComponent {
