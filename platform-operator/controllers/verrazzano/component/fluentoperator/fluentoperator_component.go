@@ -60,6 +60,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
+			ImagePullSecretKeyname:    "operator.imagePullSecrets[0].name",
 			AppendOverridesFunc:       appendOverrides,
 			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   getOverrides,
