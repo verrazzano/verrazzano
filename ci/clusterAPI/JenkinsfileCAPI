@@ -180,23 +180,12 @@ pipeline {
         OCI_USER_ID = credentials('oci-user-ocid')
         OCI_CREDENTIALS_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_TENANCY_ID = credentials('oci-tenancy')
-        OCI_REGION = <change me>
-        export OCI_COMPARTMENT_ID=<change me>
-        export OCI_IMAGE_ID=<change me>
+        OCI_REGION = params.CAPI_CLUSTER_REGION
+        OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
 
-        export OCI_TENANCY_ID_B64="$(echo -n "$OCI_TENANCY_ID" | base64 | tr -d '\n')";
-        export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "$OCI_CREDENTIALS_FINGERPRINT" | base64 | tr -d '\n')";
-        export OCI_USER_ID_B64="$(echo -n "$OCI_USER_ID" | base64 | tr -d '\n')";
-        export OCI_REGION_B64="$(echo -n "$OCI_REGION" | base64 | tr -d '\n')";
-        export OCI_CREDENTIALS_KEY_B64=$(base64 < <path_to_private_key_file> | tr -d '\n')
-        export OCI_CREDENTIALS_KEY=$(awk -v ORS='\\n' '1' <path_to_private_key_file>);
-
-
-        export OCI_SSH_KEY=$(< <path_to_public_ssh_key_for_spinning_off_new_instances>);
-
-        export CONTROL_PLANE_MACHINE_COUNT=1;
-        export OCI_NODE_MACHINE_TYPE_OCPUS=4;
-        export OCI_NODE_BOOT_VOLUME=150;
+        CONTROL_PLANE_MACHINE_COUNT = 1
+        OCI_NODE_MACHINE_TYPE_OCPUS = 4
+        export OCI_NODE_BOOT_VOLUME = 150
         export OCI_VCN_ID=<change me>;
         export OCI_SUBNET_ID=<change me>;
         export OCI_SUBNET_CIDR=100.101.68.0/24;
@@ -348,7 +337,15 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        git clone https://github.com/verrazzano/cluster-api-provider-ocne.git && cd $_
+                        export OCI_IMAGE_ID=$(oci compute image list -c $COMPARTMENT_ID --operating-system "Oracle Linux" --operating-system-version "8" |
+                        jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1)
+                        export OCI_TENANCY_ID_B64="$(echo -n "$OCI_TENANCY_ID" | base64 | tr -d '\n')";
+                        export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "$OCI_CREDENTIALS_FINGERPRINT" | base64 | tr -d '\n')";
+                        export OCI_USER_ID_B64="$(echo -n "$OCI_USER_ID" | base64 | tr -d '\n')";
+                        export OCI_REGION_B64="$(echo -n "$OCI_REGION" | base64 | tr -d '\n')";
+                        export OCI_CREDENTIALS_KEY_B64=$(base64 < ${TF_VAR_api_private_key_path} | tr -d '\n')
+                        export OCI_CREDENTIALS_KEY=$(awk -v ORS='\\n' '1' ${TF_VAR_api_private_key_path});
+                        export OCI_SSH_KEY=$(< ${TF_VAR_ssh_public_key_path});
 
                         ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
                     """
