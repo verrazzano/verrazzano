@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,7 +130,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 			},
 			map[string]v1beta1.OpenSearchNode{
 				masterNodeName: {
-					Replicas: common.Int32Ptr(1),
+					Replicas: Int32Ptr(1),
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
@@ -176,7 +175,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 			map[string]v1beta1.OpenSearchNode{
 				masterNodeName: {
 					Name:      masterNodeName,
-					Replicas:  common.Int32Ptr(3),
+					Replicas:  Int32Ptr(3),
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.MasterRole},
 					Storage: &v1beta1.OpenSearchNodeStorage{
@@ -185,7 +184,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 				},
 				dataNodeName: {
 					Name:      dataNodeName,
-					Replicas:  common.Int32Ptr(3),
+					Replicas:  Int32Ptr(3),
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.DataRole},
 					Storage: &v1beta1.OpenSearchNodeStorage{
@@ -194,7 +193,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 				},
 				ingestNodeName: {
 					Name:      ingestNodeName,
-					Replicas:  common.Int32Ptr(2),
+					Replicas:  Int32Ptr(2),
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.IngestRole},
 				},

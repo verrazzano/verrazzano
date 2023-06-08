@@ -412,16 +412,19 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 
 func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSearchNode, error) {
 	masterNode := &v1beta1.OpenSearchNode{
-		Name:  masterNodeName,
-		Roles: []vmov1.NodeRole{vmov1.MasterRole},
+		Name:     masterNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.MasterRole},
+		Replicas: Int32Ptr(0),
 	}
 	dataNode := &v1beta1.OpenSearchNode{
-		Name:  dataNodeName,
-		Roles: []vmov1.NodeRole{vmov1.DataRole},
+		Name:     dataNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.DataRole},
+		Replicas: Int32Ptr(0),
 	}
 	ingestNode := &v1beta1.OpenSearchNode{
-		Name:  ingestNodeName,
-		Roles: []vmov1.NodeRole{vmov1.IngestRole},
+		Name:     ingestNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.IngestRole},
+		Replicas: Int32Ptr(0),
 	}
 	// Helper function set the value of an int from a string
 	// used to set the replica count of a node from an install arg
