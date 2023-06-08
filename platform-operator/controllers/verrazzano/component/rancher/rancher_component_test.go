@@ -214,7 +214,7 @@ func TestAppendCustomCAOverrides(t *testing.T) {
 		ClusterResourceNamespace: namespace,
 		SecretName:               secretName,
 	}
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzCustomCA, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
