@@ -13,6 +13,7 @@ def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 installerFileName = "install-verrazzano.yaml"
+minimumFileName = "minimal-verrazzano.yaml"
 
 pipeline {
     options {
@@ -124,6 +125,7 @@ pipeline {
         TEST_ENV = "${params.TEST_ENV}"
         MANAGED_CLUSTER_PROFILE = "${params.MANAGED_CLUSTER_PROFILE}"
         ADMIN_CLUSTER_PROFILE = "${params.ADMIN_CLUSTER_PROFILE}"
+        NONE_PROFILE = "none"
 
         // Find a better way to handle this
         // OKE_CLUSTER_VERSION = "${params.KUBERNETES_VERSION == '1.17' ? 'v1.17.13' : 'v1.18.10'}"
@@ -152,6 +154,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-multicluster.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_MINIMAL = "{GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-minimal.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -360,6 +363,7 @@ pipeline {
                                     steps {
                                         script {
                                             configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
+                                            configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -369,12 +373,14 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureMinimumInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
@@ -790,10 +796,11 @@ def installVerrazzano() {
         def verrazzanoInstallStages = [:]
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            def installerPath="${KUBECONFIG_DIR}/${count}/${minimumFileName}"
             def key = "vz-mgd-${count-1}"
             if (count == 1) {
                 key = "vz-admin"
+                installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
             }
             verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
         }
@@ -830,7 +837,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 # Update VZ CR to enable required components
-              ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
+                ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
 
                 echo "Installing the Verrazzano Platform Operator"
                 time ${VZ_COMMAND} install --manifests ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
@@ -1068,6 +1075,30 @@ def runGinkgoAdmin(testSuitePath) {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
     """
+}
+
+def configureMinimumInstallers(installResourceTemplate, String... extraArgs) {
+    script {
+        // Concatenate the variable args into a single string
+        String allArgs = ""
+        extraArgs.each { allArgs += it + " " }
+
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+
+        // start at 2 to skip the admin cluster
+        for(int count=2; count<=clusterCount; count++) {
+            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimumFileName}"
+            def installProfile = env.NONE_PROFILE
+            sh """
+                mkdir -p "${KUBECONFIG_DIR}/${count}"
+                export PATH=${HOME}/go/bin:${PATH}
+                cd ${GO_REPO_PATH}/verrazzano
+                # Copy the template config over for the mgd cluster profile configuration
+                cp $installResourceTemplate $destinationPath
+                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $allArgs
+            """
+        }
+    }
 }
 
 // Configure the Admin and Managed cluster installer custom resources
