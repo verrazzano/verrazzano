@@ -318,7 +318,7 @@ pipeline {
             script {
                 dumpK8sCluster('oke-acceptance-tests-cluster-snapshot')
             }
-
+            dumpK8sCluster('oke-acceptance-tests-cluster-snapshot')
             dumpVerrazzanoSystemPods()
             dumpCattleSystemPods()
             dumpCertManagerNamespaceLogs()
@@ -340,6 +340,7 @@ pipeline {
             """
        }
        failure {
+            dumpK8sCluster('oke-acceptance-tests-cluster-snapshot')
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
