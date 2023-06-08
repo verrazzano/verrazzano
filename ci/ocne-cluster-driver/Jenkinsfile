@@ -155,7 +155,7 @@ pipeline {
             steps {
                 script {
                     // EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    // setting this true to always collect full cluster dump
+                    // FIXME: setting this true to always collect full cluster dump
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = true
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
@@ -255,7 +255,7 @@ pipeline {
                 createImagePullSecrets()
             }
             post {
-                always {
+                failure {
                     script {
                         dumpK8sCluster('image-pull-secrets-cluster-dump')
                     }
@@ -282,6 +282,8 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml", allowEmptyArchive: true
+                }
+                failure {
                     script {
                         dumpK8sCluster('download-vpo-cluster-dump')
                     }
@@ -302,7 +304,7 @@ pipeline {
                 }
             }
             post {
-                always {
+                failure {
                     script {
                         dumpK8sCluster('setup-vz-config-cluster-dump')
                     }
@@ -317,10 +319,16 @@ pipeline {
                 """
             }
             post {
-                always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml", allowEmptyArchive: true
+                success {
                     script {
-                        dumpK8sCluster('verrazzano-install-cluster-dump')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-install-cluster-dump')
+                        }
+                    }
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('verrazzano-install-failure-cluster-dump')
                         sh """
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
                             ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/resources.log
