@@ -364,7 +364,7 @@ pipeline {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+        ${WORKSPACE}/ci/scripts/capture_cluster_snapshot.sh ${WORKSPACE}/${dumpDirectory}
     """
 }
 
