@@ -13,7 +13,7 @@ def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 installerFileName = "install-verrazzano.yaml"
-minimumFileName = "minimal-verrazzano.yaml"
+minimalFileName = "minimal-verrazzano.yaml"
 
 pipeline {
     options {
