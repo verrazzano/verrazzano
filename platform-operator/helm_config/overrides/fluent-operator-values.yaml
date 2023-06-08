@@ -45,3 +45,6 @@ fluentbit:
     kubernetes:
       labels: true
       annotations: true
+  envVars:
+    - name: CLUSTER_NAME
+      value: {{ .clusterName }}
