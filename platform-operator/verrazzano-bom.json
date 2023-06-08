@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-nginx",
-      "version": "v1.3.1",
+      "version": "v1.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230606170311-f093c099b",
+              "dashboard": "v2.7.2-20230608144732-d68027b48",
               "rancherUI": "v2.7.2-4/release-2.7.2",
               "ocneDriverVersion": "v0.6.0",
               "ocneDriverChecksum": "40ad9926fadd8e35b4954f5b1cd0a45a5d11226404b62e09108f8ce98f822f91",
-              "tag": "v2.7.3-20230607144740-3f0079604",
+              "tag": "v2.7.3-20230608145847-784f22f8f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230607144740-3f0079604"
+              "tag": "v2.7.3-20230608145847-784f22f8f"
             }
           ]
         },

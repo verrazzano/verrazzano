@@ -22,6 +22,10 @@ spec:
   namespaceFluentBitCfgSelector:
 {{ toYaml .Values.fluentbit.namespaceFluentBitCfgSelector | indent 4  }}
   {{- end }}
+{{- if .Values.fluentbit.envVars }}
+  envVars:
+{{ toYaml .Values.fluentbit.envVars | indent 4 }}
+{{- end }}
   tolerations:
     - operator: Exists
   affinity:
