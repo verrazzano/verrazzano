@@ -124,6 +124,18 @@ func TestIsUsingDefaultCACertificate(t *testing.T) {
 			vzDefaultCA.Spec.Components.CertManager,
 			true,
 		},
+		{
+			"Custom CA",
+			&vzapi.CertManagerComponent{
+				Certificate: vzapi.Certificate{
+					CA: vzapi.CA{
+						ClusterResourceNamespace: "customnamespace",
+						SecretName:               "customSecret",
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for _, tt := range tests {
