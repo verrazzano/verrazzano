@@ -389,7 +389,7 @@ pipeline {
                     steps {
                         script {
                             getVerrazzanoOperatorYaml()
-                         }
+                        }
                         installMinimalVerrazzano()
                     }
                     post {
@@ -432,6 +432,11 @@ pipeline {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
+                    }
+                }
+                stage ('Update Managed Clusters') {
+                    steps {
+                        updateManagedClusters()
                     }
                 }
                 stage ('Deploy Sample Application') {
@@ -811,24 +816,27 @@ def getVerrazzanoOperatorYaml() {
     }
 }
 
-// Install Verrazzano on each of the clusters
-def installVerrazzano() {
+// Update Verrazzano on each of the managed clusters
+def updateManagedClusters() {
     script {
-        // Create a dictionary of Verrazzano install steps to be executed in parallel
-        // - the first one will always be the Admin cluster
-        // - clusters 2-max are managed clusters
-        def verrazzanoInstallStages = [:]
+        def verrazzanoUpdateStages = [:]
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            def installerPath="${KUBECONFIG_DIR}/${count}/${minimalFileName}"
+        for(int count=2; count<=clusterCount; count++) {
             def key = "vz-mgd-${count-1}"
-            if (count == 1) {
-                key = "vz-admin"
-                installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-            }
-            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
+            def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            verrazzanoUpdateStages["${key}"] = updateVerrazzanoOnCluster(count, installerPath)
         }
-        parallel verrazzanoInstallStages
+        parallel verrazzanoUpdateStages
+    }
+}
+
+def updateVerrazzanoOnCluster(count, installerPath) {
+    return script {
+        sh """
+            export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
+            kubectl patch verrazzano my-verrazzano --patch-file ${installerPath}
+            kubectl wait -timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
+        """
     }
 }
 
