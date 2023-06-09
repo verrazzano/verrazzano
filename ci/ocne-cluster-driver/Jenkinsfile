@@ -252,13 +252,6 @@ pipeline {
             steps {
                 createImagePullSecrets()
             }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster('image-pull-secrets-cluster-dump')
-                    }
-                }
-            }
         }
 
         stage("Download Platform Operator") {
@@ -281,11 +274,6 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml", allowEmptyArchive: true
                 }
-                failure {
-                    script {
-                        dumpK8sCluster('download-vpo-cluster-dump')
-                    }
-                }
             }
         }
 
@@ -301,13 +289,6 @@ pipeline {
                     """
                 }
             }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster('setup-vz-config-cluster-dump')
-                    }
-                }
-            }
         }
 
         stage("Install Verrazzano") {
@@ -315,24 +296,6 @@ pipeline {
                 sh """
                     ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_NIPIO} --manifests ${WORKSPACE}/acceptance-test-operator.yaml
                 """
-            }
-            post {
-                success {
-                    script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-install-cluster-dump')
-                        }
-                    }
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('verrazzano-install-failure-cluster-dump')
-                        sh """
-                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
-                            ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/resources.log
-                        """
-                    }
-                }
             }
         }
 
