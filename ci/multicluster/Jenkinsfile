@@ -850,11 +850,13 @@ def installMinimalVerrazzano() {
         for(int count=1; count<=clusterCount; count++) {
             def installerPath="${KUBECONFIG_DIR}/${count}/${minimalFileName}"
             def key = "vz-mgd-${count-1}"
+            def minimalInstall = true
             if (count == 1) {
                 key = "vz-admin"
                 installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                minimalInstall = false
             }
-            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
+            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath, minimalInstall)
         }
         parallel verrazzanoInstallStages
     }
@@ -863,7 +865,7 @@ def installMinimalVerrazzano() {
 // Install Verrazzano on a target cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
-def installVerrazzanoOnCluster(count, verrazzanoConfig) {
+def installVerrazzanoOnCluster(count, verrazzanoConfig, minimalInstall) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -889,7 +891,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 # Update VZ CR to enable required components
-                ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
+                ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig} ${minimalInstall}
 
                 echo "Installing the Verrazzano Platform Operator"
                 time ${VZ_COMMAND} install --manifests ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
