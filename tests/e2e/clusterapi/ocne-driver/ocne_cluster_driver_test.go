@@ -419,7 +419,7 @@ func writeWorkloadKubeconfig(clusterID string) (string, error) {
 	}
 
 	workloadKubeconfig := fmt.Sprint(jsonBody.Path("config").Data())
-	err = os.WriteFile(outputPath, []byte(workloadKubeconfig), 0644)
+	err = os.WriteFile(outputPath, []byte(workloadKubeconfig), 0600)
 	if err != nil {
 		t.Logs.Errorf("Error writing workload cluster kubeconfig to a file: %v", zap.Error(err))
 		return "", err
