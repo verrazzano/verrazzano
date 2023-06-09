@@ -1,13 +1,14 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"path"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -34,6 +35,7 @@ const (
 	testDevProfile            = "dev"
 	testManagedClusterProfile = "managed-cluster"
 	testCaseClusterOperator   = "clusteroperator"
+	testCaseClusterAPI        = "clusterapi"
 )
 
 type converisonTestCase struct {

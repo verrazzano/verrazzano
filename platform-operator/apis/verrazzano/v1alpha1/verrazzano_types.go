@@ -645,6 +645,13 @@ type ClusterAPIComponent struct {
 	// If true, then Cluster API Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+
+	// Overrides are merged together, but in the event of conflicting fields, the last override in the list
+	// takes precedence over any others. You can find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/overrides/cluster-api-values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
 }
 
 // CertManagerComponent specifies the cert-manager configuration.

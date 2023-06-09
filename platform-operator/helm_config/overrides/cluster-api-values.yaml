@@ -1,0 +1,40 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Global settings for the Cluster API provider images.
+global:
+  registry:
+  imagePullSecrets: []
+  pullPolicy: IfNotPresent
+
+# Overrides for the default providers
+defaultProviders:
+  ocne:
+    # Overrides the default configuration for bootstrap and controlPlane.
+    version:
+    # Overrides to global settings and values derived from version field
+    bootstrap:
+      image:
+        registry:
+        repository:
+        pullPolicy:
+        tag:
+    # Overrides to global settings and values derived from version field
+    controlPlane:
+      image:
+        registry:
+        repository:
+        pullPolicy:
+        tag:
+  core:
+    image:
+      registry:
+      repository:
+      pullPolicy:
+      tag:
+  oci:
+    image:
+      registry:
+      repository:
+      pullPolicy:
+      tag:
