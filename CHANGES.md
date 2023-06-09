@@ -1,7 +1,9 @@
 ### v1.5.4
+Fixed:
+
 - Rancher v2.7.3
 - Fixed Argo CD bug to allow the policy.csv field in the argocd-rbac-cm ConfigMap to be overridden.
-
+- Fixed an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
 
 ### v1.5.3
 Component version updates:
