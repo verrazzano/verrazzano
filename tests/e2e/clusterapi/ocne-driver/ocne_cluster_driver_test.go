@@ -383,23 +383,19 @@ func isClusterActive(clusterName string) (bool, error) {
 		t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
 	}
 
-	// k get secrets <cluster-name>-kubeconfig -n <namespace> -o jsonpath={.data.value} | base64 -d
-
-	t.Logs.Info("+++ Fetch kubeconfig from secret =  %s +++")
-	cmdArgs = []string{}
-	cmdLine := fmt.Sprintf("kubectl get secrets %s-kubeconfig -n %s -o jsonpath={.data.value} | base64 -d > /tmp/%s-kubeconfig", clusterID, clusterID, clusterID)
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", cmdLine)
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
+	kubeconfigPath, err := writeWorkloadKubeconfig(clusterID)
+	if err != nil {
+		t.Logs.Error("could not download kubeconfig from rancher")
+	}
 
 	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", fmt.Sprintf("/tmp/%s-kubeconfig", clusterID), "get", "nodes", "-o", "wide")
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All nodes in workload cluster =  %s +++", (&response.StandardOut).String())
 
 	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", fmt.Sprintf("/tmp/%s-kubeconfig", clusterID), "get", "pod", "-A", "-o", "wide")
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
@@ -408,6 +404,27 @@ func isClusterActive(clusterName string) (bool, error) {
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
+}
+
+// Generates the kubeconfig of the workload cluster with an ID of `clusterID`
+// Writes the kubeconfig to a file inside /tmp. Returns the path of the kubeconfig file.
+func writeWorkloadKubeconfig(clusterID string) (string, error) {
+	t.Logs.Info("+++ Downloading kubeconfig from Rancher +++")
+	outputPath := fmt.Sprintf("./%s-kubeconfig", clusterID)
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?action=generateKubeconfig", clusterID))
+	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
+		return "", err
+	}
+
+	workloadKubeconfig := fmt.Sprint(jsonBody.Path("config").Data())
+	err = os.WriteFile(outputPath, []byte(workloadKubeconfig), 0644)
+	if err != nil {
+		t.Logs.Errorf("Error writing workload cluster kubeconfig to a file: %v", zap.Error(err))
+		return "", err
+	}
+	return outputPath, nil
 }
 
 func getClusterIDFromName(clusterName string) (string, error) {
