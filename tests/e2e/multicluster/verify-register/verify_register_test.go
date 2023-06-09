@@ -442,7 +442,7 @@ func findNamespace(namespace string) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, vzconst.VerrazzanoManagedLabelKey, labels[vzconst.VerrazzanoManagedLabelKey]))
 		return false
 	}
-	if labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {
+	if pkg.IsIstioEnabled(managedKubeconfig) && labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {
 		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelIstioInjection, labels[constants.LabelIstioInjection]))
 		return false
 	}
