@@ -640,92 +640,19 @@ type PrometheusPushgatewayComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// CapiProviderImage is the configuration of a provider image
-type CapiProviderImage struct {
-	// Registry to pull the image from.  Overrides any global setting for registry.
-	// +optional
-	Registry string `json:"registry,omitempty"`
-
-	// Repository to pull the image from.
-	// +optional
-	Repository string `json:"repository,omitempty"`
-
-	// PullPolicy is the image pull policy.  Overrides any global setting for pull policy.
-	// +optional
-	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
-
-	// Tag is the image tag to use.
-	// +optional
-	Tag string `json:"tag,omitempty"`
-}
-
-// CapiProvider is the configuration of a single provider image
-type CapiProvider struct {
-	// +optional
-	Image *CapiProviderImage `json:"image,omitempty"`
-}
-
-// OCNEProvider configuration
-type OCNEProvider struct {
-	// Version is the OCNE version, which specifies the configuration to derive the values for
-	// bootstrap and controlPlane.
-	// +optional
-	Version string `json:"version,omitempty"`
-
-	// Bootstrap is the bootstrap controller manager image.  If this information is provided it overrides
-	// any values derived from the version field.
-	// +optional
-	Bootstrap *CapiProvider `json:"bootstrap,omitempty"`
-
-	// ControlPlane is the control plane controller manager image.  If this information is provided it
-	// overrides any values derived from the version field.
-	// +optional
-	ControlPlane *CapiProvider `json:"controlPlane,omitempty"`
-}
-
-// DefaultProviders contains configuration information for customizing which
-// versions of builtin provider components are used.
-type DefaultProviders struct {
-	// +optional
-	OCNE *OCNEProvider `json:"ocne,omitempty"`
-
-	// Core is the CAPI controller manager image
-	// +optional
-	Core *CapiProvider `json:"core,omitempty"`
-
-	// OCI is the CAPI OCI controller manager image
-	// +optional
-	OCI *CapiProvider `json:"oci,omitempty"`
-}
-
-type ClusterAPIComponentGlobal struct {
-	// Registry to pull the provider images from.
-	// +optional
-	Registry string `json:"registry,omitempty"`
-
-	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling
-	// the provider images.
-	// +optional
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-
-	// PullPolicy is the image pull policy for pulling provider images.
-	// +optional
-	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
-}
-
 // ClusterAPIComponent specifies the Cluster API configuration.
 type ClusterAPIComponent struct {
 	// If true, then Cluster API Providers will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Global settings for Cluster API providers
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-api/values.yaml %}} )
+	// and invalid values will be ignored.
 	// +optional
-	Global *ClusterAPIComponentGlobal `json:"global,omitempty"`
-
-	// DefaultProviders is the set of builtin providers.
-	// +optional
-	DefaultProviders *DefaultProviders `json:"defaultProviders,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // CertManagerComponent specifies the cert-manager configuration.

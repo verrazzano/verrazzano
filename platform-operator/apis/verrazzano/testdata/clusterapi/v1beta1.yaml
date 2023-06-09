@@ -9,37 +9,39 @@ spec:
   components:
     clusterAPI:
       enabled: true
-      global:
-        registry: ghcr.io
-        imagePullSecrets:
-          - name: secret1
-          - name: secret2
-        pullPolicy: IfNotPresent
-      defaultProviders:
-        ocne:
-          version: 1.7
-          bootstrap:
-            image:
-              registry: airgap
-              repository: test
-              pullPolicy: Always
-              tag: test
-          controlPlane:
-            image:
-              registry: airgap
-              repository: test
-              pullPolicy: Always
-              tag: test
-        core:
-          image:
-            registry: airgap
-            repository: test
-            pullPolicy: Always
-            tag: test
-        oci:
-          image:
-            registry: airgap
-            repository: test
-            pullPolicy: Always
-            tag: test
+      overrides:
+        - values:
+            global:
+              registry: ghcr.io
+              imagePullSecrets:
+                - name: secret1
+                - name: secret2
+              pullPolicy: IfNotPresent
+            defaultProviders:
+              ocne:
+                version: 1.7
+                bootstrap:
+                  image:
+                    registry: airgap
+                    repository: test
+                    pullPolicy: Always
+                    tag: test
+                controlPlane:
+                  image:
+                    registry: airgap
+                    repository: test
+                    pullPolicy: Always
+                    tag: test
+              core:
+                image:
+                  registry: airgap
+                  repository: test
+                  pullPolicy: Always
+                  tag: test
+              oci:
+                image:
+                  registry: airgap
+                  repository: test
+                  pullPolicy: Always
+                  tag: test
 

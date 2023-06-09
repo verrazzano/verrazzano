@@ -232,62 +232,7 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 	}
 	return &ClusterAPIComponent{
 		Enabled:          in.Enabled,
-		Global:           convertClusterAPIGlobalFromV1Beta1(in.Global),
-		DefaultProviders: convertClusterAPIDefaultProvidersFromV1Beta1(in.DefaultProviders),
-	}
-}
-
-func convertClusterAPIGlobalFromV1Beta1(in *v1beta1.ClusterAPIComponentGlobal) *ClusterAPIComponentGlobal {
-	if in == nil {
-		return nil
-	}
-	return &ClusterAPIComponentGlobal{
-		Registry:         in.Registry,
-		ImagePullSecrets: in.ImagePullSecrets,
-		PullPolicy:       in.PullPolicy,
-	}
-}
-
-func convertClusterAPIDefaultProvidersFromV1Beta1(in *v1beta1.DefaultProviders) *DefaultProviders {
-	if in == nil {
-		return nil
-	}
-	return &DefaultProviders{
-		OCNE: convertOCNEProviderFromV1Beta1(in.OCNE),
-		Core: convertCapiProviderFromV1Beta1(in.Core),
-		OCI:  convertCapiProviderFromV1Beta1(in.OCI),
-	}
-}
-
-func convertOCNEProviderFromV1Beta1(in *v1beta1.OCNEProvider) *OCNEProvider {
-	if in == nil {
-		return nil
-	}
-	return &OCNEProvider{
-		Version:      in.Version,
-		Bootstrap:    convertCapiProviderFromV1Beta1(in.Bootstrap),
-		ControlPlane: convertCapiProviderFromV1Beta1(in.ControlPlane),
-	}
-}
-
-func convertCapiProviderFromV1Beta1(in *v1beta1.CapiProvider) *CapiProvider {
-	if in == nil {
-		return nil
-	}
-	return &CapiProvider{
-		Image: convertCapiProviderImageFromV1Beta1(in.Image),
-	}
-}
-
-func convertCapiProviderImageFromV1Beta1(in *v1beta1.CapiProviderImage) *CapiProviderImage {
-	if in == nil {
-		return nil
-	}
-	return &CapiProviderImage{
-		Registry:   in.Registry,
-		Repository: in.Repository,
-		PullPolicy: in.PullPolicy,
-		Tag:        in.Tag,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
