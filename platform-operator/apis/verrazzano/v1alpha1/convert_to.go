@@ -9,6 +9,8 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,9 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
-
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -783,7 +782,63 @@ func convertClusterAPIToV1Beta1(src *ClusterAPIComponent) *v1beta1.ClusterAPICom
 		return nil
 	}
 	return &v1beta1.ClusterAPIComponent{
-		Enabled: src.Enabled,
+		Enabled:          src.Enabled,
+		Global:           convertClusterAPIGlobalToV1Beta1(src.Global),
+		DefaultProviders: convertClusterAPIDefaultProvidersToV1Beta1(src.DefaultProviders),
+	}
+}
+
+func convertClusterAPIGlobalToV1Beta1(src *ClusterAPIComponentGlobal) *v1beta1.ClusterAPIComponentGlobal {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterAPIComponentGlobal{
+		Registry:         src.Registry,
+		ImagePullSecrets: src.ImagePullSecrets,
+		PullPolicy:       src.PullPolicy,
+	}
+}
+
+func convertClusterAPIDefaultProvidersToV1Beta1(src *DefaultProviders) *v1beta1.DefaultProviders {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.DefaultProviders{
+		OCNE: convertOCNEProviderToV1Beta1(src.OCNE),
+		Core: convertCapiProviderToV1Beta1(src.Core),
+		OCI:  convertCapiProviderToV1Beta1(src.OCI),
+	}
+}
+
+func convertOCNEProviderToV1Beta1(src *OCNEProvider) *v1beta1.OCNEProvider {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.OCNEProvider{
+		Version:      src.Version,
+		Bootstrap:    convertCapiProviderToV1Beta1(src.Bootstrap),
+		ControlPlane: convertCapiProviderToV1Beta1(src.ControlPlane),
+	}
+}
+
+func convertCapiProviderToV1Beta1(src *CapiProvider) *v1beta1.CapiProvider {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CapiProvider{
+		Image: convertCapiProviderImageToV1Beta1(src.Image),
+	}
+}
+
+func convertCapiProviderImageToV1Beta1(src *CapiProviderImage) *v1beta1.CapiProviderImage {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.CapiProviderImage{
+		Registry:   src.Registry,
+		Repository: src.Repository,
+		PullPolicy: src.PullPolicy,
+		Tag:        src.Tag,
 	}
 }
 

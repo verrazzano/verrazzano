@@ -4,9 +4,8 @@
 package v1alpha1
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
@@ -238,57 +237,57 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 	}
 }
 
-func convertClusterAPIGlobalFromV1Beta1(global *v1beta1.ClusterAPIComponentGlobal) *ClusterAPIComponentGlobal {
-	if global == nil {
+func convertClusterAPIGlobalFromV1Beta1(in *v1beta1.ClusterAPIComponentGlobal) *ClusterAPIComponentGlobal {
+	if in == nil {
 		return nil
 	}
 	return &ClusterAPIComponentGlobal{
-		Registry:         global.Registry,
-		ImagePullSecrets: global.ImagePullSecrets,
-		PullPolicy:       global.PullPolicy,
+		Registry:         in.Registry,
+		ImagePullSecrets: in.ImagePullSecrets,
+		PullPolicy:       in.PullPolicy,
 	}
 }
 
-func convertClusterAPIDefaultProvidersFromV1Beta1(defaultProviders *v1beta1.DefaultProviders) *DefaultProviders {
-	if defaultProviders == nil {
+func convertClusterAPIDefaultProvidersFromV1Beta1(in *v1beta1.DefaultProviders) *DefaultProviders {
+	if in == nil {
 		return nil
 	}
 	return &DefaultProviders{
-		OCNE: convertOCNEProviderFromV1Beta1(defaultProviders.OCNE),
-		Core: convertCapiProviderFromV1Beta1(defaultProviders.Core),
-		OCI:  convertCapiProviderFromV1Beta1(defaultProviders.OCI),
+		OCNE: convertOCNEProviderFromV1Beta1(in.OCNE),
+		Core: convertCapiProviderFromV1Beta1(in.Core),
+		OCI:  convertCapiProviderFromV1Beta1(in.OCI),
 	}
 }
 
-func convertOCNEProviderFromV1Beta1(ocneProvider *v1beta1.OCNEProvider) *OCNEProvider {
-	if ocneProvider == nil {
+func convertOCNEProviderFromV1Beta1(in *v1beta1.OCNEProvider) *OCNEProvider {
+	if in == nil {
 		return nil
 	}
 	return &OCNEProvider{
-		Version:      ocneProvider.Version,
-		Bootstrap:    convertCapiProviderFromV1Beta1(ocneProvider.Bootstrap),
-		ControlPlane: convertCapiProviderFromV1Beta1(ocneProvider.ControlPlane),
+		Version:      in.Version,
+		Bootstrap:    convertCapiProviderFromV1Beta1(in.Bootstrap),
+		ControlPlane: convertCapiProviderFromV1Beta1(in.ControlPlane),
 	}
 }
 
-func convertCapiProviderFromV1Beta1(capiProvider *v1beta1.CapiProvider) *CapiProvider {
-	if capiProvider == nil {
+func convertCapiProviderFromV1Beta1(in *v1beta1.CapiProvider) *CapiProvider {
+	if in == nil {
 		return nil
 	}
 	return &CapiProvider{
-		Image: convertCapiProviderImageFromV1Beta1(capiProvider.Image),
+		Image: convertCapiProviderImageFromV1Beta1(in.Image),
 	}
 }
 
-func convertCapiProviderImageFromV1Beta1(capiProviderImage *v1beta1.CapiProviderImage) *CapiProviderImage {
-	if capiProviderImage == nil {
+func convertCapiProviderImageFromV1Beta1(in *v1beta1.CapiProviderImage) *CapiProviderImage {
+	if in == nil {
 		return nil
 	}
 	return &CapiProviderImage{
-		Registry:   capiProviderImage.Registry,
-		Repository: capiProviderImage.Repository,
-		PullPolicy: capiProviderImage.PullPolicy,
-		Tag:        capiProviderImage.Tag,
+		Registry:   in.Registry,
+		Repository: in.Repository,
+		PullPolicy: in.PullPolicy,
+		Tag:        in.Tag,
 	}
 }
 
