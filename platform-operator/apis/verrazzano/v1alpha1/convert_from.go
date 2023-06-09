@@ -233,12 +233,12 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 	}
 	return &ClusterAPIComponent{
 		Enabled:          in.Enabled,
-		Global:           convertClusterApiGlobalFromV1Beta1(in.Global),
-		DefaultProviders: convertClusterApiDefaultProvidersFromV1Beta1(in.DefaultProviders),
+		Global:           convertClusterAPIGlobalFromV1Beta1(in.Global),
+		DefaultProviders: convertClusterAPIDefaultProvidersFromV1Beta1(in.DefaultProviders),
 	}
 }
 
-func convertClusterApiGlobalFromV1Beta1(global *v1beta1.ClusterAPIComponentGlobal) *ClusterAPIComponentGlobal {
+func convertClusterAPIGlobalFromV1Beta1(global *v1beta1.ClusterAPIComponentGlobal) *ClusterAPIComponentGlobal {
 	if global == nil {
 		return nil
 	}
@@ -249,7 +249,7 @@ func convertClusterApiGlobalFromV1Beta1(global *v1beta1.ClusterAPIComponentGloba
 	}
 }
 
-func convertClusterApiDefaultProvidersFromV1Beta1(defaultProviders *v1beta1.DefaultProviders) *DefaultProviders {
+func convertClusterAPIDefaultProvidersFromV1Beta1(defaultProviders *v1beta1.DefaultProviders) *DefaultProviders {
 	if defaultProviders == nil {
 		return nil
 	}
