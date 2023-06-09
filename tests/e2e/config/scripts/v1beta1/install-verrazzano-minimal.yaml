@@ -7,6 +7,9 @@ metadata:
   name: my-verrazzano
 spec:
   profile: managed-cluster
+  defaultVolumeSource:
+    persistentVolumeClaim:
+      claimName: vmi     # set storage for the metrics stack
   components:
     applicationOperator:
       enabled: false
@@ -19,7 +22,10 @@ spec:
     istio:
       enabled: false
     keycloak:
-      enabled: false
+      mysql:
+        volumeSource:
+          persistentVolumeClaim:
+            claimName: mysql
     kubeStateMetrics:
       enabled: false
     oam:
@@ -46,3 +52,16 @@ spec:
               enabled: false
     weblogicOperator:
       enabled: false
+  volumeClaimSpecTemplates:
+    - metadata:
+        name: mysql
+      spec:
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: vmi
+      spec:
+        resources:
+          requests:
+            storage: 1Gi
