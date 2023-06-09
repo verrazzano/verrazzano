@@ -820,12 +820,16 @@ def updateManagedClusters() {
 }
 
 def updateVerrazzanoOnCluster(count, installerPath) {
-    return script {
-        sh """
-            export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
-            kubectl apply -f ${installerPath}
-            kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
-        """
+    return {
+        script {
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
+                kubectl apply -f ${installerPath}
+                # give some time for the update to occur
+                sleep 30
+                kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
+            """
+        }
     }
 }
 
