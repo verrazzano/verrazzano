@@ -646,9 +646,8 @@ type ClusterAPIComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
-	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
-	// find all possible values
+	// Overrides are merged together, but in the event of conflicting fields, the last override in the list
+	// takes precedence over any others. You can find all possible values
 	// [here]( {{% release_source_url path=platform-operator/helm_config/overrides/cluster-api-values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional

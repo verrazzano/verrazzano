@@ -10,6 +10,7 @@ global:
 # Overrides for the default providers
 defaultProviders:
   ocne:
+    # Overrides the default configuration for bootstrap and controlPlane.
     version:
     # Overrides to global settings and values derived from version field
     bootstrap:
