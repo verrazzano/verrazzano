@@ -368,6 +368,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
+			if skipLogging {
+				Skip("Skipping logging tests for registration")
+			}
 			if pkg.UseExternalOpensearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")

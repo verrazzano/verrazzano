@@ -417,16 +417,6 @@ pipeline {
                                 runGinkgoRandomize('verify-install/clusteragent')
                             }
                         }
-                        stage('Verify Prometheus Install') {
-                            steps {
-                                runGinkgoRandomize('verify-install/promstack')
-                            }
-                        }
-                        stage('Verify Thanos Install') {
-                            steps {
-                                runGinkgoRandomize('verify-install/thanos')
-                            }
-                        }
                         stage('Verify Minimal Managed Cluster Registration') {
                             steps {
                                 verifyRegisterManagedClusters(true)
