@@ -149,12 +149,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
 		})
-		if isUsingDefaultCACertificate(cm) {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   privateCAKey,
-				Value: privateCAValue,
-			})
-		}
+		kvs = append(kvs, bom.KeyValue{
+			Key:   privateCAKey,
+			Value: privateCAValue,
+		})
 	}
 
 	return kvs, nil
