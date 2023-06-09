@@ -400,7 +400,7 @@ func isClusterActive(clusterName string) (bool, error) {
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
 
-	t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
+	// t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
