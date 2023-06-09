@@ -4,6 +4,10 @@ Component version updates:
 - WebLogic Kubernetes Operator v3.4.7
 - WebLogic Monitoring Exporter v2.1.3
 
+Fixes:
+
+- Fixed an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
+
 ### v1.4.4
 Fixes:
 
