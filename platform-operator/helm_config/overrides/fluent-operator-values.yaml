@@ -39,6 +39,8 @@ fluentbit:
     systemd:
       path: "/run/log/journal"
       stripUnderscores: "on"
+      systemdFilter:
+        enable: false
   filter:
     systemd:
       enable: false

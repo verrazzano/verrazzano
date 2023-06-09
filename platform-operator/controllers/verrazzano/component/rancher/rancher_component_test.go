@@ -285,6 +285,76 @@ func TestAppendCAOverrides(t *testing.T) {
 	assert.Equal(t, privateCAValue, v)
 }
 
+// TestAppendCustomCAOverrides verifies that CA overrides are added as appropriate for custom CAs
+// GIVEN a Verrzzano CR with a Custom CA configured in the Certificates field
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add private CA overrides
+func TestAppendCustomCAOverrides(t *testing.T) {
+	vzCustomCA := vzDefaultCA.DeepCopy()
+	namespace := "customnamespace"
+	secretName := "customSecret"
+	vzCustomCA.Spec.Components.CertManager.Certificate.CA = vzapi.CA{
+		ClusterResourceNamespace: namespace,
+		SecretName:               secretName,
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() { config.SetDefaultBomFilePath("") }()
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzCustomCA, nil, false,
+		profilesRelativePath)
+
+	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Nil(t, err)
+	v, ok := getValue(kvs, ingressTLSSourceKey)
+	assert.True(t, ok)
+	assert.Equal(t, caTLSSource, v)
+	v, ok = getValue(kvs, privateCAKey)
+	assert.True(t, ok)
+	assert.Equal(t, privateCAValue, v)
+}
+
+// TestAppendIssuerCustomCAOverrides verifies that CA overrides are added as appropriate for custom CAs using the ClusterIssuer component
+// GIVEN a Verrzzano CR with a Custom CA configured in the ClusterIssuerComponent
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add private CA overrides
+func TestAppendIssuerCustomCAOverrides(t *testing.T) {
+	namespace := "customnamespace"
+	secretName := "customSecret"
+	vzCustomCA := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					External: &vzapi.External{Suffix: common.RancherName},
+				},
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: namespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: secretName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() { config.SetDefaultBomFilePath("") }()
+
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzCustomCA, nil, false)
+
+	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Nil(t, err)
+	v, ok := getValue(kvs, ingressTLSSourceKey)
+	assert.True(t, ok)
+	assert.Equal(t, caTLSSource, v)
+	v, ok = getValue(kvs, privateCAKey)
+	assert.True(t, ok)
+	assert.Equal(t, privateCAValue, v)
+}
+
 // TestIsReady verifies Rancher is enabled or disabled as expected
 // GIVEN a Verrzzano CR
 //
