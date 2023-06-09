@@ -170,7 +170,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	Eventually(func() error {
-		return validateCloudCredential()
+		return validateCloudCredential(cloudCredentialID)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 })
 var _ = BeforeSuite(beforeSuite)
@@ -228,7 +228,7 @@ func isCredentialDeleted(credID string) (bool, error) {
 		return false, err
 	}
 	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
-	fmt.Println("jsonData: " + jsonData)
+	fmt.Println("Delete credential jsonData: " + jsonData)
 	return jsonData == "[]", nil
 }
 
@@ -410,8 +410,8 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 }
 
 // Sends a test request to check that the cloud credential is confiugred properly
-func validateCloudCredential() error {
-	urlPath := fmt.Sprintf("meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", cloudCredentialID, compartmentID, region)
+func validateCloudCredential(credID string) error {
+	urlPath := fmt.Sprintf("meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", credID, compartmentID, region)
 	requestURL, adminToken := setupRequest(rancherURL, urlPath)
 	t.Logs.Infof("validateCloudCredential URL = %s", requestURL)
 	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
