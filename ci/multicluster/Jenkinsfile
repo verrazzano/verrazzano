@@ -385,12 +385,12 @@ pipeline {
                         }
                     }
                 }
-                stage ('Install Verrazzano') {
+                stage ('Install Verrazzano with Minimal Managed Cluster') {
                     steps {
                         script {
                             getVerrazzanoOperatorYaml()
                          }
-                        installVerrazzano()
+                        installMinimalVerrazzano()
                     }
                     post {
                         always {
@@ -410,6 +410,30 @@ pipeline {
                         registerManagedClusters()
                     }
                 }
+                stage ('Verify Minimal Managed Cluster') {
+                    parallel {
+                        stage('Verify Cluster Agent Install') {
+                            steps {
+                                runGinkgoRandomize('verify-install/clusteragent')
+                            }
+                        }
+                        stage('Verify Prometheus Install') {
+                            steps {
+                                runGinkgoRandomize('verify-install/promstack')
+                            }
+                        }
+                        stage('Verify Thanos Install') {
+                            steps {
+                                runGinkgoRandomize('verify-install/thanos')
+                            }
+                        }
+                        stage('Verify Minimal Managed Cluster Registration') {
+                            steps {
+                                verifyRegisterManagedClusters(true)
+                            }
+                        }
+                    }
+                }
                 stage ('Deploy Sample Application') {
                     steps {
                         deploySampleApp()
@@ -417,7 +441,7 @@ pipeline {
                 }
                 stage ('verify-register') {
                     steps {
-                        verifyRegisterManagedClusters()
+                        verifyRegisterManagedClusters(false)
                     }
                 }
                 stage ('system component metrics') {
@@ -808,6 +832,26 @@ def installVerrazzano() {
     }
 }
 
+def installMinimalVerrazzano() {
+    script {
+        // Create a dictionary of Verrazzano install steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verrazzanoInstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            def installerPath="${KUBECONFIG_DIR}/${count}/${minimalFileName}"
+            def key = "vz-mgd-${count-1}"
+            if (count == 1) {
+                key = "vz-admin"
+                installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            }
+            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
+        }
+        parallel verrazzanoInstallStages
+    }
+}
+
 // Install Verrazzano on a target cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
@@ -939,7 +983,7 @@ def registerManagedClusters() {
 }
 
 // Verify the register of the managed clusters
-def verifyRegisterManagedClusters() {
+def verifyRegisterManagedClusters(skipLogging) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -948,7 +992,7 @@ def verifyRegisterManagedClusters() {
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/... -- --skipLogging=${skipLogging}
                 """
             }
         }

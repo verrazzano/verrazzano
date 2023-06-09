@@ -11,9 +11,11 @@ import (
 )
 
 var minimalVerification bool
+var skipLogging bool
 
 func init() {
 	flag.BoolVar(&minimalVerification, "minimalVerification", false, "minimalVerification to perform minimal verification")
+	flag.BoolVar(&skipLogging, "skipLogging", false, "skip logging test for registration verification")
 }
 
 func TestVerifyRegister(test *testing.T) {
