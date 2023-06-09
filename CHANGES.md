@@ -7,6 +7,7 @@ Features:
 - Enhanced the Verrazzano CLI to support installing and upgrading from a private registry and in air-gapped environments
 - Added support for Kubernetes v1.25 and v1.26, and dropped support of Kubernetes v1.21, v1.22 and v1.23
 - Added Fluent Operator to allow use of Fluent Bit for log processing, but it will be disabled by default
+- Customer-managed Cert-Manager instances can now be used with Verrazzano
 
 Component version updates:
 
@@ -29,6 +30,7 @@ Components added:
 Fixes:
 
 - Disabled the startupapicheck job in cert-manager startup.
+- Fixes an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
 
 ### v1.5.0
 Features:
