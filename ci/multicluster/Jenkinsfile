@@ -824,7 +824,7 @@ def updateVerrazzanoOnCluster(count, installerPath) {
         sh """
             export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
             kubectl apply -f ${installerPath}
-            kubectl wait -timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
+            kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
         """
     }
 }
