@@ -6,6 +6,7 @@ package fluentoperator
 import (
 	"context"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -21,6 +22,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
 )
 
 const (
@@ -179,6 +182,19 @@ func (c fluentOperatorComponent) Uninstall(context spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+func (c fluentOperatorComponent) PostUninstall(ctx spi.ComponentContext) error {
+	var fluentbit v1alpha2.FluentBit
+
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: fluentbitDaemonSet}, &fluentbit); err != nil {
+		return err
+	}
+	controllerutil.RemoveFinalizer(&fluentbit, v1alpha2.FluentBitFinalizerName)
+	if err := ctx.Client().Update(context.TODO(), &fluentbit); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostUninstall(ctx)
 }
 
 // Upgrade process the Fluent Operator upgrade.
