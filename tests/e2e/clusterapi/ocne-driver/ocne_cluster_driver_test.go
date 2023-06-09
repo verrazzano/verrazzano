@@ -378,16 +378,31 @@ func isClusterActive(clusterName string) (bool, error) {
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
 
-	// clusterID, err := getClusterIDFromName(clusterName)
-	// if err != nil {
-	// 	t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-	// }
+	clusterID, err := getClusterIDFromName(clusterName)
+	if err != nil {
+		t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	}
 
-	// cmdArgs = []string{}
-	// cmdArgs = append(cmdArgs, "clusterctl", "describe cluster", clusterID, "-n", clusterID)
-	// cmd.CommandArgs = cmdArgs
-	// response = helpers.Runner(&cmd, t.Logs)
-	// t.Logs.Infof("+++ ClusterCTL OutPut =  %s +++", (&response.StandardOut).String())
+	// k get secrets <cluster-name>-kubeconfig -n <namespace> -o jsonpath={.data.value} | base64 -d
+
+	t.Logs.Info("+++ Fetch kubeconfig from secret =  %s +++")
+	cmdArgs = []string{}
+	cmdLine := fmt.Sprintf("kubectl get secrets %s-kubeconfig -n %s -o jsonpath={.data.value} | base64 -d > /tmp/%s-kubeconfig", clusterID, clusterID, clusterID)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", cmdLine)
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", fmt.Sprintf("/tmp/%s-kubeconfig", clusterID), "get", "nodes", "-o", "wide")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+	t.Logs.Infof("+++ All nodes in workload cluster =  %s +++", (&response.StandardOut).String())
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", fmt.Sprintf("/tmp/%s-kubeconfig", clusterID), "get", "pod", "-A", "-o", "wide")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, t.Logs)
+	t.Logs.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
 
 	t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
