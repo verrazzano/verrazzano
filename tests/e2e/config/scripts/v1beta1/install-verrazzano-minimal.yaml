@@ -6,28 +6,43 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  profile: none
+  profile: managed-cluster
   components:
-    clusterAgent:
-      enabled: true
-    prometheus:
-      enabled: true
+    applicationOperator:
+      enabled: false
+    clusterOperator:
+      enabled: false
+    coherenceOperator:
+      enabled: false
+    fluentd:
+      enabled: false
+    istio:
+      enabled: false
+    keycloak:
+      enabled: false
+    kubeStateMetrics:
+      enabled: false
+    oam:
+      enabled: false
+    opensearch:
+      enabled: false
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
+      enabled: false
+    prometheusPushgateway:
+      enabled: false
     prometheusOperator:
-      enabled: true
       overrides:
         - values:
             prometheus:
               thanos:
                 integration: sidecar
-    authProxy:
-      enabled: true
     thanos:
       enabled: true
       overrides:
         - values:
             queryFrontend:
               enabled: false
-    certManager:
-      enabled: true
-    ingressNGINX:
-      enabled: true
+    weblogicOperator:
+      enabled: false
