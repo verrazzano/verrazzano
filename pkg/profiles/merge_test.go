@@ -20,6 +20,9 @@ const (
 	certsBaseSpecFilePath      = "./testdata/cert_base.yaml"
 	certsOverlaySpecFilePath   = "./testdata/cert_overlay.yaml"
 	certsMergedSpecFilePath    = "./testdata/cert_merged.yaml"
+	openSearchActualFilePath   = "./testdata/custom_os.yaml"
+	openSearchBaseFilePath     = "./testdata/prod_os.yaml"
+	openSearchMergedFilePath   = "./testdata/os_merged.yaml"
 	consoleSpecFilePath        = "./testdata/console.yaml"
 	devProfileSpecFilePath     = "./testdata/dev.yaml"
 	keycloakSpecFilePath       = "./testdata/keycloak.yaml"
@@ -219,6 +222,14 @@ func getMergeProfileTestData() []mergeProfileTestData {
 				certsOverlaySpecFilePath,
 			},
 			mergedCR: certsBaseSpecFilePath,
+		},
+		{
+			name:     "4",
+			actualCR: openSearchActualFilePath,
+			profiles: []string{
+				openSearchBaseFilePath,
+			},
+			mergedCR: openSearchMergedFilePath,
 		},
 	}
 }
