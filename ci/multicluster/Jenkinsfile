@@ -125,7 +125,6 @@ pipeline {
         TEST_ENV = "${params.TEST_ENV}"
         MANAGED_CLUSTER_PROFILE = "${params.MANAGED_CLUSTER_PROFILE}"
         ADMIN_CLUSTER_PROFILE = "${params.ADMIN_CLUSTER_PROFILE}"
-        NONE_PROFILE = "none"
 
         // Find a better way to handle this
         // OKE_CLUSTER_VERSION = "${params.KUBERNETES_VERSION == '1.17' ? 'v1.17.13' : 'v1.18.10'}"
@@ -1164,7 +1163,7 @@ def configureMinimalInstallers(installResourceTemplate, configProcessorScript, S
         // start at 2 to skip the admin cluster
         for(int count=2; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimalFileName}"
-            def installProfile = env.NONE_PROFILE
+            def installProfile = env.MANAGED_CLUSTER_PROFILE
             def envName = "mgd${count-1}"
             sh """
                 cd ${GO_REPO_PATH}/verrazzano

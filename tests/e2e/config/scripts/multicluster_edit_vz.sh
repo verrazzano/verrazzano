@@ -13,6 +13,7 @@ MINIMAL_INSTALL=${3}
 
 if [ -n "${MINIMAL_INSTALL}" ] && [ "${MINIMAL_INSTALL}" = "true" ] ; then
   echo "Minimal install, not applying the overrides"
+  exit 0
 fi
 
 yq -i eval '.spec.components.prometheusAdapter.enabled = true' "${VZ_CR_FILE}"
