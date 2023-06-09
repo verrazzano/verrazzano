@@ -662,7 +662,7 @@ type CapiProviderImage struct {
 // CapiProvider is the configuration of a single provider image
 type CapiProvider struct {
 	// +optional
-	Image CapiProviderImage `json:"image,omitempty"`
+	Image *CapiProviderImage `json:"image,omitempty"`
 }
 
 // OCNEProvider configuration
@@ -675,27 +675,27 @@ type OCNEProvider struct {
 	// Bootstrap is the bootstrap controller manager image.  If this information is provided it overrides
 	// any values derived from the version field.
 	// +optional
-	Bootstrap CapiProvider `json:"bootstrap,omitempty"`
+	Bootstrap *CapiProvider `json:"bootstrap,omitempty"`
 
 	// ControlPlane is the control plane controller manager image.  If this information is provided it
 	// overrides any values derived from the version field.
 	// +optional
-	ControlPlane CapiProvider `json:"controlPlane,omitempty"`
+	ControlPlane *CapiProvider `json:"controlPlane,omitempty"`
 }
 
 // DefaultProviders contains configuration information for customizing which
 // versions of builtin provider components are used.
 type DefaultProviders struct {
 	// +optional
-	OCNE OCNEProvider `json:"ocne,omitempty"`
+	OCNE *OCNEProvider `json:"ocne,omitempty"`
 
 	// Core is the CAPI controller manager image
 	// +optional
-	Core CapiProvider `json:"core,omitempty"`
+	Core *CapiProvider `json:"core,omitempty"`
 
 	// OCI is the CAPI OCI controller manager image
 	// +optional
-	OCI CapiProvider `json:"oci,omitempty"`
+	OCI *CapiProvider `json:"oci,omitempty"`
 }
 
 type ClusterAPIComponentGlobal struct {

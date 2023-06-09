@@ -234,7 +234,7 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 	return &ClusterAPIComponent{
 		Enabled:          in.Enabled,
 		Global:           convertClusterApiGlobalFromV1Beta1(in.Global),
-		DefaultProviders: convertClusterApiDefaultProviders(in.DefaultProviders),
+		DefaultProviders: convertClusterApiDefaultProvidersFromV1Beta1(in.DefaultProviders),
 	}
 }
 
@@ -249,11 +249,47 @@ func convertClusterApiGlobalFromV1Beta1(global *v1beta1.ClusterAPIComponentGloba
 	}
 }
 
-func convertClusterApiDefaultProviders(defaultProviders *v1beta1.DefaultProviders) *DefaultProviders {
+func convertClusterApiDefaultProvidersFromV1Beta1(defaultProviders *v1beta1.DefaultProviders) *DefaultProviders {
 	if defaultProviders == nil {
 		return nil
 	}
-	return &DefaultProviders{}
+	return &DefaultProviders{
+		OCNE: convertOCNEProviderFromV1Beta1(defaultProviders.OCNE),
+		Core: convertCapiProviderFromV1Beta1(defaultProviders.Core),
+		OCI:  convertCapiProviderFromV1Beta1(defaultProviders.OCI),
+	}
+}
+
+func convertOCNEProviderFromV1Beta1(ocneProvider *v1beta1.OCNEProvider) *OCNEProvider {
+	if ocneProvider == nil {
+		return nil
+	}
+	return &OCNEProvider{
+		Version:      ocneProvider.Version,
+		Bootstrap:    convertCapiProviderFromV1Beta1(ocneProvider.Bootstrap),
+		ControlPlane: convertCapiProviderFromV1Beta1(ocneProvider.ControlPlane),
+	}
+}
+
+func convertCapiProviderFromV1Beta1(capiProvider *v1beta1.CapiProvider) *CapiProvider {
+	if capiProvider == nil {
+		return nil
+	}
+	return &CapiProvider{
+		Image: convertCapiProviderImageFromV1Beta1(capiProvider.Image),
+	}
+}
+
+func convertCapiProviderImageFromV1Beta1(capiProviderImage *v1beta1.CapiProviderImage) *CapiProviderImage {
+	if capiProviderImage == nil {
+		return nil
+	}
+	return &CapiProviderImage{
+		Registry:   capiProviderImage.Registry,
+		Repository: capiProviderImage.Repository,
+		PullPolicy: capiProviderImage.PullPolicy,
+		Tag:        capiProviderImage.Tag,
+	}
 }
 
 func convertClusterAgentFromV1Beta1(in *v1beta1.ClusterAgentComponent) *ClusterAgentComponent {
