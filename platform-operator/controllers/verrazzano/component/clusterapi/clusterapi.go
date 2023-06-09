@@ -54,9 +54,10 @@ const (
 )
 
 type ImageConfig struct {
-	Version    string
-	Repository string
-	Tag        string
+	Version                   string
+	Repository                string
+	Tag                       string
+	RepositoryWithoutRegistry string
 }
 
 type TemplateInput struct {
@@ -212,6 +213,11 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 		return nil, err
 	}
 
+	subComp, err := bomFile.GetSubcomponent(component)
+	if err != nil {
+		return nil, err
+	}
+
 	var repository string
 	var tag string
 
@@ -229,7 +235,7 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
 	}
 
-	return &ImageConfig{Version: version, Repository: repository, Tag: tag}, nil
+	return &ImageConfig{Version: version, Repository: repository, Tag: tag, RepositoryWithoutRegistry: subComp.Repository}, nil
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template

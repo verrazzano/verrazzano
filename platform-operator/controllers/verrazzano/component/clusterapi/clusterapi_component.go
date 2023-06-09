@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"context"
 	"fmt"
+
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -140,7 +141,18 @@ func (c clusterAPIComponent) GetJSONName() string {
 
 // GetOverrides returns the Helm override sources for a component
 func (c clusterAPIComponent) GetOverrides(object runtime.Object) interface{} {
-	return nil
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ClusterAPI != nil {
+			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ClusterAPI != nil {
+			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
+	}
+	return []v1alpha1.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
