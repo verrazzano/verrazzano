@@ -59,7 +59,7 @@ const (
 			"imageDisplayName": "Oracle-Linux-8.7-2023.04.25-0",
 			"imageId": "",
 			"installCalico": true,
-			"installCcm": true,
+			"installCcm": false,
 			"installVerrazzano": false,
 			"kubernetesVersion": "v1.25.7",
 			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
@@ -337,7 +337,7 @@ func createCluster(clusterName string) error {
 	}
 	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
 	if res != nil {
-		//t.Logs.Infof("create cluster response body: %s", res.String())
+		t.Logs.Infof("create cluster response body: %s", res.String())
 	}
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
@@ -378,18 +378,18 @@ func isClusterActive(clusterName string) (bool, error) {
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
 
-	clusterID, err := getClusterIDFromName(clusterName)
-	if err != nil {
-		t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-	}
+	// clusterID, err := getClusterIDFromName(clusterName)
+	// if err != nil {
+	// 	t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	// }
 
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "clusterctl", "describe cluster", clusterID, "-n", clusterID)
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ ClusterCTL OutPut =  %s +++", (&response.StandardOut).String())
+	// cmdArgs = []string{}
+	// cmdArgs = append(cmdArgs, "clusterctl", "describe cluster", clusterID, "-n", clusterID)
+	// cmd.CommandArgs = cmdArgs
+	// response = helpers.Runner(&cmd, t.Logs)
+	// t.Logs.Infof("+++ ClusterCTL OutPut =  %s +++", (&response.StandardOut).String())
 
-	//t.Logs.Infof("jsonBody: %s", jsonBody.String())
+	t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
