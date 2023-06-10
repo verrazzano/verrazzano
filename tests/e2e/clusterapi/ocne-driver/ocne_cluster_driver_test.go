@@ -410,7 +410,7 @@ func isClusterActive(clusterName string) (bool, error) {
 // Writes the kubeconfig to a file inside /tmp. Returns the path of the kubeconfig file.
 func writeWorkloadKubeconfig(clusterID string) (string, error) {
 	t.Logs.Info("+++ Downloading kubeconfig from Rancher +++")
-	outputPath := fmt.Sprintf("./%s-kubeconfig", clusterID)
+	outputPath := fmt.Sprintf("/tmp/%s-kubeconfig", clusterID)
 	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?action=generateKubeconfig", clusterID))
 	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
 	if err != nil {
