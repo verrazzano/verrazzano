@@ -59,7 +59,7 @@ const (
 			"imageDisplayName": "Oracle-Linux-8.7-2023.04.25-0",
 			"imageId": "",
 			"installCalico": true,
-			"installCcm": false,
+			"installCcm": true,
 			"installVerrazzano": false,
 			"kubernetesVersion": "v1.25.7",
 			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
