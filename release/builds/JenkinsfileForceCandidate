@@ -1,9 +1,9 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def LAST_RELEASABLE_COMMIT
 def SHORT_COMMIT_HASH
 def VERRAZZANO_DEV_VERSION
+def STARTED_BY_USER=""
 
 pipeline {
     options {
@@ -132,7 +132,7 @@ pipeline {
 
 def notifyInSlack() {
     // Always notify if we are not doing a dry run
-    return !DRY_RUN
+    return !params.DRY_RUN
 }
 
 def getStartedByUser() {
