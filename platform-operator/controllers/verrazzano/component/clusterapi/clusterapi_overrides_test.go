@@ -6,6 +6,10 @@ package clusterapi
 import (
 	"testing"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +28,41 @@ import (
 func TestGetCapiOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 
+	const capiOverrides = `
+{
+  "global": {
+	"registry": "air-gap",
+	"imagePullSecrets": [
+	  {
+		"name": "secret1"
+	  }
+	]
+  }
+}`
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
 	config.TestHelmConfigDir = "../../../../helm_config"
 
 	overrides, err := getCapiOverrides(compContext)
@@ -33,8 +70,9 @@ func TestGetCapiOverrides(t *testing.T) {
 	assert.NotNil(t, overrides)
 
 	// Check that expected values are loaded into the struct
-	assert.Equal(t, "ghcr.io", overrides.Global.Registry)
+	assert.Equal(t, "air-gap", overrides.Global.Registry)
 	assert.Equal(t, corev1.PullIfNotPresent, overrides.Global.PullPolicy)
+	assert.Equal(t, "secret1", overrides.Global.ImagePullSecrets[0].Name)
 
 	bootstrapImage := overrides.DefaultProviders.OCNE.Bootstrap.Image
 	assert.Equal(t, "verrazzano", bootstrapImage.Repository)

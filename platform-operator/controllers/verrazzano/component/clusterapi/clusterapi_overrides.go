@@ -8,14 +8,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
 
@@ -74,6 +75,7 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	err = updateWithBOMOverrides(ctx, overrides, templateInput)
 
 	// Merge overrides from the Verrazzano custom resource
+	err = updateWithVZOverrides(ctx, overrides)
 
 	return overrides, nil
 }
@@ -130,6 +132,37 @@ func updateWithBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, 
 	templateInput.OCNEControlPlaneVersion = imageConfig.Version
 
 	return nil
+}
+
+// updateWithVZOverrides - Update the struct with overrides from the VZ custom resource
+func updateWithVZOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error {
+	if ctx.EffectiveCR().Spec.Components.ClusterAPI == nil {
+		return nil
+	}
+
+	// Get install overrides as array of yaml strings
+	overridesYAML, err := override.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.ClusterAPI.ValueOverrides)
+	if err != nil {
+		return err
+	}
+
+	// Convert base struct to yaml
+	baseYAML, err := yaml.Marshal(overrides)
+	if err != nil {
+		return err
+	}
+
+	// Prepend base YAML to overrides
+	allYAML := append([]string{string(baseYAML)}, overridesYAML...)
+
+	// Perform strategic merge of overrides
+	merged, err := vzyaml.StrategicMerge(capiOverrides{}, allYAML...)
+	if err != nil {
+		return err
+	}
+
+	// Update the struct with the resulting YAML
+	return yaml.Unmarshal([]byte(merged), overrides)
 }
 
 func getOverrides(object runtime.Object) interface{} {
