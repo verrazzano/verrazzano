@@ -88,28 +88,6 @@ const (
 		"cloudCredentialId": "{{.CloudCredentialID}}",
 		"labels": {}
 	}`
-	cloudCredentialsRequestBodyTemplate = `{
-		"_name": "{{.CredentialName}}",
-		"_type": "provisioning.cattle.io/cloud-credential",
-		"type": "provisioning.cattle.io/cloud-credential",
-		"name": "{{.CredentialName}}",
-		"description": "dummy description",
-		"metadata": {
-			"generateName": "cc-",
-			"namespace": "fleet-default"
-		},
-		"annotations": {
-			"provisioning.cattle.io/driver": "oracle"
-		},
-		"ocicredentialConfig": {
-			"fingerprint": "{{.Fingerprint}}",
-			"privateKeyContents": "{{.PrivateKeyContents}}",
-			"tenancyId": "{{.TenancyID}}",
-			"userId": "{{.UserID}}",
-			"region": "{{.Region}}",
-			"passphrase": "{{.Passphrase}}"
-		}
-	}`
 )
 
 var (
@@ -118,17 +96,6 @@ var (
 	rancherURL        string
 	cloudCredentialID string
 )
-
-// cloudCredentialsData needed for template rendering
-type cloudCredentialsData struct {
-	CredentialName     string
-	Fingerprint        string
-	PrivateKeyContents string
-	TenancyID          string
-	UserID             string
-	Region             string
-	Passphrase         string
-}
 
 // capiClusterData needed for template rendering
 type capiClusterData struct {
@@ -286,14 +253,6 @@ func isClusterDeleted(clusterName string) (bool, error) {
 	return jsonData == "[]", nil
 }
 
-func executeCloudCredentialsTemplate(data *cloudCredentialsData, buffer *bytes.Buffer) error {
-	cloudCredentialsTemplate, err := template.New("cloudCredentials").Parse(cloudCredentialsRequestBodyTemplate)
-	if err != nil {
-		return fmt.Errorf("failed to create the cloud credentials template: %v", err)
-	}
-	return cloudCredentialsTemplate.Execute(buffer, *data)
-}
-
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cloudcredentials")
 	privateKeyContents, err := getFileContents(privateKeyPath)
@@ -301,7 +260,7 @@ func createCloudCredential(credentialName string) (string, error) {
 		t.Logs.Infof("error reading private key file: %v", err)
 		return "", err
 	}
-	
+
 	var cloudCreds RancherCloudCred
 	cloudCreds.Name = "strudel-test"
 	cloudCreds.InternalName = cloudCreds.Name
