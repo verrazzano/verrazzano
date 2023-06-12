@@ -52,9 +52,6 @@ fluentbit:
       value: {{ .clusterName }}
   # Pod security context for Fluentbit Pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   podSecurityContext:
-    runAsGroup: 1024
-    runAsNonRoot: true
-    runAsUser: 1024
     seccompProfile:
       type: RuntimeDefault
 
@@ -64,5 +61,10 @@ operator:
     runAsGroup: 1025
     runAsNonRoot: true
     runAsUser: 1025
+    privileged: false
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
     seccompProfile:
       type: RuntimeDefault
