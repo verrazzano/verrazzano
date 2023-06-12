@@ -50,32 +50,10 @@ pipeline {
             steps {
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: env.BRANCH_NAME]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        echo "Specific GIT commit was not specified, you must supply an explicit commit"
+                        exit 1
                     } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
+                        scmCheckout()
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
@@ -126,6 +104,7 @@ pipeline {
                     slackSend ( message: "User ${STARTED_BY_USER} started run to FORCE ${env.GIT_BRANCH} at ${env.GIT_COMMIT} to be treated as a passing periodic run to allow it to be seen as the last candidate. ${env.BUILD_URL}" )
                 }
             }
+            deleteDir()
         }
     }
 }
@@ -148,4 +127,23 @@ def getStartedByUser() {
         }
     }
     return startedByUser
+}
+
+def scmCheckout() {
+    echo "${NODE_LABELS}"
+    echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+    def scmInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: params.GIT_COMMIT_TO_USE]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    // If the commit we were handed is not what the SCM says we are using, fail
+    if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+        error( "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+    }
 }
