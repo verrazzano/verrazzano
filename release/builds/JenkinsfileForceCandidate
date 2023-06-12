@@ -42,6 +42,7 @@ pipeline {
         OCI_REGION = "${env.OCI_CLI_REGION}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        FORCE_TYPE = "${params.DRY_RUN == true ? "DRY_RUN" : "FORCE_FOR_REAL"}"
     }
 
     stages {
@@ -112,10 +113,39 @@ pipeline {
                         # exist in object storage for that commit before copying things across. It will FAIL if that is not the case BEFORE any files are
                         # copied in, so if the commit doesn't have the necessary artifacts in Object Storage to do this it can't be used and won't leave us
                         # in a half baked state
-                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH} "FORCE-LAST-CLEAN"
+                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH} ${FORCE_TYPE}
                     """
                 }
             }
         }
     }
+    post {
+        always {
+            script {
+                if (notifyInSlack()) {
+                    slackSend ( message: "User ${STARTED_BY_USER} started run to FORCE ${env.GIT_BRANCH} at ${env.GIT_COMMIT} to be treated as a passing periodic run to allow it to be seen as the last candidate. ${env.BUILD_URL}" )
+                }
+            }
+        }
+    }
+}
+
+def notifyInSlack() {
+    // Always notify if we are not doing a dry run
+    return !DRY_RUN
+}
+
+def getStartedByUser() {
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+    return startedByUser
 }

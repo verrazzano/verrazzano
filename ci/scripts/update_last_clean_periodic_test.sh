@@ -64,6 +64,11 @@ oci --region ${OCI_OS_REGION} os object head --namespace ${OCI_OS_NAMESPACE} -bn
 oci --region ${OCI_OS_REGION} os object head --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE}
 oci --region ${OCI_OS_REGION} os object head --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256}
 
+if [ "$3" == "DRY_RUN" ]; then
+   echo "Only doing a DRY_RUN, validated that the artifacts for ${GIT_COMMIT_USED} exist and are able to be used for a candidate"
+   exit 0
+fi
+
 # Update the clean periodic commit
 echo "git-commit=${GIT_COMMIT_USED}" > commit-that-passed.txt
 cat commit-that-passed.txt
