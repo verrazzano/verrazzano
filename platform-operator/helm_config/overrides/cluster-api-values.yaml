@@ -10,24 +10,38 @@ global:
 # Overrides for the default providers
 defaultProviders:
   ocne:
+    version: v0.1.0 -> resolves to https://github.com/verrazzano/cluster-api-provider-ocne/releases/tag/v0.1.0
+    metadataUrl: https://github.com/verrazzano/cluster-api-provider-ocne/releases/tag/v0.1.0 (primary use case is air-gap)
     image:
       registry:
       repository:
-      pullPolicy:
       tag:
+      pullPolicy:
   core:
+    version:
+    metadataUrl:
     image:
       registry:
       repository:
-      pullPolicy:
       tag:
+      pullPolicy:
   oci:
+    version:
+    metadataUrl:
     image:
       registry:
       repository:
       pullPolicy:
       tag:
 
+
+Use Cases
+
+- Install: none of the fields are required
+- Internet override: Just supply version
+- Air-Gap: metadataUrl
+
+3pm ARB - could be repurposed if no other time available
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
