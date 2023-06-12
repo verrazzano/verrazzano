@@ -443,7 +443,7 @@ pipeline {
                         installManagedClusters()
                     }
                 }
-                stage ('Register minimal managed clusters') {
+                stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
                     }
