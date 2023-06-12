@@ -1201,7 +1201,7 @@ def configureMinimalInstallers(installResourceTemplate, configProcessorScript, S
 }
 
 // Create the required KinD clusters
-def createKindClusters(start = 1, connectJenkinsRunnerToNetwork) {
+def createKindClusters(start = 1) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
