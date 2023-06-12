@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -212,16 +210,19 @@ func (c fluentOperatorComponent) PostUninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Remove finalizer from the FluentBit resource for it to be deleted
-	var fluentbit v1alpha2.FluentBit
+	// Remove finalizer from fluentbit CR
+	err = resource.Resource{
+		Name:      fluentbitDaemonSet,
+		Namespace: ComponentNamespace,
+		Client:    ctx.Client(),
+		Object:    &v1alpha2.FluentBit{},
+		Log:       ctx.Log(),
+	}.RemoveFinalizersAndDelete()
 
-	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: fluentbitDaemonSet}, &fluentbit); err != nil {
+	if err != nil {
 		return err
 	}
-	controllerutil.RemoveFinalizer(&fluentbit, v1alpha2.FluentBitFinalizerName)
-	if err := ctx.Client().Update(context.TODO(), &fluentbit); err != nil {
-		return err
-	}
+
 	return c.HelmComponent.PostUninstall(ctx)
 }
 
