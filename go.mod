@@ -195,6 +195,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 )
@@ -204,14 +205,27 @@ replace (
 	github.com/crossplane/crossplane-runtime => github.com/verrazzano/crossplane-runtime v0.17.0-1
 	github.com/crossplane/oam-kubernetes-runtime => github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3
 	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
+	github.com/fluent/fluent-operator/v2 => github.com/verrazzano/fluent-operator/v2 v2.2.0
+	github.com/go-logr/logr => github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.17.0
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.13.0
 	github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.7.1
+	go.uber.org/zap => go.uber.org/zap v1.21.0
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
+	golang.org/x/text => golang.org/x/text v0.5.0
+	golang.org/x/tools => golang.org/x/tools v0.1.12
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
+	k8s.io/api => k8s.io/api v0.25.4
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.4
+	k8s.io/apimachinery => k8s.io/apimachinery v0.25.4
+	k8s.io/client-go => k8s.io/client-go v0.25.4
+	k8s.io/code-generator => k8s.io/code-generator v0.25.4
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
 )
