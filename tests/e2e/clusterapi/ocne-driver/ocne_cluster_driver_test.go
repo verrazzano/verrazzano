@@ -153,6 +153,15 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
+	// Delete the OCNE cluster
+	Eventually(func() error {
+		return deleteCluster(clusterName)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	// Verify the cluster is deleted
+	Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
+		BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
+
 	// Delete the credential
 	deleteCredential(cloudCredentialID)
 
@@ -175,21 +184,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
-		})
-	})
-
-	t.Context("OCNE cluster delete", func() {
-		t.It("delete OCNE cluster", func() {
-			// Delete the cluster
-			Eventually(func() error {
-				return deleteCluster(clusterName)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-		})
-
-		t.It("Check OCNE cluster is deleted", func() {
-			// Verify the cluster is deleted
-			Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
 		})
 	})
 })
