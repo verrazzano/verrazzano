@@ -273,6 +273,8 @@ pipeline {
                     yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${INSTALL_CONFIG_FILE}
                     yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${INSTALL_CONFIG_FILE}
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${INSTALL_CONFIG_FILE}
+                    yq -i eval '.spec.components.fluentOperator.enabled = true' ${INSTALL_CONFIG_FILE}
+                    yq -i eval '.spec.components.fluentbitOpensearchOutput.enabled = true' ${INSTALL_CONFIG_FILE}
 
                     echo "Installing Verrazzano on OKE"
                     ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
