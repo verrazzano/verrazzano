@@ -63,6 +63,11 @@ func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
 	// bootstrap and controlPlane images.
 	convertUserOverridesToTemplate(templateInput, userOverrides)
 
+	// Merge the BOM settings into the template input
+	if err = mergeBOMOverrides(ctx, templateInput); err != nil {
+		return nil, err
+	}
+
 	return templateInput, nil
 }
 
@@ -96,8 +101,9 @@ func convertUserOverridesToTemplate(template *TemplateInput, overrides *capiOver
 	template.Core.Image = overrides.DefaultProviders.Core.Image
 }
 
-// mergeBOMOverrides - update the struct with overrides from the BOM
-func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, templateInput *TemplateInput) error {
+// mergeBOMOverrides - merge settings from the BOM template, being careful not to unset any
+// values there were overridden by the user
+func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) error {
 
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -105,27 +111,30 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, templ
 	}
 
 	// Populate global values
-	overrides.Global.Registry = bomFile.GetRegistry()
+	if templateInput.Global.Registry == "" {
+		templateInput.Global.Registry = bomFile.GetRegistry()
+	}
 
 	// Populate core provider values
+	core := &templateInput.Core.Image
 	imageConfig, err := getImageOverride(ctx, bomFile, "capi-cluster-api", "")
 	if err != nil {
 		return err
 	}
-	core := &overrides.DefaultProviders.Core
-	core.Image.Repository = imageConfig.RepositoryWithoutRegistry
-	core.Image.Tag = imageConfig.Tag
+	mergeImage(imageConfig, core)
 	templateInput.APIVersion = imageConfig.Version
 
 	// Populate OCI provider values
+	oci := &templateInput.OCI.Image
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-oci", "")
 	if err != nil {
 		return err
 	}
-	oci := &overrides.DefaultProviders.OCI
-	oci.Image.Repository = imageConfig.RepositoryWithoutRegistry
-	oci.Image.Tag = imageConfig.Tag
+	mergeImage(imageConfig, oci)
 	templateInput.OCIVersion = imageConfig.Version
+
+	/**
+
 
 	// Populate bootstrap provider values
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
@@ -147,7 +156,18 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, templ
 	//controlPlane.Image.Tag = imageConfig.Tag
 	templateInput.OCNEControlPlaneVersion = imageConfig.Version
 
+	*/
+
 	return nil
+}
+
+func mergeImage(imageConfig *ImageConfig, image *capiImage) {
+	if image.Tag == "" {
+		image.Tag = imageConfig.Tag
+	}
+	if image.Repository == "" {
+		image.Repository = imageConfig.RepositoryWithoutRegistry
+	}
 }
 
 // updateWithVZOverrides - Update the struct with overrides from the VZ custom resource

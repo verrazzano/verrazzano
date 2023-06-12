@@ -111,3 +111,100 @@ func TestGetCapiOverrides(t *testing.T) {
 	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
 }
+
+// TestCreateTemplateInput tests getting the override values for the Cluster API component
+// GIVEN a call to createTemplateInput
+//
+//	WHEN all env variables are set to the correct values
+//	THEN true is returned
+func TestCreateTemplateInput(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	const capiOverrides = `
+{
+  "global": {
+	"imagePullSecrets": [
+	  {
+		"name": "secret1"
+	  }
+	]
+  },
+  "defaultProviders": {
+    "ocne": {
+      "image": {
+        "tag": "v1.0",
+        "pullPolicy": "Always"
+      }
+    },
+    "oci": {
+      "image": {
+        "repository": "repo",
+        "registry": "air-gap-2"
+      }
+    },
+    "core": {
+      "image": {
+        "pullPolicy": "Never"
+      }
+    }
+  }
+}`
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+	config.TestHelmConfigDir = "../../../../helm_config"
+
+	templateInput, err := createTemplateInput(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, templateInput)
+
+	// Check that expected values are loaded into the struct
+	assert.Equal(t, "ghcr.io", templateInput.Global.Registry)
+	assert.Equal(t, corev1.PullIfNotPresent, templateInput.Global.PullPolicy)
+	assert.Equal(t, "secret1", templateInput.Global.ImagePullSecrets[0].Name)
+
+	bootstrapImage := templateInput.OCNEBootstrap.Image
+	assert.Equal(t, "", bootstrapImage.Repository)
+	assert.Equal(t, "v1.0", bootstrapImage.Tag)
+	assert.Equal(t, "", bootstrapImage.Registry)
+	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
+
+	controlPlaneImage := templateInput.OCNEControlPlane.Image
+	assert.Equal(t, "", controlPlaneImage.Repository)
+	assert.Equal(t, "v1.0", controlPlaneImage.Tag)
+	assert.Equal(t, "", controlPlaneImage.Registry)
+	assert.Equal(t, corev1.PullAlways, controlPlaneImage.PullPolicy)
+
+	coreImage := templateInput.Core.Image
+	assert.Equal(t, "verrazzano", coreImage.Repository)
+	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
+	assert.Equal(t, "", coreImage.Registry)
+	assert.Equal(t, corev1.PullNever, coreImage.PullPolicy)
+
+	ociImage := templateInput.OCI.Image
+	assert.Equal(t, "repo", ociImage.Repository)
+	assert.Equal(t, "v0.8.1", ociImage.Tag)
+	assert.Equal(t, "air-gap-2", ociImage.Registry)
+	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
+}
