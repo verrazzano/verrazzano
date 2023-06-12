@@ -8,6 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -69,6 +73,8 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	// Update the struct with overrides from the BOM
 	err = updateWithBOMOverrides(ctx, overrides, templateInput)
 
+	// Merge overrides from the Verrazzano custom resource
+
 	return overrides, nil
 }
 
@@ -124,4 +130,19 @@ func updateWithBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, 
 	templateInput.OCNEControlPlaneVersion = imageConfig.Version
 
 	return nil
+}
+
+func getOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ClusterAPI != nil {
+			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ClusterAPI != nil {
+			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
+	}
+	return []v1alpha1.Overrides{}
 }
