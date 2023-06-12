@@ -8,6 +8,7 @@ def STARTED_BY_USER=""
 pipeline {
     options {
         skipDefaultCheckout true
+        disableConcurrentBuilds()
         timestamps ()
     }
 
@@ -49,7 +50,7 @@ pipeline {
         stage('Verify Specified Commit can be Forced') {
             steps {
                 script {
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                    if (params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE == "NONE") {
                         echo "Specific GIT commit was not specified, you must supply an explicit commit"
                         exit 1
                     } else {
@@ -131,10 +132,10 @@ def getStartedByUser() {
 
 def scmCheckout() {
     echo "${NODE_LABELS}"
-    echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+    echo "SCM checkout of ${params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE}"
     def scmInfo = checkout([
         $class: 'GitSCM',
-        branches: [[name: params.GIT_COMMIT_TO_USE]],
+        branches: [[name: params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE]],
         doGenerateSubmoduleConfigurations: false,
         extensions: [],
         submoduleCfg: [],
@@ -143,7 +144,7 @@ def scmCheckout() {
     env.GIT_BRANCH = scmInfo.GIT_BRANCH
     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
     // If the commit we were handed is not what the SCM says we are using, fail
-    if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-        error( "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+    if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE)) {
+        error( "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE}, Found: ${scmInfo.GIT_COMMIT}")
     }
 }
