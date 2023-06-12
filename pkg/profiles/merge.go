@@ -50,7 +50,7 @@ func MergeProfiles(actualCR *v1alpha1.Verrazzano, profileFiles ...string) (*v1al
 		return nil, err
 	}
 
-	mergeOSNodesV1alpha1(&newCR)
+	setNilV1alpha1OSReplicasToZero(&newCR)
 	return &newCR, nil
 }
 
@@ -92,7 +92,7 @@ func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...strin
 	if err != nil {
 		return nil, err
 	}
-	mergeOSNodesV1beta1(&newCR)
+	setNilV1beta1OSReplicasToZero(&newCR)
 	return &newCR, nil
 }
 
@@ -298,9 +298,9 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	}
 }
 
-// mergeOSNodesV1alpha1 sets the replicas count to 0 if it is nil in the merged CR
+// setNilV1alpha1OSReplicasToZero sets the replicas count to 0 if it is nil in the merged v1alpha1 CR
 // this is to avoid any nil pointer de-referencing further down the code
-func mergeOSNodesV1alpha1(merged *v1alpha1.Verrazzano) {
+func setNilV1alpha1OSReplicasToZero(merged *v1alpha1.Verrazzano) {
 	profileOpensearch := merged.Spec.Components.Elasticsearch
 	var v int32
 	if profileOpensearch != nil {
@@ -312,9 +312,9 @@ func mergeOSNodesV1alpha1(merged *v1alpha1.Verrazzano) {
 	}
 }
 
-// mergeOSNodesV1beta1 sets the replicas count to 0 if it is nil in the merged CR
+// setNilV1alpha1OSReplicasToZero sets the replicas count to 0 if it is nil in the merged v1beta1 CR
 // this is to avoid any nil pointer de-referencing further down the code
-func mergeOSNodesV1beta1(merged *v1beta1.Verrazzano) {
+func setNilV1beta1OSReplicasToZero(merged *v1beta1.Verrazzano) {
 	profileOpensearch := merged.Spec.Components.OpenSearch
 	var v int32
 	if profileOpensearch != nil {
