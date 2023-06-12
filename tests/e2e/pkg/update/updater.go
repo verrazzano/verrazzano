@@ -321,7 +321,9 @@ func UpdateCRExpectError(m CRModifier) error {
 
 // IsCRReady return true if the verrazzano custom resource is in ready state after an update operation false otherwise
 func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
+
 	if cr == nil || cr.Status.State != vzapi.VzStateReady {
+		fmt.Println("CR IsCRReadyAfterUpdate", cr.Spec)
 		pkg.Log(pkg.Error, "VZ CR is nil or not in ready state")
 		return false
 	}

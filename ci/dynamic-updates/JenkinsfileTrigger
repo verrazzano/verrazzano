@@ -130,7 +130,8 @@ pipeline {
                                 startDCTestJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
                                                 booleanParam(name: 'RUN_AUTHPROXY', value: true),
                                                 booleanParam(name: 'RUN_CERT_MANAGER', value: true),
-                                                booleanParam(name: 'RUN_FLUENTD', value: true)])
+                                                booleanParam(name: 'RUN_FLUENTD', value: true),
+                                                booleanParam(name: 'RUN_FLUENTD', value: true)]),
                             }
                         }
                     }

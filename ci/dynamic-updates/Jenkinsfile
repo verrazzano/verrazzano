@@ -574,6 +574,22 @@ pipeline {
                     }
                 }
 
+                stage('FluentBit Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentbit-operator-update"
+                    }
+                    steps {
+                        runGinkgo('fluentbit-operator/infra')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Post-install overrides Tests') {
                     when { expression {params.RUN_POST_INSTALL_OVERRIDES} }
                     environment {
