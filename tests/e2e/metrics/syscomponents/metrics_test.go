@@ -78,7 +78,6 @@ var adminKubeConfig string
 var isManagedClusterProfile bool
 
 var ingressNGINXNamespace string
-var isVMOInstalled bool
 
 // List of namespaces considered for validating the envoy-stats
 var envoyStatsNamespaces = []string{
@@ -143,16 +142,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-
-	isVMOInstalled = true
-	_, err = pkg.GetDeployment(verrazzanoSystemNamespace, constants.VerrazzanoMonitoringOperator)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			isVMOInstalled = false
-		} else {
-			Fail(err.Error())
-		}
-	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -165,12 +154,17 @@ var _ = t.AfterEach(func() {})
 
 // 'It' Wrapper to only run spec if the Verrazzano Monitoring Operator is installed in the cluster
 func WhenVMOInstalledAndMinVersionIt(description string, version string, kubeConfigPath string, f func()) {
-	if isVMOInstalled {
-		t.ItMinimumVersion(description, version, kubeConfigPath, f)
+	_, err := pkg.GetDeployment(verrazzanoSystemNamespace, constants.VerrazzanoMonitoringOperator)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			t.It(description, func() {
+				Skip("VMO is not installed, skipping")
+			})
+		} else {
+			Fail(err.Error())
+		}
 	} else {
-		t.It(description, func() {
-			Skip("VMO is not enabled, skipping")
-		})
+		t.ItMinimumVersion(description, version, kubeConfigPath, f)
 	}
 }
 
