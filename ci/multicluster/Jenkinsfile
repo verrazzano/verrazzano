@@ -428,14 +428,14 @@ pipeline {
                         verifyDeregisterManagedClusters()
                     }
                 }
-                stage('Uninstall minimal managed cluster') {
+                stage('Delete minimal managed cluster') {
                     steps {
-                        uninstallMinimalVerrazzano()
+                        deleteClusters(2)
                     }
                 }
-                stage('Verify Uninstall minimal managed cluster') {
+                stage('Create KinD managed cluster') {
                     steps {
-                        verifyMinimalUninstall()
+                        createKindClusters(2)
                     }
                 }
                 stage ('Install managed clusters') {
@@ -743,11 +743,11 @@ def deleteOkeClusters() {
     }
 }
 
-def deleteClusters() {
+def deleteClusters(start = 1) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         if (env.TEST_ENV == "KIND") {
-            for(int count=1; count<=clusterCount; count++) {
+            for(int count=$start; count<=clusterCount; count++) {
                 sh """
                     if [ "${env.TEST_ENV}" == "KIND" ]
                     then
@@ -912,21 +912,6 @@ def uninstallVerrazzano() {
              if (count == 1) {
                  key = "vz-admin"
              }
-             verrazzanoUninstallStages["${key}"] = uninstallVerrazzanoOnCluster(count, installerPath)
-         }
-         parallel verrazzanoUninstallStages
-    }
-}
-
-def uninstallMinimalVerrazzano() {
-    script {
-         // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-         // - Start at 2 to only uninstall managed clusters
-         def verrazzanoUninstallStages = [:]
-         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-         for (int count = 2; count <= clusterCount; count++) {
-             def installerPath = "${KUBECONFIG_DIR}/${count}/${minimalFileName}"
-             def key = "vz-mgd-${count - 1}"
              verrazzanoUninstallStages["${key}"] = uninstallVerrazzanoOnCluster(count, installerPath)
          }
          parallel verrazzanoUninstallStages
@@ -1216,7 +1201,7 @@ def configureMinimalInstallers(installResourceTemplate, configProcessorScript, S
 }
 
 // Create the required KinD clusters
-def createKindClusters() {
+def createKindClusters(start = 1) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -1235,7 +1220,7 @@ def createKindClusters() {
         boolean cleanupKindContainers = true
         boolean connectJenkinsRunnerToNetwork = true
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
+        for(int count=$start; count<=clusterCount; count++) {
             string metallbAddressRange = addressRanges.get(count-1)
             def deployStep = "cluster-${count}"
             // Create dictionary of steps for parallel execution
