@@ -1201,7 +1201,7 @@ def configureMinimalInstallers(installResourceTemplate, configProcessorScript, S
 }
 
 // Create the required KinD clusters
-def createKindClusters(start = 1) {
+def createKindClusters(start = 1, connectJenkinsRunnerToNetwork) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -1219,6 +1219,9 @@ def createKindClusters(start = 1) {
         def clusterInstallStages = [:]
         boolean cleanupKindContainers = true
         boolean connectJenkinsRunnerToNetwork = true
+        if(start > 1) {
+            connectJenkinsRunnerToNetwork = false
+        }
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=start; count<=clusterCount; count++) {
             string metallbAddressRange = addressRanges.get(count-1)
