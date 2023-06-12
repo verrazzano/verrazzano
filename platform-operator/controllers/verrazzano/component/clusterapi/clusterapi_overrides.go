@@ -10,13 +10,10 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
 
@@ -55,7 +52,7 @@ type capiImage struct {
 	Tag        string            `json:"tag,omitempty"`
 }
 
-// getCapiOverrides - return the base overrides for ClusterAPI component
+// getCapiOverrides - return the ClusterAPI overrides
 func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	overrides := &capiOverrides{}
 	templateInput := &TemplateInput{}
@@ -163,19 +160,4 @@ func updateWithVZOverrides(ctx spi.ComponentContext, overrides *capiOverrides) e
 
 	// Update the struct with the resulting YAML
 	return yaml.Unmarshal([]byte(merged), overrides)
-}
-
-func getOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.ClusterAPI != nil {
-			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
-		}
-		return []v1beta1.Overrides{}
-	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.ClusterAPI != nil {
-			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
-		}
-		return []v1beta1.Overrides{}
-	}
-	return []v1alpha1.Overrides{}
 }
