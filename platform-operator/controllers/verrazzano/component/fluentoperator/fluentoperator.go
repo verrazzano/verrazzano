@@ -107,7 +107,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	var secret corev1.Secret
-
+	// Check if global image pull secret exists
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: constants.GlobalImagePullSecName}, &secret); err != nil {
 		if errors.IsNotFound(err) {
 			return kvs, nil
@@ -115,6 +115,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
+	// 	The secret was found, set the helm override for fluentbit image pull secret
 	kvs = append(kvs, bom.KeyValue{Key: "fluentbit.imagePullSecrets[0].name", Value: constants.GlobalImagePullSecName})
 
 	return kvs, nil
