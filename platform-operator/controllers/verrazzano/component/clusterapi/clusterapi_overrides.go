@@ -40,7 +40,7 @@ type defaultProviders struct {
 
 type ocneProvider struct {
 	Version      string       `json:"version,omitempty"`
-	Bootstrap    capiProvider `json:"bootstrap,"`
+	Bootstrap    capiProvider `json:"bootstrap,omitempty"`
 	ControlPlane capiProvider `json:"controlPlane,omitempty"`
 }
 
@@ -77,7 +77,7 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	// Merge overrides from the Verrazzano custom resource
 	err = updateWithVZOverrides(ctx, overrides)
 
-	return overrides, nil
+	return overrides, err
 }
 
 // updateWithBOMOverrides - update the struct with overrides from the BOM

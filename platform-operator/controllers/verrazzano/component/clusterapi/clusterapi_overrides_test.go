@@ -39,6 +39,13 @@ func TestGetCapiOverrides(t *testing.T) {
 	]
   },
   "defaultProviders": {
+    "ocne": {
+      "bootstrap": {
+        "image": {
+          "pullPolicy": "Always"
+        }
+      }
+    },
     "oci": {
       "image": {
         "registry": "air-gap-2"
@@ -85,7 +92,7 @@ func TestGetCapiOverrides(t *testing.T) {
 	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrapImage.Tag)
 	assert.Equal(t, "", bootstrapImage.Registry)
-	assert.Equal(t, corev1.PullPolicy(""), bootstrapImage.PullPolicy)
+	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
 
 	controlPlaneImage := overrides.DefaultProviders.OCNE.ControlPlane.Image
 	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
