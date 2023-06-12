@@ -1,15 +1,13 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
 
 import (
 	"context"
-
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,25 +42,44 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 // This method will only copy defaultVerrazzanoName if default CA certificates are being used.
 func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
-	if isUsingDefaultCACertificate(cm) {
-		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoName}
+	if isUsingCACertificate(cm) {
+		// Using the default self-signed, or a Custom CA, copy the secret as Rancher needs it
+		caSecretNamespace := cm.Certificate.CA.ClusterResourceNamespace
+		caSecretName := cm.Certificate.CA.SecretName
+		namespacedName := types.NamespacedName{
+			Namespace: caSecretNamespace,
+			Name:      caSecretName,
+		}
+		certKey := caCert
+		if !isUsingDefaultCACertificate(cm) {
+			certKey = customCACertKey
+		}
+		caSecret := &v1.Secret{}
+		if err := c.Get(context.TODO(), namespacedName, caSecret); err != nil {
+			return err
+		}
+		if len(caSecret.Data[certKey]) < 1 {
+			return log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s",
+				caSecretNamespace,
+				caSecretName, certKey)
+		}
 		defaultSecret := &v1.Secret{}
 		if err := c.Get(context.TODO(), namespacedName, defaultSecret); err != nil {
 			return err
 		}
-		if len(defaultSecret.Data[caCert]) < 1 {
+		if len(defaultSecret.Data[certKey]) < 1 {
 			return log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
 		}
+		log.Debugf("Copying default Verrazzano secret to Rancher namespace")
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: common.CattleSystem,
 				Name:      rancherTLSSecretName,
 			},
 		}
-		log.Debugf("Copying default Verrazzano secret to Rancher namespace")
 		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
 			rancherCaSecret.Data = map[string][]byte{
-				caCertsPem: defaultSecret.Data[caCert],
+				caCertsPem: caSecret.Data[certKey],
 			}
 			return nil
 		}); err != nil {
@@ -78,4 +95,8 @@ func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 		cm.Certificate.CA != vzapi.CA{} &&
 		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
 		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
+}
+
+func isUsingCACertificate(cm *vzapi.CertManagerComponent) bool {
+	return cm != nil && cm.Certificate.CA != vzapi.CA{}
 }

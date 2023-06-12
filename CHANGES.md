@@ -1,7 +1,12 @@
 ### v1.5.4
-- Rancher v2.7.3
-- Fixed Argo CD bug to allow the policy.csv field in the argocd-rbac-cm ConfigMap to be overridden.
+Component version updates:
 
+- Rancher v2.7.3
+
+Fixes:
+
+- Fixed Argo CD bug to allow the policy.csv field in the argocd-rbac-cm ConfigMap to be overridden.
+- Fixed an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
 
 ### v1.5.3
 Component version updates:
@@ -9,7 +14,7 @@ Component version updates:
 - WebLogic Kubernetes Operator v4.0.6
 - WebLogic Monitoring Exporter v2.1.3
 
-Fixed:
+Fixes:
 
 - Disabled the startupapicheck job in cert-manager startup.
 - Fixed an install bug related to incorrect ingress names in certain configurations.
@@ -24,7 +29,7 @@ Component version updates:
 
 - Rancher 2.7.1
 
-Fixed:
+Fixes:
 
 - Fixed vz CLI to allow specified version numbers to start without a leading "v".
 - Fixed an upgrade failure calling a validation webhook when upgrading from v1.5.0.  This failure occurred when using v1.4.n of the vz CLI.
