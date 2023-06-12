@@ -61,10 +61,5 @@ operator:
     runAsGroup: 1025
     runAsNonRoot: true
     runAsUser: 1025
-    privileged: false
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
     seccompProfile:
       type: RuntimeDefault
