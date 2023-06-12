@@ -5,6 +5,9 @@ package fluentoperator
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -185,6 +188,31 @@ func (c fluentOperatorComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (c fluentOperatorComponent) PostUninstall(ctx spi.ComponentContext) error {
+
+	// Delete ClusterRoleBinding and Clusterrole left over by the operator
+	err := resource.Resource{
+		Name:   fmt.Sprintf("%s-%s-%s", ComponentName, fluentbitDaemonSet, fluentbitDaemonSet),
+		Client: ctx.Client(),
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    ctx.Log(),
+	}.Delete()
+
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   fmt.Sprintf("%s-%s", ComponentName, fluentbitDaemonSet),
+		Client: ctx.Client(),
+		Object: &rbacv1.ClusterRole{},
+		Log:    ctx.Log(),
+	}.Delete()
+
+	if err != nil {
+		return err
+	}
+
+	// Remove finalizer from the FluentBit resource for it to be deleted
 	var fluentbit v1alpha2.FluentBit
 
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: fluentbitDaemonSet}, &fluentbit); err != nil {
