@@ -37,6 +37,13 @@ func TestGetCapiOverrides(t *testing.T) {
 		"name": "secret1"
 	  }
 	]
+  },
+  "defaultProviders": {
+    "oci": {
+      "image": {
+        "registry": "air-gap-2"
+      }
+    }
   }
 }`
 
@@ -77,16 +84,24 @@ func TestGetCapiOverrides(t *testing.T) {
 	bootstrapImage := overrides.DefaultProviders.OCNE.Bootstrap.Image
 	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrapImage.Tag)
+	assert.Equal(t, "", bootstrapImage.Registry)
+	assert.Equal(t, corev1.PullPolicy(""), bootstrapImage.PullPolicy)
 
 	controlPlaneImage := overrides.DefaultProviders.OCNE.ControlPlane.Image
 	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlaneImage.Tag)
+	assert.Equal(t, "", controlPlaneImage.Registry)
+	assert.Equal(t, corev1.PullPolicy(""), controlPlaneImage.PullPolicy)
 
 	coreImage := overrides.DefaultProviders.Core.Image
 	assert.Equal(t, "verrazzano", coreImage.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
+	assert.Equal(t, "", coreImage.Registry)
+	assert.Equal(t, corev1.PullPolicy(""), coreImage.PullPolicy)
 
 	ociImage := overrides.DefaultProviders.OCI.Image
 	assert.Equal(t, "oracle", ociImage.Repository)
 	assert.Equal(t, "v0.8.1", ociImage.Tag)
+	assert.Equal(t, "air-gap-2", ociImage.Registry)
+	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
 }
