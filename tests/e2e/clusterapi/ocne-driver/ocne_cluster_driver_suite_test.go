@@ -21,6 +21,7 @@ var compartmentID string
 var workerNodeSubnet string
 var controlPlaneSubnet string
 var loadBalancerSubnet string
+var ocneClusterNameSuffix string
 
 func init() {
 	flag.StringVar(&region, "region", "", "region represents the region where the ClusterAPI cluster will be created")
@@ -34,6 +35,7 @@ func init() {
 	flag.StringVar(&workerNodeSubnet, "workerNodeSubnet", "", "workerNodeSubnet represents the worker node subnet")
 	flag.StringVar(&controlPlaneSubnet, "controlPlaneSubnet", "", "controlPlaneSubnet represents the control plane node subnet")
 	flag.StringVar(&loadBalancerSubnet, "loadBalancerSubnet", "", "loadBalancerSubnet represents the load balancer subnet")
+	flag.StringVar(&ocneClusterNameSuffix, "ocneClusterNameSuffix", "", "suffix for the ocne cluster name")
 }
 
 func TestOCNEClusterDriver(test *testing.T) {

@@ -29,14 +29,15 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 120 * time.Minute
 	pollingInterval      = 30 * time.Second
-	clusterName          = "strudel2"
 )
 
 var (
-	t                 = framework.NewTestFramework("capi-ocne-driver")
-	httpClient        *retryablehttp.Client
-	rancherURL        string
-	cloudCredentialID string
+	t                   = framework.NewTestFramework("capi-ocne-driver")
+	httpClient          *retryablehttp.Client
+	rancherURL          string
+	cloudCredentialID   string
+	clusterName         = fmt.Sprintf("strudel-%s", ocneClusterNameSuffix)
+	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 )
 
 type RancherOcicredentialConfig struct {
@@ -142,7 +143,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	t.Logs.Infof("rancherURL: %s", rancherURL)
 
 	Eventually(func() error {
-		cloudCredentialID, err = createCloudCredential("testing-creds")
+		cloudCredentialID, err = createCloudCredential(cloudCredentialName)
 		return err
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
@@ -244,8 +245,8 @@ func createCloudCredential(credentialName string) (string, error) {
 	}
 
 	var cloudCreds RancherCloudCred
-	cloudCreds.Name = "strudel-test"
-	cloudCreds.InternalName = cloudCreds.Name
+	cloudCreds.Name = credentialName
+	cloudCreds.InternalName = credentialName
 	cloudCreds.Type = "provisioning.cattle.io/cloud-credential"
 	cloudCreds.InternalType = "provisioning.cattle.io/cloud-credential"
 
