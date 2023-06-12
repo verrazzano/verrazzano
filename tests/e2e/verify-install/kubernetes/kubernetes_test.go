@@ -39,7 +39,7 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-controller",
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
-var expectedVMOPod string = "verrazzano-monitoring-operator"
+var expectedVMOPod = "verrazzano-monitoring-operator"
 
 // comment out while debugging so it does not break master
 // "vmi-system-prometheus",
