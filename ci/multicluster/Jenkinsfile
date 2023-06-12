@@ -423,9 +423,19 @@ pipeline {
                         }
                     }
                 }
-                stage ('Update Managed Clusters') {
+                stage('Uninstall Minimal Managed Cluster') {
                     steps {
-                        updateManagedClusters()
+                        uninstallMinimalVerrazzano()
+                    }
+                }
+                stage('Verify Uninstall Minimal Managed Cluster') {
+                    steps {
+                        verifyMinimalUninstall()
+                    }
+                }
+                stage ('Install Managed Clusters') {
+                    steps {
+                        installManagedClusters()
                     }
                 }
                 stage ('Deploy Sample Application') {
@@ -806,30 +816,16 @@ def getVerrazzanoOperatorYaml() {
 }
 
 // Update Verrazzano on each of the managed clusters
-def updateManagedClusters() {
+def installManagedClusters() {
     script {
-        def verrazzanoUpdateStages = [:]
+        def verrazzanoInstallStages = [:]
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=2; count<=clusterCount; count++) {
             def key = "vz-mgd-${count-1}"
             def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-            verrazzanoUpdateStages["${key}"] = updateVerrazzanoOnCluster(count, installerPath)
+            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
         }
-        parallel verrazzanoUpdateStages
-    }
-}
-
-def updateVerrazzanoOnCluster(count, installerPath) {
-    return {
-        script {
-            sh """
-                export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
-                kubectl apply -f ${installerPath}
-                # give some time for the update to occur
-                sleep 30
-                kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
-            """
-        }
+        parallel verrazzanoInstallStages
     }
 }
 
@@ -912,6 +908,21 @@ def uninstallVerrazzano() {
     }
 }
 
+def uninstallMinimalVerrazzano() {
+    script {
+         // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+         // - Start at 2 to only uninstall managed clusters
+         def verrazzanoUninstallStages = [:]
+         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+         for (int count = 2; count <= clusterCount; count++) {
+             def installerPath = "${KUBECONFIG_DIR}/${count}/${minimalFileName}"
+             def key = "vz-mgd-${count - 1}"
+             verrazzanoUninstallStages["${key}"] = uninstallVerrazzanoOnCluster(count, installerPath)
+         }
+         parallel verrazzanoUninstallStages
+    }
+}
+
 // Uninstall Verrazzano
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
@@ -941,6 +952,21 @@ def verifyUninstall() {
             if (count == 1) {
                 key = "vz-admin"
             }
+            verifyUninstallStages["${key}"] = verifyUninstallOnCluster(count)
+        }
+        parallel verifyUninstallStages
+    }
+}
+
+// Verify uninstall on all clusters
+def verifyMinimalUninstall() {
+    script {
+        // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+        // - start at 2 to only check managed clusters
+        def verifyUninstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for (int count = 2; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count - 1}"
             verifyUninstallStages["${key}"] = verifyUninstallOnCluster(count)
         }
         parallel verifyUninstallStages
