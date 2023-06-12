@@ -43,8 +43,9 @@ require (
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.25.2
 	k8s.io/code-generator v0.25.2
-	sigs.k8s.io/cluster-api v1.2.0
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea
+	k8s.io/kubectl v0.25.2
+	sigs.k8s.io/cluster-api v1.2.0
 	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/controller-tools v0.9.2
 	sigs.k8s.io/kind v0.14.0
