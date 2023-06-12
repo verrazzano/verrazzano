@@ -823,7 +823,7 @@ def installManagedClusters() {
         for(int count=2; count<=clusterCount; count++) {
             def key = "vz-mgd-${count-1}"
             def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
+            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath, false)
         }
         parallel verrazzanoInstallStages
     }
