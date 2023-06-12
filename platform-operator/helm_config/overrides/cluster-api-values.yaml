@@ -10,22 +10,11 @@ global:
 # Overrides for the default providers
 defaultProviders:
   ocne:
-    # Overrides the default configuration for bootstrap and controlPlane.
-    version:
-    # Overrides to global settings and values derived from version field
-    bootstrap:
-      image:
-        registry:
-        repository:
-        pullPolicy:
-        tag:
-    # Overrides to global settings and values derived from version field
-    controlPlane:
-      image:
-        registry:
-        repository:
-        pullPolicy:
-        tag:
+    image:
+      registry:
+      repository:
+      pullPolicy:
+      tag:
   core:
     image:
       registry:
