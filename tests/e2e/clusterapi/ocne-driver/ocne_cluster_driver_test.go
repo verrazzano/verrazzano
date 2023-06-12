@@ -4,13 +4,10 @@
 package ocnedriver
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -28,66 +25,11 @@ import (
 // nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
-	shortWaitTimeout             = 5 * time.Minute
-	shortPollingInterval         = 10 * time.Second
-	waitTimeout                  = 120 * time.Minute
-	pollingInterval              = 30 * time.Second
-	clusterName                  = "strudel2"
-	createClusterPayloadTemplate = `{
-		"dockerRootDir": "/var/lib/docker",
-		"enableClusterAlerting": false,
-		"enableClusterMonitoring": false,
-		"enableNetworkPolicy": false,
-		"windowsPreferedCluster": false,
-		"type": "cluster",
-		"name": "{{.ClusterName}}",
-		"ociocneEngineConfig": {
-			"calicoImagePath": "olcne",
-			"cloudCredentialId": "{{.CloudCredentialID}}",
-			"clusterCidr": "10.96.0.0/16",
-			"compartmentId": "{{.CompartmentID}}",
-			"controlPlaneMemoryGbs": 16,
-			"controlPlaneOcpus": 2,
-			"controlPlaneShape": "VM.Standard.E4.Flex",
-			"controlPlaneSubnet": "{{.ControlPlaneSubnet}}",
-			"controlPlaneVolumeGbs": 100,
-			"corednsImageTag": "v1.9.3",
-			"displayName": "{{.ClusterName}}",
-			"driverName": "ociocneengine",
-			"etcdImageTag": "3.5.6",
-			"imageDisplayName": "Oracle-Linux-8.7-2023.05.24-0",
-			"imageId": "",
-			"installCalico": true,
-			"installCcm": true,
-			"installVerrazzano": false,
-			"kubernetesVersion": "v1.25.7",
-			"loadBalancerSubnet": "{{.LoadBalancerSubnet}}",
-			"name": "",
-			"nodePublicKeyContents": "{{.NodePublicKeyContents}}",
-			"numControlPlaneNodes": 1,
-			"ocneVersion": "1.6",
-			"podCidr": "10.244.0.0/16",
-			"privateRegistry": "",
-			"proxyEndpoint": "",
-			"region": "{{.Region}}",
-			"skipOcneInstall": false,
-			"tigeraImageTag": "v1.29.0",
-			"useNodePvEncryption": true,
-			"vcnId": "{{.VcnID}}",
-			"verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
-			"verrazzanoTag": "v1.6.0-20230609132620-44e8f4d1",
-			"verrazzanoVersion": "1.6.0-4574+44e8f4d1",
-			"workerNodeSubnet": "{{.WorkerNodeSubnet}}",
-			"type": "ociocneEngineConfig",
-			"clusterName": "",
-			"nodeShape": "VM.Standard.E4.Flex",
-			"numWorkerNodes": 1,
-			"nodePools": [],
-			"applyYamls": []
-		},
-		"cloudCredentialId": "{{.CloudCredentialID}}",
-		"labels": {}
-	}`
+	shortWaitTimeout     = 5 * time.Minute
+	shortPollingInterval = 10 * time.Second
+	waitTimeout          = 120 * time.Minute
+	pollingInterval      = 30 * time.Second
+	clusterName          = "strudel2"
 )
 
 var (
@@ -96,19 +38,6 @@ var (
 	rancherURL        string
 	cloudCredentialID string
 )
-
-// capiClusterData needed for template rendering
-type capiClusterData struct {
-	ClusterName           string
-	Region                string
-	VcnID                 string
-	NodePublicKeyContents string
-	CompartmentID         string
-	WorkerNodeSubnet      string
-	ControlPlaneSubnet    string
-	LoadBalancerSubnet    string
-	CloudCredentialID     string
-}
 
 type RancherOcicredentialConfig struct {
 	Fingerprint        string `json:"fingerprint"`
@@ -131,6 +60,65 @@ type RancherCloudCred struct {
 	RancherOcicredentialConfig `json:"ocicredentialConfig"`
 	InternalType               string `json:"_type"`
 	Name                       string `json:"name"`
+}
+
+type RancherOCIOCNEEngine struct {
+	CalicoImagePath       string        `json:"calicoImagePath"`
+	CloudCredentialID     string        `json:"cloudCredentialId"`
+	ClusterCidr           string        `json:"clusterCidr"`
+	CompartmentID         string        `json:"compartmentId"`
+	ControlPlaneMemoryGbs int           `json:"controlPlaneMemoryGbs"`
+	ControlPlaneOcpus     int           `json:"controlPlaneOcpus"`
+	ControlPlaneShape     string        `json:"controlPlaneShape"`
+	ControlPlaneSubnet    string        `json:"controlPlaneSubnet"`
+	ControlPlaneVolumeGbs int           `json:"controlPlaneVolumeGbs"`
+	CorednsImageTag       string        `json:"corednsImageTag"`
+	DisplayName           string        `json:"displayName"`
+	DriverName            string        `json:"driverName"`
+	EtcdImageTag          string        `json:"etcdImageTag"`
+	ImageDisplayName      string        `json:"imageDisplayName"`
+	ImageID               string        `json:"imageId"`
+	InstallCalico         bool          `json:"installCalico"`
+	InstallCcm            bool          `json:"installCcm"`
+	InstallVerrazzano     bool          `json:"installVerrazzano"`
+	KubernetesVersion     string        `json:"kubernetesVersion"`
+	LoadBalancerSubnet    string        `json:"loadBalancerSubnet"`
+	Name                  string        `json:"name"`
+	NodePublicKeyContents string        `json:"nodePublicKeyContents"`
+	NumControlPlaneNodes  int           `json:"numControlPlaneNodes"`
+	OcneVersion           string        `json:"ocneVersion"`
+	PodCidr               string        `json:"podCidr"`
+	PrivateRegistry       string        `json:"privateRegistry"`
+	ProxyEndpoint         string        `json:"proxyEndpoint"`
+	Region                string        `json:"region"`
+	SkipOcneInstall       bool          `json:"skipOcneInstall"`
+	TigeraImageTag        string        `json:"tigeraImageTag"`
+	UseNodePvEncryption   bool          `json:"useNodePvEncryption"`
+	VcnID                 string        `json:"vcnId"`
+	VerrazzanoResource    string        `json:"verrazzanoResource"`
+	VerrazzanoTag         string        `json:"verrazzanoTag"`
+	VerrazzanoVersion     string        `json:"verrazzanoVersion"`
+	WorkerNodeSubnet      string        `json:"workerNodeSubnet"`
+	Type                  string        `json:"type"`
+	ClusterName           string        `json:"clusterName"`
+	NodeShape             string        `json:"nodeShape"`
+	NumWorkerNodes        int           `json:"numWorkerNodes"`
+	NodePools             []interface{} `json:"nodePools"`
+	ApplyYamls            []interface{} `json:"applyYamls"`
+}
+
+type RancherOCNECluster struct {
+	DockerRootDir           string               `json:"dockerRootDir"`
+	EnableClusterAlerting   bool                 `json:"enableClusterAlerting"`
+	EnableClusterMonitoring bool                 `json:"enableClusterMonitoring"`
+	EnableNetworkPolicy     bool                 `json:"enableNetworkPolicy"`
+	WindowsPreferedCluster  bool                 `json:"windowsPreferedCluster"`
+	Type                    string               `json:"type"`
+	Name                    string               `json:"name"`
+	OciocneEngineConfig     RancherOCIOCNEEngine `json:"ociocneEngineConfig"`
+	CloudCredentialID       string               `json:"cloudCredentialId"`
+	Labels                  struct {
+	} `json:"labels"`
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -290,14 +278,6 @@ func createCloudCredential(credentialName string) (string, error) {
 	return credID, nil
 }
 
-func executeCreateClusterTemplate(data *capiClusterData, buffer *bytes.Buffer) error {
-	createClusterTemplate, err := template.New("cloudCredentials").Parse(createClusterPayloadTemplate)
-	if err != nil {
-		return fmt.Errorf("failed to create the create cluster template: %v", err)
-	}
-	return createClusterTemplate.Execute(buffer, *data)
-}
-
 // Creates an OCNE cluster through ClusterAPI
 func createCluster(clusterName string) error {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster")
@@ -306,23 +286,70 @@ func createCluster(clusterName string) error {
 		t.Logs.Infof("error reading node public key file: %v", err)
 		return err
 	}
-	capiClusterData := capiClusterData{
-		ClusterName:           replaceWhitespaceToLiteral(clusterName),
-		Region:                replaceWhitespaceToLiteral(region),
-		VcnID:                 replaceWhitespaceToLiteral(vcnID),
-		NodePublicKeyContents: replaceWhitespaceToLiteral(nodePublicKeyContents),
-		CompartmentID:         replaceWhitespaceToLiteral(compartmentID),
-		WorkerNodeSubnet:      replaceWhitespaceToLiteral(workerNodeSubnet),
-		ControlPlaneSubnet:    replaceWhitespaceToLiteral(controlPlaneSubnet),
-		LoadBalancerSubnet:    replaceWhitespaceToLiteral(loadBalancerSubnet),
-		CloudCredentialID:     replaceWhitespaceToLiteral(cloudCredentialID),
-	}
-	buf := &bytes.Buffer{}
-	err = executeCreateClusterTemplate(&capiClusterData, buf)
+
+	// Fill in the values for the create cluster API request body
+	var rancherOCNEEngineConfig RancherOCIOCNEEngine
+	rancherOCNEEngineConfig.CalicoImagePath = "olcne"
+	rancherOCNEEngineConfig.CloudCredentialID = cloudCredentialID
+	rancherOCNEEngineConfig.ClusterCidr = "10.96.0.0/16"
+	rancherOCNEEngineConfig.CompartmentID = compartmentID
+	rancherOCNEEngineConfig.ControlPlaneMemoryGbs = 16
+	rancherOCNEEngineConfig.ControlPlaneOcpus = 2
+	rancherOCNEEngineConfig.ControlPlaneShape = "VM.Standard.E4.Flex"
+	rancherOCNEEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
+	rancherOCNEEngineConfig.ControlPlaneVolumeGbs = 100
+	rancherOCNEEngineConfig.CorednsImageTag = "v1.9.3"
+	rancherOCNEEngineConfig.DisplayName = clusterName
+	rancherOCNEEngineConfig.DriverName = "ociocneengine"
+	rancherOCNEEngineConfig.EtcdImageTag = "3.5.6"
+	rancherOCNEEngineConfig.ImageDisplayName = "Oracle-Linux-8.7-2023.05.24-0"
+	rancherOCNEEngineConfig.ImageID = ""
+	rancherOCNEEngineConfig.InstallCalico = true
+	rancherOCNEEngineConfig.InstallCcm = true
+	rancherOCNEEngineConfig.InstallVerrazzano = false
+	rancherOCNEEngineConfig.KubernetesVersion = "v1.25.7"
+	rancherOCNEEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
+	rancherOCNEEngineConfig.Name = ""
+	rancherOCNEEngineConfig.NodePublicKeyContents = nodePublicKeyContents
+	rancherOCNEEngineConfig.NumControlPlaneNodes = 1
+	rancherOCNEEngineConfig.OcneVersion = "1.6"
+	rancherOCNEEngineConfig.PodCidr = "10.244.0.0/16"
+	rancherOCNEEngineConfig.PrivateRegistry = ""
+	rancherOCNEEngineConfig.ProxyEndpoint = ""
+	rancherOCNEEngineConfig.Region = region
+	rancherOCNEEngineConfig.SkipOcneInstall = false
+	rancherOCNEEngineConfig.TigeraImageTag = "v1.29.0"
+	rancherOCNEEngineConfig.UseNodePvEncryption = true
+	rancherOCNEEngineConfig.VcnID = vcnID
+	rancherOCNEEngineConfig.VerrazzanoResource = "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster"
+	rancherOCNEEngineConfig.VerrazzanoTag = "v1.6.0-20230609132620-44e8f4d1"
+	rancherOCNEEngineConfig.VerrazzanoVersion = "1.6.0-4574+44e8f4d1"
+	rancherOCNEEngineConfig.WorkerNodeSubnet = workerNodeSubnet
+	rancherOCNEEngineConfig.Type = "ociocneEngineConfig"
+	rancherOCNEEngineConfig.ClusterName = ""
+	rancherOCNEEngineConfig.NodeShape = "VM.Standard.E4.Flex"
+	rancherOCNEEngineConfig.NumWorkerNodes = 1
+	rancherOCNEEngineConfig.NodePools = []interface{}{}
+	rancherOCNEEngineConfig.ApplyYamls = []interface{}{}
+
+	var rancherOCNEClusterConfig RancherOCNECluster
+	rancherOCNEClusterConfig.DockerRootDir = "/var/lib/docker"
+	rancherOCNEClusterConfig.EnableClusterAlerting = false
+	rancherOCNEClusterConfig.EnableClusterMonitoring = false
+	rancherOCNEClusterConfig.EnableNetworkPolicy = false
+	rancherOCNEClusterConfig.WindowsPreferedCluster = false
+	rancherOCNEClusterConfig.Type = "cluster"
+	rancherOCNEClusterConfig.Name = clusterName
+	rancherOCNEClusterConfig.OciocneEngineConfig = rancherOCNEEngineConfig
+	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
+	rancherOCNEClusterConfig.Labels = struct{}{}
+
+	clusterBData, err := json.Marshal(rancherOCNEClusterConfig)
 	if err != nil {
-		return fmt.Errorf("failed to parse the cloud credentials template: %s", err.Error())
+		t.Logs.Errorf("json marshalling error: %v", zap.Error(err))
+		return err
 	}
-	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
+	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, clusterBData, t.Logs)
 	if res != nil {
 		t.Logs.Infof("create cluster response body: %s", res.String())
 	}
@@ -440,15 +467,6 @@ func validateCloudCredential(credID string) error {
 	}
 	t.Logs.Infof("Validate cloud credential response: %s", fmt.Sprint(res))
 	return nil
-}
-
-func replaceWhitespaceToLiteral(s string) string {
-	modified := strings.ReplaceAll(s, "\n", `\n`)
-	modified = strings.ReplaceAll(modified, "\t", `\t`)
-	modified = strings.ReplaceAll(modified, "\v", `\v`)
-	modified = strings.ReplaceAll(modified, "\r", `\r`)
-	modified = strings.ReplaceAll(modified, "\f", `\f`)
-	return modified
 }
 
 func getFileContents(file string) (string, error) {
