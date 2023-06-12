@@ -50,3 +50,19 @@ fluentbit:
   envVars:
     - name: CLUSTER_NAME
       value: {{ .clusterName }}
+  # Pod security context for Fluentbit Pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext:
+    runAsGroup: 1024
+    runAsNonRoot: true
+    runAsUser: 1024
+    seccompProfile:
+      type: RuntimeDefault
+
+operator:
+  # Pod security context for Fluent Operator pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext:
+    runAsGroup: 1025
+    runAsNonRoot: true
+    runAsUser: 1025
+    seccompProfile:
+      type: RuntimeDefault
