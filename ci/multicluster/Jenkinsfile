@@ -404,12 +404,12 @@ pipeline {
                         }
                     }
                 }
-                stage ('Register managed clusters') {
+                stage ('Register minimal managed clusters') {
                     steps {
                         registerManagedClusters()
                     }
                 }
-                stage ('Verify Minimal Managed Cluster') {
+                stage ('Verify minimal managed cluster') {
                     parallel {
                         stage('Verify Cluster Agent Install') {
                             steps {
@@ -423,19 +423,29 @@ pipeline {
                         }
                     }
                 }
-                stage('Uninstall Minimal Managed Cluster') {
+                stage('verify deregister minimal managed cluster') {
+                    steps {
+                        verifyDeregisterManagedClusters()
+                    }
+                }
+                stage('Uninstall minimal managed cluster') {
                     steps {
                         uninstallMinimalVerrazzano()
                     }
                 }
-                stage('Verify Uninstall Minimal Managed Cluster') {
+                stage('Verify Uninstall minimal managed cluster') {
                     steps {
                         verifyMinimalUninstall()
                     }
                 }
-                stage ('Install Managed Clusters') {
+                stage ('Install managed clusters') {
                     steps {
                         installManagedClusters()
+                    }
+                }
+                stage ('Register minimal managed clusters') {
+                    steps {
+                        registerManagedClusters()
                     }
                 }
                 stage ('Deploy Sample Application') {
