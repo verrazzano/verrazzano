@@ -52,7 +52,7 @@ pipeline {
                 script {
                     if (params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE == "NONE") {
                         echo "Specific GIT commit was not specified, you must supply an explicit commit"
-                        exit 1
+                        sh "exit 1"
                     } else {
                         scmCheckout()
                     }
