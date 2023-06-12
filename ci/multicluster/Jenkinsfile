@@ -747,7 +747,7 @@ def deleteClusters(start = 1) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         if (env.TEST_ENV == "KIND") {
-            for(int count=$start; count<=clusterCount; count++) {
+            for(int count=start; count<=clusterCount; count++) {
                 sh """
                     if [ "${env.TEST_ENV}" == "KIND" ]
                     then
@@ -1220,7 +1220,7 @@ def createKindClusters(start = 1) {
         boolean cleanupKindContainers = true
         boolean connectJenkinsRunnerToNetwork = true
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=$start; count<=clusterCount; count++) {
+        for(int count=start; count<=clusterCount; count++) {
             string metallbAddressRange = addressRanges.get(count-1)
             def deployStep = "cluster-${count}"
             // Create dictionary of steps for parallel execution
