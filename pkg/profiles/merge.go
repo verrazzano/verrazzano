@@ -302,10 +302,10 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 // this is to avoid any nil pointer de-referencing further down the code
 func setNilV1alpha1OSReplicasToZero(merged *v1alpha1.Verrazzano) {
 	profileOpensearch := merged.Spec.Components.Elasticsearch
-	var v int32
 	if profileOpensearch != nil {
 		for i := range profileOpensearch.Nodes {
 			if profileOpensearch.Nodes[i].Replicas == nil {
+				var v int32
 				profileOpensearch.Nodes[i].Replicas = &v
 			}
 		}
@@ -316,10 +316,10 @@ func setNilV1alpha1OSReplicasToZero(merged *v1alpha1.Verrazzano) {
 // this is to avoid any nil pointer de-referencing further down the code
 func setNilV1beta1OSReplicasToZero(merged *v1beta1.Verrazzano) {
 	profileOpensearch := merged.Spec.Components.OpenSearch
-	var v int32
 	if profileOpensearch != nil {
 		for i := range profileOpensearch.Nodes {
 			if profileOpensearch.Nodes[i].Replicas == nil {
+				var v int32
 				profileOpensearch.Nodes[i].Replicas = &v
 			}
 		}
