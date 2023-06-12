@@ -41,11 +41,13 @@ func TestGetCapiOverrides(t *testing.T) {
   "defaultProviders": {
     "ocne": {
       "image": {
+        "tag": "v1.0",
         "pullPolicy": "Always"
       }
     },
     "oci": {
       "image": {
+        "repository": "repo",
         "registry": "air-gap-2"
       }
     },
@@ -93,7 +95,7 @@ func TestGetCapiOverrides(t *testing.T) {
 
 	bootstrapImage := overrides.DefaultProviders.OCNE.Image
 	assert.Equal(t, "", bootstrapImage.Repository)
-	assert.Equal(t, "", bootstrapImage.Tag)
+	assert.Equal(t, "v1.0", bootstrapImage.Tag)
 	assert.Equal(t, "", bootstrapImage.Registry)
 	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
 
@@ -104,7 +106,7 @@ func TestGetCapiOverrides(t *testing.T) {
 	assert.Equal(t, corev1.PullNever, coreImage.PullPolicy)
 
 	ociImage := overrides.DefaultProviders.OCI.Image
-	assert.Equal(t, "", ociImage.Repository)
+	assert.Equal(t, "repo", ociImage.Repository)
 	assert.Equal(t, "", ociImage.Tag)
 	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
