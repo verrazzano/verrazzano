@@ -133,30 +133,23 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	mergeImage(imageConfig, oci)
 	templateInput.OCIVersion = imageConfig.Version
 
-	/**
-
-
 	// Populate bootstrap provider values
+	bootstrap := &templateInput.OCNEBootstrap.Image
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
 	if err != nil {
 		return err
 	}
-	//bootstrap := &overrides.DefaultProviders.OCNE.Bootstrap
-	//bootstrap.Image.Repository = imageConfig.RepositoryWithoutRegistry
-	//bootstrap.Image.Tag = imageConfig.Tag
+	mergeImage(imageConfig, bootstrap)
 	templateInput.OCNEBootstrapVersion = imageConfig.Version
 
 	// Populate controlPlane provider values
+	controlPlane := &templateInput.OCNEControlPlane.Image
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-control-plane-controller")
 	if err != nil {
 		return err
 	}
-	//controlPlane := &overrides.DefaultProviders.OCNE.ControlPlane
-	//controlPlane.Image.Repository = imageConfig.RepositoryWithoutRegistry
-	//controlPlane.Image.Tag = imageConfig.Tag
+	mergeImage(imageConfig, controlPlane)
 	templateInput.OCNEControlPlaneVersion = imageConfig.Version
-
-	*/
 
 	return nil
 }

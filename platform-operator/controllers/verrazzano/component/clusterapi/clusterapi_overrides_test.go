@@ -185,26 +185,26 @@ func TestCreateTemplateInput(t *testing.T) {
 	assert.Equal(t, "secret1", templateInput.Global.ImagePullSecrets[0].Name)
 
 	bootstrapImage := templateInput.OCNEBootstrap.Image
-	assert.Equal(t, "", bootstrapImage.Repository)
-	assert.Equal(t, "v1.0", bootstrapImage.Tag)
 	assert.Equal(t, "", bootstrapImage.Registry)
+	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
+	assert.Equal(t, "v1.0", bootstrapImage.Tag)
 	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
 
 	controlPlaneImage := templateInput.OCNEControlPlane.Image
-	assert.Equal(t, "", controlPlaneImage.Repository)
-	assert.Equal(t, "v1.0", controlPlaneImage.Tag)
 	assert.Equal(t, "", controlPlaneImage.Registry)
+	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
+	assert.Equal(t, "v1.0", controlPlaneImage.Tag)
 	assert.Equal(t, corev1.PullAlways, controlPlaneImage.PullPolicy)
 
 	coreImage := templateInput.Core.Image
+	assert.Equal(t, "", coreImage.Registry)
 	assert.Equal(t, "verrazzano", coreImage.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
-	assert.Equal(t, "", coreImage.Registry)
 	assert.Equal(t, corev1.PullNever, coreImage.PullPolicy)
 
 	ociImage := templateInput.OCI.Image
+	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, "repo", ociImage.Repository)
 	assert.Equal(t, "v0.8.1", ociImage.Tag)
-	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
 }
