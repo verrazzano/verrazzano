@@ -102,7 +102,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
 			t.Entry("includes verrazzano-cluster-operator", "verrazzano-cluster-operator", true),
-			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
+			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", isVMOExpected(kubeconfigPath)),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 			// t.Entry("Check external-dns deployment", "external-dns", pkg.IsOCIDNSEnabled(kubeconfigPath)),
@@ -227,14 +227,12 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						Should(BeTrue())
 				},
 				func() {
-					// in v1.6.0 and later, the VMO pod is not part of managed cluster profile
-					noVMOPodInManagedCluster, _ := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
-					if isManagedClusterProfile && noVMOPodInManagedCluster {
-						// skip test
-						fmt.Printf("Skipping VMO pod check in managed cluster profile for VZ >= 1.6.0")
-					} else {
+					if isVMOExpected(kubeconfigPath) {
 						Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{expectedVMOPod}) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
+					} else {
+						// skip test
+						fmt.Printf("Skipping VMO pod check in managed cluster profile for VZ >= 1.6.0")
 					}
 				},
 			}
@@ -244,6 +242,17 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			)
 		})
 	})
+
+// isVMOExpected - is the VMO pod expected to exist in the given cluster
+func isVMOExpected(kubeconfigPath string) bool {
+	// in v1.6.0 and later, the VMO pod is not part of managed cluster profile
+	noVMOPodInManagedCluster, _ := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
+	isManagedClusterProfile := pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile && noVMOPodInManagedCluster {
+		return false
+	}
+	return true
+}
 
 func nsListContains(list []v1.Namespace, target string) bool {
 	for i := range list {
