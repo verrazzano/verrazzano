@@ -5,6 +5,7 @@ package ocnedriver
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -142,6 +143,29 @@ type capiClusterData struct {
 	CloudCredentialID     string
 }
 
+type RancherOcicredentialConfig struct {
+	Fingerprint        string `json:"fingerprint"`
+	PrivateKeyContents string `json:"privateKeyContents"`
+	Region             string `json:"region"`
+	TenancyID          string `json:"tenancyId"`
+	UserID             string `json:"userId"`
+}
+
+type RancherCloudCred struct {
+	Type     string `json:"type"`
+	Metadata struct {
+		GenerateName string `json:"generateName"`
+		Namespace    string `json:"namespace"`
+	} `json:"metadata"`
+	InternalName string `json:"_name"`
+	Annotations  struct {
+		ProvisioningCattleIoDriver string `json:"provisioning.cattle.io/driver"`
+	} `json:"annotations"`
+	RancherOcicredentialConfig `json:"ocicredentialConfig"`
+	InternalType               string `json:"_type"`
+	Name                       string `json:"name"`
+}
+
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	//TODO oci get to check it's working
 
@@ -277,22 +301,28 @@ func createCloudCredential(credentialName string) (string, error) {
 		t.Logs.Infof("error reading private key file: %v", err)
 		return "", err
 	}
-	credentialsData := cloudCredentialsData{
-		CredentialName:     replaceWhitespaceToLiteral(credentialName),
-		Fingerprint:        replaceWhitespaceToLiteral(fingerprint),
-		PrivateKeyContents: replaceWhitespaceToLiteral(privateKeyContents),
-		TenancyID:          replaceWhitespaceToLiteral(tenancyID),
-		UserID:             replaceWhitespaceToLiteral(userID),
-		Region:             replaceWhitespaceToLiteral(region),
-		Passphrase:         "",
-	}
-	buf := &bytes.Buffer{}
-	err = executeCloudCredentialsTemplate(&credentialsData, buf)
+	
+	var cloudCreds RancherCloudCred
+	cloudCreds.Name = "strudel-test"
+	cloudCreds.InternalName = cloudCreds.Name
+	cloudCreds.Type = "provisioning.cattle.io/cloud-credential"
+	cloudCreds.InternalType = "provisioning.cattle.io/cloud-credential"
+
+	var cloudCredConfig RancherOcicredentialConfig
+	cloudCredConfig.Fingerprint = fingerprint
+	cloudCredConfig.PrivateKeyContents = privateKeyContents
+	cloudCredConfig.TenancyID = tenancyID
+	cloudCredConfig.UserID = userID
+	cloudCredConfig.Region = region
+	cloudCreds.RancherOcicredentialConfig = cloudCredConfig
+
+	cloudCredsBdata, err := json.Marshal(cloudCreds)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse the cloud credentials template: %s", err.Error())
+		t.Logs.Errorf("json marshalling error: %v", zap.Error(err))
+		return "", err
 	}
 
-	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, buf.Bytes(), t.Logs)
+	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, cloudCredsBdata, t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
 		return "", err
