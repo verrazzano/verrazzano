@@ -16,6 +16,19 @@ spec:
   match: "kube.*"
 ---
 apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: tail-input-record-filter
+spec:
+  filters:
+    - recordModifier:
+        records:
+          - "cluster_name ${CLUSTER_NAME}"
+  match: "kube.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterParser
 metadata:
   labels:

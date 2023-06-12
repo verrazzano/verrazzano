@@ -39,9 +39,14 @@ fluentbit:
     systemd:
       path: "/run/log/journal"
       stripUnderscores: "on"
+      systemdFilter:
+        enable: false
   filter:
     systemd:
       enable: false
     kubernetes:
       labels: true
       annotations: true
+  envVars:
+    - name: CLUSTER_NAME
+      value: {{ .clusterName }}
