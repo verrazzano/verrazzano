@@ -30,15 +30,9 @@ type globalOverrides struct {
 }
 
 type defaultProviders struct {
-	OCNE ocneProvider `json:"ocne,omitempty"`
+	OCNE capiProvider `json:"ocne,omitempty"`
 	Core capiProvider `json:"core,omitempty"`
 	OCI  capiProvider `json:"oci,omitempty"`
-}
-
-type ocneProvider struct {
-	Version      string       `json:"version,omitempty"`
-	Bootstrap    capiProvider `json:"bootstrap,omitempty"`
-	ControlPlane capiProvider `json:"controlPlane,omitempty"`
 }
 
 type capiProvider struct {
@@ -52,10 +46,29 @@ type capiImage struct {
 	Tag        string            `json:"tag,omitempty"`
 }
 
+// createTemplateInput - create the template input for install/upgrade of the
+// ClusterAPI component.
+func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
+	templateInput := &TemplateInput{}
+
+	// Get the user facing overrides
+	userOverrides, err := getCapiOverrides(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the user facing overrides into the internal format for the overrides.
+	// This is required because some user facing overrides (e.g. tag for ocne) is simplified
+	// for the user to a single input, but internally the BOM can have different tags for
+	// bootstrap and controlPlane images.
+	convertUserOverridesToTemplate(templateInput, userOverrides)
+
+	return templateInput, nil
+}
+
 // getCapiOverrides - return the ClusterAPI overrides
 func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	overrides := &capiOverrides{}
-	templateInput := &TemplateInput{}
 
 	// Unmarshall the base overrides values file into a local struct
 	filePath := filepath.Join(config.GetHelmOverridesDir(), "cluster-api-values.yaml")
@@ -68,17 +81,23 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 		return nil, err
 	}
 
-	// Update the struct with overrides from the BOM
-	err = updateWithBOMOverrides(ctx, overrides, templateInput)
-
 	// Merge overrides from the Verrazzano custom resource
 	err = updateWithVZOverrides(ctx, overrides)
 
 	return overrides, err
 }
 
-// updateWithBOMOverrides - update the struct with overrides from the BOM
-func updateWithBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, templateInput *TemplateInput) error {
+// convertUserOverridesToTemplate - convert the user facing overrides into the internal structure format.
+func convertUserOverridesToTemplate(template *TemplateInput, overrides *capiOverrides) {
+	template.Global = overrides.Global
+	template.OCNEBootstrap.Image = overrides.DefaultProviders.OCNE.Image
+	template.OCNEControlPlane.Image = overrides.DefaultProviders.OCNE.Image
+	template.OCI.Image = overrides.DefaultProviders.OCI.Image
+	template.Core.Image = overrides.DefaultProviders.Core.Image
+}
+
+// mergeBOMOverrides - update the struct with overrides from the BOM
+func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, templateInput *TemplateInput) error {
 
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -113,9 +132,9 @@ func updateWithBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, 
 	if err != nil {
 		return err
 	}
-	bootstrap := &overrides.DefaultProviders.OCNE.Bootstrap
-	bootstrap.Image.Repository = imageConfig.RepositoryWithoutRegistry
-	bootstrap.Image.Tag = imageConfig.Tag
+	//bootstrap := &overrides.DefaultProviders.OCNE.Bootstrap
+	//bootstrap.Image.Repository = imageConfig.RepositoryWithoutRegistry
+	//bootstrap.Image.Tag = imageConfig.Tag
 	templateInput.OCNEBootstrapVersion = imageConfig.Version
 
 	// Populate controlPlane provider values
@@ -123,9 +142,9 @@ func updateWithBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides, 
 	if err != nil {
 		return err
 	}
-	controlPlane := &overrides.DefaultProviders.OCNE.ControlPlane
-	controlPlane.Image.Repository = imageConfig.RepositoryWithoutRegistry
-	controlPlane.Image.Tag = imageConfig.Tag
+	//controlPlane := &overrides.DefaultProviders.OCNE.ControlPlane
+	//controlPlane.Image.Repository = imageConfig.RepositoryWithoutRegistry
+	//controlPlane.Image.Tag = imageConfig.Tag
 	templateInput.OCNEControlPlaneVersion = imageConfig.Version
 
 	return nil

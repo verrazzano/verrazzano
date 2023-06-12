@@ -40,15 +40,18 @@ func TestGetCapiOverrides(t *testing.T) {
   },
   "defaultProviders": {
     "ocne": {
-      "bootstrap": {
-        "image": {
-          "pullPolicy": "Always"
-        }
+      "image": {
+        "pullPolicy": "Always"
       }
     },
     "oci": {
       "image": {
         "registry": "air-gap-2"
+      }
+    },
+    "core": {
+      "image": {
+        "pullPolicy": "Never"
       }
     }
   }
@@ -88,27 +91,21 @@ func TestGetCapiOverrides(t *testing.T) {
 	assert.Equal(t, corev1.PullIfNotPresent, overrides.Global.PullPolicy)
 	assert.Equal(t, "secret1", overrides.Global.ImagePullSecrets[0].Name)
 
-	bootstrapImage := overrides.DefaultProviders.OCNE.Bootstrap.Image
-	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrapImage.Tag)
+	bootstrapImage := overrides.DefaultProviders.OCNE.Image
+	assert.Equal(t, "", bootstrapImage.Repository)
+	assert.Equal(t, "", bootstrapImage.Tag)
 	assert.Equal(t, "", bootstrapImage.Registry)
 	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
 
-	controlPlaneImage := overrides.DefaultProviders.OCNE.ControlPlane.Image
-	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlaneImage.Tag)
-	assert.Equal(t, "", controlPlaneImage.Registry)
-	assert.Equal(t, corev1.PullPolicy(""), controlPlaneImage.PullPolicy)
-
 	coreImage := overrides.DefaultProviders.Core.Image
-	assert.Equal(t, "verrazzano", coreImage.Repository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
+	assert.Equal(t, "", coreImage.Repository)
+	assert.Equal(t, "", coreImage.Tag)
 	assert.Equal(t, "", coreImage.Registry)
-	assert.Equal(t, corev1.PullPolicy(""), coreImage.PullPolicy)
+	assert.Equal(t, corev1.PullNever, coreImage.PullPolicy)
 
 	ociImage := overrides.DefaultProviders.OCI.Image
-	assert.Equal(t, "oracle", ociImage.Repository)
-	assert.Equal(t, "v0.8.1", ociImage.Tag)
+	assert.Equal(t, "", ociImage.Repository)
+	assert.Equal(t, "", ociImage.Tag)
 	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
 }

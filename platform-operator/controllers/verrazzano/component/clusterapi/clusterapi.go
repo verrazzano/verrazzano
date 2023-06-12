@@ -26,10 +26,10 @@ images:
 
   bootstrap-ocne:
     repository: {{.OCNEBootstrapRepository}}
-    tag: {{.OCNEBootstrapTag}}
+    tag: {{.OCNEBootstrap.Image.Tag}}
   control-plane-ocne:
     repository: {{.OCNEControlPlaneRepository}}
-    tag: {{.OCNEControlPlaneTag}}
+    tag: {{.OCNEControlPlane.Image.Tag}}
 
 providers:
   - name: "cluster-api"
@@ -73,6 +73,12 @@ type TemplateInput struct {
 	OCNEControlPlaneVersion    string
 	OCNEControlPlaneRepository string
 	OCNEControlPlaneTag        string
+
+	Global           globalOverrides
+	OCNEBootstrap    capiProvider
+	OCNEControlPlane capiProvider
+	Core             capiProvider
+	OCI              capiProvider
 }
 
 const (
