@@ -27,3 +27,37 @@ defaultProviders:
       repository:
       pullPolicy:
       tag:
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+images:
+  cluster-api:
+    repository: {{.APIRepository}}
+    tag: {{.APITag}}
+
+  infrastructure-oci:
+    repository: {{.OCIRepository}}
+    tag: {{.OCITag}}
+
+  bootstrap-ocne:
+    repository: {{.OCNEBootstrapRepository}}
+    tag: {{.OCNEBootstrapTag}}
+
+  control-plane-ocne:
+    repository: {{.OCNEControlPlaneRepository}}
+    tag: {{.OCNEControlPlaneTag}}
+
+providers:
+  - name: "cluster-api"
+    url: "/verrazzano/capi/cluster-api/{{.APIVersion}}/core-components.yaml"
+    type: "CoreProvider"
+  - name: "oci"
+    url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
+    type: "InfrastructureProvider"
+  - name: "ocne"
+    url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
+    type: "BootstrapProvider"
+  - name: "ocne"
+    url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
+    type: "ControlPlaneProvider"
