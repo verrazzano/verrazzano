@@ -415,7 +415,7 @@ def runGinkgo(testSuitePath) {
                 --workerNodeSubnet="${env.SUBNET_ID}" \
                 --controlPlaneSubnet="${env.SUBNET_ID}" \
                 --loadBalancerSubnet="${env.SUBNET_ID}" \
-                --ocneClusterNameSuffix="${env.OCNE_CLUSTER_NAME_SUFFIX}
+                --ocneClusterNameSuffix="${env.OCNE_CLUSTER_NAME_SUFFIX}"
         """
     }
 }
