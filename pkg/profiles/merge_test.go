@@ -224,6 +224,8 @@ func getMergeProfileTestData() []mergeProfileTestData {
 			mergedCR: certsBaseSpecFilePath,
 		},
 		{
+			// This unit test makes sure that replicas in OS NodePool is never nil in the effectiveCR
+			// Even it is nil in the actualCR
 			name:     "4",
 			actualCR: openSearchActualFilePath,
 			profiles: []string{

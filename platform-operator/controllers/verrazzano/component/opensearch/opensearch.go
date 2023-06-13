@@ -112,6 +112,9 @@ func getNodeControllerName(node vzapi.OpenSearchNode) string {
 
 func dataDeploymentObjectKeys(node vzapi.OpenSearchNode, nodeControllerName string) []types.NamespacedName {
 	var dataDeployments []types.NamespacedName
+	if node.Replicas == nil {
+		return dataDeployments
+	}
 	var i int32
 	for i = 0; i < *node.Replicas; i++ {
 		dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
@@ -138,7 +141,7 @@ func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
 	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 			for _, role := range node.Roles {
-				if role == nodeType {
+				if role == nodeType && node.Replicas != nil {
 					replicas += *node.Replicas
 				}
 			}

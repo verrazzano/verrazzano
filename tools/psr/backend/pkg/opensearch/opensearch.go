@@ -83,6 +83,9 @@ func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 
 func dataDeploymentObjectKeys(node vzv1alpha1.OpenSearchNode, nodeControllerName string) []types.NamespacedName {
 	var dataDeployments []types.NamespacedName
+	if node.Replicas == nil {
+		return dataDeployments
+	}
 	var i int32
 	for i = 0; i < *node.Replicas; i++ {
 		dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
