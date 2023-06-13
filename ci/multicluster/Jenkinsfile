@@ -384,53 +384,55 @@ pipeline {
                         }
                     }
                 }
-                stage ('Install Verrazzano with Minimal Managed Cluster') {
-                    steps {
-                        script {
-                            getVerrazzanoOperatorYaml()
-                        }
-                        installMinimalVerrazzano()
-                    }
-                    post {
-                        always {
+                stage("Minimal Managed Cluster Tests") {
+                    stage('Install Verrazzano') {
+                        steps {
                             script {
-                                dumpInstallLogs()
+                                getVerrazzanoOperatorYaml()
                             }
+                            installMinimalVerrazzano()
                         }
-                        failure {
-                            script {
-                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
+                        post {
+                            always {
+                                script {
+                                    dumpInstallLogs()
+                                }
                             }
-                        }
-                    }
-                }
-                stage ('Register minimal managed clusters') {
-                    steps {
-                        registerManagedClusters()
-                    }
-                }
-                stage ('Verify minimal managed cluster') {
-                    parallel {
-                        stage('Verify Cluster Agent Install') {
-                            steps {
-                                runGinkgoRandomize('verify-install/clusteragent')
-                            }
-                        }
-                        stage('Verify Minimal Managed Cluster Registration') {
-                            steps {
-                                verifyRegisterManagedClusters(true)
+                            failure {
+                                script {
+                                    dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
+                                }
                             }
                         }
                     }
-                }
-                stage('verify deregister minimal managed cluster') {
-                    steps {
-                        verifyDeregisterManagedClusters()
+                    stage('Register minimal managed clusters') {
+                        steps {
+                            registerManagedClusters()
+                        }
                     }
-                }
-                stage('Delete minimal managed cluster') {
-                    steps {
-                        deleteClusters(2)
+                    stage('Verify minimal managed cluster') {
+                        parallel {
+                            stage('Verify Cluster Agent Install') {
+                                steps {
+                                    runGinkgoRandomize('verify-install/clusteragent')
+                                }
+                            }
+                            stage('Verify Minimal Managed Cluster Registration') {
+                                steps {
+                                    verifyRegisterManagedClusters(true)
+                                }
+                            }
+                        }
+                    }
+                    stage('verify deregister minimal managed cluster') {
+                        steps {
+                            verifyDeregisterManagedClusters()
+                        }
+                    }
+                    stage('Delete minimal managed cluster') {
+                        steps {
+                            deleteClusters(2)
+                        }
                     }
                 }
                 stage('Create KinD managed cluster') {
@@ -438,12 +440,6 @@ pipeline {
                         // create managed clusters, pass in false for cleanup existing kind clusters, since we want
                         // the admin cluster to be left as-is
                         createKindClusters(2, false)
-                        // Update the admin kubeconfig with the correct server IP
-//                        sh """
-//                            kubectl config set-context kind-${CLUSTER_NAME_PREFIX}-1
-//                            sed -i -e "s|[0-9]*.[0-9]*.[0-9]*.[0-9]*:6443|`docker inspect ${CLUSTER_NAME_PREFIX}-1-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${ADMIN_KUBECONFIG}
-//                            cat ${ADMIN_KUBECONFIG} | grep server
-//                        """
                     }
                 }
                 stage('Configure KinD managed cluster') {
