@@ -74,7 +74,7 @@ pipeline {
                         sh """
                           # The existence of the versioned images.txt at the commit specific location in object storage is enough to confirm the commit and version. The update last periodics will also
                           # do this as well, but we are doing it here explicitly so that if the commit specified is not correct we can fail here in the initial stage
-                          oci --region us-phoenix-1 os object head --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                          oci --region us-phoenix-1 os object head --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
                         """
                     }
                 }
