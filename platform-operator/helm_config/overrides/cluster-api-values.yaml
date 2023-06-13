@@ -31,8 +31,8 @@ defaultProviders:
     image:
       registry:
       repository:
-      pullPolicy:
       tag:
+      pullPolicy:
 
 
 Use Cases
