@@ -65,7 +65,7 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.0.10
+export MYSQL_CHART_VERSION=2.0.9
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
@@ -78,7 +78,7 @@ mv mysql-innodbcluster mysql
 The `mysql-operator` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.0.10
+export MYSQL_OPERATOR_CHART_VERSION=2.0.9
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
