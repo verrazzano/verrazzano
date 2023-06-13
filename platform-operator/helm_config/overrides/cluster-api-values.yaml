@@ -35,14 +35,6 @@ defaultProviders:
       pullPolicy:
 
 
-Use Cases
-
-- Install: none of the fields are required
-- Internet override: Just supply version
-- Air-Gap: metadataUrl
-
-3pm ARB - could be repurposed if no other time available
-
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 images:
