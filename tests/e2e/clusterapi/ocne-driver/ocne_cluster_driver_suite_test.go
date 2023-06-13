@@ -5,6 +5,7 @@ package ocnedriver
 
 import (
 	"flag"
+	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
@@ -23,6 +24,9 @@ var controlPlaneSubnet string
 var loadBalancerSubnet string
 var ocneClusterNameSuffix string
 
+var clusterName string
+var cloudCredentialName string
+
 func init() {
 	flag.StringVar(&region, "region", "", "region represents the region where the ClusterAPI cluster will be created")
 	flag.StringVar(&userID, "userID", "", "userID represents the user ID")
@@ -39,6 +43,9 @@ func init() {
 }
 
 func TestOCNEClusterDriver(test *testing.T) {
+	clusterName         = fmt.Sprintf("strudel-%s", ocneClusterNameSuffix)
+	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
+
 	t.RegisterFailHandler()
 	ginkgo.RunSpecs(test, "OCNE Cluster Driver Suite")
 }

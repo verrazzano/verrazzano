@@ -36,8 +36,6 @@ var (
 	httpClient          *retryablehttp.Client
 	rancherURL          string
 	cloudCredentialID   string
-	clusterName         = fmt.Sprintf("strudel-%s", ocneClusterNameSuffix)
-	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 )
 
 type RancherOcicredentialConfig struct {
