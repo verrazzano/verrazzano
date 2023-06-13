@@ -372,14 +372,14 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
