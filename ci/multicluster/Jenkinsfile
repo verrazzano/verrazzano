@@ -362,7 +362,7 @@ pipeline {
                                     steps {
                                         script {
                                             configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
-                                            configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", params.ACME_ENVIRONMENT)
+                                            configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", minimalFileName, params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -372,14 +372,14 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureMinimalInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
@@ -436,6 +436,13 @@ pipeline {
                 stage('Create KinD managed cluster') {
                     steps {
                         createKindClusters(2)
+                    }
+                }
+                stage('Configure KinD managed cluster') {
+                    steps {
+                        steps {
+                            configureManagedInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", installerFileName, params.WILDCARD_DNS_DOMAIN)
+                        }
                     }
                 }
                 stage ('Install managed clusters') {
@@ -1177,7 +1184,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
     }
 }
 
-def configureMinimalInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
+def configureManagedInstallers(installResourceTemplate, configProcessorScript, filename, String... extraArgs) {
     script {
         // Concatenate the variable args into a single string
         String allArgs = ""
@@ -1187,7 +1194,7 @@ def configureMinimalInstallers(installResourceTemplate, configProcessorScript, S
 
         // start at 2 to skip the admin cluster
         for(int count=2; count<=clusterCount; count++) {
-            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${minimalFileName}"
+            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${filename}"
             def installProfile = env.MANAGED_CLUSTER_PROFILE
             def envName = "mgd${count-1}"
             sh """
