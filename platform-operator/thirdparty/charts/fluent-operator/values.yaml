@@ -19,7 +19,9 @@ operator:
     tag: "v2.2.0"
   # Pod security context for Fluent Operator. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   podSecurityContext: {}
-  # FluentBit operator resources. Usually user needn't to adjust these.
+  # Container security context for Fluent Operator container. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext: {}
+  # Fluent Operator resources. Usually user needn't to adjust these.
   resources:
     limits:
       cpu: 100m

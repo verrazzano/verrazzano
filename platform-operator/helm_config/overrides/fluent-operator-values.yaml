@@ -63,3 +63,9 @@ operator:
     runAsUser: 1025
     seccompProfile:
       type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
