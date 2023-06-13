@@ -118,7 +118,7 @@ fluentbit:
     tail:
       enable: true
       refreshIntervalSeconds: 10
-      memBufLimit: 5MB
+      memBufLimit: 50MB
       path: "/var/log/containers/*.log"
       skipLongLines: true
       readFromHead: false
