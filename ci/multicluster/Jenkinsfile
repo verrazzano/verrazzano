@@ -439,11 +439,11 @@ pipeline {
                         // the admin cluster to be left as-is
                         createKindClusters(2, false)
                         // Update the admin kubeconfig with the correct server IP
-                        sh """
-                            kubectl config set-context kind-${CLUSTER_NAME_PREFIX}-1
-                            sed -i -e "s|[0-9]*.[0-9]*.[0-9]*.[0-9]*:6443|`docker inspect ${CLUSTER_NAME_PREFIX}-1-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${ADMIN_KUBECONFIG}
-                            cat ${ADMIN_KUBECONFIG} | grep server
-                        """
+//                        sh """
+//                            kubectl config set-context kind-${CLUSTER_NAME_PREFIX}-1
+//                            sed -i -e "s|[0-9]*.[0-9]*.[0-9]*.[0-9]*:6443|`docker inspect ${CLUSTER_NAME_PREFIX}-1-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${ADMIN_KUBECONFIG}
+//                            cat ${ADMIN_KUBECONFIG} | grep server
+//                        """
                     }
                 }
                 stage('Configure KinD managed cluster') {
