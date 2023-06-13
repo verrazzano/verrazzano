@@ -435,7 +435,9 @@ pipeline {
                 }
                 stage('Create KinD managed cluster') {
                     steps {
-                        createKindClusters(2)
+                        // create managed clusters, pass in false for cleanup existing kind clusters, since we want
+                        // the admin cluster to be left as-is
+                        createKindClusters(2, false)
                         // Update the admin kubeconfig with the correct server IP
                         sh """
                             kubectl config set-context kind-${CLUSTER_NAME_PREFIX}-1
@@ -1212,7 +1214,7 @@ def configureManagedInstallers(installResourceTemplate, configProcessorScript, f
 }
 
 // Create the required KinD clusters
-def createKindClusters(start = 1) {
+def createKindClusters(start = 1, cleanupKindContainers = true) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -1228,7 +1230,6 @@ def createKindClusters(start = 1) {
 
         def addressRanges = [ "172.18.0.231-172.18.0.238", "172.18.0.239-172.18.0.246", "172.18.0.247-172.18.0.254"]
         def clusterInstallStages = [:]
-        boolean cleanupKindContainers = true
         boolean connectJenkinsRunnerToNetwork = true
         if(start > 1) {
             connectJenkinsRunnerToNetwork = false
