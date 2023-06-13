@@ -17,19 +17,20 @@ import (
 const clusterctlYamlTemplate = `
 images:
   cluster-api:
-    repository: {{.APIRepository}}
-    tag: {{.APITag}}
+    repository: {{.GetClusterAPIRepository}}
+    tag: {{.GetClusterAPITag}}
 
   infrastructure-oci:
-    repository: {{.OCIRepository}}
-    tag: {{.OCITag}}
+    repository: {{.GetOCIRepository}}
+    tag: {{.GetOCITag}}
 
   bootstrap-ocne:
-    repository: {{.OCNEBootstrapRepository}}
-    tag: {{.OCNEBootstrap.Image.Tag}}
+    repository: {{.GetOCNEBootstrapRepository}}
+    tag: {{.GetOCNEBootstrapTag}}
+
   control-plane-ocne:
-    repository: {{.OCNEControlPlaneRepository}}
-    tag: {{.OCNEControlPlane.Image.Tag}}
+    repository: {{.GetOCNEControlPlaneRepository}}
+    tag: {{.GetOCNEControlPlaneTag}}
 
 providers:
   - name: "cluster-api"
@@ -58,27 +59,6 @@ type ImageConfig struct {
 	Repository                string
 	Tag                       string
 	RepositoryWithoutRegistry string
-}
-
-type TemplateInput struct {
-	APIVersion                 string
-	APIRepository              string
-	APITag                     string
-	OCIVersion                 string
-	OCIRepository              string
-	OCITag                     string
-	OCNEBootstrapVersion       string
-	OCNEBootstrapRepository    string
-	OCNEBootstrapTag           string
-	OCNEControlPlaneVersion    string
-	OCNEControlPlaneRepository string
-	OCNEControlPlaneTag        string
-
-	Global           globalOverrides
-	OCNEBootstrap    capiProvider
-	OCNEControlPlane capiProvider
-	Core             capiProvider
-	OCI              capiProvider
 }
 
 const (
