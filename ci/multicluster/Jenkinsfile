@@ -437,23 +437,28 @@ pipeline {
                         }
                     }
                 }
-                stage('Create KinD managed cluster') {
-                    steps {
-                        // create managed clusters, pass in false for cleanup existing kind clusters, since we want
-                        // the admin cluster to be left as-is
-                        createKindClusters(2, false)
+                stage('Prepare full managed cluster(s)') {
+                    stages {
+                        stage('Create KinD managed cluster') {
+                            steps {
+                                // create managed clusters, pass in false for cleanup existing kind clusters, since we want
+                                // the admin cluster to be left as-is
+                                createKindClusters(2, false)
+                            }
+                        }
+                        stage('Configure KinD managed cluster') {
+                            steps {
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", installerFileName, params.WILDCARD_DNS_DOMAIN)
+                            }
+                        }
+                        stage ('Install managed clusters') {
+                            steps {
+                                installManagedClusters()
+                            }
+                        }
                     }
                 }
-                stage('Configure KinD managed cluster') {
-                    steps {
-                        configureManagedInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", installerFileName, params.WILDCARD_DNS_DOMAIN)
-                    }
-                }
-                stage ('Install managed clusters') {
-                    steps {
-                        installManagedClusters()
-                    }
-                }
+
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
