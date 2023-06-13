@@ -39,8 +39,8 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "us-phoenix-1"
-        OCI_REGION = "${env.OCI_CLI_REGION}"
+        OCI_OS_REGION = "us-phoenix-1"
+        OCI_REGION = "${env.OCI_OS_REGION}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         FORCE_TYPE = "${params.DRY_RUN == true ? "DRY_RUN" : "FORCE_FOR_REAL"}"
