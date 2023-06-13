@@ -385,53 +385,55 @@ pipeline {
                     }
                 }
                 stage("Minimal Managed Cluster Tests") {
-                    stage('Install Verrazzano') {
-                        steps {
-                            script {
-                                getVerrazzanoOperatorYaml()
-                            }
-                            installMinimalVerrazzano()
-                        }
-                        post {
-                            always {
+                    stages {
+                        stage('Install Verrazzano') {
+                            steps {
                                 script {
-                                    dumpInstallLogs()
+                                    getVerrazzanoOperatorYaml()
                                 }
+                                installMinimalVerrazzano()
                             }
-                            failure {
-                                script {
-                                    dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
+                            post {
+                                always {
+                                    script {
+                                        dumpInstallLogs()
+                                    }
                                 }
-                            }
-                        }
-                    }
-                    stage('Register minimal managed clusters') {
-                        steps {
-                            registerManagedClusters()
-                        }
-                    }
-                    stage('Verify minimal managed cluster') {
-                        parallel {
-                            stage('Verify Cluster Agent Install') {
-                                steps {
-                                    runGinkgoRandomize('verify-install/clusteragent')
-                                }
-                            }
-                            stage('Verify Minimal Managed Cluster Registration') {
-                                steps {
-                                    verifyRegisterManagedClusters(true)
+                                failure {
+                                    script {
+                                        dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
+                                    }
                                 }
                             }
                         }
-                    }
-                    stage('verify deregister minimal managed cluster') {
-                        steps {
-                            verifyDeregisterManagedClusters()
+                        stage('Register min managed cluster') {
+                            steps {
+                                registerManagedClusters()
+                            }
                         }
-                    }
-                    stage('Delete minimal managed cluster') {
-                        steps {
-                            deleteClusters(2)
+                        stage('Verify min managed cluster') {
+                            parallel {
+                                stage('Verify Install Cluster Agent') {
+                                    steps {
+                                        runGinkgoRandomize('verify-install/clusteragent')
+                                    }
+                                }
+                                stage('Verify Register Min Managed Cluster') {
+                                    steps {
+                                        verifyRegisterManagedClusters(true)
+                                    }
+                                }
+                            }
+                        }
+                        stage('Verify deregister min managed cluster') {
+                            steps {
+                                verifyDeregisterManagedClusters()
+                            }
+                        }
+                        stage('Delete min managed cluster') {
+                            steps {
+                                deleteClusters(2)
+                            }
                         }
                     }
                 }
