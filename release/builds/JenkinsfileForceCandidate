@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def SHORT_COMMIT_HASH
-def VERRAZZANO_DEV_VERSION
+def VERRAZZANO_DEV_VERSION=""
 def STARTED_BY_USER=""
 
 pipeline {
