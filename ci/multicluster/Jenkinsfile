@@ -440,9 +440,7 @@ pipeline {
                 }
                 stage('Configure KinD managed cluster') {
                     steps {
-                        steps {
-                            configureManagedInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", installerFileName, params.WILDCARD_DNS_DOMAIN)
-                        }
+                        configureManagedInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", installerFileName, params.WILDCARD_DNS_DOMAIN)
                     }
                 }
                 stage ('Install managed clusters') {
