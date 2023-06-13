@@ -402,7 +402,7 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 	if src.Storage != nil {
 		dst.Storage = src.Storage
 	}
-	if *src.Replicas > 0 {
+	if src.Replicas != nil && *src.Replicas > 0 {
 		dst.Replicas = src.Replicas
 	}
 	if src.Resources != nil {
@@ -489,7 +489,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 
 	nodes := map[string]v1beta1.OpenSearchNode{}
 	addNode := func(node *v1beta1.OpenSearchNode) {
-		if *node.Replicas > 0 {
+		if node.Replicas != nil && *node.Replicas > 0 {
 			nodes[node.Name] = *node
 		}
 	}

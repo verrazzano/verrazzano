@@ -56,7 +56,7 @@ func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
 	objects := &ready.AvailabilityObjects{}
 	if vzcr.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
 		for _, node := range vz.Spec.Components.Elasticsearch.Nodes {
-			if *node.Replicas < 1 {
+			if node.Replicas == nil || *node.Replicas < 1 {
 				continue
 			}
 			nodeControllerName := getNodeControllerName(node)
@@ -81,7 +81,7 @@ func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
 }
 
 func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix string) bool {
-	if *node.Replicas < 1 {
+	if node.Replicas == nil || *node.Replicas < 1 {
 		return true
 	}
 	nodeControllerName := getNodeControllerName(node)
