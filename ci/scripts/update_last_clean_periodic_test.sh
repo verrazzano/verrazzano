@@ -12,7 +12,7 @@ if [ -z "$1" ]; then
   echo "The Verrazzano development version must be specified"
   exit 1
 fi
-DEVELOPENT_VERSION="$1"
+DEVELOPMENT_VERSION="$1"
 
 if [ -z "$2" ]; then
   echo "Short commit hash must be specified"
@@ -38,7 +38,7 @@ fi
 
 cd $WORKSPACE
 
-DISTRIBUTION_PREFIX="verrazzano-${DEVELOPENT_VERSION}"
+DISTRIBUTION_PREFIX="verrazzano-${DEVELOPMENT_VERSION}"
 VZ_LITE_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}-lite.zip"
 VZ_LITE_RELEASE_BUNDLE_SHA256="${VZ_LITE_RELEASE_BUNDLE}.sha256"
 
