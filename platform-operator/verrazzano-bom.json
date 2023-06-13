@@ -227,7 +227,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v0.1.0",
+      "version": "v1.6.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -235,11 +235,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230609215628-a680138"
+              "tag": "v1.6.1-20230612232050-033b676"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230609215628-a680138"
+              "tag": "v1.6.1-20230612232050-033b676"
             }
           ]
         }
