@@ -436,6 +436,13 @@ pipeline {
                 stage('Create KinD managed cluster') {
                     steps {
                         createKindClusters(2)
+                        // Update the admin kubeconfig with the correct server IP
+                        sh """
+                            export KUBECONFIG=${KUBECONFIG_DIR}/1/kube_config
+                            kubectl config set-context kind-${CLUSTER_NAME_PREFIX}-1
+                            sed -i -e "s|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\:6443|`docker inspect ${CLUSTER_NAME_PREFIX}-1-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+                            cat ${KUBECONFIG} | grep server
+                        """
                     }
                 }
                 stage('Configure KinD managed cluster') {
