@@ -8,6 +8,7 @@ import "fmt"
 type TemplateInterface interface {
 	GetClusterAPIRepository() string
 	GetClusterAPITag() string
+	GetClusterAPIURL() string
 	GetOCIRepository() string
 	GetOCITag() string
 	GetOCNEBootstrapRepository() string
@@ -47,6 +48,10 @@ func (c TemplateInput) GetClusterAPIRepository() string {
 
 func (c TemplateInput) GetClusterAPITag() string {
 	return c.Core.Image.Tag
+}
+
+func (c TemplateInput) GetClusterAPIURL() string {
+	return ""
 }
 
 func (c TemplateInput) GetOCIRepository() string {
