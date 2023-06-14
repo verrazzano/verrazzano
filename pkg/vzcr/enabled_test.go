@@ -3,8 +3,9 @@
 package vzcr
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -1826,4 +1827,90 @@ func TestIsFluentbitOpensearchOutputEnabled(t *testing.T) {
 				},
 			},
 		}}))
+}
+
+// TestIsVMOEnabled tests the IsVMOEnabled function
+// GIVEN a call to IsVMOEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+func TestIsVMOEnabled(t *testing.T) {
+	var tests = []struct {
+		name    string
+		cr      runtime.Object
+		enabled bool
+	}{
+		{
+			"enabled on nil CR",
+			nil,
+			true,
+		},
+		{
+			"enabled on empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			true,
+		},
+		{
+			"enabled on v1alpha1 CR with Prometheus disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Prometheus: &vzapi.PrometheusComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"enabled on v1alpha1 CR with Prometheus Operator disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"enabled on v1alpha1 CR with Opensearch and Opensearch dashboards disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+					Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"disabled on v1alpha1 CR with OpenSearch, OpenSearchDashboards and Grafana disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+					Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
+					Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
+				}}},
+			false,
+		},
+		{
+			"enabled on empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			true,
+		},
+		{
+			"enabled on v1beta1 CR with Prometheus disabled",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+				Components: installv1beta1.ComponentSpec{
+					Prometheus: &installv1beta1.PrometheusComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"disabled on v1beta1 CR with OpenSearch, OpenSearchDashboards and Grafana disabled",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+				Components: installv1beta1.ComponentSpec{
+					OpenSearch:           &installv1beta1.OpenSearchComponent{Enabled: &falseValue},
+					OpenSearchDashboards: &installv1beta1.OpenSearchDashboardsComponent{Enabled: &falseValue},
+					Grafana:              &installv1beta1.GrafanaComponent{Enabled: &falseValue},
+				}}},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.enabled, IsVMOEnabled(tt.cr))
+		})
+	}
 }
