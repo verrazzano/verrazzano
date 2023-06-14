@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -130,7 +130,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 			},
 			map[string]v1beta1.OpenSearchNode{
 				masterNodeName: {
-					Replicas: 1,
+					Replicas: Int32Ptr(1),
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
@@ -175,7 +175,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 			map[string]v1beta1.OpenSearchNode{
 				masterNodeName: {
 					Name:      masterNodeName,
-					Replicas:  3,
+					Replicas:  Int32Ptr(3),
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.MasterRole},
 					Storage: &v1beta1.OpenSearchNodeStorage{
@@ -184,7 +184,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 				},
 				dataNodeName: {
 					Name:      dataNodeName,
-					Replicas:  3,
+					Replicas:  Int32Ptr(3),
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.DataRole},
 					Storage: &v1beta1.OpenSearchNodeStorage{
@@ -193,7 +193,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 				},
 				ingestNodeName: {
 					Name:      ingestNodeName,
-					Replicas:  2,
+					Replicas:  Int32Ptr(2),
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.IngestRole},
 				},

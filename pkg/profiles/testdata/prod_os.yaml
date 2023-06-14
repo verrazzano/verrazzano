@@ -1,0 +1,24 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+spec:
+  components:
+    opensearch:
+      nodes:
+        - name: es-data
+          replicas: 3
+          roles:
+            - data
+          storage:
+            size: 50Gi
+        - name: es-ingest
+          replicas: 1
+          roles:
+            - ingest
+        - name: es-master
+          replicas: 3
+          roles:
+            - master
+          storage:
+            size: 50Gi
+      enabled: true
