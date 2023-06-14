@@ -12,6 +12,7 @@ Features:
 Component version updates:
 
 - Rancher v2.7.3
+    - Rancher Partner charts and RKE2 charts are no longer bundled.
 - WebLogic Kubernetes Operator v4.0.6
 - WebLogic Monitoring Exporter v2.1.3
 - Jaeger v1.42.0

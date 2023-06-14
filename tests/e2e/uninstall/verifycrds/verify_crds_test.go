@@ -27,7 +27,6 @@ var verrazzanoiocrds = map[string]bool{
 	"multiclustersecrets.clusters.verrazzano.io":                   false,
 	"verrazzanocoherenceworkloads.oam.verrazzano.io":               false,
 	"verrazzanohelidonworkloads.oam.verrazzano.io":                 false,
-	"verrazzanomonitoringinstances.verrazzano.io":                  false,
 	"verrazzanoprojects.clusters.verrazzano.io":                    false,
 	"verrazzanoweblogicworkloads.oam.verrazzano.io":                false,
 }
@@ -99,6 +98,11 @@ var mysqloperatorcrds = map[string]bool{
 	"clusterkopfpeerings.zalando.org": false,
 	"kopfpeerings.zalando.org":        false,
 }
+
+var vmoCRDs = map[string]bool{
+	"verrazzanomonitoringinstances.verrazzano.io": false,
+}
+
 var t = framework.NewTestFramework("uninstall verify crds")
 
 // This test verifies the CRDs found after an uninstall of Verrazzano are what is expected
@@ -111,6 +115,12 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	t.It("Check for expected verrazzano.io CRDs", func() {
 		checkCrds(crds, verrazzanoiocrds, "verrazzano.io")
 	})
+
+	if vmoEnabled {
+		t.It("Check for expected Verrazzano monitoring operator CRDs", func() {
+			checkCrds(crds, vmoCRDs, "verrazzano.io")
+		})
+	}
 
 	t.It("Check for expected istio.io CRDs", func() {
 		checkCrds(crds, istioiocrds, "istio.io")
@@ -181,13 +191,7 @@ func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[stri
 			expectdCrds[crd.Name] = true
 		} else {
 			if strings.HasSuffix(crd.Name, suffix) {
-				optionalCrdFound := false
-				for _, optionalcrd := range optionalverrazzanoiocrds {
-					if crd.Name == optionalcrd {
-						optionalCrdFound = true
-						break
-					}
-				}
+				optionalCrdFound := crdExistsInList(crd.Name, optionalverrazzanoiocrds)
 				if optionalCrdFound {
 					continue
 				}
@@ -198,14 +202,25 @@ func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[stri
 	}
 
 	crdNotFound := false
-	for key, value := range expectdCrds {
-		if !value {
+	for crdName, wasFound := range expectdCrds {
+		if !wasFound {
 			crdNotFound = true
-			pkg.Log(pkg.Error, fmt.Sprintf("Expected CRD was not found: %s", key))
+			pkg.Log(pkg.Error, fmt.Sprintf("Expected CRD was not found: %s", crdName))
 		}
 	}
 
 	if unexpectedCrd || crdNotFound {
 		Fail(fmt.Sprintf("Failed to verify %s CRDs", suffix))
 	}
+}
+
+func crdExistsInList(crdNameToCheck string, listOfCrds []string) bool {
+	crdFound := false
+	for _, crdName := range listOfCrds {
+		if crdNameToCheck == crdName {
+			crdFound = true
+			break
+		}
+	}
+	return crdFound
 }
