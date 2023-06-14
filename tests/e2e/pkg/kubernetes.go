@@ -762,9 +762,6 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if vz.Spec.Components.CertManager != nil {
-		return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
-	}
 	clusterIssuer := vz.Spec.Components.ClusterIssuer
 	if clusterIssuer != nil {
 		Log(Info, "Using cluster issuer to check for Let's Encrypt config")
@@ -776,6 +773,9 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 			Log(Info, fmt.Sprintf("Let's Encrypt env is %s", clusterIssuer.LetsEncrypt.Environment))
 			return clusterIssuer.LetsEncrypt.Environment, nil
 		}
+	}
+	if vz.Spec.Components.CertManager != nil {
+		return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
 	}
 	return "", nil
 }
