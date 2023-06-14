@@ -90,6 +90,7 @@ spec:
       enabled: true
       nodes:
         - name: es-master
+          replicas: 0
           resources:
             requests:
               memory: 1503238553600m
@@ -98,6 +99,7 @@ spec:
           storage:
             size: 50Gi
         - name: es-data
+          replicas: 0
           resources:
             requests:
               memory: 5153960755200m
@@ -106,6 +108,7 @@ spec:
           storage:
             size: 50Gi
         - name: es-ingest
+          replicas: 0
           resources:
             requests:
               memory: 2560Mi
