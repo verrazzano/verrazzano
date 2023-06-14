@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: VirtualService
+metadata:
+  creationTimestamp: null
+  name: my-namespace-virtual-service
+  namespace: my-namespace
+spec:
+  gateways:
+  - my-namespace-my-ingress-trait-appconf-gw
+  hosts:
+  - my-namespace.172.18.0.230.nip.io
+  http:
+  - match:
+    - uri:
+        exact: /
+status: {}

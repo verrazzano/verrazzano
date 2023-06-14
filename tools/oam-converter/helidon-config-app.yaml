@@ -1,0 +1,11 @@
+apiVersion: oam.verrazzano.io/v1alpha1
+kind: IngressTrait
+metadata:
+  name: my-ingress-trait
+  namespace: my-namespace
+spec:
+  rules:
+    - hosts:
+      paths:
+        - path: /
+          pathType: exact
