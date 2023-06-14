@@ -73,6 +73,7 @@ pipeline {
         booleanParam (description: 'Whether to run Fluentd Update Tests', name: 'RUN_FLUENTD', defaultValue: false)
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
+        booleanParam (description: 'Whether to run FluentBit Operator Infra Tests', name: 'RUN_FLUENTBIT_OPERATOR', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
         booleanParam (description: 'Whether to skip the VZ install in the prepare environment script', name: 'SKIP_VERRAZZANO_INSTALL_PARAM', defaultValue: false)
     }
@@ -574,10 +575,11 @@ pipeline {
                     }
                 }
 
-                stage('FluentBit Update Tests') {
+                stage('FluentBit Operator Infra Tests') {
+                    when { expression {params.RUN_FLUENTBIT_OPERATOR} }
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentbit-operator-update"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentbit-operator-infra"
                     }
                     steps {
                         runGinkgo('fluentbit-operator/infra')
