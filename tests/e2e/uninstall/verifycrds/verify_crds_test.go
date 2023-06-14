@@ -27,7 +27,6 @@ var verrazzanoiocrds = map[string]bool{
 	"multiclustersecrets.clusters.verrazzano.io":                   false,
 	"verrazzanocoherenceworkloads.oam.verrazzano.io":               false,
 	"verrazzanohelidonworkloads.oam.verrazzano.io":                 false,
-	"verrazzanomonitoringinstances.verrazzano.io":                  false,
 	"verrazzanoprojects.clusters.verrazzano.io":                    false,
 	"verrazzanoweblogicworkloads.oam.verrazzano.io":                false,
 }
@@ -100,8 +99,8 @@ var mysqloperatorcrds = map[string]bool{
 	"kopfpeerings.zalando.org":        false,
 }
 
-var managedClusterExcludeCrds = []string{
-	"verrazzanomonitoringinstances.verrazzano.io",
+var vmoCRDs = map[string]bool{
+	"verrazzanomonitoringinstances.verrazzano.io": false,
 }
 
 var t = framework.NewTestFramework("uninstall verify crds")
@@ -113,44 +112,48 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		Fail(err.Error())
 	}
 
-	isManagedCluster := pkg.IsManagedClusterProfile()
-
 	t.It("Check for expected verrazzano.io CRDs", func() {
-		checkCrds(crds, verrazzanoiocrds, "verrazzano.io", isManagedCluster)
+		checkCrds(crds, verrazzanoiocrds, "verrazzano.io")
 	})
 
+	if vmoEnabled {
+		t.It("Check for expected Verrazzano monitoring operator CRDs", func() {
+			checkCrds(crds, vmoCRDs, "verrazzano.io")
+		})
+	}
+
 	t.It("Check for expected istio.io CRDs", func() {
-		checkCrds(crds, istioiocrds, "istio.io", isManagedCluster)
+		checkCrds(crds, istioiocrds, "istio.io")
 	})
 
 	t.It("Check for expected oam.dev CRDs", func() {
-		checkCrds(crds, oamdevcrds, "oam.dev", isManagedCluster)
+		checkCrds(crds, oamdevcrds, "oam.dev")
 	})
 
 	t.It("Check for expected cert-manager.io CRDs", func() {
-		checkCrds(crds, certmanageriocrds, "cert-manager.io", isManagedCluster)
+		checkCrds(crds, certmanageriocrds, "cert-manager.io")
 	})
 
 	t.It("Check for expected monitoring.coreos.com CRDs", func() {
-		checkCrds(crds, monitoringcoreoscomcrds, "monitoring.coreos.com", isManagedCluster)
+		checkCrds(crds, monitoringcoreoscomcrds, "monitoring.coreos.com")
 	})
 
 	t.It("Check for expected domains.weblogic.oracle CRD", func() {
-		checkCrds(crds, map[string]bool{"domains.weblogic.oracle": false}, "domains.weblogic.oracle", isManagedCluster)
+		checkCrds(crds, map[string]bool{"domains.weblogic.oracle": false}, "domains.weblogic.oracle")
 	})
 
 	t.It("Check for expected clusters.weblogic.oracle CRD", func() {
-		checkCrds(crds, map[string]bool{"clusters.weblogic.oracle": false}, "clusters.weblogic.oracle", isManagedCluster)
+		checkCrds(crds, map[string]bool{"clusters.weblogic.oracle": false}, "clusters.weblogic.oracle")
 	})
 
 	t.It("Check for expected coherence.coherence.oracle.com CRD", func() {
-		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com", isManagedCluster)
+		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
 	})
 
 	if mySQLOperatorEnabled {
 		t.It("Check for expected MySQL Operator CRDs", func() {
-			checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com", isManagedCluster)
-			checkCrds(crds, mysqloperatorcrds, "zalando.org", isManagedCluster)
+			checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
+			checkCrds(crds, mysqloperatorcrds, "zalando.org")
 		})
 	}
 
@@ -180,7 +183,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 })
 
 // checkCRds checks for both expected CRDs and unexpected CRDs for a given CRDs suffix (for example, verrazzano.io)
-func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[string]bool, suffix string, isManagedCluster bool) {
+func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[string]bool, suffix string) {
 	unexpectedCrd := false
 	for _, crd := range crds.Items {
 		_, ok := expectdCrds[crd.Name]
@@ -201,10 +204,6 @@ func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[stri
 	crdNotFound := false
 	for crdName, wasFound := range expectdCrds {
 		if !wasFound {
-			// first see if this is a managed cluster and this CRD is not expected on managed clusters
-			if isManagedCluster && crdExistsInList(crdName, managedClusterExcludeCrds) {
-				continue
-			}
 			crdNotFound = true
 			pkg.Log(pkg.Error, fmt.Sprintf("Expected CRD was not found: %s", crdName))
 		}
