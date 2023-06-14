@@ -4,7 +4,10 @@
 package fluentoperator
 
 import (
+	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 
@@ -105,6 +108,18 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, ctx.Log().ErrorfNewErr("Failed to create override file for FluentOperator")
 	}
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
+	var secret corev1.Secret
+	// Check if global image pull secret exists
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: constants.GlobalImagePullSecName}, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			return kvs, nil
+		}
+		return kvs, err
+	}
+
+	// 	The secret was found, set the helm override for fluentbit image pull secret
+	kvs = append(kvs, bom.KeyValue{Key: "fluentbit.imagePullSecrets[0].name", Value: constants.GlobalImagePullSecName})
 
 	return kvs, nil
 }
