@@ -772,7 +772,7 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 
 	// then check if letsEncrypt configured in cert-manager certificate field
 	certManager := vz.Spec.Components.CertManager
-	if certManager != nil && certManager.Certificate.Acme.Provider == v1alpha1.LetsEncrypt {
+	if certManager != nil && strings.ToLower(string(certManager.Certificate.Acme.Provider)) == strings.ToLower(string(v1alpha1.LetsEncrypt)) {
 		return certManager.Certificate.Acme.Environment, nil
 	}
 	return "", nil
