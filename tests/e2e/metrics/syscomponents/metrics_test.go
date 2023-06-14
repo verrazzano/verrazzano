@@ -5,11 +5,14 @@ package syscomponents
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -149,6 +152,22 @@ var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 
+// 'It' Wrapper to only run spec if the Verrazzano Monitoring Operator is installed in the cluster
+func WhenVMOInstalledAndMinVersionIt(description string, version string, kubeConfigPath string, f func()) {
+	_, err := pkg.GetDeployment(verrazzanoSystemNamespace, constants.VerrazzanoMonitoringOperator)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			t.It(description, func() {
+				Skip("VMO is not installed, skipping")
+			})
+		} else {
+			Fail(err.Error())
+		}
+	} else {
+		t.ItMinimumVersion(description, version, kubeConfigPath, f)
+	}
+}
+
 var _ = t.Describe("Thanos Metrics", Label("f:observability.monitoring.prom"), func() {
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = t.Describe("for the system components", func() {
@@ -189,21 +208,22 @@ var _ = t.Describe("Thanos Metrics", Label("f:observability.monitoring.prom"), f
 			eventuallyMetricsContainLabels("vz_platform_operator_component_upgrade_duration_seconds", map[string]string{})
 		})
 
-		t.ItMinimumVersion("Verify VMO function metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
+		WhenVMOInstalledAndMinVersionIt("Verify VMO function metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels(vmoFunctionMetric, map[string]string{})
 		})
 
-		t.ItMinimumVersion("Verify VMO counter metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
+		WhenVMOInstalledAndMinVersionIt("Verify VMO counter metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels(vmoCounterMetric, map[string]string{})
 		})
 
-		t.ItMinimumVersion("Verify VMO gauge metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
+		WhenVMOInstalledAndMinVersionIt("Verify VMO gauge metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels(vmoGaugeMetric, map[string]string{})
 		})
 
-		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
+		WhenVMOInstalledAndMinVersionIt("Verify VMO timestamp metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels(vmoTimestampMetric, map[string]string{})
 		})
+
 		t.ItMinimumVersion("Verify VAO successful counter metrics can be queried from Thanos", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels(vaoSuccessCountMetric, map[string]string{})
 		})

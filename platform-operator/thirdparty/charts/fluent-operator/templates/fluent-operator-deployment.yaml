@@ -80,6 +80,10 @@ spec:
       containers:
       - name: fluent-operator
         image: {{ .Values.operator.container.repository }}:{{ .Values.operator.container.tag }}
+        {{- if .Values.operator.securityContext }}
+        securityContext:
+          {{ toYaml .Values.operator.securityContext | nindent 10 }}
+        {{- end }}
         resources:
           {{- toYaml .Values.operator.resources | nindent 10 }}
         env:
@@ -98,4 +102,8 @@ spec:
       {{- if .Values.operator.imagePullSecrets }}
       imagePullSecrets:
       {{- toYaml .Values.operator.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if .Values.operator.podSecurityContext }}
+      securityContext:
+        {{ toYaml .Values.operator.podSecurityContext | nindent 8 }}
       {{- end }}

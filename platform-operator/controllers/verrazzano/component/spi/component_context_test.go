@@ -27,6 +27,10 @@ var testScheme = runtime.NewScheme()
 
 const profileDir = "../../../../manifests/profiles"
 
+func Int32Ptr(v int32) *int32 {
+	return &v
+}
+
 var tests = []struct {
 	name         string
 	description  string

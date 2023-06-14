@@ -19,6 +19,8 @@ application:
       secretKeyRef:
         key: password
         name: verrazzano-es-internal
+  tls:
+    enabled: false
   templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
 system:
   enabled: true
@@ -38,6 +40,8 @@ system:
       secretKeyRef:
         key: password
         name: verrazzano-es-internal
+  tls:
+    enabled: false
   templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package profiles
@@ -20,6 +20,9 @@ const (
 	certsBaseSpecFilePath      = "./testdata/cert_base.yaml"
 	certsOverlaySpecFilePath   = "./testdata/cert_overlay.yaml"
 	certsMergedSpecFilePath    = "./testdata/cert_merged.yaml"
+	openSearchActualFilePath   = "./testdata/custom_os.yaml"
+	openSearchBaseFilePath     = "./testdata/prod_os.yaml"
+	openSearchMergedFilePath   = "./testdata/os_merged.yaml"
 	consoleSpecFilePath        = "./testdata/console.yaml"
 	devProfileSpecFilePath     = "./testdata/dev.yaml"
 	keycloakSpecFilePath       = "./testdata/keycloak.yaml"
@@ -219,6 +222,16 @@ func getMergeProfileTestData() []mergeProfileTestData {
 				certsOverlaySpecFilePath,
 			},
 			mergedCR: certsBaseSpecFilePath,
+		},
+		{
+			// This unit test makes sure that replicas in OS NodePool is never nil in the effectiveCR
+			// Even it is nil in the actualCR
+			name:     "4",
+			actualCR: openSearchActualFilePath,
+			profiles: []string{
+				openSearchBaseFilePath,
+			},
+			mergedCR: openSearchMergedFilePath,
 		},
 	}
 }

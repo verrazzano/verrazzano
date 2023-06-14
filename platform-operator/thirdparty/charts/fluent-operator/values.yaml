@@ -17,7 +17,11 @@ operator:
   container:
     repository: "kubesphere/fluent-operator"
     tag: "v2.2.0"
-    # FluentBit operator resources. Usually user needn't to adjust these.
+  # Pod security context for Fluent Operator. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext: {}
+  # Container security context for Fluent Operator container. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext: {}
+  # Fluent Operator resources. Usually user needn't to adjust these.
   resources:
     limits:
       cpu: 100m
@@ -79,10 +83,16 @@ fluentbit:
   imagePullSecrets: []
   # - name: "image-pull-secret"
   secrets: []
+  # Pod security context for Fluent Bit pods. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext: {}
   # List of volumes that can be mounted by containers belonging to the pod.
   additionalVolumes: []
   # Pod volumes to mount into the container's filesystem.
   additionalVolumesMounts: []
+  # Environment variables that can be passed to fluentbit pods
+  envVars: []
+  #  - name: FOO
+  #    value: "bar"
 
   # Remove the above empty volumes and volumesMounts, and then set additionalVolumes and additionalVolumesMounts as below if you want to collect node exporter metrics
   # additionalVolumes:
@@ -120,6 +130,9 @@ fluentbit:
       readFromHead: false
     systemd:
       enable: true
+      systemdFilter:
+        enable: true
+        filters: []
       path: "/var/log/journal"
       includeKubelet: true
       stripUnderscores: "off"

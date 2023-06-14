@@ -1,0 +1,20 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# maps release series of major.minor to cluster-api contract version
+# the contract version may change between minor or major versions, but *not*
+# between patch versions.
+#
+# update this file only when a new major or minor version is released
+
+# This file from the cluster-api community (https://github.com/kubernetes-sigs/cluster-api) has been modified by Oracle.
+
+apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
+kind: Metadata
+releaseSeries:
+  - major: 0
+    minor: 1
+    contract: v1beta1
+  - major: 1
+    minor: 6
+    contract: v1beta1

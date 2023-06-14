@@ -287,17 +287,27 @@ func TestMonitorOverrides(t *testing.T) {
 // WHEN I call AppendOverrides function with FluentbitOpensearchOutput context
 // THEN Override should be from the Cluster registration secret, otherwise no overrides should be there.
 func TestAppendOverrides(t *testing.T) {
-	const testURL = "https://xyz.com"
+	const hostName = "xyz.com"
+	const port = "443"
+	const testURL = "https://" + hostName + ":" + port
 	registrationSecret := createTestRegistrationSecret(map[string]string{
 		constants.OpensearchURLData: testURL,
 	})
 	expectedKVSWithOverride := []bom.KeyValue{
-		{Key: OverrideApplicationHostKey, Value: testURL},
-		{Key: OverrideSystemHostKey, Value: testURL},
+		{Key: OverrideApplicationHostKey, Value: hostName},
+		{Key: OverrideSystemHostKey, Value: hostName},
+		{Key: OverrideApplicationPortKey, Value: port},
+		{Key: OverrideSystemPortKey, Value: port},
 		{Key: OverrideApplicationPasswordKey, Value: constants.MCRegistrationSecret},
 		{Key: OverrideSystemPasswordKey, Value: constants.MCRegistrationSecret},
 		{Key: OverrideApplicationUserKey, Value: constants.MCRegistrationSecret},
 		{Key: OverrideSystemUserKey, Value: constants.MCRegistrationSecret},
+		{Key: OverrideSystemTLSKey, Value: "true"},
+		{Key: OverrideSystemCAFileKey, Value: CACertPath + "/" + CACertName},
+		{Key: OverrideSystemCertKey, Value: FluentBitCertPath},
+		{Key: OverrideApplicationTLSKey, Value: "true"},
+		{Key: OverrideApplicationCAFileKey, Value: CACertPath + "/" + CACertName},
+		{Key: OverrideApplicationCertKey, Value: FluentBitCertPath},
 	}
 	expectedKVS := []bom.KeyValue{}
 	cr := &v1alpha1.Verrazzano{

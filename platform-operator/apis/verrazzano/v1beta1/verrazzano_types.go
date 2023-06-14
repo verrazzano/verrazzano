@@ -456,7 +456,7 @@ type FluentbitOpensearchOutputComponent struct {
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/fluentbit-opensearch-output/values.yaml%}} )
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/fluentbit-opensearch-output/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
@@ -468,7 +468,7 @@ type OpenSearchComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// A list of OpenSearch node groups. For sample usage, see
-	// <a href="../../../../docs/customize/opensearch/">Customize OpenSearch</a>.
+	// <a href="../../../docs/observability/logging/configure-opensearch/opensearch/">Customize OpenSearch</a>.
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
@@ -490,7 +490,7 @@ type OpenSearchNode struct {
 	Name string `json:"name,omitempty"`
 	// Node group replica count.
 	// +optional
-	Replicas int32 `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 	// Kubernetes container resources for nodes in the node group.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
@@ -849,7 +849,7 @@ type IngressNginxComponent struct {
 	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the ingress
 	// type is `NodePort`, then a valid and accessible IP address must be specified using the `controller.service.externalIPs`
 	// key in the [InstallOverrides](#install.verrazzano.io/v1beta1.InstallOverrides). For sample usage, see
-	// <a href="../../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../docs/networking/traffic/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 }
@@ -1045,7 +1045,7 @@ type FluentOperatorComponent struct {
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/fluent-operator/values.yaml%}} )
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/fluent-operator/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
@@ -1224,17 +1224,17 @@ type InstallOverrides struct {
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#configmap">ConfigMapRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#configmap">ConfigMapRef</a>.
 	// +optional
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	// Selector for Secret containing override data.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#secret">SecretRef</a>.
+	// <a href="../../../docs/setup/installationoverrides/#secret">SecretRef</a>.
 	// +optional
 	SecretRef *corev1.SecretKeySelector `json:"secretRef,omitempty"`
 	// Configure overrides using inline YAML.
 	// For sample usage, see
-	// <a href="../../../../docs/customize/installationoverrides/#values">Values</a>.
+	// <a href="../../../docs/setup/installationoverrides/#values">Values</a>.
 	// +optional
 	Values *apiextensionsv1.JSON `json:"values,omitempty"`
 }

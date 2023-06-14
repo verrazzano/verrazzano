@@ -4,7 +4,11 @@
 package fluentoperator
 
 import (
+	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"os"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,8 +17,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
@@ -30,6 +37,12 @@ const (
 	clusterOutputDirectory     = ComponentName
 	fluentbitConfigMap         = fluentbitDaemonSet + "-os-config"
 	fluentbitConfigMapFile     = "fluentbit-config-configmap.yaml"
+	fluentOperatorOverrideFile = "fluent-operator-values.yaml"
+	tmpFilePrefix              = "verrazzano-fluentOperator-overrides-"
+	tmpSuffix                  = "yaml"
+	tmpFileCreatePattern       = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern        = tmpFilePrefix + ".*\\." + tmpSuffix
+	adminClusterName           = "local"
 )
 
 var (
@@ -79,6 +92,35 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if len(kvs) < 1 {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to construct fluent-operator related images from BOM")
 	}
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return kvs, err
+	}
+	args := make(map[string]interface{})
+	args["clusterName"] = adminClusterName
+	if registrationSecret != nil {
+		args["isManagedCluster"] = true
+		args["clusterName"] = string(registrationSecret.Data[constants.ClusterNameData])
+		args["secretName"] = constants.MCRegistrationSecret
+	}
+	overridesFileName, err := generateOverrideFile(filepath.Join(config.GetHelmOverridesDir(), fluentOperatorOverrideFile), args)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to create override file for FluentOperator")
+	}
+	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
+	var secret corev1.Secret
+	// Check if global image pull secret exists
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: constants.GlobalImagePullSecName}, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			return kvs, nil
+		}
+		return kvs, err
+	}
+
+	// 	The secret was found, set the helm override for fluentbit image pull secret
+	kvs = append(kvs, bom.KeyValue{Key: "fluentbit.imagePullSecrets[0].name", Value: constants.GlobalImagePullSecName})
+
 	return kvs, nil
 }
 
@@ -94,4 +136,24 @@ func applyFluentBitConfigMap(compContext spi.ComponentContext) error {
 		return compContext.Log().ErrorfNewErr("Failed applying FluentBit ConfigMap: %v", err)
 	}
 	return nil
+}
+
+// cleanTempFiles - Clean up the override temp files in the temp dir
+func cleanTempFiles(ctx spi.ComponentContext) {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Failed deleting temp files: %v", err)
+	}
+}
+
+// generateOverrideFile generates the override file for fluentOperator by rendering the fluentOperatorOverrideFile template with the arguments set by FluentOperator Component.
+func generateOverrideFile(templatePath string, args map[string]interface{}) (string, error) {
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
+	if err != nil {
+		return "", err
+	}
+	err = common.RenderTemplate(templatePath, args, file)
+	if err != nil {
+		return "", err
+	}
+	return file.Name(), nil
 }
