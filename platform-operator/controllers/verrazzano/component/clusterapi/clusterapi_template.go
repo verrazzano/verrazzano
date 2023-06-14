@@ -6,6 +6,7 @@ package clusterapi
 import "fmt"
 
 type TemplateInterface interface {
+	GetGlobalRegistry() string
 	GetClusterAPIRepository() string
 	GetClusterAPITag() string
 	GetClusterAPIURL() string
@@ -38,6 +39,10 @@ func newTemplateContext(templateInput *TemplateInput) TemplateInterface {
 	return templateInput
 }
 
+func (c TemplateInput) GetGlobalRegistry() string {
+	return c.Overrides.Global.Registry
+}
+
 func (c TemplateInput) GetClusterAPIRepository() string {
 	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.Core)
 }
@@ -47,7 +52,15 @@ func (c TemplateInput) GetClusterAPITag() string {
 }
 
 func (c TemplateInput) GetClusterAPIURL() string {
-	return ""
+	core := c.Overrides.DefaultProviders.Core
+	if len(core.Url) > 0 {
+		return ""
+	}
+	if len(core.Version) > 0 {
+		return ""
+	}
+	// Return default value
+	return fmt.Sprintf("/verrazzano/capi/cluster-api/%s/core-components.yaml", c.APIVersion)
 }
 
 func (c TemplateInput) GetOCIRepository() string {

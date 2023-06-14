@@ -52,7 +52,7 @@ func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
 
 	// Get the base overrides
 	var err error
-	templateInput.Overrides, err = getCapiOverrides(ctx)
+	templateInput.Overrides, err = getBaseOverrides(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
 	return templateInput, nil
 }
 
-// getCapiOverrides - return the ClusterAPI overrides
-func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
+// getBaseOverrides - return the base ClusterAPI overrides
+func getBaseOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	overrides := &capiOverrides{}
 
 	// Unmarshall the base overrides values file into a local struct
@@ -86,8 +86,7 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	return overrides, err
 }
 
-// mergeBOMOverrides - merge settings from the BOM template, being careful not to unset any
-// values there were overridden by the user
+// mergeBOMOverrides - merge settings from the BOM template
 func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) error {
 	overrides := templateInput.Overrides
 
@@ -105,7 +104,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	if err != nil {
 		return err
 	}
-	mergeImage(imageConfig, core)
+	updateImage(imageConfig, core)
 	templateInput.APIVersion = imageConfig.Version
 
 	// Populate OCI provider values
@@ -114,7 +113,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	if err != nil {
 		return err
 	}
-	mergeImage(imageConfig, oci)
+	updateImage(imageConfig, oci)
 	templateInput.OCIVersion = imageConfig.Version
 
 	// Populate bootstrap provider values
@@ -123,7 +122,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	if err != nil {
 		return err
 	}
-	mergeImage(imageConfig, bootstrap)
+	updateImage(imageConfig, bootstrap)
 	templateInput.OCNEBootstrapVersion = imageConfig.Version
 
 	// Populate controlPlane provider values
@@ -132,17 +131,17 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	if err != nil {
 		return err
 	}
-	mergeImage(imageConfig, controlPlane)
+	updateImage(imageConfig, controlPlane)
 	templateInput.OCNEControlPlaneVersion = imageConfig.Version
 
 	return nil
 }
 
-func mergeImage(imageConfig *ImageConfig, image *capiImage) {
-	if image.Tag == "" {
+func updateImage(imageConfig *ImageConfig, image *capiImage) {
+	if len(imageConfig.Tag) > 0 {
 		image.Tag = imageConfig.Tag
 	}
-	if image.Repository == "" {
+	if len(imageConfig.Repository) > 0 {
 		image.Repository = imageConfig.RepositoryWithoutRegistry
 	}
 }

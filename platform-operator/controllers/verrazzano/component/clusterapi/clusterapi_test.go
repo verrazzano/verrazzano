@@ -4,14 +4,15 @@
 package clusterapi
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const (
@@ -32,32 +33,6 @@ func TestSetEnvVariables(t *testing.T) {
 	assert.Equal(t, "true", os.Getenv(expMachinePool))
 	assert.Equal(t, "true", os.Getenv(clusterTopology))
 	assert.NoError(t, err)
-}
-
-// TestGetImageOverrides tests the getImageOverrides function
-// GIVEN a call to getImageOverrides
-//
-//	WHEN a test Verrazzano bom is supplied
-//	THEN the template inputs for generating a clusterctl.yaml file are returned
-func TestGetImageOverrides(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	templateInput, err := getImageOverrides(compContext)
-	assert.NoError(t, err)
-	assert.NotNil(t, templateInput)
-	assert.Equal(t, "v1.3.3", templateInput.APIVersion)
-	assert.Equal(t, verrazzanoRepo, templateInput.APIRepository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", templateInput.APITag)
-	assert.Equal(t, "v0.8.1", templateInput.OCIVersion)
-	assert.Equal(t, oracleRepo, templateInput.OCIRepository)
-	assert.Equal(t, "v0.8.1", templateInput.OCITag)
-	assert.Equal(t, "v0.1.0", templateInput.OCNEBootstrapVersion)
-	assert.Equal(t, verrazzanoRepo, templateInput.OCNEBootstrapRepository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", templateInput.OCNEBootstrapTag)
-	assert.Equal(t, "v0.1.0", templateInput.OCNEControlPlaneVersion)
-	assert.Equal(t, verrazzanoRepo, templateInput.OCNEControlPlaneRepository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", templateInput.OCNEControlPlaneTag)
 }
 
 // TestApplyTemplate tests the applyTemplate function
