@@ -13,6 +13,7 @@ def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 installerFileName = "install-verrazzano.yaml"
+minimalFileName = "minimal-verrazzano.yaml"
 
 pipeline {
     options {
@@ -152,6 +153,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-multicluster.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_MINIMAL = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-minimal.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -360,6 +362,7 @@ pipeline {
                                     steps {
                                         script {
                                             configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
+                                            configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", minimalFileName, params.ACME_ENVIRONMENT)
                                         }
                                     }
                                 }
@@ -369,36 +372,93 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
                 }
-                stage ('Install Verrazzano') {
-                    steps {
-                        script {
-                            getVerrazzanoOperatorYaml()
-                         }
-                        installVerrazzano()
-                    }
-                    post {
-                        always {
-                            script {
-                                dumpInstallLogs()
+                stage("Minimal Managed Cluster Tests") {
+                    stages {
+                        stage('Install Verrazzano') {
+                            steps {
+                                script {
+                                    getVerrazzanoOperatorYaml()
+                                }
+                                installMinimalVerrazzano()
+                            }
+                            post {
+                                always {
+                                    script {
+                                        dumpInstallLogs()
+                                    }
+                                }
+                                failure {
+                                    script {
+                                        dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
+                                    }
+                                }
                             }
                         }
-                        failure {
-                            script {
-                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
+                        stage('Register min managed cluster') {
+                            steps {
+                                registerManagedClusters()
+                            }
+                        }
+                        stage('Verify min managed cluster') {
+                            parallel {
+                                stage('Verify Install Cluster Agent') {
+                                    steps {
+                                        runGinkgoRandomize('verify-install/clusteragent')
+                                    }
+                                }
+                                stage('Verify Register Min Managed Cluster') {
+                                    steps {
+                                        verifyRegisterManagedClusters(true)
+                                    }
+                                }
+                            }
+                        }
+                        stage('Verify deregister min managed cluster') {
+                            steps {
+                                verifyDeregisterManagedClusters()
+                            }
+                        }
+                        stage('Delete min managed cluster') {
+                            steps {
+                                deleteClusters(2)
                             }
                         }
                     }
                 }
+                stage('Prepare full managed cluster(s)') {
+                    stages {
+                        stage('Create KinD managed cluster') {
+                            steps {
+                                // create managed clusters, pass in false for cleanup existing kind clusters, since we want
+                                // the admin cluster to be left as-is
+                                createKindClusters(2, false)
+                            }
+                        }
+                        stage('Configure KinD managed cluster') {
+                            steps {
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", installerFileName, params.WILDCARD_DNS_DOMAIN)
+                            }
+                        }
+                        stage ('Install managed clusters') {
+                            steps {
+                                installManagedClusters()
+                            }
+                        }
+                    }
+                }
+
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -411,7 +471,7 @@ pipeline {
                 }
                 stage ('verify-register') {
                     steps {
-                        verifyRegisterManagedClusters()
+                        verifyRegisterManagedClusters(false)
                     }
                 }
                 stage ('system component metrics') {
@@ -699,11 +759,11 @@ def deleteOkeClusters() {
     }
 }
 
-def deleteClusters() {
+def deleteClusters(start = 1) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         if (env.TEST_ENV == "KIND") {
-            for(int count=1; count<=clusterCount; count++) {
+            for(int count=start; count<=clusterCount; count++) {
                 sh """
                     if [ "${env.TEST_ENV}" == "KIND" ]
                     then
@@ -781,8 +841,21 @@ def getVerrazzanoOperatorYaml() {
     }
 }
 
-// Install Verrazzano on each of the clusters
-def installVerrazzano() {
+// Update Verrazzano on each of the managed clusters
+def installManagedClusters() {
+    script {
+        def verrazzanoInstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=2; count<=clusterCount; count++) {
+            def key = "vz-mgd-${count-1}"
+            def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath, false)
+        }
+        parallel verrazzanoInstallStages
+    }
+}
+
+def installMinimalVerrazzano() {
     script {
         // Create a dictionary of Verrazzano install steps to be executed in parallel
         // - the first one will always be the Admin cluster
@@ -790,12 +863,15 @@ def installVerrazzano() {
         def verrazzanoInstallStages = [:]
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
-            def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+            def installerPath="${KUBECONFIG_DIR}/${count}/${minimalFileName}"
             def key = "vz-mgd-${count-1}"
+            def minimalInstall = true
             if (count == 1) {
                 key = "vz-admin"
+                installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                minimalInstall = false
             }
-            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
+            verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath, minimalInstall)
         }
         parallel verrazzanoInstallStages
     }
@@ -804,7 +880,7 @@ def installVerrazzano() {
 // Install Verrazzano on a target cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
-def installVerrazzanoOnCluster(count, verrazzanoConfig) {
+def installVerrazzanoOnCluster(count, verrazzanoConfig, minimalInstall) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -830,7 +906,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 # Update VZ CR to enable required components
-              ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
+                ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig} ${minimalInstall}
 
                 echo "Installing the Verrazzano Platform Operator"
                 time ${VZ_COMMAND} install --manifests ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
@@ -932,7 +1008,7 @@ def registerManagedClusters() {
 }
 
 // Verify the register of the managed clusters
-def verifyRegisterManagedClusters() {
+def verifyRegisterManagedClusters(skipLogging) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -941,7 +1017,7 @@ def verifyRegisterManagedClusters() {
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/... -- --skipLogging=${skipLogging}
                 """
             }
         }
@@ -1102,8 +1178,31 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
     }
 }
 
+def configureManagedInstallers(installResourceTemplate, configProcessorScript, filename, String... extraArgs) {
+    script {
+        // Concatenate the variable args into a single string
+        String allArgs = ""
+        extraArgs.each { allArgs += it + " " }
+
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+
+        // start at 2 to skip the admin cluster
+        for(int count=2; count<=clusterCount; count++) {
+            def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${filename}"
+            def installProfile = env.MANAGED_CLUSTER_PROFILE
+            def envName = "mgd${count-1}"
+            sh """
+                cd ${GO_REPO_PATH}/verrazzano
+                # Copy the template config over for the mgd cluster profile configuration
+                cp $installResourceTemplate $destinationPath
+                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $allArgs
+            """
+        }
+    }
+}
+
 // Create the required KinD clusters
-def createKindClusters() {
+def createKindClusters(start = 1, cleanupKindContainers = true) {
     script {
         sh """
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -1119,10 +1218,12 @@ def createKindClusters() {
 
         def addressRanges = [ "172.18.0.231-172.18.0.238", "172.18.0.239-172.18.0.246", "172.18.0.247-172.18.0.254"]
         def clusterInstallStages = [:]
-        boolean cleanupKindContainers = true
         boolean connectJenkinsRunnerToNetwork = true
+        if(start > 1) {
+            connectJenkinsRunnerToNetwork = false
+        }
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
+        for(int count=start; count<=clusterCount; count++) {
             string metallbAddressRange = addressRanges.get(count-1)
             def deployStep = "cluster-${count}"
             // Create dictionary of steps for parallel execution
