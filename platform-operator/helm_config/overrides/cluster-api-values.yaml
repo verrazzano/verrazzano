@@ -4,66 +4,34 @@
 # Global settings for the Cluster API provider images.
 global:
   registry:
-  imagePullSecrets: []
-  pullPolicy: IfNotPresent
 
 # Overrides for the default providers
 defaultProviders:
-  ocne:
-    version: v0.1.0 -> resolves to https://github.com/verrazzano/cluster-api-provider-ocne/releases/tag/v0.1.0
-    metadataUrl: https://github.com/verrazzano/cluster-api-provider-ocne/releases/tag/v0.1.0 (primary use case is air-gap)
+  ocneBootstrap:
+    version:
+    url:
     image:
       registry:
       repository:
       tag:
-      pullPolicy:
+  ocneControlPlane:
+    version:
+    url:
+    image:
+      registry:
+      repository:
+      tag:
   core:
     version:
-    metadataUrl:
+    url:
     image:
       registry:
       repository:
       tag:
-      pullPolicy:
   oci:
     version:
-    metadataUrl:
+    url:
     image:
       registry:
       repository:
       tag:
-      pullPolicy:
-
-
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-images:
-  cluster-api:
-    repository: {{.APIRepository}}
-    tag: {{.APITag}}
-
-  infrastructure-oci:
-    repository: {{.OCIRepository}}
-    tag: {{.OCITag}}
-
-  bootstrap-ocne:
-    repository: {{.OCNEBootstrapRepository}}
-    tag: {{.OCNEBootstrapTag}}
-
-  control-plane-ocne:
-    repository: {{.OCNEControlPlaneRepository}}
-    tag: {{.OCNEControlPlaneTag}}
-
-providers:
-  - name: "cluster-api"
-    url: "/verrazzano/capi/cluster-api/{{.APIVersion}}/core-components.yaml"
-    type: "CoreProvider"
-  - name: "oci"
-    url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
-    type: "InfrastructureProvider"
-  - name: "ocne"
-    url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
-    type: "BootstrapProvider"
-  - name: "ocne"
-    url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
-    type: "ControlPlaneProvider"
