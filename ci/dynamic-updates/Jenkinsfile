@@ -229,7 +229,7 @@ pipeline {
 
             stages {
                 stage('VZ CLI Custom Resource Validation Tests') {
-                    when { expression {params.RUN_VZ_CLI_VAL} }
+                    when { expression {params.RUN_VZ_CLI_VALIDATION} }
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
