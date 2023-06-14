@@ -37,6 +37,8 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 func TestAnalyzeCommandDefault(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+	installcmd.SetValidateCRFunc(installcmd.FakeValidateCRFunc)
+	defer installcmd.SetDefaultValidateCRFunc()
 	c := getClientWithWatch()
 	installVZ(t, c)
 
