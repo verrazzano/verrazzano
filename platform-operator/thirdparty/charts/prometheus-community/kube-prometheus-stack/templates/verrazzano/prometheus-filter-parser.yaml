@@ -1,0 +1,104 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: prometheus-fbc
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "prometheus"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "prometheus"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheus-filter
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: prometheus-parser1,prometheus-parser2,prometheus-parser3,prometheus-parser4,prometheusconfig-parser
+  match: "kube.*prometheus-operator*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheusconfig-parser
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y/%m/%d %H:%M:%S"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheus-parser1
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (.*?)msg="(?<message>.*?)"([\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheus-parser2
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheus-parser3
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%H:%M:%S.%L"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "prometheus"
+  name: prometheus-parser4
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{1,9}Z)(?:.*msg="(?<message>[^"]+)")?[\s\S]*?$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+{{ end -}}

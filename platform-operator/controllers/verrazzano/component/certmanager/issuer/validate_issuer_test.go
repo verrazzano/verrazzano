@@ -4,6 +4,8 @@
 package issuer
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,6 +30,72 @@ const emailAddress = "joeblow@foo.com"
 const secretName = "newsecret"
 const secretNamespace = "ns"
 
+// TestValidateClusterResourceNamespace tests the checkClusterResourceNamespaceExists function
+// GIVEN a call to checkClusterResourceNamespaceExists
+//
+//	THEN an error is returned if the clusterResourceNamespace doesn't exist, or an unxpected client error occurs
+func TestValidateClusterResourceNamespace(t *testing.T) {
+	defer cmcommon.ResetCoreV1ClientFunc()
+
+	namespace := "myns"
+	issuerConfig := v1beta1.ClusterIssuerComponent{ClusterResourceNamespace: namespace}
+
+	assert.Error(t, checkClusterResourceNamespaceExists(&issuerConfig))
+
+	errMsg := "Test client error"
+	cmcommon.GetClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+		return nil, fmt.Errorf(errMsg)
+	}
+	assert.EqualError(t, checkClusterResourceNamespaceExists(&issuerConfig), errMsg)
+
+	cmcommon.GetClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+		return createFakeClient(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}).CoreV1(), nil
+	}
+	assert.NoError(t, checkClusterResourceNamespaceExists(&issuerConfig))
+}
+
+// TestValidateCertManagerTypesExist tests the validateCertManagerTypesExist function
+// GIVEN a call to validateCertManagerTypesExist
+// THEN true is returned when the CRDs exist, or an error otherwise
+func TestValidateCertManagerTypesExist(t *testing.T) {
+	defer resetCheckCertManagerCRDsFunc()
+
+	checkCertManagerCRDFunc = func() (bool, error) {
+		return false, nil
+	}
+	assert.EqualError(t, validateCertManagerTypesExist(),
+		"clusterIssuer component is enabled but could not detect the presence of Cert-Manager")
+
+	unexpectedErrMsg := "unexpected error"
+	checkCertManagerCRDFunc = func() (bool, error) {
+		return false, fmt.Errorf(unexpectedErrMsg)
+	}
+	assert.EqualError(t, validateCertManagerTypesExist(), unexpectedErrMsg)
+
+	checkCertManagerCRDFunc = func() (bool, error) {
+		return true, nil
+	}
+	assert.NoError(t, validateCertManagerTypesExist())
+}
+
+// TestValidateInstall tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//
+//	WHEN for various Issuer configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateInstall(t *testing.T) {
+	validationTests(t, false)
+}
+
+// TestValidateUpdate tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//
+//	WHEN for various Issuer configurations
+//	THEN an error is returned if anything is misconfigured
+func TestValidateUpdate(t *testing.T) {
+	validationTests(t, true)
+}
+
 var simpleValidationTests = []validationTestStruct{
 	{
 		name:    "No OCI DNS or CertManager present",
@@ -45,6 +113,7 @@ var simpleValidationTests = []validationTestStruct{
 						Enabled: getBoolPtr(true),
 					},
 					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						ClusterResourceNamespace: constants.CertManagerNamespace,
 						IssuerConfig: vzapi.IssuerConfig{
 							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
 								EmailAddress: emailAddress,
@@ -76,6 +145,7 @@ var simpleValidationTests = []validationTestStruct{
 						Enabled: getBoolPtr(false),
 					},
 					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						ClusterResourceNamespace: secretNamespace,
 						IssuerConfig: vzapi.IssuerConfig{
 							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
 								EmailAddress: emailAddress,
@@ -98,48 +168,83 @@ var simpleValidationTests = []validationTestStruct{
 		caSecret: &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
 		},
-		wantErr: false,
+		expectedClusterResourceNamespace: secretNamespace,
+		wantErr:                          false,
+		crdsPresent:                      true,
 	},
-	//{
-	//	name: "CertManager and ClusterIssuer both explicitly configured",
-	//	old:  &vzapi.Verrazzano{},
-	//	new: &vzapi.Verrazzano{
-	//		Spec: vzapi.VerrazzanoSpec{
-	//			Components: vzapi.ComponentSpec{
-	//				CertManager: &vzapi.CertManagerComponent{
-	//					Enabled: getBoolPtr(false),
-	//					Certificate: vzapi.Certificate{
-	//						CA: vzapi.CA{
-	//							ClusterResourceNamespace: secretNamespace,
-	//							SecretName:               secretName,
-	//						},
-	//					},
-	//				},
-	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
-	//					IssuerConfig: vzapi.IssuerConfig{
-	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
-	//							EmailAddress: emailAddress,
-	//							Environment:  letsEncryptStaging,
-	//						},
-	//					},
-	//				},
-	//				DNS: &vzapi.DNSComponent{
-	//					OCI: &vzapi.OCI{
-	//						DNSScope:               "GLOBAL",
-	//						DNSZoneCompartmentOCID: "ocid",
-	//						DNSZoneOCID:            "zoneOcid",
-	//						DNSZoneName:            "zoneName",
-	//						OCIConfigSecret:        "oci",
-	//					},
-	//				},
-	//			},
-	//		},
-	//	},
-	//	caSecret: &corev1.Secret{
-	//		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
-	//	},
-	//	wantErr: true,
-	//},
+	{
+		name: "CertManager Disabled Issuer Enabled No CRDs present",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(false),
+					},
+					ClusterIssuer: vzapi.NewDefaultClusterIssuer(),
+				},
+			},
+		},
+		wantErr:     true,
+		crdsPresent: false,
+	},
+	{
+		// Case where CM is enabled, and the issuer is enabled, but before CM is installed
+		name: "CertManager Enabled Issuer Enabled No CRDs present",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(true),
+					},
+					ClusterIssuer: vzapi.NewDefaultClusterIssuer(),
+				},
+			},
+		},
+		wantErr:     false,
+		crdsPresent: false,
+	},
+	{
+		name: "CertManager and ClusterIssuer both explicitly configured",
+		old:  &vzapi.Verrazzano{},
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: getBoolPtr(false),
+						Certificate: vzapi.Certificate{
+							CA: vzapi.CA{
+								ClusterResourceNamespace: secretNamespace,
+								SecretName:               secretName,
+							},
+						},
+					},
+					ClusterIssuer: &vzapi.ClusterIssuerComponent{
+						IssuerConfig: vzapi.IssuerConfig{
+							LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+								EmailAddress: emailAddress,
+								Environment:  letsEncryptStaging,
+							},
+						},
+					},
+					DNS: &vzapi.DNSComponent{
+						OCI: &vzapi.OCI{
+							DNSScope:               "GLOBAL",
+							DNSZoneCompartmentOCID: "ocid",
+							DNSZoneOCID:            "zoneOcid",
+							DNSZoneName:            "zoneName",
+							OCIConfigSecret:        "oci",
+						},
+					},
+				},
+			},
+		},
+		caSecret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
+		},
+		wantErr: true,
+	},
 	{
 		name: "CertManager Component Custom CA",
 		old:  &vzapi.Verrazzano{},
@@ -147,7 +252,8 @@ var simpleValidationTests = []validationTestStruct{
 		caSecret: &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
 		},
-		wantErr: false,
+		expectedClusterResourceNamespace: secretNamespace,
+		wantErr:                          false,
 	},
 }
 
@@ -159,13 +265,15 @@ var issuerConfigurationTests = []validationTestStruct{
 		caSecret: &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
 		},
-		wantErr: false,
+		wantErr:                          false,
+		expectedClusterResourceNamespace: secretNamespace,
 	},
 	{
-		name:    "updateCustomCASecretNotFound",
-		old:     &vzapi.Verrazzano{},
-		new:     getCaSecretCR(),
-		wantErr: true,
+		name:                             "updateCustomCASecretNotFound",
+		old:                              &vzapi.Verrazzano{},
+		new:                              getCaSecretCR(),
+		wantErr:                          true,
+		expectedClusterResourceNamespace: secretNamespace,
 	},
 	{
 		name:    "no change",
@@ -283,25 +391,32 @@ var issuerConfigurationTests = []validationTestStruct{
 
 // All of this below is to make Sonar happy
 type validationTestStruct struct {
-	name      string
-	old       *vzapi.Verrazzano
-	new       *vzapi.Verrazzano
-	coreV1Cli func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
-	caSecret  *corev1.Secret
-	wantErr   bool
+	name                             string
+	old                              *vzapi.Verrazzano
+	new                              *vzapi.Verrazzano
+	expectedClusterResourceNamespace string
+	coreV1Cli                        func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
+	caSecret                         *corev1.Secret
+	crdsPresent                      bool
+	wantErr                          bool
 }
 
 func validationTests(t *testing.T, isUpdate bool) {
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
+	defer resetCheckCertManagerCRDsFunc()
 
 	tests := simpleValidationTests
 	tests = append(tests, issuerConfigurationTests...)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("Running test %s", tt.name)
 			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
 				tt.wantErr = false
 			}
 			c := NewComponent()
+			checkCertManagerCRDFunc = func() (bool, error) {
+				return tt.crdsPresent, nil
+			}
 			cmcommon.GetClientFunc = getTestClient(tt)
 			runValidationTest(t, tt, isUpdate, c)
 		})
@@ -342,11 +457,19 @@ func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c s
 }
 
 func getTestClient(tt validationTestStruct) func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+	crNamespace := tt.expectedClusterResourceNamespace
+	if len(crNamespace) == 0 {
+		crNamespace = "cert-manager"
+	}
 	return func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
-		if tt.caSecret != nil {
-			return createFakeClient(tt.caSecret).CoreV1(), nil
+		objs := []runtime.Object{
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: crNamespace}},
 		}
-		return createFakeClient().CoreV1(), nil
+		if tt.caSecret != nil {
+			objs = append(objs, tt.caSecret)
+		}
+		return createFakeClient(objs...).CoreV1(), nil
+		//		return createFakeClient().CoreV1(), nil
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -18,13 +18,13 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = cmcommon.ClusterIssuerComponentName
+const ComponentName = cmconstants.ClusterIssuerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName - this is not a real component but declare it for compatibility
-const ComponentJSONName = "clusterIssuer"
+const ComponentJSONName = cmconstants.ClusterIssuerComponentJSONName
 
 // clusterIssuerComponent represents an CertManager component
 type clusterIssuerComponent struct{}
@@ -147,8 +147,21 @@ func (c clusterIssuerComponent) validateConfiguration(new *v1beta1.Verrazzano) e
 		return err
 	}
 
-	if !c.IsEnabled(new) && !vzcr.IsCertManagerEnabled(new) {
+	if !c.IsEnabled(new) {
 		return nil
+	}
+
+	if !vzcr.IsCertManagerEnabled(new) {
+		if err := validateCertManagerTypesExist(); err != nil {
+			// If CM is disabled and no CRDs are present, the issuer won't work
+			// (customer-managed Cert-Manager case)
+			return err
+		}
+
+		// Validate that the clusterResourceNamespace exists
+		if err := checkClusterResourceNamespaceExists(new.Spec.Components.ClusterIssuer); err != nil {
+			return err
+		}
 	}
 
 	if err := validateConfiguration(new); err != nil {
@@ -174,7 +187,7 @@ func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 }
 
 func (c clusterIssuerComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName}
+	return []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName}
 }
 
 func (c clusterIssuerComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {

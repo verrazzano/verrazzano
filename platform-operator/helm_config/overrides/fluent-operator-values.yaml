@@ -1,0 +1,71 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+fluentbit:
+  additionalVolumes:
+    - configMap:
+        name: fluent-bit-os-config
+      name: fluent-bit-os-config
+    - hostPath:
+        path: /run/log/journal
+        type: ""
+      name: run-log-journal
+    {{- if .isManagedCluster }}
+    - name: secret-volume
+      secret:
+        items:
+          - key: es-ca-bundle
+            path: ca-cert.crt
+        secretName: {{ .secretName }}
+    {{- end }}
+  additionalVolumesMounts:
+    - mountPath: /fluent-bit/etc/opensearch-config
+      name: fluent-bit-os-config
+      readOnly: true
+    - mountPath: /run/log/journal
+      name: run-log-journal
+      readOnly: true
+    {{- if .isManagedCluster }}
+    - mountPath: /fluent-bit/etc/secret
+      name: secret-volume
+      readOnly: true
+    {{- end }}
+  namespaceFluentBitCfgSelector:
+    matchLabels:
+      fluentbit.verrazzano.io/namespace-config: verrazzano
+  input:
+    tail:
+      readFromHead: true
+    systemd:
+      path: "/run/log/journal"
+      stripUnderscores: "on"
+      systemdFilter:
+        enable: false
+  filter:
+    systemd:
+      enable: false
+    kubernetes:
+      labels: true
+      annotations: true
+  envVars:
+    - name: CLUSTER_NAME
+      value: {{ .clusterName }}
+  # Pod security context for Fluentbit Pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+
+operator:
+  # Pod security context for Fluent Operator pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext:
+    runAsGroup: 1025
+    runAsNonRoot: true
+    runAsUser: 1025
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    capabilities:
+      drop:
+        - ALL

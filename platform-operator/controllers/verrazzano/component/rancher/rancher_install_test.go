@@ -4,8 +4,14 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +27,10 @@ const (
 	dnsSuffix = "DNS"
 	name      = "NAME"
 )
+
+var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
+var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
+var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
 
 // TestAddAcmeIngressAnnotations verifies if LetsEncrypt Annotations are added to the Ingress
 // GIVEN a Rancher Ingress
@@ -117,4 +127,89 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 	err := patchRancherIngress(c, ctx.EffectiveCR())
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
+}
+
+func TestCleanupRancherResources(t *testing.T) {
+	const (
+		nd1                  = "nd1"
+		nd2                  = "nd2"
+		dynamicSchemaND2Name = "ds2"
+	)
+
+	nodeDriver1 := &unstructured.Unstructured{}
+	nodeDriver1.SetGroupVersionKind(GVKNodeDriver)
+	nodeDriver1.SetName(nd1)
+	nodeDriver2 := nodeDriver1.DeepCopy()
+	nodeDriver2.SetName(nd2)
+
+	// dynamic schema with owner reference that should be removed
+	dynamicSchemaND1 := &unstructured.Unstructured{}
+	dynamicSchemaND1.SetGroupVersionKind(GVKDynamicSchema)
+	dynamicSchemaND1.SetName(ociSchemaName)
+	dynamicSchemaND1.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: nodeDriver1.GetAPIVersion(),
+			Kind:       nodeDriver1.GetKind(),
+			Name:       nodeDriver1.GetName(),
+			UID:        "xyz",
+		},
+	})
+
+	// dynamic schema with owner reference that should be preserved, and the schema deleted
+	dynamicSchemaND2 := dynamicSchemaND1.DeepCopy()
+	dynamicSchemaND1.SetName(dynamicSchemaND2Name)
+	dynamicSchemaND1.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: nodeDriver2.GetAPIVersion(),
+			Kind:       nodeDriver2.GetKind(),
+			Name:       nodeDriver2.GetName(),
+			UID:        "abc",
+		},
+	})
+
+	scheme := getScheme()
+	scheme.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2, dynamicSchemaND1, dynamicSchemaND2)
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&adminv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: CAPIValidatingWebhook,
+		},
+	}, &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: CAPIMutatingWebhook,
+		},
+	}).Build()
+	ctx := context.TODO()
+	err := cleanupRancherResources(ctx, fakeClient)
+	assert.NoError(t, err)
+
+	// Check node drivers are no longer found
+	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd1, metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err))
+	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd2, metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err))
+
+	// Check Rancher CAPI webhooks are no longer found
+	err = fakeClient.Get(ctx, types.NamespacedName{
+		Name: CAPIValidatingWebhook,
+	}, &adminv1.ValidatingWebhookConfiguration{})
+	assert.True(t, apierrors.IsNotFound(err))
+	err = fakeClient.Get(ctx, types.NamespacedName{
+		Name: CAPIMutatingWebhook,
+	}, &adminv1.MutatingWebhookConfiguration{})
+	assert.True(t, apierrors.IsNotFound(err))
+
+	ds1, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, ociSchemaName, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Len(t, ds1.GetOwnerReferences(), 0)
+	// Check schemas are deleted/preserved according to their owner references
+	ds2, err := fakeDynamicClient.Resource(dynamicSchemaGVR).Get(ctx, dynamicSchemaND2Name, metav1.GetOptions{})
+	assert.NoError(t, err)
+	// Cascading delete does not happen with fake client, so we check if owner reference is still present
+	assert.NotNil(t, ds2.GetOwnerReferences())
 }
