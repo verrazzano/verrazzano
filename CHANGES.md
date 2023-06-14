@@ -32,7 +32,7 @@ Fixes:
 
 - Disabled the startupapicheck job in cert-manager startup.
 - Fixes an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
-- Changed the type for OpenSearchNode Replicas from int32 to *int32 in the Verrazzano API. This may require an update to client code using the Verrazzano API.
+- Fixes an issue where not defining the replicas for default OpenSearch node pools in the Verrazzano CR caused the pods to terminate.
 
 ### v1.5.0
 Features:
