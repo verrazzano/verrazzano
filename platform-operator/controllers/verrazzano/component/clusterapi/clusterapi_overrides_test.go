@@ -98,8 +98,7 @@ func TestUserOverrides(t *testing.T) {
       }
     },
     "core": {
-      "image": {
-      }
+      "version": "v1.1"
     }
   }
 }`
@@ -154,7 +153,7 @@ func TestUserOverrides(t *testing.T) {
 	assert.Equal(t, "", core.Image.Registry)
 	assert.Equal(t, "verrazzano", core.Image.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
-	assert.Equal(t, "", core.Version)
+	assert.Equal(t, "v1.1", core.Version)
 	assert.Equal(t, "", core.Url)
 
 	oci := templateInput.Overrides.DefaultProviders.OCI
