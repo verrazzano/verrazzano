@@ -4,37 +4,34 @@
 # Global settings for the Cluster API provider images.
 global:
   registry:
-  imagePullSecrets: []
-  pullPolicy: IfNotPresent
 
 # Overrides for the default providers
 defaultProviders:
-  ocne:
-    # Overrides the default configuration for bootstrap and controlPlane.
+  ocneBootstrap:
     version:
-    # Overrides to global settings and values derived from version field
-    bootstrap:
-      image:
-        registry:
-        repository:
-        pullPolicy:
-        tag:
-    # Overrides to global settings and values derived from version field
-    controlPlane:
-      image:
-        registry:
-        repository:
-        pullPolicy:
-        tag:
-  core:
+    url:
     image:
       registry:
       repository:
-      pullPolicy:
+      tag:
+  ocneControlPlane:
+    version:
+    url:
+    image:
+      registry:
+      repository:
+      tag:
+  core:
+    version:
+    url:
+    image:
+      registry:
+      repository:
       tag:
   oci:
+    version:
+    url:
     image:
       registry:
       repository:
-      pullPolicy:
       tag:

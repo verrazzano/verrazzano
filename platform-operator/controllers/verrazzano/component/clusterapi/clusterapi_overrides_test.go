@@ -10,8 +10,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -31,29 +29,28 @@ func TestGetCapiOverrides(t *testing.T) {
 	const capiOverrides = `
 {
   "global": {
-	"registry": "air-gap",
-	"imagePullSecrets": [
-	  {
-		"name": "secret1"
-	  }
-	]
+     "registry": "air-gap"
   },
   "defaultProviders": {
-    "ocne": {
+    "ocneBootstrap": {
       "image": {
-        "tag": "v1.0",
-        "pullPolicy": "Always"
+        "tag": "v1.0"
+      }
+    },
+    "ocneControlPlane": {
+      "image": {
+        "tag": "v1.1"
       }
     },
     "oci": {
       "image": {
-        "repository": "repo",
+        "repository": "repo-2",
         "registry": "air-gap-2"
       }
     },
     "core": {
       "image": {
-        "pullPolicy": "Never"
+        "repository": "repo"
       }
     }
   }
@@ -90,26 +87,26 @@ func TestGetCapiOverrides(t *testing.T) {
 
 	// Check that expected values are loaded into the struct
 	assert.Equal(t, "air-gap", overrides.Global.Registry)
-	assert.Equal(t, corev1.PullIfNotPresent, overrides.Global.PullPolicy)
-	assert.Equal(t, "secret1", overrides.Global.ImagePullSecrets[0].Name)
 
-	bootstrapImage := overrides.DefaultProviders.OCNE.Image
+	bootstrapImage := overrides.DefaultProviders.OCNEBootstrap.Image
 	assert.Equal(t, "", bootstrapImage.Repository)
 	assert.Equal(t, "v1.0", bootstrapImage.Tag)
 	assert.Equal(t, "", bootstrapImage.Registry)
-	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
+
+	controlPlaneImage := overrides.DefaultProviders.OCNEControlPlane.Image
+	assert.Equal(t, "", controlPlaneImage.Repository)
+	assert.Equal(t, "v1.1", controlPlaneImage.Tag)
+	assert.Equal(t, "", controlPlaneImage.Registry)
 
 	coreImage := overrides.DefaultProviders.Core.Image
-	assert.Equal(t, "", coreImage.Repository)
+	assert.Equal(t, "repo", coreImage.Repository)
 	assert.Equal(t, "", coreImage.Tag)
 	assert.Equal(t, "", coreImage.Registry)
-	assert.Equal(t, corev1.PullNever, coreImage.PullPolicy)
 
 	ociImage := overrides.DefaultProviders.OCI.Image
-	assert.Equal(t, "repo", ociImage.Repository)
+	assert.Equal(t, "repo-2", ociImage.Repository)
 	assert.Equal(t, "", ociImage.Tag)
 	assert.Equal(t, "air-gap-2", ociImage.Registry)
-	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
 }
 
 // TestCreateTemplateInput tests getting the override values for the Cluster API component
@@ -123,17 +120,11 @@ func TestCreateTemplateInput(t *testing.T) {
 	const capiOverrides = `
 {
   "global": {
-	"imagePullSecrets": [
-	  {
-		"name": "secret1"
-	  }
-	]
   },
   "defaultProviders": {
-    "ocne": {
+    "ocneBootstrap": {
       "image": {
-        "tag": "v1.0",
-        "pullPolicy": "Always"
+        "tag": "v1.0"
       }
     },
     "oci": {
@@ -144,7 +135,6 @@ func TestCreateTemplateInput(t *testing.T) {
     },
     "core": {
       "image": {
-        "pullPolicy": "Never"
       }
     }
   }
@@ -181,30 +171,24 @@ func TestCreateTemplateInput(t *testing.T) {
 
 	// Check that expected values are loaded into the struct
 	assert.Equal(t, "ghcr.io", templateInput.Global.Registry)
-	assert.Equal(t, corev1.PullIfNotPresent, templateInput.Global.PullPolicy)
-	assert.Equal(t, "secret1", templateInput.Global.ImagePullSecrets[0].Name)
 
 	bootstrapImage := templateInput.OCNEBootstrap.Image
 	assert.Equal(t, "", bootstrapImage.Registry)
 	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
 	assert.Equal(t, "v1.0", bootstrapImage.Tag)
-	assert.Equal(t, corev1.PullAlways, bootstrapImage.PullPolicy)
 
 	controlPlaneImage := templateInput.OCNEControlPlane.Image
 	assert.Equal(t, "", controlPlaneImage.Registry)
 	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
 	assert.Equal(t, "v1.0", controlPlaneImage.Tag)
-	assert.Equal(t, corev1.PullAlways, controlPlaneImage.PullPolicy)
 
 	coreImage := templateInput.Core.Image
 	assert.Equal(t, "", coreImage.Registry)
 	assert.Equal(t, "verrazzano", coreImage.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
-	assert.Equal(t, corev1.PullNever, coreImage.PullPolicy)
 
 	ociImage := templateInput.OCI.Image
 	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, "repo", ociImage.Repository)
 	assert.Equal(t, "v0.8.1", ociImage.Tag)
-	assert.Equal(t, corev1.PullPolicy(""), ociImage.PullPolicy)
 }

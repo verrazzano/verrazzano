@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -24,15 +23,14 @@ type capiOverrides struct {
 }
 
 type globalOverrides struct {
-	Registry         string                        `json:"registry,omitempty"`
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	PullPolicy       corev1.PullPolicy             `json:"pullPolicy,omitempty"`
+	Registry string `json:"registry,omitempty"`
 }
 
 type defaultProviders struct {
-	OCNE capiProvider `json:"ocne,omitempty"`
-	Core capiProvider `json:"core,omitempty"`
-	OCI  capiProvider `json:"oci,omitempty"`
+	OCNEBootstrap    capiProvider `json:"ocneBootstrap,omitempty"`
+	OCNEControlPlane capiProvider `json:"ocneControlPlane,omitempty"`
+	Core             capiProvider `json:"core,omitempty"`
+	OCI              capiProvider `json:"oci,omitempty"`
 }
 
 type capiProvider struct {
@@ -40,10 +38,9 @@ type capiProvider struct {
 }
 
 type capiImage struct {
-	Registry   string            `json:"registry,omitempty"`
-	Repository string            `json:"repository,omitempty"`
-	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
-	Tag        string            `json:"tag,omitempty"`
+	Registry   string `json:"registry,omitempty"`
+	Repository string `json:"repository,omitempty"`
+	Tag        string `json:"tag,omitempty"`
 }
 
 // createTemplateInput - create the template input for install/upgrade of the
@@ -95,8 +92,8 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 // convertUserOverridesToTemplate - convert the user facing overrides into the internal structure format.
 func convertUserOverridesToTemplate(template *TemplateInput, overrides *capiOverrides) {
 	template.Global = overrides.Global
-	template.OCNEBootstrap.Image = overrides.DefaultProviders.OCNE.Image
-	template.OCNEControlPlane.Image = overrides.DefaultProviders.OCNE.Image
+	template.OCNEBootstrap.Image = overrides.DefaultProviders.OCNEBootstrap.Image
+	template.OCNEControlPlane.Image = overrides.DefaultProviders.OCNEBootstrap.Image
 	template.OCI.Image = overrides.DefaultProviders.OCI.Image
 	template.Core.Image = overrides.DefaultProviders.Core.Image
 }
