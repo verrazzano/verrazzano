@@ -70,6 +70,8 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
 
 	// Run install command
 	err := cmd.Execute()
