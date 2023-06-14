@@ -18,95 +18,45 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestGetCapiOverrides tests getting the override values for the Cluster API component
-// GIVEN a call to getCapiOverrides
+// TestBomOverrides tests getting the override values for the Cluster API component from the BOM
+// GIVEN a call to createTemplateInput
 //
-//	WHEN all env variables are set to the correct values
-//	THEN true is returned
-func TestGetCapiOverrides(t *testing.T) {
+//	WHEN no user overrides have been specified
+//	THEN check expected values returned from the BOM
+func TestBomOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	const capiOverrides = `
-{
-  "global": {
-     "registry": "air-gap"
-  },
-  "defaultProviders": {
-    "ocneBootstrap": {
-      "image": {
-        "tag": "v1.0"
-      }
-    },
-    "ocneControlPlane": {
-      "image": {
-        "tag": "v1.1"
-      }
-    },
-    "oci": {
-      "image": {
-        "repository": "repo-2",
-        "registry": "air-gap-2"
-      }
-    },
-    "core": {
-      "image": {
-        "repository": "repo"
-      }
-    }
-  }
-}`
-
-	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "vz",
-		},
-		Spec: v1alpha1.VerrazzanoSpec{
-			Components: v1alpha1.ComponentSpec{
-				ClusterAPI: &v1alpha1.ClusterAPIComponent{
-					InstallOverrides: v1alpha1.InstallOverrides{
-						ValueOverrides: []v1alpha1.Overrides{
-							{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(capiOverrides),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.TestHelmConfigDir = "../../../../helm_config"
 
-	overrides, err := getCapiOverrides(compContext)
+	templateInput, err := createTemplateInput(compContext)
 	assert.NoError(t, err)
-	assert.NotNil(t, overrides)
+	assert.NotNil(t, templateInput)
+	overrides := templateInput.Overrides
 
 	// Check that expected values are loaded into the struct
-	assert.Equal(t, "air-gap", overrides.Global.Registry)
+	assert.Equal(t, "ghcr.io", overrides.Global.Registry)
 
 	bootstrapImage := overrides.DefaultProviders.OCNEBootstrap.Image
-	assert.Equal(t, "", bootstrapImage.Repository)
-	assert.Equal(t, "v1.0", bootstrapImage.Tag)
+	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
+	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrapImage.Tag)
 	assert.Equal(t, "", bootstrapImage.Registry)
 
 	controlPlaneImage := overrides.DefaultProviders.OCNEControlPlane.Image
-	assert.Equal(t, "", controlPlaneImage.Repository)
-	assert.Equal(t, "v1.1", controlPlaneImage.Tag)
+	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
+	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlaneImage.Tag)
 	assert.Equal(t, "", controlPlaneImage.Registry)
 
 	coreImage := overrides.DefaultProviders.Core.Image
-	assert.Equal(t, "repo", coreImage.Repository)
-	assert.Equal(t, "", coreImage.Tag)
+	assert.Equal(t, "verrazzano", coreImage.Repository)
+	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
 	assert.Equal(t, "", coreImage.Registry)
 
 	ociImage := overrides.DefaultProviders.OCI.Image
-	assert.Equal(t, "repo-2", ociImage.Repository)
-	assert.Equal(t, "", ociImage.Tag)
-	assert.Equal(t, "air-gap-2", ociImage.Registry)
+	assert.Equal(t, "oracle", ociImage.Repository)
+	assert.Equal(t, "v0.8.1", ociImage.Tag)
+	assert.Equal(t, "", ociImage.Registry)
 }
 
 // TestCreateTemplateInput tests getting the override values for the Cluster API component
@@ -170,24 +120,24 @@ func TestCreateTemplateInput(t *testing.T) {
 	assert.NotNil(t, templateInput)
 
 	// Check that expected values are loaded into the struct
-	assert.Equal(t, "ghcr.io", templateInput.Global.Registry)
+	assert.Equal(t, "ghcr.io", templateInput.Overrides.Global.Registry)
 
-	bootstrapImage := templateInput.OCNEBootstrap.Image
+	bootstrapImage := templateInput.Overrides.DefaultProviders.OCNEBootstrap.Image
 	assert.Equal(t, "", bootstrapImage.Registry)
 	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
 	assert.Equal(t, "v1.0", bootstrapImage.Tag)
 
-	controlPlaneImage := templateInput.OCNEControlPlane.Image
+	controlPlaneImage := templateInput.Overrides.DefaultProviders.OCNEControlPlane.Image
 	assert.Equal(t, "", controlPlaneImage.Registry)
 	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
 	assert.Equal(t, "v1.0", controlPlaneImage.Tag)
 
-	coreImage := templateInput.Core.Image
+	coreImage := templateInput.Overrides.DefaultProviders.Core.Image
 	assert.Equal(t, "", coreImage.Registry)
 	assert.Equal(t, "verrazzano", coreImage.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
 
-	ociImage := templateInput.OCI.Image
+	ociImage := templateInput.Overrides.DefaultProviders.OCI.Image
 	assert.Equal(t, "air-gap-2", ociImage.Registry)
 	assert.Equal(t, "repo", ociImage.Repository)
 	assert.Equal(t, "v0.8.1", ociImage.Tag)

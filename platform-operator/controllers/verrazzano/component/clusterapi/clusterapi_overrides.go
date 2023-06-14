@@ -48,22 +48,20 @@ type capiImage struct {
 func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
 	templateInput := &TemplateInput{}
 
-	// Get the user facing overrides
-	userOverrides, err := getCapiOverrides(ctx)
+	// Get the base overrides
+	var err error
+	templateInput.Overrides, err = getCapiOverrides(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert the user facing overrides into the internal format for the overrides.
-	// This is required because some user facing overrides (e.g. tag for ocne) is simplified
-	// for the user to a single input, but internally the BOM can have different tags for
-	// bootstrap and controlPlane images.
-	convertUserOverridesToTemplate(templateInput, userOverrides)
-
-	// Merge the BOM settings into the template input
+	// Overlay base overrides with values from the BOM
 	if err = mergeBOMOverrides(ctx, templateInput); err != nil {
 		return nil, err
 	}
+
+	// Merge overrides from the Verrazzano custom resource
+	err = mergeUserOverrides(ctx, templateInput)
 
 	return templateInput, nil
 }
@@ -83,24 +81,13 @@ func getCapiOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 		return nil, err
 	}
 
-	// Merge overrides from the Verrazzano custom resource
-	err = updateWithVZOverrides(ctx, overrides)
-
 	return overrides, err
-}
-
-// convertUserOverridesToTemplate - convert the user facing overrides into the internal structure format.
-func convertUserOverridesToTemplate(template *TemplateInput, overrides *capiOverrides) {
-	template.Global = overrides.Global
-	template.OCNEBootstrap.Image = overrides.DefaultProviders.OCNEBootstrap.Image
-	template.OCNEControlPlane.Image = overrides.DefaultProviders.OCNEBootstrap.Image
-	template.OCI.Image = overrides.DefaultProviders.OCI.Image
-	template.Core.Image = overrides.DefaultProviders.Core.Image
 }
 
 // mergeBOMOverrides - merge settings from the BOM template, being careful not to unset any
 // values there were overridden by the user
 func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) error {
+	overrides := templateInput.Overrides
 
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -108,12 +95,10 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	}
 
 	// Populate global values
-	if templateInput.Global.Registry == "" {
-		templateInput.Global.Registry = bomFile.GetRegistry()
-	}
+	overrides.Global.Registry = bomFile.GetRegistry()
 
 	// Populate core provider values
-	core := &templateInput.Core.Image
+	core := &overrides.DefaultProviders.Core.Image
 	imageConfig, err := getImageOverride(ctx, bomFile, "capi-cluster-api", "")
 	if err != nil {
 		return err
@@ -122,7 +107,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	templateInput.APIVersion = imageConfig.Version
 
 	// Populate OCI provider values
-	oci := &templateInput.OCI.Image
+	oci := &overrides.DefaultProviders.OCI.Image
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-oci", "")
 	if err != nil {
 		return err
@@ -131,7 +116,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	templateInput.OCIVersion = imageConfig.Version
 
 	// Populate bootstrap provider values
-	bootstrap := &templateInput.OCNEBootstrap.Image
+	bootstrap := &overrides.DefaultProviders.OCNEBootstrap.Image
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
 	if err != nil {
 		return err
@@ -140,7 +125,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 	templateInput.OCNEBootstrapVersion = imageConfig.Version
 
 	// Populate controlPlane provider values
-	controlPlane := &templateInput.OCNEControlPlane.Image
+	controlPlane := &overrides.DefaultProviders.OCNEControlPlane.Image
 	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-control-plane-controller")
 	if err != nil {
 		return err
@@ -160,8 +145,9 @@ func mergeImage(imageConfig *ImageConfig, image *capiImage) {
 	}
 }
 
-// updateWithVZOverrides - Update the struct with overrides from the VZ custom resource
-func updateWithVZOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error {
+// mergeUserOverrides - Update the struct with overrides from the VZ custom resource
+func mergeUserOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) error {
+	overrides := templateInput.Overrides
 	if ctx.EffectiveCR().Spec.Components.ClusterAPI == nil {
 		return nil
 	}

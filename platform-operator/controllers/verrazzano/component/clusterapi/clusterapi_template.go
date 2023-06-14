@@ -31,11 +31,7 @@ type TemplateInput struct {
 	OCNEControlPlaneRepository string
 	OCNEControlPlaneTag        string
 
-	Global           globalOverrides
-	OCNEBootstrap    capiProvider
-	OCNEControlPlane capiProvider
-	Core             capiProvider
-	OCI              capiProvider
+	Overrides *capiOverrides
 }
 
 func newTemplateContext(templateInput *TemplateInput) TemplateInterface {
@@ -43,11 +39,11 @@ func newTemplateContext(templateInput *TemplateInput) TemplateInterface {
 }
 
 func (c TemplateInput) GetClusterAPIRepository() string {
-	return getRepositoryForProvider(c, c.Core)
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.Core)
 }
 
 func (c TemplateInput) GetClusterAPITag() string {
-	return c.Core.Image.Tag
+	return c.Overrides.DefaultProviders.Core.Image.Tag
 }
 
 func (c TemplateInput) GetClusterAPIURL() string {
@@ -55,27 +51,27 @@ func (c TemplateInput) GetClusterAPIURL() string {
 }
 
 func (c TemplateInput) GetOCIRepository() string {
-	return getRepositoryForProvider(c, c.OCI)
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCI)
 }
 
 func (c TemplateInput) GetOCITag() string {
-	return c.OCI.Image.Tag
+	return c.Overrides.DefaultProviders.OCI.Image.Tag
 }
 
 func (c TemplateInput) GetOCNEBootstrapRepository() string {
-	return getRepositoryForProvider(c, c.OCNEBootstrap)
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEBootstrap)
 }
 
 func (c TemplateInput) GetOCNEBootstrapTag() string {
-	return c.OCNEBootstrap.Image.Tag
+	return c.Overrides.DefaultProviders.OCNEBootstrap.Image.Tag
 }
 
 func (c TemplateInput) GetOCNEControlPlaneRepository() string {
-	return getRepositoryForProvider(c, c.OCNEControlPlane)
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEControlPlane)
 }
 
 func (c TemplateInput) GetOCNEControlPlaneTag() string {
-	return c.OCNEControlPlane.Image.Tag
+	return c.Overrides.DefaultProviders.OCNEControlPlane.Image.Tag
 }
 
 func getRepositoryForProvider(template TemplateInput, provider capiProvider) string {
@@ -85,7 +81,7 @@ func getRepositoryForProvider(template TemplateInput, provider capiProvider) str
 func getRegistryForProvider(template TemplateInput, provider capiProvider) string {
 	registry := provider.Image.Registry
 	if len(registry) == 0 {
-		registry = template.Global.Registry
+		registry = template.Overrides.Global.Registry
 	}
 	return registry
 }
