@@ -59,20 +59,26 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "", ociImage.Registry)
 }
 
-// TestCreateTemplateInput tests getting the override values for the Cluster API component
-// GIVEN a call to createTemplateInput
+// TestUserOverrides tests getting the override values for the Cluster API component
+// GIVEN a set of user overrides in the VZ custom resource
 //
-//	WHEN all env variables are set to the correct values
-//	THEN true is returned
-func TestCreateTemplateInput(t *testing.T) {
+//	WHEN the user supplies overrides for ClusterAPI
+//	THEN verify they are applied correctly
+func TestUserOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	const capiOverrides = `
 {
   "global": {
+    "registry": "myreg.io"
   },
   "defaultProviders": {
     "ocneBootstrap": {
+      "image": {
+        "tag": "v1.0"
+      }
+    },
+    "ocneControlPlane": {
       "image": {
         "tag": "v1.0"
       }
@@ -120,7 +126,7 @@ func TestCreateTemplateInput(t *testing.T) {
 	assert.NotNil(t, templateInput)
 
 	// Check that expected values are loaded into the struct
-	assert.Equal(t, "ghcr.io", templateInput.Overrides.Global.Registry)
+	assert.Equal(t, "myreg.io", templateInput.Overrides.Global.Registry)
 
 	bootstrapImage := templateInput.Overrides.DefaultProviders.OCNEBootstrap.Image
 	assert.Equal(t, "", bootstrapImage.Registry)
