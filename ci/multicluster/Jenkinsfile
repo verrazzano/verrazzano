@@ -969,21 +969,6 @@ def verifyUninstall() {
     }
 }
 
-// Verify uninstall on all clusters
-def verifyMinimalUninstall() {
-    script {
-        // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-        // - start at 2 to only check managed clusters
-        def verifyUninstallStages = [:]
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for (int count = 2; count <= clusterCount; count++) {
-            def key = "vz-mgd-${count - 1}"
-            verifyUninstallStages["${key}"] = verifyUninstallOnCluster(count)
-        }
-        parallel verifyUninstallStages
-    }
-}
-
 // Verify uninstall Verrazzano on a single cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
 def verifyUninstallOnCluster(count) {
