@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
 	"os"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
@@ -54,6 +55,8 @@ func init() {
 	// Add cert-manager components to the scheme
 	_ = cmapiv1.AddToScheme(scheme)
 	_ = acmev1.AddToScheme(scheme)
+
+	_ = v1alpha2.AddToScheme(scheme)
 
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)
