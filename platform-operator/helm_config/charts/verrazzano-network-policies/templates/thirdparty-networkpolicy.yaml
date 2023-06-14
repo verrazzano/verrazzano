@@ -630,7 +630,7 @@ spec:
               verrazzano.io/namespace: { { .Release.Namespace } }
           podSelector:
             matchExpressions:
-              - {key: app.kubernetes.io/name, operator: In, values: [fluent-operator, fluent-bit]}
+              - {key: "app.kubernetes.io/name", operator: In, values: [fluent-operator, fluent-bit]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
