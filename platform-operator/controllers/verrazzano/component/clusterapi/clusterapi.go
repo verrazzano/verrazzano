@@ -16,7 +16,6 @@ import (
 
 const clusterctlYamlTemplate = `
 images:
-  # What is this key?  Image name?  How are they used?
   cluster-api:
     repository: {{.APIRepository}}
     tag: {{.APITag}}
@@ -28,7 +27,6 @@ images:
   bootstrap-ocne:
     repository: {{.OCNEBootstrapRepository}}
     tag: {{.OCNEBootstrapTag}}
-
   control-plane-ocne:
     repository: {{.OCNEControlPlaneRepository}}
     tag: {{.OCNEControlPlaneTag}}
