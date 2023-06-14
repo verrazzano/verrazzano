@@ -34,7 +34,9 @@ type defaultProviders struct {
 }
 
 type capiProvider struct {
-	Image capiImage `json:"image,omitempty"`
+	Image   capiImage `json:"image,omitempty"`
+	Version string    `json:"version,omitempty"`
+	Url     string    `json:"url,omitempty"`
 }
 
 type capiImage struct {

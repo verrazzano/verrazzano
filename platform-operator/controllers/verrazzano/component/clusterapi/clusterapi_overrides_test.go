@@ -38,25 +38,33 @@ func TestBomOverrides(t *testing.T) {
 	// Check that expected values are loaded into the struct
 	assert.Equal(t, "ghcr.io", overrides.Global.Registry)
 
-	bootstrapImage := overrides.DefaultProviders.OCNEBootstrap.Image
-	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrapImage.Tag)
-	assert.Equal(t, "", bootstrapImage.Registry)
+	bootstrap := overrides.DefaultProviders.OCNEBootstrap
+	assert.Equal(t, "verrazzano", bootstrap.Image.Repository)
+	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrap.Image.Tag)
+	assert.Equal(t, "", bootstrap.Image.Registry)
+	assert.Equal(t, "", bootstrap.Version)
+	assert.Equal(t, "", bootstrap.Url)
 
-	controlPlaneImage := overrides.DefaultProviders.OCNEControlPlane.Image
-	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlaneImage.Tag)
-	assert.Equal(t, "", controlPlaneImage.Registry)
+	controlPlane := overrides.DefaultProviders.OCNEControlPlane
+	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
+	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlane.Image.Tag)
+	assert.Equal(t, "", controlPlane.Image.Registry)
+	assert.Equal(t, "", controlPlane.Version)
+	assert.Equal(t, "", controlPlane.Url)
 
-	coreImage := overrides.DefaultProviders.Core.Image
-	assert.Equal(t, "verrazzano", coreImage.Repository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
-	assert.Equal(t, "", coreImage.Registry)
+	core := overrides.DefaultProviders.Core
+	assert.Equal(t, "verrazzano", core.Image.Repository)
+	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
+	assert.Equal(t, "", core.Image.Registry)
+	assert.Equal(t, "", core.Version)
+	assert.Equal(t, "", core.Url)
 
-	ociImage := overrides.DefaultProviders.OCI.Image
-	assert.Equal(t, "oracle", ociImage.Repository)
-	assert.Equal(t, "v0.8.1", ociImage.Tag)
-	assert.Equal(t, "", ociImage.Registry)
+	oci := overrides.DefaultProviders.OCI
+	assert.Equal(t, "oracle", oci.Image.Repository)
+	assert.Equal(t, "v0.8.1", oci.Image.Tag)
+	assert.Equal(t, "", oci.Image.Registry)
+	assert.Equal(t, "", oci.Version)
+	assert.Equal(t, "", oci.Url)
 }
 
 // TestUserOverrides tests getting the override values for the Cluster API component
@@ -128,23 +136,31 @@ func TestUserOverrides(t *testing.T) {
 	// Check that expected values are loaded into the struct
 	assert.Equal(t, "myreg.io", templateInput.Overrides.Global.Registry)
 
-	bootstrapImage := templateInput.Overrides.DefaultProviders.OCNEBootstrap.Image
-	assert.Equal(t, "", bootstrapImage.Registry)
-	assert.Equal(t, "verrazzano", bootstrapImage.Repository)
-	assert.Equal(t, "v1.0", bootstrapImage.Tag)
+	bootstrap := templateInput.Overrides.DefaultProviders.OCNEBootstrap
+	assert.Equal(t, "", bootstrap.Image.Registry)
+	assert.Equal(t, "verrazzano", bootstrap.Image.Repository)
+	assert.Equal(t, "v1.0", bootstrap.Image.Tag)
+	assert.Equal(t, "", bootstrap.Version)
+	assert.Equal(t, "", bootstrap.Url)
 
-	controlPlaneImage := templateInput.Overrides.DefaultProviders.OCNEControlPlane.Image
-	assert.Equal(t, "", controlPlaneImage.Registry)
-	assert.Equal(t, "verrazzano", controlPlaneImage.Repository)
-	assert.Equal(t, "v1.0", controlPlaneImage.Tag)
+	controlPlane := templateInput.Overrides.DefaultProviders.OCNEControlPlane
+	assert.Equal(t, "", controlPlane.Image.Registry)
+	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
+	assert.Equal(t, "v1.0", controlPlane.Image.Tag)
+	assert.Equal(t, "", controlPlane.Version)
+	assert.Equal(t, "", controlPlane.Url)
 
-	coreImage := templateInput.Overrides.DefaultProviders.Core.Image
-	assert.Equal(t, "", coreImage.Registry)
-	assert.Equal(t, "verrazzano", coreImage.Repository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", coreImage.Tag)
+	core := templateInput.Overrides.DefaultProviders.Core
+	assert.Equal(t, "", core.Image.Registry)
+	assert.Equal(t, "verrazzano", core.Image.Repository)
+	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
+	assert.Equal(t, "", core.Version)
+	assert.Equal(t, "", core.Url)
 
-	ociImage := templateInput.Overrides.DefaultProviders.OCI.Image
-	assert.Equal(t, "air-gap-2", ociImage.Registry)
-	assert.Equal(t, "repo", ociImage.Repository)
-	assert.Equal(t, "v0.8.1", ociImage.Tag)
+	oci := templateInput.Overrides.DefaultProviders.OCI
+	assert.Equal(t, "air-gap-2", oci.Image.Registry)
+	assert.Equal(t, "repo", oci.Image.Repository)
+	assert.Equal(t, "v0.8.1", oci.Image.Tag)
+	assert.Equal(t, "", oci.Version)
+	assert.Equal(t, "", oci.Url)
 }
