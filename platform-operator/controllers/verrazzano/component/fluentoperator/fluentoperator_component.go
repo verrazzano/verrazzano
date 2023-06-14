@@ -5,9 +5,11 @@ package fluentoperator
 
 import (
 	"context"
-	"path/filepath"
-
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,6 +23,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
 )
 
 const (
@@ -60,6 +64,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			InstallBeforeUpgrade:      true,
+			ImagePullSecretKeyname:    "operator.imagePullSecrets[0].name",
 			AppendOverridesFunc:       appendOverrides,
 			Dependencies:              []string{"verrazzano-network-policies"},
 			GetInstallOverridesFunc:   getOverrides,
@@ -178,6 +183,47 @@ func (c fluentOperatorComponent) Uninstall(context spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+func (c fluentOperatorComponent) PostUninstall(ctx spi.ComponentContext) error {
+
+	// Delete ClusterRoleBinding and Clusterrole left over by the operator
+	err := resource.Resource{
+		Name:   fmt.Sprintf("%s-%s-%s", ComponentName, fluentbitDaemonSet, fluentbitDaemonSet),
+		Client: ctx.Client(),
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    ctx.Log(),
+	}.Delete()
+
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   fmt.Sprintf("%s-%s", ComponentName, fluentbitDaemonSet),
+		Client: ctx.Client(),
+		Object: &rbacv1.ClusterRole{},
+		Log:    ctx.Log(),
+	}.Delete()
+
+	if err != nil {
+		return err
+	}
+
+	// Remove finalizer from fluentbit CR
+	err = resource.Resource{
+		Name:      fluentbitDaemonSet,
+		Namespace: ComponentNamespace,
+		Client:    ctx.Client(),
+		Object:    &v1alpha2.FluentBit{},
+		Log:       ctx.Log(),
+	}.RemoveFinalizersAndDelete()
+
+	if err != nil {
+		return err
+	}
+
+	return c.HelmComponent.PostUninstall(ctx)
 }
 
 // Upgrade process the Fluent Operator upgrade.
