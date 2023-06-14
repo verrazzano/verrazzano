@@ -149,15 +149,15 @@
               "image": "rancher",
               "dashboard": "v2.7.2-20230613145236-da921e6fd",
               "rancherUI": "v2.7.2-6/release-2.7.2",
-              "ocneDriverVersion": "v0.8.0",
-              "ocneDriverChecksum": "e71aec9910f3c89f18e1655e3530fa82ab12f3ad8e04696a4ed7aa7f10812cdf",
-              "tag": "v2.7.3-20230613150408-cfcd49258",
+              "ocneDriverVersion": "v0.10.0",
+              "ocneDriverChecksum": "cc93d8cc0136ae3cc304135548405a2b29b952f6e12a83def275a5a15975270c",
+              "tag": "v2.7.3-20230614185040-cfcd49258",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230613150408-cfcd49258"
+              "tag": "v2.7.3-20230614185040-cfcd49258"
             }
           ]
         },
@@ -508,15 +508,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.33",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
-              "tag": "8.0.33",
+              "image": "mysql-server",
+              "tag": "8.0.32",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -533,8 +533,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
-              "tag": "8.0.33"
+              "image": "mysql-router",
+              "tag": "8.0.32"
             }
           ]
         }
@@ -542,18 +542,17 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.33",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "community-operator",
-              "tag": "8.0.33-2.0.10",
+              "image": "mysql-operator",
+              "tag": "8.0.32-2.0.8",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
-              "helmImageKey": "image.name",
               "helmTagKey": "image.tag"
             }
           ]
