@@ -200,6 +200,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
+			if skipLogging {
+				Skip("Skipping logging tests for registration")
+			}
 			verrazzanoIndex, err := pkg.GetOpenSearchSystemIndex("verrazzano-system")
 			Expect(err).To(BeNil())
 			systemdIndex, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
@@ -264,6 +267,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		t.It("Fluentd should point to the correct ES", func() {
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
+			}
+			if skipLogging {
+				Skip("Skipping logging tests for registration")
 			}
 			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig)
 			if err != nil {
@@ -362,6 +368,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
+			if skipLogging {
+				Skip("Skipping logging tests for registration")
+			}
 			if pkg.UseExternalOpensearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")
@@ -433,7 +442,7 @@ func findNamespace(namespace string) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, vzconst.VerrazzanoManagedLabelKey, labels[vzconst.VerrazzanoManagedLabelKey]))
 		return false
 	}
-	if labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {
+	if pkg.IsIstioEnabled(managedKubeconfig) && labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {
 		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelIstioInjection, labels[constants.LabelIstioInjection]))
 		return false
 	}
