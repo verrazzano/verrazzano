@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"path"
 	"regexp"
 	"strings"
@@ -102,6 +103,10 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) || !rancherInstallationPerformed(ctx) {
+		ctx.Log().Info("Rancher not enabled or installed previously - skipping post installation cleanup")
+		return nil
+	}
 	if monitor.IsCompleted() {
 		return nil
 	} else if monitor.IsRunning() {
@@ -124,6 +129,20 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	}
 
 	return forkPostUninstallFunc(ctx, monitor)
+}
+
+// rancherInstallationPerformed indicates whether an installation of rancher was performed by checking for the
+// cattle-system namespace.
+func rancherInstallationPerformed(ctx spi.ComponentContext) bool {
+	ns := &corev1.Namespace{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Name: ComponentNamespace,
+	}, ns)
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 // forkPostUninstall - fork uninstall install of Rancher
