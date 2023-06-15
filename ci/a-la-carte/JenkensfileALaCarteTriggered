@@ -102,7 +102,7 @@ pipeline {
 
         stage ('Kick off a-la-carte tests') {
             parallel {
-                stage('wildcard, default CA, same cluster resource ns') {
+                stage('Wildcard DNS, Default CA, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -120,7 +120,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCIDNS, default CA, same cluster resource ns') {
+                stage('OCIDNS, Default CA, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -138,7 +138,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCIDNS, letEncypt, same cluster resource ns') {
+                stage('OCIDNS, LetEncypt staging, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -156,7 +156,7 @@ pipeline {
                         }
                     }
                 }
-                stage('wildcard, default CA, custom cluster resource ns') {
+                stage('Wildcard DNS, Default CA, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -174,7 +174,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCIDNS, default CA, custom cluster resource ns') {
+                stage('OCIDNS, Default CA, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -192,7 +192,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCIDNS, letEncypt, custom cluster resource ns') {
+                stage('OCIDNS, LetEncypt staging, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
