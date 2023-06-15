@@ -86,7 +86,7 @@ var _ = t.Describe("Verify FluentBit Post Install infra", func() {
 	t.It("Verify recent Opensearch log record exists", func() {
 		Eventually(func() bool {
 			return pkg.LogRecordFound("verrazzano-system", time.Now().Add(-5*time.Minute), map[string]string{
-				"kubernetes.container_name": "k8s-sidecar"})
+				"kubernetes.namespace_name": "verrazzano-system"})
 		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record for k8s-sidecar container")
 	})
 
