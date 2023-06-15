@@ -16,21 +16,18 @@ type TemplateInterface interface {
 	GetOCIRepository() string
 	GetOCITag() string
 	GetOCIURL() string
+	GetOCIVersion() string
 	GetOCNEBootstrapRepository() string
 	GetOCNEBootstrapTag() string
 	GetOCNEBootstrapURL() string
+	GetOCNEBootstrapVersion() string
 	GetOCNEControlPlaneRepository() string
 	GetOCNEControlPlaneTag() string
 	GetOCNEControlPlaneURL() string
+	GetOCNEControlPlaneVersion() string
 }
 
 type TemplateInput struct {
-	OCIVersion                 string
-	OCIRepository              string
-	OCITag                     string
-	OCNEBootstrapVersion       string
-	OCNEBootstrapRepository    string
-	OCNEBootstrapTag           string
 	OCNEControlPlaneVersion    string
 	OCNEControlPlaneRepository string
 	OCNEControlPlaneTag        string
@@ -78,6 +75,10 @@ func (c TemplateInput) GetOCIURL() string {
 	return getURLForProvider(c.Overrides.DefaultProviders.OCI)
 }
 
+func (c TemplateInput) GetOCIVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.OCI)
+}
+
 func (c TemplateInput) GetOCNEBootstrapRepository() string {
 	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEBootstrap)
 }
@@ -90,6 +91,10 @@ func (c TemplateInput) GetOCNEBootstrapURL() string {
 	return getURLForProvider(c.Overrides.DefaultProviders.OCNEBootstrap)
 }
 
+func (c TemplateInput) GetOCNEBootstrapVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.OCNEBootstrap)
+}
+
 func (c TemplateInput) GetOCNEControlPlaneRepository() string {
 	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEControlPlane)
 }
@@ -100,6 +105,10 @@ func (c TemplateInput) GetOCNEControlPlaneTag() string {
 
 func (c TemplateInput) GetOCNEControlPlaneURL() string {
 	return getURLForProvider(c.Overrides.DefaultProviders.OCNEControlPlane)
+}
+
+func (c TemplateInput) GetOCNEControlPlaneVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.OCNEControlPlane)
 }
 
 func getRepositoryForProvider(template TemplateInput, provider capiProvider) string {

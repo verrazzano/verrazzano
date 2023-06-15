@@ -187,9 +187,9 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
 		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
 		TargetNamespace:         ComponentNamespace,
 	}
 
@@ -225,9 +225,9 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
 		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
 		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
 		IncludeNamespace:        true,
 	}
 	return capiClient.Delete(deleteOptions)
@@ -256,9 +256,9 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
 		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEBootstrapVersion)},
+		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
 		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEControlPlaneVersion)},
-		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
 	}
 
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)
