@@ -168,6 +168,8 @@ spec:
           capabilities:
             add:
             - MKNOD
+            # additional capabilities are required on some systems to fork kontainerdriver processes.
+            - SYS_CHROOT
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         volumeMounts:
