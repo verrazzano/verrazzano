@@ -130,7 +130,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
-	result, err := applyTemplate(clusterctlYamlTemplate, templateInput)
+	result, err := applyTemplate(clusterctlYamlTemplate, newTemplateContext(templateInput))
 	if err != nil {
 		return err
 	}
