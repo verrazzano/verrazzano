@@ -60,7 +60,7 @@ func (c TemplateInput) GetClusterAPIURL() string {
 		return ""
 	}
 	// Return default value
-	return fmt.Sprintf("/verrazzano/capi/cluster-api/%s/core-components.yaml", c.APIVersion)
+	return fmt.Sprintf("/verrazzano/capi/cluster-api/%s/core-components.yaml", core.Image.BomVersion)
 }
 
 func (c TemplateInput) GetOCIRepository() string {
