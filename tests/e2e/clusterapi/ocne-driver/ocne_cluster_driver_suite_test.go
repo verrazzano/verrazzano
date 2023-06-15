@@ -43,7 +43,7 @@ func init() {
 }
 
 func TestOCNEClusterDriver(test *testing.T) {
-	clusterName         = fmt.Sprintf("strudel-%s", ocneClusterNameSuffix)
+	clusterName = fmt.Sprintf("strudel-%s", ocneClusterNameSuffix)
 	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 
 	t.RegisterFailHandler()

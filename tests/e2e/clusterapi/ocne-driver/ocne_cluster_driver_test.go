@@ -32,10 +32,10 @@ const (
 )
 
 var (
-	t                   = framework.NewTestFramework("capi-ocne-driver")
-	httpClient          *retryablehttp.Client
-	rancherURL          string
-	cloudCredentialID   string
+	t                 = framework.NewTestFramework("capi-ocne-driver")
+	httpClient        *retryablehttp.Client
+	rancherURL        string
+	cloudCredentialID string
 )
 
 type RancherOcicredentialConfig struct {
