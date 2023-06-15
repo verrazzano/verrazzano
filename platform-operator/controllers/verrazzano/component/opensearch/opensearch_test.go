@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -349,15 +350,15 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Nodes: []vzapi.OpenSearchNode{
 				{
 					Name:     "es-master",
-					Replicas: 2,
+					Replicas: common.Int32Ptr(2),
 				},
 				{
 					Name:     "es-data",
-					Replicas: 2,
+					Replicas: common.Int32Ptr(2),
 				},
 				{
 					Name:     "es-ingest",
-					Replicas: 2,
+					Replicas: common.Int32Ptr(2),
 				},
 			},
 		},
@@ -383,7 +384,7 @@ func TestFindESReplicas(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 4, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(4), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(7), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(8), Roles: []vmov1.NodeRole{"ingest"}}},
 				},
 			},
 		},
@@ -398,6 +399,24 @@ func TestFindESReplicas(t *testing.T) {
 	val = findESReplicas(ctx, "ingest")
 	assert.Equal(t, val, int32(8))
 
+	// Check with nil replicas
+	vz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes: []vzapi.OpenSearchNode{
+						{
+							Name: "node2", Roles: []vmov1.NodeRole{"master"},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(c, vz, nil, false)
+	val = findESReplicas(ctx, "master")
+	assert.Equal(t, val, int32(0))
 }
 
 // TestNodesToObjectKeys tests the OpenSearch NodesToObjectKeys call
@@ -425,13 +444,31 @@ func TestNodesToObjectKeys(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"ingest"}}},
 				},
 			},
 		},
 	}
 	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node1-0"}, {Namespace: vzsys, Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
 	expected = nodesToObjectKeys(vztwo)
+	assert.Equal(t, expected, actual)
+
+	// nil replicas should have no availability objects
+	vzthree := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes: []vzapi.OpenSearchNode{
+						{Name: "node1", Roles: []vmov1.NodeRole{"data"}},
+						{Name: "node2", Roles: []vmov1.NodeRole{"master"}},
+						{Name: "node3", Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName(nil), DeploymentNames: []types.NamespacedName(nil), DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
+	expected = nodesToObjectKeys(vzthree)
 	assert.Equal(t, expected, actual)
 }
 
@@ -452,7 +489,7 @@ func TestIsSingleDataNodeCluster(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 4, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(4), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(7), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(8), Roles: []vmov1.NodeRole{"ingest"}}},
 				},
 			},
 		},
@@ -461,6 +498,10 @@ func TestIsSingleDataNodeCluster(t *testing.T) {
 	val = IsSingleDataNodeCluster(ctx)
 	assert.False(t, val)
 
+	vz = &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Elasticsearch: &vzapi.ElasticsearchComponent{Nodes: []vzapi.OpenSearchNode{{Name: "node1", Roles: []vmov1.NodeRole{"data"}}}}}}}
+	ctx = spi.NewFakeContext(c, vz, nil, false)
+	val = IsSingleDataNodeCluster(ctx)
+	assert.True(t, val)
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch isOpenSearchReady call
@@ -561,7 +602,7 @@ func TestIsOSNodeReady(t *testing.T) {
 	).Build()
 	masterNode := vzapi.OpenSearchNode{
 		Name:     "es-master",
-		Replicas: 1,
+		Replicas: common.Int32Ptr(1),
 		Roles: []vmov1.NodeRole{
 			vmov1.MasterRole,
 		},
@@ -569,7 +610,7 @@ func TestIsOSNodeReady(t *testing.T) {
 
 	dataNode := vzapi.OpenSearchNode{
 		Name:     "es-data",
-		Replicas: 2,
+		Replicas: common.Int32Ptr(2),
 		Roles: []vmov1.NodeRole{
 			vmov1.DataRole,
 		},
@@ -609,6 +650,8 @@ func TestIsOSNodeReady(t *testing.T) {
 		rs2,
 	).Build()
 
+	nodeWithNilReplicas := vzapi.OpenSearchNode{Name: "es-master", Roles: []vmov1.NodeRole{"master"}}
+	nilReplicasClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	var tests = []struct {
 		name  string
 		ctx   spi.ComponentContext
@@ -625,6 +668,12 @@ func TestIsOSNodeReady(t *testing.T) {
 			"ready when data node is ready",
 			spi.NewFakeContext(dataNodeClient, nil, nil, false),
 			dataNode,
+			true,
+		},
+		{
+			"nil replicas is ready",
+			spi.NewFakeContext(nilReplicasClient, nil, nil, false),
+			nodeWithNilReplicas,
 			true,
 		},
 	}

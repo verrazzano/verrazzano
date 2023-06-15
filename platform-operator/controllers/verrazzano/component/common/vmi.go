@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -347,7 +347,9 @@ func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 // addNodeGroupReplicas iterates through each OpenSearch node and sums the replicas
 func addNodeGroupReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) {
 	for _, node := range os.Nodes {
-		*replicas += node.Replicas
+		if node.Replicas != nil {
+			*replicas += *node.Replicas
+		}
 	}
 }
 
