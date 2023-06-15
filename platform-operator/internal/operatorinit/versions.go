@@ -43,9 +43,7 @@ func CreateVerrazzanoVersionsConfigMap(ctx context.Context) error {
 				},
 				Data: cmData,
 			}, metav1.CreateOptions{})
-			if err != nil {
-				return err
-			}
+			return err
 		}
 		return err
 	}

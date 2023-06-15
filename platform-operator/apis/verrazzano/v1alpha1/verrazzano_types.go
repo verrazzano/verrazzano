@@ -505,7 +505,7 @@ type OpenSearchNode struct {
 	Name string `json:"name,omitempty"`
 	// Node group replica count.
 	// +optional
-	Replicas int32 `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 	// Kubernetes container resources for nodes in the node group.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`

@@ -11,9 +11,11 @@ import (
 )
 
 var mySQLOperatorEnabled bool
+var vmoEnabled bool
 
 func init() {
-	flag.BoolVar(&mySQLOperatorEnabled, "mySQLOperatorEnabled", true, "mySQLOperatorEnabled describes whether the mySQLOperator component is enabled")
+	flag.BoolVar(&mySQLOperatorEnabled, "mySQLOperatorEnabled", true, "mySQLOperatorEnabled indicates whether the mySQLOperator component is enabled")
+	flag.BoolVar(&vmoEnabled, "vmoEnabled", true, "vmoEnabled indicates whether the Verrazzano monitoring operator is enabled")
 }
 
 func TestVerifyCRDs(test *testing.T) {
