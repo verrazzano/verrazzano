@@ -167,6 +167,71 @@ func TestUserOverrides(t *testing.T) {
 	assert.Equal(t, "", oci.URL)
 }
 
+// TestOverridesInterfaceDefault tests the OverridesInterface
+// GIVEN version overrides for each capi component
+//
+//	WHEN the user supplies a version override for each component
+//	THEN verify the OverridesInterface returns the expected values
+func TestOverridesInterfaceDefault(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	const capiOverrides = `
+{
+  "global": {
+    "registry": "myreg.io"
+  },
+  "defaultProviders": {
+    "ocneBootstrap": {
+      "version": "v1.6.1"
+    },
+    "ocneControlPlane": {
+      "version": "v1.6.1"
+    },
+    "oci": {
+      "version": "v0.9.0"
+     },
+    "core": {
+      "version": "v1.4.2"
+    }
+  }
+}`
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+	config.TestHelmConfigDir = "../../../../helm_config"
+
+	overrides, err := createOverrides(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, overrides)
+	tc := newOverridesContext(overrides)
+
+	assert.Equal(t, "https://github.com/verrazzano/cluster-api-provider-ocne/releases/v1.6.1/bootstrap-components.yaml", tc.GetOCNEBootstrapURL())
+	assert.Equal(t, "https://github.com/verrazzano/cluster-api-provider-ocne/releases/v1.6.1/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
+	assert.Equal(t, "https://github.com/verrazzano/cluster-api/releases/v1.4.2/core-components.yaml", tc.GetClusterAPIURL())
+	assert.Equal(t, "https://github.com/oracle/cluster-api-provider-oci/releases/v0.9.0/infrastructure-components.yaml", tc.GetOCIURL())
+
+}
+
 // TestOverridesInterface tests the OverridesInterface
 // GIVEN a set OverridesInput
 //

@@ -86,7 +86,7 @@ func (c capiOverrides) GetClusterAPITag() string {
 }
 
 func (c capiOverrides) GetClusterAPIURL() string {
-	return getURLForProvider(c.DefaultProviders.Core, "")
+	return getURLForProvider(c.DefaultProviders.Core, "cluster-api")
 }
 
 func (c capiOverrides) GetClusterAPIVersion() string {
@@ -118,7 +118,7 @@ func (c capiOverrides) GetOCNEBootstrapTag() string {
 }
 
 func (c capiOverrides) GetOCNEBootstrapURL() string {
-	return getURLForProvider(c.DefaultProviders.OCNEBootstrap, "")
+	return getURLForProvider(c.DefaultProviders.OCNEBootstrap, "cluster-api-provider-ocne")
 }
 
 func (c capiOverrides) GetOCNEBootstrapVersion() string {
@@ -134,7 +134,7 @@ func (c capiOverrides) GetOCNEControlPlaneTag() string {
 }
 
 func (c capiOverrides) GetOCNEControlPlaneURL() string {
-	return getURLForProvider(c.DefaultProviders.OCNEControlPlane, "")
+	return getURLForProvider(c.DefaultProviders.OCNEControlPlane, "cluster-api-provider-ocne")
 }
 
 func (c capiOverrides) GetOCNEControlPlaneVersion() string {
