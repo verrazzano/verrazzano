@@ -149,15 +149,15 @@
               "image": "rancher",
               "dashboard": "v2.7.2-20230613145236-da921e6fd",
               "rancherUI": "v2.7.2-6/release-2.7.2",
-              "ocneDriverVersion": "v0.8.0",
-              "ocneDriverChecksum": "e71aec9910f3c89f18e1655e3530fa82ab12f3ad8e04696a4ed7aa7f10812cdf",
-              "tag": "v2.7.3-20230613150408-cfcd49258",
+              "ocneDriverVersion": "v0.10.0",
+              "ocneDriverChecksum": "cc93d8cc0136ae3cc304135548405a2b29b952f6e12a83def275a5a15975270c",
+              "tag": "v2.7.3-20230614185040-cfcd49258",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230613150408-cfcd49258"
+              "tag": "v2.7.3-20230614185040-cfcd49258"
             }
           ]
         },
@@ -235,11 +235,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.6.1-20230612232050-033b676"
+              "tag": "v1.6.1-20230614202442-5958aaf"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.6.1-20230612232050-033b676"
+              "tag": "v1.6.1-20230614202442-5958aaf"
             }
           ]
         }
