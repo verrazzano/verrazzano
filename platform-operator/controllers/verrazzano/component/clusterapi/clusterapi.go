@@ -40,10 +40,10 @@ providers:
     url: "{{.GetOCIUrl}}"
     type: "InfrastructureProvider"
   - name: "ocne"
-    url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
+    url: "{{.GetOCNEBootstrapURL}}"
     type: "BootstrapProvider"
   - name: "ocne"
-    url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
+    url: "{{.GetOCNEControlPlaneURL}}"
     type: "ControlPlaneProvider"
 `
 

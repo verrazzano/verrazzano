@@ -14,11 +14,13 @@ type TemplateInterface interface {
 	GetClusterAPIURL() string
 	GetOCIRepository() string
 	GetOCITag() string
-	GetOCIUrl() string
+	GetOCIURL() string
 	GetOCNEBootstrapRepository() string
 	GetOCNEBootstrapTag() string
+	GetOCNEBootstrapURL() string
 	GetOCNEControlPlaneRepository() string
 	GetOCNEControlPlaneTag() string
+	GetOCNEControlPlaneURL() string
 }
 
 type TemplateInput struct {
@@ -70,7 +72,7 @@ func (c TemplateInput) GetOCITag() string {
 	return c.Overrides.DefaultProviders.OCI.Image.Tag
 }
 
-func (c TemplateInput) GetOCIUrl() string {
+func (c TemplateInput) GetOCIURL() string {
 	return getURLForProvider(c.Overrides.DefaultProviders.OCI)
 }
 
@@ -82,12 +84,20 @@ func (c TemplateInput) GetOCNEBootstrapTag() string {
 	return c.Overrides.DefaultProviders.OCNEBootstrap.Image.Tag
 }
 
+func (c TemplateInput) GetOCNEBootstrapURL() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.OCNEBootstrap)
+}
+
 func (c TemplateInput) GetOCNEControlPlaneRepository() string {
 	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEControlPlane)
 }
 
 func (c TemplateInput) GetOCNEControlPlaneTag() string {
 	return c.Overrides.DefaultProviders.OCNEControlPlane.Image.Tag
+}
+
+func (c TemplateInput) GetOCNEControlPlaneURL() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.OCNEControlPlane)
 }
 
 func getRepositoryForProvider(template TemplateInput, provider capiProvider) string {
@@ -119,16 +129,3 @@ func formatProviderUrl(remote bool, name string, version string, metadataFile st
 	}
 	return fmt.Sprintf("%s/verrazzano/capi/%s/%s/%s", prefix, name, version, metadataFile)
 }
-
-/*
-- name: "oci"
-url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
-type: "InfrastructureProvider"
-- name: "ocne"
-url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
-type: "BootstrapProvider"
-- name: "ocne"
-url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
-type: "ControlPlaneProvider"
-
-*/

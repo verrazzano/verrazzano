@@ -91,6 +91,10 @@ func getBaseOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	overrides.DefaultProviders.Core.MetaddataFile = "core-components.yaml"
 	overrides.DefaultProviders.OCI.Name = "infrastructure-oci"
 	overrides.DefaultProviders.OCI.MetaddataFile = "infrastructure-components.yaml"
+	overrides.DefaultProviders.OCNEBootstrap.Name = "bootstrap-ocne"
+	overrides.DefaultProviders.OCNEBootstrap.MetaddataFile = "bootstrap-components.yaml"
+	overrides.DefaultProviders.OCNEControlPlane.Name = "control-plane-ocne"
+	overrides.DefaultProviders.OCNEControlPlane.MetaddataFile = "control-plane-components.yaml"
 
 	return overrides, err
 }

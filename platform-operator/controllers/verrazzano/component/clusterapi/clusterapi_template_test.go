@@ -31,6 +31,7 @@ func TestTemplateInterface(t *testing.T) {
   },
   "defaultProviders": {
     "ocneBootstrap": {
+      "url": "/test/bootstrap.yaml",
       "image": {
         "registry": "myreg.io",
         "tag": "v1.0"
@@ -88,9 +89,11 @@ func TestTemplateInterface(t *testing.T) {
 
 	assert.Equal(t, "myreg.io/verrazzano", tc.GetOCNEBootstrapRepository())
 	assert.Equal(t, "v1.0", tc.GetOCNEBootstrapTag())
+	assert.Equal(t, "/test/bootstrap.yaml", tc.GetOCNEBootstrapURL())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetOCNEControlPlaneRepository())
 	assert.Equal(t, "v1.1", tc.GetOCNEControlPlaneTag())
+	assert.Equal(t, "/verrazzano/capi/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetClusterAPIRepository())
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPITag())
@@ -98,20 +101,6 @@ func TestTemplateInterface(t *testing.T) {
 
 	assert.Equal(t, "myreg2.io/repo", tc.GetOCIRepository())
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
-	assert.Equal(t, "https://github.com/verrazzano/capi/infrastructure-oci/v0.8.2/infrastructure-components.yaml", tc.GetOCIUrl())
+	assert.Equal(t, "https://github.com/verrazzano/capi/infrastructure-oci/v0.8.2/infrastructure-components.yaml", tc.GetOCIURL())
 
-	/*
-		assert.Equal(t, "", bootstrap.Version)
-		assert.Equal(t, "", bootstrap.Url)
-
-		assert.Equal(t, "", controlPlane.Version)
-		assert.Equal(t, "", controlPlane.Url)
-
-		assert.Equal(t, "v1.1", core.Version)
-		assert.Equal(t, "", core.Url)
-
-		assert.Equal(t, "", oci.Version)
-		assert.Equal(t, "", oci.Url)
-
-	*/
 }
