@@ -54,6 +54,12 @@ fluentbit:
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    capabilities:
+      drop:
+      - ALL
 
 operator:
   # Pod security context for Fluent Operator pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
