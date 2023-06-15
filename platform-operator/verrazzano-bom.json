@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230613145236-da921e6fd",
+              "dashboard": "v2.7.2-20230615210154-513bc4d98",
               "rancherUI": "v2.7.2-6/release-2.7.2",
               "ocneDriverVersion": "v0.10.0",
               "ocneDriverChecksum": "cc93d8cc0136ae3cc304135548405a2b29b952f6e12a83def275a5a15975270c",
-              "tag": "v2.7.3-20230614185040-cfcd49258",
+              "tag": "v2.7.3-20230615211229-cfcd49258",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230614185040-cfcd49258"
+              "tag": "v2.7.3-20230615211229-cfcd49258"
             }
           ]
         },
