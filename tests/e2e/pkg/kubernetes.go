@@ -1102,6 +1102,16 @@ func IsClusterAgentEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.ClusterAgent.Enabled
 }
 
+// IsIstioEnabled returns true if the Istio component is not set, or the value of its Enabled field otherwise
+func IsIstioEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	return vz.Spec.Components.Istio == nil || vz.Spec.Components.Istio.Enabled == nil || *vz.Spec.Components.Istio.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
