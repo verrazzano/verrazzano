@@ -165,15 +165,15 @@ func getURLForProvider(provider capiProvider, remoteRepo string) string {
 		return provider.URL
 	}
 	if len(provider.Version) > 0 {
-		return formatProviderUrl(true, provider.Image.Repository, remoteRepo, provider.Version, provider.MetaddataFile)
+		return formatProviderURL(true, provider.Image.Repository, remoteRepo, provider.Version, provider.MetaddataFile)
 	}
 	// Return default value
-	return formatProviderUrl(false, provider.Image.Repository, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
+	return formatProviderURL(false, provider.Image.Repository, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
 }
 
-// formatProviderUrl - return the provider URL using the following format
+// formatProviderURL - return the provider URL using the following format
 // https://github.com/{owner}/{Repository}/releases/{version-tag}/{componentsClient.yaml
-func formatProviderUrl(remote bool, owner string, repo string, version string, metadataFile string) string {
+func formatProviderURL(remote bool, owner string, repo string, version string, metadataFile string) string {
 	if remote {
 		return fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, metadataFile)
 	}
