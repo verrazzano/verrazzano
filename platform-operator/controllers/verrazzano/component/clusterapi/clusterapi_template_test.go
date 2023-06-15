@@ -42,9 +42,11 @@ func TestTemplateInterface(t *testing.T) {
       }
     },
     "oci": {
+      "version": "v0.8.2",
       "image": {
         "repository": "repo",
-        "registry": "myreg2.io"
+        "registry": "myreg2.io",
+        "tag": "v0.8.2"
       }
     },
     "core": {
@@ -95,7 +97,8 @@ func TestTemplateInterface(t *testing.T) {
 	assert.Equal(t, "/verrazzano/capi/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
 
 	assert.Equal(t, "myreg2.io/repo", tc.GetOCIRepository())
-	assert.Equal(t, "v0.8.1", tc.GetOCITag())
+	assert.Equal(t, "v0.8.2", tc.GetOCITag())
+	assert.Equal(t, "https://github.com/verrazzano/capi/infrastructure-oci/v0.8.2/infrastructure-components.yaml", tc.GetOCIUrl())
 
 	/*
 		assert.Equal(t, "", bootstrap.Version)

@@ -37,7 +37,7 @@ providers:
     url: "{{.GetClusterAPIURL}}"
     type: "CoreProvider"
   - name: "oci"
-    url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
+    url: "{{.GetOCIUrl}}"
     type: "InfrastructureProvider"
   - name: "ocne"
     url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"

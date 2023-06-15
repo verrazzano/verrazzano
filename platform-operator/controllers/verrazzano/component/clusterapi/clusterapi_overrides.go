@@ -34,9 +34,11 @@ type defaultProviders struct {
 }
 
 type capiProvider struct {
-	Image   capiImage `json:"image,omitempty"`
-	Version string    `json:"version,omitempty"`
-	Url     string    `json:"url,omitempty"`
+	Image         capiImage `json:"image,omitempty"`
+	Version       string    `json:"version,omitempty"`
+	Url           string    `json:"url,omitempty"`
+	Name          string    `json:"name,omitempty"`
+	MetaddataFile string    `json:"metaddataFile,omitempty"`
 }
 
 type capiImage struct {
@@ -49,7 +51,7 @@ type capiImage struct {
 // createTemplateInput - create the template input for install/upgrade of the
 // ClusterAPI component.
 func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
-	templateInput := &TemplateInput{}
+	templateInput := newTemplateInput()
 
 	// Get the base overrides
 	var err error
@@ -83,6 +85,12 @@ func getBaseOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize internal static values
+	overrides.DefaultProviders.Core.Name = "cluster-api"
+	overrides.DefaultProviders.Core.MetaddataFile = "core-components.yaml"
+	overrides.DefaultProviders.OCI.Name = "infrastructure-oci"
+	overrides.DefaultProviders.OCI.MetaddataFile = "infrastructure-components.yaml"
 
 	return overrides, err
 }

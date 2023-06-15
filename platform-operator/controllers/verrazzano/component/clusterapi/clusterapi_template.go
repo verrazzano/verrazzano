@@ -3,7 +3,9 @@
 
 package clusterapi
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type TemplateInterface interface {
 	GetGlobalRegistry() string
@@ -12,6 +14,7 @@ type TemplateInterface interface {
 	GetClusterAPIURL() string
 	GetOCIRepository() string
 	GetOCITag() string
+	GetOCIUrl() string
 	GetOCNEBootstrapRepository() string
 	GetOCNEBootstrapTag() string
 	GetOCNEControlPlaneRepository() string
@@ -35,6 +38,10 @@ type TemplateInput struct {
 	Overrides *capiOverrides
 }
 
+func newTemplateInput() *TemplateInput {
+	return &TemplateInput{}
+}
+
 func newTemplateContext(templateInput *TemplateInput) TemplateInterface {
 	return templateInput
 }
@@ -52,15 +59,7 @@ func (c TemplateInput) GetClusterAPITag() string {
 }
 
 func (c TemplateInput) GetClusterAPIURL() string {
-	core := c.Overrides.DefaultProviders.Core
-	if len(core.Url) > 0 {
-		return ""
-	}
-	if len(core.Version) > 0 {
-		return ""
-	}
-	// Return default value
-	return fmt.Sprintf("/verrazzano/capi/cluster-api/%s/core-components.yaml", core.Image.BomVersion)
+	return getURLForProvider(c.Overrides.DefaultProviders.Core)
 }
 
 func (c TemplateInput) GetOCIRepository() string {
@@ -69,6 +68,10 @@ func (c TemplateInput) GetOCIRepository() string {
 
 func (c TemplateInput) GetOCITag() string {
 	return c.Overrides.DefaultProviders.OCI.Image.Tag
+}
+
+func (c TemplateInput) GetOCIUrl() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.OCI)
 }
 
 func (c TemplateInput) GetOCNEBootstrapRepository() string {
@@ -98,3 +101,34 @@ func getRegistryForProvider(template TemplateInput, provider capiProvider) strin
 	}
 	return registry
 }
+func getURLForProvider(provider capiProvider) string {
+	if len(provider.Url) > 0 {
+		return provider.Url
+	}
+	if len(provider.Version) > 0 {
+		return formatProviderUrl(true, provider.Name, provider.Version, provider.MetaddataFile)
+	}
+	// Return default value
+	return formatProviderUrl(false, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
+}
+
+func formatProviderUrl(remote bool, name string, version string, metadataFile string) string {
+	prefix := ""
+	if remote {
+		prefix = "https://github.com"
+	}
+	return fmt.Sprintf("%s/verrazzano/capi/%s/%s/%s", prefix, name, version, metadataFile)
+}
+
+/*
+- name: "oci"
+url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
+type: "InfrastructureProvider"
+- name: "ocne"
+url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
+type: "BootstrapProvider"
+- name: "ocne"
+url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
+type: "ControlPlaneProvider"
+
+*/
