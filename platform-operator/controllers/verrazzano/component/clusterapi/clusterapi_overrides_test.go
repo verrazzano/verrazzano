@@ -19,7 +19,7 @@ import (
 )
 
 // TestBomOverrides tests getting the override values for the Cluster API component from the BOM
-// GIVEN a call to createTemplateInput
+// GIVEN a call to createOverrides
 //
 //	WHEN no user overrides have been specified
 //	THEN check expected values returned from the BOM
@@ -30,10 +30,9 @@ func TestBomOverrides(t *testing.T) {
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.TestHelmConfigDir = "../../../../helm_config"
 
-	templateInput, err := createTemplateInput(compContext)
+	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
-	assert.NotNil(t, templateInput)
-	overrides := templateInput.Overrides
+	assert.NotNil(t, overrides)
 
 	// Check that expected values are loaded into the struct
 	assert.Equal(t, "ghcr.io", overrides.Global.Registry)
@@ -132,35 +131,35 @@ func TestUserOverrides(t *testing.T) {
 	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
 	config.TestHelmConfigDir = "../../../../helm_config"
 
-	templateInput, err := createTemplateInput(compContext)
+	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
-	assert.NotNil(t, templateInput)
+	assert.NotNil(t, overrides)
 
 	// Check that expected values are loaded into the struct
-	assert.Equal(t, "myreg.io", templateInput.Overrides.Global.Registry)
+	assert.Equal(t, "myreg.io", overrides.Global.Registry)
 
-	bootstrap := templateInput.Overrides.DefaultProviders.OCNEBootstrap
+	bootstrap := overrides.DefaultProviders.OCNEBootstrap
 	assert.Equal(t, "", bootstrap.Image.Registry)
 	assert.Equal(t, "verrazzano", bootstrap.Image.Repository)
 	assert.Equal(t, "v1.0", bootstrap.Image.Tag)
 	assert.Equal(t, "", bootstrap.Version)
 	assert.Equal(t, "", bootstrap.Url)
 
-	controlPlane := templateInput.Overrides.DefaultProviders.OCNEControlPlane
+	controlPlane := overrides.DefaultProviders.OCNEControlPlane
 	assert.Equal(t, "", controlPlane.Image.Registry)
 	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
 	assert.Equal(t, "v1.0", controlPlane.Image.Tag)
 	assert.Equal(t, "", controlPlane.Version)
 	assert.Equal(t, "", controlPlane.Url)
 
-	core := templateInput.Overrides.DefaultProviders.Core
+	core := overrides.DefaultProviders.Core
 	assert.Equal(t, "", core.Image.Registry)
 	assert.Equal(t, "verrazzano", core.Image.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
 	assert.Equal(t, "v1.1", core.Version)
 	assert.Equal(t, "", core.Url)
 
-	oci := templateInput.Overrides.DefaultProviders.OCI
+	oci := overrides.DefaultProviders.OCI
 	assert.Equal(t, "air-gap-2", oci.Image.Registry)
 	assert.Equal(t, "repo", oci.Image.Repository)
 	assert.Equal(t, "v0.8.1", oci.Image.Tag)
@@ -168,12 +167,12 @@ func TestUserOverrides(t *testing.T) {
 	assert.Equal(t, "", oci.Url)
 }
 
-// TestTemplateInterface tests the OverridesInterface
+// TestOverridesInterface tests the OverridesInterface
 // GIVEN a set OverridesInput
 //
 //	WHEN the user supplies a OverridesInput
 //	THEN verify the OverridesInterface returns the expected values
-func TestTemplateInterface(t *testing.T) {
+func TestOverridesInterface(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	const capiOverrides = `
@@ -232,10 +231,10 @@ func TestTemplateInterface(t *testing.T) {
 	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
 	config.TestHelmConfigDir = "../../../../helm_config"
 
-	templateInput, err := createTemplateInput(compContext)
+	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
-	assert.NotNil(t, templateInput)
-	tc := newTemplateContext(templateInput)
+	assert.NotNil(t, overrides)
+	tc := newOverridesContext(overrides)
 
 	assert.Equal(t, "ghcr.io", tc.GetGlobalRegistry())
 

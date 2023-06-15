@@ -123,13 +123,13 @@ func setEnvVariables() error {
 // createClusterctlYaml creates clusterctl.yaml with image overrides from the Verrazzano BOM
 func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
-	templateInput, err := createTemplateInput(ctx)
+	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
-	result, err := applyTemplate(clusterctlYamlTemplate, newTemplateContext(templateInput))
+	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
 	if err != nil {
 		return err
 	}

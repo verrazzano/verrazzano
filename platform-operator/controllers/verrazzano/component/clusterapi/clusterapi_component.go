@@ -177,12 +177,12 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createTemplateInput(ctx)
+	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
-	overridesContext := newTemplateContext(overrides)
+	overridesContext := newOverridesContext(overrides)
 
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
@@ -215,12 +215,12 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createTemplateInput(ctx)
+	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
-	overridesContext := newTemplateContext(overrides)
+	overridesContext := newOverridesContext(overrides)
 
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
@@ -247,11 +247,11 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createTemplateInput(ctx)
+	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
 	}
-	overridesContext := newTemplateContext(overrides)
+	overridesContext := newOverridesContext(overrides)
 
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
