@@ -13,11 +13,14 @@ import (
 
 var updateType string
 var clusterResourceNamespace string
+var dnsType string
+var certificateType string
 
 func init() {
 	flag.StringVar(&updateType, "updateType", "", "updateType is the type of update to perform")
 	flag.StringVar(&clusterResourceNamespace, "clusterResourceNamespace", "my-cert-manager", "the cluster issuer namespace")
-
+	flag.StringVar(&dnsType, "dnsType", "wildcard", "the DNS type to configure")
+	flag.StringVar(&certificateType, "certificateType", "default", "the certificate issuer")
 }
 func TestALaCarte(t *testing.T) {
 	RegisterFailHandler(Fail)

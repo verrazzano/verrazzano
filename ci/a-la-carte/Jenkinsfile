@@ -4,6 +4,9 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -40,6 +43,18 @@ pipeline {
                 defaultValue: 'my-cert-manager',
                 description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
                 trim: true)
+        choice (description: 'Specifies  DNS type. Values: wildcard, ocidns. Default: wildcard', name: 'DNS_TYPE',
+            // 1st choice is the default value
+            choices: ["wildcard","ocidns"] )
+        choice (description: 'OCI region to create the DNS Zone in', name: 'OKE_CLUSTER_REGION',
+            // 1st choice is the default value
+            choices: availableRegions )
+        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
+            // 1st choice is the default value
+            choices: [ "GLOBAL","PRIVATE" ])
+        choice (description: 'Specifies certificate issuer. Values: default, letsEncrypt. Default: default', name: 'CERTIFICATE_TYPE',
+            // 1st choice is the default value
+            choices: [ "default", "letsEncrypt" ])
     }
 
     environment {
@@ -64,6 +79,15 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+
+        // Environment variables required for OCIDNS
+        OCI_ZONE_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
+        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -215,7 +239,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack')
             }
 
             post {
@@ -259,19 +283,36 @@ pipeline {
         }
 
 
-        stage('Install App stack with third party cert-manager and ingress-nginx') {
+        stage('Install app stack with external cert-manager and ingress-nginx') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 CLUSTER_RESOURCE_NAMESPACE = "${params.CLUSTER_RESOURCE_NAMESPACE}"
+                OCI_CLI_AUTH="api_key"
             }
             steps {
                 sh """
+                    # install third party cert-manager and nginx
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/install_third_party_components.sh
                 """
 
-                runGinkgoUpdate('update/a-la-carte', 'app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                script {
+                    if (params.DNS_TYPE == "ocidns") {
+                        env.DNS_ZONE_OCID = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${OCI_ZONE_COMPARTMENT_ID} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
+                    }
+
+                    sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
+                    """
+                }
+
+                runGinkgoUpdate('update/a-la-carte', 'app-stack')
+
+                sh """
+                    kubectl get vz -A -o yaml
+                """
+
             }
 
             post {
@@ -285,7 +326,7 @@ pipeline {
             }
         }
 
-        stage('Verify App Stack') {
+        stage('Verify app stack with external cert-manager and ingress-nginx') {
             parallel {
                 stage('verify-install/promstack') {
                     environment {
@@ -328,7 +369,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'istio-app-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'istio-app-stack')
             }
 
             post {
@@ -393,7 +434,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack')
             }
 
             post {
@@ -450,7 +491,7 @@ pipeline {
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
             }
             steps {
-                runGinkgoUpdate('update/a-la-carte', 'none-profile', "${params.CLUSTER_RESOURCE_NAMESPACE}")
+                runGinkgoUpdate('update/a-la-carte', 'none-profile')
             }
 
             post {
@@ -525,6 +566,14 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            script {
+                if (params.DNS_TYPE == "ocidns") {
+                     sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
+                     """
+                }
+            }
+
             deleteCluster()
         }
         failure {
@@ -692,12 +741,12 @@ def runGinkgo(testSuitePath) {
     }
 }
 
-def runGinkgoUpdate(testSuitePath, updateTypeVal = '', clusterResourceNamespace = '') {
+def runGinkgoUpdate(testSuitePath, updateTypeVal = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace=""${clusterResourceNamespace}""
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file=".*" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --updateType="${updateTypeVal}" --clusterResourceNamespace="${params.CLUSTER_RESOURCE_NAMESPACE}" --dnsType="${params.DNS_TYPE}" --certificateType="${params.CERTIFICATE_TYPE}"
             fi
         """
     }
