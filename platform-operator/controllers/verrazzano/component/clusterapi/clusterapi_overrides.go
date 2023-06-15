@@ -43,6 +43,7 @@ type capiImage struct {
 	Registry   string `json:"registry,omitempty"`
 	Repository string `json:"repository,omitempty"`
 	Tag        string `json:"tag,omitempty"`
+	BomVersion string `json:"bomVersion,omitempty"`
 }
 
 // createTemplateInput - create the template input for install/upgrade of the
@@ -105,7 +106,6 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 		return err
 	}
 	updateImage(imageConfig, core)
-	templateInput.APIVersion = imageConfig.Version
 
 	// Populate OCI provider values
 	oci := &overrides.DefaultProviders.OCI.Image
@@ -114,7 +114,6 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 		return err
 	}
 	updateImage(imageConfig, oci)
-	templateInput.OCIVersion = imageConfig.Version
 
 	// Populate bootstrap provider values
 	bootstrap := &overrides.DefaultProviders.OCNEBootstrap.Image
@@ -123,7 +122,6 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 		return err
 	}
 	updateImage(imageConfig, bootstrap)
-	templateInput.OCNEBootstrapVersion = imageConfig.Version
 
 	// Populate controlPlane provider values
 	controlPlane := &overrides.DefaultProviders.OCNEControlPlane.Image
@@ -132,7 +130,6 @@ func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) e
 		return err
 	}
 	updateImage(imageConfig, controlPlane)
-	templateInput.OCNEControlPlaneVersion = imageConfig.Version
 
 	return nil
 }
@@ -143,6 +140,9 @@ func updateImage(imageConfig *ImageConfig, image *capiImage) {
 	}
 	if len(imageConfig.Repository) > 0 {
 		image.Repository = imageConfig.RepositoryWithoutRegistry
+	}
+	if len(imageConfig.Version) > 0 {
+		image.BomVersion = imageConfig.Version
 	}
 }
 

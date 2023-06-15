@@ -34,7 +34,7 @@ images:
 
 providers:
   - name: "cluster-api"
-    url: "/verrazzano/capi/cluster-api/{{.APIVersion}}/core-components.yaml"
+    url: "{{.GetClusterAPIURL}}"
     type: "CoreProvider"
   - name: "oci"
     url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"

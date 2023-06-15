@@ -42,6 +42,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "verrazzano", bootstrap.Image.Repository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrap.Image.Tag)
 	assert.Equal(t, "", bootstrap.Image.Registry)
+	assert.Equal(t, "v0.1.0", bootstrap.Image.BomVersion)
 	assert.Equal(t, "", bootstrap.Version)
 	assert.Equal(t, "", bootstrap.Url)
 
@@ -49,6 +50,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
 	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlane.Image.Tag)
 	assert.Equal(t, "", controlPlane.Image.Registry)
+	assert.Equal(t, "v0.1.0", controlPlane.Image.BomVersion)
 	assert.Equal(t, "", controlPlane.Version)
 	assert.Equal(t, "", controlPlane.Url)
 
@@ -56,6 +58,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "verrazzano", core.Image.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
 	assert.Equal(t, "", core.Image.Registry)
+	assert.Equal(t, "v1.3.3", core.Image.BomVersion)
 	assert.Equal(t, "", core.Version)
 	assert.Equal(t, "", core.Url)
 
@@ -63,6 +66,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "oracle", oci.Image.Repository)
 	assert.Equal(t, "v0.8.1", oci.Image.Tag)
 	assert.Equal(t, "", oci.Image.Registry)
+	assert.Equal(t, "v0.8.1", oci.Image.BomVersion)
 	assert.Equal(t, "", oci.Version)
 	assert.Equal(t, "", oci.Url)
 }
