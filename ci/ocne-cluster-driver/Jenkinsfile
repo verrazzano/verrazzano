@@ -192,6 +192,7 @@ pipeline {
                 println("agentlabel: ${agentLabel}")
                 sh """
                     echo "${NODE_LABELS}"
+                    cat "${TF_VAR_ssh_public_key_path}"
                 """
 
                 script {
