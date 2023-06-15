@@ -169,8 +169,7 @@ else
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
-SKIP_VERRAZZANO_INSTALL="${RUN_VZ_CLI_VAL}"
-if [[ ${SKIP_VERRAZZANO_INSTALL} == "true" ]]; then
+if [[ ${SKIP_VERRAZZANO_INSTALL} == "" && ${RUN_VZ_CLI_VAL} == "true" ]]; then
   echo "Skipping Verrazzano install"
   exit 0
 fi
