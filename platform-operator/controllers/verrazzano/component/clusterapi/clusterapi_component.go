@@ -182,9 +182,11 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	overridesContext := newTemplateContext(overrides)
+
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
 		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
 		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
 		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
@@ -218,9 +220,11 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	overridesContext := newTemplateContext(overrides)
+
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
 		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
 		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
 		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
@@ -247,10 +251,11 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	overridesContext := newTemplateContext(overrides)
 
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
-		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overrides.APIVersion),
+		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
 		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEBootstrapVersion)},
 		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEControlPlaneVersion)},
 		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},

@@ -12,6 +12,7 @@ type TemplateInterface interface {
 	GetClusterAPIRepository() string
 	GetClusterAPITag() string
 	GetClusterAPIURL() string
+	GetClusterAPIVersion() string
 	GetOCIRepository() string
 	GetOCITag() string
 	GetOCIURL() string
@@ -24,9 +25,6 @@ type TemplateInterface interface {
 }
 
 type TemplateInput struct {
-	APIVersion                 string
-	APIRepository              string
-	APITag                     string
 	OCIVersion                 string
 	OCIRepository              string
 	OCITag                     string
@@ -62,6 +60,10 @@ func (c TemplateInput) GetClusterAPITag() string {
 
 func (c TemplateInput) GetClusterAPIURL() string {
 	return getURLForProvider(c.Overrides.DefaultProviders.Core)
+}
+
+func (c TemplateInput) GetClusterAPIVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.Core)
 }
 
 func (c TemplateInput) GetOCIRepository() string {
@@ -111,6 +113,14 @@ func getRegistryForProvider(template TemplateInput, provider capiProvider) strin
 	}
 	return registry
 }
+
+func getProviderVersion(provider capiProvider) string {
+	if len(provider.Version) > 0 {
+		return provider.Version
+	}
+	return provider.Image.BomVersion
+}
+
 func getURLForProvider(provider capiProvider) string {
 	if len(provider.Url) > 0 {
 		return provider.Url

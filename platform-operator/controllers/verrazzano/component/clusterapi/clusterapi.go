@@ -11,7 +11,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const clusterctlYamlTemplate = `
@@ -142,49 +141,6 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 
 	// Create the clusterctl.yaml used when initializing CAPI.
 	return os.WriteFile(clusterAPIDir+"/clusterctl.yaml", result.Bytes(), 0600)
-}
-
-// getImageOverrides returns the CAPI provider image overrides and versions from the Verrazzano bom
-func getImageOverrides(ctx spi.ComponentContext) (*TemplateInput, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return nil, ctx.Log().ErrorNewErr("Failed to get the BOM file for the capi image overrides: ", err)
-	}
-
-	templateInput := &TemplateInput{}
-	imageConfig, err := getImageOverride(ctx, bomFile, "capi-cluster-api", "")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.APIVersion = imageConfig.Version
-	templateInput.APIRepository = imageConfig.Repository
-	templateInput.APITag = imageConfig.Tag
-
-	imageConfig, err = getImageOverride(ctx, bomFile, "capi-oci", "")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.OCIVersion = imageConfig.Version
-	templateInput.OCIRepository = imageConfig.Repository
-	templateInput.OCITag = imageConfig.Tag
-
-	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.OCNEBootstrapVersion = imageConfig.Version
-	templateInput.OCNEBootstrapRepository = imageConfig.Repository
-	templateInput.OCNEBootstrapTag = imageConfig.Tag
-
-	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-control-plane-controller")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.OCNEControlPlaneVersion = imageConfig.Version
-	templateInput.OCNEControlPlaneRepository = imageConfig.Repository
-	templateInput.OCNEControlPlaneTag = imageConfig.Tag
-
-	return templateInput, nil
 }
 
 // getImageOverride returns the image override and version for a given CAPI provider.
