@@ -130,6 +130,7 @@ pipeline {
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
                         git branch --list 'release-*' | cut -d'-' -f2 > branches.txt
+                        cat branches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -164,6 +165,7 @@ pipeline {
                         //Extract list of releases from git branches
                         fileContent = readFile(file: "${workspace}/branches.txt")
                         List releaseBranches = extractReleaseTags(fileContent)
+                        echo "Release Branches: ${releaseBranches}"
                         List finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
 
                         //minorReleaseList = getCleanReleaseVersion(finalReleaseBranchesList)
@@ -393,7 +395,7 @@ def getTipOfReleaseBranches(releaseNumber){
 
 // Remove the excluded releases from jobs
 def removeExcludedReleases(List releases){
-
+    echo "List of release branches inside function: ${releases}"
     def excludeReleases = params.EXCLUDE_RELEASES
     def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
     println(excludeReleasesList)
@@ -413,6 +415,7 @@ def removeExcludedReleases(List releases){
             finalReleaseList.add(releaseTag)
         }
     }
+     echo "Final releases: ${finalReleaseList}"
     return finalReleaseList
 }
 
