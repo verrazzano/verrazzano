@@ -32,6 +32,7 @@ Fixes:
 
 - Disabled the startupapicheck job in cert-manager startup.
 - Fixes an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
+- Fixes an issue where not defining the replicas for default OpenSearch node pools in the Verrazzano CR caused the pods to terminate.
 
 ### v1.5.0
 Features:
