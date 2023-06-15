@@ -37,7 +37,7 @@ providers:
     url: "{{.GetClusterAPIURL}}"
     type: "CoreProvider"
   - name: "oci"
-    url: "{{.GetOCIUrl}}"
+    url: "{{.GetOCIURL}}"
     type: "InfrastructureProvider"
   - name: "ocne"
     url: "{{.GetOCNEBootstrapURL}}"
@@ -124,7 +124,7 @@ func setEnvVariables() error {
 // createClusterctlYaml creates clusterctl.yaml with image overrides from the Verrazzano BOM
 func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
-	templateInput, err := getImageOverrides(ctx)
+	templateInput, err := createTemplateInput(ctx)
 	if err != nil {
 		return err
 	}

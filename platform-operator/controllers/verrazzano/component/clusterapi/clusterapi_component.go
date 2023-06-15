@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"context"
 	"fmt"
+
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -176,7 +177,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := getImageOverrides(ctx)
+	overrides, err := createTemplateInput(ctx)
 	if err != nil {
 		return err
 	}
@@ -212,7 +213,7 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := getImageOverrides(ctx)
+	overrides, err := createTemplateInput(ctx)
 	if err != nil {
 		return err
 	}
@@ -242,7 +243,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := getImageOverrides(ctx)
+	overrides, err := createTemplateInput(ctx)
 	if err != nil {
 		return err
 	}

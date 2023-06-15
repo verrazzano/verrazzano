@@ -4,6 +4,10 @@
 package clusterapi
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -16,11 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const (
@@ -321,6 +322,7 @@ func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = "../../../../helm_config"
 	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
@@ -339,6 +341,7 @@ func TestInstall(t *testing.T) {
 	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = "../../../../helm_config"
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp clusterAPIComponent
@@ -373,6 +376,7 @@ func TestPreUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = "../../../../helm_config"
 	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()

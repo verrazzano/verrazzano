@@ -44,7 +44,7 @@ func TestApplyTemplate(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	templateInput, err := getImageOverrides(compContext)
+	templateInput, err := createTemplateInput(compContext)
 	assert.NoError(t, err)
 	assert.NotNil(t, templateInput)
 	clusterctl, err := applyTemplate(clusterctlYamlTemplate, templateInput)
