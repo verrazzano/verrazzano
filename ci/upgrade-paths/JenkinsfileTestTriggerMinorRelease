@@ -129,7 +129,7 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
-                        git branch --list 'release-*' | awk -F'-' '{print $2}' > branches.txt
+                        git branch --list 'release-*' | cut -d'-' -f2 > branches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
