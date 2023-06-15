@@ -39,6 +39,8 @@ spec:
 {{ toYaml .Values.system.httpPassword | indent 6 }}
     {{- end}}
     suppressTypeName: true
+    traceError: true
+    traceOutput: true
     replaceDots: true
     {{- if .Values.system.tls.enabled }}
     tls:
