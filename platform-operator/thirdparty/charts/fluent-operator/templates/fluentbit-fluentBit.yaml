@@ -28,7 +28,7 @@ spec:
 {{- end }}
 {{- if .Values.fluentbit.securityContext }}
   containerSecurityContext:
-  {{ toYaml .Values.fluentbit.securityContext | indent 4 }}
+  {{ toYaml .Values.fluentbit.securityContext | nindent 4 }}
 {{- end }}
   tolerations:
     - operator: Exists
