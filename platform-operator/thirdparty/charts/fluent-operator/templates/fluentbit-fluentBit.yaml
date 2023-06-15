@@ -30,7 +30,6 @@ spec:
   containerSecurityContext:
   {{ toYaml .Values.fluentbit.securityContext | indent 4 }}
 {{- end }}
-{{- with .Values.fluentbit.tolerations }}
   tolerations:
     - operator: Exists
   affinity:
@@ -40,7 +39,6 @@ spec:
           - matchExpressions:
               - key: node-role.kubernetes.io/edge
                 operator: DoesNotExist
-{- end }}
   {{- if .Values.fluentbit.secrets }}
   secrets:
 {{ toYaml .Values.fluentbit.secrets | indent 4 }}
