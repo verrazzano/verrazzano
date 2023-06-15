@@ -48,9 +48,147 @@ type capiImage struct {
 	BomVersion string `json:"bomVersion,omitempty"`
 }
 
+type OverridesInterface interface {
+	GetGlobalRegistry() string
+	GetClusterAPIRepository() string
+	GetClusterAPITag() string
+	GetClusterAPIURL() string
+	GetClusterAPIVersion() string
+	GetOCIRepository() string
+	GetOCITag() string
+	GetOCIURL() string
+	GetOCIVersion() string
+	GetOCNEBootstrapRepository() string
+	GetOCNEBootstrapTag() string
+	GetOCNEBootstrapURL() string
+	GetOCNEBootstrapVersion() string
+	GetOCNEControlPlaneRepository() string
+	GetOCNEControlPlaneTag() string
+	GetOCNEControlPlaneURL() string
+	GetOCNEControlPlaneVersion() string
+}
+
+type OverridesInput struct {
+	Overrides *capiOverrides
+}
+
+func newTemplateInput() *OverridesInput {
+	return &OverridesInput{}
+}
+
+func newTemplateContext(templateInput *OverridesInput) OverridesInterface {
+	return templateInput
+}
+
+func (c OverridesInput) GetGlobalRegistry() string {
+	return c.Overrides.Global.Registry
+}
+
+func (c OverridesInput) GetClusterAPIRepository() string {
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.Core)
+}
+
+func (c OverridesInput) GetClusterAPITag() string {
+	return c.Overrides.DefaultProviders.Core.Image.Tag
+}
+
+func (c OverridesInput) GetClusterAPIURL() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.Core)
+}
+
+func (c OverridesInput) GetClusterAPIVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.Core)
+}
+
+func (c OverridesInput) GetOCIRepository() string {
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCI)
+}
+
+func (c OverridesInput) GetOCITag() string {
+	return c.Overrides.DefaultProviders.OCI.Image.Tag
+}
+
+func (c OverridesInput) GetOCIURL() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.OCI)
+}
+
+func (c OverridesInput) GetOCIVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.OCI)
+}
+
+func (c OverridesInput) GetOCNEBootstrapRepository() string {
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEBootstrap)
+}
+
+func (c OverridesInput) GetOCNEBootstrapTag() string {
+	return c.Overrides.DefaultProviders.OCNEBootstrap.Image.Tag
+}
+
+func (c OverridesInput) GetOCNEBootstrapURL() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.OCNEBootstrap)
+}
+
+func (c OverridesInput) GetOCNEBootstrapVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.OCNEBootstrap)
+}
+
+func (c OverridesInput) GetOCNEControlPlaneRepository() string {
+	return getRepositoryForProvider(c, c.Overrides.DefaultProviders.OCNEControlPlane)
+}
+
+func (c OverridesInput) GetOCNEControlPlaneTag() string {
+	return c.Overrides.DefaultProviders.OCNEControlPlane.Image.Tag
+}
+
+func (c OverridesInput) GetOCNEControlPlaneURL() string {
+	return getURLForProvider(c.Overrides.DefaultProviders.OCNEControlPlane)
+}
+
+func (c OverridesInput) GetOCNEControlPlaneVersion() string {
+	return getProviderVersion(c.Overrides.DefaultProviders.OCNEControlPlane)
+}
+
+func getRepositoryForProvider(template OverridesInput, provider capiProvider) string {
+	return fmt.Sprintf("%s/%s", getRegistryForProvider(template, provider), provider.Image.Repository)
+}
+
+func getRegistryForProvider(template OverridesInput, provider capiProvider) string {
+	registry := provider.Image.Registry
+	if len(registry) == 0 {
+		registry = template.Overrides.Global.Registry
+	}
+	return registry
+}
+
+func getProviderVersion(provider capiProvider) string {
+	if len(provider.Version) > 0 {
+		return provider.Version
+	}
+	return provider.Image.BomVersion
+}
+
+func getURLForProvider(provider capiProvider) string {
+	if len(provider.Url) > 0 {
+		return provider.Url
+	}
+	if len(provider.Version) > 0 {
+		return formatProviderUrl(true, provider.Name, provider.Version, provider.MetaddataFile)
+	}
+	// Return default value
+	return formatProviderUrl(false, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
+}
+
+func formatProviderUrl(remote bool, name string, version string, metadataFile string) string {
+	prefix := ""
+	if remote {
+		prefix = "https://github.com"
+	}
+	return fmt.Sprintf("%s/verrazzano/capi/%s/%s/%s", prefix, name, version, metadataFile)
+}
+
 // createTemplateInput - create the template input for install/upgrade of the
 // ClusterAPI component.
-func createTemplateInput(ctx spi.ComponentContext) (*TemplateInput, error) {
+func createTemplateInput(ctx spi.ComponentContext) (*OverridesInput, error) {
 	templateInput := newTemplateInput()
 
 	// Get the base overrides
@@ -100,7 +238,7 @@ func getBaseOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 }
 
 // mergeBOMOverrides - merge settings from the BOM template
-func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) error {
+func mergeBOMOverrides(ctx spi.ComponentContext, templateInput *OverridesInput) error {
 	overrides := templateInput.Overrides
 
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
@@ -159,7 +297,7 @@ func updateImage(imageConfig *ImageConfig, image *capiImage) {
 }
 
 // mergeUserOverrides - Update the struct with overrides from the VZ custom resource
-func mergeUserOverrides(ctx spi.ComponentContext, templateInput *TemplateInput) error {
+func mergeUserOverrides(ctx spi.ComponentContext, templateInput *OverridesInput) error {
 	overrides := templateInput.Overrides
 	if ctx.EffectiveCR().Spec.Components.ClusterAPI == nil {
 		return nil

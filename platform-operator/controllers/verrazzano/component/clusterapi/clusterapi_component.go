@@ -226,7 +226,7 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	deleteOptions := clusterapi.DeleteOptions{
 		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
 		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
 		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
 		IncludeNamespace:        true,
 	}
@@ -257,7 +257,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
 		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
 		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
 		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
 	}
 
