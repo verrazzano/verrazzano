@@ -129,6 +129,7 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
+                        git branch --list 'release-*' | awk -F'-' '{print $2}' > branches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -152,37 +153,26 @@ pipeline {
                 stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
+                        // Extract list of releases from git tags
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        def excludeReleases = params.EXCLUDE_RELEASES
-                        def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
-                        println(excludeReleasesList)
-                        def finalReleaseList  = []
-                        //Remove the excluded releases from jobs
-                        for(releaseTag in gitTags){
-                            def excluded = false
-                            for(excludedRelease in excludeReleasesList){
-                                String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
-                                def releaseTagMinorVersion = "v"+ splitReleaseTag[0] + "." + splitReleaseTag[1]
-                                String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
-                                if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease) {
-                                    excluded = true
-                                }
-                            }
-                            if(excluded == false){
-                                finalReleaseList.add(releaseTag)
-                            }
-                        }
+                        List finalReleaseList = removeExcludedReleases(gitTags)
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
-                        minorReleaseList = getCleanReleaseVersion(finalReleaseList)
-                        echo "List of minor release: ${minorReleaseList}"
+
+                        //Extract list of releases from git branches
+                        fileContent = readFile(file: "${workspace}/branches.txt")
+                        List releaseBranches = extractReleaseTags(fileContent)
+                        List finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
+
+                        //minorReleaseList = getCleanReleaseVersion(finalReleaseBranchesList)
+                        echo "List of minor release: ${finalReleaseBranchesList}"
                         def listOfTipOfReleaseUpgradeJobs = []
                         def releaseCommitMap = [:]
-                        for(minorRelease in minorReleaseList){  
-                            releaseCommit = getTipOfReleaseBranches(minorRelease)
-                            String key = "v"+minorRelease
+                        for(releaseBranch in finalReleaseBranchesList){
+                            releaseCommit = getTipOfReleaseBranches(releaseBranch)
+                            String key = "v"+releaseBranch
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
                         listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
@@ -399,6 +389,31 @@ def getTipOfReleaseBranches(releaseNumber){
         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
         def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
     return releaseBranchCommitSHA
+}
+
+// Remove the excluded releases from jobs
+def removeExcludedReleases(List releases){
+
+    def excludeReleases = params.EXCLUDE_RELEASES
+    def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+    println(excludeReleasesList)
+    def finalReleaseList  = []
+
+    for(releaseTag in releases){
+        def excluded = false
+        for(excludedRelease in excludeReleasesList){
+            String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
+            def releaseTagMinorVersion = splitReleaseTag[0] + "." + splitReleaseTag[1]
+            String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
+            if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease || "v"+releaseTagMinorVersion == excludedRelease) {
+                excluded = true
+            }
+        }
+        if(excluded == false){
+            finalReleaseList.add(releaseTag)
+        }
+    }
+    return finalReleaseList
 }
 
 def getStageOfUpgradeJob(job) {
