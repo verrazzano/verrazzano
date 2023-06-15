@@ -43,7 +43,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "", bootstrap.Image.Registry)
 	assert.Equal(t, "v0.1.0", bootstrap.Image.BomVersion)
 	assert.Equal(t, "", bootstrap.Version)
-	assert.Equal(t, "", bootstrap.Url)
+	assert.Equal(t, "", bootstrap.URL)
 
 	controlPlane := overrides.DefaultProviders.OCNEControlPlane
 	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
@@ -51,7 +51,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "", controlPlane.Image.Registry)
 	assert.Equal(t, "v0.1.0", controlPlane.Image.BomVersion)
 	assert.Equal(t, "", controlPlane.Version)
-	assert.Equal(t, "", controlPlane.Url)
+	assert.Equal(t, "", controlPlane.URL)
 
 	core := overrides.DefaultProviders.Core
 	assert.Equal(t, "verrazzano", core.Image.Repository)
@@ -59,7 +59,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "", core.Image.Registry)
 	assert.Equal(t, "v1.3.3", core.Image.BomVersion)
 	assert.Equal(t, "", core.Version)
-	assert.Equal(t, "", core.Url)
+	assert.Equal(t, "", core.URL)
 
 	oci := overrides.DefaultProviders.OCI
 	assert.Equal(t, "oracle", oci.Image.Repository)
@@ -67,7 +67,7 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, "", oci.Image.Registry)
 	assert.Equal(t, "v0.8.1", oci.Image.BomVersion)
 	assert.Equal(t, "", oci.Version)
-	assert.Equal(t, "", oci.Url)
+	assert.Equal(t, "", oci.URL)
 }
 
 // TestUserOverrides tests getting the override values for the Cluster API component
@@ -143,28 +143,28 @@ func TestUserOverrides(t *testing.T) {
 	assert.Equal(t, "verrazzano", bootstrap.Image.Repository)
 	assert.Equal(t, "v1.0", bootstrap.Image.Tag)
 	assert.Equal(t, "", bootstrap.Version)
-	assert.Equal(t, "", bootstrap.Url)
+	assert.Equal(t, "", bootstrap.URL)
 
 	controlPlane := overrides.DefaultProviders.OCNEControlPlane
 	assert.Equal(t, "", controlPlane.Image.Registry)
 	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
 	assert.Equal(t, "v1.0", controlPlane.Image.Tag)
 	assert.Equal(t, "", controlPlane.Version)
-	assert.Equal(t, "", controlPlane.Url)
+	assert.Equal(t, "", controlPlane.URL)
 
 	core := overrides.DefaultProviders.Core
 	assert.Equal(t, "", core.Image.Registry)
 	assert.Equal(t, "verrazzano", core.Image.Repository)
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
 	assert.Equal(t, "v1.1", core.Version)
-	assert.Equal(t, "", core.Url)
+	assert.Equal(t, "", core.URL)
 
 	oci := overrides.DefaultProviders.OCI
 	assert.Equal(t, "air-gap-2", oci.Image.Registry)
 	assert.Equal(t, "repo", oci.Image.Repository)
 	assert.Equal(t, "v0.8.1", oci.Image.Tag)
 	assert.Equal(t, "", oci.Version)
-	assert.Equal(t, "", oci.Url)
+	assert.Equal(t, "", oci.URL)
 }
 
 // TestOverridesInterface tests the OverridesInterface
@@ -196,7 +196,7 @@ func TestOverridesInterface(t *testing.T) {
     "oci": {
       "version": "v0.8.2",
       "image": {
-        "repository": "repo",
+        "repository": "oci-repo",
         "registry": "myreg2.io",
         "tag": "v0.8.2"
       }
@@ -250,8 +250,8 @@ func TestOverridesInterface(t *testing.T) {
 	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPITag())
 	assert.Equal(t, "/verrazzano/capi/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
 
-	assert.Equal(t, "myreg2.io/repo", tc.GetOCIRepository())
+	assert.Equal(t, "myreg2.io/oci-repo", tc.GetOCIRepository())
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
-	assert.Equal(t, "https://github.com/verrazzano/capi/infrastructure-oci/v0.8.2/infrastructure-components.yaml", tc.GetOCIURL())
+	assert.Equal(t, "https://github.com/oci-repo/cluster-api-provider-oci/releases/v0.8.2/infrastructure-components.yaml", tc.GetOCIURL())
 
 }

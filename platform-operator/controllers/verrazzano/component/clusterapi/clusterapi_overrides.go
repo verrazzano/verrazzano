@@ -36,7 +36,7 @@ type defaultProviders struct {
 type capiProvider struct {
 	Image         capiImage `json:"image,omitempty"`
 	Version       string    `json:"version,omitempty"`
-	Url           string    `json:"url,omitempty"`
+	URL           string    `json:"url,omitempty"`
 	Name          string    `json:"name,omitempty"`
 	MetaddataFile string    `json:"metaddataFile,omitempty"`
 }
@@ -86,7 +86,7 @@ func (c capiOverrides) GetClusterAPITag() string {
 }
 
 func (c capiOverrides) GetClusterAPIURL() string {
-	return getURLForProvider(c.DefaultProviders.Core)
+	return getURLForProvider(c.DefaultProviders.Core, "")
 }
 
 func (c capiOverrides) GetClusterAPIVersion() string {
@@ -102,7 +102,7 @@ func (c capiOverrides) GetOCITag() string {
 }
 
 func (c capiOverrides) GetOCIURL() string {
-	return getURLForProvider(c.DefaultProviders.OCI)
+	return getURLForProvider(c.DefaultProviders.OCI, "cluster-api-provider-oci")
 }
 
 func (c capiOverrides) GetOCIVersion() string {
@@ -118,7 +118,7 @@ func (c capiOverrides) GetOCNEBootstrapTag() string {
 }
 
 func (c capiOverrides) GetOCNEBootstrapURL() string {
-	return getURLForProvider(c.DefaultProviders.OCNEBootstrap)
+	return getURLForProvider(c.DefaultProviders.OCNEBootstrap, "")
 }
 
 func (c capiOverrides) GetOCNEBootstrapVersion() string {
@@ -134,7 +134,7 @@ func (c capiOverrides) GetOCNEControlPlaneTag() string {
 }
 
 func (c capiOverrides) GetOCNEControlPlaneURL() string {
-	return getURLForProvider(c.DefaultProviders.OCNEControlPlane)
+	return getURLForProvider(c.DefaultProviders.OCNEControlPlane, "")
 }
 
 func (c capiOverrides) GetOCNEControlPlaneVersion() string {
@@ -160,23 +160,24 @@ func getProviderVersion(provider capiProvider) string {
 	return provider.Image.BomVersion
 }
 
-func getURLForProvider(provider capiProvider) string {
-	if len(provider.Url) > 0 {
-		return provider.Url
+func getURLForProvider(provider capiProvider, remoteRepo string) string {
+	if len(provider.URL) > 0 {
+		return provider.URL
 	}
 	if len(provider.Version) > 0 {
-		return formatProviderUrl(true, provider.Name, provider.Version, provider.MetaddataFile)
+		return formatProviderUrl(true, provider.Image.Repository, remoteRepo, provider.Version, provider.MetaddataFile)
 	}
 	// Return default value
-	return formatProviderUrl(false, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
+	return formatProviderUrl(false, provider.Image.Repository, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
 }
 
-func formatProviderUrl(remote bool, name string, version string, metadataFile string) string {
-	prefix := ""
+// formatProviderUrl - return the provider URL using the following format
+// https://github.com/{owner}/{Repository}/releases/{version-tag}/{componentsClient.yaml
+func formatProviderUrl(remote bool, owner string, repo string, version string, metadataFile string) string {
 	if remote {
-		prefix = "https://github.com"
+		return fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, metadataFile)
 	}
-	return fmt.Sprintf("%s/verrazzano/capi/%s/%s/%s", prefix, name, version, metadataFile)
+	return fmt.Sprintf("/verrazzano/capi/%s/%s/%s", repo, version, metadataFile)
 }
 
 // createOverrides - create the overrides input for install/upgrade of the
@@ -196,7 +197,7 @@ func createOverrides(ctx spi.ComponentContext) (*capiOverrides, error) {
 	// Merge overrides from the Verrazzano custom resource
 	err = mergeUserOverrides(ctx, overrides)
 
-	return overrides, nil
+	return overrides, err
 }
 
 // getBaseOverrides - return the base ClusterAPI overrides
