@@ -395,24 +395,28 @@ def getTipOfReleaseBranches(releaseNumber){
 }
 
 def getReleaseBranchVersions(){
-    def releaseBranchVersions = []
+    def branches = []
+
     // fetch git release branches
-    def scm = scmInfo([
-        $class: 'GitSCM',
+    checkout([$class: 'GitSCM',
         branches: [[name: '*/release-*']],
         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]],
+        doGenerateSubmoduleConfigurations: false,
         extensions: []
     ])
-    scm.remoteRepositories.each { remoteRepo ->
-        remoteRepo.fetches.each { fetchSpec ->
-            releaseBranchVersions.add(fetchSpec.refspec.replaceAll('^\\+refs/heads/release-', ''))
-        }
+
+    git(
+        url: env.SCM_VERRAZZANO_GIT_URL
+    ).branches().each { branch ->
+        branches.add(branch.name.replaceFirst(/^origin\/release-/, ''))
     }
+
     // Print release branch versions
-    releaseBranchVersions.each { branchVersion ->
-        println "Branch: ${branchVersion}"
+    branches.each { branch ->
+        println "Branch: ${branch}"
     }
-    return releaseBranchVersions
+
+    return branches
 }
 
 // Remove the excluded releases from jobs
