@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
@@ -314,4 +315,38 @@ func mergeUserOverrides(ctx spi.ComponentContext, overrides *capiOverrides) erro
 
 	// Update the struct with the resulting YAML
 	return yaml.Unmarshal([]byte(merged), overrides)
+}
+
+// getImageOverride returns the image override and version for a given CAPI provider.
+func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component string, imageName string) (image *ImageConfig, err error) {
+	version, err := bomFile.GetComponentVersion(component)
+	if err != nil {
+		return nil, err
+	}
+
+	images, err := bomFile.GetImageNameList(component)
+	if err != nil {
+		return nil, err
+	}
+
+	subComp, err := bomFile.GetSubcomponent(component)
+	if err != nil {
+		return nil, err
+	}
+
+	var tag string
+
+	for _, image := range images {
+		if len(imageName) == 0 || strings.Contains(image, imageName) {
+			imageSplit := strings.Split(image, ":")
+			tag = imageSplit[1]
+			break
+		}
+	}
+
+	if len(subComp.Repository) == 0 || len(tag) == 0 {
+		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
+	}
+
+	return &ImageConfig{Version: version, Repository: subComp.Repository, Tag: tag}, nil
 }

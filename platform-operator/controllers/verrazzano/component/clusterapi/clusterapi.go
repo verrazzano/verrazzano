@@ -6,10 +6,8 @@ package clusterapi
 import (
 	"bytes"
 	"os"
-	"strings"
 	"text/template"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
@@ -140,40 +138,6 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 
 	// Create the clusterctl.yaml used when initializing CAPI.
 	return os.WriteFile(clusterAPIDir+"/clusterctl.yaml", result.Bytes(), 0600)
-}
-
-// getImageOverride returns the image override and version for a given CAPI provider.
-func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component string, imageName string) (image *ImageConfig, err error) {
-	version, err := bomFile.GetComponentVersion(component)
-	if err != nil {
-		return nil, err
-	}
-
-	images, err := bomFile.GetImageNameList(component)
-	if err != nil {
-		return nil, err
-	}
-
-	subComp, err := bomFile.GetSubcomponent(component)
-	if err != nil {
-		return nil, err
-	}
-
-	var tag string
-
-	for _, image := range images {
-		if len(imageName) == 0 || strings.Contains(image, imageName) {
-			imageSplit := strings.Split(image, ":")
-			tag = imageSplit[1]
-			break
-		}
-	}
-
-	if len(subComp.Repository) == 0 || len(tag) == 0 {
-		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
-	}
-
-	return &ImageConfig{Version: version, Repository: subComp.Repository, Tag: tag}, nil
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
