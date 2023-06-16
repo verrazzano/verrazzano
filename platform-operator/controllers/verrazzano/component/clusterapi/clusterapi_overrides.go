@@ -170,12 +170,12 @@ func getProviderVersion(provider capiProvider) string {
 // getURLForProvider - return the URL for the provider.  It is either a local override of
 // the full URL, a URL derived from a version, or the default is a local file path on the
 // container image.
-func getURLForProvider(provider capiProvider, remoteRepo string) string {
+func getURLForProvider(provider capiProvider, ownerRepo string) string {
 	if len(provider.URL) > 0 {
 		return provider.URL
 	}
 	if len(provider.Version) > 0 {
-		return formatProviderURL(true, provider.Image.Repository, remoteRepo, provider.Version, provider.MetaddataFile)
+		return formatProviderURL(true, provider.Image.Repository, ownerRepo, provider.Version, provider.MetaddataFile)
 	}
 	// Return default value
 	return formatProviderURL(false, provider.Image.Repository, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
