@@ -254,11 +254,12 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	overridesContext := newOverridesContext(overrides)
 
 	// Set up the upgrade options for the CAPI apply upgrade.
+	const formatString = "%s/%s:%s"
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
-		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
+		CoreProvider:            fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
+		BootstrapProviders:      []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
+		ControlPlaneProviders:   []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
+		InfrastructureProviders: []string{fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
 	}
 
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)

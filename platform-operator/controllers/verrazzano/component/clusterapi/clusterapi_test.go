@@ -17,8 +17,6 @@ import (
 
 const (
 	testBomFilePath = "../../testdata/test_bom.json"
-	verrazzanoRepo  = "ghcr.io/verrazzano"
-	oracleRepo      = "ghcr.io/oracle"
 )
 
 // TestSetEnvVariables tests the setEnvVariables function

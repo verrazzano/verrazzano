@@ -322,7 +322,7 @@ func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
@@ -341,7 +341,7 @@ func TestInstall(t *testing.T) {
 	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp clusterAPIComponent
@@ -376,7 +376,7 @@ func TestPreUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
