@@ -142,10 +142,14 @@ func (c capiOverrides) GetOCNEControlPlaneVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCNEControlPlane)
 }
 
+// getRepositoryForProvider - return the repository in the format that clusterctl
+// expects (registry/owner)
 func getRepositoryForProvider(overrides capiOverrides, provider capiProvider) string {
 	return fmt.Sprintf("%s/%s", getRegistryForProvider(overrides, provider), provider.Image.Repository)
 }
 
+// getRegistryForProvider - return the registry value.  The value returned is either the
+// global setting, or the local override for the provider.
 func getRegistryForProvider(overrides capiOverrides, provider capiProvider) string {
 	registry := provider.Image.Registry
 	if len(registry) == 0 {
@@ -154,6 +158,8 @@ func getRegistryForProvider(overrides capiOverrides, provider capiProvider) stri
 	return registry
 }
 
+// getProviderVersion - return the version tag.  It is either the value from the BOM,
+// or the local override for the provider.
 func getProviderVersion(provider capiProvider) string {
 	if len(provider.Version) > 0 {
 		return provider.Version
@@ -161,6 +167,9 @@ func getProviderVersion(provider capiProvider) string {
 	return provider.Image.BomVersion
 }
 
+// getURLForProvider - return the URL for the provider.  It is either a local override of
+// the full URL, a URL derived from a version, or the default is a local file path on the
+// container image.
 func getURLForProvider(provider capiProvider, remoteRepo string) string {
 	if len(provider.URL) > 0 {
 		return provider.URL
