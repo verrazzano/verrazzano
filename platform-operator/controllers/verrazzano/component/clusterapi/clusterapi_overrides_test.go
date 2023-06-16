@@ -16,6 +16,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	OciImageVersion   = "v0.8.1"
+	CoreImageTag      = "v1.3.3-20230427222746-876fe3dc9"
+	TestHelmConfigDir = "../../../../helm_config"
+)
+
 // TestBomOverrides tests getting the override values for the Cluster API component from the BOM
 // GIVEN a call to createOverrides
 //
@@ -26,7 +32,7 @@ func TestBomOverrides(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
@@ -53,7 +59,7 @@ func TestBomOverrides(t *testing.T) {
 
 	core := overrides.DefaultProviders.Core
 	assert.Equal(t, "verrazzano", core.Image.Repository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
+	assert.Equal(t, CoreImageTag, core.Image.Tag)
 	assert.Equal(t, "", core.Image.Registry)
 	assert.Equal(t, "v1.3.3", core.Image.BomVersion)
 	assert.Equal(t, "", core.Version)
@@ -61,9 +67,9 @@ func TestBomOverrides(t *testing.T) {
 
 	oci := overrides.DefaultProviders.OCI
 	assert.Equal(t, "oracle", oci.Image.Repository)
-	assert.Equal(t, "v0.8.1", oci.Image.Tag)
+	assert.Equal(t, OciImageVersion, oci.Image.Tag)
 	assert.Equal(t, "", oci.Image.Registry)
-	assert.Equal(t, "v0.8.1", oci.Image.BomVersion)
+	assert.Equal(t, OciImageVersion, oci.Image.BomVersion)
 	assert.Equal(t, "", oci.Version)
 	assert.Equal(t, "", oci.URL)
 }
@@ -127,7 +133,7 @@ func TestUserOverrides(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
@@ -153,7 +159,7 @@ func TestUserOverrides(t *testing.T) {
 	core := overrides.DefaultProviders.Core
 	assert.Equal(t, "", core.Image.Registry)
 	assert.Equal(t, "verrazzano", core.Image.Repository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", core.Image.Tag)
+	assert.Equal(t, CoreImageTag, core.Image.Tag)
 	assert.Equal(t, "v1.1", core.Version)
 	assert.Equal(t, "", core.URL)
 
@@ -216,7 +222,7 @@ func TestOverridesInterfaceDefault(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
@@ -292,7 +298,7 @@ func TestOverridesInterface(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
-	config.TestHelmConfigDir = "../../../../helm_config"
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
@@ -310,7 +316,7 @@ func TestOverridesInterface(t *testing.T) {
 	assert.Equal(t, "/verrazzano/capi/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetClusterAPIRepository())
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPITag())
+	assert.Equal(t, CoreImageTag, tc.GetClusterAPITag())
 	assert.Equal(t, "/verrazzano/capi/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
 
 	assert.Equal(t, "myreg2.io/oci-repo", tc.GetOCIRepository())
