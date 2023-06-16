@@ -172,8 +172,8 @@ func (c clusterAPIComponent) IsOperatorInstallSupported() bool {
 
 // IsInstalled checks to see if ClusterAPI is installed
 func (c clusterAPIComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	daemonSet := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, deployment)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
