@@ -250,11 +250,70 @@ func TestGetJSONName(t *testing.T) {
 //	WHEN MonitorOverrides is called
 //	THEN false is returned
 func TestMonitorOverrides(t *testing.T) {
-	fakeClient := getReadyDeployments().Build()
-	var comp clusterAPIComponent
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	monitor := comp.MonitorOverrides(compContext)
-	assert.Equal(t, false, monitor)
+	c := NewComponent()
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	tests := []struct {
+		name   string
+		vz     *v1alpha1.Verrazzano
+		result bool
+	}{
+		{
+			"ClusterAPI Component is nil",
+			&v1alpha1.Verrazzano{},
+			false,
+		},
+		{
+			"ClusterAPI component initialised",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly enabled in ClusterAPI component",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{
+							InstallOverrides: v1alpha1.InstallOverrides{
+								MonitorChanges: getBoolPtr(true)},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly disabled in ClusterAPI component",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{
+							InstallOverrides: v1alpha1.InstallOverrides{
+								MonitorChanges: getBoolPtr(false)},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(cli, tt.vz, nil, false)
+			result := c.MonitorOverrides(ctx)
+			assert.Equal(t, tt.result, result)
+		})
+	}
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
 
 // TestIsOperatorInstallSupported tests the IsOperatorInstallSupported function

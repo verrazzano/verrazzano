@@ -146,6 +146,12 @@ func (c clusterAPIComponent) GetOverrides(object runtime.Object) interface{} {
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
 func (c clusterAPIComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.ClusterAPI != nil {
+		if ctx.EffectiveCR().Spec.Components.ClusterAPI.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.ClusterAPI.MonitorChanges
+		}
+		return true
+	}
 	return false
 }
 
