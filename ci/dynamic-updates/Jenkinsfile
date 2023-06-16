@@ -252,13 +252,6 @@ pipeline {
                     }
                     steps {
                         sh """
-                            if [ ${params.EXTERNAL_CERT_MANAGER} ]; then
-                              echo "Configuring installation with external cert-manger and NGINX"
-                              ci/scripts/install_third_party_components.sh
-                            fi
-                        """
-
-                        sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
