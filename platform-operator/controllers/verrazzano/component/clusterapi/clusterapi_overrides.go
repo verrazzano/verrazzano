@@ -172,7 +172,7 @@ func getURLForProvider(provider capiProvider, remoteRepo string) string {
 }
 
 // formatProviderURL - return the provider URL using the following format
-// https://github.com/{owner}/{Repository}/releases/{version-tag}/{componentsClient.yaml
+// https://github.com/{owner}/{Repository}/releases/{version-tag}/{componentsClient.yaml}
 func formatProviderURL(remote bool, owner string, repo string, version string, metadataFile string) string {
 	if remote {
 		return fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, metadataFile)
