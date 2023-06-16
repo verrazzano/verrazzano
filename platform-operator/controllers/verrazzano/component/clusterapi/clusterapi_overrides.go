@@ -278,7 +278,7 @@ func updateImage(imageConfig *ImageConfig, image *capiImage) {
 		image.Tag = imageConfig.Tag
 	}
 	if len(imageConfig.Repository) > 0 {
-		image.Repository = imageConfig.RepositoryWithoutRegistry
+		image.Repository = imageConfig.Repository
 	}
 	if len(imageConfig.Version) > 0 {
 		image.BomVersion = imageConfig.Version
