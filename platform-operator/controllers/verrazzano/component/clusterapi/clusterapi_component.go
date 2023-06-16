@@ -185,10 +185,28 @@ func (c clusterAPIComponent) IsInstalled(ctx spi.ComponentContext) (bool, error)
 }
 
 func (c clusterAPIComponent) PreInstall(ctx spi.ComponentContext) error {
+	// If already installed, treat as an upgrade
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		return preUpgrade(ctx)
+	}
+
 	return preInstall(ctx)
 }
 
 func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
+	// If already installed, treat as an upgrade
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		return c.Upgrade(ctx)
+	}
+
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
