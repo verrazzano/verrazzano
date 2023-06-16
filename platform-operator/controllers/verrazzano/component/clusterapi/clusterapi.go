@@ -159,20 +159,17 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 		return nil, err
 	}
 
-	var repository string
 	var tag string
 
 	for _, image := range images {
 		if len(imageName) == 0 || strings.Contains(image, imageName) {
 			imageSplit := strings.Split(image, ":")
 			tag = imageSplit[1]
-			index := strings.LastIndex(imageSplit[0], "/")
-			repository = imageSplit[0][:index]
 			break
 		}
 	}
 
-	if len(repository) == 0 || len(tag) == 0 {
+	if len(subComp.Repository) == 0 || len(tag) == 0 {
 		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
 	}
 
