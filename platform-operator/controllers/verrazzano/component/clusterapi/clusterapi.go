@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const clusterctlYamlTemplate = `
@@ -133,7 +134,9 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 
 	err = os.Mkdir(clusterAPIDir, 0755)
 	if err != nil {
-		return err
+		if !errors.IsAlreadyExists(err) {
+			return err
+		}
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
