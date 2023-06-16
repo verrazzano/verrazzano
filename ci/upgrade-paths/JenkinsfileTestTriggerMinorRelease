@@ -395,26 +395,23 @@ def getTipOfReleaseBranches(releaseNumber){
 }
 
 def getReleaseBranchVersions(){
-    def branches = []
+    def releaseBranches = []
 
     // fetch git release branches
-    checkout([$class: 'GitSCM',
+    def branches = checkout([$class: 'GitSCM',
         branches: [[name: '*/release-*']],
         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]],
         doGenerateSubmoduleConfigurations: false,
         extensions: []
-    ]).each { gitRepo, details ->
-          details.getBranches().each { branch ->
-              branches.add(branch.name)
-          }
-      }
+        ])
 
-    // Print release branch versions
     branches.each { branch ->
-        println "Branch: ${branch}"
+      if (branch.startsWith("release-")) {
+        releaseBranches.add(branch.substring(8))
+      }
     }
 
-    return branches
+    return releaseBranches
 }
 
 // Remove the excluded releases from jobs
