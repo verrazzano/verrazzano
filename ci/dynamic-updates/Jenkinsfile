@@ -248,6 +248,7 @@ pipeline {
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                         SKIP_VERRAZZANO_INSTALL = false
                         CLUSTER_RESOURCE_NAMESPACE="my-cert-manager"
+                        INSTALL_EXTERNAL_CERT_MANAGER = "${params.EXTERNAL_CERT_MANAGER}"
                     }
                     steps {
                         sh """
