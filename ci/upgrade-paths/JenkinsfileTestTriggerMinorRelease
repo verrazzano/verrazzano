@@ -129,7 +129,9 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
-                        git branch --list 'release-*'
+                        git branch > branch.txt
+                        cat branch.txt
+                        git branch
                         git branch | grep '^  release-' | sed 's/^  release-//' > branches.txt
                         cat branches.txt
                     """
