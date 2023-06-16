@@ -511,6 +511,7 @@ func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPat
 			query = fmt.Sprintf("%s+AND+%s", query, fieldQuery)
 		}
 	}
+	query = query + "&sort=timestamp:desc"
 	var result map[string]interface{}
 	url := fmt.Sprintf("%s/%s/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, query)
 	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
