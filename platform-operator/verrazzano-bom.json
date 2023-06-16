@@ -466,8 +466,8 @@
           "name": "fluent-operator",
           "images": [
             {
-              "image": "fluent-operator-jenkins",
-              "tag": "20230615144012-e958e60",
+              "image": "fluent-operator",
+              "tag": "v2.2.0-20230616102644-d8debc6",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
