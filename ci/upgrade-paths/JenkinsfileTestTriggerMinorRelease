@@ -129,9 +129,7 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
-                        git branch > branch.txt
-                        cat branch.txt
-                        git branch
+                        git fetch
                         git branch | awk '/^  release-/ {sub(/^  release-/, ""); print}' > branches.txt
                         cat branches.txt
                     """
@@ -167,7 +165,7 @@ pipeline {
 
                         //Extract list of releases from git branches
                         fileContent = readFile(file: "${workspace}/branches.txt")
-                        List releaseBranches = extractReleaseTags(fileContent)
+                        List releaseBranches = getReleaseBranchVersions()
                         echo "Release Branches: ${releaseBranches}"
                         List finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
 
@@ -394,6 +392,27 @@ def getTipOfReleaseBranches(releaseNumber){
         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
         def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
     return releaseBranchCommitSHA
+}
+
+def getReleaseBranchVersions(){
+    def releaseBranchVersions = []
+    // fetch git release branches
+    def scm = scmInfo([
+        $class: 'GitSCM',
+        branches: [[name: '*/release-*']],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]],
+        extensions: []
+    ])
+    scm.remoteRepositories.each { remoteRepo ->
+        remoteRepo.fetches.each { fetchSpec ->
+            releaseBranchVersions.add(fetchSpec.refspec.replaceAll('^\\+refs/heads/release-', ''))
+        }
+    }
+    // Print release branch versions
+    releaseBranchVersions.each { branchVersion ->
+        println "Branch: ${branchVersion}"
+    }
+    return releaseBranchVersions
 }
 
 // Remove the excluded releases from jobs
