@@ -397,13 +397,17 @@ def getTipOfReleaseBranches(releaseNumber){
 def getReleaseBranchVersions(){
     def branches = []
 
-    // Fetch git release branches
-    sh(returnStdout: true, script: """
-        git ls-remote --heads ${env.SCM_VERRAZZANO_GIT_URL} '*/release-*'
-    """).eachLine { line ->
-        def branchName = line.tokenize('\t').last().tokenize('/').last()
-        branches.add(branchName)
-    }
+    // fetch git release branches
+    checkout([$class: 'GitSCM',
+        branches: [[name: '*/release-*']],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: []
+    ]).each { gitRepo, details ->
+          details.getBranches().each { branch ->
+              branches.add(branch.name)
+          }
+      }
 
     // Print release branch versions
     branches.each { branch ->
