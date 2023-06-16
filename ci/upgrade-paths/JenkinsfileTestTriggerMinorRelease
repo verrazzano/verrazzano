@@ -132,7 +132,7 @@ pipeline {
                         git branch > branch.txt
                         cat branch.txt
                         git branch
-                        git branch | grep '^  release-' | sed 's/^  release-//' > branches.txt
+                        git branch | awk '/^  release-/ {sub(/^  release-/, ""); print}' > branches.txt
                         cat branches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
