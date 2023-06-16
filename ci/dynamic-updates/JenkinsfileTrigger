@@ -135,6 +135,19 @@ pipeline {
                         }
                     }
                 }
+                stage ('Availability Status, AuthProxy, CertManager, and Fluentd Update Tests With External cert-manager') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startDCTestJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                                booleanParam(name: 'RUN_AUTHPROXY', value: true),
+                                                booleanParam(name: 'RUN_CERT_MANAGER', value: true),
+                                                booleanParam(name: 'RUN_FLUENTD', value: true)])
+                                                booleanParam(name: 'EXTERNAL_CERT_MANAGER', value: true)])
+                            }
+                        }
+                    }
+                }
                 stage ('API Conversion Update, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
