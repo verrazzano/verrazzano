@@ -23,7 +23,7 @@ require (
 	github.com/onsi/gomega v1.27.7
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.59.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.66.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
@@ -31,15 +31,15 @@ require (
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
 	go.uber.org/zap v1.24.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
-	golang.org/x/text v0.9.0
+	golang.org/x/text v0.10.0
 	golang.org/x/tools v0.7.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.10.3
 	istio.io/api v0.0.0-20221208152505-d807bc07da6a
 	istio.io/client-go v1.15.4
-	k8s.io/api v0.26.3
-	k8s.io/apiextensions-apiserver v0.26.1
+	k8s.io/api v0.27.2
+	k8s.io/apiextensions-apiserver v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.26.3
@@ -47,7 +47,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
 	k8s.io/kubectl v0.25.2
 	sigs.k8s.io/cluster-api v1.3.3
-	sigs.k8s.io/controller-runtime v0.14.6
+	sigs.k8s.io/controller-runtime v0.15.0
 	sigs.k8s.io/controller-tools v0.9.2
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -185,7 +185,7 @@ require (
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
-	k8s.io/utils v0.0.0-20230209194617-a36077c30491 // indirect
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
 	oras.land/oras-go v1.2.0 // indirect
 	sigs.k8s.io/gateway-api v0.4.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
