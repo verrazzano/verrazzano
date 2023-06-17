@@ -32,10 +32,13 @@ const (
 )
 
 var (
-	t                 = framework.NewTestFramework("capi-ocne-driver")
-	httpClient        *retryablehttp.Client
-	rancherURL        string
-	cloudCredentialID string
+	t                     = framework.NewTestFramework("capi-ocne-driver")
+	httpClient            *retryablehttp.Client
+	rancherURL            string
+	cloudCredentialID     string
+	clusterNameSingleNode string
+	clusterNameNodePool   string
+	cloudCredentialName   string
 )
 
 type RancherOcicredentialConfig struct {
@@ -121,8 +124,6 @@ type RancherOCNECluster struct {
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	//TODO oci get to check it's working
-
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsClusterAPIEnabled(kubeconfigPath) {
@@ -138,8 +139,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
 	}
-	t.Logs.Infof("rancherURL: %s", rancherURL)
 
+	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 	Eventually(func() error {
 		cloudCredentialID, err = createCloudCredential(cloudCredentialName)
 		return err
@@ -152,14 +153,15 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
+	// FIXME: delete BOTH clusters
 	// Delete the OCNE cluster
 	Eventually(func() error {
-		return deleteCluster(clusterName)
+		return deleteCluster(clusterNameNodePool)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	// Verify the cluster is deleted
-	Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
-		BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
+	Eventually(func() (bool, error) { return isClusterDeleted(clusterNameNodePool) }, waitTimeout, pollingInterval).Should(
+		BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterNameNodePool))
 
 	// Delete the credential
 	deleteCredential(cloudCredentialID)
@@ -170,19 +172,36 @@ var afterSuite = t.AfterSuiteFunc(func() {
 })
 var _ = AfterSuite(afterSuite)
 
-var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), Serial, func() {
-	t.Context("OCNE cluster creation", func() {
+var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
+	t.Context("OCNE cluster creation - single node", func() {
 		t.It("create OCNE cluster", func() {
+			clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 			// Create the cluster
 			Eventually(func() error {
-				return createCluster(clusterName)
+				return createSingleNodeCluster(clusterNameSingleNode)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
-		t.It("Check OCNE cluster is active", func() {
+		t.It("check OCNE cluster is active", func() {
 			// Verify the cluster is active
-			Eventually(func() (bool, error) { return isClusterActive(clusterName) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterName))
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterNameSingleNode))
+		})
+	})
+
+	t.Context("OCNE cluster creation with node pools", func() {
+		t.It("create OCNE cluster", func() {
+			clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
+			// Create the cluster
+			Eventually(func() error {
+				return createNodePoolCluster(clusterNameNodePool)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		})
+
+		t.It("check OCNE cluster is active", func() {
+			// Verify the cluster is active
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterNameNodePool))
 		})
 	})
 })
@@ -198,7 +217,7 @@ func isCredentialDeleted(credID string) (bool, error) {
 		return false, err
 	}
 	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
-	fmt.Println("Delete credential jsonData: " + jsonData)
+	// fmt.Println("Delete credential jsonData: " + jsonData)
 	return jsonData == "[]", nil
 }
 
@@ -271,9 +290,8 @@ func createCloudCredential(credentialName string) (string, error) {
 	return credID, nil
 }
 
-// Creates an OCNE cluster through ClusterAPI
-func createCluster(clusterName string) error {
-	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster")
+// Creates a single node OCNE Cluster through CAPI
+func createSingleNodeCluster(clusterName string) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading node public key file: %v", err)
@@ -337,7 +355,81 @@ func createCluster(clusterName string) error {
 	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
 	rancherOCNEClusterConfig.Labels = struct{}{}
 
-	clusterBData, err := json.Marshal(rancherOCNEClusterConfig)
+	return createCluster(clusterName, rancherOCNEClusterConfig)
+}
+
+// Creates a OCNE Cluster with node pools through CAPI
+func createNodePoolCluster(clusterName string) error {
+	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
+	if err != nil {
+		t.Logs.Infof("error reading node public key file: %v", err)
+		return err
+	}
+
+	// Fill in the values for the create cluster API request body
+	var rancherOCNEEngineConfig RancherOCIOCNEEngine
+	rancherOCNEEngineConfig.CalicoImagePath = "olcne"
+	rancherOCNEEngineConfig.CloudCredentialID = cloudCredentialID
+	rancherOCNEEngineConfig.ClusterCidr = "10.96.0.0/16"
+	rancherOCNEEngineConfig.CompartmentID = compartmentID
+	rancherOCNEEngineConfig.ControlPlaneMemoryGbs = 16
+	rancherOCNEEngineConfig.ControlPlaneOcpus = 2
+	rancherOCNEEngineConfig.ControlPlaneShape = "VM.Standard.E4.Flex"
+	rancherOCNEEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
+	rancherOCNEEngineConfig.ControlPlaneVolumeGbs = 100
+	rancherOCNEEngineConfig.CorednsImageTag = "v1.9.3"
+	rancherOCNEEngineConfig.DisplayName = clusterName
+	rancherOCNEEngineConfig.DriverName = "ociocneengine"
+	rancherOCNEEngineConfig.EtcdImageTag = "3.5.6"
+	rancherOCNEEngineConfig.ImageDisplayName = "Oracle-Linux-8.7-2023.05.24-0"
+	rancherOCNEEngineConfig.ImageID = ""
+	rancherOCNEEngineConfig.InstallCalico = true
+	rancherOCNEEngineConfig.InstallCcm = true
+	rancherOCNEEngineConfig.InstallVerrazzano = false
+	rancherOCNEEngineConfig.KubernetesVersion = "v1.25.7"
+	rancherOCNEEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
+	rancherOCNEEngineConfig.Name = ""
+	rancherOCNEEngineConfig.NodePublicKeyContents = nodePublicKeyContents
+	rancherOCNEEngineConfig.NumControlPlaneNodes = 1
+	rancherOCNEEngineConfig.OcneVersion = "1.6"
+	rancherOCNEEngineConfig.PodCidr = "10.244.0.0/16"
+	rancherOCNEEngineConfig.PrivateRegistry = ""
+	rancherOCNEEngineConfig.ProxyEndpoint = ""
+	rancherOCNEEngineConfig.Region = region
+	rancherOCNEEngineConfig.SkipOcneInstall = false
+	rancherOCNEEngineConfig.TigeraImageTag = "v1.29.0"
+	rancherOCNEEngineConfig.UseNodePvEncryption = true
+	rancherOCNEEngineConfig.VcnID = vcnID
+	rancherOCNEEngineConfig.VerrazzanoResource = "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster"
+	rancherOCNEEngineConfig.VerrazzanoTag = "v1.6.0-20230609132620-44e8f4d1"
+	rancherOCNEEngineConfig.VerrazzanoVersion = "1.6.0-4574+44e8f4d1"
+	rancherOCNEEngineConfig.WorkerNodeSubnet = workerNodeSubnet
+	rancherOCNEEngineConfig.Type = "ociocneEngineConfig"
+	rancherOCNEEngineConfig.ClusterName = ""
+	rancherOCNEEngineConfig.NodeShape = "VM.Standard.E4.Flex"
+	rancherOCNEEngineConfig.NumWorkerNodes = 1
+	rancherOCNEEngineConfig.NodePools = []interface{}{}
+	rancherOCNEEngineConfig.ApplyYamls = []interface{}{}
+
+	var rancherOCNEClusterConfig RancherOCNECluster
+	rancherOCNEClusterConfig.DockerRootDir = "/var/lib/docker"
+	rancherOCNEClusterConfig.EnableClusterAlerting = false
+	rancherOCNEClusterConfig.EnableClusterMonitoring = false
+	rancherOCNEClusterConfig.EnableNetworkPolicy = false
+	rancherOCNEClusterConfig.WindowsPreferedCluster = false
+	rancherOCNEClusterConfig.Type = "cluster"
+	rancherOCNEClusterConfig.Name = clusterName
+	rancherOCNEClusterConfig.OciocneEngineConfig = rancherOCNEEngineConfig
+	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
+	rancherOCNEClusterConfig.Labels = struct{}{}
+
+	return createCluster(clusterName, rancherOCNEClusterConfig)
+}
+
+// Creates an OCNE cluster through ClusterAPI
+func createCluster(clusterName string, requestPayload RancherOCNECluster) error {
+	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster?_replace=true")
+	clusterBData, err := json.Marshal(requestPayload)
 	if err != nil {
 		t.Logs.Errorf("json marshalling error: %v", zap.Error(err))
 		return err
@@ -407,7 +499,7 @@ func isClusterActive(clusterName string) (bool, error) {
 	response = helpers.Runner(&cmd, t.Logs)
 	t.Logs.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
 
-	t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
+	// t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
