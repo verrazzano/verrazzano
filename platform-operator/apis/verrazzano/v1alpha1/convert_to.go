@@ -9,6 +9,8 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,9 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
-
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -786,7 +785,8 @@ func convertClusterAPIToV1Beta1(src *ClusterAPIComponent) *v1beta1.ClusterAPICom
 		return nil
 	}
 	return &v1beta1.ClusterAPIComponent{
-		Enabled: src.Enabled,
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 
