@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
-	"sigs.k8s.io/yaml"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -19,10 +18,10 @@ import (
 var trueValue = true
 var falseValue = false
 
-type FluentBitOperatorEnabledModifier struct {
+type FluentOperatorEnabledModifier struct {
 }
 
-func (u FluentBitOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u FluentOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.FluentOperator = &vzapi.FluentOperatorComponent{
 		Enabled: &trueValue,
 	}
@@ -32,7 +31,6 @@ func (u FluentBitOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Fluentd = &vzapi.FluentdComponent{
 		Enabled: &falseValue,
 	}
-	t.Logs.Debugf("FluentBitOperatorEnabledModifier CR: %v", marshalCRToString(cr.Spec))
 }
 
 const (
@@ -46,7 +44,7 @@ const (
 )
 
 var (
-	t = framework.NewTestFramework("infra")
+	t = framework.NewTestFramework("fluent-operator")
 )
 
 var _ = t.AfterEach(func() {})
@@ -60,18 +58,17 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		Fail(err.Error())
 	}
 
-	m := FluentBitOperatorEnabledModifier{}
+	m := FluentOperatorEnabledModifier{}
 	update.UpdateCRWithRetries(m, longPollingInterval, longWaitTimeout)
-
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN FluentBit operator is enabled,
-	// THEN pods for fluentbit-operator components gets created.
+	// WHEN Fluent operator is enabled,
+	// THEN pods for fluent-operator components gets created.
 	update.ValidatePods(fluentBitOperatorLabelValue, fluentBitComponentLabel, constants.VerrazzanoSystemNamespace, 1, false)
 	update.ValidatePods(fluentBitLabelValue, fluentBitComponentLabel, constants.VerrazzanoSystemNamespace, nodeCount, false)
 })
 
 // GIVEN a VZ custom resource in dev profile,
-// WHEN FluentBit operator is enabled, and Fluentd is disabled
+// WHEN Fluent operator is enabled, and Fluentd is disabled
 // THEN expect the Opensearch index for the verrazzano-system exists
 var _ = t.Describe("Verify FluentBit Post Install infra", func() {
 	t.It("verrazzano-system index is present", func() {
@@ -80,7 +77,7 @@ var _ = t.Describe("Verify FluentBit Post Install infra", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 	})
 
-	// GIVEN FluentBit operator is enabled, and Fluentd is disabled
+	// GIVEN Fluent operator is enabled, and Fluentd is disabled
 	// WHEN the log records are retrieved from the Opensearch verrazzano-system index
 	// THEN verify that at least one recent log record is found
 	t.It("Verify recent Opensearch log record exists", func() {
@@ -91,12 +88,3 @@ var _ = t.Describe("Verify FluentBit Post Install infra", func() {
 	})
 
 })
-
-func marshalCRToString(cr interface{}) string {
-	data, err := yaml.Marshal(cr)
-	if err != nil {
-		t.Logs.Errorf("Error marshalling CR to string")
-		return ""
-	}
-	return string(data)
-}

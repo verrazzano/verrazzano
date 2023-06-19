@@ -10,5 +10,5 @@ import (
 
 func TestTopology(test *testing.T) {
 	t.RegisterFailHandler()
-	ginkgo.RunSpecs(test, "FluentBit Operator Install Suite")
+	ginkgo.RunSpecs(test, "Fluent Operator Install Suite")
 }
