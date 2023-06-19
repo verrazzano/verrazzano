@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"context"
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -13,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
@@ -140,29 +140,11 @@ func (c clusterAPIComponent) GetJSONName() string {
 
 // GetOverrides returns the Helm override sources for a component
 func (c clusterAPIComponent) GetOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.ClusterAPI != nil {
-			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
-		}
-		return []v1alpha1.Overrides{}
-	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.ClusterAPI != nil {
-			return effectiveCR.Spec.Components.ClusterAPI.ValueOverrides
-		}
-		return []v1beta1.Overrides{}
-	}
-
-	return []v1alpha1.Overrides{}
+	return nil
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
 func (c clusterAPIComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	if ctx.EffectiveCR().Spec.Components.ClusterAPI != nil {
-		if ctx.EffectiveCR().Spec.Components.ClusterAPI.MonitorChanges != nil {
-			return *ctx.EffectiveCR().Spec.Components.ClusterAPI.MonitorChanges
-		}
-		return true
-	}
 	return false
 }
 
@@ -172,8 +154,8 @@ func (c clusterAPIComponent) IsOperatorInstallSupported() bool {
 
 // IsInstalled checks to see if ClusterAPI is installed
 func (c clusterAPIComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	deployment := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, deployment)
+	daemonSet := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
@@ -185,46 +167,26 @@ func (c clusterAPIComponent) IsInstalled(ctx spi.ComponentContext) (bool, error)
 }
 
 func (c clusterAPIComponent) PreInstall(ctx spi.ComponentContext) error {
-	// If already installed, treat as an upgrade
-	installed, err := c.IsInstalled(ctx)
-	if err != nil {
-		return err
-	}
-	if installed {
-		return preUpgrade(ctx)
-	}
-
 	return preInstall(ctx)
 }
 
 func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
-	// If already installed, treat as an upgrade
-	installed, err := c.IsInstalled(ctx)
-	if err != nil {
-		return err
-	}
-	if installed {
-		return c.Upgrade(ctx)
-	}
-
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
 
-	overrides, err := createOverrides(ctx)
+	overrides, err := getImageOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
-	overridesContext := newOverridesContext(overrides)
-
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
 		TargetNamespace:         ComponentNamespace,
 	}
 
@@ -250,19 +212,17 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createOverrides(ctx)
+	overrides, err := getImageOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
-	overridesContext := newOverridesContext(overrides)
-
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overrides.OCIVersion)},
 		IncludeNamespace:        true,
 	}
 	return capiClient.Delete(deleteOptions)
@@ -282,19 +242,17 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createOverrides(ctx)
+	overrides, err := getImageOverrides(ctx)
 	if err != nil {
 		return err
 	}
-	overridesContext := newOverridesContext(overrides)
 
 	// Set up the upgrade options for the CAPI apply upgrade.
-	const formatString = "%s/%s:%s"
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
-		CoreProvider:            fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
+		CoreProvider:            fmt.Sprintf("%s/%s:%s", ComponentNamespace, clusterAPIProviderName, overrides.APIVersion),
+		BootstrapProviders:      []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEBootstrapVersion)},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ocneProviderName, overrides.OCNEControlPlaneVersion)},
+		InfrastructureProviders: []string{fmt.Sprintf("%s/%s:%s", ComponentNamespace, ociProviderName, overrides.OCIVersion)},
 	}
 
 	return capiClient.ApplyUpgrade(applyUpgradeOptions)

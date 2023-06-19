@@ -5,10 +5,9 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"path"
-
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -35,7 +34,6 @@ const (
 	testDevProfile            = "dev"
 	testManagedClusterProfile = "managed-cluster"
 	testCaseClusterOperator   = "clusteroperator"
-	testCaseClusterAPI        = "clusterapi"
 )
 
 type converisonTestCase struct {

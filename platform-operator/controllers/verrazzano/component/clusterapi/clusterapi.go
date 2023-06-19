@@ -6,41 +6,43 @@ package clusterapi
 import (
 	"bytes"
 	"os"
+	"strings"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const clusterctlYamlTemplate = `
 images:
   cluster-api:
-    repository: {{.GetClusterAPIRepository}}
-    tag: {{.GetClusterAPITag}}
+    repository: {{.APIRepository}}
+    tag: {{.APITag}}
 
   infrastructure-oci:
-    repository: {{.GetOCIRepository}}
-    tag: {{.GetOCITag}}
+    repository: {{.OCIRepository}}
+    tag: {{.OCITag}}
 
   bootstrap-ocne:
-    repository: {{.GetOCNEBootstrapRepository}}
-    tag: {{.GetOCNEBootstrapTag}}
-
+    repository: {{.OCNEBootstrapRepository}}
+    tag: {{.OCNEBootstrapTag}}
   control-plane-ocne:
-    repository: {{.GetOCNEControlPlaneRepository}}
-    tag: {{.GetOCNEControlPlaneTag}}
+    repository: {{.OCNEControlPlaneRepository}}
+    tag: {{.OCNEControlPlaneTag}}
 
 providers:
   - name: "cluster-api"
-    url: "{{.GetClusterAPIURL}}"
+    url: "/verrazzano/capi/cluster-api/{{.APIVersion}}/core-components.yaml"
     type: "CoreProvider"
   - name: "oci"
-    url: "{{.GetOCIURL}}"
+    url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
     type: "InfrastructureProvider"
   - name: "ocne"
-    url: "{{.GetOCNEBootstrapURL}}"
+    url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
     type: "BootstrapProvider"
   - name: "ocne"
-    url: "{{.GetOCNEControlPlaneURL}}"
+    url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
     type: "ControlPlaneProvider"
 `
 
@@ -55,6 +57,21 @@ type ImageConfig struct {
 	Version    string
 	Repository string
 	Tag        string
+}
+
+type TemplateInput struct {
+	APIVersion                 string
+	APIRepository              string
+	APITag                     string
+	OCIVersion                 string
+	OCIRepository              string
+	OCITag                     string
+	OCNEBootstrapVersion       string
+	OCNEBootstrapRepository    string
+	OCNEBootstrapTag           string
+	OCNEControlPlaneVersion    string
+	OCNEControlPlaneRepository string
+	OCNEControlPlaneTag        string
 }
 
 const (
@@ -120,26 +137,99 @@ func setEnvVariables() error {
 // createClusterctlYaml creates clusterctl.yaml with image overrides from the Verrazzano BOM
 func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
-	overrides, err := createOverrides(ctx)
+	templateInput, err := getImageOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
-	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
+	result, err := applyTemplate(clusterctlYamlTemplate, templateInput)
 	if err != nil {
 		return err
 	}
 
 	err = os.Mkdir(clusterAPIDir, 0755)
 	if err != nil {
-		if !os.IsExist(err) {
-			return err
-		}
+		return err
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
 	return os.WriteFile(clusterAPIDir+"/clusterctl.yaml", result.Bytes(), 0600)
+}
+
+// getImageOverrides returns the CAPI provider image overrides and versions from the Verrazzano bom
+func getImageOverrides(ctx spi.ComponentContext) (*TemplateInput, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, ctx.Log().ErrorNewErr("Failed to get the BOM file for the capi image overrides: ", err)
+	}
+
+	templateInput := &TemplateInput{}
+	imageConfig, err := getImageOverride(ctx, bomFile, "capi-cluster-api", "")
+	if err != nil {
+		return nil, err
+	}
+	templateInput.APIVersion = imageConfig.Version
+	templateInput.APIRepository = imageConfig.Repository
+	templateInput.APITag = imageConfig.Tag
+
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-oci", "")
+	if err != nil {
+		return nil, err
+	}
+	templateInput.OCIVersion = imageConfig.Version
+	templateInput.OCIRepository = imageConfig.Repository
+	templateInput.OCITag = imageConfig.Tag
+
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
+	if err != nil {
+		return nil, err
+	}
+	templateInput.OCNEBootstrapVersion = imageConfig.Version
+	templateInput.OCNEBootstrapRepository = imageConfig.Repository
+	templateInput.OCNEBootstrapTag = imageConfig.Tag
+
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-control-plane-controller")
+	if err != nil {
+		return nil, err
+	}
+	templateInput.OCNEControlPlaneVersion = imageConfig.Version
+	templateInput.OCNEControlPlaneRepository = imageConfig.Repository
+	templateInput.OCNEControlPlaneTag = imageConfig.Tag
+
+	return templateInput, nil
+}
+
+// getImageOverride returns the image override and version for a given CAPI provider.
+func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component string, imageName string) (image *ImageConfig, err error) {
+	version, err := bomFile.GetComponentVersion(component)
+	if err != nil {
+		return nil, err
+	}
+
+	images, err := bomFile.GetImageNameList(component)
+	if err != nil {
+		return nil, err
+	}
+
+	var repository string
+	var tag string
+
+	for _, image := range images {
+		if len(imageName) == 0 || strings.Contains(image, imageName) {
+			imageSplit := strings.Split(image, ":")
+			tag = imageSplit[1]
+			index := strings.LastIndex(imageSplit[0], "/")
+			repository = imageSplit[0][:index]
+			break
+		}
+	}
+
+	if len(repository) == 0 || len(tag) == 0 {
+		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
+	}
+
+	return &ImageConfig{Version: version, Repository: repository, Tag: tag}, nil
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
