@@ -762,10 +762,20 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if vz.Spec.Components.CertManager == nil {
-		return "", nil
+
+	// first check if letsEncrypt configured in clusterIssuer component
+	clusterIssuer := vz.Spec.Components.ClusterIssuer
+	if clusterIssuer != nil && clusterIssuer.LetsEncrypt != nil {
+		Log(Info, fmt.Sprintf("Let's Encrypt env is %s", clusterIssuer.LetsEncrypt.Environment))
+		return clusterIssuer.LetsEncrypt.Environment, nil
 	}
-	return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
+
+	// then check if letsEncrypt configured in cert-manager certificate field
+	certManager := vz.Spec.Components.CertManager
+	if certManager != nil && strings.ToLower(string(certManager.Certificate.Acme.Provider)) == strings.ToLower(string(v1alpha1.LetsEncrypt)) {
+		return certManager.Certificate.Acme.Environment, nil
+	}
+	return "", nil
 }
 
 // IsCoherenceOperatorEnabled returns true if the COH operator component is not set, or the value of its Enabled field otherwise

@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230613145236-da921e6fd",
-              "rancherUI": "v2.7.2-6/release-2.7.2",
-              "ocneDriverVersion": "v0.10.0",
-              "ocneDriverChecksum": "cc93d8cc0136ae3cc304135548405a2b29b952f6e12a83def275a5a15975270c",
-              "tag": "v2.7.3-20230614185040-cfcd49258",
+              "dashboard": "v2.7.2-20230615210154-513bc4d98",
+              "rancherUI": "v2.7.2-7/release-2.7.2",
+              "ocneDriverVersion": "v0.11.0",
+              "ocneDriverChecksum": "920acca03c8606b0f234042bbe74fbe7d12e12e471b361159ab6975268d82352",
+              "tag": "v2.7.3-20230616132507-cfcd49258",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230614185040-cfcd49258"
+              "tag": "v2.7.3-20230616132507-cfcd49258"
             }
           ]
         },
@@ -467,7 +467,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230526122409-3662eb4",
+              "tag": "v2.2.0-20230616102644-d8debc6",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },

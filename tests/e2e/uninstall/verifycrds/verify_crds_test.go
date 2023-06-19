@@ -111,16 +111,14 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	if err != nil {
 		Fail(err.Error())
 	}
-
+	if vmoEnabled {
+		for key, value := range vmoCRDs {
+			verrazzanoiocrds[key] = value
+		}
+	}
 	t.It("Check for expected verrazzano.io CRDs", func() {
 		checkCrds(crds, verrazzanoiocrds, "verrazzano.io")
 	})
-
-	if vmoEnabled {
-		t.It("Check for expected Verrazzano monitoring operator CRDs", func() {
-			checkCrds(crds, vmoCRDs, "verrazzano.io")
-		})
-	}
 
 	t.It("Check for expected istio.io CRDs", func() {
 		checkCrds(crds, istioiocrds, "istio.io")
