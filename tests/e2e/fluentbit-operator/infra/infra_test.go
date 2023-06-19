@@ -41,6 +41,7 @@ const (
 	fluentBitComponentLabel     = "app.kubernetes.io/name"
 	fluentBitOperatorLabelValue = "fluent-operator"
 	fluentBitLabelValue         = "fluent-bit"
+	fluentDLabelValue           = "fluentd"
 )
 
 var (
@@ -65,6 +66,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// THEN pods for fluent-operator components gets created.
 	update.ValidatePods(fluentBitOperatorLabelValue, fluentBitComponentLabel, constants.VerrazzanoSystemNamespace, 1, false)
 	update.ValidatePods(fluentBitLabelValue, fluentBitComponentLabel, constants.VerrazzanoSystemNamespace, nodeCount, false)
+	update.ValidatePods(flue, fluentBitComponentLabel, constants.VerrazzanoSystemNamespace, nodeCount, false)
+
 })
 
 // GIVEN a VZ custom resource in dev profile,
