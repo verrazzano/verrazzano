@@ -214,24 +214,24 @@ spec:
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
-  name: ${CLUSTER_NAME}-ccm-configmap
+  name: ${CLUSTER_NAME}-ccm-secret
   namespace: ${NAMESPACE}
 spec:
   clusterSelector:
     matchLabels:
       cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
   resources:
-    - kind: ConfigMap
-      name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+    - kind: Secret
+      name: ${CLUSTER_NAME}-oci-cloud-controller-manager-secret
   strategy: Reconcile
 ---
 apiVersion: v1
-data:
+stringData:
   cloud-controller-manager.yaml: |
     apiVersion: v1
     kind: Secret
     metadata:
-      name: oci-cloud-controller-manager
+      name: oci-cloud-controller-manager-secret
       namespace: kube-system
     stringData:
       cloud-provider.yaml: |-
@@ -257,31 +257,32 @@ data:
           rateLimitBucketRead: 5
           rateLimitQPSWrite: 20.0
           rateLimitBucketWrite: 5
-kind: ConfigMap
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
 metadata:
   annotations:
     note: generated
   labels:
     type: generated
-  name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+  name: ${CLUSTER_NAME}-oci-cloud-controller-manager-secret
   namespace: ${NAMESPACE}
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
-  name: ${CLUSTER_NAME}-csi-configmap
+  name: ${CLUSTER_NAME}-csi-secret
   namespace: ${NAMESPACE}
 spec:
   clusterSelector:
     matchLabels:
       cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
   resources:
-    - kind: ConfigMap
-      name: ${CLUSTER_NAME}-oci-csi
+    - kind: Secret
+      name: ${CLUSTER_NAME}-oci-csi-secret
   strategy: Reconcile
 ---
 apiVersion: v1
-data:
+stringData:
   csi.yaml: |
     apiVersion: v1
     kind: Secret
@@ -312,13 +313,14 @@ data:
           rateLimitBucketRead: 5
           rateLimitQPSWrite: 20.0
           rateLimitBucketWrite: 5
-kind: ConfigMap
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
 metadata:
   annotations:
     note: generated
   labels:
     type: generated
-  name: ${CLUSTER_NAME}-oci-csi
+  name: ${CLUSTER_NAME}-oci-csi-secret
   namespace: ${NAMESPACE}
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta1
@@ -380,20 +382,19 @@ data:
     spec:
       moduleName: calico
       targetNamespace: default
-      overrides:
-        - values:
-            tigeraOperator:
-              version: ${TIGERA_TAG=v1.29.0}
-            installation:
-              cni:
-                type: Calico
-              calicoNetwork:
-                bgp: Disabled
-                ipPools:
-                  - cidr: ${POD_CIDR}
-                    encapsulation: VXLAN
-              registry: ${OCNE_IMAGE_REPOSITORY}
-              imagePath: ${OCNE_IMAGE_PATH}
+      values:
+        tigeraOperator:
+          version: ${TIGERA_TAG=v1.29.0}
+        installation:
+          cni:
+            type: Calico
+          calicoNetwork:
+            bgp: Disabled
+            ipPools:
+              - cidr: ${POD_CIDR}
+                encapsulation: VXLAN
+          registry: ${OCNE_IMAGE_REPOSITORY}
+          imagePath: ${OCNE_IMAGE_PATH}
 kind: ConfigMap
 metadata:
   annotations:
