@@ -348,7 +348,6 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 	}
 
 	var tag string
-
 	for _, image := range images {
 		if len(imageName) == 0 || strings.Contains(image, imageName) {
 			imageSplit := strings.Split(image, ":")
@@ -361,5 +360,10 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
 	}
 
-	return &ImageConfig{Version: version, Repository: subComp.Repository, Tag: tag}, nil
+	repo := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	if len(repo) == 0 {
+		repo = subComp.Repository
+	}
+
+	return &ImageConfig{Version: version, Repository: repo, Tag: tag}, nil
 }
