@@ -26,13 +26,13 @@ Component version updates:
 Components added:
 - Thanos v0.30.2
 - Fluent Operator v2.2.0
-- FluentbitOpensearchOutput v1.0.0
+- FluentbitOpensearchOutput Helm chart v1.6.0
 
 Fixes:
 
 - Disabled the startupapicheck job in cert-manager startup.
-- Fixes an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
-- Fixes an issue where not defining the replicas for default OpenSearch node pools in the Verrazzano CR caused the pods to terminate.
+- Fixed an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
+- Fixed an issue where not defining the replicas for default OpenSearch node pools in the Verrazzano CR caused the pods to terminate.
 
 ### v1.5.0
 Features:
