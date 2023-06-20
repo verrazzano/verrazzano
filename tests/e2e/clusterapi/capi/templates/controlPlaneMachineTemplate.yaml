@@ -1,0 +1,17 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+  name: {{.Name}}-control-plane
+  namespace: {{.Namespace}}
+spec:
+  template:
+    spec:
+      bootVolumeSizeInGBs: "{{.OCIBootVolumeSize}}"
+      compartmentId: {{.OCICompartmentID}}
+      imageId: {{.OCIImageOcid}}
+      isPvEncryptionInTransitEnabled: {{.OCINodePvEncryption}}
+      metadata:
+        ssh_authorized_keys: {{.OCINodeSSHKey}}
+      shape: {{.OCIControlPlaneShape}}
+      shapeConfig:
+        ocpus: "{{.OCIControlPlaneOcpu}}"

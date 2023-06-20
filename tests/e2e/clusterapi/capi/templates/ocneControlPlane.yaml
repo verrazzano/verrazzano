@@ -1,0 +1,45 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: OCNEControlPlane
+metadata:
+  name: {{.Name}}-control-plane
+  namespace: {{.Namespace}}
+spec:
+  moduleOperator:
+    enabled: true
+  controlPlaneConfig:
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+          - localhost
+          - 127.0.0.1
+      dns:
+        imageRepository: {{.OCNEImageRepository}}/{{.OcneImagePath}}
+        imageTag: {{.DNSTag}}
+      etcd:
+        local:
+          imageRepository: {{.OCNEImageRepository}}/{{.OcneImagePath}}
+          imageTag: {{.ETCDTag}}
+      networking: {}
+      scheduler: {}
+      imageRepository: {{.OCNEImageRepository}}/{{.OcneImagePath}}
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+          provider-id: oci://{{ ds["id"] }}
+    joinConfiguration:
+      discovery: {}
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+          provider-id: oci://{{ ds["id"] }}
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: OCIMachineTemplate
+      name: {{.Name}}-control-plane
+      namespace: {{.Namespace}}
+  replicas: {{.ControlPlaneCount}}
+  version: {{.KubernetesVersion}}

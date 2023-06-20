@@ -8,6 +8,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	capicomponent "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"go.uber.org/zap"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -82,13 +86,14 @@ func getImageOverride(bomFile bom.Bom, component string, imageName string) (imag
 }
 
 // getImageOverrides returns the CAPI provider image overrides and versions from the Verrazzano bom
-func getImageOverrides() (*capicomponent.TemplateInput, error) {
+func getImageOverrides() (*TemplateInput, error) {
+
 	bomFile, err := bom.NewBom("../../../../platform-operator/verrazzano-bom.json")
 	if err != nil {
 		return nil, fmt.Errorf(fmt.Sprintf("Failed to get the BOM file for the capi image overrides: %v", zap.Error(err)))
 	}
 
-	templateInput := &capicomponent.TemplateInput{}
+	templateInput := &TemplateInput{}
 	imageConfig, err := getImageOverride(bomFile, "capi-cluster-api", "")
 	if err != nil {
 		return nil, err
@@ -194,7 +199,7 @@ func printYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
 }
 
 func clusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) error {
-	log.Info("Generate called ...")
+	log.Infof("Generate called for clustername '%s'...", clusterName)
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
@@ -228,11 +233,76 @@ func clusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredL
 	}
 
 	log.Infof("Temp file name = %v", tmpFile.Name())
-	CapiGeneratedTemplatePath = tmpFile.Name()
+	ClusterTemplateGeneratedFilePath = tmpFile.Name()
 
 	return printYamlOutput(template, tmpFile.Name())
 }
 
-func createCAPICluster(clusterName, templatePath string, log *zap.SugaredLogger) error {
+/*
+func newRestClient(restConfig rest.Config, gv schema.GroupVersion) (rest.Interface, error) {
+	restConfig.ContentConfig = resource.UnstructuredPlusDefaultContentConfig()
+	restConfig.GroupVersion = &gv
+	if len(gv.Group) == 0 {
+		restConfig.APIPath = "/api"
+	} else {
+		restConfig.APIPath = "/apis"
+	}
+
+	return rest.RESTClientFor(&restConfig)
+}
+
+
+func createObject(kubeClientset kubernetes.Interface, restConfig rest.Config, obj runtime.Object) error {
+    // Create a REST mapper that tracks information about the available resources in the cluster.
+    groupResources, err := restmapper.GetAPIGroupResources(kubeClientset.Discovery())
+    if err != nil {
+        return err
+    }
+    rm := restmapper.NewDiscoveryRESTMapper(groupResources)
+
+    // Get some metadata needed to make the REST request.
+    gvk := obj.GetObjectKind().GroupVersionKind()
+    gk := schema.GroupKind{Group: gvk.Group, Kind: gvk.Kind}
+    mapping, err := rm.RESTMapping(gk, gvk.Version)
+    if err != nil {
+        return err
+    }
+
+    // Create a client specifically for creating the object.
+    restClient, err := newRestClient(restConfig, mapping.GroupVersionKind.GroupVersion())
+    if err != nil {
+        return err
+    }
+
+    // Use the REST helper to create the object in the "default" namespace.
+    restHelper := resource.NewHelper(restClient, mapping)
+	_, err = restHelper.Create("default", false, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+*/
+
+func triggerCapiClusterCreation(templatePath string, log *zap.SugaredLogger) error {
+	//client, err := k8sutil.GetKubernetesClientset()
+	//if err != nil {
+	//	return err
+	//}
+	log.Infof("+++ Generated File Path name = %s +++", templatePath)
+	sch := runtime.NewScheme()
+	_ = scheme.AddToScheme(sch)
+	_ = apiextv1beta1.AddToScheme(sch)
+
+	decode := serializer.NewCodecFactory(sch).UniversalDeserializer().Decode
+	stream, _ := os.ReadFile(templatePath)
+	obj, gKV, _ := decode(stream, nil, nil)
+	//if gKV.Kind == "CustomResourceDefinition" {
+	//	pod := obj.(*apiextv1beta1.CustomResourceDefinition)
+	//	spew.Dump(pod)
+	//}
+	log.Infof("++ Object = %+v +++", obj)
+	log.Infof("++ gkv = %+v +++", gKV)
+	return nil
 
 }
