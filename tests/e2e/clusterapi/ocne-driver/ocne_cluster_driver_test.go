@@ -219,7 +219,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
 		t.It("create OCNE cluster", func() {
-			nodePoolName  := fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
+			nodePoolName := fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
 			// Create the cluster
 			Eventually(func() error {
 				return createNodePoolCluster(clusterNameNodePool, nodePoolName)
