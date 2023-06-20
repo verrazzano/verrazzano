@@ -27,7 +27,7 @@ import (
 const (
 	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 120 * time.Minute
+	waitTimeout          = 45 * time.Minute
 	pollingInterval      = 30 * time.Second
 )
 
@@ -173,7 +173,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
-	t.Context("OCNE cluster creation - single node", func() {
+	t.Context("OCNE cluster creation - single node", Ordered, func() {
 		t.It("create OCNE cluster", func() {
 			clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 			// Create the cluster
@@ -189,7 +189,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 	})
 
-	t.Context("OCNE cluster creation with node pools", func() {
+	t.Context("OCNE cluster creation with node pools", Ordered, func() {
 		t.It("create OCNE cluster", func() {
 			clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 			// Create the cluster
