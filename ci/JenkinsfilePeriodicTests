@@ -14,6 +14,7 @@ def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
 def agentLabel = "phxsmall_1_5"
+def VERSIONED_IMAGES_FILENAME = ""
 @Field
 def TESTS_FAILED = false
 @Field
@@ -479,6 +480,21 @@ pipeline {
                         }
                     }
                     post {
+                        success {
+                            script {
+                                if (verrazzanoImagesBuildNumber > 0) {
+                                    copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
+                                        selector: specific("${verrazzanoImagesBuildNumber}"),
+                                        filter: verrazzanoImagesFile)
+                                    sh """
+                                        # Save the images.txt intp the commit specific location, if we have a clean periodic it will copy the images from here to the branch as the current ones
+                                        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VERSIONED_IMAGES_FILENAME} --file ${verrazzanoImagesFile}
+                                    """
+                                } else {
+                                    println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
+                                }
+                            }
+                        }
                         failure {
                             script {
                                 TESTS_FAILED = true
@@ -542,16 +558,7 @@ pipeline {
     post {
         always {
             script {
-                if (verrazzanoImagesBuildNumber > 0) {
-                    copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
-                            selector: specific("${verrazzanoImagesBuildNumber}"),
-                            filter: verrazzanoImagesFile)
-                    sh """
-                        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/${RELEASABLE_IMAGES_OBJECT_STORE} --file ${verrazzanoImagesFile}
-                    """
-                } else {
-                    println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
-                }
+                // We don't update any object storage artifacts if this run didn't re-run anything (ie: if it was "UpToDate")
                 if (!periodicsUpToDate && !periodicsUpToDateFailed) {
                     sh """
                         # Update the last periodic commit
@@ -706,7 +713,7 @@ def cleanWorkspaceAndCheckout() {
     storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
     fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
     liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
-    RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
+    VERSIONED_IMAGES_FILENAME = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
 }
 
 // Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
