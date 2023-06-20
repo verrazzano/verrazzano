@@ -141,7 +141,7 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	postUninstallFunc = func(ctx spi.ComponentContext) error {
+	postUninstallFunc = func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 		return nil
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
@@ -178,7 +178,7 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	postUninstallFunc = func(ctx spi.ComponentContext) error {
+	postUninstallFunc = func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 		return fmt.Errorf("Unexpected error on uninstall")
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
@@ -692,7 +692,7 @@ func TestCleanupJob(t *testing.T) {
 	setCleanupJobYamlPath("../../../../thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml")
 
 	// Expect the job to get created
-	err := runCleanupJob(ctx)
+	err := runCleanupJob(ctx, nil)
 	a.Error(err)
 	job := batchv1.Job{}
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)
