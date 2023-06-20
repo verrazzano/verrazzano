@@ -138,8 +138,6 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	}
 
 	return forkPostUninstallFunc(ctx, monitor)
-
-	return nil
 }
 
 // cleanupRemainingResources cleans up some resources that remain after the Rancher cleanup job is completed.
@@ -199,11 +197,8 @@ func rancherArtifactsExist(ctx spi.ComponentContext) bool {
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Name: "cattle-fleet-system",
 	}, ns)
-	if err != nil {
-		return false
-	}
 
-	return true
+	return err == nil
 }
 
 // forkPostUninstall - fork uninstall install of Rancher
@@ -248,10 +243,9 @@ func runCleanupJob(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 			if rancherArtifactsExist(ctx) {
 				ctx.Log().Infof("Component %s created cleanup job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 				return createCleanupJob(ctx)
-			} else {
-				// job isn't started, indicate that background job is completed
-				monitor.SetCompleted()
 			}
+			// job isn't started, indicate that background job is completed
+			monitor.SetCompleted()
 
 			return nil
 		}
