@@ -127,7 +127,9 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startDCTestJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                startDCTestJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                                booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                                booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
                                                 booleanParam(name: 'RUN_AUTHPROXY', value: true),
                                                 booleanParam(name: 'RUN_CERT_MANAGER', value: true),
                                                 booleanParam(name: 'RUN_FLUENTD', value: true)])
@@ -139,7 +141,9 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startDCTestJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                startDCTestJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                                booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                                booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
                                                 booleanParam(name: 'RUN_AUTHPROXY', value: true),
                                                 booleanParam(name: 'RUN_CERT_MANAGER', value: true),
                                                 booleanParam(name: 'RUN_FLUENTD', value: true),
@@ -152,7 +156,9 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startDCTestJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
+                                startDCTestJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                                booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                                booleanParam(name: 'RUN_API_CONVERSION', value: true),
                                                 booleanParam(name: 'RUN_OPENSEARCH', value: true),
                                                 booleanParam(name: 'RUN_JAEGER', value: true),
                                                 booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
