@@ -123,7 +123,7 @@ type RancherOCNECluster struct {
 	} `json:"labels"`
 }
 
-var beforeSuite = t.BeforeSuiteFunc(func() {
+func sbsProcess1Func() []byte {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsClusterAPIEnabled(kubeconfigPath) {
@@ -140,28 +140,54 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
 	}
 
+	// create the cloud credential to be used for all tests
 	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
+	var credentialID string
 	Eventually(func() error {
-		cloudCredentialID, err = createCloudCredential(cloudCredentialName)
+		var err error
+		credentialID, err = createCloudCredential(cloudCredentialName)
 		return err
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	Eventually(func() error {
-		return validateCloudCredential(cloudCredentialID)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-})
-var _ = BeforeSuite(beforeSuite)
-
-var afterSuite = t.AfterSuiteFunc(func() {
-	// FIXME: delete BOTH clusters
-	// Delete the OCNE cluster
-	Eventually(func() error {
-		return deleteCluster(clusterNameNodePool)
+		return validateCloudCredential(credentialID)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	// Verify the cluster is deleted
-	Eventually(func() (bool, error) { return isClusterDeleted(clusterNameNodePool) }, waitTimeout, pollingInterval).Should(
-		BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterNameNodePool))
+	// return byte encoded cloud credential ID to be shared across all processes
+	return []byte(credentialID)
+}
+
+func sbsAllProcessesFunc(credentialIDBytes []byte) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	Expect(err).ShouldNot(HaveOccurred())
+
+	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
+	}
+
+	rancherURL, err = helpers.GetRancherURL(t.Logs)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
+	}
+
+	cloudCredentialID = string(credentialIDBytes)
+}
+
+var _ = t.SynchronizedBeforeSuite(sbsProcess1Func, sbsAllProcessesFunc)
+
+func sasProcess1Func() {
+	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool}
+	for _, clusterName := range clusterNames {
+		// Delete the OCNE cluster
+		Eventually(func() error {
+			return deleteCluster(clusterName)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+		// Verify the cluster is deleted
+		Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
+			BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
+	}
 
 	// Delete the credential
 	deleteCredential(cloudCredentialID)
@@ -169,8 +195,9 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	// Verify the credential is deleted
 	Eventually(func() (bool, error) { return isCredentialDeleted(cloudCredentialID) }, waitTimeout, pollingInterval).Should(
 		BeTrue(), fmt.Sprintf("Cloud credential %s is not deleted", cloudCredentialID))
-})
-var _ = AfterSuite(afterSuite)
+}
+
+var _ = t.SynchronizedAfterSuite(func() {}, sasProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
 	t.Context("OCNE cluster creation - single node", Ordered, func() {
