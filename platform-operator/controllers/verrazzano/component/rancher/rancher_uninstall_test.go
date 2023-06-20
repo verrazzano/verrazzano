@@ -200,11 +200,11 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	a.Fail("Did not detect completion in time")
 }
 
-// TestInvokeRancherSystemToolAndCleanup tests the deletion of objects in the post-uninstall process for Rancher
+// TestPostRancherToolCleanup tests the deletion of objects in the post-cleanup process for Rancher
 // GIVEN a call to invokeRancherSystemToolAndCleanup
 // WHEN the objects exist in the cluster
 // THEN all objects are deleted
-func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
+func TestPostRancherToolCleanup(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -576,7 +576,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			crd1 := v12.CustomResourceDefinition{}
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-			err := invokeRancherSystemToolAndCleanup(ctx)
+			err := cleanupRemainingResources(ctx)
 			a.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist
