@@ -4,10 +4,13 @@
 package clusterapi
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -323,4 +326,35 @@ func TestOverridesInterface(t *testing.T) {
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
 	assert.Equal(t, "https://github.com/oci-repo/cluster-api-provider-oci/releases/v0.8.2/infrastructure-components.yaml", tc.GetOCIURL())
 
+}
+
+// TestOverridesPrivateRegistry tests the OverridesInterface
+// GIVEN a set OverridesInput
+//
+//	WHEN the user sets private registry image override variables
+//	THEN verify the OverridesInterface returns the expected values
+func TestOverridesPrivateRegistry(t *testing.T) {
+	const privateRegistry = "myreg.io"
+	const privateRepo = "private-repo"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	os.Setenv(vzconst.RegistryOverrideEnvVar, privateRegistry)
+	defer func() { os.Unsetenv(vzconst.RegistryOverrideEnvVar) }()
+	os.Setenv(vzconst.ImageRepoOverrideEnvVar, privateRepo)
+	defer func() { os.Unsetenv(vzconst.ImageRepoOverrideEnvVar) }()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	config.TestHelmConfigDir = TestHelmConfigDir
+
+	overrides, err := createOverrides(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, overrides)
+	tc := newOverridesContext(overrides)
+
+	expectedRepo := fmt.Sprintf("%s/%s/verrazzano", privateRegistry, privateRepo)
+	assert.Equal(t, expectedRepo, tc.GetOCNEBootstrapRepository())
+	assert.Equal(t, expectedRepo, tc.GetOCNEControlPlaneRepository())
+	assert.Equal(t, expectedRepo, tc.GetClusterAPIRepository())
+	expectedRepo = fmt.Sprintf("%s/%s/oracle", privateRegistry, privateRepo)
+	assert.Equal(t, expectedRepo, tc.GetOCIRepository())
 }
