@@ -76,6 +76,10 @@ pipeline {
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
         booleanParam (description: 'Whether to skip the VZ install in the prepare environment script', name: 'SKIP_VERRAZZANO_INSTALL_PARAM', defaultValue: false)
         booleanParam (description: 'Whether to run with an external cert-manager and NGINX installed', name: 'EXTERNAL_CERT_MANAGER', defaultValue: false)
+        string (name: 'CLUSTER_RESOURCE_NAMESPACE',
+                defaultValue: 'my-cert-manager',
+                description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
+                trim: true)
     }
 
     environment {
@@ -143,6 +147,10 @@ pipeline {
         KIND_NODE_COUNT = 3
 
         SKIP_VERRAZZANO_INSTALL = "${params.SKIP_VERRAZZANO_INSTALL_PARAM}"
+
+        // external cert-manager
+        INSTALL_EXTERNAL_CERT_MANAGER = "${params.EXTERNAL_CERT_MANAGER}"
+        CLUSTER_RESOURCE_NAMESPACE = "${params.CLUSTER_RESOURCE_NAMESPACE}"
     }
 
     stages {
@@ -247,11 +255,12 @@ pipeline {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                         SKIP_VERRAZZANO_INSTALL = false
-                        CLUSTER_RESOURCE_NAMESPACE="my-cert-manager"
-                        INSTALL_EXTERNAL_CERT_MANAGER = "${params.EXTERNAL_CERT_MANAGER}"
                     }
                     steps {
                         sh """
+                            echo "External cert-manager is ${params.EXTERNAL_CERT_MANAGER}"
+                            echo "External cert-manager is ${INSTALL_EXTERNAL_CERT_MANAGER}"
+
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
@@ -270,6 +279,7 @@ pipeline {
                             if [ ${params.EXTERNAL_CERT_MANAGER} ]; then
                               echo "Installing with external cert-manager and NGINX"
                               yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                              yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = ${CLUSTER_RESOURCE_NAMESPACE}' ${INSTALL_CONFIG_FILE_KIND}
                             else
                               echo "Installing with verrazzano cert-manager and NGINX"
                               yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
@@ -340,6 +350,7 @@ pipeline {
 
                             if [ ${params.EXTERNAL_CERT_MANAGER} ]; then
                               yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                              yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = ${CLUSTER_RESOURCE_NAMESPACE}' ${INSTALL_CONFIG_FILE_KIND}
                             else
                               yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             fi
