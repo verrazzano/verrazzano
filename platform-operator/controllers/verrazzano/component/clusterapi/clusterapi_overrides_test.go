@@ -351,9 +351,10 @@ func TestOverridesPrivateRegistry(t *testing.T) {
 	assert.NotNil(t, overrides)
 	tc := newOverridesContext(overrides)
 
-	expectedRepo := fmt.Sprintf("%s/%s", privateRegistry, privateRepo)
+	expectedRepo := fmt.Sprintf("%s/%s/verrazzano", privateRegistry, privateRepo)
 	assert.Equal(t, expectedRepo, tc.GetOCNEBootstrapRepository())
 	assert.Equal(t, expectedRepo, tc.GetOCNEControlPlaneRepository())
 	assert.Equal(t, expectedRepo, tc.GetClusterAPIRepository())
+	expectedRepo = fmt.Sprintf("%s/%s/oracle", privateRegistry, privateRepo)
 	assert.Equal(t, expectedRepo, tc.GetOCIRepository())
 }
