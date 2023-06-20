@@ -1,0 +1,17 @@
+{{- if .Values.fluentbit.enable -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: vz-output-filter
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  matchRegex: "kube.*|service.*"
+  filters:
+  - lua:
+      script:
+        key: timestamp.lua
+        name: fluent-bit-output-timestamp-config
+      call: add_timestamp
+      timeAsTable: true
+{{- end }}

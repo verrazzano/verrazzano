@@ -1,0 +1,23 @@
+{{- if .Values.Kubernetes -}}
+{{- if .Values.fluentbit.enable -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-output-timestamp-config
+data:
+  timestamp.lua: |
+    function add_timestamp(tag, timestamp, record)
+    timeStr = os.date("!*t",  timestamp["sec"])
+    offset = os.date("%z", timestamp["sec"])
+    offsetHours = offset:sub(1, 3)
+    offsetMinutes = offset:sub(4, 5)
+    timezoneOffset = offsetHours .. ":" .. offsetMinutes
+    t = string.format("%4d-%02d-%02dT%02d:%02d:%02d.%s%s",
+            timeStr["year"], timeStr["month"], timeStr["day"],
+            timeStr["hour"], timeStr["min"], timeStr["sec"],
+            timestamp["nsec"], timezoneOffset);
+    record["@timestamp"] = t
+    return 1, timestamp, record
+    end
+{{- end }}
+{{- end }}
