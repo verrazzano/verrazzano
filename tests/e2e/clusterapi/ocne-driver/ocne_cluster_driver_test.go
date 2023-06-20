@@ -219,9 +219,10 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
 		t.It("create OCNE cluster", func() {
+			nodePoolName  := fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
 			// Create the cluster
 			Eventually(func() error {
-				return createNodePoolCluster(clusterNameNodePool)
+				return createNodePoolCluster(clusterNameNodePool, nodePoolName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
@@ -386,12 +387,15 @@ func createSingleNodeCluster(clusterName string) error {
 }
 
 // Creates a OCNE Cluster with node pools through CAPI
-func createNodePoolCluster(clusterName string) error {
+func createNodePoolCluster(clusterName, nodePoolName string) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath)
 	if err != nil {
 		t.Logs.Infof("error reading node public key file: %v", err)
 		return err
 	}
+	nodePoolSpec := fmt.Sprintf(
+		"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}",
+		nodePoolName)
 
 	// Fill in the values for the create cluster API request body
 	var rancherOCNEEngineConfig RancherOCIOCNEEngine
@@ -435,7 +439,7 @@ func createNodePoolCluster(clusterName string) error {
 	rancherOCNEEngineConfig.ClusterName = ""
 	rancherOCNEEngineConfig.NodeShape = "VM.Standard.E4.Flex"
 	rancherOCNEEngineConfig.NumWorkerNodes = 1
-	rancherOCNEEngineConfig.NodePools = []interface{}{}
+	rancherOCNEEngineConfig.NodePools = []interface{}{nodePoolSpec}
 	rancherOCNEEngineConfig.ApplyYamls = []interface{}{}
 
 	var rancherOCNEClusterConfig RancherOCNECluster
