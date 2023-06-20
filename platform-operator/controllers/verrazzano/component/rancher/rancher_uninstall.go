@@ -308,6 +308,7 @@ func deleteCleanupJob(ctx spi.ComponentContext) {
 			ctx.Log().Errorf("Failed deleting cleanup job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 		}
 	}
+
 }
 
 // parseCleanupJobTemplate - parse the rancher-cleanup yaml file using
@@ -468,6 +469,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		"cattle-unauthenticated",
 		"default-admin-",
 		"proxy-",
+		"cleanup-admin",
 	}
 
 	// Delete the Rancher Cluster Roles
