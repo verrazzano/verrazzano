@@ -172,6 +172,8 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 	}
 
 	cloudCredentialID = string(credentialIDBytes)
+	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
+	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 }
 
 var _ = t.SynchronizedBeforeSuite(sbsProcess1Func, sbsAllProcessesFunc)
@@ -200,9 +202,8 @@ func sasProcess1Func() {
 var _ = t.SynchronizedAfterSuite(func() {}, sasProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
-	t.Context("OCNE cluster creation - single node", Ordered, func() {
+	t.Context("OCNE cluster creation with single node", Ordered, func() {
 		t.It("create OCNE cluster", func() {
-			clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 			// Create the cluster
 			Eventually(func() error {
 				return createSingleNodeCluster(clusterNameSingleNode)
@@ -218,7 +219,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
 		t.It("create OCNE cluster", func() {
-			clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 			// Create the cluster
 			Eventually(func() error {
 				return createNodePoolCluster(clusterNameNodePool)
