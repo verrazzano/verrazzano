@@ -127,7 +127,7 @@ func sbsProcess1Func() []byte {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsClusterAPIEnabled(kubeconfigPath) {
-		Skip("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
+		AbortSuite("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
 	}
 
 	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
@@ -172,25 +172,29 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 	}
 
 	cloudCredentialID = string(credentialIDBytes)
-	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
-	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 }
 
 var _ = t.SynchronizedBeforeSuite(sbsProcess1Func, sbsAllProcessesFunc)
 
-func sasProcess1Func() {
+func sasAllProcessesFunc() {
 	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool}
 	for _, clusterName := range clusterNames {
-		// Delete the OCNE cluster
-		Eventually(func() error {
-			return deleteCluster(clusterName)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		// Have this process delete this cluster only if this process created it.
+		// This ensures that cluster deletion happens in parallel.
+		if len(clusterName) > 0 {
+			// Delete the OCNE cluster
+			Eventually(func() error {
+				return deleteCluster(clusterName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-		// Verify the cluster is deleted
-		Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
-			BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
+			// Verify the cluster is deleted
+			Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
+		}
 	}
+}
 
+func sasProcess1Func() {
 	// Delete the credential
 	deleteCredential(cloudCredentialID)
 
@@ -199,10 +203,11 @@ func sasProcess1Func() {
 		BeTrue(), fmt.Sprintf("Cloud credential %s is not deleted", cloudCredentialID))
 }
 
-var _ = t.SynchronizedAfterSuite(func() {}, sasProcess1Func)
+var _ = t.SynchronizedAfterSuite(sasAllProcessesFunc, sasProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
+		clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
@@ -218,6 +223,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 	})
 
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
+		clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 		t.It("create OCNE cluster", func() {
 			nodePoolName := fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
 			// Create the cluster
