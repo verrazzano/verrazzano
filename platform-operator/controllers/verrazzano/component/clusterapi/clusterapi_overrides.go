@@ -11,6 +11,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -246,7 +247,10 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 	}
 
 	// Populate global values
-	overrides.Global.Registry = bomFile.GetRegistry()
+	overrides.Global.Registry = os.Getenv(constants.RegistryOverrideEnvVar)
+	if len(overrides.Global.Registry) == 0 {
+		overrides.Global.Registry = bomFile.GetRegistry()
+	}
 
 	// Populate core provider values
 	core := &overrides.DefaultProviders.Core.Image
