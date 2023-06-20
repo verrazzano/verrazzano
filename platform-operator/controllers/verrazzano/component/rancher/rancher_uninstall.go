@@ -87,9 +87,9 @@ func getCleanupJobYamlPath() string {
 	return filepath.Join(config.GetThirdPartyManifestsDir(), rancherCleanupJobYamlPath)
 }
 
-// setCleanupJobYamlPath - set the path to the yaml for creating the cleanup job.
+// setCleanupJobYamlRelativePath - set the path to the yaml for creating the cleanup job from Verrazzano root manifest dir.
 // Required for by unit tests.
-func setCleanupJobYamlPath(path string) {
+func setCleanupJobYamlRelativePath(path string) {
 	rancherCleanupJobYamlPath = path
 }
 

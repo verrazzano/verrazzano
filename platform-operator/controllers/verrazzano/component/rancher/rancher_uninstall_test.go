@@ -683,13 +683,17 @@ func TestIsRancherNamespace(t *testing.T) {
 // WHEN a job already exists
 // THEN expect the job to be deleted
 func TestCleanupJob(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
-	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	ns1 := newNamespace("cattle-fleet-system")
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(ns1).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 	config.SetDefaultBomFilePath("../../../../verrazzano-bom.json")
-	setCleanupJobYamlPath("../../../../thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml")
+	setCleanupJobYamlRelativePath("/rancher-cleanup/rancher-cleanup.yaml")
 
 	// Expect the job to get created
 	err := runCleanupJob(ctx, nil)
