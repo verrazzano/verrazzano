@@ -668,21 +668,22 @@ pipeline {
                         }
                     }
                 }
-            stage('Post-Update2 App Tests') {
-                when { expression {params.RUN_APP_TESTS} }
-                environment {
-                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-app-tests"
-                }
-                steps {
-                    // Run WLS/COH acceptance tests again, and delete the apps
-                    script {
-                        parallel generate_wls_tests("${TEST_DUMP_ROOT}/install-app-tests", 'true', 'false')
+                stage('Post-Update2 App Tests') {
+                    when { expression {params.RUN_APP_TESTS} }
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-app-tests"
                     }
-                }
-                post {
-                    always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    steps {
+                        // Run WLS/COH acceptance tests again, and delete the apps
+                        script {
+                            parallel generate_wls_tests("${TEST_DUMP_ROOT}/install-app-tests", 'true', 'false')
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
                     }
                 }
             }
