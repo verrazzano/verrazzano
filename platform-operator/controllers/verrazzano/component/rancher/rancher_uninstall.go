@@ -238,7 +238,7 @@ func runCleanupJob(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if rancherArtifactsExist(ctx) {
+			if vzcr.IsRancherEnabled(ctx.EffectiveCR()) && rancherArtifactsExist(ctx) {
 				ctx.Log().Infof("Component %s created cleanup job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 				return createCleanupJob(ctx)
 			}
