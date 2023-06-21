@@ -387,7 +387,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Infra Tests') {
-                    when { expression {params.RUN_INFRA_TESTS_TESTS} }
+                    when { expression {params.RUN_INFRA_TESTS} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
@@ -422,24 +422,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Post-Update1 App Tests') {
-                    when { expression {params.RUN_APP_TESTS} }
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-app-tests"
-                    }
-                    steps {
-                        // Run initial WLS/COH acceptance tests, and leave the apps running
-                        script {
-                            parallel generate_wls_tests("${TEST_DUMP_ROOT}/wls-coh-update2-tests", 'false', 'true')
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
 
                 // Update2 enables COH/WLS operators
                 stage('Verrazzano Update2') {
@@ -457,6 +439,25 @@ pipeline {
                         always {
                             dumpVerrazzanoPlatformOperatorLogs("update-verrazzano")
                             archiveArtifacts artifacts: "vz-update2.yaml,**/logs/**", allowEmptyArchive: true
+                        }
+                    }
+                }
+
+                stage('Install Apps and run tests') {
+                    when { expression {params.RUN_APP_TESTS} }
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/install-app-tests"
+                    }
+                    steps {
+                        // Run initial WLS/COH acceptance tests, and leave the apps running
+                        script {
+                            parallel generate_wls_tests("${TEST_DUMP_ROOT}/wls-coh-update2-tests", 'false', 'true')
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -632,7 +633,7 @@ pipeline {
                 }
 
                 stage('Post-Update2 Infra Tests') {
-                    when { expression {params.RUN_INFRA_TESTS_TESTS} }
+                    when { expression {params.RUN_INFRA_TESTS} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
                     }
@@ -675,7 +676,7 @@ pipeline {
                 steps {
                     // Run WLS/COH acceptance tests again, and delete the apps
                     script {
-                        parallel generate_wls_tests("${TEST_DUMP_ROOT}/wls-coh-update2-tests", 'true', 'false')
+                        parallel generate_wls_tests("${TEST_DUMP_ROOT}/install-app-tests", 'true', 'false')
                     }
                 }
                 post {
