@@ -78,39 +78,37 @@ type Cluster struct {
 }
 
 type OCNEControlPlane struct {
-	APIVersion string `json:"apiVersion"`
+	ApiVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
-		CreationTimestamp          time.Time `json:"creationTimestamp"`
-		DeletionGracePeriodSeconds int       `json:"deletionGracePeriodSeconds"`
-		DeletionTimestamp          time.Time `json:"deletionTimestamp"`
-		Finalizers                 []string  `json:"finalizers"`
-		Generation                 int       `json:"generation"`
-		Labels                     struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Labels            struct {
 			ClusterXK8SIoClusterName string `json:"cluster.x-k8s.io/cluster-name"`
 		} `json:"labels"`
 		Name            string `json:"name"`
 		Namespace       string `json:"namespace"`
 		OwnerReferences []struct {
-			APIVersion         string `json:"apiVersion"`
+			ApiVersion         string `json:"apiVersion"`
 			BlockOwnerDeletion bool   `json:"blockOwnerDeletion"`
 			Controller         bool   `json:"controller"`
 			Kind               string `json:"kind"`
 			Name               string `json:"name"`
-			UID                string `json:"uid"`
+			Uid                string `json:"uid"`
 		} `json:"ownerReferences"`
 		ResourceVersion string `json:"resourceVersion"`
-		UID             string `json:"uid"`
+		Uid             string `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
 		ControlPlaneConfig struct {
 			ClusterConfiguration struct {
-				APIServer struct {
+				ApiServer struct {
 					CertSANs []string `json:"certSANs"`
 				} `json:"apiServer"`
 				ControllerManager struct {
 				} `json:"controllerManager"`
-				DNS struct {
+				Dns struct {
 					ImageRepository string `json:"imageRepository"`
 					ImageTag        string `json:"imageTag"`
 				} `json:"dns"`
@@ -126,7 +124,14 @@ type OCNEControlPlane struct {
 				Scheduler struct {
 				} `json:"scheduler"`
 			} `json:"clusterConfiguration"`
-			Format            string `json:"format"`
+			Format             string `json:"format"`
+			ImageConfiguration struct {
+				Proxy struct {
+					HttpProxy  string `json:"httpProxy"`
+					HttpsProxy string `json:"httpsProxy"`
+					NoProxy    string `json:"noProxy"`
+				} `json:"proxy"`
+			} `json:"imageConfiguration"`
 			InitConfiguration struct {
 				LocalAPIEndpoint struct {
 				} `json:"localAPIEndpoint"`
@@ -134,7 +139,7 @@ type OCNEControlPlane struct {
 					CriSocket        string `json:"criSocket"`
 					KubeletExtraArgs struct {
 						CloudProvider string `json:"cloud-provider"`
-						ProviderID    string `json:"provider-id"`
+						ProviderId    string `json:"provider-id"`
 					} `json:"kubeletExtraArgs"`
 				} `json:"nodeRegistration"`
 			} `json:"initConfiguration"`
@@ -145,14 +150,14 @@ type OCNEControlPlane struct {
 					CriSocket        string `json:"criSocket"`
 					KubeletExtraArgs struct {
 						CloudProvider string `json:"cloud-provider"`
-						ProviderID    string `json:"provider-id"`
+						ProviderId    string `json:"provider-id"`
 					} `json:"kubeletExtraArgs"`
 				} `json:"nodeRegistration"`
 			} `json:"joinConfiguration"`
 		} `json:"controlPlaneConfig"`
 		MachineTemplate struct {
 			InfrastructureRef struct {
-				APIVersion string `json:"apiVersion"`
+				ApiVersion string `json:"apiVersion"`
 				Kind       string `json:"kind"`
 				Name       string `json:"name"`
 				Namespace  string `json:"namespace"`
@@ -175,16 +180,18 @@ type OCNEControlPlane struct {
 	Status struct {
 		Conditions []struct {
 			LastTransitionTime time.Time `json:"lastTransitionTime"`
-			Reason             string    `json:"reason,omitempty"`
-			Severity           string    `json:"severity,omitempty"`
 			Status             string    `json:"status"`
 			Type               string    `json:"type"`
 		} `json:"conditions"`
+		Initialized         bool   `json:"initialized"`
 		ObservedGeneration  int    `json:"observedGeneration"`
+		Ready               bool   `json:"ready"`
+		ReadyReplicas       int    `json:"readyReplicas"`
 		Replicas            int    `json:"replicas"`
 		Selector            string `json:"selector"`
 		UnavailableReplicas int    `json:"unavailableReplicas"`
 		UpdatedReplicas     int    `json:"updatedReplicas"`
+		Version             string `json:"version"`
 	} `json:"status"`
 }
 
@@ -193,13 +200,12 @@ type Machine struct {
 	Kind       string `json:"kind"`
 	Metadata   struct {
 		Annotations struct {
+			ControlplaneClusterXK8SIoOcneClusterConfiguration string `json:"controlplane.cluster.x-k8s.io/ocne-cluster-configuration"`
 		} `json:"annotations"`
-		CreationTimestamp          time.Time `json:"creationTimestamp"`
-		DeletionGracePeriodSeconds int       `json:"deletionGracePeriodSeconds"`
-		DeletionTimestamp          time.Time `json:"deletionTimestamp"`
-		Finalizers                 []string  `json:"finalizers"`
-		Generation                 int       `json:"generation"`
-		Labels                     struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Labels            struct {
 			ClusterXK8SIoClusterName      string `json:"cluster.x-k8s.io/cluster-name"`
 			ClusterXK8SIoControlPlane     string `json:"cluster.x-k8s.io/control-plane"`
 			ClusterXK8SIoControlPlaneName string `json:"cluster.x-k8s.io/control-plane-name"`
@@ -246,17 +252,34 @@ type Machine struct {
 			Address string `json:"address"`
 			Type    string `json:"type"`
 		} `json:"addresses"`
-		BootstrapReady bool `json:"bootstrapReady"`
-		Conditions     []struct {
+		BootstrapReady         bool      `json:"bootstrapReady"`
+		CertificatesExpiryDate time.Time `json:"certificatesExpiryDate"`
+		Conditions             []struct {
 			LastTransitionTime time.Time `json:"lastTransitionTime"`
-			Reason             string    `json:"reason,omitempty"`
-			Severity           string    `json:"severity,omitempty"`
 			Status             string    `json:"status"`
 			Type               string    `json:"type"`
 		} `json:"conditions"`
 		InfrastructureReady bool      `json:"infrastructureReady"`
 		LastUpdated         time.Time `json:"lastUpdated"`
-		ObservedGeneration  int       `json:"observedGeneration"`
-		Phase               string    `json:"phase"`
+		NodeInfo            struct {
+			Architecture            string `json:"architecture"`
+			BootID                  string `json:"bootID"`
+			ContainerRuntimeVersion string `json:"containerRuntimeVersion"`
+			KernelVersion           string `json:"kernelVersion"`
+			KubeProxyVersion        string `json:"kubeProxyVersion"`
+			KubeletVersion          string `json:"kubeletVersion"`
+			MachineID               string `json:"machineID"`
+			OperatingSystem         string `json:"operatingSystem"`
+			OsImage                 string `json:"osImage"`
+			SystemUUID              string `json:"systemUUID"`
+		} `json:"nodeInfo"`
+		NodeRef struct {
+			ApiVersion string `json:"apiVersion"`
+			Kind       string `json:"kind"`
+			Name       string `json:"name"`
+			Uid        string `json:"uid"`
+		} `json:"nodeRef"`
+		ObservedGeneration int    `json:"observedGeneration"`
+		Phase              string `json:"phase"`
 	} `json:"status"`
 }

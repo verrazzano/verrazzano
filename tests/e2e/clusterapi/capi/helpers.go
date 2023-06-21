@@ -183,16 +183,90 @@ func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 	return &capiCluster, nil
 }
 
+func GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
+	ocnecpFetched, err := getUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, "ocne-control-plane", log)
+	if err != nil {
+		log.Errorf("Unable to fetch OCNE control plane '%s' due to '%v'", controlPlaneName, zap.Error(err))
+		return nil, err
+	}
+
+	if ocnecpFetched == nil {
+		log.Infof("No OCNE control plane with name '%s' in namespace '%s' was detected", controlPlaneName, namespace)
+	}
+
+	var ocneControlPlane OCNEControlPlane
+	bdata, err := json.Marshal(ocnecpFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &ocneControlPlane)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &ocneControlPlane, nil
+}
+
+func DisplayMachines(namespace, clusterName string, log *zap.SugaredLogger) error {
+	machinesFetched, err := getUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, "capi-machines", log)
+	if err != nil {
+		log.Errorf("Unable to fetch machines due to '%v'", zap.Error(err))
+		return err
+	}
+
+	if machinesFetched == nil {
+		log.Infof("No machines for cluster '%s' in namespace '%s' was detected", clusterName, namespace)
+	}
+
+	log.Infof("OCNE machine details:")
+	for _, ma := range machinesFetched.Items {
+		var machine Machine
+		bdata, err := json.Marshal(ma.Object)
+		if err != nil {
+			log.Errorf("Json marshalling error %v", zap.Error(err))
+			return err
+		}
+		err = json.Unmarshal(bdata, &machine)
+		if err != nil {
+			log.Errorf("Json unmarshall error %v", zap.Error(err))
+			return err
+		}
+
+		log.Infof("Name:%v, Cluster:%v, Nodename:%v, ProviderID:%v, Phase:%v",
+			machine.Metadata.Name, machine.Metadata.Labels.ClusterXK8SIoClusterName, machine.Status.NodeRef.Name,
+			machine.Spec.ProviderID, machine.Status.Phase)
+	}
+	return nil
+}
+
 func showCapiCluster(clusterName string, log *zap.SugaredLogger) error {
 	log.Info("Start templating ...")
 	klusterData, err := GetCluster("default", clusterName, log)
 	if err != nil {
+		return err
+	}
 
+	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
+	ocneCP, err := GetOCNEControlPlane("default", controlPlaneName, log)
+	if err != nil {
+		return err
+	}
+	log.Infof("Control plane details:")
+	log.Infof("Name:%v, Cluster:%v, Initialized:%v, Replicas:%v, Updated:%v, Unavaliable:%v, Ready:%v",
+		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
+		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas)
+
+	err = DisplayMachines("default", clusterName, log)
+	if err != nil {
+		return err
 	}
 
 	// OCNE cluster is ready when both control plane and worker nodes are up
 	if klusterData.Status.ControlPlaneReady && klusterData.Status.InfrastructureReady {
+		log.Infof("Cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
 		return nil
 	}
-	return
+	return fmt.Errorf("Cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
 }
