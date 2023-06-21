@@ -103,22 +103,22 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		ItvalidateIngressList(currentEnvironmentName, currentDNSDomain)
 		ItvalidateVirtualServiceList(currentDNSDomain)
 	})
-	//
-	//t.Context("Update and verify environment name", func() {
-	//	m := EnvironmentNameModifier{testEnvironmentName}
-	//	ItupdateCR(m)
-	//	ItvalidateIngressList(testEnvironmentName, currentDNSDomain)
-	//	ItvalidateVirtualServiceList(currentDNSDomain)
-	//	ItverifyIngressAccess(t.Logs)
-	//})
-	//
-	//t.Context("Update and verify dns domain", func() {
-	//	m := WildcardDNSModifier{testDNSDomain}
-	//	ItupdateCR(m)
-	//	ItvalidateIngressList(testEnvironmentName, testDNSDomain)
-	//	ItvalidateVirtualServiceList(testDNSDomain)
-	//	ItverifyIngressAccess(t.Logs)
-	//})
+
+	t.Context("Update and verify environment name", func() {
+		m := EnvironmentNameModifier{testEnvironmentName}
+		ItupdateCR(m)
+		ItvalidateIngressList(testEnvironmentName, currentDNSDomain)
+		ItvalidateVirtualServiceList(currentDNSDomain)
+		ItverifyIngressAccess(t.Logs)
+	})
+
+	t.Context("Update and verify dns domain", func() {
+		m := WildcardDNSModifier{testDNSDomain}
+		ItupdateCR(m)
+		ItvalidateIngressList(testEnvironmentName, testDNSDomain)
+		ItvalidateVirtualServiceList(testDNSDomain)
+		ItverifyIngressAccess(t.Logs)
+	})
 
 	t.Context("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
