@@ -104,13 +104,8 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // On subsequent callbacks, we check the status of the goroutine with the 'monitor' object, and postUninstall
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Info("Rancher not enabled - skipping post installation cleanup")
-		monitor.SetCompleted()
-		return nil
-	}
-
 	if monitor.IsCompleted() {
+		ctx.Log().Info("Cleaning up Rancher resources remaining after component clean up")
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
 			return err
@@ -120,6 +115,10 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	}
 
 	if monitor.IsRunning() {
+		if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
+			monitor.SetCompleted()
+			return nil
+		}
 		// Check the result
 		succeeded, err := monitor.CheckResult()
 		if err != nil {
