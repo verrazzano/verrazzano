@@ -65,7 +65,6 @@ pipeline {
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         booleanParam (description: 'Whether to run Install Tests', name: 'RUN_INSTALL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to run Infra Tests', name: 'RUN_INFRA_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to run Security Tests', name: 'RUN_SECURITY_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to run App Tests', name: 'RUN_APP_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to run Availability Status Updates', name: 'RUN_AVAILABILITY_STATUS', defaultValue: false)
         booleanParam (description: 'Whether to run API Conversion Update Tests', name: 'RUN_API_CONVERSION', defaultValue: false)
@@ -274,17 +273,10 @@ pipeline {
                             yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-
-                            if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
-                              echo "Installing with external cert-manager and NGINX"
-                              yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-                              yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = "${CLUSTER_RESOURCE_NAMESPACE}"' ${INSTALL_CONFIG_FILE_KIND}
-                            else
-                              echo "Installing with verrazzano cert-manager and NGINX"
-                              yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            fi
                         """
                         script {
+                            installExternalComponents()
+
                             if(params.CRD_API_VERSION == "v1alpha1"){
                                 scriptForPrepareATEnvironmentV1alpha1()
                             }else{
@@ -346,15 +338,10 @@ pipeline {
                             yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.argoCD.enabled = true' ${WORKSPACE}/vz-update1.yaml
-
-                            if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
-                              yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-                              yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = "${CLUSTER_RESOURCE_NAMESPACE}"' ${INSTALL_CONFIG_FILE_KIND}
-                            else
-                              yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            fi
                         """
                         script {
+                            installExternalComponents()
+
                             if(params.CRD_API_VERSION == "v1alpha1"){
                                 vzUpdateComponentsV1alpha1()
                             }else{
@@ -377,6 +364,7 @@ pipeline {
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
+                        parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-security-tests", 'false', 'true')
                     }
                     post {
                         always {
@@ -402,26 +390,7 @@ pipeline {
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
-                }
-
-                stage('Post-Update1 Security Tests') {
-                    when { expression {params.RUN_SECURITY_TESTS} }
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-security-tests"
-                    }
-                    steps {
-                        script {
-                            // Run all but the WLS tests, and skip the undeploy step to leave the apps running
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-security-tests", 'false', 'true')
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
+                }                }
 
                 // Update2 enables COH/WLS operators
                 stage('Verrazzano Update2') {
@@ -623,6 +592,7 @@ pipeline {
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
+                        parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-security-tests", 'false', 'true')
                     }
                     post {
                         always {
@@ -650,24 +620,6 @@ pipeline {
                     }
                 }
 
-                stage('Post-Update2 Security Tests') {
-                    when { expression {params.RUN_SECURITY_TESTS} }
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-security-tests"
-                    }
-                    steps {
-                        script {
-                            // Run all but the WLS tests, and skip the undeploy step to leave the apps running
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-security-tests", 'false', 'true')
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
                 stage('Post-Update2 App Tests') {
                     when { expression {params.RUN_APP_TESTS} }
                     environment {
@@ -1070,3 +1022,13 @@ def runCustomResourceValidation(){
     """
 }
 
+func installExternalComponents(){
+    sh """
+        if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
+          yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+          yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = "${CLUSTER_RESOURCE_NAMESPACE}"' ${INSTALL_CONFIG_FILE_KIND}
+        else
+          yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        fi
+    """
+}
