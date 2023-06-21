@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -158,6 +159,7 @@ func sbsProcess1Func() []byte {
 }
 
 func sbsAllProcessesFunc(credentialIDBytes []byte) {
+	// Define global variables for all processes
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 
@@ -176,25 +178,26 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 
 var _ = t.SynchronizedBeforeSuite(sbsProcess1Func, sbsAllProcessesFunc)
 
-func sasAllProcessesFunc() {
+func sasProcess1Func() {
+	// Delete the clusters concurrently
 	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool}
+	var wg sync.WaitGroup
+	wg.Add(len(clusterNames))
 	for _, clusterName := range clusterNames {
-		// Have this process delete this cluster only if this process created it.
-		// This ensures that cluster deletion happens in parallel.
-		if len(clusterName) > 0 {
+		go func(name string) {
+			defer wg.Done()
 			// Delete the OCNE cluster
 			Eventually(func() error {
-				return deleteCluster(clusterName)
+				return deleteCluster(name)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 			// Verify the cluster is deleted
-			Eventually(func() (bool, error) { return isClusterDeleted(clusterName) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", clusterName))
-		}
+			Eventually(func() (bool, error) { return isClusterDeleted(name) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", name))
+		}(clusterName)
 	}
-}
+	wg.Wait()
 
-func sasProcess1Func() {
 	// Delete the credential
 	deleteCredential(cloudCredentialID)
 
@@ -203,7 +206,7 @@ func sasProcess1Func() {
 		BeTrue(), fmt.Sprintf("Cloud credential %s is not deleted", cloudCredentialID))
 }
 
-var _ = t.SynchronizedAfterSuite(sasAllProcessesFunc, sasProcess1Func)
+var _ = t.SynchronizedAfterSuite(func() {}, sasProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
