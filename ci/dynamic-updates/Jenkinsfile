@@ -273,10 +273,15 @@ pipeline {
                             yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+
+                            if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
+                              yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                              yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = "${CLUSTER_RESOURCE_NAMESPACE}"' ${INSTALL_CONFIG_FILE_KIND}
+                            else
+                              yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            fi
                         """
                         script {
-                            installExternalComponents()
-
                             if(params.CRD_API_VERSION == "v1alpha1"){
                                 scriptForPrepareATEnvironmentV1alpha1()
                             }else{
@@ -338,10 +343,15 @@ pipeline {
                             yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.argoCD.enabled = true' ${WORKSPACE}/vz-update1.yaml
+
+                            if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
+                              yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                              yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = "${CLUSTER_RESOURCE_NAMESPACE}"' ${INSTALL_CONFIG_FILE_KIND}
+                            else
+                              yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            fi
                         """
                         script {
-                            installExternalComponents()
-
                             if(params.CRD_API_VERSION == "v1alpha1"){
                                 vzUpdateComponentsV1alpha1()
                             }else{
@@ -1023,16 +1033,5 @@ def runCustomResourceValidation(){
        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-vpo.yaml
        ci/scripts/validate_custom_resource.sh ${WORKSPACE}/ci/dynamic-updates/invalidCR.yaml ${WORKSPACE}/downloaded-vpo.yaml
-    """
-}
-
-func installExternalComponents(){
-    sh """
-        if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
-          yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-          yq -i eval '.spec.components.clusterIssuer.clusterResourceNamespace = "${CLUSTER_RESOURCE_NAMESPACE}"' ${INSTALL_CONFIG_FILE_KIND}
-        else
-          yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        fi
     """
 }
