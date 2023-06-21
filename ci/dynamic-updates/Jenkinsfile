@@ -364,7 +364,9 @@ pipeline {
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
-                        parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-security-tests", 'false', 'true')
+                        script {
+                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-security-tests", 'false', 'true')
+                        }
                     }
                     post {
                         always {
@@ -592,7 +594,9 @@ pipeline {
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
-                        parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-security-tests", 'false', 'true')
+                        script {
+                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-security-tests", 'false', 'true')
+                        }
                     }
                     post {
                         always {
