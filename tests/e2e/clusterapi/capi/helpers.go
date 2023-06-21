@@ -1,180 +1,22 @@
 package capi
 
 import (
-	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	capicomponent "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"go.uber.org/zap"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/kubernetes/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"strings"
-	"text/template"
 )
-
-const (
-	clusterctlYamlTemplate = `
-images:
-  cluster-api:
-    repository: {{.APIRepository}}
-    tag: {{.APITag}}
-
-  infrastructure-oci:
-    repository: {{.OCIRepository}}
-    tag: {{.OCITag}}
-
-  bootstrap-ocne:
-    repository: {{.OCNEBootstrapRepository}}
-    tag: {{.OCNEBootstrapTag}}
-  control-plane-ocne:
-    repository: {{.OCNEControlPlaneRepository}}
-    tag: {{.OCNEControlPlaneTag}}
-
-providers:
-  - name: "cluster-api"
-    url: "/verrazzano/capi/cluster-api/{{.APIVersion}}/core-components.yaml"
-    type: "CoreProvider"
-  - name: "oci"
-    url: "/verrazzano/capi/infrastructure-oci/{{.OCIVersion}}/infrastructure-components.yaml"
-    type: "InfrastructureProvider"
-  - name: "ocne"
-    url: "/verrazzano/capi/bootstrap-ocne/{{.OCNEBootstrapVersion}}/bootstrap-components.yaml"
-    type: "BootstrapProvider"
-  - name: "ocne"
-    url: "/verrazzano/capi/control-plane-ocne/{{.OCNEControlPlaneVersion}}/control-plane-components.yaml"
-    type: "ControlPlaneProvider"
-`
-	defaultClusterAPIDir = "$HOME/.cluster-api"
-)
-
-func getImageOverride(bomFile bom.Bom, component string, imageName string) (image *capicomponent.ImageConfig, err error) {
-	version, err := bomFile.GetComponentVersion(component)
-	if err != nil {
-		return nil, err
-	}
-
-	images, err := bomFile.GetImageNameList(component)
-	if err != nil {
-		return nil, err
-	}
-
-	var repository string
-	var tag string
-
-	for _, image := range images {
-		if len(imageName) == 0 || strings.Contains(image, imageName) {
-			imageSplit := strings.Split(image, ":")
-			tag = imageSplit[1]
-			index := strings.LastIndex(imageSplit[0], "/")
-			repository = imageSplit[0][:index]
-			break
-		}
-	}
-
-	if len(repository) == 0 || len(tag) == 0 {
-		return nil, fmt.Errorf("Failed to find image override for %s/%s", component, imageName)
-	}
-
-	return &capicomponent.ImageConfig{Version: version, Repository: repository, Tag: tag}, nil
-}
-
-// getImageOverrides returns the CAPI provider image overrides and versions from the Verrazzano bom
-func getImageOverrides() (*TemplateInput, error) {
-
-	bomFile, err := bom.NewBom("../../../../platform-operator/verrazzano-bom.json")
-	if err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Failed to get the BOM file for the capi image overrides: %v", zap.Error(err)))
-	}
-
-	templateInput := &TemplateInput{}
-	imageConfig, err := getImageOverride(bomFile, "capi-cluster-api", "")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.APIVersion = imageConfig.Version
-	templateInput.APIRepository = imageConfig.Repository
-	templateInput.APITag = imageConfig.Tag
-
-	imageConfig, err = getImageOverride(bomFile, "capi-oci", "")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.OCIVersion = imageConfig.Version
-	templateInput.OCIRepository = imageConfig.Repository
-	templateInput.OCITag = imageConfig.Tag
-
-	imageConfig, err = getImageOverride(bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.OCNEBootstrapVersion = imageConfig.Version
-	templateInput.OCNEBootstrapRepository = imageConfig.Repository
-	templateInput.OCNEBootstrapTag = imageConfig.Tag
-
-	imageConfig, err = getImageOverride(bomFile, "capi-ocne", "cluster-api-ocne-control-plane-controller")
-	if err != nil {
-		return nil, err
-	}
-	templateInput.OCNEControlPlaneVersion = imageConfig.Version
-	templateInput.OCNEControlPlaneRepository = imageConfig.Repository
-	templateInput.OCNEControlPlaneTag = imageConfig.Tag
-
-	return templateInput, nil
-}
-
-// applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
-func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, error) {
-	// Parse the template file
-	capiYaml, err := template.New("capi").Parse(templateContent)
-	if err != nil {
-		return bytes.Buffer{}, err
-	}
-
-	// Apply the replacement parameters to the template
-	var buf bytes.Buffer
-	err = capiYaml.Execute(&buf, &params)
-	if err != nil {
-		return bytes.Buffer{}, err
-	}
-
-	// Return the result containing the processed template
-	return buf, nil
-}
-
-func createClusterctlYaml(log *zap.SugaredLogger) error {
-	// Get the image overrides and versions for the CAPI images.
-	templateInput, err := getImageOverrides()
-	if err != nil {
-		return err
-	}
-
-	// Apply the image overrides and versions to generate clusterctl.yaml
-	result, err := applyTemplate(clusterctlYamlTemplate, templateInput)
-	if err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(defaultClusterAPIDir); os.IsNotExist(err) {
-		log.Infof("Directory %s does not exist", defaultClusterAPIDir)
-		err = os.MkdirAll(defaultClusterAPIDir, 0755)
-		if err != nil {
-			log.Errorf("Unable to create directory %v", zap.Error(err))
-			return err
-		}
-	} else {
-		log.Infof("Directory %s does exists !", defaultClusterAPIDir)
-	}
-
-	// Create the clusterctl.yaml used when initializing CAPI.
-	return os.WriteFile(defaultClusterAPIDir+"/clusterctl.yaml", result.Bytes(), 0600)
-}
 
 var capiInitFunc = clusterapi.New
 
@@ -238,71 +80,119 @@ func clusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredL
 	return printYamlOutput(template, tmpFile.Name())
 }
 
-/*
-func newRestClient(restConfig rest.Config, gv schema.GroupVersion) (rest.Interface, error) {
-	restConfig.ContentConfig = resource.UnstructuredPlusDefaultContentConfig()
-	restConfig.GroupVersion = &gv
-	if len(gv.Group) == 0 {
-		restConfig.APIPath = "/api"
-	} else {
-		restConfig.APIPath = "/apis"
-	}
-
-	return rest.RESTClientFor(&restConfig)
-}
-
-
-func createObject(kubeClientset kubernetes.Interface, restConfig rest.Config, obj runtime.Object) error {
-    // Create a REST mapper that tracks information about the available resources in the cluster.
-    groupResources, err := restmapper.GetAPIGroupResources(kubeClientset.Discovery())
-    if err != nil {
-        return err
-    }
-    rm := restmapper.NewDiscoveryRESTMapper(groupResources)
-
-    // Get some metadata needed to make the REST request.
-    gvk := obj.GetObjectKind().GroupVersionKind()
-    gk := schema.GroupKind{Group: gvk.Group, Kind: gvk.Kind}
-    mapping, err := rm.RESTMapping(gk, gvk.Version)
-    if err != nil {
-        return err
-    }
-
-    // Create a client specifically for creating the object.
-    restClient, err := newRestClient(restConfig, mapping.GroupVersionKind.GroupVersion())
-    if err != nil {
-        return err
-    }
-
-    // Use the REST helper to create the object in the "default" namespace.
-    restHelper := resource.NewHelper(restClient, mapping)
-	_, err = restHelper.Create("default", false, obj)
+func triggerCapiClusterCreation(templatePath string, log *zap.SugaredLogger) error {
+	clusterTemplateData, err := os.ReadFile(templatePath)
 	if err != nil {
+		return nil
+	}
+	err = resource.CreateOrUpdateResourceFromBytes(clusterTemplateData, log)
+	//err = common.DynamicSSA(context.TODO(), string(clusterTemplateData), log)
+	if err != nil {
+		log.Errorf("Error creating cluster from template ", zap.Error(err))
 		return err
 	}
 	return nil
 }
-*/
 
-func triggerCapiClusterCreation(templatePath string, log *zap.SugaredLogger) error {
-	//client, err := k8sutil.GetKubernetesClientset()
-	//if err != nil {
-	//	return err
-	//}
-	log.Infof("+++ Generated File Path name = %s +++", templatePath)
-	sch := runtime.NewScheme()
-	_ = scheme.AddToScheme(sch)
-	_ = apiextv1beta1.AddToScheme(sch)
+// getUnstructuredData common utility to fetch unstructured data
+func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	var dataFetched *unstructured.Unstructured
+	var err error
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return nil, err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return nil, err
+	}
 
-	decode := serializer.NewCodecFactory(sch).UniversalDeserializer().Decode
-	stream, _ := os.ReadFile(templatePath)
-	obj, gKV, _ := decode(stream, nil, nil)
-	//if gKV.Kind == "CustomResourceDefinition" {
-	//	pod := obj.(*apiextv1beta1.CustomResourceDefinition)
-	//	spew.Dump(pod)
-	//}
-	log.Infof("++ Object = %+v +++", obj)
-	log.Infof("++ gkv = %+v +++", gKV)
-	return nil
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
 
+	if nameSpaceName != "" {
+		log.Infof("Fetching '%s' '%s' '%s' in namespace '%s'", component, resource, resourceName, nameSpaceName)
+		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	} else {
+		log.Infof("Fetching '%s' '%s' '%s'", component, resource, resourceName)
+		dataFetched, err = dclient.Resource(gvr).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	}
+	if err != nil {
+		log.Errorf("Unable to fetch %s %s %s due to '%v'", component, resource, resourceName, zap.Error(err))
+		return nil, err
+	}
+	return dataFetched, nil
+}
+
+// getUnstructuredData common utility to fetch list of unstructured data
+func getUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return nil, err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return nil, err
+	}
+
+	log.Infof("Fetching %s %s", component, resource)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	dataFetched, err := dclient.Resource(gvr).Namespace(nameSpaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("Unable to fetch %s %s due to '%v'", component, resource, zap.Error(err))
+		return nil, err
+	}
+	return dataFetched, nil
+}
+
+func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error) {
+	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterName, namespace, "capi-cluster", log)
+	if err != nil {
+		log.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterName, zap.Error(err))
+		return nil, err
+	}
+
+	if clusterFetched == nil {
+		log.Infof("No CAPI clusters with name '%s' in namespace '%s' was detected", clusterName, namespace)
+	}
+
+	var capiCluster Cluster
+	bdata, err := json.Marshal(clusterFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &capiCluster)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &capiCluster, nil
+}
+
+func showCapiCluster(clusterName string, log *zap.SugaredLogger) error {
+	log.Info("Start templating ...")
+	klusterData, err := GetCluster("default", clusterName, log)
+	if err != nil {
+
+	}
+
+	// OCNE cluster is ready when both control plane and worker nodes are up
+	if klusterData.Status.ControlPlaneReady && klusterData.Status.InfrastructureReady {
+		return nil
+	}
+	return
 }

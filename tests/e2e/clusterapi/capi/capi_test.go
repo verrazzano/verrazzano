@@ -20,7 +20,7 @@ const (
 	shortPollingInterval = 30 * time.Second
 	waitTimeout          = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
-	clusterTemplate      = "./cluster-template-addons.yaml"
+	clusterTemplate      = "templates/cluster-template-addons.yaml"
 )
 
 var rancherPods = []string{"rancher"}
@@ -75,7 +75,7 @@ func checkPodsRunning(namespace string, expectedPods []string) bool {
 
 // Run as part of BeforeSuite
 func capiPrerequisites() {
-	t.Logs.Info("Start capi pre-requisites")
+	t.Logs.Infof("Start capi pre-requisites fotr cluster '%s'", ClusterName)
 
 	t.Logs.Infof("Create CAPI configuration yaml for cluster '%s'", ClusterName)
 	Eventually(func() error {
@@ -84,21 +84,21 @@ func capiPrerequisites() {
 
 }
 
-func checkFileNameSet() error {
-	if ClusterTemplateGeneratedFilePath == "" {
-		return fmt.Errorf("Filename not set for generated template")
-	}
-	t.Logs.Infof("+++ Generated File Path name = %s +++", ClusterTemplateGeneratedFilePath)
-	return nil
-}
-
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
-	t.Context("Verify CAPI generated file name is set ", func() {
-		WhenClusterAPIInstalledIt("Start CAPI Cluster creation", func() {
+	//t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
+	//	WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
+	//		Eventually(func() error {
+	//			return triggerCapiClusterCreation(ClusterTemplateGeneratedFilePath, t.Logs)
+	//		}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+	//	})
+	//})
+
+	t.Context(fmt.Sprintf("Display CAPI cluster '%s'", ClusterName), func() {
+		WhenClusterAPIInstalledIt("Display CAPI cluster", func() {
 			Eventually(func() error {
-				return triggerCapiClusterCreation(ClusterTemplateGeneratedFilePath, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "CAPI generated file name is set")
+				return showCapiCluster(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display CAPI cluster")
 		})
 	})
 
