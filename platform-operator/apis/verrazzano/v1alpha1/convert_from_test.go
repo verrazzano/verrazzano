@@ -36,11 +36,6 @@ func TestConvertFromV1Beta1(t *testing.T) {
 			testCaseClusterOperator,
 			false,
 		},
-		{
-			"converts the ClusterAPI to v1alpha1",
-			testCaseClusterAPI,
-			false,
-		},
 	}
 
 	for _, tt := range tests {

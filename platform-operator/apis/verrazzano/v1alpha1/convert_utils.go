@@ -35,7 +35,6 @@ const (
 	testDevProfile            = "dev"
 	testManagedClusterProfile = "managed-cluster"
 	testCaseClusterOperator   = "clusteroperator"
-	testCaseClusterAPI        = "clusterapi"
 )
 
 type converisonTestCase struct {
