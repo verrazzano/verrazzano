@@ -398,12 +398,14 @@ func rootCertPoolInCluster(caData []byte, kubeconfigPath string) (*x509.CertPool
 		return nil, err
 	}
 	if env == "staging" {
+		Log(Info, "Adding Let's Encrypt staging CAs to cert pool")
 		// Add the ACME staging CAs if necessary
 		if certPool == nil {
 			certPool = x509.NewCertPool()
 		}
-		for _, stagingCA := range getACMEStagingCAs() {
+		for i, stagingCA := range getACMEStagingCAs() {
 			if len(stagingCA) > 0 {
+				Log(Info, fmt.Sprintf("Adding Let's Encrypt staging CA %v", i))
 				certPool.AppendCertsFromPEM(stagingCA)
 			}
 		}
