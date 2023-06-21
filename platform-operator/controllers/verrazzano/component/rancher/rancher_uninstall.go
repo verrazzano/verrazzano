@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -298,17 +297,25 @@ func createCleanupJob(ctx spi.ComponentContext) error {
 // deleteCleanupJob - delete the rancher-cleanup job. Do not return any errors,
 // it could cause the Rancher post-install to start all over
 func deleteCleanupJob(ctx spi.ComponentContext) {
-	jobFound := &batchv1.Job{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: rancherCleanupJobName, Namespace: rancherCleanupJobNamespace}, jobFound)
-	if err == nil {
-		propagationPolicy := metav1.DeletePropagationBackground
-		deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
-		err = ctx.Client().Delete(context.TODO(), jobFound, deleteOptions)
-		if err != nil {
-			ctx.Log().Errorf("Failed deleting cleanup job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
-		}
+	// Prepare the Yaml to delete the rancher-cleanup job
+	jobYaml, err := parseCleanupJobTemplate()
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create yaml for %s cleanup job: %v", rancherCleanupJobName, err)
+		return
 	}
 
+	// Write to a temporary file
+	file, err := os.CreateTempFile("vz", jobYaml)
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create Rancher cleanup temporary file for %s job: %v", rancherCleanupJobName, err)
+		return
+	}
+	defer file.Close()
+
+	// Delete the rancher-cleanup job
+	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteF(file.Name()); err != nil {
+		ctx.Log().Errorf("Failed applying Yaml to delete cleanup job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
+	}
 }
 
 // parseCleanupJobTemplate - parse the rancher-cleanup yaml file using
