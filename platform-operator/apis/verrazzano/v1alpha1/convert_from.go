@@ -4,9 +4,8 @@
 package v1alpha1
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
@@ -232,7 +231,8 @@ func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPICo
 		return nil
 	}
 	return &ClusterAPIComponent{
-		Enabled: in.Enabled,
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 

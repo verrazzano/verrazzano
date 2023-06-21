@@ -4,6 +4,10 @@
 package clusterapi
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -16,11 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const (
@@ -249,11 +250,70 @@ func TestGetJSONName(t *testing.T) {
 //	WHEN MonitorOverrides is called
 //	THEN false is returned
 func TestMonitorOverrides(t *testing.T) {
-	fakeClient := getReadyDeployments().Build()
-	var comp clusterAPIComponent
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	monitor := comp.MonitorOverrides(compContext)
-	assert.Equal(t, false, monitor)
+	c := NewComponent()
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	tests := []struct {
+		name   string
+		vz     *v1alpha1.Verrazzano
+		result bool
+	}{
+		{
+			"ClusterAPI Component is nil",
+			&v1alpha1.Verrazzano{},
+			false,
+		},
+		{
+			"ClusterAPI component initialised",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly enabled in ClusterAPI component",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{
+							InstallOverrides: v1alpha1.InstallOverrides{
+								MonitorChanges: getBoolPtr(true)},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly disabled in ClusterAPI component",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ClusterAPI: &v1alpha1.ClusterAPIComponent{
+							InstallOverrides: v1alpha1.InstallOverrides{
+								MonitorChanges: getBoolPtr(false)},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(cli, tt.vz, nil, false)
+			result := c.MonitorOverrides(ctx)
+			assert.Equal(t, tt.result, result)
+		})
+	}
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
 
 // TestIsOperatorInstallSupported tests the IsOperatorInstallSupported function
@@ -321,6 +381,7 @@ func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
 	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
@@ -339,6 +400,7 @@ func TestInstall(t *testing.T) {
 	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp clusterAPIComponent
@@ -373,6 +435,7 @@ func TestPreUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
 	dir := os.TempDir() + "/" + time.Now().Format("20060102150405")
 	setClusterAPIDir(dir)
 	defer resetClusterAPIDir()
