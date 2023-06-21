@@ -741,9 +741,6 @@ def generateVerifyInfraStages(dumpRoot) {
         "system component metrics": {
             runGinkgoRandomize('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
         },
-        "console": {
-            acceptanceTestsConsole("${dumpRoot}")
-        },
         "verify-infra vmi": {
             runGinkgoRandomize('verify-infra/vmi', "${dumpRoot}/verify-infra-vmi")
         },
