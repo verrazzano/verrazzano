@@ -36,7 +36,7 @@ pipeline {
             choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
-            choices: [ "VM.Standard.E3.Flex-4-2", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+            choices: [ "VM.Standard.E2.4", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (description: 'Specifies  Nginx LoadBalancer scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'NGINX_LB_SCOPE',
                     // 1st choice is the default value
                     choices: [ "GLOBAL","PRIVATE" ])
