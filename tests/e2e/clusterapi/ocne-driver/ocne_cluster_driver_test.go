@@ -287,6 +287,10 @@ func isClusterDeleted(clusterName string) (bool, error) {
 		return false, err
 	}
 	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
+
+	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
+	t.Logs.Infof("Deleting cluster %s state: %s", clusterName, state)
+
 	return jsonData == "[]", nil
 }
 
