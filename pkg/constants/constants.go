@@ -122,6 +122,9 @@ const MaxTimesVMCAgentPollingTime = 3
 // FluentdDaemonSetName - The name of the Fluentd DaemonSet
 const FluentdDaemonSetName = "fluentd"
 
+// FluentBitDaemonSetName - The name of the FluentBit DaemonSet
+const FluentBitDaemonSetName = "fluent-bit"
+
 // KubeSystem - The name of the kube-system namespace
 const KubeSystem = "kube-system"
 
