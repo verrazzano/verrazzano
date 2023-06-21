@@ -501,7 +501,7 @@ func listSystemOpenSearchIndices(kubeconfigPath string) []string {
 }
 
 // querySystemOpenSearch searches the Opensearch index with the fields in the given cluster
-func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPath string) map[string]interface{} {
+func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPath string, sortQuery bool) map[string]interface{} {
 	query := ""
 	for name, value := range fields {
 		fieldQuery := fmt.Sprintf("%s:%s", name, value)
@@ -511,6 +511,10 @@ func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPat
 			query = fmt.Sprintf("%s+AND+%s", query, fieldQuery)
 		}
 	}
+	if sortQuery {
+		query = query + "&sort=@timestamp:desc&size=10"
+	}
+
 	var result map[string]interface{}
 	url := fmt.Sprintf("%s/%s/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, query)
 	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
@@ -849,7 +853,7 @@ func LogRecordFound(indexName string, after time.Time, fields map[string]string)
 // LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found
 // in the given cluster
 func LogRecordFoundInCluster(indexName string, after time.Time, fields map[string]string, kubeconfigPath string) bool {
-	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath)
+	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath, true)
 	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false
