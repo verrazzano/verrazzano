@@ -4,6 +4,8 @@ spec:
   defaultVolumeSource:
     emptyDir: { }
   components:
+    clusterAPI:
+      enabled: true
     elasticsearch:
       nodes:
         - name: es-master

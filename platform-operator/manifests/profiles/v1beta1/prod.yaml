@@ -3,6 +3,8 @@
 
 spec:
   components:
+    clusterAPI:
+      enabled: true
     opensearch:
       nodes:
         - name: es-data
