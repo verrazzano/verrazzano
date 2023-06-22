@@ -517,6 +517,9 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cm-update"
                     }
                     steps {
+                        sh """
+                            ${WORKSPACE}/ci/scripts/install_third_party_components.sh
+                        """
                         runGinkgo('update/env-dns-cm')
                     }
                     post {
