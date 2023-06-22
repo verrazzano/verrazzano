@@ -103,7 +103,7 @@ type OCNEControlPlane struct {
 	Spec struct {
 		ControlPlaneConfig struct {
 			ClusterConfiguration struct {
-				ApiServer struct {
+				APIServer struct {
 					CertSANs []string `json:"certSANs"`
 				} `json:"apiServer"`
 				ControllerManager struct {
