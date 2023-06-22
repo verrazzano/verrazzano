@@ -63,9 +63,9 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-        booleanParam (description: 'Whether to run Install Tests', name: 'RUN_INSTALL_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to Post-Update1 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE1', defaultValue: false)
+        booleanParam (description: 'Whether to Post-Update2 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE2', defaultValue: false)
         booleanParam (description: 'Whether to run Infra Tests', name: 'RUN_INFRA_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to run App Tests', name: 'RUN_APP_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to run Availability Status Updates', name: 'RUN_AVAILABILITY_STATUS', defaultValue: false)
         booleanParam (description: 'Whether to run API Conversion Update Tests', name: 'RUN_API_CONVERSION', defaultValue: false)
         booleanParam (description: 'Whether to run AuthProxy Update Tests', name: 'RUN_AUTHPROXY', defaultValue: false)
@@ -367,16 +367,13 @@ pipeline {
                     }
                 }
 
-                stage('Post-Update1 Install Tests') {
-                    when { expression {params.RUN_INSTALL_TESTS} }
+                stage('Post-Update1 Verify Tests') {
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-install"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-infra"
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
-                        script {
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-security-tests", 'false', 'true')
-                        }
                     }
                     post {
                         always {
@@ -394,6 +391,25 @@ pipeline {
                     steps {
                         script {
                             parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update1-infra-tests")
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Post-Update1 Acceptance Tests') {
+                    when { expression {params.RUN_POST_UPDATE1} }
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
+                    }
+                    steps {
+                        script {
+                            // Run all but the WLS tests, and skip the undeploy step to leave the apps running
+                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-acceptance-tests", 'false', 'true')
                         }
                     }
                     post {
@@ -424,10 +440,10 @@ pipeline {
                     }
                 }
 
-                stage('Install Apps and run tests') {
-                    when { expression {params.RUN_APP_TESTS} }
+                stage('WLS/COH Post-Update2 Acceptance Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/install-app-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
                     steps {
                         // Run initial WLS/COH acceptance tests, and leave the apps running
@@ -597,16 +613,13 @@ pipeline {
                     }
                 }
 
-                stage('Post-Update2 Install Tests') {
-                    when { expression {params.RUN_INSTALL_TESTS} }
+                stage('Post-update2 Verify Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
-                        script {
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-security-tests", 'false', 'true')
-                        }
                     }
                     post {
                         always {
@@ -634,15 +647,15 @@ pipeline {
                     }
                 }
 
-                stage('Post-Update2 App Tests') {
-                    when { expression {params.RUN_APP_TESTS} }
+                stage('Post-update2 Acceptance Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-app-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
                     steps {
-                        // Run WLS/COH acceptance tests again, and delete the apps
+                        // Run all acceptance tests after the sequence of updates including CM and DNS; undeploy apps after
                         script {
-                            parallel generate_wls_tests("${TEST_DUMP_ROOT}/install-app-tests", 'true', 'false')
+                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-cm-dns-acceptance-tests", 'true', 'false')
                         }
                     }
                     post {
