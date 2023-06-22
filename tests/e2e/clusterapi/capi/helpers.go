@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
-	"google.golang.org/appengine/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -372,13 +371,13 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 	}
 
 	log.Infof("----------- Node in workload cluster ---------------------")
-	err = showNodeInfo(client, clusterName)
+	err = showNodeInfo(client, clusterName, log)
 	if err != nil {
 		return err
 	}
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
-	return showPodInfo(client, clusterName)
+	return showPodInfo(client, clusterName, log)
 }
 
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
@@ -408,7 +407,7 @@ func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.Suga
 	return nil
 }
 
-func showNodeInfo(client *kubernetes.Clientset, clustername string) error {
+func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tRole\tVersion\tInternalIP\tExternalIP\tOSImage\tKernelVersion\tContainerRuntime")
 	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -442,7 +441,7 @@ func showNodeInfo(client *kubernetes.Clientset, clustername string) error {
 	return nil
 }
 
-func showPodInfo(client *kubernetes.Clientset, clustername string) error {
+func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
 	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clustername))
