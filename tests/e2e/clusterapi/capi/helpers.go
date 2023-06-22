@@ -62,7 +62,9 @@ func clusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredL
 	log.Info("Start templating ...")
 
 	templateOptions := clusterapi.GetClusterTemplateOptions{
-		Kubeconfig: clusterapi.Kubeconfig{kubeconfigPath, ""},
+		Kubeconfig: clusterapi.Kubeconfig{
+			Path:    kubeconfigPath,
+			Context: ""},
 		URLSource: &clusterapi.URLSourceOptions{
 			URL: templatePath,
 		},

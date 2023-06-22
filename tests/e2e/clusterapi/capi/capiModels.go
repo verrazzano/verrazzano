@@ -32,13 +32,13 @@ type Cluster struct {
 			Port int    `json:"port"`
 		} `json:"controlPlaneEndpoint"`
 		ControlPlaneRef struct {
-			ApiVersion string `json:"apiVersion"`
+			APIVersion string `json:"apiVersion"`
 			Kind       string `json:"kind"`
 			Name       string `json:"name"`
 			Namespace  string `json:"namespace"`
 		} `json:"controlPlaneRef"`
 		InfrastructureRef struct {
-			ApiVersion string `json:"apiVersion"`
+			APIVersion string `json:"apiVersion"`
 			Kind       string `json:"kind"`
 			Name       string `json:"name"`
 			Namespace  string `json:"namespace"`
@@ -78,7 +78,7 @@ type Cluster struct {
 }
 
 type OCNEControlPlane struct {
-	ApiVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
 		CreationTimestamp time.Time `json:"creationTimestamp"`
@@ -90,15 +90,15 @@ type OCNEControlPlane struct {
 		Name            string `json:"name"`
 		Namespace       string `json:"namespace"`
 		OwnerReferences []struct {
-			ApiVersion         string `json:"apiVersion"`
+			APIVersion         string `json:"apiVersion"`
 			BlockOwnerDeletion bool   `json:"blockOwnerDeletion"`
 			Controller         bool   `json:"controller"`
 			Kind               string `json:"kind"`
 			Name               string `json:"name"`
-			Uid                string `json:"uid"`
+			UID                string `json:"uid"`
 		} `json:"ownerReferences"`
 		ResourceVersion string `json:"resourceVersion"`
-		Uid             string `json:"uid"`
+		UID             string `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
 		ControlPlaneConfig struct {
@@ -127,8 +127,8 @@ type OCNEControlPlane struct {
 			Format             string `json:"format"`
 			ImageConfiguration struct {
 				Proxy struct {
-					HttpProxy  string `json:"httpProxy"`
-					HttpsProxy string `json:"httpsProxy"`
+					HTTPProxy  string `json:"httpProxy"`
+					HTTPSProxy string `json:"httpsProxy"`
 					NoProxy    string `json:"noProxy"`
 				} `json:"proxy"`
 			} `json:"imageConfiguration"`
@@ -139,7 +139,7 @@ type OCNEControlPlane struct {
 					CriSocket        string `json:"criSocket"`
 					KubeletExtraArgs struct {
 						CloudProvider string `json:"cloud-provider"`
-						ProviderId    string `json:"provider-id"`
+						ProviderID    string `json:"provider-id"`
 					} `json:"kubeletExtraArgs"`
 				} `json:"nodeRegistration"`
 			} `json:"initConfiguration"`
@@ -150,14 +150,14 @@ type OCNEControlPlane struct {
 					CriSocket        string `json:"criSocket"`
 					KubeletExtraArgs struct {
 						CloudProvider string `json:"cloud-provider"`
-						ProviderId    string `json:"provider-id"`
+						ProviderID    string `json:"provider-id"`
 					} `json:"kubeletExtraArgs"`
 				} `json:"nodeRegistration"`
 			} `json:"joinConfiguration"`
 		} `json:"controlPlaneConfig"`
 		MachineTemplate struct {
 			InfrastructureRef struct {
-				ApiVersion string `json:"apiVersion"`
+				APIVersion string `json:"apiVersion"`
 				Kind       string `json:"kind"`
 				Name       string `json:"name"`
 				Namespace  string `json:"namespace"`
@@ -196,7 +196,7 @@ type OCNEControlPlane struct {
 }
 
 type Machine struct {
-	ApiVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
 		Annotations struct {
@@ -213,35 +213,35 @@ type Machine struct {
 		Name            string `json:"name"`
 		Namespace       string `json:"namespace"`
 		OwnerReferences []struct {
-			ApiVersion         string `json:"apiVersion"`
+			APIVersion         string `json:"apiVersion"`
 			BlockOwnerDeletion bool   `json:"blockOwnerDeletion"`
 			Controller         bool   `json:"controller"`
 			Kind               string `json:"kind"`
 			Name               string `json:"name"`
-			Uid                string `json:"uid"`
+			UID                string `json:"uid"`
 		} `json:"ownerReferences"`
 		ResourceVersion string `json:"resourceVersion"`
-		Uid             string `json:"uid"`
+		UID             string `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
 		Bootstrap struct {
 			ConfigRef struct {
-				ApiVersion string `json:"apiVersion"`
+				APIVersion string `json:"apiVersion"`
 				Kind       string `json:"kind"`
 				Name       string `json:"name"`
 				Namespace  string `json:"namespace"`
-				Uid        string `json:"uid"`
+				UID        string `json:"uid"`
 			} `json:"configRef"`
 			DataSecretName string `json:"dataSecretName"`
 		} `json:"bootstrap"`
 		ClusterName       string `json:"clusterName"`
 		FailureDomain     string `json:"failureDomain"`
 		InfrastructureRef struct {
-			ApiVersion string `json:"apiVersion"`
+			APIVersion string `json:"apiVersion"`
 			Kind       string `json:"kind"`
 			Name       string `json:"name"`
 			Namespace  string `json:"namespace"`
-			Uid        string `json:"uid"`
+			UID        string `json:"uid"`
 		} `json:"infrastructureRef"`
 		NodeDeletionTimeout string `json:"nodeDeletionTimeout"`
 		ProviderID          string `json:"providerID"`
@@ -274,10 +274,10 @@ type Machine struct {
 			SystemUUID              string `json:"systemUUID"`
 		} `json:"nodeInfo"`
 		NodeRef struct {
-			ApiVersion string `json:"apiVersion"`
+			APIVersion string `json:"apiVersion"`
 			Kind       string `json:"kind"`
 			Name       string `json:"name"`
-			Uid        string `json:"uid"`
+			UID        string `json:"uid"`
 		} `json:"nodeRef"`
 		ObservedGeneration int    `json:"observedGeneration"`
 		Phase              string `json:"phase"`
