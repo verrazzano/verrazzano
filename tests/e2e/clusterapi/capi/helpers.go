@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -188,6 +189,7 @@ func getCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 
 	if clusterFetched == nil {
 		log.Infof("No CAPI clusters with name '%s' in namespace '%s' was detected", clusterName, namespace)
+		return &capiCluster, nil
 	}
 
 	bdata, err := json.Marshal(clusterFetched)
@@ -347,31 +349,55 @@ func getCapiClusterKubeconfig(clusterName string, log *zap.SugaredLogger) ([]byt
 	return secret.Data["value"], nil
 }
 
-func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
-
+func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error) {
 	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
 	if err != nil {
-		return errors.Wrap(err, "Failed to create temporary file")
+		return nil, errors.Wrap(err, "Failed to create temporary file")
 	}
 	log.Info(tmpFile.Name())
 
 	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-		return errors.Wrap(err, "failed to write to destination file")
+		return nil, errors.Wrap(err, "failed to write to destination file")
 	}
 
 	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 	if err != nil {
-		return errors.Wrap(err, "Failed to get k8s rest config")
+		return nil, errors.Wrap(err, "Failed to get k8s rest config")
 	}
 
-	client, err := k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
+	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
+}
+
+func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
+	client, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get k8s client")
+		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
 	}
+
+	var cmdArgs []string
+	var bcmd helpers.BashCommand
+	ocicmd := fmt.Sprintf("oci network vcn list --compartment-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, ClusterName)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
+	bcmd.CommandArgs = cmdArgs
+	result := helpers.Runner(&bcmd, log)
+	if result.CommandError != nil {
+		return result.CommandError
+	}
+	log.Infof("+++ VCN ID = %s", result.StandardOut)
+
+	//cmdArgs = []string{}
+	//ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id'", OCICompartmentID, ClusterName)
+	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
+	//bcmd.CommandArgs = cmdArgs
+	//result := helpers.Runner(&bcmd, log)
+	//if result.CommandError != nil {
+	//	return result.CommandError
+	//}
+	//log.Infof("+++ VCN ID = %s", result.StandardOut)
 
 	log.Infof("----------- Node in workload cluster ---------------------")
 	err = showNodeInfo(client, clusterName, log)
@@ -381,6 +407,7 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
 	return showPodInfo(client, clusterName, log)
+
 }
 
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {

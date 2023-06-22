@@ -6,6 +6,7 @@ package capi
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"go.uber.org/zap"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -22,6 +23,8 @@ const (
 	pollingInterval      = 30 * time.Second
 	clusterTemplate      = "templates/cluster-template-addons-new-vcn.yaml"
 )
+
+var kubeSystemPods = []string{"etcd", "kube-apiserver", "kube-controller-manager", "kube-proxy", "kube-scheduler"}
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
@@ -73,6 +76,20 @@ func capiPrerequisites() {
 
 }
 
+// ensurePodsRunning checks whether the pods are ready in a given namespace
+func ensurePodsRunning(clusterName, namespace string, expectedPods []string, log *zap.SugaredLogger) bool {
+	client, err := getCapiClusterK8sClient(clusterName, log)
+	if err != nil {
+		t.Logs.Info("Failed to get k8s client for workload cluster")
+		return false
+	}
+	result, err := pkg.PodsRunningInClusterWithClient(namespace, expectedPods, client)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}
+
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
 	t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
@@ -93,6 +110,13 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 				return ensureCapiAccess(ClusterName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
+
+		WhenClusterAPIInstalledIt("Check pods in kube-system CAPI workload cluster are running", func() {
+			Eventually(func() bool {
+				return ensurePodsRunning(ClusterName, "kube-system", kubeSystemPods, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+
 	})
 
 	t.Context(fmt.Sprintf("Delete CAPI cluster '%s'", ClusterName), func() {
