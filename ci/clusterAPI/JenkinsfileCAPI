@@ -184,7 +184,6 @@ pipeline {
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         CONTROL_PLANE_MACHINE_COUNT = 1
         NODE_MACHINE_COUNT = 1
-        OCI_IMAGE_ID = sh(returnStdout: true, script: 'oci compute image list -c ${OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1').trim()
     }
 
     stages {
@@ -425,6 +424,11 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
         """
     }
+}
+
+def set_capi_variables() {
+   env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1' """).trim()
+   println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
 }
 
 def waitForPodsToBeUp(namespace) {
