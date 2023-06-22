@@ -182,14 +182,8 @@ pipeline {
         OCI_TENANCY_ID = credentials('oci-tenancy')
         OCI_REGION = params.CAPI_CLUSTER_REGION
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
-
         CONTROL_PLANE_MACHINE_COUNT = 1
-        OCI_NODE_MACHINE_TYPE_OCPUS = 4
-        export OCI_NODE_BOOT_VOLUME = 150
-        export OCI_VCN_ID=<change me>;
-        export OCI_SUBNET_ID=<change me>;
-        export OCI_SUBNET_CIDR=100.101.68.0/24;
-        export NETWORK_PROXY=<change me>
+        NODE_MACHINE_COUNT = 1
     }
 
     stages {
@@ -346,42 +340,19 @@ pipeline {
                         export OCI_CREDENTIALS_KEY_B64=$(base64 < ${TF_VAR_api_private_key_path} | tr -d '\n')
                         export OCI_CREDENTIALS_KEY=$(awk -v ORS='\\n' '1' ${TF_VAR_api_private_key_path});
                         export OCI_SSH_KEY=$(< ${TF_VAR_ssh_public_key_path});
-
-                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                        runGinkgoRandomize('clusterapi/capi')
+                        kubectl get ma
                     """
                 }
             }
             post {
-                failure {
-                    script {
-                        dumpK8sCluster('verify-install-cluster-dump')
-                    }
-                }
-            }
-        }
-
-        stage('opensearch backup and restore') {
-            when {
-                expression {params.OPENSEARCH_BACKUP == true}
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
-            }
-            steps {
-                println("Checking all pods in namespace verrazzano-system are ready before start of test")
-                waitForPodsToBeUp("verrazzano-system")
-                runGinkgoRandomize('backup/opensearch')
-                println("Checking all pods in namespace verrazzano-system are ready after test completion")
-                waitForPodsToBeUp("verrazzano-system")
-            }
-            post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
                 failure {
                     script {
-                        dumpK8sCluster('opensearch-backup-restore-cluster-dump')
+                        dumpK8sCluster('verify-capi-cluster-creation')
                     }
                 }
             }

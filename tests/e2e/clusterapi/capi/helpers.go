@@ -16,6 +16,12 @@ import (
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"strings"
+	"text/tabwriter"
+	"time"
+)
+
+const (
+	CapiDefaultNameSpace = "default"
 )
 
 var capiInitFunc = clusterapi.New
@@ -91,6 +97,8 @@ func triggerCapiClusterCreation(templatePath string, log *zap.SugaredLogger) err
 		log.Errorf("Error creating cluster from template ", zap.Error(err))
 		return err
 	}
+	log.Infof("Wait for 10 seconds before verification")
+	time.Sleep(10 * time.Second)
 	return nil
 }
 
@@ -157,7 +165,8 @@ func getUnstructuredDataList(group, version, resource, nameSpaceName, component 
 	return dataFetched, nil
 }
 
-func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error) {
+func getCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error) {
+	var capiCluster Cluster
 	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterName, namespace, "capi-cluster", log)
 	if err != nil {
 		log.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterName, zap.Error(err))
@@ -166,9 +175,9 @@ func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 
 	if clusterFetched == nil {
 		log.Infof("No CAPI clusters with name '%s' in namespace '%s' was detected", clusterName, namespace)
+		return &capiCluster, nil
 	}
 
-	var capiCluster Cluster
 	bdata, err := json.Marshal(clusterFetched)
 	if err != nil {
 		log.Errorf("Json marshalling error %v", zap.Error(err))
@@ -183,7 +192,7 @@ func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 	return &capiCluster, nil
 }
 
-func GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
+func getOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
 	ocnecpFetched, err := getUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, "ocne-control-plane", log)
 	if err != nil {
 		log.Errorf("Unable to fetch OCNE control plane '%s' due to '%v'", controlPlaneName, zap.Error(err))
@@ -209,7 +218,17 @@ func GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLog
 	return &ocneControlPlane, nil
 }
 
-func DisplayMachines(namespace, clusterName string, log *zap.SugaredLogger) error {
+func checkAll(data []bool) bool {
+	for _, item := range data {
+		// return false if any item is false
+		if !item {
+			return false
+		}
+	}
+	return true
+}
+
+func ensureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
 	machinesFetched, err := getUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, "capi-machines", log)
 	if err != nil {
 		log.Errorf("Unable to fetch machines due to '%v'", zap.Error(err))
@@ -221,6 +240,11 @@ func DisplayMachines(namespace, clusterName string, log *zap.SugaredLogger) erro
 	}
 
 	log.Infof("OCNE machine details:")
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tCluster\tNodename\tProviderID\tPhase")
+
+	var healthTracker []bool
+
 	for _, ma := range machinesFetched.Items {
 		var machine Machine
 		bdata, err := json.Marshal(ma.Object)
@@ -233,23 +257,43 @@ func DisplayMachines(namespace, clusterName string, log *zap.SugaredLogger) erro
 			log.Errorf("Json unmarshall error %v", zap.Error(err))
 			return err
 		}
-
-		log.Infof("Name:%v, Cluster:%v, Nodename:%v, ProviderID:%v, Phase:%v",
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v",
 			machine.Metadata.Name, machine.Metadata.Labels.ClusterXK8SIoClusterName, machine.Status.NodeRef.Name,
-			machine.Spec.ProviderID, machine.Status.Phase)
+			machine.Spec.ProviderID, machine.Status.Phase))
+
+		if strings.ToLower(machine.Status.Phase) == "running" {
+			healthTracker = append(healthTracker, true)
+		} else {
+			healthTracker = append(healthTracker, false)
+		}
 	}
-	return nil
+	writer.Flush()
+
+	if checkAll(healthTracker) {
+		return nil
+	}
+	return fmt.Errorf("All nodes are not in 'Running' state")
 }
 
-func showCapiCluster(clusterName string, log *zap.SugaredLogger) error {
-	log.Info("Start templating ...")
-	klusterData, err := GetCluster("default", clusterName, log)
+func monitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error {
+	klusterData, err := getCluster(CapiDefaultNameSpace, clusterName, log)
+	if err != nil {
+		return err
+	}
+	if klusterData == nil {
+		return nil
+	}
+	return fmt.Errorf("Cluster data not empty. Still present")
+}
+
+func monitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error {
+	klusterData, err := getCluster(CapiDefaultNameSpace, clusterName, log)
 	if err != nil {
 		return err
 	}
 
 	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
-	ocneCP, err := GetOCNEControlPlane("default", controlPlaneName, log)
+	ocneCP, err := getOCNEControlPlane(CapiDefaultNameSpace, controlPlaneName, log)
 	if err != nil {
 		return err
 	}
@@ -258,15 +302,101 @@ func showCapiCluster(clusterName string, log *zap.SugaredLogger) error {
 		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
 		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas)
 
-	err = DisplayMachines("default", clusterName, log)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tCluster\tInitialized\tReplicas\tUpdated\tUnavaliable\tReady")
+	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v",
+		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
+		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas))
+	writer.Flush()
+	err = ensureMachinesAreProvisioned(CapiDefaultNameSpace, clusterName, log)
 	if err != nil {
 		return err
 	}
 
 	// OCNE cluster is ready when both control plane and worker nodes are up
 	if klusterData.Status.ControlPlaneReady && klusterData.Status.InfrastructureReady {
-		log.Infof("Cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
+		log.Infof("Cluster '%s' phase is => '%s'. All machines are also in '%s' state.", clusterName, klusterData.Status.Phase, klusterData.Status.Phase)
 		return nil
 	}
 	return fmt.Errorf("Cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
+}
+
+func getCapiClusterKubeconfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return nil, err
+	}
+
+	secret, err := clientset.CoreV1().Secrets(CapiDefaultNameSpace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
+	if err != nil {
+		log.Infof("Error fetching secret ", zap.Error(err))
+		return nil, err
+	}
+
+	return secret.Data["value"], nil
+}
+
+func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
+
+	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
+	if err != nil {
+		return err
+	}
+	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create temporary file")
+	}
+	log.Info(tmpFile.Name())
+
+	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		return errors.Wrap(err, "failed to write to destination file")
+	}
+
+	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName))
+	if err != nil {
+		return errors.Wrap(err, "Failed to get k8s rest config")
+	}
+
+	client, err := k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get k8s client")
+	}
+
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tVersion")
+	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	for _, node := range nodeList.Items {
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v",
+			node.GetName(), node.Status.NodeInfo.KernelVersion))
+	}
+	writer.Flush()
+	return nil
+}
+
+func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
+	var err error
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "cluster.x-k8s.io",
+		Version:  "v1beta1",
+		Resource: "clusters",
+	}
+
+	err = dclient.Resource(gvr).Namespace(nameSpaceName).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
+	if err != nil {
+		log.Errorf("Unable to delete cluster %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	return nil
 }

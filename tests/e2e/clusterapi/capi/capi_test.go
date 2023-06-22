@@ -20,10 +20,8 @@ const (
 	shortPollingInterval = 30 * time.Second
 	waitTimeout          = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
-	clusterTemplate      = "templates/cluster-template-addons.yaml"
+	clusterTemplate      = "templates/cluster-template-addons-new-vcn.yaml"
 )
-
-var rancherPods = []string{"rancher"}
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
@@ -64,15 +62,6 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 	}
 }
 
-// checkPodsRunning checks whether the pods are ready in a given namespace
-func checkPodsRunning(namespace string, expectedPods []string) bool {
-	result, err := pkg.SpecificPodsRunning(namespace, "app=rancher")
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}
-
 // Run as part of BeforeSuite
 func capiPrerequisites() {
 	t.Logs.Infof("Start capi pre-requisites fotr cluster '%s'", ClusterName)
@@ -86,70 +75,37 @@ func capiPrerequisites() {
 
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
-	//t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
-	//	WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
-	//		Eventually(func() error {
-	//			return triggerCapiClusterCreation(ClusterTemplateGeneratedFilePath, t.Logs)
-	//		}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
-	//	})
-	//})
-
-	t.Context(fmt.Sprintf("Display CAPI cluster '%s'", ClusterName), func() {
-		WhenClusterAPIInstalledIt("Display CAPI cluster", func() {
+	t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
+		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
-				return showCapiCluster(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Display CAPI cluster")
+				return triggerCapiClusterCreation(ClusterTemplateGeneratedFilePath, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Monitor Cluster Creation", func() {
+			Eventually(func() error {
+				return monitorCapiClusterCreation(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
+		})
+
+		WhenClusterAPIInstalledIt("Display pods from CAPI cluster", func() {
+			Eventually(func() error {
+				return ensureCapiAccess(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display pods from CAPI cluster")
 		})
 	})
 
-	/*
-		t.Context("Rancher backup", func() {
-			WhenClusterAPIInstalledIt("Start rancher backup", func() {
-				Eventually(func() error {
-					return CreateRancherBackupObject()
-				}, waitTimeout, pollingInterval).Should(BeNil(), "Create rancher backup CRD")
-			})
-
-			WhenClusterAPIInstalledIt("Check backup progress after rancher backup object was created", func() {
-				Eventually(func() error {
-					return common.TrackOperationProgress("rancher", common.BackupResource, common.BackupRancherName, common.VeleroNameSpace, t.Logs)
-				}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
-			})
-
+	t.Context(fmt.Sprintf("Delete CAPI cluster '%s'", ClusterName), func() {
+		WhenClusterAPIInstalledIt("Delete CAPI cluster", func() {
+			Eventually(func() error {
+				return triggerCapiClusterDeletion(ClusterName, CapiDefaultNameSpace, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Delete CAPI cluster")
 		})
 
-		t.Context("Disaster simulation", func() {
-			WhenClusterAPIInstalledIt("Delete all users that were created as part of pre-suite", func() {
-				Eventually(func() bool {
-					return DeleteRancherUsers(common.RancherURL)
-				}, waitTimeout, pollingInterval).Should(BeTrue(), "Delete rancher user")
-			})
+		WhenClusterAPIInstalledIt("Monitor Cluster Creation", func() {
+			Eventually(func() error {
+				return monitorCapiClusterDeletion(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
 		})
-
-		t.Context("Rancher restore", func() {
-			WhenClusterAPIInstalledIt("Start restore after rancher backup is completed", func() {
-				Eventually(func() error {
-					return CreateRancherRestoreObject()
-				}, waitTimeout, pollingInterval).Should(BeNil(), "Create rancher restore CRD")
-			})
-			WhenClusterAPIInstalledIt("Check rancher restore progress", func() {
-				Eventually(func() error {
-					return common.TrackOperationProgress("rancher", common.RestoreResource, common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
-				}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher restore operation completed successfully")
-			})
-		})
-
-		t.Context("Rancher Data and Infra verification", func() {
-			WhenClusterAPIInstalledIt("After restore is complete wait for rancher pods to come up", func() {
-				Eventually(func() bool {
-					return checkPodsRunning(constants.RancherSystemNamespace, rancherPods)
-				}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher infra is up")
-			})
-			WhenClusterAPIInstalledIt("Verify users are present rancher restore is complete", func() {
-				Eventually(func() bool {
-					return VerifyRancherUsers(common.RancherURL)
-				}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher user has been restored successfully")
-			})
-		})
-	*/
+	})
 })
