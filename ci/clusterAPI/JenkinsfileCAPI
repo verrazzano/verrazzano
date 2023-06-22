@@ -267,6 +267,7 @@ pipeline {
             }
         }
 
+        /*
         stage('Prepare KinD environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -326,10 +327,15 @@ pipeline {
                 }
             }
         }
+        */
 
         stage('test-capi') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script (
+                        set_capi_variables()
+                    )
+                    /*
                     sh """
                         export OCI_TENANCY_ID_B64=$(echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n')
                         export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n')
@@ -341,6 +347,7 @@ pipeline {
                         runGinkgoRandomize('clusterapi/capi')
                         kubectl get ma
                     """
+                    */
                 }
             }
             post {
