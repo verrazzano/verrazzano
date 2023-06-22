@@ -105,13 +105,12 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsCompleted() {
-		monitor.Reset()
+		ctx.Log().Info("Cleaning up Rancher resources remaining after component clean up")
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
-			ctx.Log().Infof("Error generated from post job resource cleanup: %v", err)
 			return err
 		}
-
+		monitor.Reset()
 		return nil
 	}
 
@@ -130,9 +129,10 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		// If it's not finished running, requeue
 		if succeeded {
 			// Mark the monitor as completed.  Reconcile loop may call this function again
-			// and do not want to call forkPostUninstallFunc more than once.
+			// and do not want to call forkPostUninstallFunc more than once.  Generate retryable error to
+			// run post job clenaup and reset monitor.
 			monitor.SetCompleted()
-			return nil
+			return ctrlerrors.RetryableError{Source: ComponentName}
 		}
 	}
 
@@ -205,15 +205,13 @@ func rancherArtifactsExist(ctx spi.ComponentContext) bool {
 
 // forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	if !monitor.IsRunning() {
-		monitor.Run(
-			func() error {
-				return postUninstallFunc(ctx, monitor)
-			},
-		)
-		return ctrlerrors.RetryableError{Source: ComponentName}
-	}
-	return nil
+	monitor.Run(
+		func() error {
+			return postUninstallFunc(ctx, monitor)
+		},
+	)
+
+	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
