@@ -362,7 +362,7 @@ func monitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) erro
 		log.Infof("Cluster '%s' phase is => '%s'. All machines are also in '%s' state.", clusterName, klusterData.Status.Phase, klusterData.Status.Phase)
 		return nil
 	}
-	return fmt.Errorf("Cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
+	return fmt.Errorf("cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
 }
 
 func getCapiClusterKubeconfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
