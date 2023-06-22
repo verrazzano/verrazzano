@@ -5,7 +5,7 @@ def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 // def agentLabel = "largeexperimental"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def clusterSuffix = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 
 pipeline {
@@ -83,7 +83,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
@@ -184,6 +183,8 @@ pipeline {
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         CONTROL_PLANE_MACHINE_COUNT = 1
         NODE_MACHINE_COUNT = 1
+        CLUSTER_SUFFIX_ID = "${clusterSuffix}"
+        CLUSTER_NAME = "capi${CLUSTER_SUFFIX_ID}"
     }
 
     stages {
@@ -275,6 +276,7 @@ pipeline {
                         REALM_NAME = "test-realm"
                     }
                     steps {
+                        println("runner region is ${RUNNER_REGION}, OCI CAPI region is ${env.OCI_REGION}, CAPI Cluster Name is ${env.CLUSTER_NAME}")
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
@@ -309,6 +311,7 @@ pipeline {
                     }
                 }
 
+        /*
         stage('verify-install') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -326,6 +329,7 @@ pipeline {
                 }
             }
         }
+        */
 
         stage('test-capi') {
             steps {

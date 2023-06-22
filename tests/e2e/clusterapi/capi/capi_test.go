@@ -88,10 +88,10 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
 		})
 
-		WhenClusterAPIInstalledIt("Display pods from CAPI cluster", func() {
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
 				return ensureCapiAccess(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Display pods from CAPI cluster")
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 	})
 
@@ -102,10 +102,10 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Delete CAPI cluster")
 		})
 
-		WhenClusterAPIInstalledIt("Monitor Cluster Creation", func() {
+		WhenClusterAPIInstalledIt("Monitor Cluster Deletion", func() {
 			Eventually(func() error {
 				return monitorCapiClusterDeletion(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Deletion")
 		})
 	})
 })

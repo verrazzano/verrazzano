@@ -8,10 +8,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
+	"google.golang.org/appengine/log"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -22,6 +25,8 @@ import (
 
 const (
 	CapiDefaultNameSpace = "default"
+	nodeLabel            = "node-role.kubernetes.io/node"
+	controlPlaneLabel    = "node-role.kubernetes.io/control-plane"
 )
 
 var capiInitFunc = clusterapi.New
@@ -100,12 +105,12 @@ func triggerCapiClusterCreation(templatePath string, log *zap.SugaredLogger) err
 		return err
 	}
 	log.Infof("Wait for 10 seconds before verification")
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 	return nil
 }
 
 // getUnstructuredData common utility to fetch unstructured data
-func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+func getUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
 	var dataFetched *unstructured.Unstructured
 	var err error
 	config, err := k8sutil.GetKubeConfig()
@@ -126,21 +131,25 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 	}
 
 	if nameSpaceName != "" {
-		log.Infof("Fetching '%s' '%s' '%s' in namespace '%s'", component, resource, resourceName, nameSpaceName)
+		log.Infof("fetching '%s' '%s' in namespace '%s'", resource, resourceName, nameSpaceName)
 		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	} else {
-		log.Infof("Fetching '%s' '%s' '%s'", component, resource, resourceName)
+		log.Infof("fetching '%s' '%s'", resource, resourceName)
 		dataFetched, err = dclient.Resource(gvr).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	}
 	if err != nil {
-		log.Errorf("Unable to fetch %s %s %s due to '%v'", component, resource, resourceName, zap.Error(err))
+		if apierrors.IsNotFound(err) {
+			log.Errorf("resource %s %s not found", resource, resourceName)
+			return nil, nil
+		}
+		log.Errorf("Unable to fetch %s %s due to '%v'", resource, resourceName, zap.Error(err))
 		return nil, err
 	}
 	return dataFetched, nil
 }
 
 // getUnstructuredData common utility to fetch list of unstructured data
-func getUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
+func getUnstructuredDataList(group, version, resource, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
@@ -152,7 +161,7 @@ func getUnstructuredDataList(group, version, resource, nameSpaceName, component 
 		return nil, err
 	}
 
-	log.Infof("Fetching %s %s", component, resource)
+	log.Infof("Fetching resource %s", resource)
 	gvr := schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,
@@ -161,7 +170,7 @@ func getUnstructuredDataList(group, version, resource, nameSpaceName, component 
 
 	dataFetched, err := dclient.Resource(gvr).Namespace(nameSpaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("Unable to fetch %s %s due to '%v'", component, resource, zap.Error(err))
+		log.Errorf("Unable to fetch resource %s due to '%v'", resource, zap.Error(err))
 		return nil, err
 	}
 	return dataFetched, nil
@@ -169,7 +178,7 @@ func getUnstructuredDataList(group, version, resource, nameSpaceName, component 
 
 func getCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error) {
 	var capiCluster Cluster
-	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterName, namespace, "capi-cluster", log)
+	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterName, namespace, log)
 	if err != nil {
 		log.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterName, zap.Error(err))
 		return nil, err
@@ -177,7 +186,6 @@ func getCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 
 	if clusterFetched == nil {
 		log.Infof("No CAPI clusters with name '%s' in namespace '%s' was detected", clusterName, namespace)
-		return &capiCluster, nil
 	}
 
 	bdata, err := json.Marshal(clusterFetched)
@@ -195,7 +203,7 @@ func getCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 }
 
 func getOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
-	ocnecpFetched, err := getUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, "ocne-control-plane", log)
+	ocnecpFetched, err := getUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, log)
 	if err != nil {
 		log.Errorf("Unable to fetch OCNE control plane '%s' due to '%v'", controlPlaneName, zap.Error(err))
 		return nil, err
@@ -231,7 +239,7 @@ func checkAll(data []bool) bool {
 }
 
 func ensureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
-	machinesFetched, err := getUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, "capi-machines", log)
+	machinesFetched, err := getUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, log)
 	if err != nil {
 		log.Errorf("Unable to fetch machines due to '%v'", zap.Error(err))
 		return err
@@ -282,7 +290,9 @@ func monitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) erro
 	if err != nil {
 		return err
 	}
+	// success criteria for cluster deletion
 	if klusterData == nil {
+		log.Infof("No resource found for cluster '%s' in namespace '%s'", clusterName, CapiDefaultNameSpace)
 		return nil
 	}
 	return fmt.Errorf("Cluster data not empty. Still present")
@@ -361,18 +371,14 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 		return errors.Wrap(err, "Failed to get k8s client")
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tVersion")
-	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	log.Infof("----------- Node in workload cluster ---------------------")
+	err = showNodeInfo(client, clusterName)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get list of nodes")
+		return err
 	}
-	for _, node := range nodeList.Items {
-		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v",
-			node.GetName(), node.Status.NodeInfo.KernelVersion))
-	}
-	writer.Flush()
-	return nil
+
+	log.Infof("----------- Pods running on workload cluster ---------------------")
+	return showPodInfo(client, clusterName)
 }
 
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
@@ -399,5 +405,69 @@ func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.Suga
 		log.Errorf("Unable to delete cluster %s due to '%v'", clusterName, zap.Error(err))
 		return err
 	}
+	return nil
+}
+
+func showNodeInfo(client *kubernetes.Clientset, clustername string) error {
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tRole\tVersion\tInternalIP\tExternalIP\tOSImage\tKernelVersion\tContainerRuntime")
+	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of nodes from cluster '%s'", clustername))
+	}
+	for _, node := range nodeList.Items {
+		labels := node.GetLabels()
+		_, nodeOK := labels[nodeLabel]
+		_, controlPlaneOK := labels[nodeLabel]
+		var role, internalIP string
+		if nodeOK {
+			role = strings.Split(nodeLabel, "/")[len(strings.Split(nodeLabel, "/"))-1]
+		}
+		if controlPlaneOK {
+			role = strings.Split(controlPlaneLabel, "/")[len(strings.Split(controlPlaneLabel, "/"))-1]
+		}
+
+		addresses := node.Status.Addresses
+		for _, address := range addresses {
+			if address.Type == "InternalIP" {
+				internalIP = address.Address
+				break
+			}
+		}
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
+			node.GetName(), role, node.Status.NodeInfo.KubeletVersion, internalIP, "None", node.Status.NodeInfo.OSImage, node.Status.NodeInfo.KernelVersion,
+			node.Status.NodeInfo.ContainerRuntimeVersion))
+	}
+	writer.Flush()
+	return nil
+}
+
+func showPodInfo(client *kubernetes.Clientset, clustername string) error {
+	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clustername))
+	}
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tNamespace\tStatus\tIP\tNode")
+	for _, ns := range nsList.Items {
+		podList, err := client.CoreV1().Pods(ns.Name).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to get list of pods from cluster '%s'", clustername))
+		}
+		for _, pod := range podList.Items {
+			podData, err := client.CoreV1().Pods(ns.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					log.Infof("No pods in namespace '%s'", ns.Name)
+				} else {
+					return errors.Wrap(err, fmt.Sprintf("failed to get pod '%s' from cluster '%s'", pod.Name, clustername))
+				}
+			}
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v",
+				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName))
+
+		}
+	}
+	writer.Flush()
 	return nil
 }
