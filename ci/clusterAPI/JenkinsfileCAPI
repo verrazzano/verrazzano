@@ -332,9 +332,9 @@ pipeline {
         stage('test-capi') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script (
+                    script {
                         set_capi_variables()
-                    )
+                    }
                     /*
                     sh """
                         export OCI_TENANCY_ID_B64=$(echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n')
