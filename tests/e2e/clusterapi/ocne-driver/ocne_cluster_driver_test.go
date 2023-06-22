@@ -226,6 +226,10 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
+
+			// Verify that the cluster is configured correctly
+			Expect(verifyCluster(clusterNameSingleNode, 1)).Should(BeNil(),
+				fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
 		})
 	})
 
@@ -242,6 +246,10 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
+
+			// Verify that the cluster is configured correctly
+			Expect(verifyCluster(clusterNameNodePool, 2)).Should(BeNil(),
+				fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
 })
@@ -310,9 +318,9 @@ func isCredentialDeleted(credID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
-	// fmt.Println("Delete credential jsonData: " + jsonData)
-	return jsonData == "[]", nil
+	data := fmt.Sprint(jsonBody.Path("data").Data())
+	// fmt.Println("Delete credential json data: " + data)
+	return data == "[]", nil
 }
 
 // Makes a GET request for the specified cloud credential
@@ -564,12 +572,65 @@ func isClusterDeleted(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
+	data := fmt.Sprint(jsonBody.Path("data").Data())
 
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("deleting cluster %s state: %s", clusterName, state)
 
-	return jsonData == "[]", nil
+	return data == "[]", nil
+}
+
+// Asserts whether the cluster was created as expected
+func verifyCluster(clusterName string, numberNodes int) error {
+	jsonBody, err := getCluster(clusterName)
+	if err != nil {
+		return err
+	}
+	jsonData := jsonBody.Path("data.0")
+
+	// Assert that these attributes are as expected
+	resourceType := jsonBody.Path("resourceType").Data()
+	name := jsonData.Path("name").Data()
+	nodeCount := jsonData.Path("nodeCount").Data()
+	state := jsonData.Path("state").Data()
+	transitioning := jsonData.Path("transitioning").Data()
+	fleetNamespace := jsonData.Path("fleetWorkspaceName").Data()
+	driver := jsonData.Path("driver").Data()
+
+	attributes := []struct {
+		actual   interface{}
+		expected interface{}
+		name     string
+	}{
+		{resourceType, "cluster", "resource type"},
+		{name, clusterName, "cluster name"},
+		{nodeCount, float64(numberNodes), "node count"},
+		{state, "active", "state"},
+		{transitioning, "no", "transitioning flag"},
+		{fleetNamespace, "fleet-default", "fleet workspace"},
+		{driver, "ociocne", "driver"},
+	}
+	for _, a := range attributes {
+		Expect(a.actual).To(Equal(a.expected), "cluster %s has a %s value of %v but should be %v",
+			clusterName, a.name, a.actual, a.expected)
+	}
+
+	// Assert that these attributes are not nil
+	caCert := jsonData.Path("caCert").Data()
+	requestedResources := jsonData.Path("requested").Data()
+
+	nonNilAttributes := []struct {
+		value interface{}
+		name  string
+	}{
+		{caCert, "CA certificate"},
+		{requestedResources, "requested resources"},
+	}
+	for _, n := range nonNilAttributes {
+		Expect(n.value).ToNot(BeNil(), "cluster %s has a non-nil value for %s", clusterName, n.name)
+	}
+
+	return nil
 }
 
 // Gets a specified cluster by using the Rancher REST API
