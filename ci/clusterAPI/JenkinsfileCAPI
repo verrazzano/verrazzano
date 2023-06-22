@@ -267,41 +267,6 @@ pipeline {
             }
         }
 
-        stage('test-capi') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        set_capi_variables()
-                    }
-                    /*
-                    sh """
-                        export OCI_TENANCY_ID_B64=$(echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n')
-                        export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n')
-                        export OCI_USER_ID_B64=$(echo -n "${OCI_USER_ID}" | base64 | tr -d '\n')
-                        export OCI_REGION_B64=$(echo -n "${OCI_REGION}" | base64 | tr -d '\n')
-                        export OCI_CREDENTIALS_KEY_B64=$(base64 < ${TF_VAR_api_private_key_path} | tr -d '\n')
-                        export OCI_CREDENTIALS_KEY=$(awk -v ORS='\\n' '1' ${TF_VAR_api_private_key_path});
-                        export OCI_SSH_KEY=$(< ${TF_VAR_ssh_public_key_path});
-                        runGinkgoRandomize('clusterapi/capi')
-                        kubectl get ma
-                    """
-                    */
-                }
-            }
-            post {
-                always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('verify-capi-cluster-creation')
-                    }
-                }
-            }
-        }
-
-
         stage('Prepare KinD environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -357,6 +322,28 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('verify-install-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('test-capi') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        set_capi_variables()
+                        runGinkgoRandomize('clusterapi/capi')
+                    }
+                }
+            }
+            post {
+                always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('verify-capi-cluster-creation')
                     }
                 }
             }
@@ -438,6 +425,12 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 def set_capi_variables() {
    env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1 """).trim()
    println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
+   env.OCI_TENANCY_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n' """).trim()
+   env.OCI_CREDENTIALS_FINGERPRINT_B64=sh(returnStdout: true, script: """ echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n' """).trim()
+   env.OCI_USER_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_USER_ID}" | base64 | tr -d '\n' """).trim()
+   env.OCI_REGION_B64=sh(returnStdout: true, script: """ echo -n "${OCI_REGION}" | base64 | tr -d '\n' """).trim()
+   env.OCI_CREDENTIALS_KEY_B64=sh(returnStdout: true, script: """ base64 < ${TF_VAR_api_private_key_path} | tr -d '\n' """).trim()
+   env.OCI_SSH_KEY=sh(returnStdout: true, script: """ < ${TF_VAR_ssh_public_key_path} """).trim()
 }
 
 def waitForPodsToBeUp(namespace) {
