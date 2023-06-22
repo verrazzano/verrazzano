@@ -256,6 +256,8 @@ pipeline {
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
+                    println("runner region is ${RUNNER_REGION}, OCI CAPI region is ${env.OCI_REGION}, CAPI Cluster Name is ${env.CLUSTER_NAME}")
                 }
                 script {
                     sh """
@@ -276,8 +278,7 @@ pipeline {
                         REALM_NAME = "test-realm"
                     }
                     steps {
-                        def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-                        println("runner region is ${RUNNER_REGION}, OCI CAPI region is ${env.OCI_REGION}, CAPI Cluster Name is ${env.CLUSTER_NAME}")
+
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
