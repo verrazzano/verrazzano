@@ -94,7 +94,10 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 
 	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: true}
 	err := postUninstall(ctx, monitor)
-	a.NoError(err)
+	// retryable error returned to trigger one more reconcile loop to perform post job cleanup
+	a.Error(err)
+	_, ok := err.(ctrlerrors.RetryableError)
+	a.True(ok)
 }
 
 // TestPostUninstall tests the post uninstall process for Rancher
