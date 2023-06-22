@@ -312,7 +312,7 @@ func deleteCleanupJob(ctx spi.ComponentContext) {
 	defer file.Close()
 
 	// Delete the rancher-cleanup job
-	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteF(file.Name()); err != nil {
+	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFWithDependents(file.Name()); err != nil {
 		ctx.Log().Errorf("Failed applying Yaml to delete cleanup job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 	}
 }
