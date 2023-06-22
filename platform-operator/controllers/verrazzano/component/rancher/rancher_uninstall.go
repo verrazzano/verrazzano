@@ -105,12 +105,12 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsCompleted() {
-		ctx.Log().Info("Cleaning up Rancher resources remaining after component clean up")
+		monitor.Reset()
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
 			return err
 		}
-		monitor.Reset()
+
 		return nil
 	}
 
@@ -140,50 +140,53 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 
 // cleanupRemainingResources cleans up some resources that remain after the Rancher cleanup job is completed.
 func cleanupRemainingResources(ctx spi.ComponentContext) error {
-	// Remove the Rancher webhooks
-	err := deleteWebhooks(ctx)
-	if err != nil {
-		return err
+
+	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
+		// Remove the Rancher webhooks
+		err := deleteWebhooks(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Delete the Rancher resources that need to be matched by a string
+		err = deleteMatchingResources(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Delete the remaining Rancher ConfigMaps
+		err = resource.Resource{
+			Name:      controllerCMName,
+			Namespace: constants.KubeSystem,
+			Client:    ctx.Client(),
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+		err = resource.Resource{
+			Name:      lockCMName,
+			Namespace: constants.KubeSystem,
+			Client:    ctx.Client(),
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+
+		crds := getCRDList(ctx)
+
+		// Remove any Rancher custom resources that remain
+		removeCRs(ctx, crds)
+
+		// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
+		removeCRDFinalizers(ctx, crds)
+
+		// Delete the rancher-cleanup job
+		deleteCleanupJob(ctx)
 	}
-
-	// Delete the Rancher resources that need to be matched by a string
-	err = deleteMatchingResources(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Delete the remaining Rancher ConfigMaps
-	err = resource.Resource{
-		Name:      controllerCMName,
-		Namespace: constants.KubeSystem,
-		Client:    ctx.Client(),
-		Object:    &corev1.ConfigMap{},
-		Log:       ctx.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-	err = resource.Resource{
-		Name:      lockCMName,
-		Namespace: constants.KubeSystem,
-		Client:    ctx.Client(),
-		Object:    &corev1.ConfigMap{},
-		Log:       ctx.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-
-	crds := getCRDList(ctx)
-
-	// Remove any Rancher custom resources that remain
-	removeCRs(ctx, crds)
-
-	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
-	removeCRDFinalizers(ctx, crds)
-
-	// Delete the rancher-cleanup job
-	deleteCleanupJob(ctx)
 
 	return nil
 }
