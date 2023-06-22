@@ -3,7 +3,7 @@ package capi
 import "time"
 
 type Cluster struct {
-	ApiVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
 		CreationTimestamp time.Time `json:"creationTimestamp"`
@@ -15,7 +15,7 @@ type Cluster struct {
 		Name            string `json:"name"`
 		Namespace       string `json:"namespace"`
 		ResourceVersion string `json:"resourceVersion"`
-		Uid             string `json:"uid"`
+		UID             string `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
 		ClusterNetwork struct {
@@ -108,7 +108,7 @@ type OCNEControlPlane struct {
 				} `json:"apiServer"`
 				ControllerManager struct {
 				} `json:"controllerManager"`
-				Dns struct {
+				DNS struct {
 					ImageRepository string `json:"imageRepository"`
 					ImageTag        string `json:"imageTag"`
 				} `json:"dns"`

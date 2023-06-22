@@ -297,13 +297,9 @@ func monitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) erro
 	if err != nil {
 		return err
 	}
-	log.Infof("Control plane details:")
-	log.Infof("Name:%v, Cluster:%v, Initialized:%v, Replicas:%v, Updated:%v, Unavaliable:%v, Ready:%v",
-		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
-		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas)
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tCluster\tInitialized\tReplicas\tUpdated\tUnavaliable\tReady")
+	fmt.Fprintln(writer, "Name\tCluster\tInitialized\tReplicas\tUpdated\tUnavailable\tReady")
 	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v",
 		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
 		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas))
@@ -353,7 +349,7 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 		return errors.Wrap(err, "failed to write to destination file")
 	}
 
-	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName))
+	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 	if err != nil {
 		return errors.Wrap(err, "Failed to get k8s rest config")
 	}
@@ -366,6 +362,9 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tVersion")
 	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, "Failed to get list of nodes")
+	}
 	for _, node := range nodeList.Items {
 		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v",
 			node.GetName(), node.Status.NodeInfo.KernelVersion))

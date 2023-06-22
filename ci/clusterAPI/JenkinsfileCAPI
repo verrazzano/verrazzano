@@ -436,7 +436,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 }
 
 def set_capi_variables() {
-   env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1' """).trim()
+   env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1 """).trim()
    println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
 }
 
