@@ -78,12 +78,12 @@ func capiPrerequisites() {
 
 // ensurePodsRunning checks whether the pods are ready in a given namespace
 func ensurePodsRunning(clusterName, namespace string, expectedPods []string, log *zap.SugaredLogger) bool {
-	client, err := getCapiClusterK8sClient(clusterName, log)
+	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
 	}
-	result, err := pkg.PodsRunningInClusterWithClient(namespace, expectedPods, client)
+	result, err := pkg.PodsRunningInClusterWithClient(namespace, expectedPods, k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}

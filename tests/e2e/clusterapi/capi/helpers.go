@@ -290,16 +290,48 @@ func ensureMachinesAreProvisioned(namespace, clusterName string, log *zap.Sugare
 }
 
 func monitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error {
-	klusterData, err := getCluster(CapiDefaultNameSpace, clusterName, log)
+	var err error
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
 		return err
 	}
-	// success criteria for cluster deletion
-	if klusterData == nil {
-		log.Infof("No resource found for cluster '%s' in namespace '%s'", clusterName, CapiDefaultNameSpace)
-		return nil
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return err
 	}
-	return fmt.Errorf("Cluster data not empty. Still present")
+
+	gvr := schema.GroupVersionResource{
+		Group:    "cluster.x-k8s.io",
+		Version:  "v1beta1",
+		Resource: "clusters",
+	}
+	var capiCluster Cluster
+
+	kluster, err := dclient.Resource(gvr).Namespace(CapiDefaultNameSpace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	if err != nil {
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				log.Errorf("cluster resource %s not found", clusterName)
+				return nil
+			}
+			log.Errorf("Unable to fetch %s %s due to '%v'", clusterName, zap.Error(err))
+			return err
+		}
+	}
+	bdata, err := json.Marshal(kluster)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return err
+	}
+	err = json.Unmarshal(bdata, &capiCluster)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return err
+	}
+
+	return fmt.Errorf("Cluster '%s' is in '%s' state.", clusterName, capiCluster.Status.Phase)
 }
 
 func monitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error {
@@ -387,7 +419,7 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 	if result.CommandError != nil {
 		return result.CommandError
 	}
-	log.Infof("+++ VCN ID = %s", result.StandardOut)
+	log.Infof("+++ VCN ID = %s", result.StandardOut.String())
 
 	//cmdArgs = []string{}
 	//ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id'", OCICompartmentID, ClusterName)
