@@ -259,25 +259,19 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 
 // deleteAction deletes the object from the server
 func (y *YAMLApplier) deleteAction(obj *unstructured.Unstructured) error {
-	var ns = strings.TrimSpace(y.namespaceOverride)
-	if len(ns) > 0 {
-		obj.SetNamespace(ns)
-	}
-	if err := y.client.Delete(context.TODO(), obj); err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-	}
-	return nil
+	return y.execDeleteAction(obj, metav1.DeletePropagationOrphan)
 }
 
 // deleteAction deletes the object from the server
 func (y *YAMLApplier) deleteActionWithDependents(obj *unstructured.Unstructured) error {
+	return y.execDeleteAction(obj, metav1.DeletePropagationBackground)
+}
+
+func (y *YAMLApplier) execDeleteAction(obj *unstructured.Unstructured, propagationPolicy metav1.DeletionPropagation) error {
 	var ns = strings.TrimSpace(y.namespaceOverride)
 	if len(ns) > 0 {
 		obj.SetNamespace(ns)
 	}
-	propagationPolicy := metav1.DeletePropagationBackground
 	deleteOptions := &crtpkg.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	}
