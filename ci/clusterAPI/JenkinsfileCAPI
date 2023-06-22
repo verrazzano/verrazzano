@@ -331,12 +331,12 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        export OCI_IMAGE_ID=$(oci compute image list -c $COMPARTMENT_ID --operating-system "Oracle Linux" --operating-system-version "8" |
+                        export OCI_IMAGE_ID=$(oci compute image list -c ${COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" |
                         jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1)
-                        export OCI_TENANCY_ID_B64="$(echo -n "$OCI_TENANCY_ID" | base64 | tr -d '\n')";
-                        export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "$OCI_CREDENTIALS_FINGERPRINT" | base64 | tr -d '\n')";
-                        export OCI_USER_ID_B64="$(echo -n "$OCI_USER_ID" | base64 | tr -d '\n')";
-                        export OCI_REGION_B64="$(echo -n "$OCI_REGION" | base64 | tr -d '\n')";
+                        export OCI_TENANCY_ID_B64="$(echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n')";
+                        export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n')";
+                        export OCI_USER_ID_B64="$(echo -n "${OCI_USER_ID}" | base64 | tr -d '\n')";
+                        export OCI_REGION_B64="$(echo -n "${OCI_REGION}" | base64 | tr -d '\n')";
                         export OCI_CREDENTIALS_KEY_B64=$(base64 < ${TF_VAR_api_private_key_path} | tr -d '\n')
                         export OCI_CREDENTIALS_KEY=$(awk -v ORS='\\n' '1' ${TF_VAR_api_private_key_path});
                         export OCI_SSH_KEY=$(< ${TF_VAR_ssh_public_key_path});
