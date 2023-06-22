@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def LAST_RELEASABLE_COMMIT
@@ -34,6 +34,7 @@ pipeline {
         GITHUB_CREDENTIALS = credentials('github_rw')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -52,13 +53,13 @@ pipeline {
                     dir ("${WORKSPACE}") {
                         def cleanBranchName = "${env.BRANCH_NAME.replace("/", "%2F")}"
                         sh """
-                          oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/current-dev-version.txt --file ${WORKSPACE}/current_dev_version.txt
+                          oci --region ${OCI_CLI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/current-dev-version.txt --file ${WORKSPACE}/current_dev_version.txt
                         """
                         def propsDevVersion = readProperties file: "current_dev_version.txt"
                         VERRAZZANO_DEV_VERSION = propsDevVersion['verrazzano-development-version']
                         println("Current dev version is ${VERRAZZANO_DEV_VERSION}")
                         sh """
-                          oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt --file ${WORKSPACE}/last_releasable_candidate_commit.txt
+                          oci --region ${OCI_CLI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt --file ${WORKSPACE}/last_releasable_candidate_commit.txt
                         """
                         def props = readProperties file: "last_releasable_candidate_commit.txt"
                         LAST_RELEASABLE_COMMIT = props['git-commit']
@@ -66,7 +67,11 @@ pipeline {
                             println("ERROR: No releasable commit found for dev version ${VERRAZZANO_DEV_VERSION}")
                             sh "exit 1"
                         }
+                        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "echo ${LAST_RELEASABLE_COMMIT} | head -c 8")
                         IMAGES_TO_PUBLISH_OBJECT_STORE_FILE="${env.CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
+                        sh """
+                          oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --destination-bucket ${OCI_OS_BUCKET} --source-object-name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --destination-object-name ${IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}
+                        """
                     }
                 }
             }
