@@ -28,7 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
@@ -585,47 +584,6 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 					expectedReplicas = int32(val)
 					t.Logs.Infof("Found Prometheus replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
 					break
-				}
-			}
-		}
-	}
-
-	return expectedReplicas, nil
-}
-
-// getExpectedThanosReplicaCount returns the thanos replicas in the values overrides from the
-// Thanos component in the Verrazzano CR. If there is no override for replicas then the
-// default replica count of 1 is returned.
-func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
-	if err != nil {
-		return 0, err
-	}
-	if !vzcr.IsComponentStatusEnabled(vz, thanos.ComponentName) {
-		return 0, nil
-	}
-	expectedReplicas := int32(0)
-	if vz.Spec.Components.Thanos == nil {
-		return expectedReplicas, nil
-	}
-
-	for _, override := range vz.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
-		if override.Values != nil {
-			jsonString, err := gabs.ParseJSON(override.Values.Raw)
-			if err != nil {
-				return expectedReplicas, err
-			}
-			// check to see if storegateway is enabled and if so how many replicas it has
-			if enabledContainer := jsonString.Path("storegateway.enabled"); enabledContainer != nil {
-				if enabled, ok := enabledContainer.Data().(bool); ok && enabled {
-					expectedReplicas = int32(1)
-					if replicaContainer := jsonString.Path("storegateway.replicaCount"); replicaContainer != nil {
-						if val, ok := replicaContainer.Data().(float64); ok {
-							expectedReplicas = int32(val)
-							t.Logs.Infof("Found Thanos storegateway replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
-							break
-						}
-					}
 				}
 			}
 		}
