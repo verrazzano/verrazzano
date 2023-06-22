@@ -124,24 +124,25 @@ type RancherOCNECluster struct {
 	} `json:"labels"`
 }
 
+// Part of SynchronizedBeforeSuite, run by only one process
 func sbsProcess1Func() []byte {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsClusterAPIEnabled(kubeconfigPath) {
-		AbortSuite("Skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
+		AbortSuite("skipping ocne cluster driver test suite since either of rancher and capi components are not enabled")
 	}
 
 	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
+		AbortSuite(fmt.Sprintf("failed getting http client: %v", err))
 	}
 
 	rancherURL, err = helpers.GetRancherURL(t.Logs)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
+		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
-	// create the cloud credential to be used for all tests
+	// Create the cloud credential to be used for all tests
 	cloudCredentialName = fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 	var credentialID string
 	Eventually(func() error {
@@ -154,10 +155,11 @@ func sbsProcess1Func() []byte {
 		return validateCloudCredential(credentialID)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	// return byte encoded cloud credential ID to be shared across all processes
+	// Return byte encoded cloud credential ID to be shared across all processes
 	return []byte(credentialID)
 }
 
+// Part of SynchronizedBeforeSuite, run by all processes
 func sbsAllProcessesFunc(credentialIDBytes []byte) {
 	// Define global variables for all processes
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -165,12 +167,12 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 
 	httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed getting http client: %v", err))
+		AbortSuite(fmt.Sprintf("failed getting http client: %v", err))
 	}
 
 	rancherURL, err = helpers.GetRancherURL(t.Logs)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed getting rancherURL: %v", err))
+		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
 	cloudCredentialID = string(credentialIDBytes)
@@ -180,6 +182,7 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 
 var _ = t.SynchronizedBeforeSuite(sbsProcess1Func, sbsAllProcessesFunc)
 
+// Part of SynchronizedAfterSuite, run by only one process
 func sasProcess1Func() {
 	// Delete the clusters concurrently
 	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool}
@@ -195,7 +198,7 @@ func sasProcess1Func() {
 
 			// Verify the cluster is deleted
 			Eventually(func() (bool, error) { return isClusterDeleted(name) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not deleted", name))
+				BeTrue(), fmt.Sprintf("cluster %s is not deleted", name))
 		}(clusterName)
 	}
 	wg.Wait()
@@ -205,7 +208,7 @@ func sasProcess1Func() {
 
 	// Verify the credential is deleted
 	Eventually(func() (bool, error) { return isCredentialDeleted(cloudCredentialID) }, waitTimeout, pollingInterval).Should(
-		BeTrue(), fmt.Sprintf("Cloud credential %s is not deleted", cloudCredentialID))
+		BeTrue(), fmt.Sprintf("cloud credential %s is not deleted", cloudCredentialID))
 }
 
 var _ = t.SynchronizedAfterSuite(func() {}, sasProcess1Func)
@@ -222,7 +225,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		t.It("check OCNE cluster is active", func() {
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterNameSingleNode))
+				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
 		})
 	})
 
@@ -238,62 +241,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		t.It("check OCNE cluster is active", func() {
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("Cluster %s is not active", clusterNameNodePool))
+				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 		})
 	})
 })
 
-func deleteCredential(credID string) {
-	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s%s", "v3/cloudCredentials/", credID))
-	helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusNoContent, nil, t.Logs)
-}
-
-func isCredentialDeleted(credID string) (bool, error) {
-	jsonBody, err := getCredential(credID)
-	if err != nil {
-		return false, err
-	}
-	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
-	// fmt.Println("Delete credential jsonData: " + jsonData)
-	return jsonData == "[]", nil
-}
-
-func getCredential(credID string) (*gabs.Container, error) {
-	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s%s", "v3/cloudcredentials?id=", credID))
-	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
-}
-
-func deleteCluster(clusterName string) error {
-	clusterID, err := getClusterIDFromName(clusterName)
-	if err != nil {
-		t.Logs.Infof("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-		return err
-	}
-	t.Logs.Infof("clusterID for deletion: %s", clusterID)
-
-	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s/%s", "v1/provisioning.cattle.io.clusters/fleet-default", clusterID))
-
-	_, err = helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
-	if err != nil {
-		t.Logs.Errorf("Error while deleting cluster: %v", err)
-		return err
-	}
-	return nil
-}
-
-func isClusterDeleted(clusterName string) (bool, error) {
-	jsonBody, err := getCluster(clusterName)
-	if err != nil {
-		return false, err
-	}
-	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
-
-	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
-	t.Logs.Infof("Deleting cluster %s state: %s", clusterName, state)
-
-	return jsonData == "[]", nil
-}
-
+// Creates the cloud credential through the Rancher REST API
 func createCloudCredential(credentialName string) (string, error) {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cloudcredentials")
 	privateKeyContents, err := getFileContents(privateKeyPath)
@@ -324,11 +277,48 @@ func createCloudCredential(credentialName string) (string, error) {
 
 	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, cloudCredsBdata, t.Logs)
 	if err != nil {
-		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
+		t.Logs.Errorf("error while retrieving http data: %v", zap.Error(err))
 		return "", err
 	}
 	credID := fmt.Sprint(jsonBody.Path("id").Data())
 	return credID, nil
+}
+
+// Sends a test request to check that the cloud credential is configured properly
+func validateCloudCredential(credID string) error {
+	urlPath := fmt.Sprintf("meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", credID, compartmentID, region)
+	requestURL, adminToken := setupRequest(rancherURL, urlPath)
+	t.Logs.Infof("validateCloudCredential URL = %s", requestURL)
+	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("error while retrieving http data: %v", zap.Error(err))
+		return err
+	}
+	t.Logs.Infof("validate cloud credential response: %s", fmt.Sprint(res))
+	return nil
+}
+
+// Deletes the cloud credential through the Rancher REST API
+func deleteCredential(credID string) {
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s%s", "v3/cloudCredentials/", credID))
+	helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusNoContent, nil, t.Logs)
+}
+
+// Returns true if the cloud credential is deleted/does not exist
+func isCredentialDeleted(credID string) (bool, error) {
+	jsonBody, err := getCredential(credID)
+	if err != nil {
+		return false, err
+	}
+	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
+	// fmt.Println("Delete credential jsonData: " + jsonData)
+	return jsonData == "[]", nil
+}
+
+// Makes a GET request for the specified cloud credential
+func getCredential(credID string) (*gabs.Container, error) {
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s%s", "v3/cloudcredentials?id=", credID))
+	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
 }
 
 // Creates a single node OCNE Cluster through CAPI
@@ -470,7 +460,7 @@ func createNodePoolCluster(clusterName, nodePoolName string) error {
 	return createCluster(clusterName, rancherOCNEClusterConfig)
 }
 
-// Creates an OCNE cluster through ClusterAPI
+// Creates an OCNE cluster through ClusterAPI by making a request to the Rancher API
 func createCluster(clusterName string, requestPayload RancherOCNECluster) error {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster?_replace=true")
 	clusterBData, err := json.Marshal(requestPayload)
@@ -483,7 +473,26 @@ func createCluster(clusterName string, requestPayload RancherOCNECluster) error 
 		t.Logs.Infof("create cluster response body: %s", res.String())
 	}
 	if err != nil {
-		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
+		t.Logs.Errorf("error while retrieving http data: %v", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// Deletes the OCNE cluster by sending a DELETE request to the Rancher API
+func deleteCluster(clusterName string) error {
+	clusterID, err := getClusterIDFromName(clusterName)
+	if err != nil {
+		t.Logs.Infof("could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+		return err
+	}
+	t.Logs.Infof("clusterID for deletion: %s", clusterID)
+
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s/%s", "v1/provisioning.cattle.io.clusters/fleet-default", clusterID))
+
+	_, err = helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("error while deleting cluster: %v", err)
 		return err
 	}
 	return nil
@@ -549,33 +558,18 @@ func isClusterActive(clusterName string) (bool, error) {
 	return state == "active", nil
 }
 
-// Generates the kubeconfig of the workload cluster with an ID of `clusterID`
-// Writes the kubeconfig to a file inside /tmp. Returns the path of the kubeconfig file.
-func writeWorkloadKubeconfig(clusterID string) (string, error) {
-	t.Logs.Info("+++ Downloading kubeconfig from Rancher +++")
-	outputPath := fmt.Sprintf("/tmp/%s-kubeconfig", clusterID)
-	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?action=generateKubeconfig", clusterID))
-	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
-	if err != nil {
-		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
-		return "", err
-	}
-
-	workloadKubeconfig := fmt.Sprint(jsonBody.Path("config").Data())
-	err = os.WriteFile(outputPath, []byte(workloadKubeconfig), 0600)
-	if err != nil {
-		t.Logs.Errorf("Error writing workload cluster kubeconfig to a file: %v", zap.Error(err))
-		return "", err
-	}
-	return outputPath, nil
-}
-
-func getClusterIDFromName(clusterName string) (string, error) {
+// Returns true if the OCNE cluster is deleted/does not exist
+func isClusterDeleted(clusterName string) (bool, error) {
 	jsonBody, err := getCluster(clusterName)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return fmt.Sprint(jsonBody.Path("data.0.id").Data()), nil
+	jsonData := fmt.Sprint(jsonBody.Path("data").Data())
+
+	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
+	t.Logs.Infof("deleting cluster %s state: %s", clusterName, state)
+
+	return jsonData == "[]", nil
 }
 
 // Gets a specified cluster by using the Rancher REST API
@@ -584,20 +578,37 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
 }
 
-// Sends a test request to check that the cloud credential is confiugred properly
-func validateCloudCredential(credID string) error {
-	urlPath := fmt.Sprintf("meta/oci/nodeImages?cloudCredentialId=%s&compartment=%s&region=%s", credID, compartmentID, region)
-	requestURL, adminToken := setupRequest(rancherURL, urlPath)
-	t.Logs.Infof("validateCloudCredential URL = %s", requestURL)
-	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+// Returns the cluster ID corresponding the given name
+func getClusterIDFromName(clusterName string) (string, error) {
+	jsonBody, err := getCluster(clusterName)
 	if err != nil {
-		t.Logs.Errorf("Error while retrieving http data: %v", zap.Error(err))
-		return err
+		return "", err
 	}
-	t.Logs.Infof("Validate cloud credential response: %s", fmt.Sprint(res))
-	return nil
+	return fmt.Sprint(jsonBody.Path("data.0.id").Data()), nil
 }
 
+// Generates the kubeconfig of the workload cluster with an ID of `clusterID`
+// Writes the kubeconfig to a file inside /tmp. Returns the path of the kubeconfig file.
+func writeWorkloadKubeconfig(clusterID string) (string, error) {
+	t.Logs.Info("+++ Downloading kubeconfig from Rancher +++")
+	outputPath := fmt.Sprintf("/tmp/%s-kubeconfig", clusterID)
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?action=generateKubeconfig", clusterID))
+	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("error while retrieving http data: %v", zap.Error(err))
+		return "", err
+	}
+
+	workloadKubeconfig := fmt.Sprint(jsonBody.Path("config").Data())
+	err = os.WriteFile(outputPath, []byte(workloadKubeconfig), 0600)
+	if err != nil {
+		t.Logs.Errorf("error writing workload cluster kubeconfig to a file: %v", zap.Error(err))
+		return "", err
+	}
+	return outputPath, nil
+}
+
+// Given a file path, returns the file's contents as a string
 func getFileContents(file string) (string, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
@@ -607,6 +618,8 @@ func getFileContents(file string) (string, error) {
 	return string(data), nil
 }
 
+// Given the base Rancher URL and the additional URL path,
+// returns the full URL and a refreshed Bearer token
 func setupRequest(rancherBaseURL, urlPath string) (string, string) {
 	adminToken := helpers.GetRancherLoginToken(t.Logs)
 	t.Logs.Infof("adminToken: %s", adminToken)
