@@ -153,7 +153,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-multicluster.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_MINIMAL = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-minimal.yaml"
+        INSTALL_CONFIG_FILE_MINIMAL = "${WORKSPACE}/install-verrazzano-minimal.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -389,6 +389,7 @@ pipeline {
                         stage('Install Verrazzano') {
                             steps {
                                 script {
+                                    downloadMinimalVerrazzanoYaml()
                                     getVerrazzanoOperatorYaml()
                                 }
                                 installMinimalVerrazzano()
@@ -837,6 +838,16 @@ def getVerrazzanoOperatorYaml() {
                 echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
                 env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML_FILE}
             fi
+        """
+    }
+}
+
+// download the file for the minimal verrazzano install
+def downloadMinimalVerrazzanoYaml() {
+    script {
+        sh """
+            echo "Downloading minimal-thanos.yaml from branch ${env.BRANCH_NAME} to ${env.INSTALL_CONFIG_FILE_MINIMAL}"
+            wget -O ${env.INSTALL_CONFIG_FILE_MINIMAL} https://raw.githubusercontent.com/verrazzano/verrazzano/${env.BRANCH_NAME}/examples/multicluster/managed-clusters/minimal-thanos.yaml
         """
     }
 }
