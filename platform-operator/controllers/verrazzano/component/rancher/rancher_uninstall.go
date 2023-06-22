@@ -108,6 +108,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		monitor.Reset()
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
+			ctx.Log().Infof("Error generated from post job resource cleanup: %v", err)
 			return err
 		}
 
@@ -204,13 +205,15 @@ func rancherArtifactsExist(ctx spi.ComponentContext) bool {
 
 // forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	monitor.Run(
-		func() error {
-			return postUninstallFunc(ctx, monitor)
-		},
-	)
-
-	return ctrlerrors.RetryableError{Source: ComponentName}
+	if !monitor.IsRunning() {
+		monitor.Run(
+			func() error {
+				return postUninstallFunc(ctx, monitor)
+			},
+		)
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+	return nil
 }
 
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
