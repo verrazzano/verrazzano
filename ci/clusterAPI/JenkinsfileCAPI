@@ -184,6 +184,7 @@ pipeline {
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         CONTROL_PLANE_MACHINE_COUNT = 1
         NODE_MACHINE_COUNT = 1
+        OCI_IMAGE_ID = sh(returnStdout: true, script: 'oci compute image list -c ${OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1').trim()
     }
 
     stages {
@@ -331,8 +332,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        export OCI_IMAGE_ID=$(oci compute image list -c ${OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" |
-                        jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1)
+                        export OCI_IMAGE_ID=$(oci compute image list -c ${OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1)
                         export OCI_TENANCY_ID_B64=$(echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n')
                         export OCI_CREDENTIALS_FINGERPRINT_B64="$(echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n')
                         export OCI_USER_ID_B64=$(echo -n "${OCI_USER_ID}" | base64 | tr -d '\n')
