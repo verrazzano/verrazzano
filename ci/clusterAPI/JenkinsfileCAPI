@@ -180,7 +180,7 @@ pipeline {
         OCI_USER_ID = credentials('oci-user-ocid')
         OCI_CREDENTIALS_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_TENANCY_ID = credentials('oci-tenancy')
-        OCI_REGION = params.CAPI_CLUSTER_REGION
+        OCI_REGION = "${params.CAPI_CLUSTER_REGION}"
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         CONTROL_PLANE_MACHINE_COUNT = 1
         NODE_MACHINE_COUNT = 1
