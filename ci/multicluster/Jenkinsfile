@@ -362,6 +362,7 @@ pipeline {
                                     steps {
                                         script {
                                             configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
+                                            downloadMinimalVerrazzanoYaml()
                                             configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", minimalFileName, params.ACME_ENVIRONMENT)
                                         }
                                     }
@@ -372,6 +373,7 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                downloadMinimalVerrazzanoYaml()
                                 configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
@@ -379,6 +381,7 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                downloadMinimalVerrazzanoYaml()
                                 configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
@@ -389,7 +392,6 @@ pipeline {
                         stage('Install Verrazzano') {
                             steps {
                                 script {
-                                    downloadMinimalVerrazzanoYaml()
                                     getVerrazzanoOperatorYaml()
                                 }
                                 installMinimalVerrazzano()
