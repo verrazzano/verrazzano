@@ -147,6 +147,7 @@ pipeline {
                                                 booleanParam(name: 'RUN_CERT_MANAGER', value: true),
                                                 booleanParam(name: 'RUN_FLUENTD', value: true),
                                                 booleanParam(name: 'EXTERNAL_CERT_MANAGER', value: true)])
+                                                string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "test-namespace"),
                             }
                         }
                     }

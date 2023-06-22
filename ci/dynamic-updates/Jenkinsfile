@@ -515,7 +515,6 @@ pipeline {
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cm-update"
-                        CLUSTER_RESOURCE_NAMESPACE = "test-namespace"
                     }
                     steps {
                         sh """
