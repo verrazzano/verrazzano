@@ -112,7 +112,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 					}
 				}
 			}
-			
+
 			if skipDriverTest {
 				Skip("Skipping test because domain is invalid")
 			}
