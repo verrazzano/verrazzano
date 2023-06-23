@@ -410,14 +410,14 @@ func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config
 	}
 	tmpFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-kubeconfig", clusterName))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create temporary file")
+		log.Errorf("Failed to create temporary file : %v", zap.Error(err))
+		return nil, err
 	}
 
 	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-		return nil, errors.Wrap(err, "failed to write to destination file")
+		log.Errorf("failed to write to destination file : %v", zap.Error(err))
+		return nil, err
 	}
-
-	log.Infof("+++ kubeconfig for workload cluster at  %s +++", tmpFile.Name())
 
 	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 }
@@ -557,31 +557,22 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 }
 
 func deployClusterResourceSets(clustername, templateName string, log *zap.SugaredLogger) error {
-	log.Infof("+++ ClusterResourceSets Deployment ++++")
 	err := clusterTemplateGenerate(clustername, templateName, log)
 	if err != nil {
-		return errors.Wrap(err, "unable to generate template for clusterresourcesets")
+		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
+		return err
 	}
-
-	log.Infof("+++ Generated template at %s +++", ClusterTemplateGeneratedFilePath)
 
 	clusterTemplateData, err := os.ReadFile(ClusterTemplateGeneratedFilePath)
 	if err != nil {
-		return errors.Wrap(err, "unable to get read  file")
+		log.Errorf("unable to get read file : %v", zap.Error(err))
+		return err
 	}
 
-	config, err := getCapiClusterK8sConfig(clustername, log)
-	if err != nil {
-		log.Error("unable to get kubeconfig for workload cluster due to :", zap.Error(err))
-		return errors.Wrap(err, "unable to get kubeconfig for workload cluster")
-	}
-
-	log.Infof("+++ Generated kubeconfig for workload cluster at %s +++", ClusterTemplateGeneratedFilePath)
-
-	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(clusterTemplateData, config)
+	err = resource.CreateOrUpdateResourceFromBytes(clusterTemplateData, log)
 	if err != nil {
 		log.Error("unable to get create clusterresourcesets on workload cluster :", zap.Error(err))
-		return errors.Wrap(err, "unable to get create clusterresourcesets on workload cluster")
+		return err
 	}
 	log.Infof("Wait for 10 seconds before verification")
 	time.Sleep(30 * time.Second)
