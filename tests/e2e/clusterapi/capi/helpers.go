@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -403,6 +402,7 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
 }
 
+/*
 func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config *rest.Config, err error) {
 	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
 	if err != nil {
@@ -421,6 +421,7 @@ func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config
 
 	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 }
+*/
 
 func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
