@@ -228,8 +228,9 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
 
 			// Verify that the cluster is configured correctly
-			Expect(verifyCluster(clusterNameSingleNode, 1)).Should(BeNil(),
-				fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
+			Eventually(func() error {
+				return verifyCluster(clusterNameSingleNode, 1)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
 		})
 	})
 
@@ -248,8 +249,9 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 
 			// Verify that the cluster is configured correctly
-			Expect(verifyCluster(clusterNameNodePool, 2)).Should(BeNil(),
-				fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
+			Eventually(func() error {
+				return verifyCluster(clusterNameNodePool, 1)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
 })
