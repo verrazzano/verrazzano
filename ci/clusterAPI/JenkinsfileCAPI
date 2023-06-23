@@ -73,6 +73,30 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        string (name: 'POD_CIDR',
+                defaultValue: '192.168.0.0/16',
+                description: 'POD cidr to be used in OCNE CAPI cluster',
+                trim: true)
+        string (name: 'CLUSTER_CIDR',
+                defaultValue: '10.128.0.0/12',
+                description: 'POD CLUSTER_CIDR to be used in OCNE CAPI cluster',
+                trim: true)
+        string (name: 'OCNE_IMAGE_REPOSITORY',
+                defaultValue: 'container-registry.oracle.com',
+                description: 'OCNE registry value. Default container-registry.oracle.com',
+                trim: true)
+        string (name: 'OCNE_IMAGE_PATH',
+                defaultValue: 'olcne',
+                description: 'Path in OCNE registry value. Default olcne',
+                trim: true)
+        string (name: 'CONTROL_PLANE_MACHINE_COUNT',
+                defaultValue: '1',
+                description: 'Number of OCNE control plane nodes',
+                trim: true)
+         string (name: 'NODE_MACHINE_COUNT',
+                 defaultValue: '1',
+                 description: 'Number of OCNE worker nodes',
+                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
 
     }
@@ -95,7 +119,7 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-clusterAPI-enabled.yaml"
-        INSTALL_PROFILE = "none"
+        INSTALL_PROFILE = "prod"
         KIND_NODE_COUNT = "3"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -185,8 +209,14 @@ pipeline {
         OCI_TENANCY_ID = credentials('oci-tenancy')
         OCI_REGION = "${params.CAPI_CLUSTER_REGION}"
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
-        CONTROL_PLANE_MACHINE_COUNT = 1
-        NODE_MACHINE_COUNT = 1
+
+        POD_CIDR = "{params.POD_CIDR}"
+        CLUSTER_CIDR = "{params.CLUSTER_CIDR}"
+        OCNE_IMAGE_REPOSITORY = "{params.OCNE_IMAGE_REPOSITORY}"
+        OCNE_IMAGE_PATH = "{params.OCNE_IMAGE_PATH}"
+
+        CONTROL_PLANE_MACHINE_COUNT = "{params.CONTROL_PLANE_MACHINE_COUNT}"
+        NODE_MACHINE_COUNT = "{params.NODE_MACHINE_COUNT}"
         OCI_NODE_MACHINE_TYPE_OCPUS = 4
         KUBERNETES_VERSION = "${params.OCNE_KUBERNETES_CLUSTER_VERSION}"
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
@@ -446,6 +476,7 @@ def set_capi_variables() {
    env.OCI_REGION_B64=sh(returnStdout: true, script: """ echo -n "${OCI_REGION}" | base64 | tr -d '\n' """).trim()
    env.OCI_CREDENTIALS_KEY_B64=sh(returnStdout: true, script: """ base64 < ${TF_VAR_api_private_key_path} | tr -d '\n' """).trim()
    env.OCI_SSH_KEY=sh(returnStdout: true, script: """ < ${TF_VAR_ssh_public_key_path} """).trim()
+   env.OCI_CREDENTIALS_KEY=sh(returnStdout: true, script: """ awk -v ORS='\\n' '1' ${TF_VAR_api_private_key_path} """).trim()
 }
 
 def waitForPodsToBeUp(namespace) {

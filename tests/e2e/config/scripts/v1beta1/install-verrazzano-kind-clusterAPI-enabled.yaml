@@ -7,9 +7,4 @@ kind: Verrazzano
 metadata:
   name: verrazzano
 spec:
-  profile: none
-  components:
-    certManager:
-      enabled: true
-    clusterAPI:
-      enabled: true
+  profile: dev

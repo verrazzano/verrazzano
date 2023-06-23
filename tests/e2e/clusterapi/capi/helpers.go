@@ -391,7 +391,6 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create temporary file")
 	}
-	log.Info(tmpFile.Name())
 
 	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
 		return nil, errors.Wrap(err, "failed to write to destination file")
@@ -439,6 +438,8 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 		return vcndata.CommandError
 	}
 
+	OCIVcnID = strings.Trim(vcndata.StandardOut.String(), "\n")
+
 	cmdArgs = []string{}
 	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, vcndata.StandardOut.String())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
@@ -448,8 +449,7 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 		return subnetData.CommandError
 	}
 
-	OCIVcnID = vcndata.StandardOut.String()
-	OCISubnetID = subnetData.StandardOut.String()
+	OCISubnetID = strings.Trim(subnetData.StandardOut.String(), "\n")
 
 	log.Infof("+++ VCN ID = %s", OCIVcnID)
 	log.Infof("+++ Subnet ID = %s", OCISubnetID)
@@ -570,5 +570,11 @@ func deployClusterResourceSets(clustername, templateName string, log *zap.Sugare
 	if err != nil {
 		return errors.Wrap(err, "unable to get kubeconfig for workload cluster")
 	}
-	return resource.CreateOrUpdateResourceFromBytesUsingConfig(clusterTemplateData, config)
+	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(clusterTemplateData, config)
+	if err != nil {
+		return errors.Wrap(err, "unable to get create clusterresourcesets on workload cluster")
+	}
+	log.Infof("Wait for 10 seconds before verification")
+	time.Sleep(30 * time.Second)
+	return nil
 }
