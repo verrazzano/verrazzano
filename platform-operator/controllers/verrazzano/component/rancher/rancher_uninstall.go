@@ -117,7 +117,8 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	if monitor.IsRunning() {
 		if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 			monitor.SetCompleted()
-			return nil
+			// return error to trigger the cleanup code
+			return ctrlerrors.RetryableError{Source: ComponentName}
 		}
 		// Check the result
 		succeeded, err := monitor.CheckResult()
@@ -142,15 +143,16 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 // cleanupRemainingResources cleans up some resources that remain after the Rancher cleanup job is completed.
 func cleanupRemainingResources(ctx spi.ComponentContext) error {
 
+	// Delete the Rancher resources that need to be matched by a string.  These are cluster role bindings, cluster roles,
+	// and roles that need to be removed even in installation where rancher is disabled (e.g. managed cluster profile)
+	err := deleteMatchingResources(ctx)
+	if err != nil {
+		return err
+	}
+
 	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Remove the Rancher webhooks
 		err := deleteWebhooks(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Delete the Rancher resources that need to be matched by a string
-		err = deleteMatchingResources(ctx)
 		if err != nil {
 			return err
 		}
