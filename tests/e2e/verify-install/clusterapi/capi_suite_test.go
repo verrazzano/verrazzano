@@ -10,6 +10,6 @@ import (
 )
 
 func TestClusterAPI(test *testing.T) {
-	t.RegisterFailHandler()
+	//	t.RegisterFailHandler()
 	ginkgo.RunSpecs(test, "Cluster API Test Suite")
 }
