@@ -11,6 +11,7 @@ def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
+def certIssuers = [ "self-signed", "acme" ]
 
 installerFileName = "install-verrazzano.yaml"
 minimalFileName = "minimal-verrazzano.yaml"
@@ -39,6 +40,8 @@ pipeline {
                 choices: ["KIND", "OKE"])
         choice (description: 'DNS Type', name: 'DNS_TYPE',
                 choices: ["magicdns", "ocidns"])
+        choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
+                choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
@@ -155,6 +158,7 @@ pipeline {
         INSTALL_CONFIG_FILE_MINIMAL = "${WORKSPACE}/install-verrazzano-minimal.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
+        CERT_ISSUER="${params.CERT_ISSUER}"
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
@@ -329,7 +333,7 @@ pipeline {
                                 stage('Create OCI DNS zone') {
                                     steps {
                                         script {
-                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k GLOBAL", returnStdout: true)
                                         }
                                     }
                                 }
