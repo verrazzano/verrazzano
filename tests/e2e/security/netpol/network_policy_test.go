@@ -6,6 +6,8 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	"strings"
 	"time"
 
@@ -167,9 +169,17 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher-webhook ingress failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Test cert-manager ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": vzconst.CertManagerNamespace}}, vzconst.CertManagerNamespace, 9402, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test cert-manager ingress failed: reason = %s", err))
+				kubeconfig, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).To(BeNil())
+				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+				if err != nil {
+					Expect(err).To(BeNil())
+				}
+				if vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+					t.Logs.Info("Test cert-manager ingress rules")
+					err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": vzconst.CertManagerNamespace}}, vzconst.CertManagerNamespace, 9402, false, true)
+					Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test cert-manager ingress failed: reason = %s", err))
+				}
 			},
 			func() {
 				t.Logs.Info("Test ingress-nginx-controller ingress rules")
@@ -388,9 +398,17 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test  rancher ingress failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Negative test cert-manager ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": vzconst.CertManagerNamespace}}, vzconst.CertManagerNamespace, 9402, false, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test cert-manager ingress failed: reason = %s", err))
+				kubeconfig, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).To(BeNil())
+				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+				if err != nil {
+					Expect(err).To(BeNil())
+				}
+				if vzcr.IsComponentStatusEnabled(vz, certmanager.ComponentName) {
+					t.Logs.Info("Negative test cert-manager ingress rules")
+					err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": vzconst.CertManagerNamespace}}, vzconst.CertManagerNamespace, 9402, false, false)
+					Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test cert-manager ingress failed: reason = %s", err))
+				}
 			},
 			func() {
 				t.Logs.Info("Negative test ingress-nginx-controller ingress rules")
