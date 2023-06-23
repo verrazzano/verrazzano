@@ -173,15 +173,15 @@ func ensureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
 	}
-	result, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=csi-oci-node", k8sclient)
+	result1, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=csi-oci-node", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	result, err = pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=csi-oci-controller", k8sclient)
+	result2, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=csi-oci-controller", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	return result
+	return result1 && result2
 }
 
 func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool {
@@ -190,23 +190,23 @@ func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
 	}
-	result, err := pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-node", k8sclient)
+	result1, err := pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-node", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
-	_, err = pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-kube-controllers", k8sclient)
+	result2, err := pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-kube-controllers", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
-	_, err = pkg.SpecificPodsRunningInClusterWithClient("calico-apiserver", "app.kubernetes.io/name=calico-apiserver", k8sclient)
+	result3, err := pkg.SpecificPodsRunningInClusterWithClient("calico-apiserver", "app.kubernetes.io/name=calico-apiserver", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-apiserver, error: %v", err))
 	}
-	_, err = pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-typha", k8sclient)
+	result4, err := pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-typha", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
-	return result
+	return result1 && result2 && result3 && result4
 }
 
 func ensureModuleOperatorPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {

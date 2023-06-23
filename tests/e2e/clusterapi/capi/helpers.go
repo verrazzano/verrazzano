@@ -332,7 +332,7 @@ func monitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) erro
 		return err
 	}
 
-	return fmt.Errorf("cluster '%s' is in '%s' state.", clusterName, capiCluster.Status.Phase)
+	return fmt.Errorf("cluster '%s' is in '%s' state", clusterName, capiCluster.Status.Phase)
 }
 
 func monitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error {
