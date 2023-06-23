@@ -104,7 +104,16 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 				Skip("Skipping test because Rancher is not configured")
 			}
 
-			if inClusterVZ.Spec.Components.DNS.Wildcard.Domain == "typodomain.io" {
+			skipDriverTest := false
+			if inClusterVZ.Spec.Components.DNS != nil {
+				if inClusterVZ.Spec.Components.DNS.Wildcard != nil {
+					if inClusterVZ.Spec.Components.DNS.Wildcard.Domain == "typodomain.io" {
+						skipDriverTest = true
+					}
+				}
+			}
+			
+			if skipDriverTest {
 				Skip("Skipping test because domain is invalid")
 			}
 
