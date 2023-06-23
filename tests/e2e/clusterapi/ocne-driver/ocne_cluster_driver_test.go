@@ -513,54 +513,6 @@ func isClusterActive(clusterName string) (bool, error) {
 		return false, err
 	}
 
-	var cmd helpers.BashCommand
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
-	cmd.CommandArgs = cmdArgs
-	response := helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ All CAPI clusters =  %s +++", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ All management clusters =  %s +++", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ All provisioning clusters =  %s +++", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
-
-	clusterID, err := getClusterIDFromName(clusterName)
-	if err != nil {
-		t.Logs.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-	}
-
-	kubeconfigPath, err := writeWorkloadKubeconfig(clusterID)
-	if err != nil {
-		t.Logs.Error("could not download kubeconfig from rancher")
-	}
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ All nodes in workload cluster =  %s +++", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, t.Logs)
-	t.Logs.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
-
-	// t.Logs.Infof("Check cluster is active jsonBody: %s", jsonBody.String())
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("State: %s", state)
 	return state == "active", nil
@@ -572,16 +524,42 @@ func isClusterDeleted(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	data := fmt.Sprint(jsonBody.Path("data").Data())
-
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("deleting cluster %s state: %s", clusterName, state)
 
+	data := fmt.Sprint(jsonBody.Path("data").Data())
 	return data == "[]", nil
 }
 
 // Asserts whether the cluster was created as expected
 func verifyCluster(clusterName string, numberNodes int) error {
+	// Check if the cluster looks good from the Rancher API
+	var err error
+	if err = verifyGetRequest(clusterName, numberNodes); err != nil {
+		return err
+	}
+
+	// Get the kubeconfig of the cluster to look inside
+	clusterID, err := getClusterIDFromName(clusterName)
+	if err != nil {
+		t.Logs.Errorf("could not get cluster ID for cluster %s", clusterName)
+		return err
+	}
+	workloadKubeconfigPath, err := writeWorkloadKubeconfig(clusterID)
+	if err != nil {
+		t.Logs.Errorf("could not get kubeconfig for cluster %s", clusterName)
+		return err
+	}
+
+	// Check if the cluster has the expected nodes and pods running
+	if err = verifyClusterNodes(clusterName, workloadKubeconfigPath, numberNodes); err != nil {
+		return err
+	}
+	return verifyClusterPods(clusterName, workloadKubeconfigPath)
+}
+
+// Verifies that a GET request to the Rancher API for this cluster returns expected values
+func verifyGetRequest(clusterName string, numberNodes int) error {
 	jsonBody, err := getCluster(clusterName)
 	if err != nil {
 		return err
@@ -630,6 +608,54 @@ func verifyCluster(clusterName string, numberNodes int) error {
 		Expect(n.value).ToNot(BeNil(), "cluster %s has a non-nil value for %s", clusterName, n.name)
 	}
 
+	return nil
+}
+
+// Verifies that the workload cluster has the expected nodes
+func verifyClusterNodes(clusterName, kubeconfigPath string, expectedNumberNodes int) error {
+	numNodes, err := pkg.GetNodeCountInCluster(kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("could not verify number of nodes in cluster %s: %s", clusterName, err)
+		return err
+	}
+	if numNodes != expectedNumberNodes {
+		err = fmt.Errorf("expected %v nodes in cluster %s but got %v", expectedNumberNodes, clusterName, numNodes)
+		t.Logs.Error(err)
+		return err
+	}
+	return nil
+}
+
+// Verifies that all expected pods in the workload cluster are active,
+// given the cluster's kubeconfig path and the cluster name
+func verifyClusterPods(clusterName, kubeconfigPath string) error {
+	// keys are the namespaces, and values are the pod name prefixes
+	expectedPods := map[string][]string{
+		"verrazzano-module-operator": {"verrazzano-module-operator"},
+		"calico-apiserver":           {"calico-apiserver"},
+		"calico-system":              {"calico-kube-controllers", "calico-node", "calico-typha", "csi-node-driver"},
+		"cattle-fleet-system":        {"fleet-agent"},
+		"cattle-system":              {"cattle-cluster-agent"},
+		"default":                    {"tigera-operator"},
+		"kube-system": {"coredns", "csi-oci-controller", "csi-oci-node", "etcd", "kube-apiserver",
+			"kube-controller-manager", "kube-proxy", "kube-scheduler", "oci-cloud-controller-manager"},
+	}
+
+	// check the expected pods inside the workload cluster
+	for namespace, namePrefixes := range expectedPods {
+		podsRunning, err := pkg.PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
+		if err != nil {
+			t.Logs.Errorf("error while verifying running pods: %s", err)
+			return err
+		}
+		if !podsRunning {
+			err = fmt.Errorf("there are missing pods in the %s namespace", namespace)
+			t.Logs.Error(err)
+			return err
+		}
+	}
+
+	t.Logs.Infof("all expected pods in cluster %s are running", clusterName)
 	return nil
 }
 
