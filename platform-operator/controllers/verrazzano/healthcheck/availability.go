@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package healthcheck
@@ -6,6 +6,7 @@ package healthcheck
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -68,21 +69,24 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 			return nil, nil
 		}
 		// determine a component's availability
+		var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
 		isEnabled := component.IsEnabled(ctx.EffectiveCR())
 		if isEnabled {
 			countEnabled++
 			// gets new availability for a given component
 			a := p.getComponentAvailability(component, componentStatus.State, ctx)
 			if a.available == vzapi.ComponentAvailable {
+				available = vzapi.ComponentAvailable
 				countAvailable++
 			}
-			// update the component availability metric
-			err := metricsexporter.SetComponentAvailabilityMetric(component.GetJSONName(), a.available, isEnabled)
-			if err != nil {
-				return nil, err
-			}
-
 			status.Components[a.name] = a.available
+		} else if componentStatus.State == vzapi.CompStateUninstalled {
+			status.Components[component.Name()] = vzapi.ComponentUnavailable
+		}
+		// update the component availability metric
+		err := metricsexporter.SetComponentAvailabilityMetric(component.GetJSONName(), available, isEnabled)
+		if err != nil {
+			return nil, err
 		}
 	}
 

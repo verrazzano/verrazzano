@@ -174,7 +174,7 @@ func init() {
 // TestContextProfilesMerge Tests the profiles context merge
 // GIVEN a Verrazzano instance with a profile
 // WHEN I call NewContext
-// THEN the correct correct context is created with the proper merge of the profile and user overrides
+// THEN the correct context is created with the proper merge of the profile and user overrides
 func TestContextProfilesMerge(t *testing.T) {
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
