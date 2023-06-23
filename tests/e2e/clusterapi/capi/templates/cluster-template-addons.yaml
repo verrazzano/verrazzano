@@ -24,21 +24,13 @@ stringData:
       name: oci-cloud-controller-manager-secret
       namespace: kube-system
     stringData:
-      cloud-provider.yaml: |-
-        auth:
-          region: ${OCI_REGION}
-          tenancy: ${OCI_TENANCY_ID}
-          compartment: ${OCI_COMPARTMENT_ID}
-          user: ${OCI_USER_ID}
-          key: "${OCI_CREDENTIALS_KEY}"
-          fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
-          key_passphrase: 
+      cloud-provider.yaml: |-        
         vcn: ${OCI_VCN_ID}
         loadBalancer:
           subnet1: ${OCI_SUBNET_ID}
           securityListManagementMode: All
           disableSecurityListManagement: false
-        useInstancePrincipals: false
+        useInstancePrincipals: true
         # compartment configures Compartment within which the cluster resides.
         compartment: ${OCI_COMPARTMENT_ID}
         # Optional rate limit controls for accessing OCI API
@@ -81,20 +73,12 @@ stringData:
       namespace: kube-system
     stringData:
       config.yaml: |-
-        auth:
-          region: ${OCI_REGION}
-          tenancy: ${OCI_TENANCY_ID}
-          compartment: ${OCI_COMPARTMENT_ID}
-          user: ${OCI_USER_ID}
-          key: "${OCI_CREDENTIALS_KEY}"
-          fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
-          key_passphrase:
         vcn: ${OCI_VCN_ID}
         loadBalancer: 
           subnet1: ${OCI_SUBNET_ID}
           securityListManagementMode: All
           disableSecurityListManagement: false 
-        useInstancePrincipals: false
+        useInstancePrincipals: true
         # compartment configures Compartment within which the cluster resides.
         compartment: ${OCI_COMPARTMENT_ID}
         # Optional rate limit controls for accessing OCI API
