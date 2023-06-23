@@ -73,6 +73,7 @@ pipeline {
         booleanParam (description: 'Whether to run Fluentd Update Tests', name: 'RUN_FLUENTD', defaultValue: false)
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
+        booleanParam (description: 'Whether to run Fluent Operator Infra Tests', name: 'RUN_FLUENT_OPERATOR', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
         booleanParam (description: 'Whether to skip the VZ install in the prepare environment script', name: 'SKIP_VERRAZZANO_INSTALL_PARAM', defaultValue: false)
     }
@@ -565,6 +566,23 @@ pipeline {
                     }
                     steps {
                         runGinkgo('update/jaeger')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Fluent Operator Infra Tests') {
+                    when { expression {params.RUN_FLUENT_OPERATOR} }
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluent-operator-infra"
+                    }
+                    steps {
+                        runGinkgo('update/fluent-operator/infra')
                     }
                     post {
                         always {

@@ -3,6 +3,8 @@
 
 spec:
   components:
+    clusterAPI:
+      enabled: true
     elasticsearch:
       nodes:
         - name: es-master

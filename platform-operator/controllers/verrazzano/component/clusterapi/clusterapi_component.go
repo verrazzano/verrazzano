@@ -99,7 +99,7 @@ func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of this component.
 func (c clusterAPIComponent) GetDependencies() []string {
-	return []string{cmconstants.CertManagerComponentName}
+	return []string{cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.

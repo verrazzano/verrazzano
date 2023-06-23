@@ -90,8 +90,9 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 func TestGetDependencies(t *testing.T) {
 	var comp clusterAPIComponent
 	dependencies := comp.GetDependencies()
-	assert.Len(t, dependencies, 1)
+	assert.Len(t, dependencies, 2)
 	assert.Equal(t, cmconstants.CertManagerComponentName, dependencies[0])
+	assert.Equal(t, cmconstants.ClusterIssuerComponentName, dependencies[1])
 }
 
 // TestIsReady tests the IsReady function
