@@ -478,7 +478,7 @@ def set_capi_variables() {
    env.OCI_REGION_B64=sh(returnStdout: true, script: """ echo -n "${OCI_REGION}" | base64 | tr -d '\n' """).trim()
    env.OCI_CREDENTIALS_KEY_B64=sh(returnStdout: true, script: """ base64 < ${TF_VAR_api_private_key_path} | tr -d '\n' """).trim()
    env.OCI_SSH_KEY=sh(returnStdout: true, script: """ < ${TF_VAR_ssh_public_key_path} """).trim()
-   env.OCI_CREDENTIALS_KEY=sh(returnStdout: true, script: """ awk -v ORS='\\n' '1' ${TF_VAR_api_private_key_path} """).trim()
+   env.OCI_CREDENTIALS_KEY=sh(returnStdout: true, script: """ awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' ${TF_VAR_api_private_key_path} """).trim()
 }
 
 def waitForPodsToBeUp(namespace) {
