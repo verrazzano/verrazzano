@@ -93,10 +93,14 @@ pipeline {
                 defaultValue: '1',
                 description: 'Number of OCNE control plane nodes',
                 trim: true)
-         string (name: 'NODE_MACHINE_COUNT',
-                 defaultValue: '1',
-                 description: 'Number of OCNE worker nodes',
-                 trim: true)
+        string (name: 'NODE_MACHINE_COUNT',
+                defaultValue: '1',
+                description: 'Number of OCNE worker nodes',
+                trim: true)
+        string (name: 'INSTALL_PROFILE',
+                defaultValue: 'dev',
+                description: 'Verrazzano install profile (prod/dev). default: dev',
+                trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
 
     }
@@ -119,7 +123,7 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-clusterAPI-enabled.yaml"
-        INSTALL_PROFILE = "prod"
+        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         KIND_NODE_COUNT = "3"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
