@@ -105,12 +105,10 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			}
 
 			skipDriverTest := false
-			if inClusterVZ.Spec.Components.DNS != nil {
-				if inClusterVZ.Spec.Components.DNS.Wildcard != nil {
-					if inClusterVZ.Spec.Components.DNS.Wildcard.Domain == "typodomain.io" {
-						skipDriverTest = true
-					}
-				}
+                        if (inClusterVZ == nil || inClusterVZ.Spec == nil || inClusterVZ.Spec.Components == nil ||
+                            inClusterVZ.Spec.Components.DNS == nil || inClusterVZ.Spec.Components.DNS.Wildcard ||
+                            inClusterVZ.Spec.Components.DNS.Wildcard.Domain == "typodomain.io") {
+				skipDriverTest = true
 			}
 
 			if skipDriverTest {
