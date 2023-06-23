@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	shortWaitTimeout           = 10 * time.Minute
-	shortPollingInterval       = 30 * time.Second
-	waitTimeout                = 30 * time.Minute
-	pollingInterval            = 30 * time.Second
-	clusterTemplate            = "templates/cluster-template-addons-new-vcn.yaml"
-	clusterResourceSetTemplate = "templates/cluster-template-addons.yaml"
+	shortWaitTimeout               = 10 * time.Minute
+	shortPollingInterval           = 30 * time.Second
+	waitTimeout                    = 30 * time.Minute
+	capiClusterCreationWaitTimeout = 60 * time.Minute
+	pollingInterval                = 30 * time.Second
+	clusterTemplate                = "templates/cluster-template-addons-new-vcn.yaml"
+	clusterResourceSetTemplate     = "templates/cluster-template-addons.yaml"
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -234,7 +235,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		WhenClusterAPIInstalledIt("Monitor Cluster Creation", func() {
 			Eventually(func() error {
 				return monitorCapiClusterCreation(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
 		})
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
