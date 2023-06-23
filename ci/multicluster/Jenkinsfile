@@ -11,6 +11,7 @@ def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def certIssuers = [ "self-signed", "acme" ]
 
 installerFileName = "install-verrazzano.yaml"
 minimalFileName = "minimal-verrazzano.yaml"
@@ -39,6 +40,8 @@ pipeline {
                 choices: ["KIND", "OKE"])
         choice (description: 'DNS Type', name: 'DNS_TYPE',
                 choices: ["magicdns", "ocidns"])
+        choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
+                choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
@@ -143,12 +146,12 @@ pipeline {
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
 
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
-        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
         OPERATOR_YAML_FILE = "${WORKSPACE}/acceptance-test-operator.yaml"
 
@@ -158,6 +161,7 @@ pipeline {
         INSTALL_CONFIG_FILE_MINIMAL = "${WORKSPACE}/install-verrazzano-minimal.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
+        CERT_ISSUER="${params.CERT_ISSUER}"
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
@@ -288,7 +292,7 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/2e39fd75/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
                         ${VZ_COMMAND} version
                     """
@@ -332,7 +336,7 @@ pipeline {
                                 stage('Create OCI DNS zone') {
                                     steps {
                                         script {
-                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                                            dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k GLOBAL", returnStdout: true)
                                         }
                                     }
                                 }
