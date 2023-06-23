@@ -47,7 +47,7 @@ func ensureCAPIVarsInitialized() {
 	KubernetesVersion = os.Getenv("KUBERNETES_VERSION")
 	OCIVcnID = os.Getenv("OCI_VCN_ID")
 	OCISubnetID = os.Getenv("OCI_SUBNET_ID")
-	OCISubnetCIDR = os.Getenv("OCI_SUBNET_CIDR")
+	OCISubnetCIDR = "10.0.0.32/27"
 	OCICredsKey = os.Getenv("OCI_CREDENTIALS_KEY")
 	OciSSHKey = os.Getenv("OCI_SSH_KEY")
 	ClusterName = os.Getenv("CLUSTER_NAME")

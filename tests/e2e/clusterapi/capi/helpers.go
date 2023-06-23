@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -404,6 +405,24 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
 }
 
+func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config *rest.Config, err error) {
+	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
+	if err != nil {
+		return nil, err
+	}
+	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create temporary file")
+	}
+	log.Info(tmpFile.Name())
+
+	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		return nil, errors.Wrap(err, "failed to write to destination file")
+	}
+
+	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
+}
+
 func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
@@ -415,21 +434,25 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 	ocicmd := fmt.Sprintf("oci network vcn list --compartment-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, ClusterName)
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
 	bcmd.CommandArgs = cmdArgs
-	result := helpers.Runner(&bcmd, log)
-	if result.CommandError != nil {
-		return result.CommandError
+	vcndata := helpers.Runner(&bcmd, log)
+	if vcndata.CommandError != nil {
+		return vcndata.CommandError
 	}
-	log.Infof("+++ VCN ID = %s", result.StandardOut.String())
 
-	//cmdArgs = []string{}
-	//ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id'", OCICompartmentID, ClusterName)
-	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	//bcmd.CommandArgs = cmdArgs
-	//result := helpers.Runner(&bcmd, log)
-	//if result.CommandError != nil {
-	//	return result.CommandError
-	//}
-	//log.Infof("+++ VCN ID = %s", result.StandardOut)
+	cmdArgs = []string{}
+	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, vcndata.StandardOut.String())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
+	bcmd.CommandArgs = cmdArgs
+	subnetData := helpers.Runner(&bcmd, log)
+	if subnetData.CommandError != nil {
+		return subnetData.CommandError
+	}
+
+	OCIVcnID = vcndata.StandardOut.String()
+	OCISubnetID = subnetData.StandardOut.String()
+
+	log.Infof("+++ VCN ID = %s", OCIVcnID)
+	log.Infof("+++ Subnet ID = %s", OCISubnetID)
 
 	log.Infof("----------- Node in workload cluster ---------------------")
 	err = showNodeInfo(client, clusterName, log)
@@ -531,4 +554,22 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 	}
 	writer.Flush()
 	return nil
+}
+
+func deployClusterResourceSets(clustername, templateName string, log *zap.SugaredLogger) error {
+	err := clusterTemplateGenerate(clustername, templateName, log)
+	if err != nil {
+		return errors.Wrap(err, "unable to generate template for clusterresourcesets")
+	}
+
+	clusterTemplateData, err := os.ReadFile(ClusterTemplateGeneratedFilePath)
+	if err != nil {
+		return errors.Wrap(err, "unable to get read  file")
+	}
+
+	config, err := getCapiClusterK8sConfig(clustername, log)
+	if err != nil {
+		return errors.Wrap(err, "unable to get kubeconfig for workload cluster")
+	}
+	return resource.CreateOrUpdateResourceFromBytesUsingConfig(clusterTemplateData, config)
 }
