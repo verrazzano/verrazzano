@@ -36,7 +36,9 @@ pipeline {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: ["KIND", "magicdns_oke", "ocidns_oke"])
+                choices: ["KIND", "OKE"])
+        choice (description: 'DNS Type', name: 'DNS_TYPE',
+                choices: ["magicdns", "ocidns"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
@@ -311,7 +313,7 @@ pipeline {
                             }
                         }
                         stage('Create OKE Clusters') {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
+                            when { expression { return params.TEST_ENV == 'OKE' } }
                             steps {
                                 echo "OKE Cluster Prefix: ${OKE_CLUSTER_PREFIX}"
                                 createOKEClusters("${OKE_CLUSTER_PREFIX}")
@@ -321,8 +323,8 @@ pipeline {
                 }
                 stage("Configure Clusters") {
                     parallel {
-                        stage("Configure OKE/OCI DNS") {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+                        stage("Configure OCI DNS") {
+                            when { expression { return params.DNS_TYPE == 'ocidns' } }
                             stages {
                                 stage('Create OCI DNS zone') {
                                     steps {
@@ -366,20 +368,26 @@ pipeline {
                                 }
                             }
                         }
-                        stage("Configure KinD") {
+
+                        /*stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                                 downloadMinimalVerrazzanoYaml()
                                 configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
-                        }
-                        stage("Configure OKE/MagicDNS") {
-                            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
+                        }*/
+                        stage("Configure MagicDNS") {
+                            when { expression { return params.DNS_TYPE == 'magicdns' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                //configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                //downloadMinimalVerrazzanoYaml()
+                                //configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
+                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                                 downloadMinimalVerrazzanoYaml()
-                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
+                                configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_kind_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
+                                //configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                //configureManagedInstallers(env.INSTALL_CONFIG_FILE_MINIMAL, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", minimalFileName, params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
