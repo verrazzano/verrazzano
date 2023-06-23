@@ -160,27 +160,6 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
 
-        // Backup parameters
-        VELERO_NAMESPACE = "verrazzano-backup"
-        VELERO_SECRET_NAME = "velero-opensearch-backup-creds"
-        VELERO_MYSQL_SECRET_NAME = "velero-mysql-backup-creds"
-        RANCHER_SECRET_NAME = "rancher-backup-creds"
-        OCI_OS_ACCESS_KEY = credentials('velero-key-id')
-        OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key')
-        OCI_OS_COMPARTMENT_ID = credentials('v8o-velero-test')
-        OCI_OS_BUCKET_ID = "${ociOsBucketName}"
-        OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
-        BACKUP_OPENSEARCH = "backup-opensearch-${OCI_OS_BUCKET_ID}"
-        BACKUP_RANCHER = "backup-rancher-${OCI_OS_BUCKET_ID}"
-        BACKUP_MYSQL = "backup-mysql-${OCI_OS_BUCKET_ID}"
-        BACKUP_RESOURCE = "vz-hook-resource-${OCI_OS_BUCKET_ID}"
-        RESTORE_OPENSEARCH = "restore-opensearch-${OCI_OS_BUCKET_ID}"
-        RESTORE_RANCHER = "restore-rancher-${OCI_OS_BUCKET_ID}"
-        RESTORE_MYSQL = "restore-mysql-${OCI_OS_BUCKET_ID}"
-        BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
-        BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
-        BACKUP_REGION  = "us-phoenix-1"
-
         //OCI parameters
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')

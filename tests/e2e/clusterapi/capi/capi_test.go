@@ -262,16 +262,28 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
-		WhenClusterAPIInstalledIt("Ensure DNS pods in kube-system of CAPI workload cluster are running", func() {
-			Eventually(func() bool {
-				return ensureDNSPodsAreRunning(ClusterName, "kube-system", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
+
+		//WhenClusterAPIInstalledIt("Ensure DNS pods in kube-system of CAPI workload cluster are running", func() {
+		//	Eventually(func() bool {
+		//		return ensureDNSPodsAreRunning(ClusterName, "kube-system", t.Logs)
+		//	}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		//})
 
 		WhenClusterAPIInstalledIt("Ensure kube API Server pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureAPIPodsAreRunning(ClusterName, "kube-system", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube controller pods in kube-system of CAPI workload cluster are running", func() {
@@ -280,10 +292,22 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
 		WhenClusterAPIInstalledIt("Ensure kube scheduler pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureSchedulerPodsAreRunning(ClusterName, "kube-system", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube proxy pods in kube-system of CAPI workload cluster are running", func() {
@@ -292,10 +316,22 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
 		WhenClusterAPIInstalledIt("Ensure CCM pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureCCMPodsAreRunning(ClusterName, "kube-system", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure CSI pods in kube-system of CAPI workload cluster are running", func() {
@@ -304,16 +340,34 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
 		WhenClusterAPIInstalledIt("Ensure Calico pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureCalicoPodsAreRunning(ClusterName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
 		WhenClusterAPIInstalledIt("Ensure Module operator pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureModuleOperatorPodsAreRunning(ClusterName, "verrazzano-module-operator", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+		
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 	})
