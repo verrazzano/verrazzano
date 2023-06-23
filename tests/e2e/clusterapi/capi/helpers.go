@@ -35,6 +35,7 @@ const (
 
 var capiInitFunc = clusterapi.New
 
+// printYamlOutput is used to print yaml templates to stdout or a file
 func printYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
 	yaml, err := printer.Yaml()
 	if err != nil {
@@ -55,20 +56,18 @@ func printYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
 	return nil
 }
 
+// clusterTemplateGenerate used for cluster template generation
 func clusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) error {
 	log.Infof("Generate called for clustername '%s'...", clusterName)
 	capiClient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
-	log.Info("Fetching kubeconfig ...")
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		log.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
 		return err
 	}
-
-	log.Info("Start templating ...")
 
 	templateOptions := clusterapi.GetClusterTemplateOptions{
 		Kubeconfig: clusterapi.Kubeconfig{
@@ -439,9 +438,10 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	OCIVcnID = strings.Trim(vcndata.StandardOut.String(), "\n")
+	log.Infof("+++ VCN ID = %s +++", OCIVcnID)
 
 	cmdArgs = []string{}
-	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, vcndata.StandardOut.String())
+	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, OCIVcnID)
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
 	bcmd.CommandArgs = cmdArgs
 	subnetData := helpers.Runner(&bcmd, log)
@@ -450,9 +450,9 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	OCISubnetID = strings.Trim(subnetData.StandardOut.String(), "\n")
-
-	log.Infof("+++ VCN ID = %s", OCIVcnID)
-	log.Infof("+++ Subnet ID = %s", OCISubnetID)
+	log.Infof("+++ Subnet ID = %s +++", OCISubnetID)
+	os.Setenv("OCI_VCN_ID", OCIVcnID)
+	os.Setenv("OCI_SUBNET_ID", OCISubnetID)
 
 	log.Infof("----------- Node in workload cluster ---------------------")
 	err = showNodeInfo(client, clusterName, log)

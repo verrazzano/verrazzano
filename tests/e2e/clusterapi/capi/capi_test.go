@@ -19,7 +19,7 @@ import (
 const (
 	shortWaitTimeout           = 10 * time.Minute
 	shortPollingInterval       = 30 * time.Second
-	waitTimeout                = 20 * time.Minute
+	waitTimeout                = 30 * time.Minute
 	pollingInterval            = 30 * time.Second
 	clusterTemplate            = "templates/cluster-template-addons-new-vcn.yaml"
 	clusterResourceSetTemplate = "templates/cluster-template-addons.yaml"
