@@ -286,7 +286,7 @@ func ensureMachinesAreProvisioned(namespace, clusterName string, log *zap.Sugare
 	if checkAll(healthTracker) {
 		return nil
 	}
-	return fmt.Errorf("All nodes are not in 'Running' state")
+	return fmt.Errorf("All machines are not in 'Running' state")
 }
 
 func monitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error {
