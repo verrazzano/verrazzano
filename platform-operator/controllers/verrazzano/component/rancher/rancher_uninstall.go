@@ -250,7 +250,7 @@ func runCleanupJob(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 			// job isn't started, indicate that background job is completed
 			monitor.SetCompleted()
 
-			return ctrlerrors.RetryableError{Source: ComponentName}
+			return nil
 		}
 		return err
 	}
