@@ -83,31 +83,31 @@ if [ $OPERATION == "create" ]; then
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "Failed creating private zone, attempting to fetch zone to see if it already exists"
-      oci dns zone get --zone-name-or-id ${ZONE_NAME}
+      oci --debug dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
 
     if [ ${TEST_ENV} == "ocidns_oke" ]; then
-      VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
+      VCN_ID=$(oci --debug network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
     elif [ ${TEST_ENV} == "kind_oci_dns" ]; then
-      VCN_ID=$(oci network vcn list --compartment-id "${V80_COMPARTMENT_OCID}" --display-name ${JENKINS_VCN} | jq -r '.data[0].id')
+      VCN_ID=$(oci --debug network vcn list --compartment-id "${V80_COMPARTMENT_OCID}" --display-name ${JENKINS_VCN} | jq -r '.data[0].id')
     fi
     if [ $? -ne 0 ];then
         log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
         exit 1
     fi
 
-    DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
-    DNS_UPDATE=$(oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force)
+    DNS_RESOLVER_ID=$(oci --debug network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
+    DNS_UPDATE=$(oci --debug dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force)
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
         exit 1
     fi
   else
-    zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+    zone_ocid=$(oci --debug dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "Failed creating public zone, attempting to fetch zone to see if it already exists"
-      oci dns zone get --zone-name-or-id ${ZONE_NAME}
+      oci --debug dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
   fi
 

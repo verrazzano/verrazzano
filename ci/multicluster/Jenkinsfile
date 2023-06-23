@@ -63,7 +63,7 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
+                        defaultValue: 'ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:v1.6.0-20230623170911-2e39fd75',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml published to the Verrazzano Object Store will be used',
                         trim: true)
         choice (name: 'ADMIN_CLUSTER_PROFILE',
