@@ -7,11 +7,15 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	goerrors "errors"
 	"fmt"
+	"io"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"io"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -141,6 +145,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
+	println("\n----------------------------- SPECS STATUS AFTER RECONCILIATION  ---------------------------------\n")
+	println()
+
+	effCRComp, err := transform.GetEffectiveCR(vz)
+	if err != nil {
+		log.Error(err)
+	}
+
+	byteArray, err := json.MarshalIndent(effCRComp.Spec, "", " ")
+	if err != nil {
+
+	}
+	byteArrEncoded := []byte(base64.StdEncoding.EncodeToString(byteArray))
+	fmt.Println(string(byteArrEncoded))
+
+	println("\n----------------------------- PRINTED SUCCESSFULLY ---------------------------------\n")
+	println()
+
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(ctx, log, vz)
 	if vzctrl.ShouldRequeue(res) {
@@ -156,6 +178,34 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
+
+	// mysecret := &corev1.Secret{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      "vz-overall-config",
+	// 		Namespace: "verrazzano-system",
+	// 	},
+	// 	Type: corev1.SecretTypeOpaque,
+	// 	Data: map[string][]byte{
+	// 		"username":     []byte(""),
+	// 		"password":     []byte(""),
+	// 		"effective-CR": []byte(byteArrEncoded),
+	// 	},
+	// }
+
+	// println("----------------------------------------Creating Secrets if no such secret found---------------------------------------")
+	// println()
+
+	// // Go for an update
+	// err = pkg.UpdateSecret(mysecret)
+	// if err != nil { // if an error is found, this does imply that Secret doesn't exist ?? But, what if some other error is there ?
+	// 	err = pkg.CreateSecret(mysecret) // try to find the exact/specific error that implies -> "No such Secret Found/ Secret doesn't exist"
+	// 	if err != nil {
+	// 		println(err.Error())
+	// 	}
+	// }
+
+	// println()
+	// println("--------------------------------------------------Created Secret--------------------------------------------------")
 
 	return ctrl.Result{}, nil
 }

@@ -5,6 +5,8 @@ package reconcile
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -16,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"time"
 )
 
 // checkInstallComplete checks to see if the install is complete
@@ -290,6 +291,43 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			return false, nil
 		}
 	}
+
+	// println("\n----------------------------- PRINTED SUCCESSFULLY ---------------------------------\n")
+	// println()
+
+	// mysecret := &corev1.Secret{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      "vz-overall-config",
+	// 		Namespace: "verrazzano-system",
+	// 	},
+	// 	Type: corev1.SecretTypeOpaque,
+	// 	Data: map[string][]byte{
+	// 		"username": []byte(""),
+	// 		"password": []byte(""),
+	// 	},
+	// }
+
+	// println("--------------------------------------------------Deleting Secret--------------------------------------------------")
+	// println()
+
+	// err := pkg.DeleteSecret("verrazzano-system", "vz-overall-config")
+	// if err != nil {
+	// 	println(err.Error())
+	// }
+	// println("--------------------------------------------------Deleted Secret--------------------------------------------------")
+
+	// println()
+
+	// println("----------------------------------Creating Secrets so, Won't have to care about upgrading -----------------------------------")
+
+	// err = pkg.CreateSecret(mysecret)
+	// if err != nil {
+	// 	println(err.Error())
+	// }
+
+	// println()
+	// println("--------------------------------------------------Created Secret--------------------------------------------------")
+
 	return true, nil
 }
 
