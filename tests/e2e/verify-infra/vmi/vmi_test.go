@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -29,7 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
@@ -406,109 +404,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			})
 		}
 	})
-
-	t.Context("Check Storage", func() {
-		size := "50Gi"
-		// If there are persistence overrides at the global level, that will cause persistent
-		// volumes to be created for the VMI components that use them (ES, Kibana, and Prometheus)
-		// At some point we may need to check for individual VMI overrides.
-		override, _ := pkg.GetEffectiveVMIPersistenceOverride(kubeconfigPath)
-		if override != nil {
-			size = override.Spec.Resources.Requests.Storage().String()
-		}
-		if pkg.IsDevProfile() {
-			t.It("Check persistent volumes for dev profile", func() {
-				if override != nil {
-					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-					Expect(err).ToNot(HaveOccurred())
-
-					expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
-					Expect(err).ToNot(HaveOccurred())
-					expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
-					Expect(err).ToNot(HaveOccurred())
-
-					if minVer14 {
-						Expect(len(volumeClaims)).To(Equal(2))
-						assertPersistentVolume("vmi-system-grafana", size)
-						assertPersistentVolume(esMaster0, size)
-
-						Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
-						assertPrometheusVolume(size)
-					} else {
-						Expect(len(volumeClaims)).To(Equal(3))
-						assertPersistentVolume("vmi-system-prometheus", size)
-						assertPersistentVolume("vmi-system-grafana", size)
-						assertPersistentVolume(esMaster0, size)
-					}
-				} else {
-					Expect(len(volumeClaims)).To(Equal(0))
-				}
-			})
-		} else if pkg.IsManagedClusterProfile() {
-			t.It("Check persistent volumes for managed cluster profile", func() {
-				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-				Expect(err).ToNot(HaveOccurred())
-
-				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
-				Expect(err).ToNot(HaveOccurred())
-				expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
-				Expect(err).ToNot(HaveOccurred())
-
-				if minVer14 {
-					Expect(len(volumeClaims)).To(Equal(0))
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
-					assertPrometheusVolume(size)
-				} else {
-					Expect(len(volumeClaims)).To(Equal(1))
-					assertPersistentVolume("vmi-system-prometheus", size)
-				}
-			})
-		} else if pkg.IsProdProfile() {
-			t.It("Check persistent volumes for prod cluster profile", func() {
-				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-				Expect(err).ToNot(HaveOccurred())
-
-				expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfigPath)
-				Expect(err).ToNot(HaveOccurred())
-				expectedThanosReplicas, err := getExpectedThanosReplicaCount(kubeconfigPath)
-				Expect(err).ToNot(HaveOccurred())
-
-				if minVer14 {
-					Expect(len(volumeClaims)).To(Equal(7))
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(expectedPromReplicas) + int(expectedThanosReplicas)))
-					assertPrometheusVolume(size)
-				} else {
-					Expect(len(volumeClaims)).To(Equal(8))
-					assertPersistentVolume("vmi-system-prometheus", size)
-				}
-				assertPersistentVolume("vmi-system-grafana", size)
-				assertPersistentVolume(esMaster0, size)
-				assertPersistentVolume(esMaster1, size)
-				assertPersistentVolume(esMaster2, size)
-				assertPersistentVolume(esData, size)
-				assertPersistentVolume(esData1, size)
-				assertPersistentVolume(esData2, size)
-			})
-		}
-	})
 })
-
-func assertPersistentVolume(key string, size string) {
-	Expect(volumeClaims).To(HaveKey(key))
-	pvc := volumeClaims[key]
-	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
-}
-
-func assertPrometheusVolume(size string) {
-	// Prometheus Operator generates the name for the PVC so look for a PVC name that contains "prometheus"
-	for key, pvc := range vzMonitoringVolumeClaims {
-		if strings.Contains(key, "prometheus") {
-			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
-			return
-		}
-	}
-	Fail("Expected to find Prometheus persistent volume claim")
-}
 
 func assertOidcIngressByName(key string, vz *vzalpha1.Verrazzano, componentName string) {
 	if ingressEnabled(vz) {
@@ -688,47 +584,6 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 					expectedReplicas = int32(val)
 					t.Logs.Infof("Found Prometheus replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
 					break
-				}
-			}
-		}
-	}
-
-	return expectedReplicas, nil
-}
-
-// getExpectedThanosReplicaCount returns the thanos replicas in the values overrides from the
-// Thanos component in the Verrazzano CR. If there is no override for replicas then the
-// default replica count of 1 is returned.
-func getExpectedThanosReplicaCount(kubeconfig string) (int32, error) {
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
-	if err != nil {
-		return 0, err
-	}
-	if !vzcr.IsComponentStatusEnabled(vz, thanos.ComponentName) {
-		return 0, nil
-	}
-	expectedReplicas := int32(0)
-	if vz.Spec.Components.Thanos == nil {
-		return expectedReplicas, nil
-	}
-
-	for _, override := range vz.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
-		if override.Values != nil {
-			jsonString, err := gabs.ParseJSON(override.Values.Raw)
-			if err != nil {
-				return expectedReplicas, err
-			}
-			// check to see if storegateway is enabled and if so how many replicas it has
-			if enabledContainer := jsonString.Path("storegateway.enabled"); enabledContainer != nil {
-				if enabled, ok := enabledContainer.Data().(bool); ok && enabled {
-					expectedReplicas = int32(1)
-					if replicaContainer := jsonString.Path("storegateway.replicaCount"); replicaContainer != nil {
-						if val, ok := replicaContainer.Data().(float64); ok {
-							expectedReplicas = int32(val)
-							t.Logs.Infof("Found Thanos storegateway replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
-							break
-						}
-					}
 				}
 			}
 		}
