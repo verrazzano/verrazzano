@@ -591,8 +591,9 @@ func verifyGetRequest(clusterName string, numberNodes int) error {
 		{driver, "ociocne", "driver"},
 	}
 	for _, a := range attributes {
-		Expect(a.actual).To(Equal(a.expected), "cluster %s has a %s value of %v but should be %v",
-			clusterName, a.name, a.actual, a.expected)
+		if a.actual != a.expected {
+			return fmt.Errorf("cluster %s has a %s value of %v but should be %v", clusterName, a.name, a.actual, a.expected)
+		}
 	}
 
 	// Assert that these attributes are not nil
@@ -608,6 +609,9 @@ func verifyGetRequest(clusterName string, numberNodes int) error {
 	}
 	for _, n := range nonNilAttributes {
 		Expect(n.value).ToNot(BeNil(), "cluster %s has a non-nil value for %s", clusterName, n.name)
+		if n.value == nil {
+			return fmt.Errorf("cluster %s should have a non-nil value for %s", clusterName, n.name)
+		}
 	}
 
 	return nil
