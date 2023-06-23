@@ -89,14 +89,8 @@ pipeline {
                 defaultValue: 'olcne',
                 description: 'Path in OCNE registry value. Default olcne',
                 trim: true)
-        string (name: 'CONTROL_PLANE_MACHINE_COUNT',
-                defaultValue: '1',
-                description: 'Number of OCNE control plane nodes',
-                trim: true)
-        string (name: 'NODE_MACHINE_COUNT',
-                defaultValue: '1',
-                description: 'Number of OCNE worker nodes',
-                trim: true)
+        choice (description: 'Number of OCNE control plane nodes', name: 'CONTROL_PLANE_MACHINE_COUNT', choices: ["1", "3"])
+        choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["1","2","3"])
         string (name: 'INSTALL_PROFILE',
                 defaultValue: 'dev',
                 description: 'Verrazzano install profile (prod/dev). default: dev',
@@ -219,12 +213,11 @@ pipeline {
         OCNE_IMAGE_REPOSITORY = "{params.OCNE_IMAGE_REPOSITORY}"
         OCNE_IMAGE_PATH = "{params.OCNE_IMAGE_PATH}"
 
-        CONTROL_PLANE_MACHINE_COUNT = "{params.CONTROL_PLANE_MACHINE_COUNT}"
-        NODE_MACHINE_COUNT = "{params.NODE_MACHINE_COUNT}"
         OCI_NODE_MACHINE_TYPE_OCPUS = 4
         KUBERNETES_VERSION = "${params.OCNE_KUBERNETES_CLUSTER_VERSION}"
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
         CLUSTER_NAME = "ocnecapi${CLUSTER_SUFFIX_ID}"
+
     }
 
     stages {
@@ -472,6 +465,11 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 }
 
 def set_capi_variables() {
+   int OCNE_CP_COUNT = params.CONTROL_PLANE_MACHINE_COUNT.toInteger()
+   env.CONTROL_PLANE_MACHINE_COUNT =  OCNE_CP_COUNT
+   int OCNE_WORKERS_COUNT = params.NODE_MACHINE_COUNT.toInteger()
+   env.NODE_MACHINE_COUNT =  OCNE_WORKERS_COUNT
+
    env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1 """).trim()
    println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
    env.OCI_TENANCY_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n' """).trim()
