@@ -89,7 +89,7 @@ func ensureEtcdPodsAreRunning(clusterName, namespace string, log *zap.SugaredLog
 	return result
 }
 
-func ensureDnsPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
+func ensureDNSPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
 	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
@@ -102,7 +102,7 @@ func ensureDnsPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 	return result
 }
 
-func ensureApiPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
+func ensureAPIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
 	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
@@ -194,15 +194,15 @@ func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
-	result, err = pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-kube-controllers", k8sclient)
+	_, err = pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-kube-controllers", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
-	result, err = pkg.SpecificPodsRunningInClusterWithClient("calico-apiserver", "app.kubernetes.io/name=calico-apiserver", k8sclient)
+	_, err = pkg.SpecificPodsRunningInClusterWithClient("calico-apiserver", "app.kubernetes.io/name=calico-apiserver", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-apiserver, error: %v", err))
 	}
-	result, err = pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-typha", k8sclient)
+	_, err = pkg.SpecificPodsRunningInClusterWithClient("calico-system", "app.kubernetes.io/name=calico-typha", k8sclient)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
@@ -239,7 +239,19 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
-				return ensureCapiAccess(ClusterName, t.Logs)
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
+			Eventually(func() error {
+				return deployClusterResourceSets(ClusterName, clusterResourceSetTemplate, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(ClusterName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
@@ -251,13 +263,13 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Ensure DNS pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensureDnsPodsAreRunning(ClusterName, "kube-system", t.Logs)
+				return ensureDNSPodsAreRunning(ClusterName, "kube-system", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube API Server pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensureApiPodsAreRunning(ClusterName, "kube-system", t.Logs)
+				return ensureAPIPodsAreRunning(ClusterName, "kube-system", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 

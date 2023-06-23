@@ -332,7 +332,7 @@ func monitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) erro
 		return err
 	}
 
-	return fmt.Errorf("Cluster '%s' is in '%s' state.", clusterName, capiCluster.Status.Phase)
+	return fmt.Errorf("cluster '%s' is in '%s' state.", clusterName, capiCluster.Status.Phase)
 }
 
 func monitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error {
@@ -423,7 +423,7 @@ func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config
 	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 }
 
-func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
+func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
@@ -462,7 +462,6 @@ func ensureCapiAccess(clusterName string, log *zap.SugaredLogger) error {
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
 	return showPodInfo(client, clusterName, log)
-
 }
 
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
