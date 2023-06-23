@@ -208,10 +208,10 @@ pipeline {
         OCI_REGION = "${params.CAPI_CLUSTER_REGION}"
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
 
-        POD_CIDR = "{params.POD_CIDR}"
-        CLUSTER_CIDR = "{params.CLUSTER_CIDR}"
-        OCNE_IMAGE_REPOSITORY = "{params.OCNE_IMAGE_REPOSITORY}"
-        OCNE_IMAGE_PATH = "{params.OCNE_IMAGE_PATH}"
+        POD_CIDR = "${params.POD_CIDR}"
+        CLUSTER_CIDR = "${params.CLUSTER_CIDR}"
+        OCNE_IMAGE_REPOSITORY = "${params.OCNE_IMAGE_REPOSITORY}"
+        OCNE_IMAGE_PATH = "${params.OCNE_IMAGE_PATH}"
 
         OCI_NODE_MACHINE_TYPE_OCPUS = 4
         KUBERNETES_VERSION = "${params.OCNE_KUBERNETES_CLUSTER_VERSION}"
@@ -369,7 +369,7 @@ pipeline {
         }
         */
 
-        stage('test-capi') {
+        stage('Deploy OCNE cluster using CAPI') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
