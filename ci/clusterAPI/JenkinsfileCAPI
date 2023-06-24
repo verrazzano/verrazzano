@@ -397,14 +397,7 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-            script {
-                if (params.DELETE_BUCKET) {
-                    println("Delete object store bucket.")
-                    deleteBucket("${OCI_OS_BUCKET_NAME}")
-                } else {
-                      println("Object store bucket not deleted!")
-                }
-            }
+            ensureCAPICleanup()
             deleteCluster()
         }
         failure {
@@ -471,6 +464,13 @@ def echoAllPodInfo() {
          kubectl get pod -A
     """
 }
+
+def ensureCAPICleanup() {
+    sh """
+         kubectl delete cl --all
+    """
+}
+
 
 def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {

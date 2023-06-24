@@ -470,35 +470,47 @@ func showModuleInfo(clusterName string, log *zap.SugaredLogger) error {
 		Resource: "module",
 	}
 
-	moduleFetched, err := dclient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	calicoModuleFetched, err := dclient.Resource(gvr).Get(context.TODO(), "calico", metav1.GetOptions{})
 	if err != nil {
-		log.Errorf("unable to fetch moduledata from %s due to '%v'", clusterName, zap.Error(err))
+		log.Errorf("unable to fetch moduledata from %s due to '%v' for module calico", clusterName, zap.Error(err))
 		return err
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tVersion\tReady")
+	var calico Module
+	modBinaryData, err := json.Marshal(calicoModuleFetched)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get list of nodes from cluster '%s'", clusterName))
+		log.Error("json marshalling error ", zap.Error(err))
+		return err
 	}
-	for _, mod := range moduleFetched.Items {
-		var m Module
-		modBinaryData, err := json.Marshal(mod.Object)
-		if err != nil {
-			log.Error("json marshalling error ", zap.Error(err))
-			return err
-		}
 
-		err = json.Unmarshal(modBinaryData, &m)
-		if err != nil {
-			log.Error("json unmarshalling error ", zap.Error(err))
-			return err
-		}
-		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v", m.Metadata.Name, m.Spec.Version, m.Status.Conditions[0].Status))
-		// TODO : Only for debug
-		log.Infof("Values for module '%s' => %+v", m.Metadata.Name, m.Spec.Values)
+	err = json.Unmarshal(modBinaryData, &calico)
+	if err != nil {
+		log.Error("json unmarshalling error ", zap.Error(err))
+		return err
 	}
-	writer.Flush()
+
+	log.Infof("Values for module '%s' => %+v", calico.Metadata.Name, calico.Spec.Values)
+
+	ccmModuleFetched, err := dclient.Resource(gvr).Get(context.TODO(), "oci-ccm", metav1.GetOptions{})
+	if err != nil {
+		log.Errorf("unable to fetch moduledata from %s due to '%v' for module ccm ", clusterName, zap.Error(err))
+		return err
+	}
+
+	var ccm Module
+	ccmBinaryData, err := json.Marshal(ccmModuleFetched)
+	if err != nil {
+		log.Error("json marshalling error ", zap.Error(err))
+		return err
+	}
+
+	err = json.Unmarshal(ccmBinaryData, &ccm)
+	if err != nil {
+		log.Error("json unmarshalling error ", zap.Error(err))
+		return err
+	}
+
+	log.Infof("Values for module '%s' => %+v", ccm.Metadata.Name, ccm.Spec.Values)
 	return nil
 }
 
