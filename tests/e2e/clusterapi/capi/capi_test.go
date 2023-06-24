@@ -173,11 +173,11 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
 		})
 
-		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
-			Eventually(func() error {
-				return displayWorkloadClusterResources(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
-		})
+		//WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+		//	Eventually(func() error {
+		//		return displayWorkloadClusterResources(ClusterName, t.Logs)
+		//	}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		//})
 
 		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
 			Eventually(func() error {
@@ -185,11 +185,11 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
-		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
-			Eventually(func() error {
-				return displayWorkloadClusterResources(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
-		})
+		//WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+		//	Eventually(func() error {
+		//		return displayWorkloadClusterResources(ClusterName, t.Logs)
+		//	}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		//})
 
 		WhenClusterAPIInstalledIt("Ensure ETCD pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {

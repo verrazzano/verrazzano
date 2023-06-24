@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -591,6 +592,7 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 	}
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tNamespace\tStatus\tIP\tNode")
+	var dnsPod, ccmPod, calicokubePod *v1.Pod
 	for _, ns := range nsList.Items {
 		podList, err := client.CoreV1().Pods(ns.Name).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
@@ -607,13 +609,31 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 			}
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v",
 				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName))
-			// TODO : Only for debug
-			for _, status := range podData.Status.ContainerStatuses {
-				log.Infof("Pod '%s' condition => %+v", podData.GetName(), status)
+
+			if pod.GetLabels()["k8s-app"] == "kube-dns" {
+				dnsPod = podData
 			}
+			if pod.GetLabels()["component"] == "oci-cloud-controller-manager" {
+				ccmPod = podData
+			}
+			if pod.GetLabels()["app.kubernetes.io/name"] == "calico-kube-controllers" {
+				calicokubePod = podData
+			}
+
 		}
 	}
 	writer.Flush()
+
+	if dnsPod != nil {
+		log.Infof("DNS Pod '%s' status => %+v", dnsPod.GetName(), dnsPod.Status)
+	}
+	if ccmPod != nil {
+		log.Infof("CCM Pod '%s' status => %+v", ccmPod.GetName(), ccmPod.Status)
+	}
+	if calicokubePod != nil {
+		log.Infof("CalicokubePod Pod '%s' status => %+v", calicokubePod.GetName(), calicokubePod.Status)
+	}
+
 	return nil
 }
 
@@ -636,6 +656,6 @@ func deployClusterResourceSets(clustername, templateName string, log *zap.Sugare
 		return err
 	}
 	log.Infof("Wait for 10 seconds before verification")
-	time.Sleep(30 * time.Second)
+	time.Sleep(60 * time.Second)
 	return nil
 }
