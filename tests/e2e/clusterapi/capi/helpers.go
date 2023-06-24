@@ -429,33 +429,6 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
 	}
 
-	var cmdArgs []string
-	var bcmd helpers.BashCommand
-	ocicmd := fmt.Sprintf("oci network vcn list --compartment-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, ClusterName)
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	bcmd.CommandArgs = cmdArgs
-	vcndata := helpers.Runner(&bcmd, log)
-	if vcndata.CommandError != nil {
-		return vcndata.CommandError
-	}
-
-	OCIVcnID = strings.Trim(vcndata.StandardOut.String(), "\n")
-	log.Infof("+++ VCN ID = %s +++", OCIVcnID)
-
-	cmdArgs = []string{}
-	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, OCIVcnID)
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	bcmd.CommandArgs = cmdArgs
-	subnetData := helpers.Runner(&bcmd, log)
-	if subnetData.CommandError != nil {
-		return subnetData.CommandError
-	}
-
-	OCISubnetID = strings.Trim(subnetData.StandardOut.String(), "\n")
-	log.Infof("+++ Subnet ID = %s +++", OCISubnetID)
-	os.Setenv("OCI_VCN_ID", OCIVcnID)
-	os.Setenv("OCI_SUBNET_ID", OCISubnetID)
-
 	log.Infof("----------- Node in workload cluster ---------------------")
 	err = showNodeInfo(client, clusterName, log)
 	if err != nil {
@@ -637,8 +610,35 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 	return nil
 }
 
-func deployClusterResourceSets(clustername, templateName string, log *zap.SugaredLogger) error {
-	err := clusterTemplateGenerate(clustername, templateName, log)
+func deployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
+	var cmdArgs []string
+	var bcmd helpers.BashCommand
+	ocicmd := fmt.Sprintf("oci network vcn list --compartment-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, clusterName)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
+	bcmd.CommandArgs = cmdArgs
+	vcndata := helpers.Runner(&bcmd, log)
+	if vcndata.CommandError != nil {
+		return vcndata.CommandError
+	}
+
+	OCIVcnID = strings.Trim(vcndata.StandardOut.String(), "\n")
+	log.Infof("+++ VCN ID = %s +++", OCIVcnID)
+
+	cmdArgs = []string{}
+	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, OCIVcnID)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
+	bcmd.CommandArgs = cmdArgs
+	subnetData := helpers.Runner(&bcmd, log)
+	if subnetData.CommandError != nil {
+		return subnetData.CommandError
+	}
+
+	OCISubnetID = strings.Trim(subnetData.StandardOut.String(), "\n")
+	log.Infof("+++ Subnet ID = %s +++", OCISubnetID)
+	os.Setenv("OCI_VCN_ID", OCIVcnID)
+	os.Setenv("OCI_SUBNET_ID", OCISubnetID)
+
+	err := clusterTemplateGenerate(clusterName, templateName, log)
 	if err != nil {
 		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
 		return err
