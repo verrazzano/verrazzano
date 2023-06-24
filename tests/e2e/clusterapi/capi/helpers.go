@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -402,7 +403,6 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
 }
 
-/*
 func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config *rest.Config, err error) {
 	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
 	if err != nil {
@@ -421,7 +421,6 @@ func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config
 
 	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 }
-*/
 
 func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
@@ -463,7 +462,13 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
-	return showPodInfo(client, clusterName, log)
+	err = showPodInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- Modules running on workload cluster ---------------------")
+	return showModuleInfo(clusterName, log)
 }
 
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
@@ -490,6 +495,58 @@ func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.Suga
 		log.Errorf("Unable to delete cluster %s due to '%v'", clusterName, zap.Error(err))
 		return err
 	}
+	return nil
+}
+
+func showModuleInfo(clusterName string, log *zap.SugaredLogger) error {
+
+	k8sconfig, err := getCapiClusterK8sConfig(clusterName, log)
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return err
+	}
+
+	dclient, err := dynamic.NewForConfig(k8sconfig)
+	if err != nil {
+		log.Errorf("unable to create dynamic client for workload cluster %v", zap.Error(err))
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "platform.verrazzano.io",
+		Version:  "v1alpha1",
+		Resource: "module",
+	}
+
+	moduleFetched, err := dclient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("unable to fetch moduledata from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tVersion\tReady")
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of nodes from cluster '%s'", clusterName))
+	}
+	for _, mod := range moduleFetched.Items {
+		var m Module
+		modBinaryData, err := json.Marshal(mod.Object)
+		if err != nil {
+			log.Error("json marshalling error ", zap.Error(err))
+			return err
+		}
+
+		err = json.Unmarshal(modBinaryData, &m)
+		if err != nil {
+			log.Error("json unmarshalling error ", zap.Error(err))
+			return err
+		}
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v", m.Metadata.Name, m.Spec.Version, m.Status.Conditions[0].Status))
+		// TODO : Only for debug
+		log.Infof("Values for module '%s' => %+v", m.Metadata.Name, m.Spec.Values)
+	}
+	writer.Flush()
 	return nil
 }
 
@@ -550,7 +607,10 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 			}
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v",
 				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName))
-
+			// TODO : Only for debug
+			for _, status := range podData.Status.ContainerStatuses {
+				log.Infof("Pod '%s' condition => %+v", podData.GetName(), status)
+			}
 		}
 	}
 	writer.Flush()

@@ -286,3 +286,52 @@ type Machine struct {
 		Phase              string `json:"phase"`
 	} `json:"status"`
 }
+
+type Module struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Name              string    `json:"name"`
+		Namespace         string    `json:"namespace"`
+		ResourceVersion   string    `json:"resourceVersion"`
+		UID               string    `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		ModuleName      string `json:"moduleName"`
+		TargetNamespace string `json:"targetNamespace"`
+		Values          struct {
+			Installation struct {
+				CalicoNetwork struct {
+					Bgp     string `json:"bgp"`
+					IpPools []struct {
+						Cidr          string `json:"cidr"`
+						Encapsulation string `json:"encapsulation"`
+					} `json:"ipPools"`
+				} `json:"calicoNetwork"`
+				Cni struct {
+					Type string `json:"type"`
+				} `json:"cni"`
+				ImagePath string `json:"imagePath"`
+				Registry  string `json:"registry"`
+			} `json:"installation"`
+			TigeraOperator struct {
+				Version string `json:"version"`
+			} `json:"tigeraOperator"`
+		} `json:"values"`
+		Version string `json:"version"`
+	} `json:"spec"`
+	Status struct {
+		Conditions []struct {
+			LastTransitionTime time.Time `json:"lastTransitionTime"`
+			Message            string    `json:"message"`
+			Reason             string    `json:"reason"`
+			Status             string    `json:"status"`
+			Type               string    `json:"type"`
+		} `json:"conditions"`
+		LastSuccessfulGeneration int    `json:"lastSuccessfulGeneration"`
+		LastSuccessfulVersion    string `json:"lastSuccessfulVersion"`
+	} `json:"status"`
+}
