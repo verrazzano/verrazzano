@@ -608,7 +608,6 @@ func verifyGetRequest(clusterName string, numberNodes int) error {
 		{requestedResources, "requested resources"},
 	}
 	for _, n := range nonNilAttributes {
-		Expect(n.value).ToNot(BeNil(), "cluster %s has a non-nil value for %s", clusterName, n.name)
 		if n.value == nil {
 			return fmt.Errorf("cluster %s should have a non-nil value for %s", clusterName, n.name)
 		}
