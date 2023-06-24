@@ -306,7 +306,7 @@ type Module struct {
 			Installation struct {
 				CalicoNetwork struct {
 					Bgp     string `json:"bgp"`
-					IpPools []struct {
+					IPPools []struct {
 						Cidr          string `json:"cidr"`
 						Encapsulation string `json:"encapsulation"`
 					} `json:"ipPools"`
