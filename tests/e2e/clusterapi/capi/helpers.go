@@ -423,28 +423,6 @@ func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config
 	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 }
 
-func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
-	client, err := getCapiClusterK8sClient(clusterName, log)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
-	}
-
-	log.Infof("----------- Node in workload cluster ---------------------")
-	err = showNodeInfo(client, clusterName, log)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("----------- Pods running on workload cluster ---------------------")
-	err = showPodInfo(client, clusterName, log)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("----------- Modules running on workload cluster ---------------------")
-	return showModuleInfo(clusterName, log)
-}
-
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
 	var err error
 	config, err := k8sutil.GetKubeConfig()
@@ -608,6 +586,28 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 	}
 
 	return nil
+}
+
+func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
+	client, err := getCapiClusterK8sClient(clusterName, log)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
+	}
+
+	log.Infof("----------- Node in workload cluster ---------------------")
+	err = showNodeInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- Pods running on workload cluster ---------------------")
+	err = showPodInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- Modules running on workload cluster ---------------------")
+	return showModuleInfo(clusterName, log)
 }
 
 func deployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
