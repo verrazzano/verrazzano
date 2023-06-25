@@ -582,7 +582,6 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 			if pod.GetLabels()["app.kubernetes.io/name"] == "calico-kube-controllers" {
 				calicokubePod = podData
 			}
-
 		}
 	}
 	writer.Flush()
@@ -613,13 +612,13 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
-	err = showPodInfo(client, clusterName, log)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("----------- Modules running on workload cluster ---------------------")
-	return showModuleInfo(clusterName, log)
+	return showPodInfo(client, clusterName, log)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//log.Infof("----------- Modules running on workload cluster ---------------------")
+	//return showModuleInfo(clusterName, log)
 }
 
 func deployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
