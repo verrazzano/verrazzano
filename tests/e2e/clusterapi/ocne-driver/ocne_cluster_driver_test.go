@@ -526,11 +526,19 @@ func isClusterDeleted(clusterName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	// Status logs
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	t.Logs.Infof("deleting cluster %s state: %s", clusterName, state)
 
-	data := fmt.Sprint(jsonBody.Path("data").Data())
-	return data == "[]", nil
+	// A deleted cluster should have an empty "data" array
+	data := jsonBody.Path("data").Children()
+	if len(data) > 0 {
+		err = fmt.Errorf("cluster %s still has a non-empty data array from GET call to the API", clusterName)
+		t.Logs.Error(err)
+		return false, err
+	}
+	return true, nil
 }
 
 // Asserts whether the cluster was created as expected
@@ -547,7 +555,7 @@ func verifyCluster(clusterName string, numberNodes int) error {
 		t.Logs.Errorf("could not get cluster ID for cluster %s", clusterName)
 		return err
 	}
-	workloadKubeconfigPath, err := writeWorkloadKubeconfig(clusterID)
+	workloadKubeconfigPath, err := getWorkloadKubeconfig(clusterID)
 	if err != nil {
 		t.Logs.Errorf("could not get kubeconfig for cluster %s", clusterName)
 		return err
@@ -560,7 +568,8 @@ func verifyCluster(clusterName string, numberNodes int) error {
 	return verifyClusterPods(clusterName, workloadKubeconfigPath)
 }
 
-// Verifies that a GET request to the Rancher API for this cluster returns expected values
+// Verifies that a GET request to the Rancher API for this cluster returns expected values.
+// Intended to be called on clusters in Active state.
 func verifyGetRequest(clusterName string, numberNodes int) error {
 	jsonBody, err := getCluster(clusterName)
 	if err != nil {
@@ -616,7 +625,7 @@ func verifyGetRequest(clusterName string, numberNodes int) error {
 	return nil
 }
 
-// Verifies that the workload cluster has the expected nodes
+// Verifies that the workload cluster has the expected number of nodes
 func verifyClusterNodes(clusterName, kubeconfigPath string, expectedNumberNodes int) error {
 	numNodes, err := pkg.GetNodeCountInCluster(kubeconfigPath)
 	if err != nil {
@@ -681,9 +690,15 @@ func getClusterIDFromName(clusterName string) (string, error) {
 
 // Generates the kubeconfig of the workload cluster with an ID of `clusterID`
 // Writes the kubeconfig to a file inside /tmp. Returns the path of the kubeconfig file.
-func writeWorkloadKubeconfig(clusterID string) (string, error) {
-	t.Logs.Info("+++ Downloading kubeconfig from Rancher +++")
+func getWorkloadKubeconfig(clusterID string) (string, error) {
 	outputPath := fmt.Sprintf("/tmp/%s-kubeconfig", clusterID)
+
+	// First check if the kubeconfig is already present on our filesystem
+	if _, err := os.Stat(outputPath); err == nil {
+		return outputPath, nil
+	}
+
+	// Otherwise, download the kubeconfig through an API call
 	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?action=generateKubeconfig", clusterID))
 	jsonBody, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusOK, nil, t.Logs)
 	if err != nil {
