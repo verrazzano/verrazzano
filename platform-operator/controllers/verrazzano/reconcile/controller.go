@@ -145,8 +145,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
-	println("\n----------------------------- SPECS STATUS AFTER RECONCILIATION  ---------------------------------\n")
-	println()
+	// println("\n----------------------------- SPECS STATUS AFTER RECONCILIATION  ---------------------------------\n")
+	// println()
 
 	effCR, err := transform.GetEffectiveCR(vz)
 	if err != nil {
@@ -158,8 +158,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		println(err.Error())
 	}
 
-	println("\n----------------------------- STORED SUCCESSFULLY ---------------------------------\n")
-	println()
+	// println("\n----------------------------- STORED SUCCESSFULLY ---------------------------------\n")
+	// println()
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(ctx, log, vz)
@@ -177,7 +177,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	// println("----------------------------------------Creating Secrets if no such secret found---------------------------------------")
+	// println("------------------------------------------ Creating ConfigMap --------------------------------------------------")
 	// println()
 
 	myConfigMap := &corev1.ConfigMap{
@@ -199,7 +199,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// println()
-	// println("--------------------------------------------------Created Secret--------------------------------------------------")
+	// println("--------------------------------------------------Created ConfigMap--------------------------------------------------")
 
 	return ctrl.Result{}, nil
 }

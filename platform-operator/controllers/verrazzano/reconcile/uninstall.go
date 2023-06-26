@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -97,6 +98,18 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	}
 	tracker := getUninstallTracker(cr)
 	done := false
+
+	// println("------------------------------------------ Deleting ConfigMap --------------------------------------------------")
+	// println()
+
+	err = pkg.DeleteConfigMap(cr.ObjectMeta.Namespace, cr.ObjectMeta.Name)
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+
+	// println("------------------------------------------ Deleted ConfigMap Successfully ----------------------------------------------")
+	// println()
+
 	for !done {
 		switch tracker.vzState {
 		case vzStateUninstallStart:
