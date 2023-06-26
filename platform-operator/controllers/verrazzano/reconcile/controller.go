@@ -155,6 +155,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		println(err.Error())
 	}
 
+	fmt.Println(string(effCRyaml))
+
 	myConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      (vz.ObjectMeta.Name),
@@ -165,10 +167,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		},
 	}
 
+	// Update the configMap if there's already a ConfigMap
+	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
 	err = pkg.UpdateConfigMap(myConfigMap)
-	if err != nil { // if an error is found, this does imply that ConfigMap doesn't exist ?? But, what if some other error is there ??
-		err = pkg.CreateConfigMap(myConfigMap)
-		if err != nil {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createErr := pkg.CreateConfigMap(myConfigMap)
+			if createErr != nil {
+				println(createErr.Error())
+			}
+		} else {
 			println(err.Error())
 		}
 	}
