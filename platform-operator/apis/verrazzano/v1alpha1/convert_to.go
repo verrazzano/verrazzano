@@ -9,6 +9,8 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,9 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
-
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -402,7 +401,7 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 	if src.Storage != nil {
 		dst.Storage = src.Storage
 	}
-	if src.Replicas > 0 {
+	if src.Replicas != nil && *src.Replicas > 0 {
 		dst.Replicas = src.Replicas
 	}
 	if src.Resources != nil {
@@ -412,16 +411,19 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 
 func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSearchNode, error) {
 	masterNode := &v1beta1.OpenSearchNode{
-		Name:  masterNodeName,
-		Roles: []vmov1.NodeRole{vmov1.MasterRole},
+		Name:     masterNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.MasterRole},
+		Replicas: Int32Ptr(0),
 	}
 	dataNode := &v1beta1.OpenSearchNode{
-		Name:  dataNodeName,
-		Roles: []vmov1.NodeRole{vmov1.DataRole},
+		Name:     dataNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.DataRole},
+		Replicas: Int32Ptr(0),
 	}
 	ingestNode := &v1beta1.OpenSearchNode{
-		Name:  ingestNodeName,
-		Roles: []vmov1.NodeRole{vmov1.IngestRole},
+		Name:     ingestNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.IngestRole},
+		Replicas: Int32Ptr(0),
 	}
 	// Helper function set the value of an int from a string
 	// used to set the replica count of a node from an install arg
@@ -450,7 +452,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 	for _, arg := range args {
 		switch arg.Name {
 		case masterNodeReplicas:
-			if err := setIntValue(&masterNode.Replicas, arg); err != nil {
+			if err := setIntValue(masterNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case masterNodeMemory:
@@ -462,7 +464,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 				Size: arg.Value,
 			}
 		case dataNodeReplicas:
-			if err := setIntValue(&dataNode.Replicas, arg); err != nil {
+			if err := setIntValue(dataNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case dataNodeMemory:
@@ -474,7 +476,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 				Size: arg.Value,
 			}
 		case ingestNodeReplicas:
-			if err := setIntValue(&ingestNode.Replicas, arg); err != nil {
+			if err := setIntValue(ingestNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case ingestNodeMemory:
@@ -486,7 +488,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 
 	nodes := map[string]v1beta1.OpenSearchNode{}
 	addNode := func(node *v1beta1.OpenSearchNode) {
-		if node.Replicas > 0 {
+		if node.Replicas != nil && *node.Replicas > 0 {
 			nodes[node.Name] = *node
 		}
 	}
@@ -783,7 +785,8 @@ func convertClusterAPIToV1Beta1(src *ClusterAPIComponent) *v1beta1.ClusterAPICom
 		return nil
 	}
 	return &v1beta1.ClusterAPIComponent{
-		Enabled: src.Enabled,
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 

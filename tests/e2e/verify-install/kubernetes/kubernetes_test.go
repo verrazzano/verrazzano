@@ -5,9 +5,10 @@ package kubernetes_test
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -38,9 +39,7 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-controller",
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
-var expectedNonVMIPodsVerrazzanoSystem = []string{
-	"verrazzano-monitoring-operator",
-}
+var expectedVMOPod = "verrazzano-monitoring-operator"
 
 // comment out while debugging so it does not break master
 // "vmi-system-prometheus",
@@ -103,11 +102,11 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
 			t.Entry("includes verrazzano-cluster-operator", "verrazzano-cluster-operator", true),
-			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
+			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", isVMOExpected(kubeconfigPath)),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
-			//t.Entry("Check external-dns deployment", "external-dns", pkg.IsOCIDNSEnabled(kubeconfigPath)),
-			//t.Entry("Check verrazzano-cert-manager-oci-dns-webhook deployment", "cert-manager-ocidns-provider", pkg.IsOCIDNSWebhookEnabled(kubeconfigPath)),
+			// t.Entry("Check external-dns deployment", "external-dns", pkg.IsOCIDNSEnabled(kubeconfigPath)),
+			// t.Entry("Check verrazzano-cert-manager-oci-dns-webhook deployment", "cert-manager-ocidns-provider", pkg.IsOCIDNSWebhookEnabled(kubeconfigPath)),
 		}
 
 		t.DescribeTable("Verrazzano components are deployed,",
@@ -228,8 +227,13 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return checkPodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
-						Should(BeTrue())
+					if isVMOExpected(kubeconfigPath) {
+						Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{expectedVMOPod}) }, waitTimeout, pollingInterval).
+							Should(BeTrue())
+					} else {
+						// skip test
+						fmt.Printf("Skipping VMO pod check in managed cluster profile for VZ >= 1.6.0")
+					}
 				},
 			}
 
@@ -238,6 +242,17 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			)
 		})
 	})
+
+// isVMOExpected - is the VMO pod expected to exist in the given cluster
+func isVMOExpected(kubeconfigPath string) bool {
+	// in v1.6.0 and later, the VMO pod is not part of managed cluster profile
+	noVMOPodInManagedCluster, _ := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
+	isManagedClusterProfile := pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile && noVMOPodInManagedCluster {
+		return false
+	}
+	return true
+}
 
 func nsListContains(list []v1.Namespace, target string) bool {
 	for i := range list {

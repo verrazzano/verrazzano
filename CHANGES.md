@@ -12,6 +12,7 @@ Features:
 Component version updates:
 
 - Rancher v2.7.3
+    - Rancher Partner charts and RKE2 charts are no longer bundled.
 - WebLogic Kubernetes Operator v4.0.6
 - WebLogic Monitoring Exporter v2.1.3
 - Jaeger v1.42.0
@@ -25,12 +26,13 @@ Component version updates:
 Components added:
 - Thanos v0.30.2
 - Fluent Operator v2.2.0
-- FluentbitOpensearchOutput v1.0.0
+- FluentbitOpensearchOutput Helm chart v1.6.0
 
 Fixes:
 
 - Disabled the startupapicheck job in cert-manager startup.
-- Fixes an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
+- Fixed an issue with Rancher SSO via Keycloak when using a custom CA for Verrazzano certificates
+- Fixed an issue where not defining the replicas for default OpenSearch node pools in the Verrazzano CR caused the pods to terminate.
 
 ### v1.5.0
 Features:

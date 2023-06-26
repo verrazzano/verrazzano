@@ -239,3 +239,5 @@ spec:
       enabled: true
     argoCD:
       enabled: true
+    clusterAPI:
+      enabled: true
