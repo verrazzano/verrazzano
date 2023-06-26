@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -169,7 +170,7 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 func ActivateKontainerDriver(ctx spi.ComponentContext) error {
 	kontainerDriverObjectName := "ociocneengine"
 	// Nothing to do if Capi is not enabled
-	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
+	if !vzcr.IsComponentStatusEnabled(ctx.EffectiveCR(), clusterapi.ComponentName) {
 		return nil
 	}
 
