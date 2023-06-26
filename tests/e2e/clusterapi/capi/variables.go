@@ -48,7 +48,7 @@ func ensureCAPIVarsInitialized() {
 	OCIVcnID = os.Getenv("OCI_VCN_ID")
 	OCISubnetID = os.Getenv("OCI_SUBNET_ID")
 	OCISubnetCIDR = "10.0.0.32/27"
-	OCICredsKey = os.Getenv("OCI_CREDENTIALS_KEY")
-	OciSSHKey = os.Getenv("OCI_SSH_KEY")
 	ClusterName = os.Getenv("CLUSTER_NAME")
+	OCICredsKey = os.Getenv("TF_VAR_api_private_key_path")
+	OciSSHKey = os.Getenv("TF_VAR_ssh_public_key_path")
 }

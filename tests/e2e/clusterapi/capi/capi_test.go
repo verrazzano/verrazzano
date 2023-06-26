@@ -24,6 +24,8 @@ const (
 	pollingInterval                = 30 * time.Second
 	clusterTemplate                = "templates/cluster-template-addons-new-vcn.yaml"
 	clusterResourceSetTemplate     = "templates/cluster-template-addons.yaml"
+	capiNodeSshKey                 = "OCI_SSH_KEY"
+	ociCredsKey                    = "OCI_CREDENTIALS_KEY"
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -67,7 +69,17 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 
 // Run as part of BeforeSuite
 func capiPrerequisites() {
-	t.Logs.Infof("Start capi pre-requisites fotr cluster '%s'", ClusterName)
+	t.Logs.Infof("Start capi pre-requisites for cluster '%s'", ClusterName)
+
+	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
+	Eventually(func() error {
+		return ProcessOCIKeys(OciSSHKey, capiNodeSshKey, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Infof("Process and set OCI private key '%s'", ClusterName)
+	Eventually(func() error {
+		return ProcessOCIKeys(OCICredsKey, ociCredsKey, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Create CAPI configuration yaml for cluster '%s'", ClusterName)
 	Eventually(func() error {
