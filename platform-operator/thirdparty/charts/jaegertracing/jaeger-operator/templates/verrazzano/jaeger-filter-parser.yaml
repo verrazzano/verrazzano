@@ -1,0 +1,89 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: jaeger-fbc
+  namespace: {{ .Release.Namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "jaeger"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "jaeger"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-filter
+  namespace: {{ .Release.Namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: jaeger-parser1,jaeger-parser2,jaeger-parser3,jaeger-parser4
+  match: "kube.*jaeger-operator*_jaeger*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser1
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>[\d.e+-]+)\s+(?<level>\w+)\s+(?<message>.+)$/'
+    timeKey: logtime
+    timeKeep: true
+    types: "float"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser2
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    types: "float"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser3
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^(?<logtime>.*?) (?<level>\S+?) (?<component>[\.\S]+?) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    types: "float"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "jaeger"
+  name: jaeger-parser4
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^time=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) level=(?<level>.*?) message=(?<message>[\s\S]*?) error=(?<error>[\s\S]*?) execution=(?<executiontime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+ \+\d{3} \w+?) instance=(?<instance>[\s\S]*?) namespace=(?<namespace>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+{{ end -}}

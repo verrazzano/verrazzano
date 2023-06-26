@@ -306,7 +306,7 @@ func TestNodeAdapter(t *testing.T) {
 	}
 	bNode := vzapi.OpenSearchNode{
 		Name:     "b",
-		Replicas: 2,
+		Replicas: common.Int32Ptr(2),
 		Roles: []vmov1.NodeRole{
 			vmov1.DataRole,
 			vmov1.IngestRole,
@@ -323,7 +323,7 @@ func TestNodeAdapter(t *testing.T) {
 	nodes := []vzapi.OpenSearchNode{
 		{
 			Name:     "a",
-			Replicas: 3,
+			Replicas: common.Int32Ptr(3),
 			Roles: []vmov1.NodeRole{
 				vmov1.MasterRole,
 			},

@@ -9,6 +9,8 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,9 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
-
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -88,6 +87,17 @@ func ConvertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.Volum
 	return templates
 }
 
+// convertFluentbitOpensearchOutputToV1Beta1 converts the v1alpha1 FluentbitOpensearchOutputComponent to v1beta1 FluentbitOpensearchOutputComponent
+func convertFluentbitOpensearchOutputToV1Beta1(src *FluentbitOpensearchOutputComponent) *v1beta1.FluentbitOpensearchOutputComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.FluentbitOpensearchOutputComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
 func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	authProxyComponent, err := convertAuthProxyToV1Beta1(src.AuthProxy)
 	if err != nil {
@@ -114,41 +124,43 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		return v1beta1.ComponentSpec{}, err
 	}
 	return v1beta1.ComponentSpec{
-		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
-		ClusterIssuer:          ConvertClusterIssuerToV1Beta1(src.ClusterIssuer),
-		CertManagerWebhookOCI:  ConvertCertManagerWebhookOCIToV1Beta1(src.CertManagerWebhookOCI),
-		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
-		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
-		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
-		AuthProxy:              authProxyComponent,
-		OAM:                    convertOAMToV1Beta1(src.OAM),
-		Console:                convertConsoleToV1Beta1(src.Console),
-		ClusterOperator:        convertClusterOperatorToV1Beta1(src.ClusterOperator),
-		DNS:                    convertDNSToV1Beta1(src.DNS),
-		OpenSearch:             opensearchComponent,
-		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
-		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
-		IngressNGINX:           ingressComponent,
-		Istio:                  istioComponent,
-		JaegerOperator:         convertJaegerOperatorToV1Beta1(src.JaegerOperator),
-		Kiali:                  convertKialiToV1Beta1(src.Kiali),
-		Keycloak:               keycloakComponent,
-		MySQLOperator:          convertMySQLOperatorToV1Beta1(src.MySQLOperator),
-		OpenSearchDashboards:   convertOSDToV1Beta1(src.Kibana),
-		KubeStateMetrics:       convertKubeStateMetricsToV1Beta1(src.KubeStateMetrics),
-		Prometheus:             convertPrometheusToV1Beta1(src.Prometheus),
-		PrometheusAdapter:      convertPrometheusAdapterToV1Beta1(src.PrometheusAdapter),
-		PrometheusNodeExporter: convertPrometheusNodeExporterToV1Beta1(src.PrometheusNodeExporter),
-		PrometheusOperator:     convertPrometheusOperatorToV1Beta1(src.PrometheusOperator),
-		PrometheusPushgateway:  convertPrometheusPushGatewayToV1Beta1(src.PrometheusPushgateway),
-		Rancher:                convertRancherToV1Beta1(src.Rancher),
-		RancherBackup:          convertRancherBackupToV1Beta1(src.RancherBackup),
-		Thanos:                 convertThanosToV1Beta1(src.Thanos),
-		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
-		Velero:                 convertVeleroToV1Beta1(src.Velero),
-		Verrazzano:             verrazzanoComponent,
-		ClusterAPI:             convertClusterAPIToV1Beta1(src.ClusterAPI),
-		ClusterAgent:           convertClusterAgentToV1Beta1(src.ClusterAgent),
+		CertManager:               ConvertCertManagerToV1Beta1(src.CertManager),
+		ClusterIssuer:             ConvertClusterIssuerToV1Beta1(src.ClusterIssuer),
+		CertManagerWebhookOCI:     ConvertCertManagerWebhookOCIToV1Beta1(src.CertManagerWebhookOCI),
+		CoherenceOperator:         convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
+		ApplicationOperator:       convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
+		ArgoCD:                    convertArgoCDToV1Beta1(src.ArgoCD),
+		AuthProxy:                 authProxyComponent,
+		OAM:                       convertOAMToV1Beta1(src.OAM),
+		Console:                   convertConsoleToV1Beta1(src.Console),
+		ClusterOperator:           convertClusterOperatorToV1Beta1(src.ClusterOperator),
+		DNS:                       convertDNSToV1Beta1(src.DNS),
+		OpenSearch:                opensearchComponent,
+		Fluentd:                   convertFluentdToV1Beta1(src.Fluentd),
+		FluentOperator:            convertFluentOperatorToV1Beta1(src.FluentOperator),
+		FluentbitOpensearchOutput: convertFluentbitOpensearchOutputToV1Beta1(src.FluentbitOpensearchOutput),
+		Grafana:                   convertGrafanaToV1Beta1(src.Grafana),
+		IngressNGINX:              ingressComponent,
+		Istio:                     istioComponent,
+		JaegerOperator:            convertJaegerOperatorToV1Beta1(src.JaegerOperator),
+		Kiali:                     convertKialiToV1Beta1(src.Kiali),
+		Keycloak:                  keycloakComponent,
+		MySQLOperator:             convertMySQLOperatorToV1Beta1(src.MySQLOperator),
+		OpenSearchDashboards:      convertOSDToV1Beta1(src.Kibana),
+		KubeStateMetrics:          convertKubeStateMetricsToV1Beta1(src.KubeStateMetrics),
+		Prometheus:                convertPrometheusToV1Beta1(src.Prometheus),
+		PrometheusAdapter:         convertPrometheusAdapterToV1Beta1(src.PrometheusAdapter),
+		PrometheusNodeExporter:    convertPrometheusNodeExporterToV1Beta1(src.PrometheusNodeExporter),
+		PrometheusOperator:        convertPrometheusOperatorToV1Beta1(src.PrometheusOperator),
+		PrometheusPushgateway:     convertPrometheusPushGatewayToV1Beta1(src.PrometheusPushgateway),
+		Rancher:                   convertRancherToV1Beta1(src.Rancher),
+		RancherBackup:             convertRancherBackupToV1Beta1(src.RancherBackup),
+		Thanos:                    convertThanosToV1Beta1(src.Thanos),
+		WebLogicOperator:          convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
+		Velero:                    convertVeleroToV1Beta1(src.Velero),
+		Verrazzano:                verrazzanoComponent,
+		ClusterAPI:                convertClusterAPIToV1Beta1(src.ClusterAPI),
+		ClusterAgent:              convertClusterAgentToV1Beta1(src.ClusterAgent),
 	}, nil
 }
 
@@ -389,7 +401,7 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 	if src.Storage != nil {
 		dst.Storage = src.Storage
 	}
-	if src.Replicas > 0 {
+	if src.Replicas != nil && *src.Replicas > 0 {
 		dst.Replicas = src.Replicas
 	}
 	if src.Resources != nil {
@@ -399,16 +411,19 @@ func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
 
 func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSearchNode, error) {
 	masterNode := &v1beta1.OpenSearchNode{
-		Name:  masterNodeName,
-		Roles: []vmov1.NodeRole{vmov1.MasterRole},
+		Name:     masterNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.MasterRole},
+		Replicas: Int32Ptr(0),
 	}
 	dataNode := &v1beta1.OpenSearchNode{
-		Name:  dataNodeName,
-		Roles: []vmov1.NodeRole{vmov1.DataRole},
+		Name:     dataNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.DataRole},
+		Replicas: Int32Ptr(0),
 	}
 	ingestNode := &v1beta1.OpenSearchNode{
-		Name:  ingestNodeName,
-		Roles: []vmov1.NodeRole{vmov1.IngestRole},
+		Name:     ingestNodeName,
+		Roles:    []vmov1.NodeRole{vmov1.IngestRole},
+		Replicas: Int32Ptr(0),
 	}
 	// Helper function set the value of an int from a string
 	// used to set the replica count of a node from an install arg
@@ -437,7 +452,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 	for _, arg := range args {
 		switch arg.Name {
 		case masterNodeReplicas:
-			if err := setIntValue(&masterNode.Replicas, arg); err != nil {
+			if err := setIntValue(masterNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case masterNodeMemory:
@@ -449,7 +464,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 				Size: arg.Value,
 			}
 		case dataNodeReplicas:
-			if err := setIntValue(&dataNode.Replicas, arg); err != nil {
+			if err := setIntValue(dataNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case dataNodeMemory:
@@ -461,7 +476,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 				Size: arg.Value,
 			}
 		case ingestNodeReplicas:
-			if err := setIntValue(&ingestNode.Replicas, arg); err != nil {
+			if err := setIntValue(ingestNode.Replicas, arg); err != nil {
 				return nil, err
 			}
 		case ingestNodeMemory:
@@ -473,7 +488,7 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 
 	nodes := map[string]v1beta1.OpenSearchNode{}
 	addNode := func(node *v1beta1.OpenSearchNode) {
-		if node.Replicas > 0 {
+		if node.Replicas != nil && *node.Replicas > 0 {
 			nodes[node.Name] = *node
 		}
 	}
@@ -494,6 +509,17 @@ func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {
 		OpenSearchSecret:  src.ElasticsearchSecret,
 		OCI:               convertOCILoggingConfigurationToV1Beta1(src.OCI),
 		InstallOverrides:  convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
+// convertFluentOperatorToV1Beta1 converts the v1alpha1 FluentOperatorComponent to v1beta1 FluentOperatorComponent
+func convertFluentOperatorToV1Beta1(src *FluentOperatorComponent) *v1beta1.FluentOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.FluentOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 
@@ -759,7 +785,8 @@ func convertClusterAPIToV1Beta1(src *ClusterAPIComponent) *v1beta1.ClusterAPICom
 		return nil
 	}
 	return &v1beta1.ClusterAPIComponent{
-		Enabled: src.Enabled,
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }
 

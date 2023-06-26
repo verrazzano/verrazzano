@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1beta1
@@ -6,8 +6,9 @@ package v1beta1
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -58,6 +59,10 @@ func (v *Verrazzano) ValidateCreate() error {
 		return nil
 	}
 
+	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
+		return err
+	}
+
 	client, err := getControllerRuntimeClient(newScheme())
 	if err != nil {
 		return err
@@ -102,6 +107,10 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
 		return nil
+	}
+
+	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
+		return err
 	}
 
 	// Verify only one instance of the operator is running

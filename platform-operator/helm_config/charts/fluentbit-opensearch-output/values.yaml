@@ -1,0 +1,47 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+application:
+  enabled: true
+  matchRegex: '^(?!.*(?:_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_|service\.)).*$'
+  host: verrazzano-authproxy-opensearch
+  port: 8775
+  dataStreamMode: true
+  dataStreamName: verrazzano-application-$kubernetes['namespace_name']
+  dataStreamTemplateName: verrazzano-data-stream
+  httpUser:
+    valueFrom:
+      secretKeyRef:
+        key: username
+        name: verrazzano-es-internal
+  httpPassword:
+    valueFrom:
+      secretKeyRef:
+        key: password
+        name: verrazzano-es-internal
+  tls:
+    enabled: false
+  templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
+system:
+  enabled: true
+  matchRegex: '^.*(?:_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_|service\.).*'
+  host: verrazzano-authproxy-opensearch
+  port: 8775
+  dataStreamMode: true
+  dataStreamName: verrazzano-system
+  dataStreamTemplateName: verrazzano-data-stream
+  httpUser:
+    valueFrom:
+      secretKeyRef:
+        key: username
+        name: verrazzano-es-internal
+  httpPassword:
+    valueFrom:
+      secretKeyRef:
+        key: password
+        name: verrazzano-es-internal
+  tls:
+    enabled: false
+  templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
+
+

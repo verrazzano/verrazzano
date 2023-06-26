@@ -43,6 +43,7 @@ monitoringOperator:
 
 logging:
   name: fluentd
+  fluentBitSA: fluent-bit
 
 keycloak:
   enabled: true
@@ -103,3 +104,6 @@ jaegerOperator:
 
 ingressNGINX:
   namespace: verrazzano-ingress-nginx
+
+platformOperator:
+  namespace: verrazzano-install

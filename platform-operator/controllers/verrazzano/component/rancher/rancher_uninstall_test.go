@@ -55,7 +55,8 @@ func TestPostUninstall(t *testing.T) {
 		&nonRancherNs,
 		&rancherNs,
 	}
-
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	defer func() { config.TestThirdPartyManifestDir = "" }()
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 

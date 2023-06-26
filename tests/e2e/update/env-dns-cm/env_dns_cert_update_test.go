@@ -15,7 +15,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -58,11 +57,14 @@ func (u WildcardDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.CertManager == nil {
-		cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{}
+	if cr.Spec.Components.ClusterIssuer == nil {
+		cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{}
 	}
-	cr.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace = u.ClusterResourceNamespace
-	cr.Spec.Components.CertManager.Certificate.CA.SecretName = u.SecretName
+	if cr.Spec.Components.ClusterIssuer.CA == nil {
+		cr.Spec.Components.ClusterIssuer.CA = &vzapi.CAIssuer{}
+	}
+	cr.Spec.Components.ClusterIssuer.ClusterResourceNamespace = u.ClusterResourceNamespace
+	cr.Spec.Components.ClusterIssuer.CA.SecretName = u.SecretName
 }
 
 var (
@@ -85,21 +87,11 @@ var (
 	currentCertSecretName = "verrazzano-ca-certificate-secret"
 )
 
-var beforeSuite = t.BeforeSuiteFunc(func() {
-	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-	Expect(err).ToNot(HaveOccurred())
-
-	if !pkg.IsCertManagerEnabled(kubeConfigPath) {
-		Skip("CertManager is not enabled, skipping test")
-	}
-})
-
 var afterSuite = t.AfterSuiteFunc(func() {
 	files := []string{testCertName + ".crt", testCertName + ".key"}
 	cleanupTemporaryFiles(files)
 })
 
-var _ = BeforeSuite(beforeSuite)
 var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
