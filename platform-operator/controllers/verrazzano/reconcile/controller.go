@@ -55,6 +55,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -144,42 +145,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
-	effCR, err := transform.GetEffectiveCR(vz)
-	if err != nil {
-		log.Error(err)
-	}
-
-	effCRyaml, err := json.MarshalIndent(effCR.Spec, "", " ")
-	if err != nil {
-		log.Error(err)
-	}
-
-	fmt.Println(string(effCRyaml))
-
-	myConfigMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      (vz.ObjectMeta.Name),
-			Namespace: (vz.ObjectMeta.Namespace),
-		},
-		Data: map[string]string{
-			"effective-config.yaml": string(effCRyaml),
-		},
-	}
-
-	// Update the configMap if there's already a ConfigMap
-	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
-	err = pkg.UpdateConfigMap(myConfigMap)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			createErr := pkg.CreateConfigMap(myConfigMap)
-			if createErr != nil {
-				log.Error(createErr)
-			}
-		} else {
-			log.Error(err)
-		}
-	}
-
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(ctx, log, vz)
 	if vzctrl.ShouldRequeue(res) {
@@ -195,6 +160,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
+
+	err = createUpdateCMwithEffCRSpec(vz)
+	if err != nil {
+		zap.S().Error(err)
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -1108,4 +1078,45 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	r.WatchMutex.RLock()
 	defer r.WatchMutex.RUnlock()
 	return r.WatchedComponents[compName]
+}
+
+// The getEffCRSpec takes in input as Actual CR and returns the Specs of the EffectiveCR
+func createUpdateCMwithEffCRSpec(vz *v1alpha1.Verrazzano) error {
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+
+	effCR, err := transform.GetEffectiveCR(vz)
+	if err != nil {
+		zap.S().Error(err)
+	}
+
+	effCRSpecs, err := json.MarshalIndent(effCR.Spec, "", " ")
+	if err != nil {
+		zap.S().Error(err)
+	}
+
+	myConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      (vz.ObjectMeta.Name),
+			Namespace: (vz.ObjectMeta.Namespace),
+		},
+		Data: map[string]string{
+			"effective-config.yaml": string(effCRSpecs),
+		},
+	}
+
+	// Update the configMap if there's already a ConfigMap
+	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
+	err = pkg.UpdateConfigMap(myConfigMap)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createErr := pkg.CreateConfigMap(myConfigMap)
+			if createErr != nil {
+				zap.S().Error(createErr)
+			}
+		} else {
+			zap.S().Errorf("Error: %s", err)
+		}
+	}
+
+	return nil
 }
