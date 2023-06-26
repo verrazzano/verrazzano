@@ -152,7 +152,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	effCRyaml, err := json.MarshalIndent(effCR.Spec, "", " ")
 	if err != nil {
-		println(err.Error())
+		log.Error(err)
 	}
 
 	fmt.Println(string(effCRyaml))
@@ -174,10 +174,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if errors.IsNotFound(err) {
 			createErr := pkg.CreateConfigMap(myConfigMap)
 			if createErr != nil {
-				println(createErr.Error())
+				log.Error(createErr)
 			}
 		} else {
-			println(err.Error())
+			log.Error(err)
 		}
 	}
 
