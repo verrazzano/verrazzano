@@ -94,7 +94,10 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 
 	monitor := &fakemonitor.BackgroundProcessMonitorType{Result: true, Running: true}
 	err := postUninstall(ctx, monitor)
-	a.NoError(err)
+	// retryable error returned to trigger one more reconcile loop to perform post job cleanup
+	a.Error(err)
+	_, ok := err.(ctrlerrors.RetryableError)
+	a.True(ok)
 }
 
 // TestPostUninstall tests the post uninstall process for Rancher
@@ -141,7 +144,7 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	postUninstallFunc = func(ctx spi.ComponentContext) error {
+	postUninstallFunc = func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 		return nil
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
@@ -178,7 +181,7 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	postUninstallFunc = func(ctx spi.ComponentContext) error {
+	postUninstallFunc = func(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 		return fmt.Errorf("Unexpected error on uninstall")
 	}
 	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
@@ -200,11 +203,11 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	a.Fail("Did not detect completion in time")
 }
 
-// TestInvokeRancherSystemToolAndCleanup tests the deletion of objects in the post-uninstall process for Rancher
+// TestPostRancherToolCleanup tests the deletion of objects in the post-cleanup process for Rancher
 // GIVEN a call to invokeRancherSystemToolAndCleanup
 // WHEN the objects exist in the cluster
 // THEN all objects are deleted
-func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
+func TestPostRancherToolCleanup(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -576,7 +579,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			crd1 := v12.CustomResourceDefinition{}
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-			err := invokeRancherSystemToolAndCleanup(ctx)
+			err := cleanupRemainingResources(ctx)
 			a.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist
@@ -683,16 +686,20 @@ func TestIsRancherNamespace(t *testing.T) {
 // WHEN a job already exists
 // THEN expect the job to be deleted
 func TestCleanupJob(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
+
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
-	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	ns1 := newNamespace("cattle-fleet-system")
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(ns1).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 	config.SetDefaultBomFilePath("../../../../verrazzano-bom.json")
-	setCleanupJobYamlPath("../../../../thirdparty/manifests/rancher-cleanup/rancher-cleanup.yaml")
+	setCleanupJobYamlRelativePath("/rancher-cleanup/rancher-cleanup.yaml")
 
 	// Expect the job to get created
-	err := runCleanupJob(ctx)
+	err := runCleanupJob(ctx, nil)
 	a.Error(err)
 	job := batchv1.Job{}
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, &job)

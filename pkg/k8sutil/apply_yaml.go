@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path"
 	"reflect"
@@ -124,6 +125,11 @@ func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args map[string]inte
 // DeleteF deletes a file spec from Kubernetes
 func (y *YAMLApplier) DeleteF(filePath string) error {
 	return y.doFileAction(filePath, y.deleteAction)
+}
+
+// DeleteFWithDependents deletes a file spec from Kubernetes along with other dependent objects in the background
+func (y *YAMLApplier) DeleteFWithDependents(filePath string) error {
+	return y.doFileAction(filePath, y.deleteActionWithDependents)
 }
 
 // DeleteFT deletes a file template spec (go text.template) to Kubernetes
@@ -253,11 +259,24 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 
 // deleteAction deletes the object from the server
 func (y *YAMLApplier) deleteAction(obj *unstructured.Unstructured) error {
+	return y.execDeleteAction(obj, metav1.DeletePropagationOrphan)
+}
+
+// deleteAction deletes the object from the server
+func (y *YAMLApplier) deleteActionWithDependents(obj *unstructured.Unstructured) error {
+	return y.execDeleteAction(obj, metav1.DeletePropagationBackground)
+}
+
+func (y *YAMLApplier) execDeleteAction(obj *unstructured.Unstructured, propagationPolicy metav1.DeletionPropagation) error {
 	var ns = strings.TrimSpace(y.namespaceOverride)
 	if len(ns) > 0 {
 		obj.SetNamespace(ns)
 	}
-	if err := y.client.Delete(context.TODO(), obj); err != nil {
+	deleteOptions := &crtpkg.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}
+
+	if err := y.client.Delete(context.TODO(), obj, deleteOptions); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
