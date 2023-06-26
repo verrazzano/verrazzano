@@ -6,7 +6,6 @@ package rancher
 import (
 	"context"
 	"fmt"
-	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -245,7 +244,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(common2.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
+				Value: strconv.FormatBool(common.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
