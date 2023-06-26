@@ -169,8 +169,7 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 func ActivateKontainerDriver(ctx spi.ComponentContext) error {
 	kontainerDriverObjectName := "ociocneengine"
 	// Nothing to do if Capi is not enabled
-	ctx.Log().Infof("MGIANATA contents of effectiveCR: %v", ctx.EffectiveCR())
-	if !vzcr.IsComponentStatusEnabled(ctx.EffectiveCR(), "cluster-api") {
+	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 
@@ -185,9 +184,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext) error {
 	gvr := GetRancherMgmtAPIGVRForResource("kontainerdrivers")
 	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
+		// Keep trying until the resource is found
 		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 	}
 
