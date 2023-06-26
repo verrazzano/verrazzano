@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	goerrors "errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -148,19 +148,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	println("\n----------------------------- SPECS STATUS AFTER RECONCILIATION  ---------------------------------\n")
 	println()
 
-	effCRComp, err := transform.GetEffectiveCR(vz)
+	effCR, err := transform.GetEffectiveCR(vz)
 	if err != nil {
 		log.Error(err)
 	}
 
-	byteArray, err := json.MarshalIndent(effCRComp.Spec, "", " ")
+	effCRyaml, err := json.MarshalIndent(effCR.Spec, "", " ")
 	if err != nil {
-
+		println(err.Error())
 	}
-	byteArrEncoded := []byte(base64.StdEncoding.EncodeToString(byteArray))
-	fmt.Println(string(byteArrEncoded))
 
-	println("\n----------------------------- PRINTED SUCCESSFULLY ---------------------------------\n")
+	println("\n----------------------------- STORED SUCCESSFULLY ---------------------------------\n")
 	println()
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
@@ -179,30 +177,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	// mysecret := &corev1.Secret{
-	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Name:      "vz-overall-config",
-	// 		Namespace: "verrazzano-system",
-	// 	},
-	// 	Type: corev1.SecretTypeOpaque,
-	// 	Data: map[string][]byte{
-	// 		"username":     []byte(""),
-	// 		"password":     []byte(""),
-	// 		"effective-CR": []byte(byteArrEncoded),
-	// 	},
-	// }
-
 	// println("----------------------------------------Creating Secrets if no such secret found---------------------------------------")
 	// println()
 
-	// // Go for an update
-	// err = pkg.UpdateSecret(mysecret)
-	// if err != nil { // if an error is found, this does imply that Secret doesn't exist ?? But, what if some other error is there ?
-	// 	err = pkg.CreateSecret(mysecret) // try to find the exact/specific error that implies -> "No such Secret Found/ Secret doesn't exist"
-	// 	if err != nil {
-	// 		println(err.Error())
-	// 	}
-	// }
+	myConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      (vz.ObjectMeta.Name),
+			Namespace: (vz.ObjectMeta.Namespace),
+		},
+		Data: map[string]string{
+			"effective-config.yaml": string(effCRyaml),
+		},
+	}
+
+	err = pkg.UpdateConfigMap(myConfigMap)
+	if err != nil { // if an error is found, this does imply that ConfigMap doesn't exist ?? But, what if some other error is there ??
+		err = pkg.CreateConfigMap(myConfigMap)
+		if err != nil {
+			println(err.Error())
+		}
+	}
 
 	// println()
 	// println("--------------------------------------------------Created Secret--------------------------------------------------")
