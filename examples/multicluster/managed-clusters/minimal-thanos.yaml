@@ -18,6 +18,8 @@ spec:
             prometheus:
               thanos:
                 integration: sidecar
+    kubeStateMetrics:
+      enabled: true
     authProxy:
       enabled: true
     thanos:

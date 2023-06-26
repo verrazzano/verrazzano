@@ -13,6 +13,8 @@ spec:
       enabled: true
     prometheusOperator:
       enabled: true
+    kubeStateMetrics:
+      enabled: true
     authProxy:
       enabled: true
     certManager:
