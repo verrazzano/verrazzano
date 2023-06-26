@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -225,6 +226,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 	// Configure CA Issuer KVs
 	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
+		letsEncryptEnv := cm.LetsEncrypt.Environment
+		if len(letsEncryptEnv) == 0 {
+			letsEncryptEnv = cmconstants.LetsEncryptProduction
+		}
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
@@ -234,13 +239,13 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.LetsEncrypt.Environment,
+				Value: letsEncryptEnv,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
+				Value: strconv.FormatBool(common2.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{

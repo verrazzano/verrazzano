@@ -7,10 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"net/url"
 	"os"
 	"regexp"
@@ -29,10 +25,14 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
@@ -101,6 +101,78 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
+}
+
+// TestApplendLetsEncryptDefaultEnvOverrides verifies that Helm overrides are added as appropriate for LE Prod
+// GIVEN a Verrazzano CR
+//
+//	WHEN AppendOverrides is called with an LE prod configuration where the env is not specified
+//	THEN AppendOverrides should add the appropriate LE prod overrides
+func TestApplendLetsEncryptDefaultEnvOverrides(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	vzACMEProd := vzAcmeDev.DeepCopy()
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = ""
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
+		false, profilesRelativePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: cmconstants.LetsEncryptProduction})
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
+}
+
+// TestApplendLetsEncryptProdEnvOverrides verifies that Helm overrides are added as appropriate for LE Prod
+// GIVEN a Verrazzano CR
+//
+//	WHEN AppendOverrides is called with an LE prod configuration where the env is explicitly specified
+//	THEN AppendOverrides should add the appropriate LE prod overrides
+func TestApplendLetsEncryptProdEnvOverrides(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	vzACMEProd := vzAcmeDev.DeepCopy()
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = cmconstants.LetsEncryptProduction
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
+		false, profilesRelativePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: cmconstants.LetsEncryptProduction})
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
+}
+
+// TestApplendLetsEncryptStagingEnvOverrides verifies that Helm overrides are added as appropriate for LE Staging env
+// GIVEN a Verrazzano CR
+//
+//	WHEN AppendOverrides is called with an LE staging configuration
+//	THEN AppendOverrides should add the appropriate LE prod overrides
+func TestApplendLetsEncryptStagingEnvOverrides(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	vzACMEProd := vzAcmeDev.DeepCopy()
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = cmconstants.LetsEncryptStaging
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
+		false, profilesRelativePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: cmconstants.LetsEncryptStaging})
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
 
 // TestAppendImageOverrides verifies that Rancher image overrides are added
