@@ -129,8 +129,8 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
-                        git ls-remote --heads https://github.com/verrazzano/verrazzano.git 'refs/heads/release-1*' | cut -d '/' -f 3 | cut -d '-' -f 2 > rel.txt
-                        cat rel.txt
+                        git ls-remote --heads https://github.com/verrazzano/verrazzano.git 'refs/heads/release-1*' | cut -d '/' -f 3 | cut -d '-' -f 2 > releaseBranches.txt
+                        cat releaseBranches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -163,8 +163,8 @@ pipeline {
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
 
                         //Extract list of releases from git branches
-                        fileContent = readFile(file: "${workspace}/branches.txt")
-                        List releaseBranches = getReleaseBranchVersions()
+                        fileContent = readFile(file: "${workspace}/releaseBranches.txt")
+                        List releaseBranches = extractReleaseTags(fileContent)
                         echo "Release Branches: ${releaseBranches}"
                         List finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
 
@@ -391,26 +391,6 @@ def getTipOfReleaseBranches(releaseNumber){
         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
         def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
     return releaseBranchCommitSHA
-}
-
-def getReleaseBranchVersions(){
-    def releaseBranches = []
-
-    // fetch git release branches
-    def branches = checkout([$class: 'GitSCM',
-        branches: [[name: '*/release-*']],
-        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]],
-        doGenerateSubmoduleConfigurations: false,
-        extensions: []
-        ])
-
-    branches.each { branch ->
-      if (branch.startsWith("release-")) {
-        releaseBranches.add(branch.substring(8))
-      }
-    }
-
-    return releaseBranches
 }
 
 // Remove the excluded releases from jobs
