@@ -93,6 +93,13 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.AllInOneImage}}"
 `
 
+// A template to define Jaeger override for using the JAEGER-ALL-IN-ONE-IMAGE to create a Jaeger instance.
+const jaegerAllInOneTemplate = `jaeger:
+  create: true
+  spec:
+    strategy: allInOne
+`
+
 // A template to define Jaeger override for creating default Jaeger instance
 // As Jaeger Operator helm-chart does not use tpl in rendering Jaeger spec value, we can not use
 // jaeger-operator-values.yaml override file to define Jaeger value referencing other values.
@@ -263,6 +270,17 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			if opensearch.IsSingleDataNodeCluster(compContext) {
 				osReplicaCount = 0
 			}
+			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
+			err = jaegerCRTemplate.Execute(&b, data)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
+			if err != nil {
+				return nil, err
+			}
+			var osReplicaCount int32 = 1
 			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
 			err = jaegerCRTemplate.Execute(&b, data)
 			if err != nil {
