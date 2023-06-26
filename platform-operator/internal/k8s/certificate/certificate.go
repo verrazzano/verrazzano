@@ -39,7 +39,7 @@ const (
 	CertKey = "tls.crt"
 	PrivKey = "tls.key"
 
-	certYearsValid = 1
+	certYearsValid = 2
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
@@ -201,7 +201,7 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 			CommonName: commonName,
 		},
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(certYearsValid, 0, 0),
+		NotAfter:              time.Now().AddDate(0, 0, certYearsValid),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
