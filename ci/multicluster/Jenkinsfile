@@ -957,7 +957,10 @@ def verifyUninstall() {
         // - the first one will always be the Admin cluster
         // - clusters 2-max are managed clusters
         def verifyUninstallStages = [:]
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        // disabling for managed cluster since complete removal of resources on managed cluster interferes with cluster
+        // management facilities in Rancher.  See VZ-10055
+        //int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        int clusterCount = 1
         for (int count = 1; count <= clusterCount; count++) {
             def key = "vz-mgd-${count - 1}"
             if (count == 1) {
