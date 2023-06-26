@@ -99,16 +99,10 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	tracker := getUninstallTracker(cr)
 	done := false
 
-	// println("------------------------------------------ Deleting ConfigMap --------------------------------------------------")
-	// println()
-
 	err = pkg.DeleteConfigMap(cr.ObjectMeta.Namespace, cr.ObjectMeta.Name)
 	if err != nil {
 		log.Errorf(err.Error())
 	}
-
-	// println("------------------------------------------ Deleted ConfigMap Successfully ----------------------------------------------")
-	// println()
 
 	for !done {
 		switch tracker.vzState {

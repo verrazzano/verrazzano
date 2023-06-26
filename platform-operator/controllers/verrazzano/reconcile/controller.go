@@ -145,9 +145,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
-	// println("\n----------------------------- SPECS STATUS AFTER RECONCILIATION  ---------------------------------\n")
-	// println()
-
 	effCR, err := transform.GetEffectiveCR(vz)
 	if err != nil {
 		log.Error(err)
@@ -157,28 +154,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		println(err.Error())
 	}
-
-	// println("\n----------------------------- STORED SUCCESSFULLY ---------------------------------\n")
-	// println()
-
-	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
-	res, err := r.doReconcile(ctx, log, vz)
-	if vzctrl.ShouldRequeue(res) {
-		return res, nil
-	}
-
-	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
-	if err != nil {
-		errorCounterMetricObject.Inc()
-		return newRequeueWithDelay(), nil
-	}
-	// The Verrazzano resource has been reconciled.
-	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
-	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
-
-	// println("------------------------------------------ Creating ConfigMap --------------------------------------------------")
-	// println()
 
 	myConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -198,8 +173,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	// println()
-	// println("--------------------------------------------------Created ConfigMap--------------------------------------------------")
+	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
+	res, err := r.doReconcile(ctx, log, vz)
+	if vzctrl.ShouldRequeue(res) {
+		return res, nil
+	}
+
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		errorCounterMetricObject.Inc()
+		return newRequeueWithDelay(), nil
+	}
+	// The Verrazzano resource has been reconciled.
+	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
+	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
 	return ctrl.Result{}, nil
 }
