@@ -129,9 +129,8 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
-                        git fetch
-                        git branch | awk '/^  release-/ {sub(/^  release-/, ""); print}' > branches.txt
-                        cat branches.txt
+                        git ls-remote --heads https://github.com/verrazzano/verrazzano.git 'release-1*' | grep -o 'release-[0-9]\+\.[0-9]\+' | cut -d '-' -f 2 > rel.txt
+                        cat rel.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
