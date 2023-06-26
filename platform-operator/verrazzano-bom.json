@@ -380,7 +380,7 @@
           "images": [
             {
               "image": "mysql-server",
-              "tag": "8.0.33",
+              "tag": "8.0.32",
               "helmFullImageKey": "image",
               "helmTagKey": "imageTag"
             }
