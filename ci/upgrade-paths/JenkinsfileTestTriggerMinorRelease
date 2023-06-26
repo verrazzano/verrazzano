@@ -129,7 +129,7 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
-                        git ls-remote --heads https://github.com/verrazzano/verrazzano.git 'refs/heads/release-1*' | cut -d '/' -f 3 | cut -d '-' -f 2 | grep -v '0' > releaseBranches.txt
+                        git ls-remote --heads https://github.com/verrazzano/verrazzano.git 'refs/heads/release-*' | cut -d '/' -f 3 | cut -d '-' -f 2 | grep -v '0' > releaseBranches.txt
                         cat releaseBranches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
