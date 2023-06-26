@@ -169,6 +169,7 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 func ActivateKontainerDriver(ctx spi.ComponentContext) error {
 	kontainerDriverObjectName := "ociocneengine"
 	// Nothing to do if Capi is not enabled
+	ctx.Log().Infof("MGIANATA contents of effectiveCR: %v", ctx.EffectiveCR())
 	if !vzcr.IsComponentStatusEnabled(ctx.EffectiveCR(), "cluster-api") {
 		return nil
 	}
