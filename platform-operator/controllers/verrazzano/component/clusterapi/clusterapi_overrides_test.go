@@ -310,17 +310,18 @@ func TestOverridesInterface(t *testing.T) {
 
 	assert.Equal(t, "ghcr.io", tc.GetGlobalRegistry())
 
+	capiRoot := "/verrazzano/platform-operator/capi"
 	assert.Equal(t, "myreg.io/verrazzano", tc.GetOCNEBootstrapRepository())
 	assert.Equal(t, "v1.0", tc.GetOCNEBootstrapTag())
 	assert.Equal(t, "/test/bootstrap.yaml", tc.GetOCNEBootstrapURL())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetOCNEControlPlaneRepository())
 	assert.Equal(t, "v1.1", tc.GetOCNEControlPlaneTag())
-	assert.Equal(t, "/verrazzano/capi/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
+	assert.Equal(t, capiRoot+"/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetClusterAPIRepository())
 	assert.Equal(t, CoreImageTag, tc.GetClusterAPITag())
-	assert.Equal(t, "/verrazzano/capi/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
+	assert.Equal(t, capiRoot+"/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
 
 	assert.Equal(t, "myreg2.io/oci-repo", tc.GetOCIRepository())
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
