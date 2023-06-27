@@ -521,7 +521,7 @@ func showModuleInfo(clusterName string, log *zap.SugaredLogger) error {
 
 func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tRole\tVersion\tInternalIP\tExternalIP\tOSImage\tKernelVersion\tContainerRuntime")
+	fmt.Fprintln(writer, "Name\tRole\tVersion\tInternalIP\tExternalIP\tOSImage\tKernelVersion\tContainerRuntime\tAge")
 	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to get list of nodes from cluster '%s'", clustername))
@@ -545,9 +545,10 @@ func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.Sug
 				break
 			}
 		}
+		tc := node.GetCreationTimestamp()
 		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
 			node.GetName(), role, node.Status.NodeInfo.KubeletVersion, internalIP, "None", node.Status.NodeInfo.OSImage, node.Status.NodeInfo.KernelVersion,
-			node.Status.NodeInfo.ContainerRuntimeVersion))
+			node.Status.NodeInfo.ContainerRuntimeVersion, tc.Sub(time.Now())))
 	}
 	writer.Flush()
 	return nil
@@ -559,7 +560,7 @@ func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.Suga
 		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
 	}
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tNamespace\tStatus\tIP\tNode")
+	fmt.Fprintln(writer, "Name\tNamespace\tStatus\tIP\tNode\tAge")
 	var dnsPod, ccmPod, calicokubePod *v1.Pod
 	for _, ns := range nsList.Items {
 		podList, err := client.CoreV1().Pods(ns.Name).List(context.TODO(), metav1.ListOptions{})
@@ -575,8 +576,9 @@ func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.Suga
 					return errors.Wrap(err, fmt.Sprintf("failed to get pod '%s' from cluster '%s'", pod.Name, clusterName))
 				}
 			}
-			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v",
-				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName))
+			tc := podData.GetCreationTimestamp()
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v",
+				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName, tc.Sub(time.Now())))
 
 			if pod.GetLabels()["k8s-app"] == "kube-dns" {
 				dnsPod = podData
@@ -610,7 +612,7 @@ func showSecretsInfo(client *kubernetes.Clientset, clusterName string, log *zap.
 		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
 	}
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Namespace\tName\tType")
+	fmt.Fprintln(writer, "Namespace\tName\tType\tAge")
 	for _, ns := range nsList.Items {
 		secretList, err := client.CoreV1().Secrets(ns.Name).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
@@ -625,8 +627,9 @@ func showSecretsInfo(client *kubernetes.Clientset, clusterName string, log *zap.
 					return errors.Wrap(err, fmt.Sprintf("failed to get secret '%s' from cluster '%s'", secretData.Name, clusterName))
 				}
 			}
-			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
-				secretData.GetNamespace(), secret.GetName(), secretData.Type))
+			tc := secretData.GetCreationTimestamp()
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v",
+				secretData.GetNamespace(), secretData.GetName(), secretData.Type, tc.Sub(time.Now())))
 
 		}
 	}
@@ -640,7 +643,7 @@ func showConfigMapsInfo(client *kubernetes.Clientset, clusterName string, log *z
 		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
 	}
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Namespace\tName")
+	fmt.Fprintln(writer, "Namespace\tName\tAge")
 	for _, ns := range nsList.Items {
 		configmapList, err := client.CoreV1().ConfigMaps(ns.Name).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
@@ -655,8 +658,9 @@ func showConfigMapsInfo(client *kubernetes.Clientset, clusterName string, log *z
 					return errors.Wrap(err, fmt.Sprintf("failed to get configmap '%s' from cluster '%s'", configmapData.Name, clusterName))
 				}
 			}
-			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v",
-				configmapData.GetNamespace(), configmapData.GetName()))
+			tc := configmapData.GetCreationTimestamp()
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
+				configmapData.GetNamespace(), configmapData.GetName(), tc.Sub(time.Now())))
 
 		}
 	}
