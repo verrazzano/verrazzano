@@ -51,7 +51,7 @@ var (
 						Acme: vzapi.Acme{
 							Provider:     "foobar",
 							EmailAddress: "foo@bar.com",
-							Environment:  "dev",
+							Environment:  "staging",
 						},
 					},
 				},

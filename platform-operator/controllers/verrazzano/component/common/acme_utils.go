@@ -25,6 +25,10 @@ func IsLetsEncryptProductionEnv(acme interface{}) bool {
 	if v1beta1ACME, ok := acme.(v1beta1.Acme); ok {
 		envName = v1beta1ACME.Environment
 	}
+	if len(envName) == 0 {
+		// the default if not specified
+		return true
+	}
 	return strings.ToLower(envName) == cmconstants.LetsEncryptProduction
 }
 
