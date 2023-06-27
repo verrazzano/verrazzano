@@ -330,6 +330,20 @@ pipeline {
                 stage('Verrazzano Update1') {
                     steps {
                         sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.kiali.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.rancher.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.argoCD.enabled = true' ${WORKSPACE}/vz-update1.yaml
 
                             if [ ${params.EXTERNAL_CERT_MANAGER} == true ]; then
                               yq -i eval '.spec.components.certManager.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
