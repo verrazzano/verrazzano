@@ -553,10 +553,10 @@ func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.Sug
 	return nil
 }
 
-func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
+func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
 	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clustername))
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
 	}
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tNamespace\tStatus\tIP\tNode")
@@ -564,7 +564,7 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 	for _, ns := range nsList.Items {
 		podList, err := client.CoreV1().Pods(ns.Name).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to get list of pods from cluster '%s'", clustername))
+			return errors.Wrap(err, fmt.Sprintf("failed to get list of pods from cluster '%s'", clusterName))
 		}
 		for _, pod := range podList.Items {
 			podData, err := client.CoreV1().Pods(ns.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
@@ -572,7 +572,7 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 				if apierrors.IsNotFound(err) {
 					log.Infof("No pods in namespace '%s'", ns.Name)
 				} else {
-					return errors.Wrap(err, fmt.Sprintf("failed to get pod '%s' from cluster '%s'", pod.Name, clustername))
+					return errors.Wrap(err, fmt.Sprintf("failed to get pod '%s' from cluster '%s'", pod.Name, clusterName))
 				}
 			}
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v",
@@ -604,6 +604,36 @@ func showPodInfo(client *kubernetes.Clientset, clustername string, log *zap.Suga
 	return nil
 }
 
+func showSecretsInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
+	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
+	}
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Namespace\tName\tType")
+	for _, ns := range nsList.Items {
+		secretList, err := client.CoreV1().Secrets(ns.Name).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to get list of secrets from cluster '%s'", clusterName))
+		}
+		for _, secret := range secretList.Items {
+			secretData, err := client.CoreV1().Secrets(ns.Name).Get(context.TODO(), secret.Name, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					log.Infof("No secrets in namespace '%s'", ns.Name)
+				} else {
+					return errors.Wrap(err, fmt.Sprintf("failed to get secret '%s' from cluster '%s'", secret.Name, clusterName))
+				}
+			}
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
+				secretData.GetNamespace(), secret.GetName(), secretData.Type)
+
+		}
+	}
+	writer.Flush()
+	return nil
+}
+
 func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
@@ -617,7 +647,13 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
-	return showPodInfo(client, clusterName, log)
+	err = showPodInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- Secrets on workload cluster ---------------------")
+	return showSecretsInfo(client, clusterName, log)
 	//if err != nil {
 	//	return err
 	//}
