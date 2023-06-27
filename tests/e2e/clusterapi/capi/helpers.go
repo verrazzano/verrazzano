@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -404,6 +403,8 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
 }
 
+/*
+
 func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config *rest.Config, err error) {
 	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
 	if err != nil {
@@ -422,6 +423,8 @@ func getCapiClusterK8sConfig(clusterName string, log *zap.SugaredLogger) (config
 
 	return k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 }
+
+*/
 
 func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
 	var err error
@@ -450,6 +453,7 @@ func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.Suga
 	return nil
 }
 
+/*
 func showModuleInfo(clusterName string, log *zap.SugaredLogger) error {
 
 	k8sconfig, err := getCapiClusterK8sConfig(clusterName, log)
@@ -513,6 +517,7 @@ func showModuleInfo(clusterName string, log *zap.SugaredLogger) error {
 	log.Infof("Values for module '%s' => %+v", ccm.Metadata.Name, ccm.Spec.Values)
 	return nil
 }
+*/
 
 func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)

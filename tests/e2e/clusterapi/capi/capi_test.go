@@ -24,7 +24,7 @@ const (
 	pollingInterval                = 30 * time.Second
 	clusterTemplate                = "templates/cluster-template-addons-new-vcn.yaml"
 	clusterResourceSetTemplate     = "templates/cluster-template-addons.yaml"
-	capiNodeSshKey                 = "OCI_SSH_KEY"
+	capiNodeSSHKey                 = "OCI_SSH_KEY"
 	ociCredsKey                    = "OCI_CREDENTIALS_KEY"
 )
 
@@ -73,7 +73,7 @@ func capiPrerequisites() {
 
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
-		return ProcessOCIKeys(OciSSHKey, capiNodeSshKey, t.Logs)
+		return ProcessOCIKeys(OciSSHKey, capiNodeSSHKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI private key '%s'", ClusterName)
