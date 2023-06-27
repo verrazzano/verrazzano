@@ -545,10 +545,10 @@ func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.Sug
 				break
 			}
 		}
-		tc := node.GetCreationTimestamp()
-		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
+
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
 			node.GetName(), role, node.Status.NodeInfo.KubeletVersion, internalIP, "None", node.Status.NodeInfo.OSImage, node.Status.NodeInfo.KernelVersion,
-			node.Status.NodeInfo.ContainerRuntimeVersion, tc.Sub(time.Now())))
+			node.Status.NodeInfo.ContainerRuntimeVersion, time.Until(node.GetCreationTimestamp().Time)))
 	}
 	writer.Flush()
 	return nil
@@ -576,9 +576,9 @@ func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.Suga
 					return errors.Wrap(err, fmt.Sprintf("failed to get pod '%s' from cluster '%s'", pod.Name, clusterName))
 				}
 			}
-			tc := podData.GetCreationTimestamp()
+
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v",
-				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName, tc.Sub(time.Now())))
+				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName, time.Until(podData.GetCreationTimestamp().Time)))
 
 			if pod.GetLabels()["k8s-app"] == "kube-dns" {
 				dnsPod = podData
@@ -627,9 +627,9 @@ func showSecretsInfo(client *kubernetes.Clientset, clusterName string, log *zap.
 					return errors.Wrap(err, fmt.Sprintf("failed to get secret '%s' from cluster '%s'", secretData.Name, clusterName))
 				}
 			}
-			tc := secretData.GetCreationTimestamp()
+
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v",
-				secretData.GetNamespace(), secretData.GetName(), secretData.Type, tc.Sub(time.Now())))
+				secretData.GetNamespace(), secretData.GetName(), secretData.Type, time.Until(secretData.GetCreationTimestamp().Time)))
 
 		}
 	}
@@ -658,9 +658,9 @@ func showConfigMapsInfo(client *kubernetes.Clientset, clusterName string, log *z
 					return errors.Wrap(err, fmt.Sprintf("failed to get configmap '%s' from cluster '%s'", configmapData.Name, clusterName))
 				}
 			}
-			tc := configmapData.GetCreationTimestamp()
+
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
-				configmapData.GetNamespace(), configmapData.GetName(), tc.Sub(time.Now())))
+				configmapData.GetNamespace(), configmapData.GetName(), time.Until(configmapData.GetCreationTimestamp().Time)))
 
 		}
 	}
