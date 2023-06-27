@@ -4,6 +4,7 @@
 package ocnedriver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,6 +19,11 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"go.uber.org/zap"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,6 +46,9 @@ var (
 	clusterNameSingleNode string
 	clusterNameNodePool   string
 	cloudCredentialName   string
+
+	// Maps the cluster names to cluster IDs
+	clusterIDMapping = map[string]string{}
 )
 
 type RancherOcicredentialConfig struct {
@@ -505,6 +514,31 @@ func isClusterDeleted(clusterName string) (bool, error) {
 		t.Logs.Error(err)
 		return false, err
 	}
+
+	// Check that the CAPI cluster object was deleted
+	clusterID, err := getClusterIDFromName(clusterName)
+	if err != nil {
+		return false, err
+	}
+	clusterObjectFound, err := getClusterFromK8s(clusterID, clusterID)
+	if clusterObjectFound {
+		return false, err
+	}
+	return true, err
+}
+
+// This retrieves the clusters.cluster.x-k8s.io object and returns true if it exists.
+func getClusterFromK8s(namespace, clusterID string) (bool, error) {
+	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterID, namespace, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterID, zap.Error(err))
+		return false, err
+	}
+
+	if clusterFetched == nil {
+		t.Logs.Infof("No CAPI clusters with id '%s' in namespace '%s' was detected", clusterID, namespace)
+		return false, nil
+	}
 	return true, nil
 }
 
@@ -648,11 +682,19 @@ func getCluster(clusterName string) (*gabs.Container, error) {
 
 // Returns the cluster ID corresponding the given name
 func getClusterIDFromName(clusterName string) (string, error) {
+	// Check if we already have this value cached
+	if id, ok := clusterIDMapping[clusterName]; ok {
+		return id, nil
+	}
+
 	jsonBody, err := getCluster(clusterName)
 	if err != nil {
+		t.Logs.Errorf("failed getting cluster ID from GET call to Rancher API: %s", err)
 		return "", err
 	}
-	return fmt.Sprint(jsonBody.Path("data.0.id").Data()), nil
+	id := fmt.Sprint(jsonBody.Path("data.0.id").Data())
+	clusterIDMapping[clusterName] = id
+	return id, nil
 }
 
 // Generates the kubeconfig of the workload cluster with an ID of `clusterID`
@@ -700,4 +742,43 @@ func setupRequest(rancherBaseURL, urlPath string) (string, string) {
 	requestURL := fmt.Sprintf("%s/%s", rancherBaseURL, urlPath)
 	t.Logs.Infof("requestURL: %s", requestURL)
 	return requestURL, adminToken
+}
+
+// getUnstructuredData common utility to fetch unstructured data
+func getUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	var dataFetched *unstructured.Unstructured
+	var err error
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return nil, err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return nil, err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	if nameSpaceName != "" {
+		log.Infof("fetching '%s' '%s' in namespace '%s'", resource, resourceName, nameSpaceName)
+		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	} else {
+		log.Infof("fetching '%s' '%s'", resource, resourceName)
+		dataFetched, err = dclient.Resource(gvr).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	}
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Errorf("resource %s %s not found", resource, resourceName)
+			return nil, nil
+		}
+		log.Errorf("Unable to fetch %s %s due to '%v'", resource, resourceName, zap.Error(err))
+		return nil, err
+	}
+	return dataFetched, nil
 }
