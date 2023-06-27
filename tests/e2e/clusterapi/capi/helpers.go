@@ -677,7 +677,7 @@ func deployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 }
 
 func ProcessOCIKeys(file, key string, log *zap.SugaredLogger) error {
-	fInfo, err := os.Stat(file)
+	_, err := os.Stat(file)
 	if err != nil {
 		log.Errorf("file '%s' not found", file)
 		return err
