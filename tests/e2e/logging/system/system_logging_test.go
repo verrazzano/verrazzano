@@ -294,10 +294,10 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 	})
 
 	t.It("contains capi index with valid records", func() {
-		// Only run test if capi is enabled
+		// Only run test if clusterAPI is enabled
 		vz, err := pkg.GetVerrazzanoV1beta1()
 		Expect(err).To(Not(HaveOccurred()))
-		if vzcr.IsCAPIEnabled(vz) {
+		if vzcr.IsClusterAPIEnabled(vz) {
 			// GIVEN existing system logs
 			// WHEN the Opensearch index for the verrazzano-capi namespace is retrieved
 			// THEN verify that it is found

@@ -51,7 +51,7 @@ var (
 						Acme: vzapi.Acme{
 							Provider:     "foobar",
 							EmailAddress: "foo@bar.com",
-							Environment:  "dev",
+							Environment:  "staging",
 						},
 					},
 				},
@@ -209,19 +209,6 @@ func createServerURLSetting() unstructured.Unstructured {
 	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSetting.SetName(SettingServerURL)
 	return serverURLSetting
-}
-
-func createOciDriver() unstructured.Unstructured {
-	ociDriver := unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
-				"active": false,
-			},
-		},
-	}
-	ociDriver.SetGroupVersionKind(GVKNodeDriver)
-	ociDriver.SetName(NodeDriverOCI)
-	return ociDriver
 }
 
 func createOkeDriver() unstructured.Unstructured {

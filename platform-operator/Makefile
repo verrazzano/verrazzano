@@ -138,7 +138,7 @@ docker-build-common:
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
-		--build-arg VERRAZZANO_APPLICATION_OPERATOR_IMAGE="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
+		--build-arg VERRAZZANO_PLATFORM_OPERATOR_IMAGE="${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" \
 		--build-arg BASE_IMAGE="${VZ_BASE_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 

@@ -1,0 +1,137 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .fluentbitConfigMap }}
+  namespace: {{ .namespace}}
+  labels:
+    app: {{ .fluentbitComponent }}
+data:
+  opensearch-template-verrazzano.json: |
+    {
+      "index_patterns":[
+        "verrazzano-system",
+        "verrazzano-application*"
+      ],
+      "version":60001,
+      "priority": 101,
+      "data_stream": {},
+      "template": {
+        "settings":{
+          "index.refresh_interval":"5s",
+          "index.mapping.total_fields.limit":"2000",
+          "number_of_shards":1,
+          "index.number_of_replicas":0,
+          "index.auto_expand_replicas":"0-1"
+        },
+        "mappings":{
+          "dynamic_templates":[
+            {
+              "message_field":{
+                "path_match":"message",
+                "match_mapping_type":"string",
+                "mapping":{
+                  "type":"text",
+                  "norms":false
+                }
+              }
+            },
+            {
+              "object_fields": {
+                "match": "*",
+                "match_mapping_type": "object",
+                "mapping": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "all_non_object_fields":{
+                "match":"*",
+                "mapping":{
+                  "type":"text",
+                  "norms":false,
+                  "fields":{
+                    "keyword":{
+                      "type":"keyword",
+                      "ignore_above":256
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "properties" : {
+            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
+            "kubernetes.pod_ip": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "ip":{
+                  "type": "ip",
+                  "ignore_malformed": true
+                }
+              }
+            },
+            "http_request.remoteIp": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "ip":{
+                  "type": "ip",
+                  "ignore_malformed": true
+                }
+              }
+            },
+            "http_request.responseSize": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "integer":{
+                  "type": "integer"
+                }
+              }
+            },
+            "http_request.status": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "integer":{
+                  "type": "integer"
+                }
+              }
+            },
+            "http_request.requestSize": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "integer":{
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    }

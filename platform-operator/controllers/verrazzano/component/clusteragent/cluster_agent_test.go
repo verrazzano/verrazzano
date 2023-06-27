@@ -4,7 +4,6 @@
 package clusteragent
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"testing"
 
@@ -14,8 +13,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
-const testBomFilePath = "../../testdata/test_bom.json"
-
 // TestAppendAppOperatorOverrides tests the app operator image override
 // GIVEN an env override for the app operator image
 //
@@ -24,13 +21,9 @@ const testBomFilePath = "../../testdata/test_bom.json"
 func TestAppendClusterAgentOverrides(t *testing.T) {
 	a := assert.New(t)
 
-	config.SetDefaultBomFilePath(testBomFilePath)
-
 	kvs, err := AppendClusterAgentOverrides(nil, "", "", "", nil)
 	a.NoError(err, "AppendClusterAgentOverrides returned an error ")
-	a.Len(kvs, 1, "AppendClusterAgentOverrides returned an unexpected number of Key:Value pairs")
-	a.Equalf("image", kvs[0].Key, "Did not get expected image Key")
-	a.Regexpf(`.+/.+/.+:.+`, kvs[0].Value, "Did not get expected image value format")
+	a.Len(kvs, 0, "AppendClusterAgentOverrides returned an unexpected number of Key:Value pairs")
 
 	customImage := "myreg.io/myrepo/v8o/verrazzano-application-operator-dev:local-20210707002801-b7449154"
 	_ = os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)

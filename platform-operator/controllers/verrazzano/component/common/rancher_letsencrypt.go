@@ -6,12 +6,12 @@ package common
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"io"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,7 +78,7 @@ func useAdditionalCAs(issuerConfig *vzapi.ClusterIssuerComponent) bool {
 	if isLetsEncrypt, err := issuerConfig.IsLetsEncryptIssuer(); err != nil || !isLetsEncrypt {
 		return false
 	}
-	return issuerConfig.LetsEncrypt.Environment != "production"
+	return IsLetsEncryptStagingEnv(*issuerConfig.LetsEncrypt)
 }
 
 func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client, vz *vzapi.Verrazzano) error {

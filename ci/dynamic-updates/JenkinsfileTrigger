@@ -118,6 +118,7 @@ pipeline {
                             script {
                                 startDCTestJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
                                                 booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                                booleanParam(name: 'RUN_INFRA_TESTS', value: true),
                                                 booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
                             }
                         }
@@ -127,10 +128,27 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startDCTestJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                startDCTestJob([booleanParam(name: 'RUN_INFRA_TESTS', value: true),
+                                                booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
                                                 booleanParam(name: 'RUN_AUTHPROXY', value: true),
                                                 booleanParam(name: 'RUN_CERT_MANAGER', value: true),
-                                                booleanParam(name: 'RUN_FLUENTD', value: true)])
+                                                booleanParam(name: 'RUN_FLUENTD', value: true),
+                                                booleanParam(name: 'RUN_FLUENT_OPERATOR', value: true)])
+                            }
+                        }
+                    }
+                }
+                stage ('Availability Status, AuthProxy, CertManager, and Fluentd Update Tests With External cert-manager') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startDCTestJob([booleanParam(name: 'RUN_INFRA_TESTS', value: true),
+                                                booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                                booleanParam(name: 'RUN_AUTHPROXY', value: true),
+                                                booleanParam(name: 'RUN_CERT_MANAGER', value: true),
+                                                booleanParam(name: 'RUN_FLUENTD', value: true),
+                                                booleanParam(name: 'EXTERNAL_CERT_MANAGER', value: true),
+                                                string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "test-namespace")])
                             }
                         }
                     }
@@ -139,7 +157,8 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startDCTestJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
+                                startDCTestJob([booleanParam(name: 'RUN_INFRA_TESTS', value: true),
+                                                booleanParam(name: 'RUN_API_CONVERSION', value: true),
                                                 booleanParam(name: 'RUN_OPENSEARCH', value: true),
                                                 booleanParam(name: 'RUN_JAEGER', value: true),
                                                 booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])

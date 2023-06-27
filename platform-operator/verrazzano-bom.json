@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-nginx",
-      "version": "v1.3.1",
+      "version": "v1.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230601093012-3a732e40",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230601093012-3a732e40",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230601093012-3a732e40",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230601093012-3a732e40",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230531141443-f8210f7a3",
-              "rancherUI": "v2.7.2-2/release-2.7.2",
-              "ocneDriverVersion": "v0.2.0",
-              "ocneDriverChecksum": "60cf8205a681a53ab73e6e9d125e741afa681b54cfd72d6c14e906d3e8b71f0c",
-              "tag": "v2.7.3-20230531142637-235cb673f",
+              "dashboard": "v2.7.2-20230615210154-513bc4d98",
+              "rancherUI": "v2.7.2-7/release-2.7.2",
+              "ocneDriverVersion": "v0.14.0",
+              "ocneDriverChecksum": "c10f757291664ae041569934951ae42d2d4021d4031f6ba009370cb92b7173fe",
+              "tag": "v2.7.3-20230626201408-a56717991",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230531142637-235cb673f"
+              "tag": "v2.7.3-20230626201408-a56717991"
             }
           ]
         },
@@ -187,7 +187,7 @@
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230403191516-fa35c50"
+              "tag": "v1.0.0-20230626123339-15c72a6"
             }
           ]
         }
@@ -203,7 +203,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.4.2-20230515185906-d75d4df4d"
+              "tag": "v1.4.2-20230601170413-d75d4df4d"
             }
           ]
         }
@@ -211,7 +211,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.8.1",
+      "version": "v0.9.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.8.1"
+              "tag": "v0.9.0"
             }
           ]
         }
@@ -227,7 +227,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v0.1.0",
+      "version": "v1.6.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -235,11 +235,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v0.1.0-20230531223401-6824a09"
+              "tag": "v1.6.1-20230620181634-aebde3b"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v0.1.0-20230531223401-6824a09"
+              "tag": "v1.6.1-20230620181634-aebde3b"
             }
           ]
         }
@@ -260,7 +260,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230522051724-403c5d3",
+              "tag": "v1.14.5-20230606042435-f4b532f",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -271,13 +271,13 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "v0.10.0-20230524141908-7cf62c11",
+              "tag": "v0.10.0-20230601092935-7cf62c11",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }
@@ -306,12 +306,12 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.17-20230524152354-7afbf50a",
+              "tag": "v7.5.17-20230602044851-7afbf50a",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
               "image": "k8s-sidecar",
-              "tag": "v1.15.0-20230524130741-7adaf012",
+              "tag": "v1.15.0-20230601093349-7adaf012",
               "helmFullImageKey": "monitoringOperator.k8sSidecarImage"
             },
             {
@@ -326,7 +326,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -378,6 +378,23 @@
             {
               "image": "VERRAZZANO_CLUSTER_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_CLUSTER_OPERATOR_TAG",
+              "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verrazzano-cluster-agent",
+      "version": "1.6.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-cluster-agent",
+          "images": [
+            {
+              "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
             }
           ]
@@ -441,6 +458,37 @@
       ]
     },
     {
+      "name": "fluent-operator",
+      "version": "2.2.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluent-operator",
+          "images": [
+            {
+              "image": "fluent-operator",
+              "tag": "v2.2.0-20230616102644-d8debc6",
+              "helmFullImageKey": "operator.container.repository",
+              "helmTagKey": "operator.container.tag"
+            },
+            {
+              "image": "fluent-bit",
+              "tag": "v2.0.11-20230526122435-3bff26487",
+              "helmFullImageKey": "fluentbit.image.repository",
+              "helmTagKey": "fluentbit.image.tag"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "8",
+              "helmFullImageKey": "operator.initcontainer.repository",
+              "helmTagKey": "operator.initcontainer.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "kiali-server",
       "version": "1.57.1",
       "subcomponents": [
@@ -450,7 +498,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.57.1-20230524133011-d94b80c9",
+              "tag": "v1.57.1-20230601094106-d94b80c9",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -460,15 +508,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.33",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
-              "tag": "8.0.33",
+              "image": "mysql-server",
+              "tag": "8.0.32",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -485,8 +533,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
-              "tag": "8.0.33"
+              "image": "mysql-router",
+              "tag": "8.0.32"
             }
           ]
         }
@@ -494,18 +542,17 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.33",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "community-operator",
-              "tag": "8.0.33-2.0.10",
+              "image": "mysql-operator",
+              "tag": "8.0.32-2.0.8",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
-              "helmImageKey": "image.name",
               "helmTagKey": "image.tag"
             }
           ]
@@ -550,14 +597,14 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.64.1-20230505202019-0d565bbd",
+              "tag": "v0.64.1-20230601093544-0d565bbd",
               "helmRegKey": "prometheusOperator.image.registry",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.3.1-20230529121247-74c2dc991",
+              "tag": "v1.7.1-20230606201525-2d393218f",
               "helmRegKey": "prometheusOperator.admissionWebhooks.patch.image.registry",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
@@ -570,7 +617,7 @@
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.64.1-20230505202019-0d565bbd",
+              "tag": "v0.64.1-20230601093544-0d565bbd",
               "helmRegKey": "prometheusOperator.prometheusConfigReloader.image.registry",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
@@ -649,7 +696,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2-20230524143811-3af6d83b",
+              "tag": "v1.4.2-20230601093156-3af6d83b",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -666,7 +713,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230524142053-b7f69924",
+              "tag": "v1.3.1-20230605074155-b7f69924",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -837,7 +884,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20230523142723-fc41216e",
+              "tag": "v2.7.2-20230601094358-fc41216e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -849,7 +896,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230516204818-26c8b963",
+              "tag": "v6.2.7-20230601100836-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -878,8 +925,6 @@
     }
   ],
   "supportedKubernetesVersions": [
-    "v1.22.0",
-    "v1.23.0",
     "v1.24.0",
     "v1.25.0",
     "v1.26.0"

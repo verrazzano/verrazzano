@@ -1,0 +1,49 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+{{- if .Values.system.enabled }}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-system-clusteroutput
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  matchRegex: {{ .Values.system.matchRegex }}
+  retry_limit: "no_limits"
+  opensearch:
+    {{- if .Values.system.host}}
+    host: {{ .Values.system.host }}
+    {{- end}}
+    {{- if .Values.system.port}}
+    port: {{ .Values.system.port }}
+    {{- end}}
+    {{- if .Values.system.dataStreamMode}}
+    dataStreamMode: {{ .Values.system.dataStreamMode }}
+    {{- end}}
+    {{- if .Values.system.dataStreamName}}
+    dataStreamName: {{ .Values.system.dataStreamName }}
+    {{- end}}
+    {{- if .Values.system.dataStreamTemplateName}}
+    dataStreamTemplateName: {{ .Values.system.dataStreamTemplateName }}
+    {{- end}}
+    {{- if .Values.system.templateFile}}
+    templateFile: {{ .Values.system.templateFile }}
+    {{- end}}
+    {{- if .Values.system.httpUser }}
+    httpUser:
+{{  toYaml .Values.system.httpUser | indent 6 }}
+    {{- end}}
+    {{- if .Values.system.httpPassword }}
+    httpPassword:
+{{ toYaml .Values.system.httpPassword | indent 6 }}
+    {{- end}}
+    suppressTypeName: true
+    replaceDots: true
+    {{- if .Values.system.tls.enabled }}
+    tls:
+      caFile: {{ .Values.system.tls.caFile }}
+      crtFile: {{ .Values.system.tls.crtFile }}
+    {{- end }}
+{{- end }}
+{{ end -}}

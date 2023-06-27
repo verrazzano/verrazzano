@@ -27,6 +27,10 @@ var testScheme = runtime.NewScheme()
 
 const profileDir = "../../../../manifests/profiles"
 
+func Int32Ptr(v int32) *int32 {
+	return &v
+}
+
 var tests = []struct {
 	name         string
 	description  string
@@ -170,7 +174,7 @@ func init() {
 // TestContextProfilesMerge Tests the profiles context merge
 // GIVEN a Verrazzano instance with a profile
 // WHEN I call NewContext
-// THEN the correct correct context is created with the proper merge of the profile and user overrides
+// THEN the correct context is created with the proper merge of the profile and user overrides
 func TestContextProfilesMerge(t *testing.T) {
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()

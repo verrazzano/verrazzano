@@ -1,0 +1,32 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: none
+  components:
+    clusterAgent:
+      enabled: true
+    prometheus:
+      enabled: true
+    prometheusOperator:
+      enabled: true
+      overrides:
+        - values:
+            prometheus:
+              thanos:
+                integration: sidecar
+    authProxy:
+      enabled: true
+    thanos:
+      enabled: true
+      overrides:
+        - values:
+            queryFrontend:
+              enabled: false
+    certManager:
+      enabled: true
+    ingressNGINX:
+      enabled: true

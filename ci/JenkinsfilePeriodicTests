@@ -12,7 +12,7 @@ def LAST_PERIODIC_RUN_COMMIT = ""
 @Field
 def VERRAZZANO_DEV_VERSION = ""
 @Field
-def RELEASABLE_IMAGES_OBJECT_STORE = ""
+def VERSIONED_IMAGES_FILENAME = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 @Field
 def TESTS_FAILED = false
@@ -249,40 +249,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.22') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                        parameters: [
-                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
-                                       ], wait: true
-                            }
-                        }
-                    }
-                }
-                stage('Kind Acceptance Tests on 1.23') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                        parameters: [
-                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
-                                        ], wait: true
-                            }
-                        }
-                    }
-                }
                 stage('Kind Acceptance Tests on 1.24') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -509,6 +475,21 @@ pipeline {
                         }
                     }
                     post {
+                        success {
+                            script {
+                                if (verrazzanoImagesBuildNumber > 0) {
+                                    copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
+                                        selector: specific("${verrazzanoImagesBuildNumber}"),
+                                        filter: verrazzanoImagesFile)
+                                    sh """
+                                        # Save the images.txt intp the commit specific location, if we have a clean periodic it will copy the images from here to the branch as the current ones
+                                        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VERSIONED_IMAGES_FILENAME} --file ${verrazzanoImagesFile}
+                                    """
+                                } else {
+                                    println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
+                                }
+                            }
+                        }
                         failure {
                             script {
                                 TESTS_FAILED = true
@@ -533,6 +514,11 @@ pipeline {
             }
         }
         stage('Release Candidate Validation Checks') {
+            when {
+                allOf {
+                    expression { return runTests() }
+                }
+            }
             steps {
                 script {
                     releaseValidationChecks()
@@ -542,6 +528,11 @@ pipeline {
         stage('Update Last Clean Periodic Test') {
             environment {
                 GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            when {
+                allOf {
+                    expression { return runTests() }
+                }
             }
             steps {
                 script {
@@ -562,16 +553,7 @@ pipeline {
     post {
         always {
             script {
-                if (verrazzanoImagesBuildNumber > 0) {
-                    copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
-                            selector: specific("${verrazzanoImagesBuildNumber}"),
-                            filter: verrazzanoImagesFile)
-                    sh """
-                        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/${RELEASABLE_IMAGES_OBJECT_STORE} --file ${verrazzanoImagesFile}
-                    """
-                } else {
-                    println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
-                }
+                // We don't update any object storage artifacts if this run didn't re-run anything (ie: if it was "UpToDate")
                 if (!periodicsUpToDate && !periodicsUpToDateFailed) {
                     sh """
                         # Update the last periodic commit
@@ -726,7 +708,7 @@ def cleanWorkspaceAndCheckout() {
     storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
     fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
     liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
-    RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
+    VERSIONED_IMAGES_FILENAME = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
 }
 
 // Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
