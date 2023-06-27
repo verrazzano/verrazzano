@@ -668,6 +668,136 @@ func showConfigMapsInfo(client *kubernetes.Clientset, clusterName string, log *z
 	return nil
 }
 
+func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) error {
+	var cmdArgs []string
+	var bcmd helpers.BashCommand
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "describe")
+	cmdArgs = append(cmdArgs, "clusterresourcesets")
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s--ccm-secret", clusterName))
+	bcmd.CommandArgs = cmdArgs
+	ouput := helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "describe")
+	cmdArgs = append(cmdArgs, "clusterresourcesets")
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-csi-secret", clusterName))
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "describe")
+	cmdArgs = append(cmdArgs, "clusterresourcesets")
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-ccm-module-resource", clusterName))
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "describe")
+	cmdArgs = append(cmdArgs, "clusterresourcesets")
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-calico-module-resource", clusterName))
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
+	if err != nil {
+		return err
+	}
+	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create temporary file")
+	}
+
+	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		return errors.Wrap(err, "failed to write to destination file")
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "--kubeconfig")
+	cmdArgs = append(cmdArgs, tmpFile.Name())
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "modules")
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "helm")
+	cmdArgs = append(cmdArgs, "--kubeconfig")
+	cmdArgs = append(cmdArgs, tmpFile.Name())
+	cmdArgs = append(cmdArgs, "ls")
+	cmdArgs = append(cmdArgs, "-A")
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "helm")
+	cmdArgs = append(cmdArgs, "--kubeconfig")
+	cmdArgs = append(cmdArgs, tmpFile.Name())
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "values")
+	cmdArgs = append(cmdArgs, "calico")
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "helm")
+	cmdArgs = append(cmdArgs, "--kubeconfig")
+	cmdArgs = append(cmdArgs, tmpFile.Name())
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "values")
+	cmdArgs = append(cmdArgs, "oci-ccm")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, "kube-system")
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "helm")
+	cmdArgs = append(cmdArgs, "--kubeconfig")
+	cmdArgs = append(cmdArgs, tmpFile.Name())
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "values")
+	cmdArgs = append(cmdArgs, "verrazzano-module-operator")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, "verrazzano-module-operator")
+	bcmd.CommandArgs = cmdArgs
+	ouput = helpers.Runner(&bcmd, log)
+	if ouput.CommandError != nil {
+		return ouput.CommandError
+	}
+
+	return nil
+
+}
+
 func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
@@ -693,13 +823,13 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	log.Infof("----------- Configmaps on workload cluster ---------------------")
-	return showConfigMapsInfo(client, clusterName, log)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//log.Infof("----------- Modules running on workload cluster ---------------------")
-	//return showModuleInfo(clusterName, log)
+	err = showConfigMapsInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- Other debug running on workload cluster ---------------------")
+	return describeResourcesUsingCommands(clusterName, log)
 }
 
 func deployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
