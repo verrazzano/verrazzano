@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -188,7 +189,12 @@ func formatProviderURL(remote bool, owner string, repo string, version string, m
 	if remote {
 		return fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, metadataFile)
 	}
-	return fmt.Sprintf("/verrazzano/capi/%s/%s/%s", repo, version, metadataFile)
+
+	var capiRoot = "/verrazzano/capi"
+	if _, err := os.Stat(capiRoot); err != nil {
+		capiRoot = path.Join(config.GetPlatformDir(), "capi")
+	}
+	return fmt.Sprintf("%s/%s/%s/%s", capiRoot, repo, version, metadataFile)
 }
 
 // createOverrides - create the overrides input for install/upgrade of the
