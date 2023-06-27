@@ -674,7 +674,7 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "describe")
 	cmdArgs = append(cmdArgs, "clusterresourcesets")
-	cmdArgs = append(cmdArgs, fmt.Sprintf("%s--ccm-secret", clusterName))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-ccm-secret", clusterName))
 	bcmd.CommandArgs = cmdArgs
 	output := helpers.Runner(&bcmd, log)
 	if output.CommandError != nil {
