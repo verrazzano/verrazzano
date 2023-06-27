@@ -89,8 +89,14 @@ func isCredentialDeleted(credID string, log *zap.SugaredLogger) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	data := fmt.Sprint(jsonBody.Path("data").Data())
-	return data == "[]", nil
+	// A deleted credential should have an empty "data" array
+	data := jsonBody.Path("data").Children()
+	if len(data) > 0 {
+		err = fmt.Errorf("credential %s still has a non-empty data array from GET call to the API", credID)
+		log.Error(err)
+		return false, err
+	}
+	return true, nil
 }
 
 // Makes a GET request for the specified cloud credential
@@ -254,7 +260,7 @@ func getClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (boo
 	return true, nil
 }
 
-// Asserts whether the cluster was created as expected
+// Checks whether the cluster was created as expected. Returns nil if all is good.
 func verifyCluster(clusterName string, numberNodes int, log *zap.SugaredLogger) error {
 	// Check if the cluster looks good from the Rancher API
 	var err error
