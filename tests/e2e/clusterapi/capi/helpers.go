@@ -637,9 +637,7 @@ func deployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 	if vcndata.CommandError != nil {
 		return vcndata.CommandError
 	}
-
 	OCIVcnID = strings.Trim(vcndata.StandardOut.String(), "\n")
-	log.Infof("+++ VCN ID = %s +++", OCIVcnID)
 
 	cmdArgs = []string{}
 	ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, OCIVcnID)
@@ -651,7 +649,6 @@ func deployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 	}
 
 	OCISubnetID = strings.Trim(subnetData.StandardOut.String(), "\n")
-	log.Infof("+++ Subnet ID = %s +++", OCISubnetID)
 	os.Setenv("OCI_VCN_ID", OCIVcnID)
 	os.Setenv("OCI_SUBNET_ID", OCISubnetID)
 
