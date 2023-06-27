@@ -124,6 +124,51 @@ type RancherOCNECluster struct {
 	} `json:"labels"`
 }
 
+// Fills in the common constant values used across all the cluster creation scenarios
+func (roc *RancherOCNECluster) fillConstantValues() {
+	roc.OciocneEngineConfig.CalicoImagePath = "olcne"
+	roc.OciocneEngineConfig.ClusterCidr = "10.96.0.0/16"
+	roc.OciocneEngineConfig.ControlPlaneMemoryGbs = 16
+	roc.OciocneEngineConfig.ControlPlaneOcpus = 2
+	roc.OciocneEngineConfig.ControlPlaneShape = "VM.Standard.E4.Flex"
+	roc.OciocneEngineConfig.ControlPlaneVolumeGbs = 100
+	roc.OciocneEngineConfig.CorednsImageTag = "v1.9.3"
+	roc.OciocneEngineConfig.DriverName = "ociocneengine"
+	roc.OciocneEngineConfig.EtcdImageTag = "3.5.6"
+	roc.OciocneEngineConfig.ImageDisplayName = "Oracle-Linux-8.7-2023.05.24-0"
+	roc.OciocneEngineConfig.ImageID = ""
+	roc.OciocneEngineConfig.InstallCalico = true
+	roc.OciocneEngineConfig.InstallCcm = true
+	roc.OciocneEngineConfig.InstallVerrazzano = false
+	roc.OciocneEngineConfig.KubernetesVersion = "v1.25.7"
+	roc.OciocneEngineConfig.Name = ""
+	roc.OciocneEngineConfig.NumControlPlaneNodes = 1
+	roc.OciocneEngineConfig.OcneVersion = "1.6"
+	roc.OciocneEngineConfig.PodCidr = "10.244.0.0/16"
+	roc.OciocneEngineConfig.PrivateRegistry = ""
+	roc.OciocneEngineConfig.ProxyEndpoint = ""
+	roc.OciocneEngineConfig.Region = region
+	roc.OciocneEngineConfig.SkipOcneInstall = false
+	roc.OciocneEngineConfig.TigeraImageTag = "v1.29.0"
+	roc.OciocneEngineConfig.UseNodePvEncryption = true
+	roc.OciocneEngineConfig.VerrazzanoResource = "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster"
+	roc.OciocneEngineConfig.VerrazzanoTag = "v1.6.0-20230609132620-44e8f4d1"
+	roc.OciocneEngineConfig.VerrazzanoVersion = "1.6.0-4574+44e8f4d1"
+	roc.OciocneEngineConfig.Type = "ociocneEngineConfig"
+	roc.OciocneEngineConfig.ClusterName = ""
+	roc.OciocneEngineConfig.NodeShape = "VM.Standard.E4.Flex"
+	roc.OciocneEngineConfig.NumWorkerNodes = 1
+	roc.OciocneEngineConfig.ApplyYamls = []interface{}{}
+
+	roc.DockerRootDir = "/var/lib/docker"
+	roc.EnableClusterAlerting = false
+	roc.EnableClusterMonitoring = false
+	roc.EnableNetworkPolicy = false
+	roc.WindowsPreferedCluster = false
+	roc.Type = "cluster"
+	roc.Labels = struct{}{}
+}
+
 // Part of SynchronizedBeforeSuite, run by only one process
 func sbsProcess1Func() []byte {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -187,19 +232,21 @@ func sasProcess1Func() {
 	// Delete the clusters concurrently
 	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool}
 	var wg sync.WaitGroup
-	wg.Add(len(clusterNames))
 	for _, clusterName := range clusterNames {
-		go func(name string) {
-			defer wg.Done()
-			// Delete the OCNE cluster
-			Eventually(func() error {
-				return deleteCluster(name)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		if clusterName != "" {
+			wg.Add(1)
+			go func(name string) {
+				defer wg.Done()
+				// Delete the OCNE cluster
+				Eventually(func() error {
+					return deleteCluster(name)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-			// Verify the cluster is deleted
-			Eventually(func() (bool, error) { return isClusterDeleted(name) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("cluster %s is not deleted", name))
-		}(clusterName)
+				// Verify the cluster is deleted
+				Eventually(func() (bool, error) { return isClusterDeleted(name) }, waitTimeout, pollingInterval).Should(
+					BeTrue(), fmt.Sprintf("cluster %s is not deleted", name))
+			}(clusterName)
+		}
 	}
 	wg.Wait()
 
@@ -340,61 +387,21 @@ func createSingleNodeCluster(clusterName string) error {
 	}
 
 	// Fill in the values for the create cluster API request body
-	var rancherOCNEEngineConfig RancherOCIOCNEEngine
-	rancherOCNEEngineConfig.CalicoImagePath = "olcne"
-	rancherOCNEEngineConfig.CloudCredentialID = cloudCredentialID
-	rancherOCNEEngineConfig.ClusterCidr = "10.96.0.0/16"
-	rancherOCNEEngineConfig.CompartmentID = compartmentID
-	rancherOCNEEngineConfig.ControlPlaneMemoryGbs = 16
-	rancherOCNEEngineConfig.ControlPlaneOcpus = 2
-	rancherOCNEEngineConfig.ControlPlaneShape = "VM.Standard.E4.Flex"
-	rancherOCNEEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
-	rancherOCNEEngineConfig.ControlPlaneVolumeGbs = 100
-	rancherOCNEEngineConfig.CorednsImageTag = "v1.9.3"
-	rancherOCNEEngineConfig.DisplayName = clusterName
-	rancherOCNEEngineConfig.DriverName = "ociocneengine"
-	rancherOCNEEngineConfig.EtcdImageTag = "3.5.6"
-	rancherOCNEEngineConfig.ImageDisplayName = "Oracle-Linux-8.7-2023.05.24-0"
-	rancherOCNEEngineConfig.ImageID = ""
-	rancherOCNEEngineConfig.InstallCalico = true
-	rancherOCNEEngineConfig.InstallCcm = true
-	rancherOCNEEngineConfig.InstallVerrazzano = false
-	rancherOCNEEngineConfig.KubernetesVersion = "v1.25.7"
-	rancherOCNEEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
-	rancherOCNEEngineConfig.Name = ""
-	rancherOCNEEngineConfig.NodePublicKeyContents = nodePublicKeyContents
-	rancherOCNEEngineConfig.NumControlPlaneNodes = 1
-	rancherOCNEEngineConfig.OcneVersion = "1.6"
-	rancherOCNEEngineConfig.PodCidr = "10.244.0.0/16"
-	rancherOCNEEngineConfig.PrivateRegistry = ""
-	rancherOCNEEngineConfig.ProxyEndpoint = ""
-	rancherOCNEEngineConfig.Region = region
-	rancherOCNEEngineConfig.SkipOcneInstall = false
-	rancherOCNEEngineConfig.TigeraImageTag = "v1.29.0"
-	rancherOCNEEngineConfig.UseNodePvEncryption = true
-	rancherOCNEEngineConfig.VcnID = vcnID
-	rancherOCNEEngineConfig.VerrazzanoResource = "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster"
-	rancherOCNEEngineConfig.VerrazzanoTag = "v1.6.0-20230609132620-44e8f4d1"
-	rancherOCNEEngineConfig.VerrazzanoVersion = "1.6.0-4574+44e8f4d1"
-	rancherOCNEEngineConfig.WorkerNodeSubnet = workerNodeSubnet
-	rancherOCNEEngineConfig.Type = "ociocneEngineConfig"
-	rancherOCNEEngineConfig.ClusterName = ""
-	rancherOCNEEngineConfig.NodeShape = "VM.Standard.E4.Flex"
-	rancherOCNEEngineConfig.NumWorkerNodes = 1
-	rancherOCNEEngineConfig.NodePools = []interface{}{}
-	rancherOCNEEngineConfig.ApplyYamls = []interface{}{}
-
 	var rancherOCNEClusterConfig RancherOCNECluster
-	rancherOCNEClusterConfig.DockerRootDir = "/var/lib/docker"
-	rancherOCNEClusterConfig.EnableClusterAlerting = false
-	rancherOCNEClusterConfig.EnableClusterMonitoring = false
-	rancherOCNEClusterConfig.EnableNetworkPolicy = false
-	rancherOCNEClusterConfig.WindowsPreferedCluster = false
-	rancherOCNEClusterConfig.Type = "cluster"
+	rancherOCNEClusterConfig.fillConstantValues()
 	rancherOCNEClusterConfig.Name = clusterName
-	rancherOCNEClusterConfig.OciocneEngineConfig = rancherOCNEEngineConfig
 	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
-	rancherOCNEClusterConfig.Labels = struct{}{}
+
+	rancherOCNEClusterConfig.OciocneEngineConfig.CloudCredentialID = cloudCredentialID
+	rancherOCNEClusterConfig.OciocneEngineConfig.CompartmentID = compartmentID
+	rancherOCNEClusterConfig.OciocneEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
+	rancherOCNEClusterConfig.OciocneEngineConfig.DisplayName = clusterName
+	rancherOCNEClusterConfig.OciocneEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
+	rancherOCNEClusterConfig.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
+	rancherOCNEClusterConfig.OciocneEngineConfig.Region = region
+	rancherOCNEClusterConfig.OciocneEngineConfig.VcnID = vcnID
+	rancherOCNEClusterConfig.OciocneEngineConfig.WorkerNodeSubnet = workerNodeSubnet
+	rancherOCNEClusterConfig.OciocneEngineConfig.NodePools = []interface{}{}
 
 	return createCluster(clusterName, rancherOCNEClusterConfig)
 }
@@ -411,61 +418,21 @@ func createNodePoolCluster(clusterName, nodePoolName string) error {
 		nodePoolName)
 
 	// Fill in the values for the create cluster API request body
-	var rancherOCNEEngineConfig RancherOCIOCNEEngine
-	rancherOCNEEngineConfig.CalicoImagePath = "olcne"
-	rancherOCNEEngineConfig.CloudCredentialID = cloudCredentialID
-	rancherOCNEEngineConfig.ClusterCidr = "10.96.0.0/16"
-	rancherOCNEEngineConfig.CompartmentID = compartmentID
-	rancherOCNEEngineConfig.ControlPlaneMemoryGbs = 16
-	rancherOCNEEngineConfig.ControlPlaneOcpus = 2
-	rancherOCNEEngineConfig.ControlPlaneShape = "VM.Standard.E4.Flex"
-	rancherOCNEEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
-	rancherOCNEEngineConfig.ControlPlaneVolumeGbs = 100
-	rancherOCNEEngineConfig.CorednsImageTag = "v1.9.3"
-	rancherOCNEEngineConfig.DisplayName = clusterName
-	rancherOCNEEngineConfig.DriverName = "ociocneengine"
-	rancherOCNEEngineConfig.EtcdImageTag = "3.5.6"
-	rancherOCNEEngineConfig.ImageDisplayName = "Oracle-Linux-8.7-2023.05.24-0"
-	rancherOCNEEngineConfig.ImageID = ""
-	rancherOCNEEngineConfig.InstallCalico = true
-	rancherOCNEEngineConfig.InstallCcm = true
-	rancherOCNEEngineConfig.InstallVerrazzano = false
-	rancherOCNEEngineConfig.KubernetesVersion = "v1.25.7"
-	rancherOCNEEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
-	rancherOCNEEngineConfig.Name = ""
-	rancherOCNEEngineConfig.NodePublicKeyContents = nodePublicKeyContents
-	rancherOCNEEngineConfig.NumControlPlaneNodes = 1
-	rancherOCNEEngineConfig.OcneVersion = "1.6"
-	rancherOCNEEngineConfig.PodCidr = "10.244.0.0/16"
-	rancherOCNEEngineConfig.PrivateRegistry = ""
-	rancherOCNEEngineConfig.ProxyEndpoint = ""
-	rancherOCNEEngineConfig.Region = region
-	rancherOCNEEngineConfig.SkipOcneInstall = false
-	rancherOCNEEngineConfig.TigeraImageTag = "v1.29.0"
-	rancherOCNEEngineConfig.UseNodePvEncryption = true
-	rancherOCNEEngineConfig.VcnID = vcnID
-	rancherOCNEEngineConfig.VerrazzanoResource = "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster"
-	rancherOCNEEngineConfig.VerrazzanoTag = "v1.6.0-20230609132620-44e8f4d1"
-	rancherOCNEEngineConfig.VerrazzanoVersion = "1.6.0-4574+44e8f4d1"
-	rancherOCNEEngineConfig.WorkerNodeSubnet = workerNodeSubnet
-	rancherOCNEEngineConfig.Type = "ociocneEngineConfig"
-	rancherOCNEEngineConfig.ClusterName = ""
-	rancherOCNEEngineConfig.NodeShape = "VM.Standard.E4.Flex"
-	rancherOCNEEngineConfig.NumWorkerNodes = 1
-	rancherOCNEEngineConfig.NodePools = []interface{}{nodePoolSpec}
-	rancherOCNEEngineConfig.ApplyYamls = []interface{}{}
-
 	var rancherOCNEClusterConfig RancherOCNECluster
-	rancherOCNEClusterConfig.DockerRootDir = "/var/lib/docker"
-	rancherOCNEClusterConfig.EnableClusterAlerting = false
-	rancherOCNEClusterConfig.EnableClusterMonitoring = false
-	rancherOCNEClusterConfig.EnableNetworkPolicy = false
-	rancherOCNEClusterConfig.WindowsPreferedCluster = false
-	rancherOCNEClusterConfig.Type = "cluster"
+	rancherOCNEClusterConfig.fillConstantValues()
 	rancherOCNEClusterConfig.Name = clusterName
-	rancherOCNEClusterConfig.OciocneEngineConfig = rancherOCNEEngineConfig
 	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
-	rancherOCNEClusterConfig.Labels = struct{}{}
+
+	rancherOCNEClusterConfig.OciocneEngineConfig.CloudCredentialID = cloudCredentialID
+	rancherOCNEClusterConfig.OciocneEngineConfig.CompartmentID = compartmentID
+	rancherOCNEClusterConfig.OciocneEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
+	rancherOCNEClusterConfig.OciocneEngineConfig.DisplayName = clusterName
+	rancherOCNEClusterConfig.OciocneEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
+	rancherOCNEClusterConfig.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
+	rancherOCNEClusterConfig.OciocneEngineConfig.Region = region
+	rancherOCNEClusterConfig.OciocneEngineConfig.VcnID = vcnID
+	rancherOCNEClusterConfig.OciocneEngineConfig.WorkerNodeSubnet = workerNodeSubnet
+	rancherOCNEClusterConfig.OciocneEngineConfig.NodePools = []interface{}{nodePoolSpec}
 
 	return createCluster(clusterName, rancherOCNEClusterConfig)
 }
