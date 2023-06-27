@@ -182,6 +182,7 @@ func createIngressChildResources(ingresstrait *vzapi.IngressTrait) {
 	}
 }
 
+// creates Authorization Policy
 func createAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string) {
 	// If any path needs an AuthorizationPolicy then add one for every path
 	var addAuthPolicy bool
@@ -451,7 +452,7 @@ func updateGatewayServersList(servers []*istio.Server, server *istio.Server) []*
 	return servers
 }
 
-// createOrUseGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
+// createGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
 // if one is configured in the ingress.
 func createGatewaySecret(trait *vzapi.IngressTrait, hostsForTrait []string) string {
 	var secretName string
@@ -466,10 +467,10 @@ func createGatewaySecret(trait *vzapi.IngressTrait, hostsForTrait []string) stri
 	return secretName
 }
 
-// createGatewayCertificate creates a certificate that is leveraged by the cert manager to create a certificate embedded
-// in a secret. That secret will be leveraged by the gateway to provide TLS/HTTPS endpoints for deployed applications.
-// There will be one gateway generated per application. The generated virtual services will be routed via the
-// application-wide gateway.
+// The function createGatewayCertificate generates a certificate that the cert manager can use to generate a certificate
+// that is embedded in a secret. The gateway will use the secret to offer TLS/HTTPS endpoints for installed applications.
+// Each application will generate a single gateway. The application-wide gateway will be used to route the produced
+// virtual services
 func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string) string {
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
@@ -732,7 +733,6 @@ func mutateVirtualService(virtualService *vsapi.VirtualService, rule vzapi.Ingre
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
 // If the rule contains destination information that is used.
-// Otherwise, the appropriate service is selected and its information is used.
 func createDestinationFromRuleOrService(rule vzapi.IngressRule, services []*corev1.Service) (*istio.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
 		dest := &istio.HTTPRouteDestination{Destination: &istio.Destination{Host: rule.Destination.Host}}
@@ -855,7 +855,6 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 	if p == "" {
 		p = "/"
 	}
-
 	// If path is / default type to prefix
 	// If path is not / default to exact
 	t := strings.ToLower(strings.TrimSpace(path.PathType))
