@@ -676,9 +676,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "clusterresourcesets")
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s--ccm-secret", clusterName))
 	bcmd.CommandArgs = cmdArgs
-	ouput := helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output := helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -687,9 +687,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "clusterresourcesets")
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-csi-secret", clusterName))
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -698,9 +698,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "clusterresourcesets")
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-ccm-module-resource", clusterName))
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -709,9 +709,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "clusterresourcesets")
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s-calico-module-resource", clusterName))
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
@@ -734,9 +734,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "get")
 	cmdArgs = append(cmdArgs, "modules")
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -746,9 +746,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "ls")
 	cmdArgs = append(cmdArgs, "-A")
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -759,9 +759,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "values")
 	cmdArgs = append(cmdArgs, "calico")
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -774,9 +774,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, "kube-system")
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	cmdArgs = []string{}
@@ -789,9 +789,9 @@ func describeResourcesUsingCommands(clusterName string, log *zap.SugaredLogger) 
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, "verrazzano-module-operator")
 	bcmd.CommandArgs = cmdArgs
-	ouput = helpers.Runner(&bcmd, log)
-	if ouput.CommandError != nil {
-		return ouput.CommandError
+	output = helpers.Runner(&bcmd, log)
+	if output.CommandError != nil {
+		return output.CommandError
 	}
 
 	return nil
