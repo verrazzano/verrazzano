@@ -50,6 +50,8 @@ import (
 const (
 	testBomFilePath      = "../../testdata/test_bom.json"
 	profilesRelativePath = "../../../../manifests/profiles"
+
+	missingIssuerMessage = "Failed to find certManager component in effective cr"
 )
 
 func getValue(kvs []bom.KeyValue, key string) (string, bool) {
@@ -86,6 +88,78 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
+}
+
+// TestApplendLetsEncryptDefaultEnvOverrides verifies that Helm overrides are added as appropriate for LE Prod
+// GIVEN a Verrazzano CR
+//
+//	WHEN AppendOverrides is called with an LE prod configuration where the env is not specified
+//	THEN AppendOverrides should add the appropriate LE prod overrides
+func TestApplendLetsEncryptDefaultEnvOverrides(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	vzACMEProd := vzAcmeDev.DeepCopy()
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = ""
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
+		false, profilesRelativePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: letsencryptProduction})
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
+}
+
+// TestApplendLetsEncryptProdEnvOverrides verifies that Helm overrides are added as appropriate for LE Prod
+// GIVEN a Verrazzano CR
+//
+//	WHEN AppendOverrides is called with an LE prod configuration where the env is explicitly specified
+//	THEN AppendOverrides should add the appropriate LE prod overrides
+func TestApplendLetsEncryptProdEnvOverrides(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	vzACMEProd := vzAcmeDev.DeepCopy()
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = letsencryptProduction
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
+		false, profilesRelativePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: letsencryptProduction})
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
+}
+
+// TestApplendLetsEncryptStagingEnvOverrides verifies that Helm overrides are added as appropriate for LE Staging env
+// GIVEN a Verrazzano CR
+//
+//	WHEN AppendOverrides is called with an LE staging configuration
+//	THEN AppendOverrides should add the appropriate LE prod overrides
+func TestApplendLetsEncryptStagingEnvOverrides(t *testing.T) {
+	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
+	// convert the CertManager config to the ClusterIssuer config
+	vzACMEProd := vzAcmeDev.DeepCopy()
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = letsEncryptStaging
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
+		false, profilesRelativePath)
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: letsEncryptStaging})
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
 
 // TestAppendImageOverrides verifies that Rancher image overrides are added
@@ -191,6 +265,8 @@ func TestAppendImageOverridesWithRegistryOverride(t *testing.T) {
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() { config.SetDefaultBomFilePath("") }()
+
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
@@ -214,8 +290,53 @@ func TestAppendCustomCAOverrides(t *testing.T) {
 		ClusterResourceNamespace: namespace,
 		SecretName:               secretName,
 	}
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzCustomCA, nil, false)
+
 	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() { config.SetDefaultBomFilePath("") }()
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzCustomCA, nil, false,
+		profilesRelativePath)
+
+	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Nil(t, err)
+	v, ok := getValue(kvs, ingressTLSSourceKey)
+	assert.True(t, ok)
+	assert.Equal(t, caTLSSource, v)
+	v, ok = getValue(kvs, privateCAKey)
+	assert.True(t, ok)
+	assert.Equal(t, privateCAValue, v)
+}
+
+// TestAppendIssuerCustomCAOverrides verifies that CA overrides are added as appropriate for custom CAs using the ClusterIssuer component
+// GIVEN a Verrzzano CR with a Custom CA configured in the ClusterIssuerComponent
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add private CA overrides
+func TestAppendIssuerCustomCAOverrides(t *testing.T) {
+	namespace := "customnamespace"
+	secretName := "customSecret"
+	vzCustomCA := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					External: &vzapi.External{Suffix: common.RancherName},
+				},
+				CertManager: &vzapi.CertManagerComponent{
+					Certificate: vzapi.Certificate{
+						CA: vzapi.CA{
+							ClusterResourceNamespace: namespace,
+							SecretName:               secretName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() { config.SetDefaultBomFilePath("") }()
+
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzCustomCA, nil, false)
+
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
@@ -579,6 +700,55 @@ func TestInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMissingCertificateIssuerConfiguration tests the Install() method such that
+// GIVEN a call to Install()
+// WHEN there is an env with correct rancher deployment and ingress but the Verrazzano resource is missing a cluster issuer configuration
+// THEN an error is returned complaining about missing the issuer configuration in the CR
+func TestMissingCertificateIssuerConfiguration(t *testing.T) {
+	c := createInstallTestClient()
+	vz :=
+		vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Rancher: &vzapi.RancherComponent{
+						Enabled: getBoolPtr(true),
+					},
+					DNS: &vzapi.DNSComponent{
+						External: &vzapi.External{Suffix: "blah"},
+					},
+				},
+			},
+		}
+	// In this case we expressly do NOT create an effective CR to ensure we create the error condition; otherwise the
+	// Effective CR will always have a minimal/default issuer configuration
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+	err := NewComponent().Install(ctx)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, missingIssuerMessage)
+}
+
+func createInstallTestClient() client.Client {
+	return createFakeTestClient(&v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: ComponentName},
+					},
+				}},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 3,
+		},
+	})
 }
 
 // TestMonitorOverrides tests the monitor overrides function

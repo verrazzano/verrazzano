@@ -72,7 +72,7 @@ func (c *certBuilder) buildLetsEncryptStagingChain() error {
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
-	return acme != vzapi.Acme{} && acme.Environment != "production"
+	return acme != vzapi.Acme{} && acme.Environment == "staging"
 }
 
 func ProcessAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client, vz *vzapi.Verrazzano) error {
