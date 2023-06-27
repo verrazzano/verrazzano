@@ -73,19 +73,18 @@ func capiPrerequisites() {
 
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
-		return ProcessOCIKeys(OciSSHKey, capiNodeSSHKey, t.Logs)
+		return ProcessOCISSHKeys(OciSSHKey, capiNodeSSHKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI private key '%s'", ClusterName)
 	Eventually(func() error {
-		return ProcessOCIKeys(OCICredsKey, ociCredsKey, t.Logs)
+		return ProcessOCIPrivateKeys(OCICredsKey, ociCredsKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Create CAPI configuration yaml for cluster '%s'", ClusterName)
 	Eventually(func() error {
 		return clusterTemplateGenerate(ClusterName, clusterTemplate, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
 }
 
 func ensurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap.SugaredLogger) bool {
@@ -173,6 +172,7 @@ func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
 	t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
+
 		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
 				return triggerCapiClusterCreation(ClusterTemplateGeneratedFilePath, t.Logs)

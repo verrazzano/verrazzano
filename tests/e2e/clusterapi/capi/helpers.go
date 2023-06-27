@@ -81,7 +81,7 @@ func clusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredL
 
 	template, err := capiClient.GetClusterTemplate(templateOptions)
 	if err != nil {
-		log.Errorf("GetClusterTemplate error = %v", zap.Error(err))
+		log.Errorf("template '%s' generation error  = %v", templatePath, zap.Error(err))
 		return err
 	}
 
@@ -627,6 +627,7 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 }
 
 func deployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
+	log.Info("Preparing to deploy Clusterresourcesets...")
 	var cmdArgs []string
 	var bcmd helpers.BashCommand
 	ocicmd := fmt.Sprintf("oci network vcn list --compartment-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, clusterName)
@@ -671,12 +672,13 @@ func deployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 		log.Error("unable to get create clusterresourcesets on workload cluster :", zap.Error(err))
 		return err
 	}
-	log.Infof("Wait for 10 seconds before verification")
+
+	log.Infof("Wait for 10 seconds for cluster resourceset resources to deploy")
 	time.Sleep(60 * time.Second)
 	return nil
 }
 
-func ProcessOCIKeys(file, key string, log *zap.SugaredLogger) error {
+func ProcessOCISSHKeys(file, key string, log *zap.SugaredLogger) error {
 	_, err := os.Stat(file)
 	if err != nil {
 		log.Errorf("file '%s' not found", file)
@@ -689,4 +691,36 @@ func ProcessOCIKeys(file, key string, log *zap.SugaredLogger) error {
 	}
 
 	return os.Setenv(key, string(data))
+}
+
+func ProcessOCIPrivateKeys(file, key string, log *zap.SugaredLogger) error {
+	_, err := os.Stat(file)
+	if err != nil {
+		log.Errorf("file '%s' not found", file)
+		return err
+	}
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "testkey")
+	if err != nil {
+		log.Errorf("Failed to create temporary file : %v", zap.Error(err))
+		return err
+	}
+
+	var cmdArgs []string
+	var bcmd helpers.BashCommand
+	ocicmd := "awk 'NF {sub(/\\r/, \"\"); printf \"%s\\\\n\",$0;}' " + file + "> " + tmpFile.Name()
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
+	bcmd.CommandArgs = cmdArgs
+	keydata := helpers.Runner(&bcmd, log)
+	if keydata.CommandError != nil {
+		return keydata.CommandError
+	}
+
+	bdata, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		log.Errorf("failed reading file contents: %v", err)
+		return err
+	}
+
+	return os.Setenv(key, string(bdata))
 }

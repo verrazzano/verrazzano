@@ -90,10 +90,10 @@ stringData:
           fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
           key_passphrase:
         vcn: ${OCI_VCN_ID}
-        loadBalancer: 
+        loadBalancer:
           subnet1: ${OCI_SUBNET_ID}
           securityListManagementMode: All
-          disableSecurityListManagement: false 
+          disableSecurityListManagement: false
         useInstancePrincipals: false
         # compartment configures Compartment within which the cluster resides.
         compartment: ${OCI_COMPARTMENT_ID}

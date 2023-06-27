@@ -196,6 +196,8 @@ pipeline {
         KUBERNETES_VERSION = "${params.OCNE_KUBERNETES_CLUSTER_VERSION}"
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
         CLUSTER_NAME = "ocnecapi${CLUSTER_SUFFIX_ID}"
+        CAPI_NODE_SSH_KEY_PATH = credentials('oci-tf-pub-ssh-key')
+        CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
 
     }
 
