@@ -622,11 +622,41 @@ func showSecretsInfo(client *kubernetes.Clientset, clusterName string, log *zap.
 				if apierrors.IsNotFound(err) {
 					log.Infof("No secrets in namespace '%s'", ns.Name)
 				} else {
-					return errors.Wrap(err, fmt.Sprintf("failed to get secret '%s' from cluster '%s'", secret.Name, clusterName))
+					return errors.Wrap(err, fmt.Sprintf("failed to get secret '%s' from cluster '%s'", secretData.Name, clusterName))
 				}
 			}
 			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
-				secretData.GetNamespace(), secret.GetName(), secretData.Type)
+				secretData.GetNamespace(), secret.GetName(), secretData.Type))
+
+		}
+	}
+	writer.Flush()
+	return nil
+}
+
+func showConfigMapsInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
+	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
+	}
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Namespace\tName")
+	for _, ns := range nsList.Items {
+		configmapList, err := client.CoreV1().ConfigMaps(ns.Name).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to get list of secrets from cluster '%s'", clusterName))
+		}
+		for _, configmap := range configmapList.Items {
+			configmapData, err := client.CoreV1().ConfigMaps(ns.Name).Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					log.Infof("No configmaps in namespace '%s'", ns.Name)
+				} else {
+					return errors.Wrap(err, fmt.Sprintf("failed to get configmap '%s' from cluster '%s'", configmapData.Name, clusterName))
+				}
+			}
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v",
+				configmapData.GetNamespace(), configmapData.GetName()))
 
 		}
 	}
@@ -653,7 +683,13 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 	}
 
 	log.Infof("----------- Secrets on workload cluster ---------------------")
-	return showSecretsInfo(client, clusterName, log)
+	err = showSecretsInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- Configmaps on workload cluster ---------------------")
+	return showConfigMapsInfo(client, clusterName, log)
 	//if err != nil {
 	//	return err
 	//}
