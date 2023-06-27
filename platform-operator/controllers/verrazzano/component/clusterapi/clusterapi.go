@@ -59,6 +59,7 @@ type ImageConfig struct {
 
 const (
 	defaultClusterAPIDir = "/verrazzano/.cluster-api"
+	clusterAPIDirEnv     = "VERRAZZANO_CLUSTER_API_DIR"
 )
 
 var clusterAPIDir = defaultClusterAPIDir
@@ -69,6 +70,13 @@ func setClusterAPIDir(dir string) {
 }
 func resetClusterAPIDir() {
 	clusterAPIDir = defaultClusterAPIDir
+}
+
+func getClusterAPIDir() string {
+	if capiDir := os.Getenv(clusterAPIDirEnv); len(capiDir) > 0 {
+		return capiDir
+	}
+	return clusterAPIDir
 }
 
 // preInstall implementation for the ClusterAPI Component
@@ -131,7 +139,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	err = os.Mkdir(clusterAPIDir, 0755)
+	err = os.Mkdir(getClusterAPIDir(), 0755)
 	if err != nil {
 		if !os.IsExist(err) {
 			return err
@@ -139,7 +147,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
-	return os.WriteFile(clusterAPIDir+"/clusterctl.yaml", result.Bytes(), 0600)
+	return os.WriteFile(getClusterAPIDir()+"/clusterctl.yaml", result.Bytes(), 0600)
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
