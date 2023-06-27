@@ -8,3 +8,41 @@ metadata:
   name: verrazzano
 spec:
   profile: dev
+  components:
+    clusterOperator:
+      overrides:
+        - values:
+            syncClusters:
+              enabled: true
+    keycloak:
+      overrides:
+        - values:
+            replicas: 1
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 1
+              routerInstances: 1
+    fluentd:
+      enabled: true
+    kiali:
+      enabled: false
+    weblogicOperator:
+      enabled: false
+    coherenceOperator:
+      enabled: false
+    opensearch:
+      enabled: false
+    opensearchDashboards:
+      enabled: false
+    console:
+      enabled: false
+    prometheus:
+      enabled: true
+    prometheusOperator:
+      enabled: true
+    grafana:
+      enabled: true
+    dns:
+      wildcard:
+        domain: nip.io
