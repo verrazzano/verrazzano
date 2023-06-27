@@ -682,7 +682,7 @@ func ProcessOCIKeys(file, key string, log *zap.SugaredLogger) error {
 		log.Errorf("file '%s' not found", file)
 		return err
 	}
-	data, err := os.ReadFile(fInfo.Name())
+	data, err := os.ReadFile(file)
 	if err != nil {
 		log.Errorf("failed reading file contents: %v", err)
 		return err
