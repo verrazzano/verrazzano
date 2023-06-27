@@ -1,3 +1,6 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package main
 
 import (
@@ -35,8 +38,7 @@ var (
 		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
 )
 
-//var cli client.Reader
-
+// var cli client.Reader
 func main() {
 
 	//Read OAM File
