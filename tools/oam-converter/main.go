@@ -33,14 +33,14 @@ func main() {
 	//where to use controller?
 
 	//Read OAM File
-	appData, err := ioutil.ReadFile("/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/helidon-config-app.yaml")
+	appData, err := ioutil.ReadFile("/Users/adalua/go/src/github.com/verrazzano/verrazzano/tools/oam-converter/hello-helidon-app.yaml")
 	if err != nil {
 		fmt.Println("Failed to read YAML file:", err)
 		return
 	}
 
 	//Read Comp file
-	compData, err := ioutil.ReadFile("/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/helidon-config-comp.yaml")
+	compData, err := ioutil.ReadFile("/Users/adalua/go/src/github.com/verrazzano/verrazzano/tools/oam-converter/hello-helidon-comp.yaml")
 	if err != nil {
 		fmt.Println("Failed to read YAML file:", err)
 		return
@@ -266,28 +266,27 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 }
 func handleMetricsTrait(metricsTrait *vzapi.MetricsTrait) *promoperapi.ServiceMonitor {
 	serviceMonitor := &promoperapi.ServiceMonitor{}
-
 	serviceMonitor.APIVersion = metricsTrait.TypeMeta.APIVersion
 	serviceMonitor.Kind = "ServiceMonitor"
 	serviceMonitor.Name = metricsTrait.Namespace + "-metrics"
 	serviceMonitor.Namespace = metricsTrait.ObjectMeta.Namespace
 	serviceMonitor.Labels = metricsTrait.Labels
 
-	serviceMonitor.Spec.Endpoints = []&promoperapi.Endpoint{
+	/*serviceMonitor.Spec.Endpoints = []promoperapi.Endpoints{
 		{
 			Port:     metricsTrait.Spec.Port,
 			Path:     metricsTrait.Spec.Path,
 			Interval: metricsTrait.Spec.Scraper,
 		},
 	}
-
-	serviceMonitor.Spec.NamespaceSelector = &promoperapi.NamespaceSelector{
+*/
+	serviceMonitor.Spec.NamespaceSelector = promoperapi.NamespaceSelector{
 		MatchNames: []string{metricsTrait.Namespace},
 	}
 
-	serviceMonitor.Spec.Selector = &promoperapi.LabelSelector{
-		MatchLabels: metricsTrait.Labels,
-	}
+	//serviceMonitor.Spec.Selector = &promoperapi.LabelSelector{
+	//	MatchLabels: metricsTrait.Labels,
+	//}
 
 	return serviceMonitor
 }
