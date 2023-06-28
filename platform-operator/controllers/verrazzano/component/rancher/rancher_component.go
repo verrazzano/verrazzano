@@ -225,6 +225,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 	// Configure CA Issuer KVs
 	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
+		letsEncryptEnv := cm.LetsEncrypt.Environment
+		if len(letsEncryptEnv) == 0 {
+			letsEncryptEnv = cmconstants.LetsEncryptProduction
+		}
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
@@ -234,13 +238,13 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.LetsEncrypt.Environment,
+				Value: letsEncryptEnv,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
+				Value: strconv.FormatBool(common.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
