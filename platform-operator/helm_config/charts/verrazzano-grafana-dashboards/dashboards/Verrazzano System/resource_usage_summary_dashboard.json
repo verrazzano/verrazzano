@@ -667,7 +667,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\",verrazzano_cluster=\"$cluster\"} * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_component)",
+          "expr": "sum(sum(kube_pod_spec_volumes_persistentvolumeclaims_info{verrazzano_component=~\"$component\",verrazzano_cluster=\"$cluster\"}) by(persistentvolumeclaim, namespace, verrazzano_component, verrazzano_cluster) * on(persistentvolumeclaim, namespace) group_right(verrazzano_component) kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_component)",
           "format": "time_series",
           "instant": false,
           "interval": "",
