@@ -115,20 +115,8 @@ func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
 
 	// Fill in the values for the create cluster API request body
 	var rancherOCNEClusterConfig RancherOCNECluster
-	rancherOCNEClusterConfig.fillConstantValues()
-	rancherOCNEClusterConfig.Name = clusterName
-	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
-
-	rancherOCNEClusterConfig.OciocneEngineConfig.CloudCredentialID = cloudCredentialID
-	rancherOCNEClusterConfig.OciocneEngineConfig.CompartmentID = compartmentID
-	rancherOCNEClusterConfig.OciocneEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
-	rancherOCNEClusterConfig.OciocneEngineConfig.DisplayName = clusterName
-	rancherOCNEClusterConfig.OciocneEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
-	rancherOCNEClusterConfig.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
-	rancherOCNEClusterConfig.OciocneEngineConfig.Region = region
-	rancherOCNEClusterConfig.OciocneEngineConfig.VcnID = vcnID
-	rancherOCNEClusterConfig.OciocneEngineConfig.WorkerNodeSubnet = workerNodeSubnet
-	rancherOCNEClusterConfig.OciocneEngineConfig.NodePools = []interface{}{}
+	var nodePoolSpec []string
+	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePoolSpec)
 
 	return createCluster(clusterName, rancherOCNEClusterConfig, log)
 }
@@ -140,26 +128,15 @@ func createNodePoolCluster(clusterName, nodePoolName string, log *zap.SugaredLog
 		log.Infof("error reading node public key file: %v", err)
 		return err
 	}
-	nodePoolSpec := fmt.Sprintf(
-		"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}",
-		nodePoolName)
 
 	// Fill in the values for the create cluster API request body
 	var rancherOCNEClusterConfig RancherOCNECluster
-	rancherOCNEClusterConfig.fillConstantValues()
-	rancherOCNEClusterConfig.Name = clusterName
-	rancherOCNEClusterConfig.CloudCredentialID = cloudCredentialID
-
-	rancherOCNEClusterConfig.OciocneEngineConfig.CloudCredentialID = cloudCredentialID
-	rancherOCNEClusterConfig.OciocneEngineConfig.CompartmentID = compartmentID
-	rancherOCNEClusterConfig.OciocneEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
-	rancherOCNEClusterConfig.OciocneEngineConfig.DisplayName = clusterName
-	rancherOCNEClusterConfig.OciocneEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
-	rancherOCNEClusterConfig.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
-	rancherOCNEClusterConfig.OciocneEngineConfig.Region = region
-	rancherOCNEClusterConfig.OciocneEngineConfig.VcnID = vcnID
-	rancherOCNEClusterConfig.OciocneEngineConfig.WorkerNodeSubnet = workerNodeSubnet
-	rancherOCNEClusterConfig.OciocneEngineConfig.NodePools = []interface{}{nodePoolSpec}
+	nodePoolSpec := []string{
+		fmt.Sprintf(
+			"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}",
+			nodePoolName),
+	}
+	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePoolSpec)
 
 	return createCluster(clusterName, rancherOCNEClusterConfig, log)
 }
