@@ -305,7 +305,7 @@ func captureCertificates(kubeClient kubernetes.Interface, namespace, captureDir 
 func writeCertificateResourcesToFile(certificateInterface v1.CertificateInterface, namespace, captureDir string, vzHelper VZHelper) error {
 	certificateList, err := certificateInterface.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while getting the Services in namespace %s: %s\n", namespace, err.Error()))
+		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(certificateList.Items) > 0 {
 		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
