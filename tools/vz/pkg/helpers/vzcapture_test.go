@@ -389,10 +389,9 @@ func TestGetPodListAll(t *testing.T) {
 	assert.Equal(t, podLength, len(pods))
 }
 
-//	 GIVEN a k8s cluster with certificates present in a namespace  ,
+//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
 //		WHEN I call functions to create a list of certificates for the pod,
-//		THEN expect it to write to the provided resource file, the JSON contents of the certificates in that namespace and no error should be returned.
-//		(Could Potentially Add to this function to look at file on disk and see that it is the correct output)
+//		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
 	fakeCertManager := certmanagerfake.FakeCertmanagerV1{
 		Fake: &testk8.Fake{},

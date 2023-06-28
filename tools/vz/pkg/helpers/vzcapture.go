@@ -291,7 +291,7 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 }
 
 // Would this be ok if it is creating a bunch of cert manager clients, should I create a top level certclient?
-// ClientSet that wi
+// This function initalizes the certManager client set and the certManager Certificate Interface, this separation is done for unit test purposes.
 func captureCertificates(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	certClient, err := k8sutil.GetCertManagerClienset()
 	if err != nil {
@@ -300,6 +300,8 @@ func captureCertificates(kubeClient kubernetes.Interface, namespace, captureDir 
 	certificateClient := certClient.Certificates(namespace)
 	return writeCertificateResourcesToFile(certificateClient, namespace, constants.CertificatesJSON, vzHelper)
 }
+
+// This function gets the list of certificate resources from teh namespace and writes them to the specified file
 func writeCertificateResourcesToFile(certificateInterface v1.CertificateInterface, namespace, captureDir string, vzHelper VZHelper) error {
 	certificateList, err := certificateInterface.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
