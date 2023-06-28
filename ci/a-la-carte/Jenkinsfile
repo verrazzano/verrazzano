@@ -549,7 +549,7 @@ pipeline {
             }
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
+                    ${GO_REPO_PATH}/vz uninstall -y --timeout 15m
                 """
             }
 
@@ -571,7 +571,7 @@ pipeline {
             }
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz install -y --timeout 10m  --set profile=none"
+                    ${GO_REPO_PATH}/vz install -y --timeout 10m  --set profile=none
                 """
             }
 
