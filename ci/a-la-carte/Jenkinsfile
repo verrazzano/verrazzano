@@ -542,6 +542,72 @@ pipeline {
             }
         }
 
+        stage('Uninstall') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+            }
+            steps {
+                sh """
+                    ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('none-uninstall-failure-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Reinstall None') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+            }
+            steps {
+                sh """
+                    ${GO_REPO_PATH}/vz install -y --timeout 10m  --set profile=none"
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('none-installation-failure-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Uninstall none') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+            }
+            steps {
+                sh """
+                    ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
+                """
+            }
+
+            post {
+                failure {
+                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                    dumpK8sCluster('none-uninstall-failure-dump')
+                }
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                }
+            }
+        }
+
 
     }
     post {
