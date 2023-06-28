@@ -58,7 +58,6 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 		}
-
 		isClusterAPIEnabled := vzcr.IsClusterAPIEnabled(inClusterVZ)
 		isMinimumK8sVersion, err := k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
 		if err != nil {
@@ -103,7 +102,6 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
-
 			driversActive := func() bool {
 				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
