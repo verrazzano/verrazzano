@@ -40,7 +40,7 @@ var (
 						Acme: vzapi.Acme{
 							Provider:     "foobar",
 							EmailAddress: "foo@bar.com",
-							Environment:  "dev",
+							Environment:  letsEncryptStaging,
 						},
 					},
 				},
@@ -278,8 +278,9 @@ func TestUseAdditionalCAs(t *testing.T) {
 		in  vzapi.Acme
 		out bool
 	}{
-		{vzapi.Acme{Environment: "dev"}, true},
-		{vzapi.Acme{Environment: "production"}, false},
+		{vzapi.Acme{Environment: letsEncryptStaging}, true},
+		{vzapi.Acme{Environment: letsencryptProduction}, false},
+		{vzapi.Acme{Environment: "dev"}, false},
 	}
 
 	for _, tt := range tests {

@@ -35,7 +35,7 @@ const ComponentName = common.RancherName
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = common.CattleSystem
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
@@ -127,6 +127,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 	// Configure CA Issuer KVs
 	if (cm.Certificate.Acme != vzapi.Acme{}) {
+		letsEncryptEnv := cm.Certificate.Acme.Environment
+		if len(letsEncryptEnv) == 0 {
+			letsEncryptEnv = letsencryptProduction
+		}
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
@@ -136,7 +140,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: cm.Certificate.Acme.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
+				Value: letsEncryptEnv,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
@@ -201,7 +205,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
 		return err
 	}
-	return nil
+	return r.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade
@@ -209,7 +213,10 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
 */
 func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return chartsNotUpdatedWorkaround(ctx)
+	if err := chartsNotUpdatedWorkaround(ctx); err != nil {
+		return err
+	}
+	return r.HelmComponent.PreUpgrade(ctx)
 }
 
 // Install
@@ -248,6 +255,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PostInstall
 /* Additional setup for Rancher after the component is installed
+- Label Rancher Component Namespaces
 - Create the Rancher admin secret if it does not already exist
 - Retrieve the Rancher admin password
 - Retrieve the Rancher hostname
@@ -257,6 +265,11 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
+
+	if err := labelNamespace(c); err != nil {
+		return log.ErrorfThrottledNewErr("failed labelling namespace the for Rancher component: %s", err.Error())
+	}
+	log.Debugf("Rancher component namespaces labelled")
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
