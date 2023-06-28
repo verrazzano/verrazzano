@@ -502,6 +502,13 @@ func TestInstallValidations(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag))
 }
 
+func TestInstallFileNameFlag(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
+
+}
+
 // TestGetWaitTimeoutDefault
 // GIVEN no wait and timeout arguments specified
 //

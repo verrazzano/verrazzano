@@ -6,7 +6,6 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -78,7 +77,8 @@ var (
 )
 
 func NewComponent() spi.Component {
-	j := jaegerOperatorComponent{
+	//j := jaegerOperatorComponent{
+	return jaegerOperatorComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
@@ -89,15 +89,16 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0]",
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName},
-			GetInstallOverridesFunc:   GetOverrides,
+			//ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
+			Dependencies:            []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName},
+			AppendOverridesFunc:     AppendOverrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
-	j.AppendOverridesFunc = func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-		return AppendOverrides(context, releaseName, namespace, chartDir, kvs, &j)
-	}
-	return j
+	//j.AppendOverridesFunc = func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	//	return AppendOverrides(context, releaseName, namespace, chartDir, kvs, &j)
+	//}
+	//return j
 }
 
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled

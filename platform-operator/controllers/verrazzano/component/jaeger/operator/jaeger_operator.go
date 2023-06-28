@@ -165,7 +165,7 @@ func preInstall(ctx spi.ComponentContext) error {
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
 // A go template is used to specify the Jaeger images using extraEnv key.
-func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue, j *jaegerOperatorComponent) ([]bom.KeyValue, error) {
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -263,6 +263,11 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			return nil, err
 		}
 		if createInstance {
+			defaultJaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
+
+			// Append defaultJaegerValuesFile values file
+			kvs = append(kvs, bom.KeyValue{Value: defaultJaegerValuesFile, IsFile: true})
+
 			// use jaegerCRTemplate to populate Jaeger spec data
 			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
 			if err != nil {
@@ -278,7 +283,11 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 				return nil, err
 			}
 		} else {
-			j.ValuesFile = filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
+			allInOneImage := filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
+
+			// Append allInOneImage values file
+			kvs = append(kvs, bom.KeyValue{Value: allInOneImage, IsFile: true})
+
 			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
 			if err != nil {
 				return nil, err
