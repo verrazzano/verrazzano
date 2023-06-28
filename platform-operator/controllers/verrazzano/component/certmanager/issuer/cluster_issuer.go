@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -185,6 +186,11 @@ func deleteResources(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace
 	objectList := &unstructured.UnstructuredList{}
 	objectList.SetGroupVersionKind(gvk)
 	if err := cli.List(context.TODO(), objectList, crtclient.InNamespace(namespace)); err != nil {
+		// Ignore if CRD doesn't exist
+		_, ok := err.(*meta.NoKindMatchError)
+		if ok {
+			return nil
+		}
 		return err
 	}
 	for _, item := range objectList.Items {

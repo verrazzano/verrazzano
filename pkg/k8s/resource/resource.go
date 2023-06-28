@@ -5,11 +5,11 @@ package resource
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"reflect"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,11 +31,18 @@ func (r Resource) Delete() error {
 		kind = r.Object.GetObjectKind().GroupVersionKind().Kind
 	}
 	err := r.Client.Delete(context.TODO(), r.Object)
-	if client.IgnoreNotFound(err) != nil {
+	if err != nil {
+		// Ignore if CRD doesn't exist
+		_, ok := err.(*meta.NoKindMatchError)
+		if ok {
+			return nil
+		}
+		if client.IgnoreNotFound(err) == nil {
+			return nil
+		}
 		return r.Log.ErrorfNewErr("Failed to delete the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
-	} else if err == nil {
-		r.Log.Oncef("Successfully deleted %s %s/%s", kind, r.Object.GetNamespace(), r.Object.GetName())
 	}
+	r.Log.Oncef("Successfully deleted %s %s/%s", kind, r.Object.GetNamespace(), r.Object.GetName())
 	return nil
 }
 
@@ -75,6 +82,11 @@ func (r Resource) Exists() (bool, error) {
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r.Object)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		// Ignore if CRD doesn't exist
+		_, ok := err.(*meta.NoKindMatchError)
+		if ok {
 			return false, nil
 		}
 		return false, err
