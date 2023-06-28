@@ -5,24 +5,24 @@ package override
 
 import (
 	"context"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"testing"
 )
 
 // TestGetInstallOverridesYAML tests GetInstallOverridesYAML
 // GIVEN an override list
-//  WHEN I call GetInstallOverridesYAML
-//  THEN I get a list of key value pairs of files from the override sources
+//
+//	WHEN I call GetInstallOverridesYAML
+//	THEN I get a list of key value pairs of files from the override sources
 func TestGetInstallOverridesYAML(t *testing.T) {
 	trueval := true
 	dataKey := "testKey"
@@ -232,8 +232,9 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 
 // TestExtractValueFromOverrideString tests ExtractValueFromOverrideString
 // GIVEN an override string
-//  WHEN I call ExtractValueFromOverrideString
-//  THEN I get a value of the specified json path from the override string
+//
+//	WHEN I call ExtractValueFromOverrideString
+//	THEN I get a value of the specified json path from the override string
 func TestExtractValueFromOverrideString(t *testing.T) {
 	goodYAML := "foo:\n  foo: bar\n"
 	badYAML := "foo:\n  {foo: bar\n"

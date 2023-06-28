@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,7 +18,7 @@ type HelmManagedResource struct {
 	NamespacedName types.NamespacedName
 }
 
-//AssociateHelmObject annotates an object as being managed by the specified release helm chart
+// AssociateHelmObject annotates an object as being managed by the specified release helm chart
 func AssociateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {

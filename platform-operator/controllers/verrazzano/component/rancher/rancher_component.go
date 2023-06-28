@@ -9,15 +9,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -26,7 +21,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -39,6 +37,12 @@ const ComponentNamespace = common.CattleSystem
 const ComponentJSONName = "rancher"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
+
+const (
+	// Let's Encrypt environments
+	letsencryptProduction = "production"
+	letsEncryptStaging    = "staging"
+)
 
 type rancherComponent struct {
 	helm.HelmComponent
@@ -205,7 +209,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
 		return err
 	}
-	return r.HelmComponent.PreInstall(ctx)
+	return nil
 }
 
 // PreUpgrade
@@ -213,10 +217,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
 */
 func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	if err := chartsNotUpdatedWorkaround(ctx); err != nil {
-		return err
-	}
-	return r.HelmComponent.PreUpgrade(ctx)
+	return chartsNotUpdatedWorkaround(ctx)
 }
 
 // Install
@@ -255,7 +256,6 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PostInstall
 /* Additional setup for Rancher after the component is installed
-- Label Rancher Component Namespaces
 - Create the Rancher admin secret if it does not already exist
 - Retrieve the Rancher admin password
 - Retrieve the Rancher hostname
@@ -265,11 +265,6 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-
-	if err := labelNamespace(c); err != nil {
-		return log.ErrorfThrottledNewErr("failed labelling namespace the for Rancher component: %s", err.Error())
-	}
-	log.Debugf("Rancher component namespaces labelled")
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())

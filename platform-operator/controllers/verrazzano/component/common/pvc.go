@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
@@ -164,7 +165,7 @@ func GetPersistentVolumes(ctx spi.ComponentContext, componentName string) (*v1.P
 	return pvList, nil
 }
 
-//createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
+// createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
 func createPVCFromPV(ctx spi.ComponentContext, volume v1.PersistentVolume, newClaimName types.NamespacedName) error {
 	pvc := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

@@ -5,25 +5,26 @@ package common
 
 import (
 	"errors"
-	"github.com/golang/mock/gomock"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"io"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TestCertBuilder verifies downloading certs from the web
 // GIVEN a cert URI
-//  WHEN appendCertWithHTTP is called
-//  THEN appendCertWithHTTP should download the cert if it exists
+//
+//	WHEN appendCertWithHTTP is called
+//	THEN appendCertWithHTTP should download the cert if it exists
 func TestCertBuilder(t *testing.T) {
 	var tests = []struct {
 		testName string
@@ -75,8 +76,9 @@ func TestCertBuilder(t *testing.T) {
 
 // TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
 // GIVEN a certBuilder
-//  WHEN buildLetsEncryptStagingChain is called
-//  THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
+//
+//	WHEN buildLetsEncryptStagingChain is called
+//	THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
 func TestBuildLetsEncryptChain(t *testing.T) {
 	HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{
@@ -103,7 +105,17 @@ func TestProcessAdditionalCertificatesRancherDisabled(t *testing.T) {
 		},
 	}
 	mock := gomock.NewController(t)
+
 	client := mocks.NewMockClient(mock)
+
+	tlsAdditionalSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: CattleSystem,
+			Name:      constants.AdditionalTLS,
+		}}
+
+	client.EXPECT().Delete(gomock.Any(), tlsAdditionalSecret, gomock.Any()).Times(1)
+
 	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := ProcessAdditionalCertificates(ctx.Log(), client, vz)
 	assert.NoError(t, err)
