@@ -263,7 +263,6 @@ func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, cr
 	roc.OciocneEngineConfig.ClusterName = ""
 	roc.OciocneEngineConfig.NodeShape = nodeShape
 	roc.OciocneEngineConfig.NumWorkerNodes = numWorkerNodes
-	roc.OciocneEngineConfig.ApplyYamls = []string{applyYAMLs}
 	roc.OciocneEngineConfig.CloudCredentialID = credentialID
 	roc.OciocneEngineConfig.CompartmentID = compartmentID
 	roc.OciocneEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
@@ -274,6 +273,11 @@ func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, cr
 	roc.OciocneEngineConfig.VcnID = vcnID
 	roc.OciocneEngineConfig.WorkerNodeSubnet = workerNodeSubnet
 	roc.OciocneEngineConfig.NodePools = nodePools
+	if applyYAMLs == "" {
+		roc.OciocneEngineConfig.ApplyYamls = []string{}
+	} else {
+		roc.OciocneEngineConfig.ApplyYamls = []string{applyYAMLs}
+	}
 
 	roc.Name = clusterName
 	roc.CloudCredentialID = credentialID

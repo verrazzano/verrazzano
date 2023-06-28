@@ -115,8 +115,8 @@ func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
 
 	// Fill in the values for the create cluster API request body
 	var rancherOCNEClusterConfig RancherOCNECluster
-	nodePoolSpec := []string{}
-	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePoolSpec)
+	nodePools := []string{}
+	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
 
 	return createCluster(clusterName, rancherOCNEClusterConfig, log)
 }
@@ -131,12 +131,12 @@ func createNodePoolCluster(clusterName, nodePoolName string, log *zap.SugaredLog
 
 	// Fill in the values for the create cluster API request body
 	var rancherOCNEClusterConfig RancherOCNECluster
-	nodePoolSpec := []string{
+	nodePools := []string{
 		fmt.Sprintf(
 			"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}",
 			nodePoolName),
 	}
-	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePoolSpec)
+	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
 
 	return createCluster(clusterName, rancherOCNEClusterConfig, log)
 }
