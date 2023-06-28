@@ -321,7 +321,7 @@ spec:
     argoCD:
       enabled: false
     clusterAPI:
-      enabled: false
+      enabled: true
   defaultVolumeSource:
     emptyDir: {}
   environmentName: default
