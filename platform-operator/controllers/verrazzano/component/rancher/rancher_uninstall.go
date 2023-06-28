@@ -110,6 +110,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		if err != nil {
 			return err
 		}
+		monitor.Reset()
 		return nil
 	}
 
