@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -40,7 +40,7 @@ var (
 						Acme: vzapi.Acme{
 							Provider:     "foobar",
 							EmailAddress: "foo@bar.com",
-							Environment:  "dev",
+							Environment:  letsEncryptStaging,
 						},
 					},
 				},
@@ -278,8 +278,9 @@ func TestUseAdditionalCAs(t *testing.T) {
 		in  vzapi.Acme
 		out bool
 	}{
-		{vzapi.Acme{Environment: "dev"}, true},
-		{vzapi.Acme{Environment: "production"}, false},
+		{vzapi.Acme{Environment: letsEncryptStaging}, true},
+		{vzapi.Acme{Environment: letsencryptProduction}, false},
+		{vzapi.Acme{Environment: "dev"}, false},
 	}
 
 	for _, tt := range tests {

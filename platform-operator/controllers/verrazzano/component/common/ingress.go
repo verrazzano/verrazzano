@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -24,7 +24,7 @@ type IngressProperties struct {
 	ExtraAnnotations map[string]string
 }
 
-//SameSiteCookieAnnotations creates annotations for same site cookies to enable sticky sessions on an ingress
+// SameSiteCookieAnnotations creates annotations for same site cookies to enable sticky sessions on an ingress
 func SameSiteCookieAnnotations(cookieName string) map[string]string {
 	return map[string]string{
 		"nginx.ingress.kubernetes.io/affinity":                                 "cookie",

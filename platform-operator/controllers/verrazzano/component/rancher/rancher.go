@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -215,7 +214,7 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
-	return acme.Environment != "production"
+	return acme.Environment == letsEncryptStaging
 }
 
 func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
