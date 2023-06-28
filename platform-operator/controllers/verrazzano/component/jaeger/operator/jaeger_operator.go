@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"text/template"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -98,6 +99,7 @@ const jaegerAllInOneTemplate = `jaeger:
   create: true
   spec:
     strategy: allInOne
+    storage: {}
 `
 
 // A template to define Jaeger override for creating default Jaeger instance
@@ -163,7 +165,7 @@ func preInstall(ctx spi.ComponentContext) error {
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
 // A go template is used to specify the Jaeger images using extraEnv key.
-func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue, j *jaegerOperatorComponent) ([]bom.KeyValue, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -276,6 +278,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 				return nil, err
 			}
 		} else {
+			j.ValuesFile = filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
 			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
 			if err != nil {
 				return nil, err
@@ -815,6 +818,10 @@ func createJaegerSecrets(ctx spi.ComponentContext) error {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
+	return nil
+}
+
+func createInstanceAllInOneImage() error {
 	return nil
 }
 

@@ -5,7 +5,6 @@ package operator
 
 import (
 	"context"
-
 	"io/fs"
 	"os"
 	"testing"
@@ -252,7 +251,8 @@ func TestAppendOverrides(t *testing.T) {
 			}
 
 			var kvs []bom.KeyValue
-			kvs, err = AppendOverrides(fakeContext, "", "", "", kvs)
+			var jaegerComp jaegerOperatorComponent
+			kvs, err = AppendOverrides(fakeContext, "", "", "", kvs, &jaegerComp)
 			if test.expectedErr != nil {
 				asserts.Error(err)
 				asserts.Equal([]bom.KeyValue{}, kvs)
