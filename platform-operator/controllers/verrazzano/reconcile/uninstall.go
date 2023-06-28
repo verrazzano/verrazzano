@@ -401,10 +401,6 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	for ns := range nsSet {
 		// Clean up any remaining CM resources in Verrazzano-managed namespaces
 		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
-			_, ok := err.(*meta.NoKindMatchError)
-			if ok {
-				return ctrl.Result{}, nil
-			}
 			return newRequeueWithDelay(), err
 		}
 		err := resource.Resource{

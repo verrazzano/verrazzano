@@ -33,8 +33,7 @@ func (r Resource) Delete() error {
 	err := r.Client.Delete(context.TODO(), r.Object)
 	if err != nil {
 		// Ignore if CRD doesn't exist
-		_, ok := err.(*meta.NoKindMatchError)
-		if ok {
+		if _, ok := err.(*meta.NoKindMatchError); ok {
 			return nil
 		}
 		if client.IgnoreNotFound(err) == nil {
@@ -85,8 +84,7 @@ func (r Resource) Exists() (bool, error) {
 			return false, nil
 		}
 		// Ignore if CRD doesn't exist
-		_, ok := err.(*meta.NoKindMatchError)
-		if ok {
+		if _, ok := err.(*meta.NoKindMatchError); ok {
 			return false, nil
 		}
 		return false, err
