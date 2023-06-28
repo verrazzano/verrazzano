@@ -549,7 +549,8 @@ pipeline {
             }
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall -y --timeout 15m
+                    ${GO_REPO_PATH}/vz uninstall -m ${WORKSPACE}/downloaded-operator.yaml -y --timeout 10m
+
                     # wait for verrazzano-install to be deleted
                     until [ `kubectl get ns verrazzano-install | grep "NotFound" | wc -l` -gt 0 ]
                     do
@@ -578,6 +579,9 @@ pipeline {
             steps {
                 sh """
                     ${GO_REPO_PATH}/vz install -y --timeout 10m  --set profile=none
+                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ci/scripts/install_verrazzano.sh
                 """
             }
 
@@ -599,7 +603,7 @@ pipeline {
             }
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
+                    ${GO_REPO_PATH}/vz uninstall -m ${WORKSPACE}/downloaded-operator.yaml -y --timeout 10m
                 """
             }
 
