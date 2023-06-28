@@ -564,7 +564,7 @@ pipeline {
             }
         }
 
-        stage('Reinstall None') {
+        stage('Reinstall None only') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
