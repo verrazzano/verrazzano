@@ -230,7 +230,7 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
-	return acme.Environment == "staging"
+	return acme.Environment == letsEncryptStaging
 }
 
 func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
