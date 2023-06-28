@@ -11,6 +11,8 @@ import (
 
 var regexToReplacementList = []string{}
 
+//Potentially put additional filtering here Ask Tony, separate it out for different resources?
+
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 
 // InitRegexToReplacementMap Initialize the regex string to replacement string map

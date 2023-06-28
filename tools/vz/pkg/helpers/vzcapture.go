@@ -10,13 +10,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	certmanagerclient "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,10 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 var errBugReport = "an error occurred while creating the bug report: %s"
@@ -105,6 +107,9 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, namespace, captureDir 
 		return err
 	}
 	if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
+	if err := captureCertificates(namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil
@@ -278,6 +283,26 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	if len(statefulSets.Items) > 0 {
 		LogMessage(fmt.Sprintf("StatefulSets in namespace: %s ...\n", namespace))
 		if err = createFile(statefulSets, namespace, constants.StatefulSetsJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Would this be ok if it is creating a bunch of cert manager clients, should I create a top level certclient?
+func captureCertificates(namespace, captureDir string, vzHelper VZHelper) error {
+	certClient, err := certmanagerclient.GetCertManagerClientset()
+	if err != nil {
+		return err
+	}
+	certificateClient := certClient.Certificates(namespace)
+	certificateList, err := certificateClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the Services in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if len(certificateList.Items) > 0 {
+		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
+		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}

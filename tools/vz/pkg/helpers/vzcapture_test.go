@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -382,4 +384,21 @@ func TestGetPodListAll(t *testing.T) {
 	pods, err = GetPodListAll(fake.NewClientBuilder().WithObjects(podList...).Build(), nsName)
 	assert.NoError(t, err)
 	assert.Equal(t, podLength, len(pods))
+}
+
+//	 GIVEN a k8s cluster with certificates present in a namespace  ,
+//		WHEN I call functions to create a list of certificates for the pod,
+//		THEN expect it to write to the provided resource file, the JSON contents of the certificates in that namespace and no error should be returned.
+func TestCreateCertificateFile(t *testing.T) {
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	defer cleanupTempDir(t, captureDir)
+	assert.NoError(t, err)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	//Look into how to put fake certificates in this list
+	certificateListForTest := v1.CertificateList{}
+	err = createFile(certificateListForTest, "rancher", "certificates.json", captureDir, rc)
+	assert.NoError(t, err)
 }
