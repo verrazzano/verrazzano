@@ -287,4 +287,5 @@ func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, cr
 	roc.EnableNetworkPolicy = enableNetworkPolicy
 	roc.WindowsPreferedCluster = windowsPreferedCluster
 	roc.Type = "cluster"
+	roc.Labels = struct{}{}
 }
