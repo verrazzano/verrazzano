@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagerfake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1/fake"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -27,6 +29,7 @@ import (
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	testk8 "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -389,7 +392,13 @@ func TestGetPodListAll(t *testing.T) {
 //	 GIVEN a k8s cluster with certificates present in a namespace  ,
 //		WHEN I call functions to create a list of certificates for the pod,
 //		THEN expect it to write to the provided resource file, the JSON contents of the certificates in that namespace and no error should be returned.
+//		(Could Potentially Add to this function to look at file on disk and see that it is the correct output)
 func TestCreateCertificateFile(t *testing.T) {
+	fakeCertManager := certmanagerfake.FakeCertmanagerV1{
+		Fake: &testk8.Fake{},
+	}
+	fakeCertificateInterface := fakeCertManager.Certificates("rancher")
+	fakeCertificateInterface.Create(context.TODO(), &v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate"}}, metav1.CreateOptions{})
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
@@ -397,8 +406,6 @@ func TestCreateCertificateFile(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	//Look into how to put fake certificates in this list
-	certificateListForTest := v1.CertificateList{}
-	err = createFile(certificateListForTest, "rancher", "certificates.json", captureDir, rc)
+	err = writeCertificateResourcesToFile(fakeCertificateInterface, "rancher", "certificates.json", rc)
 	assert.NoError(t, err)
 }
