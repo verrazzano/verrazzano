@@ -38,22 +38,34 @@ var (
 		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
 )
 
-// var cli client.Reader
+const (
+	yamlComponents            = "components"
+	yamlSpec                  = "spec"
+	yamlTraits                = "traits"
+	traitKind                 = "kind"
+	traitComponent            = "trait"
+	yamlMetadata              = "metadata"
+	yamlName                  = "name"
+	yamlNamespace             = "namespace"
+	ingressTrait              = "IngressTrait"
+	metricsTrait              = "metricsTrait"
+	gatewayAPIVersion         = "networking.istio.io/v1alpha3"
+	virtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
+	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	authorizationAPIVersion   = "security.istio.io/v1beta1"
+	httpsProtocol             = "HTTPS"
+	verrazzanoClusterIssuer   = "verrazzano-cluster-issuer"
+	certificateAPIVersion     = "cert-manager.io/v1"
+)
+
 func main() {
 
 	//Read OAM File
-	yamlData, err := ioutil.ReadFile("examples/hello-helidon/hello-helidon-app.yaml")
+	yamlData, err := ioutil.ReadFile("../../examples/hello-helidon/hello-helidon-app.yaml")
 	if err != nil {
 		fmt.Println("Failed to read YAML file:", err)
 		return
 	}
-
-	//Read Comp file
-	//compData, err := ioutil.ReadFile("examples/hello-helidon/hello-helidon-comp.yaml")
-	//if err != nil {
-	//	fmt.Println("Failed to read YAML file:", err)
-	//	return
-	//}
 
 	// Create a map to store the parsed OAM YAML input data
 	yamlMap := make(map[string]interface{})
@@ -63,60 +75,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to unmarshal YAML: %v", err)
 	}
+	ingressTraits := []*vzapi.IngressTrait{}
+	metricsTraits := []*vzapi.MetricsTrait{}
+
+	ingressTraits, metricsTraits = handleYAMLStructurePanic(yamlMap)
 
 	// Access and work with the YAML data
-	ingressTraits := []*vzapi.IngressTrait{} //Array of ingresstraits
-	metricsTraits := []*vzapi.MetricsTrait{} //Array of metricstraits
 
-	// Access nested objects within the YAML data and extract traits by checking the kind of the object
-	components := yamlMap["spec"].(map[string]interface{})["components"].([]interface{})
-	for _, component := range components {
-		componentMap := component.(map[string]interface{})
-		componentTraits, ok := componentMap["traits"].([]interface{})
-		if ok {
-			for _, trait := range componentTraits {
-				traitMap := trait.(map[string]interface{})
-				traitSpec := traitMap["trait"].(map[string]interface{})
-				traitKind := traitSpec["kind"].(string)
-				if traitKind == "IngressTrait" {
-					ingressTrait := &vzapi.IngressTrait{}
-					traitJSON, err := json.Marshal(traitSpec)
-
-					if err != nil {
-						log.Fatalf("Failed to marshal trait: %v", err)
-					}
-
-					err = json.Unmarshal(traitJSON, ingressTrait)
-					ingressTrait.Name = yamlMap["metadata"].(map[string]interface{})["name"].(string)
-					ingressTrait.Namespace = yamlMap["metadata"].(map[string]interface{})["namespace"].(string)
-					if err != nil {
-						log.Fatalf("Failed to unmarshal trait: %v", err)
-					}
-
-					ingressTraits = append(ingressTraits, ingressTrait)
-				}
-				if traitKind == "MetricsTrait" {
-					metricsTrait := &vzapi.MetricsTrait{}
-					traitJSON, err := json.Marshal(traitSpec)
-
-					if err != nil {
-						log.Fatalf("Failed to marshal trait: %v", err)
-					}
-
-					err = json.Unmarshal(traitJSON, metricsTrait)
-					metricsTrait.Name = yamlMap["metadata"].(map[string]interface{})["name"].(string)
-					metricsTrait.Namespace = yamlMap["metadata"].(map[string]interface{})["namespace"].(string)
-					if err != nil {
-						log.Fatalf("Failed to unmarshal trait: %v", err)
-					}
-					metricsTraits = append(metricsTraits, metricsTrait)
-				}
-
-			}
-		}
-	}
-
-	//Create child resources of each metric trait
 	for _, trait := range metricsTraits {
 
 		fmt.Printf("Trait API Version: %s\n", trait.APIVersion)
@@ -134,8 +99,60 @@ func main() {
 
 }
 
+// handling YAML structure panic
+func handleYAMLStructurePanic(yamlMap map[string]interface{}) ([]*vzapi.IngressTrait, []*vzapi.MetricsTrait) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred in YAML structure:", err)
+		}
+	}()
+	return extractTraitFromMap(yamlMap)
+}
+
+func extractTraitFromMap(yamlMap map[string]interface{}) ([]*vzapi.IngressTrait, []*vzapi.MetricsTrait) {
+
+	ingressTraits := []*vzapi.IngressTrait{} //Array of ingresstraits
+	metricsTraits := []*vzapi.MetricsTrait{}
+	// Access nested objects within the YAML data and extract traits by checking the kind of the object
+	components := yamlMap[yamlSpec].(map[string]interface{})[yamlComponents].([]interface{})
+	for _, component := range components {
+		componentMap := component.(map[string]interface{})
+		componentTraits, ok := componentMap[yamlTraits].([]interface{})
+		if ok {
+			for _, trait := range componentTraits {
+				traitMap := trait.(map[string]interface{})
+				traitSpec := traitMap[traitComponent].(map[string]interface{})
+				traitKind := traitSpec[traitKind].(string)
+				if traitKind == ingressTrait {
+					ingressTrait := &vzapi.IngressTrait{}
+					traitJSON, err := json.Marshal(traitSpec)
+
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+					}
+
+					err = json.Unmarshal(traitJSON, ingressTrait)
+					ingressTrait.Name = yamlMap[yamlMetadata].(map[string]interface{})[yamlName].(string)
+					ingressTrait.Namespace = yamlMap[yamlMetadata].(map[string]interface{})[yamlNamespace].(string)
+					if err != nil {
+						log.Fatalf("Failed to unmarshal trait: %v", err)
+					}
+
+					ingressTraits = append(ingressTraits, ingressTrait)
+				}
+				if traitKind == metricsTrait {
+					//	Add metricstrait code
+				}
+
+			}
+		}
+	}
+	return ingressTraits, metricsTraits
+
+}
+
 // createChildResources creates the Gateway, VirtualService, DestinationRule and AuthorizationPolicy resources
-func createIngressChildResources(ingresstrait *vzapi.IngressTrait) {
+func createIngressChildResources(ingresstrait *vzapi.IngressTrait) error {
 	rules := ingresstrait.Spec.Rules
 	// If there are no rules, create a single default rule
 	if len(rules) == 0 {
@@ -143,49 +160,57 @@ func createIngressChildResources(ingresstrait *vzapi.IngressTrait) {
 	}
 
 	// Create a list of unique hostnames across all rules in the trait
-	allHostsForTrait := coallateAllHostsForTrait(ingresstrait)
-
+	allHostsForTrait, err := coallateAllHostsForTrait(ingresstrait)
+	if err != nil {
+		print(err)
+		return err
+	}
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := createGatewaySecret(ingresstrait, allHostsForTrait)
 	if secretName != "" {
 		gwName, err := buildGatewayName(ingresstrait)
 		if err != nil {
 			print(err)
+			return err
 		} else {
 			//creating gateway
 			gateway, err := createGateway(ingresstrait, allHostsForTrait, gwName, secretName)
 			if err != nil {
 				print(err)
+				return err
 			}
 			for index, rule := range rules {
 				// Find the services associated with the trait in the application configuration.
 				var services []*corev1.Service
 
-				//services, err := fetchServicesFromTrait(ingresstrait)
-				//if err != nil {
-				//	print(err)
-				//} else if len(services) == 0 {
-				//	// This will be the case if the service has not started yet so we requeue and try again.
-				//	print(err)
-				//}
-
 				vsHosts, err := createHostsFromIngressTraitRule(rule, ingresstrait)
 				if err != nil {
 					print(err)
+					return err
 				}
 				vsName := fmt.Sprintf("%s-rule-%d-vs", ingresstrait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", ingresstrait.Name, index)
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", ingresstrait.Name, index)
-				createVirtualService(ingresstrait, rule, vsHosts, vsName, services, gateway)
-				createDestinationRule(ingresstrait, rule, drName, services)
-				createAuthorizationPolicies(ingresstrait, rule, authzPolicyName, allHostsForTrait)
+				err = createVirtualService(ingresstrait, rule, vsHosts, vsName, services, gateway)
+				if err != nil {
+					return err
+				}
+				err = createDestinationRule(ingresstrait, rule, drName, services)
+				if err != nil {
+					return err
+				}
+				err = createAuthorizationPolicies(ingresstrait, rule, authzPolicyName, allHostsForTrait)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
+	return nil
 }
 
 // creates Authorization Policy
-func createAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string) {
+func createAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string) error {
 	// If any path needs an AuthorizationPolicy then add one for every path
 	var addAuthPolicy bool
 	for _, path := range rule.Paths {
@@ -215,7 +240,7 @@ func createAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRu
 			authzPolicy := &clisecurity.AuthorizationPolicy{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "AuthorizationPolicy",
-					APIVersion: "security.istio.io/v1beta1",
+					APIVersion: authorizationAPIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      policyName,
@@ -223,23 +248,26 @@ func createAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRu
 					Labels:    map[string]string{constants.LabelIngressTraitNsn: getIngressTraitNsn(trait.Namespace, trait.Name)},
 				},
 			}
-			mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts, requireFrom)
+			return mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts, requireFrom)
 		}
 	}
+	return nil
 }
 
+// Get Ingress Trait Namespace and name appended with "-"
 func getIngressTraitNsn(namespace string, name string) string {
 	return fmt.Sprintf("%s-%s", namespace, name)
 }
 
 // mutateAuthorizationPolicy changes the destination rule based upon a trait's configuration
-func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) {
+func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
 		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts, requireFrom)
 		if err != nil {
 			print(err)
+			return err
 		}
 	}
 
@@ -250,6 +278,7 @@ func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzP
 		Rules: policyRules,
 	}
 	fmt.Println("AuthorizationPolicy", authzPolicy)
+	return nil
 }
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
@@ -292,33 +321,31 @@ func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, h
 }
 
 // createOfUpdateDestinationRule creates or updates the DestinationRule.
-func createDestinationRule(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service) {
+func createDestinationRule(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service) error {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "networking.istio.io/v1alpha3",
+				APIVersion: destinationRuleAPIVersion,
 				Kind:       "DestinationRule"},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: trait.Namespace,
 				Name:      name},
 		}
 		namespace := &corev1.Namespace{}
-		//namespaceErr := cli.Get(client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace)
-		//if namespaceErr != nil {
-		//
-		//}
 		fmt.Println("destinationRule", destinationRule)
-		mutateDestinationRule(destinationRule, rule, services, namespace)
+		return mutateDestinationRule(destinationRule, rule, services, namespace)
 
 	}
+	return nil
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func mutateDestinationRule(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, services []*corev1.Service, namespace *corev1.Namespace) {
+func mutateDestinationRule(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, services []*corev1.Service, namespace *corev1.Namespace) error {
 	dest, err := createDestinationFromRuleOrService(rule, services)
 
 	if err != nil {
 		print(err)
+		return err
 	}
 
 	mode := istionet.ClientTLSSettings_DISABLE
@@ -347,6 +374,7 @@ func mutateDestinationRule(destinationRule *istioclient.DestinationRule, rule vz
 		},
 	}
 	fmt.Println("DestinationRule", destinationRule)
+	return nil
 }
 
 // createGateway creates the Gateway child resource of the trait.
@@ -355,7 +383,7 @@ func createGateway(trait *vzapi.IngressTrait, hostsForTrait []string, gwName str
 	// This is used as default if the gateway needs to be created.
 	gateway := &vsapi.Gateway{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: gatewayAPIVersion,
 			Kind:       "Gateway"},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: trait.Namespace,
@@ -384,9 +412,9 @@ func mutateGateway(gateway *vsapi.Gateway, trait *vzapi.IngressTrait, hostsForTr
 		Name:  trait.Name,
 		Hosts: hostsForTrait,
 		Port: &istio.Port{
-			Name:     formatGatewaySeverPortName(trait.Name),
+			Name:     formatGatewayServerPortName(trait.Name),
 			Number:   443,
-			Protocol: "HTTPS",
+			Protocol: httpsProtocol,
 		},
 		Tls: &istio.ServerTLSSettings{
 			Mode:           istio.ServerTLSSettings_SIMPLE,
@@ -398,34 +426,11 @@ func mutateGateway(gateway *vsapi.Gateway, trait *vzapi.IngressTrait, hostsForTr
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 
-	//gatewayYaml, err := yaml.Marshal(&gateway)
-	//if err != nil {
-	//	fmt.Printf("Error while Marshaling. %v", err)
-	//}
-	//
-	//fileName := "/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/test.yaml"
-	//file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	//if err != nil {
-	//	fmt.Printf("Failed to open YAML file: %v\n", err)
-	//	return err
-	//}
-	//
-	//// Write the YAML content at the end of the file
-	//_, err = file.Write(gatewayYaml)
-	//if err != nil {
-	//	fmt.Printf("Failed to write YAML content: %v\n", err)
-	//	return nil
-	//}
-	//yamlContent := "---\n"
-	//
-	//// Write the YAML content to a file
-	//_, err = file.Write([]byte(yamlContent))
-
 	fmt.Println("gateway", gateway)
 	return nil
 }
 
-func formatGatewaySeverPortName(traitName string) string {
+func formatGatewayServerPortName(traitName string) string {
 	return fmt.Sprintf("https-%s", traitName)
 }
 
@@ -487,7 +492,7 @@ func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string)
 	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Certificate",
-			APIVersion: "cert-manager.io/v1",
+			APIVersion: certificateAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "istio-system",
@@ -497,7 +502,7 @@ func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string)
 		DNSNames:   hostsForTrait,
 		SecretName: secretName,
 		IssuerRef: certv1.ObjectReference{
-			Name: "verrazzano-cluster-issuer",
+			Name: verrazzanoClusterIssuer,
 			Kind: "ClusterIssuer",
 		},
 	}
@@ -538,31 +543,19 @@ func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait) string {
 // generated by the runtime (when no hosts are specified).
 func validateConfiguredSecret(trait *vzapi.IngressTrait) string {
 	secretName := trait.Spec.TLS.SecretName
-	//if secretName != "" {
-	//	// if a secret is specified then host(s) must be provided for all rules
-	//	for _, rule := range trait.Spec.Rules {
-	//		if len(rule.Hosts) == 0 {
-	//			//err := errors.New("all rules must specify at least one host when a secret is specified for TLS transport")
-	//			ref := vzapi.QualifiedResourceRelation{APIVersion: "v1", Kind: "Secret", Name: secretName, Role: "secret"}
-	//			status.Relations = append(status.Relations, ref)
-	//			status.Errors = append(status.Errors, err)
-	//			status.Results = append(status.Results, controllerutil.OperationResultNone)
-	//			return ""
-	//		}
-	//	}
-	//}
 	return secretName
 }
 
-func coallateAllHostsForTrait(trait *vzapi.IngressTrait) []string {
+func coallateAllHostsForTrait(trait *vzapi.IngressTrait) ([]string, error) {
 	allHosts := []string{}
 	var err error
 	for _, rule := range trait.Spec.Rules {
 		if allHosts, err = createHostsFromIngressTraitRule(rule, trait, allHosts...); err != nil {
 			print(err)
+			return nil, err
 		}
 	}
-	return allHosts
+	return allHosts, nil
 }
 
 // createHostsFromIngressTraitRule creates an array of hosts from an ingress rule, appending to an optionally provided input list
@@ -675,10 +668,10 @@ func findHost(hosts []string, newHost string) (int, bool) {
 
 // creates the VirtualService child resource of the trait.
 func createVirtualService(ingresstrait *vzapi.IngressTrait, rule vzapi.IngressRule,
-	allHostsForTrait []string, name string, services []*corev1.Service, gateway *vsapi.Gateway) {
+	allHostsForTrait []string, name string, services []*corev1.Service, gateway *vsapi.Gateway) error {
 	virtualService := &vsapi.VirtualService{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "networking.istio.io/v1alpha3",
+			APIVersion: virtualServiceAPIVersion,
 			Kind:       "VirtualService",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -686,11 +679,11 @@ func createVirtualService(ingresstrait *vzapi.IngressTrait, rule vzapi.IngressRu
 			Name:      name,
 		},
 	}
-	mutateVirtualService(virtualService, rule, allHostsForTrait, services, gateway)
+	return mutateVirtualService(virtualService, rule, allHostsForTrait, services, gateway)
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func mutateVirtualService(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, services []*corev1.Service, gateway *vsapi.Gateway) {
+func mutateVirtualService(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, services []*corev1.Service, gateway *vsapi.Gateway) error {
 	virtualService.Spec.Gateways = []string{gateway.Name}
 	virtualService.Spec.Hosts = allHostsForTrait
 	matches := []*istio.HTTPMatchRequest{}
@@ -702,35 +695,15 @@ func mutateVirtualService(virtualService *vsapi.VirtualService, rule vzapi.Ingre
 	dest, err := createDestinationFromRuleOrService(rule, services)
 	if err != nil {
 		print(err)
+		return err
 	}
 	route := istio.HTTPRoute{
 		Match: matches,
 		Route: []*istio.HTTPRouteDestination{dest}}
 	virtualService.Spec.Http = []*istio.HTTPRoute{&route}
 
-	//virtualYaml, err := yaml.Marshal(&virtualService)
-	//if err != nil {
-	//	fmt.Printf("Error while Marshaling. %v", err)
-	//}
-	//
-	//fileName := "/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/test.yaml"
-	//file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	//if err != nil {
-	//	fmt.Printf("Failed to open YAML file: %v\n", err)
-	//	return
-	//}
-	//
-	//// Write the YAML content at the end of the file
-	//_, err = file.Write(virtualYaml)
-	//if err != nil {
-	//	fmt.Printf("Failed to write YAML content: %v\n", err)
-	//	return
-	//}
-	//yamlContent := "---\n"
-	//
-	//_, err = file.Write([]byte(yamlContent))
-
 	fmt.Println("virtual-service", virtualService)
+	return nil
 }
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
@@ -744,10 +717,8 @@ func createDestinationFromRuleOrService(rule vzapi.IngressRule, services []*core
 		return dest, nil
 	}
 
-	//if rule.Destination.Port != 0 {
 	return createDestinationMatchRulePort(services, rule.Destination.Port)
-	//}
-	//return createDestinationFromService(services) //if port not given
+
 }
 
 // createDestinationMatchRulePort fetches a Service matching the specified rule port and creates virtual service destination.
@@ -893,9 +864,9 @@ func getPathsFromRule(rule vzapi.IngressRule) []vzapi.IngressPath {
 // Get the IP from Istio resources
 func buildDomainNameForWildcard(cli client.Reader, suffix string) (string, error) {
 	istioIngressGateway := "istio-ingressgateway"
-	IstioSystemNamespace := "istio-system"
+	istioSystemNamespace := "istio-system"
 	istio := corev1.Service{}
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: IstioSystemNamespace}, &istio)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: istioSystemNamespace}, &istio)
 	if err != nil {
 		return "", err
 	}
