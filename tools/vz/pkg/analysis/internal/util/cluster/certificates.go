@@ -8,6 +8,9 @@ import (
 	encjson "encoding/json"
 	"io"
 	"os"
+	"regexp"
+	"strings"
+	"time"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
@@ -16,10 +19,17 @@ import (
 )
 
 func AnalyzeCertificateRelatedIsssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
-	//First Step check if VPO Pod is detecting that a certificate expired
+	mapOfCertificatesInVPOToTheirNamespace, err := determineIfVPOIsHangingDueToCerts(log, clusterRoot)
+
+	if err != nil {
+		return err
+	}
 	allNamespacesFound, err = files.FindNamespaces(log, clusterRoot)
 	if err != nil {
 		return err
+	}
+	var issueReporter = report.IssueReporter{
+		PendingIssues: make(map[string]report.Issue),
 	}
 	for _, namespace := range allNamespacesFound {
 		certificateFile := files.FindFileInNamespace(clusterRoot, namespace, "certificates.json")
@@ -27,21 +37,25 @@ func AnalyzeCertificateRelatedIsssues(log *zap.SugaredLogger, clusterRoot string
 		if err != nil {
 			return err
 		}
-		var issueReporter = report.IssueReporter{
-			PendingIssues: make(map[string]report.Issue),
-		}
-		for _, certificate := range certificateListForNamespace.Items {
-			if certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Status == "True" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Type == "Ready" {
 
-				//
+		for _, certificate := range certificateListForNamespace.Items {
+			if certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Status == "True" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Type == "Ready" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Message == "Certificate is up to date and has not expired" {
+				if len(mapOfCertificatesInVPOToTheirNamespace) > 0 {
+					namespace, ok := mapOfCertificatesInVPOToTheirNamespace[certificate.ObjectMeta.Name]
+					if ok && namespace == certificate.ObjectMeta.Namespace {
+						reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile, true, false)
+					}
+				}
+			} else if certificate.Status.NotAfter.Unix() < time.Now().Unix() {
+				reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile, false, true)
 			} else {
-				reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
+				reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile, false, false)
 			}
 		}
-		issueReporter.Contribute(log, clusterRoot)
-
 	}
+	issueReporter.Contribute(log, clusterRoot)
 	return nil
+
 }
 
 func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *certv1.CertificateList, err error) {
@@ -65,8 +79,49 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 	}
 	return certList, err
 }
-func reportCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
-	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is not ready or invalid"}
+func reportCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string, VPOHangingIssue bool, isCertificateExpired bool) {
 	files := []string{certificateFile}
-	issueReporter.AddKnownIssueMessagesFiles("Certificate Not Ready/Invalid In Cluster", clusterRoot, message, files)
+	if VPOHangingIssue {
+		message := []string{"The VPO is hanging due to a long time for the certificate to complete, but the certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is ready"}
+		issueReporter.AddKnownIssueMessagesFiles("VPO Hanging Issue Due To Long Certificate Approval", clusterRoot, message, files)
+		return
+	}
+	if isCertificateExpired {
+		message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is expired"}
+		issueReporter.AddKnownIssueMessagesFiles("Certificate Expired", clusterRoot, message, files)
+		return
+	}
+	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is not valid and experiencing issues"}
+	issueReporter.AddKnownIssueMessagesFiles("Certificate Not Valid/Experiencing Issues In Cluster", clusterRoot, message, files)
+}
+func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
+	listOfCertificatesThatVPOIsHangingOn := make(map[string]string)
+	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
+	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
+	if err != nil {
+		return listOfCertificatesThatVPOIsHangingOn, err
+	}
+	vpoLog := allPodFiles[0]
+	allMessages, err := files.ConvertToLogMessage(vpoLog)
+	if err != nil {
+		return listOfCertificatesThatVPOIsHangingOn, err
+	}
+	//Look through the last 10 messages of the VPO logged
+	lastTenVPOLogs := allMessages[len(allMessages)-10:]
+	for _, VPOLog := range lastTenVPOLogs {
+		//Check if VPO message indicates if certificate is hangiingn and add
+		VPOLogMessage := VPOLog.Message
+		if strings.Contains(VPOLogMessage, "message: Issuing certificate as Secret does not exist") && strings.HasPrefix(VPOLogMessage, "Certificate ") {
+			VPOLogCertificateNameAndNamespace := strings.Split(VPOLogMessage, " ")[1]
+			namespaceAndCertificateNameSplit := strings.Split(VPOLogCertificateNameAndNamespace, "/")
+			nameSpace := namespaceAndCertificateNameSplit[0]
+			certificateName := namespaceAndCertificateNameSplit[1]
+			_, ok := listOfCertificatesThatVPOIsHangingOn[certificateName]
+			if !ok {
+				listOfCertificatesThatVPOIsHangingOn[certificateName] = nameSpace
+			}
+		}
+
+	}
+	return listOfCertificatesThatVPOIsHangingOn, nil
 }
