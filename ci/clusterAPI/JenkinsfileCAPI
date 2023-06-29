@@ -59,6 +59,8 @@ pipeline {
                 trim: true)
         choice (description: 'Number of OCNE control plane nodes', name: 'CONTROL_PLANE_MACHINE_COUNT', choices: ["1", "3"])
         choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["1","2","3"])
+        string (name: 'NODE_OCPU',defaultValue: '4',description: 'Number of OCPUs for worker nodes with shape VM.Standard.E4.Flex',trim: true)
+        string (name: 'MEMORY_GBS',defaultValue: '80',description: 'Amount of memeriry assigned to nodes with shape VM.Standard.E4.Flex',trim: true)
         string (name: 'ORACLE_LINUX_NAME',defaultValue: 'Oracle-Linux-8.7-2023',description: 'Oracle Linux Display Name',trim: true)
         string (name: 'OPERATING_SYSTEM',defaultValue: 'Oracle Linux',description: 'Operating system filter used to fetch stock images',trim: true)
         string (name: 'OPERATING_SYSTEM_VERSION',defaultValue: '8',description: 'Version of Operating system to fetch',trim: true)
@@ -202,9 +204,8 @@ pipeline {
         ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}"
         OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}"
         OPERATING_SYSTEM_VERSION = "${params.OPERATING_SYSTEM_VERSION}"
-
-
-
+        OCI_NODE_MACHINE_TYPE_OCPUS = "${params.NODE_OCPU}"
+        OCI_NODE_MACHINE_MEMORY_GBS = "${params.MEMORY_GBS}"
     }
 
     stages {

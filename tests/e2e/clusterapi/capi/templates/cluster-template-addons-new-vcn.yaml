@@ -133,7 +133,8 @@ spec:
         ssh_authorized_keys: ${OCI_SSH_KEY}
       shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
       shapeConfig:
-        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=2}"
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=4}"
+        memoryInGBs: "${OCI_NODE_MACHINE_MEMORY_GBS=80}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
@@ -151,7 +152,8 @@ spec:
         ssh_authorized_keys: ${OCI_SSH_KEY}
       shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
       shapeConfig:
-        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=2}"
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=4}"
+        memoryInGBs: "${OCI_NODE_MACHINE_MEMORY_GBS=80}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
 kind: OCNEConfigTemplate
