@@ -425,7 +425,6 @@ func getWorkloadKubeconfig(clusterID string, log *zap.SugaredLogger) (string, er
 // Given a file path, returns the file's contents as a string
 func getFileContents(file string, log *zap.SugaredLogger) (string, error) {
 	data, err := os.ReadFile(file)
-	fmt.Println("========= file: " + file)
 	if err != nil {
 		log.Errorf("failed reading file contents: %v", err)
 		return "", err
