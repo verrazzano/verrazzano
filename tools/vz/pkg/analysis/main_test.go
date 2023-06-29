@@ -477,3 +477,26 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 	}
 	assert.True(t, problemsFound > 0)
 }
+
+// TestCertificateExpiratoinIssue tests analysis of a cluster dump when a certificate in the cluster has expired
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN at least one certificate in the cluster has failed
+// THEN a report is generated with issues identified
+func TestCertificateExpirationIssue(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/keycloak-data-migration-failure")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.KeycloakDataMigrationFailure {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
