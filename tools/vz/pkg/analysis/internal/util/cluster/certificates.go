@@ -37,6 +37,9 @@ func AnalyzeCertificateRelatedIsssues(log *zap.SugaredLogger, clusterRoot string
 		if err != nil {
 			return err
 		}
+		if certificateListForNamespace == nil {
+			continue
+		}
 
 		for _, certificate := range certificateListForNamespace.Items {
 			if certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Status == "True" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Type == "Ready" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Message == "Certificate is up to date and has not expired" {
@@ -83,16 +86,16 @@ func reportCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certific
 	files := []string{certificateFile}
 	if VPOHangingIssue {
 		message := []string{"The VPO is hanging due to a long time for the certificate to complete, but the certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is ready"}
-		issueReporter.AddKnownIssueMessagesFiles("VPO Hanging Issue Due To Long Certificate Approval", clusterRoot, message, files)
+		issueReporter.AddKnownIssueMessagesFiles(report.VPOHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
 		return
 	}
 	if isCertificateExpired {
 		message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is expired"}
-		issueReporter.AddKnownIssueMessagesFiles("Certificate Expired", clusterRoot, message, files)
+		issueReporter.AddKnownIssueMessagesFiles(report.CertificateExpired, clusterRoot, message, files)
 		return
 	}
 	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is not valid and experiencing issues"}
-	issueReporter.AddKnownIssueMessagesFiles("Certificate Not Valid/Experiencing Issues In Cluster", clusterRoot, message, files)
+	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
 }
 func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
 	listOfCertificatesThatVPOIsHangingOn := make(map[string]string)

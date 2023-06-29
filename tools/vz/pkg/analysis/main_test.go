@@ -486,7 +486,7 @@ func TestCertificateExpirationIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/keycloak-data-migration-failure")
+	err := Analyze(logger, "cluster", "test/cluster/testCertificateIssue")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -494,7 +494,7 @@ func TestCertificateExpirationIssue(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	problemsFound := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.KeycloakDataMigrationFailure {
+		if issue.Type == report.VPOHangingIssueDueToLongCertificateApproval {
 			problemsFound++
 		}
 	}
