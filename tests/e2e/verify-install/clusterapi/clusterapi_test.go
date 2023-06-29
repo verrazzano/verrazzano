@@ -26,7 +26,6 @@ import (
 
 const (
 	waitTimeout       = 5 * time.Minute
-	waitTimeoutMedium = 10 * time.Minute
 	pollingInterval   = 10 * time.Second
 	minimumK8sVersion = "1.24.0"
 )
@@ -129,7 +128,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 				}
 				return allActive
 			}
-			Eventually(driversActive, waitTimeoutMedium, pollingInterval).Should(BeTrue())
+			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		WhenClusterAPIInstalledIt("expected kontainerdrivers must exist", func() {
