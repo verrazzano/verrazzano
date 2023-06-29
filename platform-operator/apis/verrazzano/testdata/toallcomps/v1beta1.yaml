@@ -343,3 +343,8 @@ spec:
       overrides:
         - values:
             frobber: frob
+    clusterAPI:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
