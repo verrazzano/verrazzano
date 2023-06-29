@@ -132,16 +132,16 @@ pipeline {
                 defaultValue: '',
                 description: 'An optional override to be passed into the OCNE cluster creation request.',
                 trim: true)
-        string (name: 'INSTALL_CALICO',
-                defaultValue: '',
+        booleanParam (name: 'INSTALL_CALICO',
+                defaultValue: true,
                 description: 'An optional override to be passed into the OCNE cluster creation request.',
                 trim: true)
-        string (name: 'INSTALL_CCM',
-                defaultValue: '',
+        booleanParam (name: 'INSTALL_CCM',
+                defaultValue: true,
                 description: 'An optional override to be passed into the OCNE cluster creation request.',
                 trim: true)
-        string (name: 'INSTALL_VERRAZZANO',
-                defaultValue: '',
+        booleanParam (name: 'INSTALL_VERRAZZANO',
+                defaultValue: false,
                 description: 'An optional override to be passed into the OCNE cluster creation request.',
                 trim: true)
         string (name: 'KUBERNETES_VERSION',
