@@ -14,6 +14,7 @@ var regexToReplacementList = []string{}
 //Potentially put additional filtering here Ask Tony, separate it out for different resources?
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
+const hostnameRegex = `([a-z0-9][a-z0-9\-]*\.)([a-z0-9\-]*\.)+([a-z0-9\-]+)`
 
 // Ask whether this is the correct hostname regex
 
@@ -21,6 +22,7 @@ const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:d
 // Append to this map for any future additions
 func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, ipv4Regex)
+	regexToReplacementList = append(regexToReplacementList, hostnameRegex)
 }
 
 // SanitizeString sanitizes each line in a given file,

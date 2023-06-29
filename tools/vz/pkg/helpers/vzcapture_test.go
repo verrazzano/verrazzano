@@ -104,8 +104,10 @@ func TestGroupVersionResource(t *testing.T) {
 //	WHEN I call functions to capture k8s resource
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
 	k8sClient := k8sfake.NewSimpleClientset()
-	client := fake.NewClientBuilder().Build()
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).Build()
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
