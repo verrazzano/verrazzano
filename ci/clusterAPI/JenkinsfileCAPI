@@ -7,7 +7,6 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def clusterSuffix = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
-
 pipeline {
     options {
         timeout(time: 1, unit: 'HOURS')
@@ -42,6 +41,27 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                         trim: true)
+        string (name: 'POD_CIDR',
+                        defaultValue: '192.168.0.0/16',
+                        description: 'POD cidr to be used in OCNE CAPI cluster',
+                        trim: true)
+        string (name: 'CLUSTER_CIDR',
+                defaultValue: '10.128.0.0/12',
+                description: 'POD CLUSTER_CIDR to be used in OCNE CAPI cluster',
+                trim: true)
+        string (name: 'OCNE_IMAGE_REPOSITORY',
+                defaultValue: 'container-registry.oracle.com',
+                description: 'OCNE registry value. Default container-registry.oracle.com',
+                trim: true)
+        string (name: 'OCNE_IMAGE_PATH',
+                defaultValue: 'olcne',
+                description: 'Path in OCNE registry value. Default olcne',
+                trim: true)
+        choice (description: 'Number of OCNE control plane nodes', name: 'CONTROL_PLANE_MACHINE_COUNT', choices: ["1", "3"])
+        choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["1","2","3"])
+        string (name: 'ORACLE_LINUX_NAME',defaultValue: 'Oracle-Linux-8.7-2023',description: 'Oracle Linux Display Name',trim: true)
+        string (name: 'OPERATING_SYSTEM',defaultValue: 'Oracle Linux',description: 'Operating system filter used to fetch stock images',trim: true)
+        string (name: 'OPERATING_SYSTEM_VERSION',defaultValue: '8',description: 'Version of Operating system to fetch',trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
@@ -73,24 +93,6 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        string (name: 'POD_CIDR',
-                defaultValue: '192.168.0.0/16',
-                description: 'POD cidr to be used in OCNE CAPI cluster',
-                trim: true)
-        string (name: 'CLUSTER_CIDR',
-                defaultValue: '10.128.0.0/12',
-                description: 'POD CLUSTER_CIDR to be used in OCNE CAPI cluster',
-                trim: true)
-        string (name: 'OCNE_IMAGE_REPOSITORY',
-                defaultValue: 'container-registry.oracle.com',
-                description: 'OCNE registry value. Default container-registry.oracle.com',
-                trim: true)
-        string (name: 'OCNE_IMAGE_PATH',
-                defaultValue: 'olcne',
-                description: 'Path in OCNE registry value. Default olcne',
-                trim: true)
-        choice (description: 'Number of OCNE control plane nodes', name: 'CONTROL_PLANE_MACHINE_COUNT', choices: ["1", "3"])
-        choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["1","2","3"])
         string (name: 'INSTALL_PROFILE',
                 defaultValue: 'dev',
                 description: 'Verrazzano install profile (prod/dev). default: dev',
@@ -191,14 +193,17 @@ pipeline {
         CLUSTER_CIDR = "${params.CLUSTER_CIDR}"
         OCNE_IMAGE_REPOSITORY = "${params.OCNE_IMAGE_REPOSITORY}"
         OCNE_IMAGE_PATH = "${params.OCNE_IMAGE_PATH}"
-
-        OCI_NODE_MACHINE_TYPE_OCPUS = 4
         KUBERNETES_VERSION = "${params.OCNE_KUBERNETES_CLUSTER_VERSION}"
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
         CLUSTER_NAMESPACE = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
         CLUSTER_NAME = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
         CAPI_NODE_SSH_KEY_PATH = credentials('oci-tf-pub-ssh-key')
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
+        ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}
+        OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}
+        OPERATING_SYSTEM_VERSION = "${params.OPERATING_SYSTEM_VERSION}
+
+
 
     }
 
@@ -332,7 +337,7 @@ pipeline {
                 }
 
         /*
-        stage('verify-install') {
+        stage('verify-install on admin cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -351,10 +356,12 @@ pipeline {
         }
         */
 
-        stage('Deploy OCNE cluster using CAPI') {
+        stage('Deploy OCNE workload cluster using CAPI and install Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
+                        // This will deploy an OCNE cluster
+                        // Then proceed to deploy Verrazzano on it
                         set_capi_variables()
                         runGinkgoRandomize('clusterapi/capi')
                     }
@@ -373,8 +380,66 @@ pipeline {
             }
         }
 
+        stage('verify-install on workload cluster') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
+                        export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
+                        kubectl get nodes -o wide
+                        kubectl get pods -A
+                        cd ${WORKSPACE}/tests/e2e
+                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                        unset KUBECONFIG
+                    """
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('verify-install-cluster-dump')
+                    }
+                }
+            }
+        }
+        stage('uninstall vz from workload cluster') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
+                        export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
+                        kubectl get nodes -o wide
+                        kubectl get pods -A
+                        ${GO_REPO_PATH}/vz uninstall -y --timeout 60m
+                        unset KUBECONFIG
+                    """
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('verify-install-cluster-dump')
+                    }
+                }
+            }
+        }
 
-
+        stage('cleanup workload cluster from admin cluster') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
+                    """
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('verify-install-cluster-dump')
+                    }
+                }
+            }
+        }
 
     }
 

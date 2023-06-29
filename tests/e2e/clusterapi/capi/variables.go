@@ -23,6 +23,9 @@ var (
 	ClusterTemplateGeneratedFilePath string
 	OCNENamespace                    string
 	OCIImageID                       string
+	OracleLinuxDisplayName           string
+	OperatingSystem                  string
+	OperatingSystemVersion           string
 )
 
 func ensureCAPIVarsInitialized() {
@@ -39,4 +42,7 @@ func ensureCAPIVarsInitialized() {
 	OCIPrivateKeyPath = os.Getenv("CAPI_OCI_PRIVATE_KEY_PATH")
 	OCISSHKeyPath = os.Getenv("CAPI_NODE_SSH_KEY_PATH")
 	OCNENamespace = os.Getenv("CLUSTER_NAMESPACE")
+	OracleLinuxDisplayName = os.Getenv("ORACLE_LINUX_NAME")
+	OperatingSystem = os.Getenv("OPERATING_SYSTEM")
+	OperatingSystemVersion = os.Getenv("OPERATING_SYSTEM_VERSION")
 }

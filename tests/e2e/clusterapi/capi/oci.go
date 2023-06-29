@@ -1,0 +1,218 @@
+package capi
+
+import (
+	"context"
+	"github.com/oracle/oci-go-sdk/v53/common"
+	"github.com/oracle/oci-go-sdk/v53/core"
+	"go.uber.org/zap"
+	"os"
+	"strings"
+)
+
+const (
+	subnetPrivate = "private"
+	subnetPublic  = "public"
+)
+
+// Client interface for OCI Clients
+type OCIClient interface {
+	GetSubnetById(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error)
+	GetImageIdByName(ctx context.Context, compartmentId, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
+	GetVcnIDByNane(ctx context.Context, compartmentId, displayName string, log *zap.SugaredLogger) (string, error)
+	GetSubnetIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
+	GetNsgIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
+	UpdateNSG(ctx context.Context, nsgId string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
+}
+
+// ClientImpl OCI Client implementation
+type ClientImpl struct {
+	vnClient      core.VirtualNetworkClient
+	computeClient core.ComputeClient
+}
+
+type SecurityRuleDetails struct {
+	Protocol    string
+	Description string
+	Source      string
+	IsStateless bool
+	TcpPortMax  int
+	TcpPortMin  int
+}
+
+// NewClient creates a new OCI Client
+func NewClient(provider common.ConfigurationProvider) (OCIClient, error) {
+	net, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+
+	compute, err := core.NewComputeClientWithConfigurationProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ClientImpl{
+		vnClient:      net,
+		computeClient: compute,
+	}, nil
+}
+
+// GetImageIdByName retrieves an image OCID given an image name and a compartment id, if that image exists.
+func (c *ClientImpl) GetImageIdByName(ctx context.Context, compartmentId, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error) {
+	images, err := c.computeClient.ListImages(ctx, core.ListImagesRequest{
+		CompartmentId:          &compartmentId,
+		OperatingSystem:        &operatingSystem,
+		OperatingSystemVersion: &operatingSystemVersion,
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(images.Items) == 0 {
+		log.Errorf("no images found for %s/%s", compartmentId, displayName)
+		return "", err
+	}
+
+	for _, image := range images.Items {
+		if strings.Contains(*image.DisplayName, displayName) {
+			return *image.Id, nil
+		}
+	}
+	// default return
+	return *images.Items[0].Id, nil
+}
+
+// GetVcnIDByNane retrieves an VCN OCID given a vcn name and a compartment id, if the vcn exists.
+func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentId, displayName string, log *zap.SugaredLogger) (string, error) {
+	vcns, err := c.vnClient.ListVcns(ctx, core.ListVcnsRequest{
+		CompartmentId: &compartmentId,
+		DisplayName:   &displayName,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(vcns.Items) == 0 {
+		log.Errorf("no vcns found for %s/%s", compartmentId, displayName)
+		return "", err
+	}
+	return *vcns.Items[0].Id, nil
+}
+
+// GetSubnetIDByNane retrieves an Subnet OCID given a subnet name and a compartment id, if the subnet exists.
+func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
+	subnets, err := c.vnClient.ListSubnets(ctx, core.ListSubnetsRequest{
+		CompartmentId: &compartmentId,
+		VcnId:         &vcnId,
+		DisplayName:   &displayName,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(subnets.Items) == 0 {
+		log.Errorf("no subnet found for %s/%s", compartmentId, displayName)
+		return "", err
+	}
+	return *subnets.Items[0].Id, nil
+}
+
+// GetNsgIDByNane retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
+func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
+	nsgs, err := c.vnClient.ListNetworkSecurityGroups(ctx, core.ListNetworkSecurityGroupsRequest{
+		CompartmentId: &compartmentId,
+		VcnId:         &vcnId,
+		DisplayName:   &displayName,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(nsgs.Items) == 0 {
+		log.Errorf("no nsg found for %s/%s", compartmentId, displayName)
+		return "", err
+	}
+
+	return *nsgs.Items[0].Id, nil
+}
+
+// UpdateNSG retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
+func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgId string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
+	var err error
+
+	ociCoreSecurityDetails := core.AddSecurityRuleDetails{
+		Direction:   core.AddSecurityRuleDetailsDirectionIngress,
+		Protocol:    &rule.Protocol,
+		Description: &rule.Description,
+		Source:      &rule.Source,
+		SourceType:  core.AddSecurityRuleDetailsSourceTypeCidrBlock,
+		IsStateless: &rule.IsStateless,
+		//TcpOptions: &core.TcpOptions{
+		//	DestinationPortRange: &core.PortRange{
+		//		Max: &rule.TcpPortMax,
+		//		Min: &rule.TcpPortMin,
+		//	},
+		//},
+	}
+
+	switch rule.Protocol {
+	case "6":
+		ociCoreSecurityDetails.TcpOptions = &core.TcpOptions{
+			DestinationPortRange: &core.PortRange{
+				Max: &rule.TcpPortMax,
+				Min: &rule.TcpPortMin,
+			},
+		}
+	}
+
+	_, err = c.vnClient.AddNetworkSecurityGroupSecurityRules(ctx, core.AddNetworkSecurityGroupSecurityRulesRequest{
+		NetworkSecurityGroupId: &nsgId,
+		AddNetworkSecurityGroupSecurityRulesDetails: core.AddNetworkSecurityGroupSecurityRulesDetails{
+			SecurityRules: []core.AddSecurityRuleDetails{
+				ociCoreSecurityDetails,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Error("unable to update nsg '%s':  %v", nsgId, zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+// GetSubnetById retrieves a subnet given that subnet's Id.
+func (c *ClientImpl) GetSubnetById(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error) {
+	response, err := c.vnClient.GetSubnet(ctx, core.GetSubnetRequest{
+		SubnetId:        &subnetId,
+		RequestMetadata: common.RequestMetadata{},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	subnet := response.Subnet
+	return &subnet, nil
+}
+
+// SubnetAccess returns public or private, depending on a subnet's access type
+func SubnetAccess(subnet core.Subnet, log *zap.SugaredLogger) string {
+	if subnet.ProhibitPublicIpOnVnic != nil && subnet.ProhibitInternetIngress != nil && !*subnet.ProhibitPublicIpOnVnic && !*subnet.ProhibitInternetIngress {
+		return subnetPublic
+	}
+	return subnetPrivate
+}
+
+func GetOCIConfigurationProvider(log *zap.SugaredLogger) common.ConfigurationProvider {
+	_, err := os.Stat(OCIPrivateKeyPath)
+	if err != nil {
+		log.Errorf("file '%s' not found", OCIPrivateKeyPath)
+		return nil
+	}
+	data, err := os.ReadFile(OCIPrivateKeyPath)
+	if err != nil {
+		log.Error("failed reading file contents: ", zap.Error(err))
+		return nil
+	}
+	return common.NewRawConfigurationProvider(OCITenancyID, OCIUserID, OCIRegion, OCIFingerprint, strings.TrimSpace(string(data)), nil)
+}

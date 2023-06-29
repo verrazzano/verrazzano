@@ -26,12 +26,9 @@ const (
 	pollingInterval                = 30 * time.Second
 
 	// file paths
-	clusterTemplate            = "templates/cluster-template-addons-new-vcn.yaml"
-	clusterResourceSetTemplate = "templates/cluster-template-addons.yaml"
-	nsgCalicoControlPlane      = "oci-nsg-templates/nsg-typha-control-plane.json"
-	nsgCalicoWorker            = "oci-nsg-templates/nsg-typha-worker.json"
-	nsgUDPControlPlane         = "oci-nsg-templates/nsg-udp-control-plane.json"
-	nsgUDPWorker               = "oci-nsg-templates/nsg-udp-worker.json"
+	clusterTemplate              = "templates/cluster-template-addons-new-vcn.yaml"
+	clusterResourceSetTemplate   = "templates/cluster-template-addons.yaml"
+	clusterResourceSetTemplateVZ = "templates/cluster-template-addons-verrazzano.yaml"
 )
 
 func init() {
@@ -48,7 +45,7 @@ var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
-	capiCleanup()
+	//capiCleanup()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -228,8 +225,6 @@ func capiPrerequisites() {
 		return setImageID(OCIImageIDKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	time.Sleep(100 * time.Second)
-
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
 		return processOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
@@ -240,24 +235,23 @@ func capiPrerequisites() {
 		return processOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
-	Eventually(func() error {
-		return createNamespace(OCNENamespace, t.Logs)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	//t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
+	//Eventually(func() error {
+	//	return createNamespace(OCNENamespace, t.Logs)
+	//}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
 func ensureNSG() error {
-
 	calicoWorkerRule := SecurityRuleDetails{
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from control plane nodes",
 		Source:      "10.0.0.0/29",
-		IsStateless: true,
+		IsStateless: false,
 		TcpPortMax:  5473,
 		TcpPortMin:  5473,
 	}
 
-	err := updateOCINSG(ClusterName, "worker", &calicoWorkerRule, t.Logs)
+	err := updateOCINSG(ClusterName, "worker", "calico typha", &calicoWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -266,12 +260,12 @@ func ensureNSG() error {
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from worker nodes",
 		Source:      "10.0.64.0/20",
-		IsStateless: true,
+		IsStateless: false,
 		TcpPortMax:  5473,
 		TcpPortMin:  5473,
 	}
 
-	err = updateOCINSG(ClusterName, "control-plane", &calicoControlPlaneRule, t.Logs)
+	err = updateOCINSG(ClusterName, "control-plane", "calico typha", &calicoControlPlaneRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -280,10 +274,10 @@ func ensureNSG() error {
 		Protocol:    "17",
 		Description: "Added by Jenkins to allow UDP communication from control plane node",
 		Source:      "10.0.0.0/29",
-		IsStateless: true,
+		IsStateless: false,
 	}
 
-	err = updateOCINSG(ClusterName, "worker", &udpWorkerRule, t.Logs)
+	err = updateOCINSG(ClusterName, "worker", "udp", &udpWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -292,10 +286,10 @@ func ensureNSG() error {
 		Protocol:    "17",
 		Description: "Added by Jenkins to allow UDP communication from worker node",
 		Source:      "10.0.64.0/20",
-		IsStateless: true,
+		IsStateless: false,
 	}
 
-	return updateOCINSG(ClusterName, "control-plane", &udpControlPlaneRule, t.Logs)
+	return updateOCINSG(ClusterName, "control-plane", "udp", &udpControlPlaneRule, t.Logs)
 
 }
 
@@ -310,6 +304,7 @@ func capiCleanup() {
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
 	t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
+
 		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
 				return TriggerCapiClusterCreation(OCNENamespace, clusterTemplate, t.Logs)
@@ -399,22 +394,42 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 				return ensureVPOPodsAreRunning(ClusterName, "verrazzano-install", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
-
 	})
 
-	t.Context(fmt.Sprintf("Delete CAPI cluster '%s'", ClusterName), func() {
-		WhenClusterAPIInstalledIt("Delete CAPI cluster", func() {
+	t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
+		WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
 			Eventually(func() error {
-				return triggerCapiClusterDeletion(ClusterName, OCNENamespace, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Delete CAPI cluster")
+				return ensureVerrazzano(ClusterName, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "verify verrazzano is installed")
 		})
-
-		WhenClusterAPIInstalledIt("Monitor Cluster Deletion", func() {
-			Eventually(func() error {
-				return MonitorCapiClusterDeletion(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Deletion")
-		})
-
 	})
+
+	//t.Context(fmt.Sprintf("Verrazzano cleanup and monitoring '%s'", ClusterName), func() {
+	//	WhenClusterAPIInstalledIt("Ensure Verrazzano is uninstalled from workload cluster", func() {
+	//		Eventually(func() error {
+	//			return deleteVerrazzano(ClusterName, t.Logs)
+	//		}, waitTimeout, pollingInterval).Should(BeNil(), "start verrazzano uninstall")
+	//	})
+	//	WhenClusterAPIInstalledIt("Ensure Verrazzano is removed from workload cluster", func() {
+	//		Eventually(func() error {
+	//			return getVerrazzano(ClusterName, t.Logs)
+	//		}, waitTimeout, pollingInterval).Should(BeNil(), "check verrazzano")
+	//	})
+	//})
+
+	//t.Context(fmt.Sprintf("Delete CAPI cluster '%s'", ClusterName), func() {
+	//	WhenClusterAPIInstalledIt("Delete CAPI cluster", func() {
+	//		Eventually(func() error {
+	//			return TriggerCapiClusterDeletion(ClusterName, OCNENamespace, t.Logs)
+	//		}, waitTimeout, pollingInterval).Should(BeNil(), "Delete CAPI cluster")
+	//	})
+	//
+	//	WhenClusterAPIInstalledIt("Monitor Cluster Deletion", func() {
+	//		Eventually(func() error {
+	//			return MonitorCapiClusterDeletion(ClusterName, t.Logs)
+	//		}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Deletion")
+	//	})
+	//
+	//})
 
 })

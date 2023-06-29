@@ -239,7 +239,7 @@ func checkAll(data []bool) bool {
 	return true
 }
 
-func getCapiClusterKubeconfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
+func getCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		log.Errorf("Failed to get clientset with error: %v", err)
@@ -256,7 +256,7 @@ func getCapiClusterKubeconfig(clusterName string, log *zap.SugaredLogger) ([]byt
 }
 
 func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error) {
-	capiK8sConfig, err := getCapiClusterKubeconfig(clusterName, log)
+	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
 		return nil, err
 	}
@@ -300,40 +300,18 @@ func TriggerCapiClusterCreation(clusterName, templateName string, log *zap.Sugar
 
 func DeployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
 	log.Info("Preparing to deploy Clusterresourcesets...")
-	//var cmdArgs []string
-	//var bcmd helpers.BashCommand
-	//ocicmd := fmt.Sprintf("oci network vcn list --compartment-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, clusterName)
-	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	//bcmd.CommandArgs = cmdArgs
-	//vcndata := helpers.Runner(&bcmd, log)
-	//if vcndata.CommandError != nil {
-	//	return vcndata.CommandError
-	//}
-	//OCIVcnID = strings.Trim(vcndata.StandardOut.String(), "\n")
-	//
-	//cmdArgs = []string{}
-	//ocicmd = fmt.Sprintf("oci network subnet list --compartment-id %s --vcn-id %s --display-name service-lb | jq -r '.data[0].id'", OCICompartmentID, OCIVcnID)
-	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	//bcmd.CommandArgs = cmdArgs
-	//subnetData := helpers.Runner(&bcmd, log)
-	//if subnetData.CommandError != nil {
-	//	return subnetData.CommandError
-	//}
-	//
-	//OCISubnetID = strings.Trim(subnetData.StandardOut.String(), "\n")
-
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
 	if err != nil {
 		log.Error("Unable to create OCI client %v", zap.Error(err))
 		return err
 	}
 
-	OCIVcnID, err = oci.GetVcnIDByNane(context.TODO(), OCICompartmentID, clusterName)
+	OCIVcnID, err = oci.GetVcnIDByNane(context.TODO(), OCICompartmentID, clusterName, log)
 	if err != nil {
 		return err
 	}
 
-	OCISubnetID, err = oci.GetSubnetIDByNane(context.TODO(), OCICompartmentID, OCIVcnID, "service-lb")
+	OCISubnetID, err = oci.GetSubnetIDByNane(context.TODO(), OCICompartmentID, OCIVcnID, "service-lb", log)
 	if err != nil {
 		return err
 	}
@@ -487,7 +465,7 @@ func MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) erro
 	return fmt.Errorf("cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
 }
 
-func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
+func TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
 	var err error
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
@@ -513,72 +491,6 @@ func triggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.Suga
 	}
 	return nil
 }
-
-/*
-func showModuleInfo(clusterName string, log *zap.SugaredLogger) error {
-
-	k8sconfig, err := getCapiClusterK8sConfig(clusterName, log)
-	if err != nil {
-		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
-		return err
-	}
-
-	dclient, err := dynamic.NewForConfig(k8sconfig)
-	if err != nil {
-		log.Errorf("unable to create dynamic client for workload cluster %v", zap.Error(err))
-		return err
-	}
-
-	gvr := schema.GroupVersionResource{
-		Group:    "platform.verrazzano.io",
-		Version:  "v1alpha1",
-		Resource: "module",
-	}
-
-	calicoModuleFetched, err := dclient.Resource(gvr).Get(context.TODO(), "calico", metav1.GetOptions{})
-	if err != nil {
-		log.Errorf("unable to fetch moduledata from %s due to '%v' for module calico", clusterName, zap.Error(err))
-		return err
-	}
-
-	var calico Module
-	modBinaryData, err := json.Marshal(calicoModuleFetched)
-	if err != nil {
-		log.Error("json marshalling error ", zap.Error(err))
-		return err
-	}
-
-	err = json.Unmarshal(modBinaryData, &calico)
-	if err != nil {
-		log.Error("json unmarshalling error ", zap.Error(err))
-		return err
-	}
-
-	log.Infof("Values for module '%s' => %+v", calico.Metadata.Name, calico.Spec.Values)
-
-	ccmModuleFetched, err := dclient.Resource(gvr).Get(context.TODO(), "oci-ccm", metav1.GetOptions{})
-	if err != nil {
-		log.Errorf("unable to fetch moduledata from %s due to '%v' for module ccm ", clusterName, zap.Error(err))
-		return err
-	}
-
-	var ccm Module
-	ccmBinaryData, err := json.Marshal(ccmModuleFetched)
-	if err != nil {
-		log.Error("json marshalling error ", zap.Error(err))
-		return err
-	}
-
-	err = json.Unmarshal(ccmBinaryData, &ccm)
-	if err != nil {
-		log.Error("json unmarshalling error ", zap.Error(err))
-		return err
-	}
-
-	log.Infof("Values for module '%s' => %+v", ccm.Metadata.Name, ccm.Spec.Values)
-	return nil
-}
-*/
 
 func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
@@ -645,70 +557,6 @@ func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.Suga
 	writer.Flush()
 	return nil
 }
-
-/*
-func showSecretsInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
-	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
-	}
-	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Namespace\tName\tType\tAge")
-	for _, ns := range nsList.Items {
-		secretList, err := client.CoreV1().Secrets(ns.Name).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to get list of secrets from cluster '%s'", clusterName))
-		}
-		for _, secret := range secretList.Items {
-			secretData, err := client.CoreV1().Secrets(ns.Name).Get(context.TODO(), secret.Name, metav1.GetOptions{})
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					log.Infof("No secrets in namespace '%s'", ns.Name)
-				} else {
-					return errors.Wrap(err, fmt.Sprintf("failed to get secret '%s' from cluster '%s'", secretData.Name, clusterName))
-				}
-			}
-
-			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v",
-				secretData.GetNamespace(), secretData.GetName(), secretData.Type, time.Until(secretData.GetCreationTimestamp().Time)))
-
-		}
-	}
-	writer.Flush()
-	return nil
-}
-
-func showConfigMapsInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
-	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
-	}
-	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Namespace\tName\tAge")
-	for _, ns := range nsList.Items {
-		configmapList, err := client.CoreV1().ConfigMaps(ns.Name).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to get list of secrets from cluster '%s'", clusterName))
-		}
-		for _, configmap := range configmapList.Items {
-			configmapData, err := client.CoreV1().ConfigMaps(ns.Name).Get(context.TODO(), configmap.Name, metav1.GetOptions{})
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					log.Infof("No configmaps in namespace '%s'", ns.Name)
-				} else {
-					return errors.Wrap(err, fmt.Sprintf("failed to get configmap '%s' from cluster '%s'", configmapData.Name, clusterName))
-				}
-			}
-
-			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
-				configmapData.GetNamespace(), configmapData.GetName(), time.Until(configmapData.GetCreationTimestamp().Time)))
-
-		}
-	}
-	writer.Flush()
-	return nil
-}
-*/
 
 func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := getCapiClusterK8sClient(clusterName, log)
@@ -818,42 +666,25 @@ func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	return k8s.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 }
 
-func updateOCINSG(clusterName, nsgDisplayName string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
-	log.Infof("Updating NSG rules for cluster '%s' for nsg '%s'", clusterName, nsgDisplayName)
-	//var cmdArgs []string
-	//var bcmd helpers.BashCommand
-	//ocicmd := fmt.Sprintf("oci network nsg list --compartment-id %s --vcn-id %s --display-name %s | jq -r '.data[0].id'", OCICompartmentID, OCIVcnID, nsgDisplayName)
-	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	//bcmd.CommandArgs = cmdArgs
-	//nsgData := helpers.Runner(&bcmd, log)
-	//if nsgData.CommandError != nil {
-	//	return nsgData.CommandError
-	//}
-	//
-	//nsgOCID := strings.Trim(nsgData.StandardOut.String(), "\n")
-	//
-	//cmdArgs = []string{}
-	//ocicmd = fmt.Sprintf("oci network nsg rules add --nsg-id %s --from-json file://%s", nsgOCID, nsgRuleTemplatePath)
-	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	//bcmd.CommandArgs = cmdArgs
-	//_ = helpers.Runner(&bcmd, log)
-	//if nsgData.CommandError != nil {
-	//	log.Errorf("failure to update nsg %v", zap.Error(nsgData.CommandError))
-	//	return nsgData.CommandError
-	//}
-
+func updateOCINSG(clusterName, nsgDisplayName, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
+	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayName, info)
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
 	if err != nil {
 		log.Error("Unable to create OCI client %v", zap.Error(err))
 		return err
 	}
 
-	nsgID, err := oci.GetNsgIDByNane(context.TODO(), OCICompartmentID, OCIVcnID, nsgDisplayName)
+	vcnID, err := oci.GetVcnIDByNane(context.TODO(), OCICompartmentID, clusterName, log)
 	if err != nil {
 		return err
 	}
 
-	return oci.UpdateNSG(context.TODO(), nsgID, rule)
+	nsgID, err := oci.GetNsgIDByNane(context.TODO(), OCICompartmentID, vcnID, nsgDisplayName, log)
+	if err != nil {
+		return err
+	}
+
+	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
 }
 
 func setImageID(key string, log *zap.SugaredLogger) error {
@@ -862,10 +693,133 @@ func setImageID(key string, log *zap.SugaredLogger) error {
 		log.Error("Unable to create OCI client %v", zap.Error(err))
 		return err
 	}
-	id, err := oci.GetImageIdByName(context.TODO(), OCICompartmentID, "Oracle-Linux-8.7-2023", "Oracle Linux", "8")
+	id, err := oci.GetImageIdByName(context.TODO(), OCICompartmentID, OracleLinuxDisplayName, OperatingSystem, OperatingSystemVersion, log)
 	if err != nil {
 		log.Error("Unable to fetch image id %v", zap.Error(err))
 		return err
 	}
 	return os.Setenv(key, id)
+}
+
+func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
+	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
+	if err != nil {
+		return nil, err
+	}
+	tmpFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-kubeconfig", clusterName))
+	if err != nil {
+		log.Errorf("Failed to create temporary file : %v", zap.Error(err))
+		return nil, err
+	}
+
+	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		log.Errorf("failed to write to destination file : %v", zap.Error(err))
+		return nil, err
+	}
+
+	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
+	if err != nil {
+		log.Errorf("failed to obtain k8s rest config : %v", zap.Error(err))
+		return nil, err
+	}
+
+	dclient, err := dynamic.NewForConfig(k8sRestConfig)
+	if err != nil {
+		log.Errorf("unable to create dynamic client for workload cluster %v", zap.Error(err))
+		return nil, err
+	}
+	return dclient, nil
+
+}
+
+func fetchVZ(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	dclient, err := getCapiClusterDynamicClient(clusterName, log)
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return nil, err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "install.verrazzano.io",
+		Version:  "v1beta1",
+		Resource: "verrazzanos",
+	}
+
+	return dclient.Resource(gvr).Namespace(namespace).Get(context.TODO(), vzinstallname, metav1.GetOptions{})
+}
+
+func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
+
+	vzFetched, err := fetchVZ(clusterName, "default", "verrazzano", log)
+	if err != nil {
+		log.Errorf("unable to fetch vz resource from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	var vz Verrazzano
+	modBinaryData, err := json.Marshal(vzFetched)
+	if err != nil {
+		log.Error("json marshalling error ", zap.Error(err))
+		return err
+	}
+
+	err = json.Unmarshal(modBinaryData, &vz)
+	if err != nil {
+		log.Error("json unmarshalling error ", zap.Error(err))
+		return err
+	}
+
+	curState := "InstallStarted"
+	for _, cond := range vz.Status.Conditions {
+		if cond.Type == "InstallComplete" {
+			curState = cond.Type
+		}
+	}
+
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tStatus\tVersion")
+	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
+		vz.Metadata.Name, curState, vz.Status.Version))
+	writer.Flush()
+
+	err = displayWorkloadClusterResources(clusterName, log)
+	if err != nil {
+		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
+		return err
+	}
+
+	if curState == "InstallComplete" {
+		return nil
+	}
+	return fmt.Errorf("All components are not ready: Current State = %v", curState)
+}
+
+func deleteVerrazzano(clusterName string, log *zap.SugaredLogger) error {
+	dclient, err := getCapiClusterDynamicClient(clusterName, log)
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "install.verrazzano.io",
+		Version:  "v1beta1",
+		Resource: "verrazzanos",
+	}
+
+	return dclient.Resource(gvr).Namespace("default").Delete(context.TODO(), "verrazzano", metav1.DeleteOptions{})
+}
+
+func getVerrazzano(clusterName string, log *zap.SugaredLogger) error {
+
+	_, err := fetchVZ(clusterName, "default", "verrazzano", log)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Errorf("verrazzano resource for workload cluster '%s' not found", clusterName)
+			return nil
+		}
+		log.Errorf("Unable to fetch %s %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+
+	return fmt.Errorf("Verrazzano resource still present")
 }

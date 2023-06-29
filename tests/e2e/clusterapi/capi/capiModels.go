@@ -287,51 +287,455 @@ type Machine struct {
 	} `json:"status"`
 }
 
-type Module struct {
-	APIVersion string `json:"apiVersion"`
+type Verrazzano struct {
+	ApiVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
+		Annotations struct {
+			KubectlKubernetesIoLastAppliedConfiguration string `json:"kubectl.kubernetes.io/last-applied-configuration"`
+		} `json:"annotations"`
 		CreationTimestamp time.Time `json:"creationTimestamp"`
 		Finalizers        []string  `json:"finalizers"`
 		Generation        int       `json:"generation"`
 		Name              string    `json:"name"`
 		Namespace         string    `json:"namespace"`
 		ResourceVersion   string    `json:"resourceVersion"`
-		UID               string    `json:"uid"`
+		Uid               string    `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
-		ModuleName      string `json:"moduleName"`
-		TargetNamespace string `json:"targetNamespace"`
-		Values          struct {
-			Installation struct {
-				CalicoNetwork struct {
-					Bgp     string `json:"bgp"`
-					IPPools []struct {
-						Cidr          string `json:"cidr"`
-						Encapsulation string `json:"encapsulation"`
-					} `json:"ipPools"`
-				} `json:"calicoNetwork"`
-				Cni struct {
-					Type string `json:"type"`
-				} `json:"cni"`
-				ImagePath string `json:"imagePath"`
-				Registry  string `json:"registry"`
-			} `json:"installation"`
-			TigeraOperator struct {
-				Version string `json:"version"`
-			} `json:"tigeraOperator"`
-		} `json:"values"`
-		Version string `json:"version"`
+		Components struct {
+		} `json:"components"`
+		EnvironmentName string `json:"environmentName"`
+		Profile         string `json:"profile"`
+		Security        struct {
+		} `json:"security"`
 	} `json:"spec"`
 	Status struct {
+		Available  string `json:"available"`
+		Components struct {
+			Argocd struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"argocd"`
+			CertManager struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"cert-manager"`
+			CertManagerWebhookOci struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"cert-manager-webhook-oci"`
+			ClusterApi struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"cluster-api"`
+			ClusterIssuer struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"cluster-issuer"`
+			CoherenceOperator struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"coherence-operator"`
+			ExternalDns struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"external-dns"`
+			FluentOperator struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"fluent-operator"`
+			FluentbitOpensearchOutput struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"fluentbit-opensearch-output"`
+			Fluentd struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"fluentd"`
+			Grafana struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"grafana"`
+			IngressController struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"ingress-controller"`
+			Istio struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"istio"`
+			JaegerOperator struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"jaeger-operator"`
+			Keycloak struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"keycloak"`
+			KialiServer struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"kiali-server"`
+			KubeStateMetrics struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"kube-state-metrics"`
+			Mysql struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"mysql"`
+			MysqlOperator struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"mysql-operator"`
+			OamKubernetesRuntime struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"oam-kubernetes-runtime"`
+			Opensearch struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"opensearch"`
+			OpensearchDashboards struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"opensearch-dashboards"`
+			PrometheusAdapter struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"prometheus-adapter"`
+			PrometheusNodeExporter struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"prometheus-node-exporter"`
+			PrometheusOperator struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"prometheus-operator"`
+			PrometheusPushgateway struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"prometheus-pushgateway"`
+			Rancher struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"rancher"`
+			RancherBackup struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"rancher-backup"`
+			Thanos struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"thanos"`
+			Velero struct {
+				Name  string `json:"name"`
+				State string `json:"state"`
+			} `json:"velero"`
+			Verrazzano struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"verrazzano"`
+			VerrazzanoApplicationOperator struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"verrazzano-application-operator"`
+			VerrazzanoAuthproxy struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"verrazzano-authproxy"`
+			VerrazzanoClusterAgent struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"verrazzano-cluster-agent"`
+			VerrazzanoClusterOperator struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"verrazzano-cluster-operator"`
+			VerrazzanoConsole struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"verrazzano-console"`
+			VerrazzanoGrafanaDashboards struct {
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"verrazzano-grafana-dashboards"`
+			VerrazzanoMonitoringOperator struct {
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"verrazzano-monitoring-operator"`
+			VerrazzanoNetworkPolicies struct {
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+			} `json:"verrazzano-network-policies"`
+			WeblogicOperator struct {
+				Available  string `json:"available"`
+				Conditions []struct {
+					LastTransitionTime time.Time `json:"lastTransitionTime"`
+					Message            string    `json:"message"`
+					Status             string    `json:"status"`
+					Type               string    `json:"type"`
+				} `json:"conditions"`
+				LastReconciledGeneration int    `json:"lastReconciledGeneration"`
+				Name                     string `json:"name"`
+				State                    string `json:"state"`
+				Version                  string `json:"version"`
+			} `json:"weblogic-operator"`
+		} `json:"components"`
 		Conditions []struct {
 			LastTransitionTime time.Time `json:"lastTransitionTime"`
 			Message            string    `json:"message"`
-			Reason             string    `json:"reason"`
 			Status             string    `json:"status"`
 			Type               string    `json:"type"`
 		} `json:"conditions"`
-		LastSuccessfulGeneration int    `json:"lastSuccessfulGeneration"`
-		LastSuccessfulVersion    string `json:"lastSuccessfulVersion"`
+		Instance struct {
+			ConsoleUrl              string `json:"consoleUrl"`
+			GrafanaUrl              string `json:"grafanaUrl"`
+			KeyCloakUrl             string `json:"keyCloakUrl"`
+			KialiUrl                string `json:"kialiUrl"`
+			OpenSearchDashboardsUrl string `json:"openSearchDashboardsUrl"`
+			OpenSearchUrl           string `json:"openSearchUrl"`
+			PrometheusUrl           string `json:"prometheusUrl"`
+			RancherUrl              string `json:"rancherUrl"`
+		} `json:"instance"`
+		State   string `json:"state"`
+		Version string `json:"version"`
 	} `json:"status"`
 }
