@@ -184,9 +184,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext) error {
 	gvr := GetRancherMgmtAPIGVRForResource("kontainerdrivers")
 	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
+		// Keep trying until the resource is found
 		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
 	}
 

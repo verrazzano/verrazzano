@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -233,7 +232,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
-	return common.ActivateKontainerDriver(ctx)
+	return nil
 }
 
 func (c clusterAPIComponent) IsOperatorUninstallSupported() bool {
@@ -301,7 +300,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	return common.ActivateKontainerDriver(ctx)
+	return nil
 }
 
 func (c clusterAPIComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
