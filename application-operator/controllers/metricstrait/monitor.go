@@ -18,7 +18,7 @@ import (
 
 // updateServiceMonitor creates or updates a service monitor given the trait and workload parameters
 // A service monitor emulates a scrape config for Prometheus with the Prometheus Operator
-func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	var rel vzapi.QualifiedResourceRelation
 
 	// If the metricsTrait is being disabled then return nil for the config
