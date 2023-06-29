@@ -173,7 +173,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding Jaeger Images",
 			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 2,
 			expectedErr:  nil,
 		},
 		{
@@ -181,7 +181,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding Jaeger create",
 			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideJaegerCreateVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 2,
 			expectedErr:  nil,
 		},
 		{
@@ -189,7 +189,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding metrics storage type",
 			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideMetricsStorageVz.yaml",
-			numKeyValues: 2,
+			numKeyValues: 3,
 			expectedErr:  nil,
 		},
 		{
@@ -197,7 +197,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test OpenSearch disabled",
 			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
 			actualCR:     "testdata/jaegerOperatorDisableOpenSearchVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 2,
 			expectedErr:  nil,
 		},
 		{
@@ -205,7 +205,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test OpenSearch replica count setting in prod profile",
 			expectedYAML: "testdata/jaegerOperatorProdOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorProdOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 2,
 			expectedErr:  nil,
 		},
 	}
@@ -251,8 +251,7 @@ func TestAppendOverrides(t *testing.T) {
 			}
 
 			var kvs []bom.KeyValue
-			var jaegerComp jaegerOperatorComponent
-			kvs, err = AppendOverrides(fakeContext, "", "", "", kvs, &jaegerComp)
+			kvs, err = AppendOverrides(fakeContext, "", "", "", kvs)
 			if test.expectedErr != nil {
 				asserts.Error(err)
 				asserts.Equal([]bom.KeyValue{}, kvs)
@@ -262,8 +261,8 @@ func TestAppendOverrides(t *testing.T) {
 			asserts.Equal(test.numKeyValues, len(kvs))
 
 			// Check Temp file
-			asserts.True(kvs[0].IsFile, "Expected generated Jaeger Operator overrides first in list of helm args")
-			tempFilePath := kvs[0].Value
+			asserts.True(kvs[1].IsFile, "Expected generated Jaeger Operator overrides first in list of helm args")
+			tempFilePath := kvs[1].Value
 			files = append(files, tempFilePath)
 			_, err = os.Stat(tempFilePath)
 			asserts.NoError(err, "Unexpected error checking for temp file %s: %v", tempFilePath, err)
@@ -271,8 +270,8 @@ func TestAppendOverrides(t *testing.T) {
 			asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
 
 			if test.name == "OverrideMetricsStorageType" {
-				asserts.Equal(kvs[1].Key, prometheusServerField)
-				asserts.Equal(kvs[1].Value, prometheusURL)
+				asserts.Equal(kvs[2].Key, prometheusServerField)
+				asserts.Equal(kvs[2].Value, prometheusURL)
 			}
 		})
 	}

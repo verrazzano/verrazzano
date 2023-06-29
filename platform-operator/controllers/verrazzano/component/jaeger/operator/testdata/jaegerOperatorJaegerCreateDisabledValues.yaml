@@ -15,3 +15,8 @@ extraEnv:
     value: "ghcr.io/verrazzano/jaeger-es-rollover:1.34.1-20220714175451-1fdab0ff"
   - name: "JAEGER-ALL-IN-ONE-IMAGE"
     value: "ghcr.io/verrazzano/jaeger-all-in-one:1.34.1-20220718052137-ae4bd702"
+jaeger:
+  create: true
+  spec:
+    strategy: allInOne
+    storage: {}
