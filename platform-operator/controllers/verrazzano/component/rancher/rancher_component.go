@@ -62,12 +62,6 @@ const cattleShellImageName = "rancher-shell"
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
-const (
-	// Let's Encrypt environments
-	letsencryptProduction = "production"
-	letsEncryptStaging    = "staging"
-)
-
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
@@ -215,10 +209,6 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 	// Configure CA Issuer KVs
 	if (cm.Certificate.Acme != vzapi.Acme{}) {
-		letsEncryptEnv := cm.Certificate.Acme.Environment
-		if len(letsEncryptEnv) == 0 {
-			letsEncryptEnv = letsencryptProduction
-		}
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
@@ -228,7 +218,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: cm.Certificate.Acme.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: letsEncryptEnv,
+				Value: cm.Certificate.Acme.Environment,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
