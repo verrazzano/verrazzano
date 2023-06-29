@@ -28,6 +28,7 @@ TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/pre-install-overrides/t
 TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
 INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT:-30m}
 ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
+INSTALL_EXTERNAL_CERT_MANAGER=${INSTALL_EXTERNAL_CERT_MANAGER:-false}
 
 clusterNames=$(kind get clusters)
 if [[ $clusterNames == *"${CLUSTER_NAME}"* ]]; then
@@ -137,6 +138,10 @@ EOF
     exit 1
   fi
 
+  if [ $INSTALL_EXTERNAL_CERT_MANAGER == true ]; then
+    echo "Configuring installation with external cert-manger and NGINX"
+    ./ci/scripts/install_third_party_components.sh
+  fi
 fi
 
 # Configure the custom resource to install Verrazzano on Kind

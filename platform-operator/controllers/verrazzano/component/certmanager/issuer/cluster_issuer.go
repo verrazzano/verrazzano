@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"text/template"
 
@@ -184,6 +185,7 @@ func createCertManagerGVK(kind string) schema.GroupVersionKind {
 func deleteResources(log vzlog.VerrazzanoLogger, cli crtclient.Client, namespace string, obj crtclient.Object, gvk schema.GroupVersionKind) error {
 	// Use an unstructured object to get the list of resources
 	objectList := &unstructured.UnstructuredList{}
+
 	objectList.SetGroupVersionKind(gvk)
 	if err := cli.List(context.TODO(), objectList, crtclient.InNamespace(namespace)); err != nil {
 		// Ignore if CRD doesn't exist
@@ -387,7 +389,7 @@ func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client,
 
 	// Verify the acme environment and set the server
 	acmeServer := letsEncryptProdEndpoint
-	if cmcommon.IsLetsEncryptStagingEnv(*vzCertAcme) {
+	if common.IsLetsEncryptStagingEnv(*vzCertAcme) {
 		acmeServer = letsEncryptStageEndpoint
 	}
 
@@ -549,7 +551,7 @@ func getACMEIssuerName(acme *vzapi.LetsEncryptACMEIssuer) ([]string, error) {
 	if acme == nil {
 		return []string{}, fmt.Errorf("Illegal state, LetsEncrypt issuer not configured")
 	}
-	if cmcommon.IsLetsEncryptProductionEnv(*acme) {
+	if common.IsLetsEncryptProductionEnv(*acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
