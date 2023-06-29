@@ -693,7 +693,7 @@ func setImageID(key string, log *zap.SugaredLogger) error {
 		log.Error("Unable to create OCI client %v", zap.Error(err))
 		return err
 	}
-	id, err := oci.GetImageIdByName(context.TODO(), OCICompartmentID, OracleLinuxDisplayName, OperatingSystem, OperatingSystemVersion, log)
+	id, err := oci.GetImageIDByName(context.TODO(), OCICompartmentID, OracleLinuxDisplayName, OperatingSystem, OperatingSystemVersion, log)
 	if err != nil {
 		log.Error("Unable to fetch image id %v", zap.Error(err))
 		return err

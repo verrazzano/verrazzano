@@ -334,7 +334,7 @@ type Verrazzano struct {
 				Name  string `json:"name"`
 				State string `json:"state"`
 			} `json:"cert-manager-webhook-oci"`
-			ClusterApi struct {
+			ClusterAPI struct {
 				Available  string `json:"available"`
 				Conditions []struct {
 					LastTransitionTime time.Time `json:"lastTransitionTime"`
@@ -371,7 +371,7 @@ type Verrazzano struct {
 				State                    string `json:"state"`
 				Version                  string `json:"version"`
 			} `json:"coherence-operator"`
-			ExternalDns struct {
+			ExternalDNS struct {
 				Name  string `json:"name"`
 				State string `json:"state"`
 			} `json:"external-dns"`

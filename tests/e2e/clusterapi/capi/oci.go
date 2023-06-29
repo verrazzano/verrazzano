@@ -16,11 +16,11 @@ const (
 
 // Client interface for OCI Clients
 type OCIClient interface {
-	GetSubnetById(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error)
-	GetImageIdByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
+	GetSubnetByID(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error)
+	GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
 	GetVcnIDByNane(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
-	GetSubnetIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
-	GetNsgIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
+	GetSubnetIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetNsgIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
 	UpdateNSG(ctx context.Context, nsgID string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
 }
 
@@ -57,8 +57,8 @@ func NewClient(provider common.ConfigurationProvider) (OCIClient, error) {
 	}, nil
 }
 
-// GetImageIdByName retrieves an image OCID given an image name and a compartment id, if that image exists.
-func (c *ClientImpl) GetImageIdByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error) {
+// GetImageIDByName retrieves an image OCID given an image name and a compartment id, if that image exists.
+func (c *ClientImpl) GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error) {
 	images, err := c.computeClient.ListImages(ctx, core.ListImagesRequest{
 		CompartmentId:          &compartmentID,
 		OperatingSystem:        &operatingSystem,
@@ -99,10 +99,10 @@ func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentID, displayN
 }
 
 // GetSubnetIDByNane retrieves an Subnet OCID given a subnet name and a compartment id, if the subnet exists.
-func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
 	subnets, err := c.vnClient.ListSubnets(ctx, core.ListSubnetsRequest{
 		CompartmentId: &compartmentID,
-		VcnId:         &vcnId,
+		VcnId:         &vcnID,
 		DisplayName:   &displayName,
 	})
 	if err != nil {
@@ -117,10 +117,10 @@ func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentID, vcnId
 }
 
 // GetNsgIDByNane retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
-func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
 	nsgs, err := c.vnClient.ListNetworkSecurityGroups(ctx, core.ListNetworkSecurityGroupsRequest{
 		CompartmentId: &compartmentID,
-		VcnId:         &vcnId,
+		VcnId:         &vcnID,
 		DisplayName:   &displayName,
 	})
 	if err != nil {
@@ -175,10 +175,10 @@ func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgID string, rule *Security
 	return nil
 }
 
-// GetSubnetById retrieves a subnet given that subnet's Id.
-func (c *ClientImpl) GetSubnetById(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error) {
+// GetSubnetByID retrieves a subnet given that subnet's Id.
+func (c *ClientImpl) GetSubnetByID(ctx context.Context, subnetID string, log *zap.SugaredLogger) (*core.Subnet, error) {
 	response, err := c.vnClient.GetSubnet(ctx, core.GetSubnetRequest{
-		SubnetId:        &subnetId,
+		SubnetId:        &subnetID,
 		RequestMetadata: common.RequestMetadata{},
 	})
 	if err != nil {
