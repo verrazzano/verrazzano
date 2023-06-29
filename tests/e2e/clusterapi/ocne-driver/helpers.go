@@ -149,6 +149,7 @@ func createCluster(clusterName string, requestPayload RancherOCNECluster, log *z
 		log.Errorf("json marshalling error: %v", zap.Error(err))
 		return err
 	}
+	log.Infof("create cluster body: %s", string(clusterBData))
 	res, err := helpers.HTTPHelper(httpClient, "POST", requestURL, adminToken, "Bearer", http.StatusCreated, clusterBData, log)
 	if res != nil {
 		log.Infof("create cluster response body: %s", res.String())
@@ -185,6 +186,53 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	var cmd helpers.BashCommand
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
+	cmd.CommandArgs = cmdArgs
+	response := helpers.Runner(&cmd, log)
+	log.Infof("+++ All CAPI clusters =  %s +++", (&response.StandardOut).String())
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("+++ All management clusters =  %s +++", (&response.StandardOut).String())
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("+++ All provisioning clusters =  %s +++", (&response.StandardOut).String())
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
+
+	clusterID, err := getClusterIDFromName(clusterName, log)
+	if err != nil {
+		log.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	}
+
+	kubeconfigPath, err := getWorkloadKubeconfig(clusterID, log)
+	if err != nil {
+		log.Error("could not download kubeconfig from rancher")
+	}
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("+++ All nodes in workload cluster =  %s +++", (&response.StandardOut).String())
+
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
 
 	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
 	log.Infof("State: %s", state)
