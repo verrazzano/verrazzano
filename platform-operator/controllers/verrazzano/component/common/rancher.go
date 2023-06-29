@@ -191,5 +191,9 @@ func ActivateKontainerDriver(ctx spi.ComponentContext) error {
 	// Activate the driver
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
 	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+
+	if err == nil {
+		ctx.Log().Infof("The kontainerdriver %s was successfully activated", kontainerDriverObjectName)
+	}
 	return err
 }
