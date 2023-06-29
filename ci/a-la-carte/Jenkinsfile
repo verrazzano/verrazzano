@@ -485,7 +485,7 @@ pipeline {
             }
         }
 
-        stage('Reinstall None') {
+        stage('Uninstall Prometheus Stack') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -505,7 +505,7 @@ pipeline {
             }
         }
 
-        stage('Verify None') {
+        stage('Verify Prometheus Stack Gone') {
             parallel {
                 stage('verify-install/promstack') {
                     environment {
@@ -550,18 +550,7 @@ pipeline {
             steps {
                 sh """
                     ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
-
-                    # wait for verrazzano-install to be deleted
-                    i=0
-                    while [[ $i -lt 30 ]]; do
-                      kubectl get ns verrazzano-install
-                      if [ "\$?" -eq 1 ]; then
-                        break
-                      fi
-                      echo "Waiting for namespace verrazzano-install to be deleted ..."
-                      sleep 5
-                      i=`expr $i + 1`
-                    done
+                    ${GO_REPO_PATH}/verrazzano/ci/scripts/wait-for-namespace-not-exist.sh verrazzano-install
                 """
             }
 
@@ -576,7 +565,7 @@ pipeline {
             }
         }
 
-        stage('Reinstall None only') {
+        stage('Reinstall None') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -601,7 +590,7 @@ pipeline {
             }
         }
 
-        stage('Uninstall again') {
+        stage('Uninstall Again') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
