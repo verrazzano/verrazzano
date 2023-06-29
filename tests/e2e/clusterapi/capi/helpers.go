@@ -793,6 +793,7 @@ func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 	return fmt.Errorf("All components are not ready: Current State = %v", curState)
 }
 
+/*
 func deleteVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 	dclient, err := getCapiClusterDynamicClient(clusterName, log)
 	if err != nil {
@@ -823,3 +824,4 @@ func getVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 
 	return fmt.Errorf("Verrazzano resource still present")
 }
+*/

@@ -288,7 +288,7 @@ type Machine struct {
 }
 
 type Verrazzano struct {
-	ApiVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
 		Annotations struct {
@@ -300,7 +300,7 @@ type Verrazzano struct {
 		Name              string    `json:"name"`
 		Namespace         string    `json:"namespace"`
 		ResourceVersion   string    `json:"resourceVersion"`
-		Uid               string    `json:"uid"`
+		UID               string    `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
 		Components struct {
@@ -726,14 +726,14 @@ type Verrazzano struct {
 			Type               string    `json:"type"`
 		} `json:"conditions"`
 		Instance struct {
-			ConsoleUrl              string `json:"consoleUrl"`
-			GrafanaUrl              string `json:"grafanaUrl"`
-			KeyCloakUrl             string `json:"keyCloakUrl"`
-			KialiUrl                string `json:"kialiUrl"`
-			OpenSearchDashboardsUrl string `json:"openSearchDashboardsUrl"`
-			OpenSearchUrl           string `json:"openSearchUrl"`
-			PrometheusUrl           string `json:"prometheusUrl"`
-			RancherUrl              string `json:"rancherUrl"`
+			ConsoleURL              string `json:"consoleUrl"`
+			GrafanaURL              string `json:"grafanaUrl"`
+			KeyCloakURL             string `json:"keyCloakUrl"`
+			KialiURL                string `json:"kialiUrl"`
+			OpenSearchDashboardsURL string `json:"openSearchDashboardsUrl"`
+			OpenSearchURL           string `json:"openSearchUrl"`
+			PrometheusURL           string `json:"prometheusUrl"`
+			RancherURL              string `json:"rancherUrl"`
 		} `json:"instance"`
 		State   string `json:"state"`
 		Version string `json:"version"`

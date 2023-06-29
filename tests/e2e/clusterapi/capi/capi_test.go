@@ -235,10 +235,10 @@ func capiPrerequisites() {
 		return processOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	//t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
-	//Eventually(func() error {
-	//	return createNamespace(OCNENamespace, t.Logs)
-	//}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
+	Eventually(func() error {
+		return createNamespace(OCNENamespace, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
 func ensureNSG() error {
@@ -247,8 +247,8 @@ func ensureNSG() error {
 		Description: "Added by Jenkins to allow communication for Typha from control plane nodes",
 		Source:      "10.0.0.0/29",
 		IsStateless: false,
-		TcpPortMax:  5473,
-		TcpPortMin:  5473,
+		TCPPortMax:  5473,
+		TCPPortMin:  5473,
 	}
 
 	err := updateOCINSG(ClusterName, "worker", "calico typha", &calicoWorkerRule, t.Logs)
@@ -261,8 +261,8 @@ func ensureNSG() error {
 		Description: "Added by Jenkins to allow communication for Typha from worker nodes",
 		Source:      "10.0.64.0/20",
 		IsStateless: false,
-		TcpPortMax:  5473,
-		TcpPortMin:  5473,
+		TCPPortMax:  5473,
+		TCPPortMin:  5473,
 	}
 
 	err = updateOCINSG(ClusterName, "control-plane", "calico typha", &calicoControlPlaneRule, t.Logs)

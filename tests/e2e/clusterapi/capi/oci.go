@@ -17,11 +17,11 @@ const (
 // Client interface for OCI Clients
 type OCIClient interface {
 	GetSubnetById(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error)
-	GetImageIdByName(ctx context.Context, compartmentId, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
-	GetVcnIDByNane(ctx context.Context, compartmentId, displayName string, log *zap.SugaredLogger) (string, error)
-	GetSubnetIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
-	GetNsgIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
-	UpdateNSG(ctx context.Context, nsgId string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
+	GetImageIdByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
+	GetVcnIDByNane(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetSubnetIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
+	GetNsgIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error)
+	UpdateNSG(ctx context.Context, nsgID string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
 }
 
 // ClientImpl OCI Client implementation
@@ -35,8 +35,8 @@ type SecurityRuleDetails struct {
 	Description string
 	Source      string
 	IsStateless bool
-	TcpPortMax  int
-	TcpPortMin  int
+	TCPPortMax  int
+	TCPPortMin  int
 }
 
 // NewClient creates a new OCI Client
@@ -58,9 +58,9 @@ func NewClient(provider common.ConfigurationProvider) (OCIClient, error) {
 }
 
 // GetImageIdByName retrieves an image OCID given an image name and a compartment id, if that image exists.
-func (c *ClientImpl) GetImageIdByName(ctx context.Context, compartmentId, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetImageIdByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error) {
 	images, err := c.computeClient.ListImages(ctx, core.ListImagesRequest{
-		CompartmentId:          &compartmentId,
+		CompartmentId:          &compartmentID,
 		OperatingSystem:        &operatingSystem,
 		OperatingSystemVersion: &operatingSystemVersion,
 	})
@@ -68,7 +68,7 @@ func (c *ClientImpl) GetImageIdByName(ctx context.Context, compartmentId, displa
 		return "", err
 	}
 	if len(images.Items) == 0 {
-		log.Errorf("no images found for %s/%s", compartmentId, displayName)
+		log.Errorf("no images found for %s/%s", compartmentID, displayName)
 		return "", err
 	}
 
@@ -82,9 +82,9 @@ func (c *ClientImpl) GetImageIdByName(ctx context.Context, compartmentId, displa
 }
 
 // GetVcnIDByNane retrieves an VCN OCID given a vcn name and a compartment id, if the vcn exists.
-func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentId, displayName string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error) {
 	vcns, err := c.vnClient.ListVcns(ctx, core.ListVcnsRequest{
-		CompartmentId: &compartmentId,
+		CompartmentId: &compartmentID,
 		DisplayName:   &displayName,
 	})
 	if err != nil {
@@ -92,16 +92,16 @@ func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentId, displayN
 	}
 
 	if len(vcns.Items) == 0 {
-		log.Errorf("no vcns found for %s/%s", compartmentId, displayName)
+		log.Errorf("no vcns found for %s/%s", compartmentID, displayName)
 		return "", err
 	}
 	return *vcns.Items[0].Id, nil
 }
 
 // GetSubnetIDByNane retrieves an Subnet OCID given a subnet name and a compartment id, if the subnet exists.
-func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
 	subnets, err := c.vnClient.ListSubnets(ctx, core.ListSubnetsRequest{
-		CompartmentId: &compartmentId,
+		CompartmentId: &compartmentID,
 		VcnId:         &vcnId,
 		DisplayName:   &displayName,
 	})
@@ -110,16 +110,16 @@ func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentId, vcnId
 	}
 
 	if len(subnets.Items) == 0 {
-		log.Errorf("no subnet found for %s/%s", compartmentId, displayName)
+		log.Errorf("no subnet found for %s/%s", compartmentID, displayName)
 		return "", err
 	}
 	return *subnets.Items[0].Id, nil
 }
 
 // GetNsgIDByNane retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
-func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentId, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentID, vcnId, displayName string, log *zap.SugaredLogger) (string, error) {
 	nsgs, err := c.vnClient.ListNetworkSecurityGroups(ctx, core.ListNetworkSecurityGroupsRequest{
-		CompartmentId: &compartmentId,
+		CompartmentId: &compartmentID,
 		VcnId:         &vcnId,
 		DisplayName:   &displayName,
 	})
@@ -128,7 +128,7 @@ func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentId, vcnId, d
 	}
 
 	if len(nsgs.Items) == 0 {
-		log.Errorf("no nsg found for %s/%s", compartmentId, displayName)
+		log.Errorf("no nsg found for %s/%s", compartmentID, displayName)
 		return "", err
 	}
 
@@ -136,7 +136,7 @@ func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentId, vcnId, d
 }
 
 // UpdateNSG retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
-func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgId string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
+func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgID string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
 	var err error
 
 	ociCoreSecurityDetails := core.AddSecurityRuleDetails{
@@ -146,26 +146,20 @@ func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgId string, rule *Security
 		Source:      &rule.Source,
 		SourceType:  core.AddSecurityRuleDetailsSourceTypeCidrBlock,
 		IsStateless: &rule.IsStateless,
-		//TcpOptions: &core.TcpOptions{
-		//	DestinationPortRange: &core.PortRange{
-		//		Max: &rule.TcpPortMax,
-		//		Min: &rule.TcpPortMin,
-		//	},
-		//},
 	}
 
 	switch rule.Protocol {
 	case "6":
 		ociCoreSecurityDetails.TcpOptions = &core.TcpOptions{
 			DestinationPortRange: &core.PortRange{
-				Max: &rule.TcpPortMax,
-				Min: &rule.TcpPortMin,
+				Max: &rule.TCPPortMax,
+				Min: &rule.TCPPortMin,
 			},
 		}
 	}
 
 	_, err = c.vnClient.AddNetworkSecurityGroupSecurityRules(ctx, core.AddNetworkSecurityGroupSecurityRulesRequest{
-		NetworkSecurityGroupId: &nsgId,
+		NetworkSecurityGroupId: &nsgID,
 		AddNetworkSecurityGroupSecurityRulesDetails: core.AddNetworkSecurityGroupSecurityRulesDetails{
 			SecurityRules: []core.AddSecurityRuleDetails{
 				ociCoreSecurityDetails,
@@ -174,7 +168,7 @@ func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgId string, rule *Security
 	})
 
 	if err != nil {
-		log.Error("unable to update nsg '%s':  %v", nsgId, zap.Error(err))
+		log.Error("unable to update nsg '%s':  %v", nsgID, zap.Error(err))
 		return err
 	}
 
