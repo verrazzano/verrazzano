@@ -80,12 +80,14 @@ func parseCliArgs(args []string) {
 
 	if len(args) > 2 {
 		for index, arg := range args {
+			// Remove any ',' or ']' suffixes and remove any '[' prefix
+			trimArg := strings.TrimPrefix(strings.TrimSuffix(strings.TrimSuffix(arg, ","), "]"), "[")
 			if index > 1 {
 				if versionType == LatestVersionForCurrentBranch {
-					developmentVersion = arg
+					developmentVersion = trimArg
 					return
 				}
-				excludeReleaseTags = append(excludeReleaseTags, arg)
+				excludeReleaseTags = append(excludeReleaseTags, trimArg)
 			}
 		}
 	}
@@ -133,25 +135,27 @@ func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) 
 
 func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 
-	developmentVersionSplit := strings.Split(developmentVersion, ".")
-	//Split the string into major and minor version values
-	majorVersionValue := parseInt(developmentVersionSplit[0])
-	minorVersionValue := parseInt(developmentVersionSplit[1]) - 1
+	builder := strings.Builder{}
+	var latestForCurrentBranch *semver.SemVersion
 
-	// Iterate over all releases to configure the latest patch release
-	latestPatch := 0
-	var latestRelease string
-	for _, version := range releaseTags {
-		versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-		if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) == minorVersionValue {
-			if parseInt(versionSplit[2]) > latestPatch {
-				latestPatch = parseInt(versionSplit[2])
-			}
-			latestRelease = fmt.Sprintf("v%s.%d.%d", versionSplit[0], minorVersionValue, latestPatch)
+	o, err := semver.NewSemVersion(developmentVersion)
+	o.Patch = 0
+	if err != nil {
+		//return ""
+	}
+	for _, tag := range releaseTags {
+		var t = tag
+		tagVersion, err := semver.NewSemVersion(t)
+		if err != nil {
+			return ""
+		}
+		if tagVersion.IsLessThan(o) {
+			latestForCurrentBranch = tagVersion
 		}
 	}
+	builder.WriteString("v" + latestForCurrentBranch.ToString())
 
-	return latestRelease
+	return builder.String()
 }
 
 func getInterimRelease(releaseTags []string) string {
@@ -163,6 +167,19 @@ func getInterimRelease(releaseTags []string) string {
 	latestReleaseTagSplit := strings.Split(strings.TrimPrefix(latestReleaseTag, "v"), ".")
 	majorVersionValue := parseInt(latestReleaseTagSplit[0])
 	minorInterimVersionValue := parseInt(latestReleaseTagSplit[1]) - 1
+
+	// Handles the case where only two or less minor releases are available for upgrade
+	// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x, then return 1.5.0
+	// as an interim release
+	firstReleaseTag := releaseTags[0]
+	//Split the string excluding prefix 'v' into major and minor version values
+	firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
+	firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
+	firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
+	if firstMajorVersionValue == majorVersionValue && minorInterimVersionValue == firstMinorVersionValue {
+		minorInterimVersionValue = parseInt(latestReleaseTagSplit[1])
+		return fmt.Sprintf("v%d.%d.0\n", majorVersionValue, minorInterimVersionValue)
+	}
 
 	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
 	if minorInterimVersionValue < 0 {
@@ -203,6 +220,17 @@ func getInstallRelease(releaseTags []string) string {
 	majorVersionValue := parseInt(latestReleaseTagSplit[0])
 	minorInstallVersionValue := parseInt(latestReleaseTagSplit[1]) - 2
 
+	// Handles the case where only two or less minor releases are available for upgrade
+	// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x
+	// Get the first supported release tag for upgrade
+	firstReleaseTag := releaseTags[0]
+	//Split the string excluding prefix 'v' into major and minor version values
+	firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
+	firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
+	firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
+	if firstMajorVersionValue == majorVersionValue && minorInstallVersionValue < firstMinorVersionValue {
+		minorInstallVersionValue = firstMinorVersionValue
+	}
 	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
 	if minorInstallVersionValue < 0 {
 		majorVersionValue = parseInt(latestReleaseTagSplit[0]) - 1
