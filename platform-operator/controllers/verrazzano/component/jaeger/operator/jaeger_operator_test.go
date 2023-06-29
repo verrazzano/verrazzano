@@ -283,6 +283,47 @@ func TestAppendOverrides(t *testing.T) {
 
 }
 
+func TestInstallAllInOneImageOverridesFile(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	tests := []struct {
+		name              string
+		description       string
+		expectedSubString string
+	}{
+		{
+			name:              "All-In-One",
+			description:       "This test should have the All-IN-ONE-IMAGE spec in the overrides file.",
+			expectedSubString: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
+		},
+		{
+			name:              "Default",
+			description:       "This test should have the default Jaeger spec in the overrides file.",
+			expectedSubString: "testdata/jaegerOperatorProdOverrideValues.yaml",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Read the Verrazzano CR into a struct
+			testCR := vzapi.Verrazzano{}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
+			var kvs []bom.KeyValue
+			kvs, err := AppendOverrides(fakeContext, "", "", "", kvs)
+			assert.NoError(t, err)
+			if len(kvs) != 2 {
+				t.Errorf("The length of %v is too short", kvs)
+			}
+			if !kvs[0].IsFile {
+				t.Errorf("The value of overrides at 0 is not a file")
+			}
+		})
+	}
+}
+
 // cleanFile - Clean up the specified file path
 func cleanFile(file string) error {
 	if err := os.Remove(file); err != nil {

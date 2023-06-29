@@ -265,7 +265,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		if createInstance {
 			defaultJaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
 
-			// Append defaultJaegerValuesFile values file
+			// Append defaultJaegerImage values file
 			kvs = append(kvs, bom.KeyValue{Value: defaultJaegerValuesFile, IsFile: true})
 
 			// use jaegerCRTemplate to populate Jaeger spec data
@@ -283,10 +283,10 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 				return nil, err
 			}
 		} else {
-			allInOneImage := filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
+			allInOneImageValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
 
 			// Append allInOneImage values file
-			kvs = append(kvs, bom.KeyValue{Value: allInOneImage, IsFile: true})
+			kvs = append(kvs, bom.KeyValue{Value: allInOneImageValuesFile, IsFile: true})
 
 			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
 			if err != nil {
@@ -827,10 +827,6 @@ func createJaegerSecrets(ctx spi.ComponentContext) error {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
-	return nil
-}
-
-func createInstanceAllInOneImage() error {
 	return nil
 }
 
