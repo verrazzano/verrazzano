@@ -552,10 +552,15 @@ pipeline {
                     ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
 
                     # wait for verrazzano-install to be deleted
-                    until [ `kubectl get ns verrazzano-install | grep "NotFound" | wc -l` -gt 0 ]
-                    do
-                        echo "Waiting for namespace verrazzano-install to be deleted ..."
-                        sleep 30
+                    i=0
+                    while [[ $i -lt 30 ]]; do
+                      kubectl get ns verrazzano-install
+                      if [ "\$?" -eq 1 ]; then
+                        break
+                      fi
+                      echo "Waiting for namespace verrazzano-install to be deleted ..."
+                      sleep 5
+                      i=`expr $i + 1`
                     done
                 """
             }
