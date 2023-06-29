@@ -536,7 +536,7 @@ def echoAllPodInfo() {
 
 def ensureCAPICleanup() {
     sh """
-         kubectl delete cl --all
+         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
     """
 }
 
