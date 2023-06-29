@@ -8,43 +8,43 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/common"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
-	"github.com/verrazzano/verrazzano-modules/module-operator/internal/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/constants"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-type HelmHandler struct {
+type ComponentHandler struct {
 	common.BaseHandler
 }
 
 var (
-	_ handlerspi.StateMachineHandler = &HelmHandler{}
+	_ handlerspi.StateMachineHandler = &ComponentHandler{}
 )
 
 func NewHandler() handlerspi.StateMachineHandler {
-	return &HelmHandler{}
+	return &ComponentHandler{}
 }
 
 // GetWorkName returns the work name
-func (h HelmHandler) GetWorkName() string {
+func (h ComponentHandler) GetWorkName() string {
 	return "install"
 }
 
 // IsWorkNeeded returns true if install is needed
-func (h HelmHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
+func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
 	return true, result.NewResult()
 }
 
 // PreWorkUpdateStatus does the pre-Work status update
-func (h HelmHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // PreWork does the pre-work
-func (h HelmHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
 	// Create the target namespace (if it doesn't exist) and label it
@@ -79,33 +79,33 @@ func (h HelmHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 }
 
 // DoWorkUpdateStatus does th status update
-func (h HelmHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 	return status.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonInstallStarted)
 }
 
 // DoWork installs the module using Helm
-func (h HelmHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 	return h.HelmUpgradeOrInstall(ctx)
 }
 
 // IsWorkDone Indicates whether a module is installed and ready
-func (h HelmHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
+func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
 	return h.CheckReleaseDeployedAndReady(ctx)
 }
 
 // PostWorkUpdateStatus does the post-work status update
-func (h HelmHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // PostWork does installation post-work
-func (h HelmHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // WorkCompletedUpdateStatus updates the status to completed
-func (h HelmHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 	return status.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonInstallSucceeded)
 }

@@ -7,51 +7,51 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/common"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
-	"github.com/verrazzano/verrazzano-modules/module-operator/internal/handlerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/helm"
 )
 
-type HelmHandler struct {
+type ComponentHandler struct {
 	common.BaseHandler
 }
 
 var (
-	_ handlerspi.StateMachineHandler = &HelmHandler{}
+	_ handlerspi.StateMachineHandler = &ComponentHandler{}
 )
 
 func NewHandler() handlerspi.StateMachineHandler {
-	return &HelmHandler{}
+	return &ComponentHandler{}
 }
 
 // GetWorkName returns the work name
-func (h HelmHandler) GetWorkName() string {
+func (h ComponentHandler) GetWorkName() string {
 	return "uninstall"
 }
 
 // IsWorkNeeded returns true if install is needed
-func (h HelmHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
+func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
 	return true, result.NewResult()
 }
 
 // PreWorkUpdateStatus does the lifecycle pre-Work status update
-func (h HelmHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // PreWork does the pre-work
-func (h HelmHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // DoWorkUpdateStatus does the work status update
-func (h HelmHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 	return status.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUninstallStarted)
 }
 
 // DoWork uninstalls the module using Helm
-func (h HelmHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 	installed, err := helm.IsReleaseInstalled(ctx.HelmRelease.Name, ctx.HelmRelease.Namespace)
 	if err != nil {
 		ctx.Log.ErrorfThrottled("Error checking if Helm release installed for %s/%s", ctx.HelmRelease.Namespace, ctx.HelmRelease.Name)
@@ -66,7 +66,7 @@ func (h HelmHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 }
 
 // IsWorkDone Indicates whether a module is uninstalled
-func (h HelmHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
+func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
 	if ctx.DryRun {
 		ctx.Log.Debugf("IsReady() dry run for %s", ctx.HelmRelease.Name)
 		return true, result.NewResult()
@@ -82,17 +82,17 @@ func (h HelmHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Res
 }
 
 // PostWorkUpdateStatus does the post-work status update
-func (h HelmHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // PostWork does installation pre-work
-func (h HelmHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
 	return result.NewResult()
 }
 
 // WorkCompletedUpdateStatus does the lifecycle completed Work status update
-func (h HelmHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 	return status.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
 }
