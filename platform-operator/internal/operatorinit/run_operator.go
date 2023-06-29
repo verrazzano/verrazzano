@@ -6,17 +6,19 @@ package operatorinit
 import (
 	"context"
 	"github.com/pkg/errors"
+	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	modulehandler "github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/factory"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -28,7 +30,6 @@ import (
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -89,21 +90,22 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
-	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-	reconciler := reconcile.Reconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		DryRun:            vzconfig.DryRun,
-		WatchedComponents: map[string]bool{},
-		WatchMutex:        &sync.RWMutex{},
-		StatusUpdater:     statusUpdater,
-	}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller")
-	}
-	if vzconfig.HealthCheckPeriodSeconds > 0 {
-		healthCheck.Start()
-	}
+
+	//healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+	//reconciler := reconcile.Reconciler{
+	//	Client:            mgr.GetClient(),
+	//	Scheme:            mgr.GetScheme(),
+	//	DryRun:            vzconfig.DryRun,
+	//	WatchedComponents: map[string]bool{},
+	//	WatchMutex:        &sync.RWMutex{},
+	//	StatusUpdater:     statusUpdater,
+	//}
+	//if err = reconciler.SetupWithManager(mgr); err != nil {
+	//	return errors.Wrap(err, "Failed to setup controller")
+	//}
+	//if vzconfig.HealthCheckPeriodSeconds > 0 {
+	//	healthCheck.Start()
+	//}
 
 	// Setup secrets reconciler
 	if err = (&secrets.VerrazzanoSecretsReconciler{
@@ -141,6 +143,12 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 
 	if vzconfig.ExperimentalModules {
 		log.Infof("Experimental Modules API enabled")
+	}
+
+	// init module controllers
+	if err := initModuleControllers(log, mgr); err != nil {
+		log.Errorf("Failed to start OCI-CCM controller", err)
+		return errors.Wrap(err, "Failed to setup controller for Verrazzano module controller")
 	}
 
 	// +kubebuilder:scaffold:builder
@@ -207,4 +215,16 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 	}
 
 	return err
+}
+
+// initModuleControllers creates a controller for every module
+func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+	for _, comp := range registry.GetComponents() {
+		// init controller
+		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
+			log.Errorf("Failed to start the Calico controller", err)
+			return err
+		}
+	}
+	return nil
 }

@@ -269,3 +269,6 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 
 // VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
+
+const VerrazzanoCRNameAnnotation = "verrazzano.io/vz-cr-name"
+const VerrazzanoCRNamespaceAnnotation = "verrazzano.io/vz-cr-namespace"
