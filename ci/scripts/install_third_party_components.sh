@@ -7,10 +7,17 @@
 echo "Installing cert-manager via helm chart"
 echo "Setting clusterResourceNamespace to $CLUSTER_RESOURCE_NAMESPACE"
 
-kubectl create ns my-cert-manager
+if [ -z "$(kubectl get ns | grep my-cert-manager)" ]
+then
+  kubectl create ns my-cert-manager
+fi
+
 if [ $CLUSTER_RESOURCE_NAMESPACE != my-cert-manager ]
 then
-  kubectl create ns $CLUSTER_RESOURCE_NAMESPACE
+  if [ -z "$(kubectl get ns | grep $CLUSTER_RESOURCE_NAMESPACE)" ]
+  then
+    kubectl create ns $CLUSTER_RESOURCE_NAMESPACE
+  fi
 fi
 
 controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="cert-manager")' | jq '.subcomponents[0].images[] | select(.image=="cert-manager-controller")' | jq .tag -r)
@@ -34,7 +41,10 @@ kubectl get pods -n my-cert-manager
 
 echo "Installing ingress-nginx via helm chart"
 
-kubectl create ns ingress-nginx
+if [ -z "$(kubectl get ns | grep ingress-nginx)" ]
+then
+  kubectl create ns ingress-nginx
+fi
 
 controllerTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-controller")' | jq .tag -r)
 defaultBackendTag=$(cat platform-operator/verrazzano-bom.json | jq '.components[] | select(.name=="ingress-nginx")' | jq '.subcomponents[0].images[] | select(.image=="nginx-ingress-default-backend")' | jq .tag -r)
