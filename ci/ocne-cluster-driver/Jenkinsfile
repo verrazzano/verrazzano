@@ -70,6 +70,140 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+
+        // Optional parameters to the Ginkgo test suite
+        string (name: 'DOCKER_ROOT_DIR',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'ENABLE_CLUSTER_ALERTING',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'ENABLE_CLUSTER_MONITORING',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'ENABLE_NETWORK_POLICY',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'WINDOWS_PREFERRED_CLUSTER',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CALICO_IMAGE_PATH',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CLUSTER_CIDR',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CONTROL_PLANE_MEMORY_GBS',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CONTROL_PLANE_OCPUS',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CONTROL_PLANE_SHAPE',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CONTROL_PLANE_VOLUME_GBS',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'CORE_DNS_IMAGE_TAG',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'ETCD_IMAGE_TAG',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'IMAGE_DISPLAY_NAME',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'IMAGE_ID',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'INSTALL_CALICO',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'INSTALL_CCM',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'INSTALL_VERRAZZANO',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'KUBERNETES_VERSION',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'NUM_CONTROL_PLANE_NODES',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'OCNE_VERSION',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'POD_CIDR',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'PRIVATE_REGISTRY',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'PROXY_ENDPOINT',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'SKIP_OCNE_INSTALL',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'TIGERA_IMAGE_TAG',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'USE_NODE_PV_ENCRYPTION',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'VERRAZZANO_RESOURCE',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'VERRAZZANO_TAG',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'VERRAZZANO_VERSION',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'NODE_SHAPE',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'NUM_WORKER_NODES',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
+        string (name: 'APPLY_YAMLS',
+                defaultValue: '',
+                description: 'An optional override to be passed into the OCNE cluster creation request.',
+                trim: true)
     }
 
     environment {
@@ -247,14 +381,6 @@ pipeline {
             }
         }
 
-        stage("Setting up environment vars for OCNE cluster creation") {
-            steps {
-                script {
-                    setUpEnvVarsForOCNEClusterCreation()
-                }
-            }
-        }
-
         stage("Create Image Pull Secrets") {
             steps {
                 createImagePullSecrets()
@@ -310,18 +436,7 @@ pipeline {
             steps {
                 script {
                     // Required environment variables for running the ocne-driver Ginkgo test suite
-                    env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                    env.OCI_REGION="${env.TF_VAR_region}"
-                    env.OCI_VCN_ID="${env.VCN_ID}"
-                    env.OCI_USER_ID="${env.TF_VAR_user_id}"
-                    env.OCI_TENANCY_ID="${env.TF_VAR_tenancy_id}"
-                    env.OCI_CREDENTIALS_FINGERPRINT="${env.TF_VAR_api_fingerprint}"
-                    env.OCI_PRIVATE_KEY_PATH="${TF_VAR_api_private_key_path}"
-                    env.NODE_PUBLIC_KEY_PATH="${TF_VAR_ssh_public_key_path}"
-                    env.OCI_COMPARTMENT_ID="${env.TF_VAR_compartment_id}"
-                    env.WORKER_NODE_SUBNET="${env.SUBNET_ID}"
-                    env.CONTROL_PLANE_SUBNET="${env.SUBNET_ID}"
-                    env.LOAD_BALANCER_SUBNET="${env.SUBNET_ID}"
+                    setUpEnvVarsForOCNEClusterCreation()
 
                     runGinkgo('clusterapi/ocne-driver')
                 }
@@ -329,7 +444,9 @@ pipeline {
             post {
                 always {
                     script {
-                        dumpK8sCluster('ocne-cluster-driver-cluster-dump')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('ocne-cluster-driver-cluster-dump')
+                        }
                     }
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -422,18 +539,56 @@ def runGinkgo(testSuitePath) {
 
 def setUpEnvVarsForOCNEClusterCreation() {
     env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${env.TF_VAR_label_prefix}-oke-vcn | jq -r '.data[0].id' """).trim()
-    println("VCN_ID=${env.VCN_ID}")
-
     env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id' """).trim()
-    println("SUBNET_ID=${env.SUBNET_ID}")
 
-    println("TF_VAR_region=${env.TF_VAR_region}")
-    println("TF_VAR_user_id=${env.TF_VAR_user_id}")
-    println("TF_VAR_tenancy_id=${env.TF_VAR_tenancy_id}")
-    println("TF_VAR_compartment_id=${env.TF_VAR_compartment_id}")
-    println("TF_VAR_api_fingerprint=${env.TF_VAR_api_fingerprint}")
+    // required environment variables for the Ginkgo test suite
+    env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+    env.OCI_REGION="${env.TF_VAR_region}"
+    env.OCI_VCN_ID="${env.VCN_ID}"
+    env.OCI_USER_ID="${env.TF_VAR_user_id}"
+    env.OCI_TENANCY_ID="${env.TF_VAR_tenancy_id}"
+    env.OCI_CREDENTIALS_FINGERPRINT="${env.TF_VAR_api_fingerprint}"
+    env.OCI_PRIVATE_KEY_PATH="${TF_VAR_api_private_key_path}"
+    env.NODE_PUBLIC_KEY_PATH="${TF_VAR_ssh_public_key_path}"
+    env.OCI_COMPARTMENT_ID="${env.TF_VAR_compartment_id}"
+    env.WORKER_NODE_SUBNET="${env.SUBNET_ID}"
+    env.CONTROL_PLANE_SUBNET="${env.SUBNET_ID}"
+    env.LOAD_BALANCER_SUBNET="${env.SUBNET_ID}"
 
-    println("SUBNET_ID=${env.SUBNET_ID}")
+    // optional parameters
+    env.DOCKER_ROOT_DIR="{params.DOCKER_ROOT_DIR}"
+    env.ENABLE_CLUSTER_ALERTING="{params.ENABLE_CLUSTER_ALERTING}"
+    env.ENABLE_CLUSTER_MONITORING="{params.ENABLE_CLUSTER_MONITORING}"
+    env.ENABLE_NETWORK_POLICY="{params.ENABLE_NETWORK_POLICY}"
+    env.WINDOWS_PREFERRED_CLUSTER="{params.WINDOWS_PREFERRED_CLUSTER}"
+    env.CALICO_IMAGE_PATH="{params.CALICO_IMAGE_PATH}"
+    env.CLUSTER_CIDR="{params.CLUSTER_CIDR}"
+    env.CONTROL_PLANE_MEMORY_GBS="{params.CONTROL_PLANE_MEMORY_GBS}"
+    env.CONTROL_PLANE_OCPUS="{params.CONTROL_PLANE_OCPUS}"
+    env.CONTROL_PLANE_SHAPE="${params.CONTROL_PLANE_SHAPE}"
+    env.CONTROL_PLANE_VOLUME_GBS="${params.CONTROL_PLANE_VOLUME_GBS}"
+    env.CORE_DNS_IMAGE_TAG="${params.CORE_DNS_IMAGE_TAG}"
+    env.ETCD_IMAGE_TAG="${params.ETCD_IMAGE_TAG}"
+    env.IMAGE_DISPLAY_NAME="${params.IMAGE_DISPLAY_NAME}"
+    env.IMAGE_ID="${params.IMAGE_ID}"
+    env.INSTALL_CALICO="${params.INSTALL_CALICO}"
+    env.INSTALL_CCM="${params.INSTALL_CCM}"
+    env.INSTALL_VERRAZZANO="${params.INSTALL_VERRAZZANO}"
+    env.KUBERNETES_VERSION="${params.KUBERNETES_VERSION}"
+    env.NUM_CONTROL_PLANE_NODES="${params.NUM_CONTROL_PLANE_NODES}"
+    env.OCNE_VERSION="${params.OCNE_VERSION}"
+    env.POD_CIDR="${params.POD_CIDR}"
+    env.PRIVATE_REGISTRY="${params.PRIVATE_REGISTRY}"
+    env.PROXY_ENDPOINT="${params.PROXY_ENDPOINT}"
+    env.SKIP_OCNE_INSTALL="${params.SKIP_OCNE_INSTALL}"
+    env.TIGERA_IMAGE_TAG="${params.TIGERA_IMAGE_TAG}"
+    env.USE_NODE_PV_ENCRYPTION="${params.USE_NODE_PV_ENCRYPTION}"
+    env.VERRAZZANO_RESOURCE="${params.VERRAZZANO_RESOURCE}"
+    env.VERRAZZANO_TAG="${params.VERRAZZANO_TAG}"
+    env.VERRAZZANO_VERSION="${params.VERRAZZANO_VERSION}"
+    env.NODE_SHAPE="${params.NODE_SHAPE}"
+    env.NUM_WORKER_NODES="${params.NUM_WORKER_NODES}"
+    env.APPLY_YAMLS="${params.APPLY_YAMLS}"
 }
 
 def downloadCLI() {

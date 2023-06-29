@@ -91,7 +91,7 @@ func ensureOCNEDriverVarsInitialized() {
 	calicoImagePath = getEnvFallback("CALICO_IMAGE_PATH", "olcne")
 	clusterCidr = getEnvFallback("CLUSTER_CIDR", "10.96.0.0/16")
 	controlPlaneMemoryGbs = getEnvFallbackInt("CONTROL_PLANE_MEMORY_GBS", 16)
-	controlPlaneOcpus = getEnvFallbackInt("CONTROL_PLANE_MEMORY_GBS", 2)
+	controlPlaneOcpus = getEnvFallbackInt("CONTROL_PLANE_OCPUS", 2)
 	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", "VM.Standard.E4.Flex")
 	controlPlaneVolumeGbs = getEnvFallbackInt("CONTROL_PLANE_VOLUME_GBS", 100)
 	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", "v1.9.3")
