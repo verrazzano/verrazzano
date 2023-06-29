@@ -15,6 +15,8 @@ var regexToReplacementList = []string{}
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 
+// Ask whether this is the correct hostname regex
+
 // InitRegexToReplacementMap Initialize the regex string to replacement string map
 // Append to this map for any future additions
 func InitRegexToReplacementMap() {

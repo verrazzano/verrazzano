@@ -5,7 +5,6 @@ package helpers
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -13,7 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	certmanagerfake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1/fake"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -29,7 +27,6 @@ import (
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	testk8 "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -108,13 +105,14 @@ func TestGroupVersionResource(t *testing.T) {
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
 	k8sClient := k8sfake.NewSimpleClientset()
+	client := fake.NewClientBuilder().Build()
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CaptureK8SResources(k8sClient, constants.VerrazzanoInstall, captureDir, rc)
+	err = CaptureK8SResources(client, k8sClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 }
 
@@ -393,18 +391,21 @@ func TestGetPodListAll(t *testing.T) {
 //		WHEN I call functions to create a list of certificates for the pod,
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
-	fakeCertManager := certmanagerfake.FakeCertmanagerV1{
-		Fake: &testk8.Fake{},
-	}
-	fakeCertificateInterface := fakeCertManager.Certificates("rancher")
-	fakeCertificateInterface.Create(context.TODO(), &v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate"}}, metav1.CreateOptions{})
-	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
-	defer cleanupTempDir(t, captureDir)
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	defer cleanupTempDir(t, captureDir)
+	sampleCert := v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"}}
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	t.Log(captureDir)
+	//defer cleanupTempDir(t, captureDir)
+	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = writeCertificateResourcesToFile(fakeCertificateInterface, "rancher", "certificates.json", rc)
+	err = captureCertificates(client, "cattle-system", captureDir, rc)
 	assert.NoError(t, err)
 }

@@ -15,12 +15,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	v1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +93,7 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
 // and services from the specified namespace, as JSON files
-func CaptureK8SResources(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -110,7 +109,7 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, namespace, captureDir 
 	if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
-	if err := captureCertificates(kubeClient, namespace, captureDir, vzHelper); err != nil {
+	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil
@@ -292,18 +291,9 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 
 // Would this be ok if it is creating a bunch of cert manager clients, should I create a top level certclient?
 // This function initalizes the certManager client set and the certManager Certificate Interface, this separation is done for unit test purposes.
-func captureCertificates(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	certClient, err := k8sutil.GetCertManagerClienset()
-	if err != nil {
-		return err
-	}
-	certificateClient := certClient.Certificates(namespace)
-	return writeCertificateResourcesToFile(certificateClient, namespace, constants.CertificatesJSON, vzHelper)
-}
-
-// This function gets the list of certificate resources from teh namespace and writes them to the specified file
-func writeCertificateResourcesToFile(certificateInterface v1.CertificateInterface, namespace, captureDir string, vzHelper VZHelper) error {
-	certificateList, err := certificateInterface.List(context.TODO(), metav1.ListOptions{})
+func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
+	certificateList := v1.CertificateList{}
+	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
 	}
