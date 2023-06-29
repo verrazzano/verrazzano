@@ -337,7 +337,7 @@ pipeline {
                     }
                 }
 
-        /*
+
         stage('verify-install on admin cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -348,14 +348,18 @@ pipeline {
                 }
             }
             post {
+                always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
                 failure {
                     script {
-                        dumpK8sCluster('verify-install-cluster-dump')
+                        dumpK8sCluster('verify-install-admin-cluster-dump')
                     }
                 }
             }
         }
-        */
+
 
         stage('Deploy OCNE workload cluster using CAPI and install Verrazzano') {
             steps {
@@ -396,9 +400,13 @@ pipeline {
                 }
             }
             post {
+                always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
                 failure {
                     script {
-                        dumpK8sCluster('verify-install-cluster-dump')
+                        dumpK8sCluster('verify-install-workload-cluster-dump')
                     }
                 }
             }
@@ -417,9 +425,13 @@ pipeline {
                 }
             }
             post {
+                always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
                 failure {
                     script {
-                        dumpK8sCluster('verify-install-cluster-dump')
+                        dumpK8sCluster('uninstall-vz-workload-cluster-dump')
                     }
                 }
             }
@@ -434,9 +446,13 @@ pipeline {
                 }
             }
             post {
+                always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
                 failure {
                     script {
-                        dumpK8sCluster('verify-install-cluster-dump')
+                        dumpK8sCluster('cleanup-capi-admin-cluster-dump')
                     }
                 }
             }

@@ -309,7 +309,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
 				return TriggerCapiClusterCreation(OCNENamespace, clusterTemplate, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Monitor Cluster Creation", func() {
@@ -321,31 +321,31 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
 			Eventually(func() error {
 				return DeployClusterResourceSets(ClusterName, clusterResourceSetTemplate, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Update NSG for new VCN created by CAPi cluster", func() {
 			Eventually(func() error {
 				return ensureNSG()
-			}, waitTimeout, pollingInterval).Should(BeNil(), "ensure nsg update")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "ensure nsg update")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure ETCD pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensurePodsAreRunning(ClusterName, "kube-system", "etcd", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube API Server pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensurePodsAreRunning(ClusterName, "kube-system", "apiserver", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube controller pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensurePodsAreRunning(ClusterName, "kube-system", "controller-manager", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube scheduler pods in kube-system of CAPI workload cluster are running", func() {
@@ -357,43 +357,43 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		WhenClusterAPIInstalledIt("Ensure kube proxy pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensurePodsAreRunning(ClusterName, "kube-system", "proxy", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure CCM pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensurePodsAreRunning(ClusterName, "kube-system", "ccm", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure CSI pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureCSIPodsAreRunning(ClusterName, "kube-system", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
 				return displayWorkloadClusterResources(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure Calico pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureCalicoPodsAreRunning(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure Module operator pods in verrazzano-module-operator of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensurePodsAreRunning(ClusterName, "verrazzano-module-operator", "module", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure Verrazzano Platform operator pods in verrazzano-install of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return ensureVPOPodsAreRunning(ClusterName, "verrazzano-install", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 	})
 
@@ -401,7 +401,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
 			Eventually(func() error {
 				return ensureVerrazzano(ClusterName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "verify verrazzano is installed")
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "verify verrazzano is installed")
 		})
 	})
 
