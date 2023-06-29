@@ -17,26 +17,13 @@ var (
 	OCIVcnID                         string
 	OCISubnetID                      string
 	OCISubnetCIDR                    string
-	OciSSHKey                        string
-	OCICredsKey                      string
+	OCISSHKeyPath                    string
+	OCIPrivateKeyPath                string
 	ClusterName                      string
 	ClusterTemplateGeneratedFilePath string
+	OCNENamespace                    string
+	OCIImageID                       string
 )
-
-type TemplateInput struct {
-	APIVersion                 string
-	APIRepository              string
-	APITag                     string
-	OCIVersion                 string
-	OCIRepository              string
-	OCITag                     string
-	OCNEBootstrapVersion       string
-	OCNEBootstrapRepository    string
-	OCNEBootstrapTag           string
-	OCNEControlPlaneVersion    string
-	OCNEControlPlaneRepository string
-	OCNEControlPlaneTag        string
-}
 
 func ensureCAPIVarsInitialized() {
 	OCIRegion = os.Getenv("OCI_REGION")
@@ -49,6 +36,7 @@ func ensureCAPIVarsInitialized() {
 	OCISubnetID = os.Getenv("OCI_SUBNET_ID")
 	OCISubnetCIDR = "10.0.0.32/27"
 	ClusterName = os.Getenv("CLUSTER_NAME")
-	OCICredsKey = os.Getenv("CAPI_OCI_PRIVATE_KEY_PATH")
-	OciSSHKey = os.Getenv("CAPI_NODE_SSH_KEY_PATH")
+	OCIPrivateKeyPath = os.Getenv("CAPI_OCI_PRIVATE_KEY_PATH")
+	OCISSHKeyPath = os.Getenv("CAPI_NODE_SSH_KEY_PATH")
+	OCNENamespace = os.Getenv("CLUSTER_NAMESPACE")
 }

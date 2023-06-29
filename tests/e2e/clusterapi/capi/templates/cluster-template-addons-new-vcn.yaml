@@ -7,7 +7,7 @@ metadata:
   labels:
     cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
   name: ${CLUSTER_NAME}
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   clusterNetwork:
     pods:
@@ -21,18 +21,18 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
     kind: OCNEControlPlane
     name: ${CLUSTER_NAME}-control-plane
-    namespace: ${NAMESPACE}
+    namespace: ${CLUSTER_NAMESPACE}
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: OCICluster
     name: ${CLUSTER_NAME}
-    namespace: ${NAMESPACE}
+    namespace: ${CLUSTER_NAMESPACE}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: ${CLUSTER_NAME}-user-credentials
-  namespace:  ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 type: Opaque
 data:
   tenancy: ${OCI_TENANCY_ID_B64}
@@ -46,12 +46,12 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIClusterIdentity
 metadata:
   name: ${CLUSTER_NAME}-cluster-identity
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   type: UserPrincipal
   principalSecret:
     name: ${CLUSTER_NAME}-user-credentials
-    namespace: ${NAMESPACE}
+    namespace: ${CLUSTER_NAMESPACE}
   allowedNamespaces: {}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -60,22 +60,24 @@ metadata:
   labels:
     cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
   name: ${CLUSTER_NAME}
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   compartmentId: ${OCI_COMPARTMENT_ID}
   identityRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: OCIClusterIdentity
     name: ${CLUSTER_NAME}-cluster-identity
-    namespace: ${NAMESPACE}
+    namespace: ${CLUSTER_NAMESPACE}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
 kind: OCNEControlPlane
 metadata:
   name: ${CLUSTER_NAME}-control-plane
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   moduleOperator:
+    enabled: true
+  verrazzanoPlatformOperator:
     enabled: true
   controlPlaneConfig:
     clusterConfiguration:
@@ -111,7 +113,7 @@ spec:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: OCIMachineTemplate
       name: ${CLUSTER_NAME}-control-plane
-      namespace: ${NAMESPACE}
+      namespace: ${CLUSTER_NAMESPACE}
   replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
   version: ${KUBERNETES_VERSION=v1.25.7}
 ---
@@ -119,7 +121,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
     spec:
@@ -137,7 +139,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
     spec:
@@ -155,7 +157,7 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
 kind: OCNEConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
     spec:
@@ -171,7 +173,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: ${CLUSTER_NAME}-md-0
-  namespace: ${NAMESPACE}
+  namespace: ${CLUSTER_NAMESPACE}
 spec:
   clusterName: ${CLUSTER_NAME}
   replicas: ${NODE_MACHINE_COUNT=1}
