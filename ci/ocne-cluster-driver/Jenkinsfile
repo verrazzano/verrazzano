@@ -449,7 +449,6 @@ pipeline {
                         }
                     }
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
@@ -542,7 +541,6 @@ def setUpEnvVarsForOCNEClusterCreation() {
     env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id' """).trim()
 
     // required environment variables for the Ginkgo test suite
-    env.TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
     env.OCI_REGION="${env.TF_VAR_region}"
     env.OCI_VCN_ID="${env.VCN_ID}"
     env.OCI_USER_ID="${env.TF_VAR_user_id}"
