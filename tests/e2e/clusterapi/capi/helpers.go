@@ -657,6 +657,7 @@ func createNamespace(namespace string, log *zap.SugaredLogger) error {
 
 }
 
+/*
 func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	log.Infof("deleting namespace '%s'", namespace)
 	k8s, err := k8sutil.GetKubernetesClientset()
@@ -665,6 +666,7 @@ func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	}
 	return k8s.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 }
+*/
 
 func updateOCINSG(clusterName, nsgDisplayName, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
 	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayName, info)

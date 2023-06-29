@@ -293,14 +293,15 @@ func ensureNSG() error {
 
 }
 
-func capiCleanup() {
-	t.Logs.Infof("Deleting namespace for capi objects '%s'", ClusterName)
-	Eventually(func() error {
-		return deleteNamespace(OCNENamespace, t.Logs)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+/*
+	func capiCleanup() {
+		t.Logs.Infof("Deleting namespace for capi objects '%s'", ClusterName)
+		Eventually(func() error {
+			return deleteNamespace(OCNENamespace, t.Logs)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
-
+*/
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
 	t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {

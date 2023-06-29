@@ -16,7 +16,7 @@ const (
 
 // Client interface for OCI Clients
 type OCIClient interface {
-	GetSubnetByID(ctx context.Context, subnetId string, log *zap.SugaredLogger) (*core.Subnet, error)
+	GetSubnetByID(ctx context.Context, subnetID string, log *zap.SugaredLogger) (*core.Subnet, error)
 	GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
 	GetVcnIDByNane(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
 	GetSubnetIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)

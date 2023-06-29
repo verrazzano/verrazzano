@@ -43,11 +43,11 @@ pipeline {
                         trim: true)
         string (name: 'POD_CIDR',
                         defaultValue: '192.168.0.0/16',
-                        description: 'POD cidr to be used in OCNE CAPI cluster',
+                        description: 'POD cidr to be used in workload/managed OCNE cluster',
                         trim: true)
         string (name: 'CLUSTER_CIDR',
                 defaultValue: '10.128.0.0/12',
-                description: 'POD CLUSTER_CIDR to be used in OCNE CAPI cluster',
+                description: 'POD CLUSTER_CIDR to be used in workload/managed OCNE cluster',
                 trim: true)
         string (name: 'OCNE_IMAGE_REPOSITORY',
                 defaultValue: 'container-registry.oracle.com',
