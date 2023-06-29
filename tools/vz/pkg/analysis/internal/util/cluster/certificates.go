@@ -104,13 +104,21 @@ func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot strin
 	if err != nil {
 		return listOfCertificatesThatVPOIsHangingOn, err
 	}
+	if len(allPodFiles) == 0 {
+		return listOfCertificatesThatVPOIsHangingOn, nil
+	}
 	vpoLog := allPodFiles[0]
 	allMessages, err := files.ConvertToLogMessage(vpoLog)
 	if err != nil {
 		return listOfCertificatesThatVPOIsHangingOn, err
 	}
-	//Look through the last 10 messages of the VPO logged
-	lastTenVPOLogs := allMessages[len(allMessages)-10:]
+	//Get the first 10 VPO messages or if there is are more than 10 VPO messages get the last 10
+	lastTenVPOLogs := []files.LogMessage{}
+	if len(allMessages) > 10 {
+		lastTenVPOLogs = allMessages[len(allMessages)-10:]
+	} else {
+		lastTenVPOLogs = allMessages[:]
+	}
 	for _, VPOLog := range lastTenVPOLogs {
 		//Check if VPO message indicates if certificate is hangiingn and add
 		VPOLogMessage := VPOLog.Message
