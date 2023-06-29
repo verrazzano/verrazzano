@@ -199,9 +199,9 @@ pipeline {
         CLUSTER_NAME = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
         CAPI_NODE_SSH_KEY_PATH = credentials('oci-tf-pub-ssh-key')
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
-        ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}
-        OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}
-        OPERATING_SYSTEM_VERSION = "${params.OPERATING_SYSTEM_VERSION}
+        ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}"
+        OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}"
+        OPERATING_SYSTEM_VERSION = "${params.OPERATING_SYSTEM_VERSION}"
 
 
 
@@ -510,8 +510,8 @@ def set_capi_variables() {
    int OCNE_WORKERS_COUNT = params.NODE_MACHINE_COUNT.toInteger()
    env.NODE_MACHINE_COUNT =  OCNE_WORKERS_COUNT
 
-   env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1 """).trim()
-   println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
+   // env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1 """).trim()
+   // println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
    // env.OCI_TENANCY_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n' """).trim()
    // env.OCI_CREDENTIALS_FINGERPRINT_B64=sh(returnStdout: true, script: """ echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n' """).trim()
    // env.OCI_USER_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_USER_ID}" | base64 | tr -d '\n' """).trim()
