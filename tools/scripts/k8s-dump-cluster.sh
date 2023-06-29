@@ -145,7 +145,7 @@ function dump_es_indexes() {
   fi
 }
 
-# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currenntly
+# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currently
 # should only be called after that has been called
 function dump_configmaps() {
   # Get list of all config maps in the cluster
@@ -235,6 +235,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true
         kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/pod-monitors.json || true
         kubectl --insecure-skip-tls-verify get endpoints -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/endpoints.json || true
+        kubectl --insecure-skip-tls-verify get kontainerdriver -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/kontainerdrivers.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-snapshot/namespace_list.out
