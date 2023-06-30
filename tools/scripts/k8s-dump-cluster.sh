@@ -235,9 +235,19 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true
         kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/pod-monitors.json || true
         kubectl --insecure-skip-tls-verify get endpoints -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/endpoints.json || true
-        kubectl --insecure-skip-tls-verify get kontainerdriver -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/kontainerdrivers.json || true
-        kubectl --insecure-skip-tls-verify get machines -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machines.json || true
-        kubectl --insecure-skip-tls-verify get machinesets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinesets.json || true
+        kubectl --insecure-skip-tls-verify get cluster.provisioning.cattle.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusters.provisioning.cattle.io.json || true
+        kubectl --insecure-skip-tls-verify get cluster.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusters.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get clusterresourcesetbinding.addons.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusterresourcesetbindings.addons.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get clusterresourceset.addons.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusterresourcesets.addons.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get machinedeployment.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinedeployments.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get machine.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machines.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get machineset.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinesets.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get ocneconfig.bootstrap.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocneconfigs.bootstrap.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get ocneconfigtemplate.bootstrap.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocneconfigtemplates.bootstrap.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get ocnecontrolplane.controlplane.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocnecontrolplanes.controlplane.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get ocicluster.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ociclusters.infrastructure.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get ocimachine.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimachines.infrastructure.cluster.x-k8s.io.json || true
+        kubectl --insecure-skip-tls-verify get ocimachinetemplate.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimachinetemplates.infrastructure.cluster.x-k8s.io.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-snapshot/namespace_list.out
@@ -279,8 +289,10 @@ function full_k8s_cluster_snapshot() {
     if kubectl get ns verrazzano-monitoring 2>&1 > /dev/null ; then
       kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-snapshot/prom-scrape-config.yaml || true
     fi
-    # Gather event messages in crhonological order
+    # Gather event messages in chronological order
     gather_cronological_events
+    # Dump CAPI resources
+    kubectl --insecure-skip-tls-verify get kontainerdrivers -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kontainerdrivers.json || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi
