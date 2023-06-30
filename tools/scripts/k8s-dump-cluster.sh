@@ -236,69 +236,27 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/pod-monitors.json || true
         kubectl --insecure-skip-tls-verify get endpoints -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/endpoints.json || true
         # Dump CAPI related resources only if they exist
-        if kubectl get clusterclasses.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get clusterclasses.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusterclasses.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get clusterresourcesetbindings.addons.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get clusterresourcesetbindings.addons.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusterresourcesetbindings.addons.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get clusterresourcesets.addons.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get clusterresourcesets.addons.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusterresourcesets.addons.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get clusters.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get clusters.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/clusters.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get extensionconfigs.runtime.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get extensionconfigs.runtime.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/extensionconfigs.runtime.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ipaddressclaims.ipam.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ipaddressclaims.ipam.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ipaddressclaims.ipam.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ipaddresses.ipam.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ipaddresses.ipam.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ipaddresses.ipam.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get machinedeployments.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get machinedeployments.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinedeployments.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get machinehealthchecks.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get machinehealthchecks.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinehealthchecks.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get machinepools.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get machinepools.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinepools.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get machines.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get machines.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machines.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get machinesets.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get machinesets.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/machinesets.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ociclusteridentities.infrastructure.cluster.x-k8s.io  -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ociclusteridentities.infrastructure.cluster.x-k8s.io  -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ociclusteridentities.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ociclusters.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ociclusters.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ociclusters.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ociclustertemplates.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ociclustertemplates.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ociclustertemplates.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ocimachinepools.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ocimachinepools.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimachinepools.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ocimachines.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ocimachines.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimachines.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ocimachinetemplates.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ocimachinetemplates.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimachinetemplates.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ocimanagedclusters.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ocimanagedclusters.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimanagedclusters.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ocimanagedclustertemplates.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ocimanagedclustertemplates.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimanagedclustertemplates.infrastructure.cluster.x-k8s.io.json || true
-        fi
-        if kubectl get ocimanagedcontrolplanes.infrastructure.cluster.x-k8s.io -n $NAMESPACE 2>&1 > /dev/null ; then
-          kubectl --insecure-skip-tls-verify get ocimanagedcontrolplanes.infrastructure.cluster.x-k8s.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ocimanagedcontrolplanes.infrastructure.cluster.x-k8s.io.json || true
-        fi
+        dump_namespaced_object_if_exists "clusterclasses.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "clusterresourcesetbindings.addons.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "clusterresourcesets.addons.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "clusters.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "extensionconfigs.runtime.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ipaddressclaims.ipam.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ipaddresses.ipam.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "machinedeployments.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "machinehealthchecks.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "machinepools.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "machines.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "machinesets.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ociclusteridentities.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ociclusters.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ociclustertemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ocimachinepools.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ocimachines.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ocimachinetemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ocimanagedclusters.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ocimanagedclustertemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
+        dump_namespaced_object_if_exists "ocimanagedcontrolplanes.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
         dump_namespaced_object_if_exists "ocimanagedcontrolplanetemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
         dump_namespaced_object_if_exists "ocimanagedmachinepools.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
         dump_namespaced_object_if_exists "ocimanagedmachinepooltemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
