@@ -9,7 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 )
 
-// This tests asserts for no errors ask about the no report for other unit tests
+// This tests asserts that no errors are called when the Certificate Analysis function is called on a valid input
 func TestAnalyzeCertificateIssues(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	assert.NoError(t, AnalyzeCertificateRelatedIsssues(logger, "../../../test/cluster/testCertificateIssue"))

@@ -92,7 +92,7 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
-// and services from the specified namespace, as JSON files
+// services, and cert-manager certificates from the specified namespace, as JSON files
 func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
@@ -289,8 +289,7 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	return nil
 }
 
-// Would this be ok if it is creating a bunch of cert manager clients, should I create a top level certclient?
-// This function initalizes the certManager client set and the certManager Certificate Interface, this separation is done for unit test purposes.
+// This function gets the certificates from the client for the current namespace and outputs the objects to a certificates.json file, if certificates are present in that namespace.
 func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
 	certificateList := v1.CertificateList{}
 	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})

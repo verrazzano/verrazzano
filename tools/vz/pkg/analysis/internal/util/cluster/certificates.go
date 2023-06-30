@@ -18,6 +18,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// This is the inital entry function for certificate related issues.
+// It first determines the status of the VPO, then checks if there are any certificates in the namespaces.
+// It then analyzes those certificates to determine expiration or other issues and then contributes the respective issues to the Issue Reporter.
+// The three issues that it is currently reporting on are the VPO hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
 func AnalyzeCertificateRelatedIsssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	mapOfCertificatesInVPOToTheirNamespace, err := determineIfVPOIsHangingDueToCerts(log, clusterRoot)
 
@@ -61,8 +65,8 @@ func AnalyzeCertificateRelatedIsssues(log *zap.SugaredLogger, clusterRoot string
 
 }
 
+// This function returns a list of certificate objects based on the certificates.json file
 func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *certv1.CertificateList, err error) {
-	//I return nill here, as the namespace may not have a certificates.json file in it
 	certList := &certv1.CertificateList{}
 	file, err := os.Open(path)
 	if err != nil {
@@ -82,6 +86,8 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 	}
 	return certList, err
 }
+
+// This function creates the message and formally adds the issue to the IssueReporter
 func reportCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string, VPOHangingIssue bool, isCertificateExpired bool) {
 	files := []string{certificateFile}
 	if VPOHangingIssue {
@@ -97,6 +103,11 @@ func reportCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certific
 	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is not valid and experiencing issues"}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
 }
+
+// This function determines if the VPO is currently hanging due to certificate issues
+// It does this by checking the last 10 logs of the VPO and determines all the certificates that the VPO is hanging along
+// It returns a map containing these certificates as keys and their respective namespaces as values
+// This map is used by the main certificate analysis function to determine if the VPO is hanging on a valid certificate
 func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
 	listOfCertificatesThatVPOIsHangingOn := make(map[string]string)
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
@@ -120,7 +131,6 @@ func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot strin
 		lastTenVPOLogs = allMessages[:]
 	}
 	for _, VPOLog := range lastTenVPOLogs {
-		//Check if VPO message indicates if certificate is hangiingn and add
 		VPOLogMessage := VPOLog.Message
 		if strings.Contains(VPOLogMessage, "message: Issuing certificate as Secret does not exist") && strings.HasPrefix(VPOLogMessage, "Certificate ") {
 			VPOLogCertificateNameAndNamespace := strings.Split(VPOLogMessage, " ")[1]

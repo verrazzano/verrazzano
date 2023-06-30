@@ -30,6 +30,8 @@ import (
 //	So we may break this into 2 lists in the future: serial analysis functions, parallel analysis functions
 //	Analyzers that may fall into this category should be annotated, with a comment, there currently is only
 //	one that may require that.
+
+// These are the high level analysis functions that are called. The "Runtime Issues" maps to only certificate functions currently.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
 	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
 	"Pod Related Issues": AnalyzePodIssues,

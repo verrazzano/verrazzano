@@ -390,7 +390,7 @@ func TestGetPodListAll(t *testing.T) {
 }
 
 //	 	GIVEN a k8s cluster with certificates present in a namespace  ,
-//		WHEN I call functions to create a list of certificates for the pod,
+//		WHEN I call functions to create a list of certificates for the namespace,
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
@@ -400,7 +400,7 @@ func TestCreateCertificateFile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
 	t.Log(captureDir)
-	//defer cleanupTempDir(t, captureDir)
+	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
