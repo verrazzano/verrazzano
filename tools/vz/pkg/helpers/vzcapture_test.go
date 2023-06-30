@@ -399,9 +399,9 @@ func TestCreateCertificateFile(t *testing.T) {
 	sampleCert := v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"}}
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	assert.NoError(t, err)
 	t.Log(captureDir)
 	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")

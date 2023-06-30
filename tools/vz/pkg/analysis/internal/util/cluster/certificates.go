@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// This is the inital entry function for certificate related issues.
+// This is the initial entry function for certificate related issues.
 // It first determines the status of the VPO, then checks if there are any certificates in the namespaces.
 // It then analyzes those certificates to determine expiration or other issues and then contributes the respective issues to the Issue Reporter.
 // The three issues that it is currently reporting on are the VPO hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
@@ -123,12 +123,10 @@ func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot strin
 	if err != nil {
 		return listOfCertificatesThatVPOIsHangingOn, err
 	}
-	//Get the first 10 VPO messages or if there is are more than 10 VPO messages get the last 10
-	lastTenVPOLogs := []files.LogMessage{}
+	//If the VPO has greater than 10 messages, the last 10 logs are the input. Else, the whole VPO logs are the input
+	lastTenVPOLogs := allMessages[:]
 	if len(allMessages) > 10 {
 		lastTenVPOLogs = allMessages[len(allMessages)-10:]
-	} else {
-		lastTenVPOLogs = allMessages[:]
 	}
 	for _, VPOLog := range lastTenVPOLogs {
 		VPOLogMessage := VPOLog.Message
