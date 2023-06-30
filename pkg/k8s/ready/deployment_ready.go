@@ -75,7 +75,6 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 			return false
 		}
 		if !exists {
-			logProgressf(log, "%s is waiting for deployment %v to exist", prefix, namespacedName)
 			return false
 		}
 	}

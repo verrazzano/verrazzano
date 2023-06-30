@@ -247,7 +247,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "1.6.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -265,7 +265,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230518201121-1c995fb",
+              "tag": "v2.0.0-20230628190831-09d3d66",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -287,7 +287,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.6.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230529135659-b70d524",
+              "tag": "v2.0.0-20230630070726-a727c8b",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -386,7 +386,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "1.6.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -581,7 +581,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.6.0-20230512022548-e289e05"
+              "tag": "v2.0.0-20230628190510-b8bc75a"
             }
           ]
         }
