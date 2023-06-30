@@ -204,6 +204,16 @@ pipeline {
     }
 
     environment {
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
+        DOCKER_REPO = 'ghcr.io'
+        TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
+        DISABLE_SPINNER=1
+        VZ_ENVIRONMENT_NAME = "default"
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
+        DATABASE_PSW = credentials('todo-mysql-password')
+
         CLUSTER_NAME = 'byok8s-kind'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
@@ -254,6 +264,7 @@ pipeline {
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
+        UNINSTALL_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/uninstall-test"
 
         // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
@@ -267,8 +278,8 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        TEST_ENV = "magicdns_oke"
-        TEST_ENV_LABEL = "${params.TEST_ENV}"
+        TEST_ENV = "OKE"
+        TEST_ENV_LABEL = "magicdns_oke"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
