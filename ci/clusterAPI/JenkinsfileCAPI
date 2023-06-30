@@ -428,10 +428,6 @@ pipeline {
                     }
                 }
                 post {
-                    always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    }
                     failure {
                         script {
                             dumpOCNECluster('verify-install-workload-cluster-dump')
