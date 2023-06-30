@@ -703,6 +703,7 @@ func setImageID(key string, log *zap.SugaredLogger) error {
 	return os.Setenv(key, id)
 }
 
+/*
 func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
 	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
@@ -733,6 +734,7 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 	return dclient, nil
 
 }
+*/
 
 func createImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 	log.Infof("Creating image pull secrets on workload cluster ...")

@@ -413,32 +413,32 @@ pipeline {
        }
 
        /*
-       stage('verify-install on workload cluster') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
-                        export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
-                        kubectl get nodes -o wide
-                        kubectl get pods -A
-                        cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                        unset KUBECONFIG
-                    """
-                }
-            }
-            post {
-                always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpOCNECluster('verify-install-workload-cluster-dump')
+           stage('verify-install on workload cluster') {
+                steps {
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        sh """
+                            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
+                            export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
+                            kubectl get nodes -o wide
+                            kubectl get pods -A
+                            cd ${WORKSPACE}/tests/e2e
+                            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                            unset KUBECONFIG
+                        """
                     }
                 }
-            }
-       }
+                post {
+                    always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    }
+                    failure {
+                        script {
+                            dumpOCNECluster('verify-install-workload-cluster-dump')
+                        }
+                    }
+                }
+           }
        */
 
         stage('uninstall vz from workload cluster') {
