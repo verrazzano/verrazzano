@@ -47,6 +47,8 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
+
+
 	// Create the target namespace (if it doesn't exist) and label it
 	if module.Spec.TargetNamespace != "" {
 		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: module.Spec.TargetNamespace}}
