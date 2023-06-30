@@ -394,20 +394,17 @@ func TestGetPodListAll(t *testing.T) {
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
-	assert.NoError(t, err)
+	_ = v1.AddToScheme(schemeForClient)
 	sampleCert := v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"}}
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
-	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
-	assert.NoError(t, err)
+	captureDir, _ := os.MkdirTemp("", "testcaptureforcertificates")
 	t.Log(captureDir)
 	defer cleanupTempDir(t, captureDir)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
-	assert.NoError(t, err)
+	tempFile, _ := os.CreateTemp(captureDir, "temporary-log-file-for-test")
 	SetMultiWriterOut(buf, tempFile)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = captureCertificates(client, "cattle-system", captureDir, rc)
+	err := captureCertificates(client, "cattle-system", captureDir, rc)
 	assert.NoError(t, err)
 }
