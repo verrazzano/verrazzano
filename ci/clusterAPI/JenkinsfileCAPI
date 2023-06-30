@@ -348,10 +348,6 @@ pipeline {
                 }
             }
             post {
-                always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
                 failure {
                     script {
                         dumpK8sCluster('verify-install-admin-cluster-dump')
@@ -373,10 +369,6 @@ pipeline {
                 }
             }
             post {
-                always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
                 failure {
                     script {
                         dumpOCNECluster('verify-capi-cluster-creation')
@@ -400,10 +392,6 @@ pipeline {
                }
            }
            post {
-               always {
-                       archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                       junit testResults: '**/*test-result.xml', allowEmptyResults: true
-               }
                failure {
                    script {
                        dumpOCNECluster('verrazzano-install-workload-cluster-dump')
@@ -449,10 +437,6 @@ pipeline {
                 }
             }
             post {
-                always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
                 failure {
                     script {
                         dumpK8sCluster('uninstall-vz-workload-cluster-dump')
@@ -471,10 +455,6 @@ pipeline {
                 }
             }
             post {
-                always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
                 failure {
                     script {
                         dumpK8sCluster('cleanup-capi-admin-cluster-dump')
