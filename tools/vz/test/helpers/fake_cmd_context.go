@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
 
