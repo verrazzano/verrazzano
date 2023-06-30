@@ -208,22 +208,22 @@ spec:
       name: ${CLUSTER_NAME}-verrazzano-dev-profile
   strategy: Reconcile
 ---
-apiVersion: v1
-data:
-  verrazzano.yaml: |
-    apiVersion: install.verrazzano.io/v1beta1
-    kind: Verrazzano
-    metadata:
-      name: verrazzano
-      namespace: default
-    spec:
-      environmentName: ocne
-      profile: dev
-kind: ConfigMap
-metadata:
-  annotations:
-    note: generated
-  labels:
-    type: generated
-  name: ${CLUSTER_NAME}-verrazzano-dev-profile
-  namespace: ${CLUSTER_NAMESPACE}
+#apiVersion: v1
+#data:
+#  verrazzano.yaml: |
+#    apiVersion: install.verrazzano.io/v1beta1
+#    kind: Verrazzano
+#    metadata:
+#      name: verrazzano
+#      namespace: default
+#    spec:
+#      environmentName: ocne
+#      profile: dev
+#kind: ConfigMap
+#metadata:
+#  annotations:
+#    note: generated
+#  labels:
+#    type: generated
+#  name: ${CLUSTER_NAME}-verrazzano-dev-profile
+#  namespace: ${CLUSTER_NAMESPACE}

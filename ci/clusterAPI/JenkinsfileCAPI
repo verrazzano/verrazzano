@@ -386,7 +386,34 @@ pipeline {
             }
         }
 
-        stage('verify-install on workload cluster') {
+
+       stage('install Verrazzano on workload cluster') {
+           steps {
+               catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                   sh """
+                       kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
+                       kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get nodes -o wide
+                       kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get pods -A
+                       cd $WORKSPACE
+                       ./vz install --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout 60m
+                   """
+               }
+           }
+           post {
+               always {
+                       archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                       junit testResults: '**/*test-result.xml', allowEmptyResults: true
+               }
+               failure {
+                   script {
+                       dumpOCNECluster('verrazzano-install-workload-cluster-dump')
+                   }
+               }
+           }
+       }
+
+       /*
+       stage('verify-install on workload cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -411,17 +438,17 @@ pipeline {
                     }
                 }
             }
-        }
+       }
+       */
+
         stage('uninstall vz from workload cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
-                        export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
-                        kubectl get nodes -o wide
-                        kubectl get pods -A
-                        ${GO_REPO_PATH}/vz uninstall -y --timeout 60m
-                        unset KUBECONFIG
+                        kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get nodes -o wide
+                        kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get pods -A
+                        ${GO_REPO_PATH}/vz --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig uninstall -y --timeout 60m
                     """
                 }
             }

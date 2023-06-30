@@ -397,40 +397,4 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		})
 	})
 
-	t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
-		WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
-			Eventually(func() error {
-				return ensureVerrazzano(ClusterName, t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "verify verrazzano is installed")
-		})
-	})
-
-	//t.Context(fmt.Sprintf("Verrazzano cleanup and monitoring '%s'", ClusterName), func() {
-	//	WhenClusterAPIInstalledIt("Ensure Verrazzano is uninstalled from workload cluster", func() {
-	//		Eventually(func() error {
-	//			return deleteVerrazzano(ClusterName, t.Logs)
-	//		}, waitTimeout, pollingInterval).Should(BeNil(), "start verrazzano uninstall")
-	//	})
-	//	WhenClusterAPIInstalledIt("Ensure Verrazzano is removed from workload cluster", func() {
-	//		Eventually(func() error {
-	//			return getVerrazzano(ClusterName, t.Logs)
-	//		}, waitTimeout, pollingInterval).Should(BeNil(), "check verrazzano")
-	//	})
-	//})
-
-	//t.Context(fmt.Sprintf("Delete CAPI cluster '%s'", ClusterName), func() {
-	//	WhenClusterAPIInstalledIt("Delete CAPI cluster", func() {
-	//		Eventually(func() error {
-	//			return TriggerCapiClusterDeletion(ClusterName, OCNENamespace, t.Logs)
-	//		}, waitTimeout, pollingInterval).Should(BeNil(), "Delete CAPI cluster")
-	//	})
-	//
-	//	WhenClusterAPIInstalledIt("Monitor Cluster Deletion", func() {
-	//		Eventually(func() error {
-	//			return MonitorCapiClusterDeletion(ClusterName, t.Logs)
-	//		}, waitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Deletion")
-	//	})
-	//
-	//})
-
 })
