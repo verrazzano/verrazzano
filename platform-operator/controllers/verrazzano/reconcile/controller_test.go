@@ -11,59 +11,62 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/assert"
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"go.uber.org/zap"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	time2 "helm.sh/helm/v3/pkg/time"
 	batchv1 "k8s.io/api/batch/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/client-go/dynamic"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/golang/mock/gomock"
-	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/assert"
-	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // For unit testing
 const testBomFilePath = "../testdata/test_bom.json"
+
+var testScheme = runtime.NewScheme()
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
 //
@@ -202,6 +205,8 @@ func TestInstall(t *testing.T) {
 			// Expect a call to update the finalizers - return success
 			if test.finalizer != finalizerName {
 				mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			} else {
+				mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			}
 
 			// Expect a call to update the status of the Verrazzano resource
@@ -214,7 +219,6 @@ func TestInstall(t *testing.T) {
 
 			// Expect local registration calls
 			expectSyncLocalRegistration(t, mock, name)
-
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
@@ -500,6 +504,10 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the ingressList
 	expectGetIngressListExists(mock)
+
+	// Expects an Update call for Reconciling the Verrazzano Configmap within the Reconcile() func
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).Return(nil)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -2376,4 +2384,89 @@ func TestReconcilerProcReadyState(t *testing.T) {
 			}
 		})
 	}
+}
+
+var trueValue = true
+
+func TestReconcileEffCRConfig(t *testing.T) {
+	var testScheme = runtime.NewScheme()
+
+	config.TestProfilesDir = relativeProfilesDir
+	defer func() { config.TestProfilesDir = "" }()
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-verrazzano",
+			Namespace: "test-namespace",
+		},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+					Enabled: &trueValue,
+					InstallOverrides: vzapi.InstallOverrides{
+						ValueOverrides: []vzapi.Overrides{
+							{
+								SecretRef: &corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "verrazzano",
+									},
+									Key: "abc",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	r := &Reconciler{
+		Client:            mock,
+		Scheme:            testScheme,
+		Controller:        nil,
+		DryRun:            false,
+		WatchedComponents: nil,
+		WatchMutex:        nil,
+		Bom:               nil,
+		StatusUpdater:     nil,
+	}
+
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           vz.Name,
+		Namespace:      vz.Namespace,
+		ID:             string(vz.UID),
+		Generation:     vz.Generation,
+		ControllerName: "verrazzano",
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+	}
+
+	// // Case 1 -> Invalid vz instance is passed
+	// err = r.reconcileEffCRConfig(context.TODO(), /* invalid vz instance should be passed here */ vz, log)
+	// assert.Nil(t, err)
+
+	// Case -> Checking Test Case: When the Update() function finds that no ConfigMap exists, thus proceeds to Create a ConfigMap
+	// Expect a call to get an existing configmap, but return a NotFound error.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).Return(errors.NewNotFound(schema.GroupResource{Group: "test-namespace", Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
+	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
+	assert.Error(t, err)
+
+	// Case  -> Simulates the test case when  Update() gives any error other than IsNotFound()
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).Return(errors.NewAlreadyExists(schema.GroupResource{Group: "test-namespace", Resource: "ConfigMap"}, "test-verrazzano-effective-config"))
+	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
+	assert.Error(t, err)
+
+	// Case 4 -> Simulates the test case that the "k get cm example-verrazzano-effective-config -o yaml" must show only the name
+	// Add UT for effConfig - Components:
+	// And check if applicationOperator has a field - “overrides”, check if it has field -secretRef:
+	// Check that it shows secretRef and not any other thing
+
 }

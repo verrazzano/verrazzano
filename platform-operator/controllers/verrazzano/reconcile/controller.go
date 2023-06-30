@@ -48,7 +48,6 @@ import (
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -161,7 +160,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	err = createUpdateCMwithEffCRSpec(vz)
+	err = r.reconcileEffCRConfig(ctx, vz, log)
 	if err != nil {
 		zap.S().Error(err)
 	}
@@ -1080,23 +1079,27 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	return r.WatchedComponents[compName]
 }
 
-// The getEffCRSpec takes in input as Actual CR and returns the Specs of the EffectiveCR
-func createUpdateCMwithEffCRSpec(vz *v1alpha1.Verrazzano) error {
-	// Get the resource logger needed to log message using 'progress' and 'once' methods
+// The getEffCRSpec takes in input as Actual CR and stores in a configmap
+func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *v1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
+	// Get the Effective CR from the Verrazzano CR provided
 	effCR, err := transform.GetEffectiveCR(vz)
 	if err != nil {
-		zap.S().Error(err)
+		log.Errorf(err.Error())
+		return err // test must contain AssertError
 	}
 
+	// Marshal Indent it to format the Effective CR Specs
 	effCRSpecs, err := json.MarshalIndent(effCR.Spec, "", " ")
 	if err != nil {
-		zap.S().Error(err)
+		log.Errorf(err.Error())
+		return err
 	}
 
-	myConfigMap := &corev1.ConfigMap{
+	// Create a Configmap Object that stores the Effective CR Specs
+	effCRConfigmap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      (vz.ObjectMeta.Name),
+			Name:      (vz.ObjectMeta.Name + "-effective-config"),
 			Namespace: (vz.ObjectMeta.Namespace),
 		},
 		Data: map[string]string{
@@ -1104,17 +1107,19 @@ func createUpdateCMwithEffCRSpec(vz *v1alpha1.Verrazzano) error {
 		},
 	}
 
-	// Update the configMap if there's already a ConfigMap
+	// Update the configMap if a ConfigMap already exists
 	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
-	err = pkg.UpdateConfigMap(myConfigMap)
+	err = r.Client.Update(ctx, effCRConfigmap)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			createErr := pkg.CreateConfigMap(myConfigMap)
+			createErr := r.Client.Create(ctx, effCRConfigmap)
 			if createErr != nil {
-				zap.S().Error(createErr)
+				log.Errorf(createErr.Error())
+				return createErr
 			}
 		} else {
-			zap.S().Errorf("Error: %s", err)
+			log.Errorf(err.Error())
+			return err
 		}
 	}
 
