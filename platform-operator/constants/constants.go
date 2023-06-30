@@ -272,3 +272,4 @@ const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
 
 const VerrazzanoCRNameAnnotation = "verrazzano.io/vz-cr-name"
 const VerrazzanoCRNamespaceAnnotation = "verrazzano.io/vz-cr-namespace"
+const VerrazzanoObservedGeneration = "verrazzano.io/vz-cr-observed-generation"

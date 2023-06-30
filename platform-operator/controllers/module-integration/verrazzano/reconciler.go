@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -19,10 +20,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strconv"
 )
 
 var localbom *bom.Bom
@@ -60,9 +65,29 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	// Create a Module for each enabled resource
+	err = r.createOrUpdateModules(vzcr)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	ready, err := r.areAllModulesReady()
+	if err != nil || !ready {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// All the modules have been reconciled and are ready
+	return result.NewResult()
+}
+
+// createOrUpdateModules creates or updates all the modules
+func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
+	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(vzcr) {
+		createOrUpdate, err := r.shouldCreateOrUpdateModule(vzcr, comp)
+		if err != nil {
+			return err
+		}
+		if !createOrUpdate {
 			continue
 		}
 
@@ -72,27 +97,79 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 		}
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return mutateModule(vzcr.Name, vzcr.Namespace, &module, comp)
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+			return mutateModule(vzcr, &module, comp)
 		})
 		if err != nil {
-			return result.NewResultShortRequeueDelayWithError(err)
+			return nil
 		}
 	}
-
-	return result.NewResult()
+	return nil
 }
 
-func mutateModule(vzName string, vzNamespace string, module *moduleapi.Module, comp spi.Component) error {
+// mutateModule mutates the module for the create or update callback
+func mutateModule(vzcr *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
-	module.Annotations[constants.VerrazzanoCRNameAnnotation] = vzName
-	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = vzNamespace
+	module.Annotations[constants.VerrazzanoCRNameAnnotation] = vzcr.Name
+	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = vzcr.Namespace
+	module.Annotations[constants.VerrazzanoObservedGeneration] = strconv.FormatInt(vzcr.Generation, 10)
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
 	return nil
+}
+
+// shouldCreateOrUpdateModule returns true if the Module should be created or updated
+func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.Component) (bool, error) {
+	if !comp.IsEnabled(vzcr) {
+		return false, nil
+	}
+
+	// get the module
+	module := &moduleapi.Module{}
+	if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: comp.Namespace(), Name: comp.Name()}, module); err != nil {
+		if errors.IsNotFound(err) {
+			// module doesn't exist, need to create it
+			return true, nil
+		}
+		return false, err
+	}
+
+	// if module doesn't have the current VZ generation then return true
+	if module.Annotations != nil {
+		gen, _ := module.Annotations[constants.VerrazzanoObservedGeneration]
+		return gen != strconv.FormatInt(vzcr.Generation, 10), nil
+	}
+
+	return true, nil
+}
+
+func (r Reconciler) areAllModulesReady() (bool, error) {
+	for _, comp := range registry.GetComponents() {
+		// get the module
+		module := &moduleapi.Module{}
+		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: comp.Namespace(), Name: comp.Name()}, module); err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+
+		// return if module generation doesn't reconcile gen then not ready
+		if module.Generation != module.Status.LastSuccessfulGeneration {
+			return false, nil
+		}
+
+		// return if module not ready condition
+		cond := modulestatus.GetReadyCondition(module)
+		if cond == nil || cond.Status != corev1.ConditionTrue {
+			return false, nil
+		}
+	}
+	// All modules are ready
+	return true, nil
 }
 
 func (r *Reconciler) getBOM() (*bom.Bom, error) {
@@ -155,3 +232,4 @@ func (r Reconciler) initReconcile(log vzlog.VerrazzanoLogger, actualCR *vzapi.Ve
 	}
 	return result.NewResult()
 }
+

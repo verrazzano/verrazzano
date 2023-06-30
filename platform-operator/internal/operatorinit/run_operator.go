@@ -232,6 +232,12 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 	module.IgnoreHelmInfo()
 
 	for _, comp := range registry.GetComponents() {
+		// TODO
+		// Add function to component SPI to get WatchDescriptors
+		// Pass the descriptors to the InitController so that each component can watch whatever it wants
+		// and react
+		// END TODO
+
 		// init controller
 		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
 			log.Errorf("Failed to start the Calico controller", err)
