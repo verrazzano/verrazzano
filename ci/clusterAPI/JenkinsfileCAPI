@@ -386,8 +386,7 @@ pipeline {
                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
                        kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get nodes -o wide
                        kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get pods -A
-                       cd $WORKSPACE
-                       ./vz install --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout 60m
+                       ${GO_REPO_PATH}/vz install --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout 60m
                    """
                }
            }
