@@ -99,7 +99,6 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 		WhenClusterAPIInstalledIt("kontainerdrivers must be ready", func() {
-			Skip("Temporary skip of test while resolve pipeline issue")
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
