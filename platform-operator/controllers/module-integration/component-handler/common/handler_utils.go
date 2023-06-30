@@ -11,26 +11,35 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func createComponentContext(ctx handlerspi.HandlerContext) (spi.ComponentContext, error) {
-	vz, err := getVerrazzanoCR(ctx)
+func GetComponentAndContext(ctx handlerspi.HandlerContext) (spi.ComponentContext, spi.Component, error) {
+	module := ctx.CR.(*moduleapi.Module)
+
+	vz, err := GetVerrazzanoCR(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	spiCtx, err := spi.NewContext(vzlog.DefaultLogger(), ctx.Client, vz, nil, false)
+	compCtx, err := spi.NewContext(vzlog.DefaultLogger(), ctx.Client, vz, nil, false)
 	if err != nil {
-		spiCtx.Log().Errorf("Failed to create component context: %v", err)
-		return nil, err
+		compCtx.Log().Errorf("Failed to create component context: %v", err)
+		return nil, nil, err
 	}
 
-	return nil, nil
+	found, comp := registry.FindComponent(module.Spec.ModuleName)
+	if !found {
+		compCtx.Log().Errorf("Failed to find component %s in registry: %s", module.Spec.ModuleName)
+		return nil, nil, err
+	}
+
+	return compCtx, comp, nil
 }
 
-func getVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {
+func GetVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {
 	module := ctx.CR.(*moduleapi.Module)
 	var name, ns string
 	if module.Annotations != nil {

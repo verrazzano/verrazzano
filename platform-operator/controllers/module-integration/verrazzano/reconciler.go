@@ -47,7 +47,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 			},
 		}
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return mutateModule(&module, comp)
+			return mutateModule(vzcr.Name, vzcr.Namespace, &module, comp)
 		})
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
@@ -57,12 +57,12 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	return result.NewResult()
 }
 
-func mutateModule(module *moduleapi.Module, comp spi.Component) error {
+func mutateModule(vzName string, vzNamespace string, module *moduleapi.Module, comp spi.Component) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
-	module.Annotations[constants.VerrazzanoCRNameAnnotation] = module.Name
-	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = module.Namespace
+	module.Annotations[constants.VerrazzanoCRNameAnnotation] = vzName
+	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = vzNamespace
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()

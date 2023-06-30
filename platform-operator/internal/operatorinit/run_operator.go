@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	modulehandler "github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/factory"
+	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
@@ -149,7 +150,13 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// init module controllers
 	if err := initModuleControllers(log, mgr); err != nil {
 		log.Errorf("Failed to start OCI-CCM controller", err)
-		return errors.Wrap(err, "Failed to setup controller for Verrazzano module controller")
+		return errors.Wrap(err, "Failed to setup controller for module controller for the components")
+	}
+
+	// init verrazzano module controller
+	if err := verrazzanomodule.InitController(mgr); err != nil {
+		log.Errorf("Failed to start module-based Verrazzano controller", err)
+		return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
 	}
 
 	// +kubebuilder:scaffold:builder
