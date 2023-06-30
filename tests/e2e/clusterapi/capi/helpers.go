@@ -339,7 +339,7 @@ func DeployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 
 	log.Infof("Wait for 30 seconds for cluster resourceset resources to deploy")
 	time.Sleep(30 * time.Second)
-	return nil
+	return createImagePullSecrets(clusterName, log)
 }
 
 func ensureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
@@ -827,3 +827,64 @@ func getVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 	return fmt.Errorf("Verrazzano resource still present")
 }
 */
+
+func createImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
+	log.Infof("Creating image pull secrets on workload cluster ...")
+
+	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
+	if err != nil {
+		return err
+	}
+	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
+	if err != nil {
+		log.Error("Failed to create temporary file ", zap.Error(err))
+		return err
+	}
+
+	if err = os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		log.Error("failed to write to destination file ", zap.Error(err))
+		return err
+	}
+	/*
+		//./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+		//./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+		//./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+
+
+		kubectl create secret docker-registry ${NAME} \
+		                            --docker-server=${DOCKER_SERVER} \
+		                            --docker-username=${USERNAME} \
+		                            --docker-password=${PASSWORD} \
+		                            -n ${NAMESPACE}
+	*/
+	var cmdArgs []string
+	var bcmd helpers.BashCommand
+	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	secretCreateResponse := helpers.Runner(&bcmd, log)
+	if secretCreateResponse.CommandError != nil {
+		return secretCreateResponse.CommandError
+	}
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry github-packages --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), DockerRepo, DockerCredsUser, DockerCredsPassword)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	secretCreateResponse = helpers.Runner(&bcmd, log)
+	if secretCreateResponse.CommandError != nil {
+		return secretCreateResponse.CommandError
+	}
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry ocr --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), DockerRepo, DockerCredsUser, DockerCredsPassword)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	secretCreateResponse = helpers.Runner(&bcmd, log)
+	if secretCreateResponse.CommandError != nil {
+		return secretCreateResponse.CommandError
+	}
+
+	return nil
+
+}

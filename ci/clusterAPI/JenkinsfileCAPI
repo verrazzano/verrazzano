@@ -379,6 +379,7 @@ pipeline {
                 }
                 failure {
                     script {
+                        dumpOCNECluster('verify-capi-cluster-creation')
                         dumpK8sCluster('verify-capi-cluster-creation')
                     }
                 }
@@ -406,7 +407,7 @@ pipeline {
                 }
                 failure {
                     script {
-                        dumpK8sCluster('verify-install-workload-cluster-dump')
+                        dumpOCNECluster('verify-install-workload-cluster-dump')
                     }
                 }
             }
@@ -432,6 +433,7 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('uninstall-vz-workload-cluster-dump')
+                        dumpOCNECluster('uninstall-vz-workload-cluster-dump')
                     }
                 }
             }
@@ -578,6 +580,15 @@ def runGinkgo(testSuitePath) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+    """
+}
+
+def dumpOCNECluster(dumpDirectory) {
+    sh """
+        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
+        export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+        unset KUBECONFIG
     """
 }
 
