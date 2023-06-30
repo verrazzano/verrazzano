@@ -845,24 +845,22 @@ func createImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 		log.Error("failed to write to destination file ", zap.Error(err))
 		return err
 	}
-	/*
-		//./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-		//./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-		//./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 
-
-		kubectl create secret docker-registry ${NAME} \
-		                            --docker-server=${DOCKER_SERVER} \
-		                            --docker-username=${USERNAME} \
-		                            --docker-password=${PASSWORD} \
-		                            -n ${NAMESPACE}
-	*/
 	var cmdArgs []string
 	var bcmd helpers.BashCommand
 	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	secretCreateResponse := helpers.Runner(&bcmd, log)
+	if secretCreateResponse.CommandError != nil {
+		return secretCreateResponse.CommandError
+	}
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s -n verrazzano-install", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	secretCreateResponse = helpers.Runner(&bcmd, log)
 	if secretCreateResponse.CommandError != nil {
 		return secretCreateResponse.CommandError
 	}
