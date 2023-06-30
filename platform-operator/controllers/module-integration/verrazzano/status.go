@@ -5,9 +5,12 @@ package verrazzano
 
 import (
 	"fmt"
+	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -363,4 +366,25 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 		}
 	}
 	return r.updateStatus(log, vz, msg, newCondition, nil)
+}
+
+func (r *Reconciler) loadModuleStatusIntoComponentStatus(log vzlog.VerrazzanoLogger, vzcr *vzapi.Verrazzano, compName string, module *moduleapi.Module) {
+	cond := modulestatus.GetReadyCondition(module)
+	if cond == nil {
+		return
+	}
+	var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
+	if cond.Status == corev1.ConditionTrue {
+		available = vzapi.ComponentAvailable
+	}
+
+	compStatus := vzapi.ComponentStatusDetails{
+		Available:                &available,
+		Conditions:               nil,
+		LastReconciledGeneration: 0,
+		Name:                     compName,
+		ReconcilingGeneration:    0,
+		State:                    "",
+		Version:                  "",
+	}
 }

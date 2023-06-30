@@ -71,7 +71,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	ready, err := r.areAllModulesReady(vzcr)
+	ready, err := r.updateStatusForComponents(log, vzcr)
 	if err != nil || !ready {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -157,34 +157,48 @@ func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.
 	return true, nil
 }
 
-func (r Reconciler) areAllModulesReady(vzcr *vzapi.Verrazzano) (bool, error) {
+// updateStatusForComponents updates the vz CR status for the components based on the module status
+// return true if all components are ready
+func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *vzapi.Verrazzano) (bool, error) {
+	var readyCount int
+	var moduleCount int
+
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsEnabled(vzcr) {
 			continue
 		}
+		moduleCount++
 
 		// get the module
 		module := &moduleapi.Module{}
 		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: comp.Namespace(), Name: comp.Name()}, module); err != nil {
 			if errors.IsNotFound(err) {
-				return false, nil
+				continue
 			}
-			return false, err
+			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
+			continue
+		}
+		// Set the vzcr status
+		r.loadModuleStatusIntoComponentStatus(log, vzcr, comp)
+		cond := modulestatus.GetReadyCondition(module)
+		if cond == nil || cond.Status != corev1.ConditionTrue {
+			continue
 		}
 
 		// return if module generation doesn't reconcile gen then not ready
 		if module.Generation != module.Status.LastSuccessfulGeneration {
-			return false, nil
+			continue
 		}
-
-		// return if module not ready condition
-		cond := modulestatus.GetReadyCondition(module)
-		if cond == nil || cond.Status != corev1.ConditionTrue {
-			return false, nil
-		}
+		readyCount++
 	}
-	// All modules are ready
-	return true, nil
+
+	// Update the status.  If it didn't change then the Kubernetes API server will not be called
+	err := r.Client.Status().Update(context.TODO(), vzcr)
+	if err != nil {
+		return false, err
+	}
+	// return true if all modules are ready
+	return moduleCount == readyCount, nil
 }
 
 func (r *Reconciler) getBOM() (*bom.Bom, error) {
