@@ -82,7 +82,6 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 
 // createOrUpdateModules creates or updates all the modules
 func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
-
 	semver, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return err
@@ -110,7 +109,7 @@ func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
 			return mutateModule(vzcr, &module, comp, version)
 		})
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 	return nil
