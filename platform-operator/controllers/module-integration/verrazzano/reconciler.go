@@ -15,6 +15,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -70,7 +71,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	ready, err := r.areAllModulesReady()
+	ready, err := r.areAllModulesReady(vzcr)
 	if err != nil || !ready {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -81,6 +82,14 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 
 // createOrUpdateModules creates or updates all the modules
 func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
+
+	semver, err := validators.GetCurrentBomVersion()
+	if err != nil {
+		return err
+	}
+
+	version := semver.ToString()
+
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
 		createOrUpdate, err := r.shouldCreateOrUpdateModule(vzcr, comp)
@@ -98,7 +107,7 @@ func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
 			},
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return mutateModule(vzcr, &module, comp)
+			return mutateModule(vzcr, &module, comp, version)
 		})
 		if err != nil {
 			return nil
@@ -108,7 +117,7 @@ func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
 }
 
 // mutateModule mutates the module for the create or update callback
-func mutateModule(vzcr *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
+func mutateModule(vzcr *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, version string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
@@ -118,6 +127,9 @@ func mutateModule(vzcr *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Com
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
+
+	// TODO For now have the module version match the VZ version
+	module.Spec.Version = version
 	return nil
 }
 
@@ -146,8 +158,12 @@ func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.
 	return true, nil
 }
 
-func (r Reconciler) areAllModulesReady() (bool, error) {
+func (r Reconciler) areAllModulesReady(vzcr *vzapi.Verrazzano) (bool, error) {
 	for _, comp := range registry.GetComponents() {
+		if !comp.IsEnabled(vzcr) {
+			continue
+		}
+
 		// get the module
 		module := &moduleapi.Module{}
 		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: comp.Namespace(), Name: comp.Name()}, module); err != nil {
@@ -232,4 +248,3 @@ func (r Reconciler) initReconcile(log vzlog.VerrazzanoLogger, actualCR *vzapi.Ve
 	}
 	return result.NewResult()
 }
-
