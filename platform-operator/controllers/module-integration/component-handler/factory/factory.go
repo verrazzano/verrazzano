@@ -4,11 +4,11 @@
 package factory
 
 import (
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/helm/delete"
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/helm/install"
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/helm/update"
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/helm/upgrade"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/delete"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/install"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/update"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/upgrade"
 )
 
 // NewModuleHandlerInfo creates a new ModuleHandlerInfo

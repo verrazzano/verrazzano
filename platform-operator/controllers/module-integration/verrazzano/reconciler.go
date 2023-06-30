@@ -17,16 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	//"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
-	//"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
-	//"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
-	//"github.com/verrazzano/verrazzano-modules/pkg/semver"
-	//"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	//"k8s.io/apimachinery/pkg/runtime"
-	//"strings"
-	//"time"
-	//
-	//moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 )
 
 // Reconcile reconciles the Module CR

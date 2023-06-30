@@ -220,6 +220,10 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 
 // initModuleControllers creates a controller for every module
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+
+	// Temp hack to prevent module controller from looking up helm info
+	module.IgnoreHelmInfo()
+
 	for _, comp := range registry.GetComponents() {
 		// init controller
 		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
