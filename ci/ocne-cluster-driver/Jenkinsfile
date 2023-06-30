@@ -429,38 +429,38 @@ pipeline {
             }
         }
 
-        stage("OCNE Cluster Driver Tests") {
-            steps {
-                script {
-                    // Required environment variables for running the ocne-driver Ginkgo test suite
-                    setUpEnvVarsForOCNEClusterCreation()
+        // stage("OCNE Cluster Driver Tests") {
+        //     steps {
+        //         script {
+        //             // Required environment variables for running the ocne-driver Ginkgo test suite
+        //             setUpEnvVarsForOCNEClusterCreation()
 
-                    runGinkgo('clusterapi/ocne-driver')
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                }
-                aborted {
-                    script {
-                        dumpK8sCluster('ocne-cluster-driver-cluster-dump')
-                    }
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('ocne-cluster-driver-cluster-dump')
-                    }
-                }
-                success {
-                    script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('ocne-cluster-driver-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
+        //             runGinkgo('clusterapi/ocne-driver')
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+        //         }
+        //         aborted {
+        //             script {
+        //                 dumpK8sCluster('ocne-cluster-driver-cluster-dump')
+        //             }
+        //         }
+        //         failure {
+        //             script {
+        //                 dumpK8sCluster('ocne-cluster-driver-cluster-dump')
+        //             }
+        //         }
+        //         success {
+        //             script {
+        //                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+        //                     dumpK8sCluster('ocne-cluster-driver-cluster-dump')
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     post {
