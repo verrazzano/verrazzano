@@ -12,7 +12,5 @@ import (
 // This tests asserts for no errors ask about the no report for other unit tests
 func TestAnalyzeCertificateIssues(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeCertificateRelatedIsssues(logger, "../../../test/cluster/problem-pods/cluster-snapshot"))
-	assert.NoError(t, AnalyzeCertificateRelatedIsssues(logger, "../../../test/cluster/pending-pods/cluster-snapshot"))
-	assert.NoError(t, AnalyzeCertificateRelatedIsssues(logger, "../../../test/cluster/problem-pods-install/cluster-snapshot"))
+	assert.NoError(t, AnalyzeCertificateRelatedIsssues(logger, "../../../test/cluster/testCertificateIssue"))
 }
