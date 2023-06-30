@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/certrotation"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
@@ -123,6 +124,19 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return errors.Wrap(err, "Failed to setup controller VerrazzanoConfigMaps")
 	}
 
+	if err = (&certrotation.CertificateRotationManagerReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		StatusUpdater:    statusUpdater,
+		WatchNamespace:   constants.VerrazzanoInstallNamespace,
+		CertificatesList: []string{"verrazzano-platform-operator-ca", "verrazzano-platform-operator-tls"},
+		TargetNamespace:  constants.VerrazzanoInstallNamespace,
+		TargetDeployment: constants.VerrazzanoPlatformOperatorWebhook,
+		CompareWindow:    *vzconfig.CertificateExpiryCheckWindowDuration,
+		CheckPeriod:      *vzconfig.CertificateExpiryCheckPeriodDuration,
+	}).SetupWithManager(mgr); err != nil {
+		return errors.Wrap(err, "Failed to setup controller CertificateRotationManager")
+	}
 	// Setup MySQL checker
 	mysqlCheck, err := mysqlcheck.NewMySQLChecker(mgr.GetClient(), time.Duration(vzconfig.MySQLCheckPeriodSeconds)*time.Second, time.Duration(vzconfig.MySQLRepairTimeoutSeconds)*time.Second)
 	if err != nil {

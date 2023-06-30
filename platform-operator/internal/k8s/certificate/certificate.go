@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificate
@@ -26,11 +26,12 @@ import (
 
 const (
 	// OperatorName is the resource name for the Verrazzano platform operator
-	OperatorName    = "verrazzano-platform-operator-webhook"
-	OldOperatorName = "verrazzano-platform-operator"
-	OperatorCA      = "verrazzano-platform-operator-ca"
-	OperatorTLS     = "verrazzano-platform-operator-tls"
-
+	OperatorName         = "verrazzano-platform-operator-webhook"
+	OldOperatorName      = "verrazzano-platform-operator"
+	OperatorCA           = "verrazzano-platform-operator-ca"
+	OperatorTLS          = "verrazzano-platform-operator-tls"
+	OperatorCertLabelKey = "install.verrazzano.io/vpo-webhook"
+	OperatorCertLabel    = "verrazzano"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
@@ -79,6 +80,9 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("Secret %s exists, using...", OperatorTLS)
+		log.Info("Adding labels in existing secret")
+		_ = updateSecretLabel(secretsClient, existingSecret)
+		log.Info("labels in secret", existingSecret.Labels)
 		return existingSecret.Data[CertKey], existingSecret.Data[PrivKey], nil
 	}
 	if !errors.IsNotFound(err) {
@@ -147,12 +151,19 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[CertKey] = serverPEMBytes
 	webhookCrt.Data[PrivKey] = serverKeyPEMBytes
-
+	if webhookCrt.Labels == nil {
+		webhookCrt.Labels = make(map[string]string)
+	}
+	webhookCrt.Labels[OperatorCertLabelKey] = OperatorCertLabel
+	log.Info("Adding labels in existing secret")
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
 			existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+			log.Info("Adding labels in existing secret")
+			_ = updateSecretLabel(secretsClient, existingSecret)
+			log.Info("labels in secret", existingSecret.Labels)
 			if err != nil {
 				return []byte{}, []byte{}, err
 			}
@@ -224,12 +235,22 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[CertKey] = caPEMBytes
 	webhookCA.Data[PrivKey] = caKeyPEMBytes
+	if webhookCA.Labels == nil {
+		webhookCA.Labels = make(map[string]string)
+	}
+	webhookCA.Labels[OperatorCertLabelKey] = OperatorCertLabel
 
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, using existing secret", OperatorCA)
 			existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+			if err == nil {
+				log.Errorf("error while updating the secret")
+			}
+			log.Info("Adding labels in existing secret")
+			_ = updateSecretLabel(secretsClient, existingSecret)
+			log.Info("labels in secret", existingSecret.Labels)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -318,5 +339,17 @@ func writeFile(log *zap.SugaredLogger, filepath string, pemData []byte) error {
 		return err
 	}
 
+	return nil
+}
+
+func updateSecretLabel(secretsClient corev1.SecretInterface, secret *v1.Secret) error {
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
+	}
+	secret.Labels[OperatorCertLabelKey] = OperatorCertLabel
+	secret, err := secretsClient.Update(context.TODO(), secret, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
 	return nil
 }

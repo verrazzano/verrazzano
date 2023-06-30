@@ -5,6 +5,7 @@ package config
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 
@@ -33,6 +34,9 @@ const (
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
+
+var DefaultExpiryWindow = 24 * 7 * time.Minute // 1 week
+var DefaultCheckPeriod = 10 * time.Minute      // 24 hours
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
@@ -92,23 +96,31 @@ type OperatorConfig struct {
 
 	// ExperimentalModules toggles the VPO to use the experimental modules feature
 	ExperimentalModules bool
+
+	// CertificateExpiryCheckPeriodHours period for CertificateRotator Interval expiration check period in seconds.
+	CertificateExpiryCheckPeriodDuration *time.Duration
+
+	// CertificateExpiryCheckWindowDuration period for CertificateRotator window of time to rotate the webhook certificates before expiration in seconds
+	CertificateExpiryCheckWindowDuration *time.Duration
 }
 
 // The singleton instance of the operator config
 var instance = OperatorConfig{
-	CertDir:                        "/etc/webhook/certs",
-	MetricsAddr:                    ":8080",
-	LeaderElectionEnabled:          false,
-	VersionCheckEnabled:            true,
-	RunWebhookInit:                 false,
-	RunWebhooks:                    false,
-	ResourceRequirementsValidation: false,
-	WebhookValidationEnabled:       true,
-	VerrazzanoRootDir:              rootDir,
-	HealthCheckPeriodSeconds:       60,
-	MySQLCheckPeriodSeconds:        60,
-	MySQLRepairTimeoutSeconds:      120,
-	ExperimentalModules:            false,
+	CertDir:                              "/etc/webhook/certs",
+	MetricsAddr:                          ":8080",
+	LeaderElectionEnabled:                false,
+	VersionCheckEnabled:                  true,
+	RunWebhookInit:                       false,
+	RunWebhooks:                          false,
+	ResourceRequirementsValidation:       false,
+	WebhookValidationEnabled:             true,
+	VerrazzanoRootDir:                    rootDir,
+	HealthCheckPeriodSeconds:             60,
+	MySQLCheckPeriodSeconds:              60,
+	MySQLRepairTimeoutSeconds:            120,
+	ExperimentalModules:                  false,
+	CertificateExpiryCheckPeriodDuration: &DefaultCheckPeriod,  //run every week only to validate the certificates.
+	CertificateExpiryCheckWindowDuration: &DefaultExpiryWindow, //expiry window of two weeks.
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
