@@ -79,6 +79,8 @@ spec:
     enabled: true
   verrazzanoPlatformOperator:
     enabled: true
+    imagePullSecrets:
+      - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
   controlPlaneConfig:
     clusterConfiguration:
       apiServer:
