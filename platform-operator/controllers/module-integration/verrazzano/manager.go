@@ -1,13 +1,14 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package module
+package verrazzano
 
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/basecontroller"
 	spi "github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,9 +18,11 @@ import (
 var _ spi.Reconciler = Reconciler{}
 
 type Reconciler struct {
-	Client      client.Client
-	Scheme      *runtime.Scheme
-	ModuleClass moduleapi.ModuleClassType
+	Client        client.Client
+	Scheme        *runtime.Scheme
+	ModuleClass   moduleapi.ModuleClassType
+	DryRun        bool
+	StatusUpdater *healthcheck.VerrazzanoStatusUpdater
 }
 
 // InitController start the  controller
@@ -39,6 +42,8 @@ func InitController(mgr ctrlruntime.Manager) error {
 	// init other controller fields
 	controller.Client = baseController.Client
 	controller.Scheme = baseController.Scheme
+	controller.StatusUpdater = healthcheck.NewStatusUpdater(mgr.GetClient())
+
 	return nil
 }
 
