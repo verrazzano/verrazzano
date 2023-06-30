@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -30,7 +31,7 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 		if namespace.Labels == nil {
 			namespace.Labels = map[string]string{}
 		}
-		namespace.Labels[constants.VerrazzanoManagedKey] = common.RancherName
+		namespace.Labels[constants.VerrazzanoManagedKey] = common.CattleSystem
 		return nil
 	}); err != nil {
 		return err
