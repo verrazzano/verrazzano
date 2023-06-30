@@ -385,56 +385,56 @@ pipeline {
             }
         }
 
-        stage("Create Image Pull Secrets") {
-            steps {
-                createImagePullSecrets()
-            }
-        }
+        // stage("Create Image Pull Secrets") {
+        //     steps {
+        //         createImagePullSecrets()
+        //     }
+        // }
 
-        stage("Download Platform Operator") {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-            }
-            steps {
-                script {
-                    getVerrazzanoOperatorYaml()
-                }
-                sh """
-                    # make sure ns exists and create secret in verrazzano-install ns
-                    kubectl create namespace verrazzano-install || true
-                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-                    # create secret in verrazzano-install ns
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml", allowEmptyArchive: true
-                }
-            }
-        }
+        // stage("Download Platform Operator") {
+        //     environment {
+        //         OCI_CLI_AUTH="instance_principal"
+        //     }
+        //     steps {
+        //         script {
+        //             getVerrazzanoOperatorYaml()
+        //         }
+        //         sh """
+        //             # make sure ns exists and create secret in verrazzano-install ns
+        //             kubectl create namespace verrazzano-install || true
+        //             ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+        //             # create secret in verrazzano-install ns
+        //             ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+        //         """
+        //     }
+        //     post {
+        //         always {
+        //             archiveArtifacts artifacts: "acceptance-test-operator.yaml", allowEmptyArchive: true
+        //         }
+        //     }
+        // }
 
-        stage("Setup VZ Config") {
-            steps {
-                script {
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
-                        # enable cluster API component
-                        yq -i eval '.spec.components.clusterAPI.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
-                        # enable rancher component
-                        yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
-                    """
-                }
-            }
-        }
+        // stage("Setup VZ Config") {
+        //     steps {
+        //         script {
+        //             sh """
+        //                 ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
+        //                 # enable cluster API component
+        //                 yq -i eval '.spec.components.clusterAPI.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
+        //                 # enable rancher component
+        //                 yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_NIPIO}
+        //             """
+        //         }
+        //     }
+        // }
 
-        stage("Install Verrazzano") {
-            steps {
-                sh """
-                    ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_NIPIO} --manifests ${WORKSPACE}/acceptance-test-operator.yaml
-                """
-            }
-        }
+        // stage("Install Verrazzano") {
+        //     steps {
+        //         sh """
+        //             ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_NIPIO} --manifests ${WORKSPACE}/acceptance-test-operator.yaml
+        //         """
+        //     }
+        // }
 
         // stage("OCNE Cluster Driver Tests") {
         //     steps {
