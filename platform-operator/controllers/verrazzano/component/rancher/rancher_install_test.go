@@ -6,15 +6,19 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"testing"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	dynfake "k8s.io/client-go/dynamic/fake"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	networking "k8s.io/api/networking/v1"
@@ -31,6 +35,16 @@ const (
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
 var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
+
+func createKontainerDriver() unstructured.Unstructured {
+	kontainerDriver := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	kontainerDriver.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR))
+	kontainerDriver.SetName(common.KontainerDriverObjectName)
+	kontainerDriver.UnstructuredContent()["spec"] = map[string]interface{}{}
+	return kontainerDriver
+}
 
 // TestAddAcmeIngressAnnotations verifies if LetsEncrypt Annotations are added to the Ingress
 // GIVEN a Rancher Ingress
@@ -170,10 +184,10 @@ func TestCleanupRancherResources(t *testing.T) {
 	scheme := getScheme()
 	scheme.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2, dynamicSchemaND1, dynamicSchemaND2)
-	prevGetDynamicClientFunc := getDynamicClientFunc
-	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	prevGetDynamicClientFunc := dynamicClientFunc
+	dynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
 	defer func() {
-		getDynamicClientFunc = prevGetDynamicClientFunc
+		dynamicClientFunc = prevGetDynamicClientFunc
 	}()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&adminv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -212,4 +226,31 @@ func TestCleanupRancherResources(t *testing.T) {
 	assert.NoError(t, err)
 	// Cascading delete does not happen with fake client, so we check if owner reference is still present
 	assert.NotNil(t, ds2.GetOwnerReferences())
+}
+
+// TestActivateKontainerDriver tests the TestActivateKontainerDriver function
+// GIVEN a client and secret doesn't exist
+// WHEN  the GetAdditionalCA function is called
+// THEN  the function call fails and returns empty slice
+func TestActivateKontainerDriver(t *testing.T) {
+	// Initialize kontainerdriver object
+	driverObj := createKontainerDriver()
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
+
+	// Setup clients and context
+	testScheme := getScheme()
+	testScheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR), &unstructured.UnstructuredList{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(testScheme, []runtime.Object{&driverObj}...)
+	prevGetDynamicClientFunc := getDynamicClientFunc()
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
+	defer func() {
+		setDynamicClientFunc(prevGetDynamicClientFunc)
+	}()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	dynClient, err := getDynamicClientFunc()()
+	assert.NoError(t, err)
+	err = common.ActivateKontainerDriver(compContext, dynClient)
+	assert.NoError(t, err)
 }
