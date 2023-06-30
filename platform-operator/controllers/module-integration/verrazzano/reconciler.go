@@ -140,7 +140,7 @@ func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.
 
 	// get the module
 	module := &moduleapi.Module{}
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: comp.Namespace(), Name: comp.Name()}, module); err != nil {
+	if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
 		if errors.IsNotFound(err) {
 			// module doesn't exist, need to create it
 			return true, nil
