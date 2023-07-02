@@ -260,6 +260,10 @@ func setDynamicClientFunc(function dynamicClientFuncSig) {
 	dynamicClientFunc = function
 }
 
+func resetDynamicClientFunc() {
+	dynamicClientFunc = getDynamicClient
+}
+
 func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }

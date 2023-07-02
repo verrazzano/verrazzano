@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,8 +34,8 @@ var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
 var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
 
-func createKontainerDriver() unstructured.Unstructured {
-	kontainerDriver := unstructured.Unstructured{
+func createKontainerDriver() *unstructured.Unstructured {
+	kontainerDriver := &unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
 	kontainerDriver.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR))
@@ -238,16 +236,16 @@ func TestActivateKontainerDriver(t *testing.T) {
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
 
 	// Setup clients and context
-	testScheme := getScheme()
-	testScheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR), &unstructured.UnstructuredList{})
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(testScheme, []runtime.Object{&driverObj}...)
+	scheme := getScheme()
+	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR), &unstructured.Unstructured{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj)
 	prevGetDynamicClientFunc := getDynamicClientFunc()
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
 		setDynamicClientFunc(prevGetDynamicClientFunc)
 	}()
 
-	fakeClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	dynClient, err := getDynamicClientFunc()()
 	assert.NoError(t, err)
