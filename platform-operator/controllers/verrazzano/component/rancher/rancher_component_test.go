@@ -512,10 +512,9 @@ func TestPreUpgrade(t *testing.T) {
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), newClusterRepoResources()...)
 
 	// override the dynamicClientFunc for unit testing and reset it when done
-	prevGetDynamicClientFunc := dynamicClientFunc
-	dynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
-		dynamicClientFunc = prevGetDynamicClientFunc
+		resetDynamicClientFunc()
 	}()
 
 	tests := []struct {
@@ -1103,10 +1102,9 @@ func TestPostUpgrade(t *testing.T) {
 	s := getScheme()
 	s.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(s)
-	prevGetDynamicClientFunc := dynamicClientFunc
-	dynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
-		dynamicClientFunc = prevGetDynamicClientFunc
+		resetDynamicClientFunc()
 	}()
 	component := NewComponent()
 	ctxWithoutIngress, _ := prepareContexts()

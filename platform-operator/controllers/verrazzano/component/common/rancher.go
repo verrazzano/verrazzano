@@ -11,7 +11,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -196,7 +195,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interfa
 	return err
 }
 
-func UpdateKontainerDriverURL(ctx spi.ComponentContext) error {
+func UpdateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
 	// Nothing to do if Capi is not enabled
 	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
 		return nil
@@ -209,12 +208,6 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext) error {
 		return err
 	}
 	if commonName, ok := ingress.Annotations["cert-manager.io/common-name"]; ok {
-		// Setup dynamic client
-		dynClient, err := k8sutil.GetDynamicClient()
-		if err != nil {
-			return fmt.Errorf("Failed to get dynamic client: %v", err)
-		}
-		// Get the driver object
 		driverObj, err := getKontainerDriverObject(dynClient)
 		if err != nil {
 			// Keep trying until the resource is found
@@ -226,10 +219,10 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext) error {
 		if !strings.Contains(url, commonName) {
 			// Parse the existing url string and update the common name
 			urlSplit1 := strings.Split(url, "//")
-			urlSplit2 := strings.SplitN(urlSplit1[1], "/", 1)
+			urlSplit2 := strings.SplitN(urlSplit1[1], "/", 2)
 
 			gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
-			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = fmt.Sprintf("https://%s/%s", commonName, urlSplit2[0])
+			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
 			_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 			if err != nil {
 				return err

@@ -292,10 +292,9 @@ func TestChartsNotUpdatedWorkaround(t *testing.T) {
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), newClusterRepoResources()...)
 
 	// override the dynamicClientFunc for unit testing and reset it when done
-	prevGetDynamicClientFunc := dynamicClientFunc
-	dynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
-		dynamicClientFunc = prevGetDynamicClientFunc
+		resetDynamicClientFunc()
 	}()
 
 	// the second pass now shows the available replicas to be zero

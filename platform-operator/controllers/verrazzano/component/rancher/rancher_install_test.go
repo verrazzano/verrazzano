@@ -255,3 +255,45 @@ func TestActivateKontainerDriver(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool))
 }
+
+// TestUpdateKontainerDriverURL tests the TestUpdateKontainerDriverURL function
+// GIVEN a client with an inactive kontainerdriver
+// WHEN  ActivateKontainerDriver is called
+// THEN  the kontainerdriver object is activated
+func TestUpdateKontainerDriverURL(t *testing.T) {
+	initialURL := "https://test.domain1.io/driver/test.yaml"
+	expectedURL := "https://test.domain2.io/driver/test.yaml"
+
+	// Initialize kontainerdriver object
+	driverObj := createKontainerDriver()
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
+
+	ingress := &networking.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   common.CattleSystem,
+			Name:        common.RancherName,
+			Annotations: map[string]string{"cert-manager.io/common-name": "test.domain2.io"},
+		},
+	}
+
+	// Setup clients and context
+	scheme := getScheme()
+	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind), &unstructured.Unstructured{})
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj)
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
+	defer func() {
+		resetDynamicClientFunc()
+	}()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ingress).Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	dynClient, err := getDynamicClientFunc()()
+	assert.NoError(t, err)
+	err = common.UpdateKontainerDriverURL(compContext, dynClient)
+	assert.NoError(t, err)
+
+	// Fetch the object and confirm it was updated
+	kdObj, err := fakeDynamicClient.Resource(common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedURL, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
+}
