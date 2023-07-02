@@ -515,6 +515,9 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	if err = common.UpdateKontainerDriverURL(ctx, dynClient); err != nil {
+		return err
+	}
 	return common.ActivateKontainerDriver(ctx, dynClient)
 }
 
@@ -563,8 +566,12 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
+
 	dynClient, err := getDynamicClientFunc()()
 	if err != nil {
+		return err
+	}
+	if err = common.UpdateKontainerDriverURL(ctx, dynClient); err != nil {
 		return err
 	}
 	if err := common.ActivateKontainerDriver(ctx, dynClient); err != nil {

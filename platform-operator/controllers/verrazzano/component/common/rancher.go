@@ -225,11 +225,13 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interf
 
 			// Update the URL to use the new common name
 			gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
-			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
+			newURL := fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
+			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = newURL
 			_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}
+			ctx.Log().Infof("The kontainerdriver %s URL was updated to %s", KontainerDriverObjectName, newURL)
 		}
 	}
 
