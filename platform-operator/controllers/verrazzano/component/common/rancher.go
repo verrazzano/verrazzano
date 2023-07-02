@@ -195,6 +195,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interfa
 	return err
 }
 
+// UpdateKontainerDriverURL - Update the kontainerdriver URL if the common-name has changed
 func UpdateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
 	// Nothing to do if Capi is not enabled
 	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
@@ -214,13 +215,15 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interf
 			return err
 		}
 
-		// Does the existing url contain the common name?
+		// Does the existing URL contain the common name?
 		url := driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string)
 		if !strings.Contains(url, commonName) {
-			// Parse the existing url string and update the common name
+			// Parse the existing URL string to remove the http prefix
 			urlSplit1 := strings.Split(url, "//")
+			// Parse the remaining URL string to remove the common name prefix
 			urlSplit2 := strings.SplitN(urlSplit1[1], "/", 2)
 
+			// Update the URL to use the new common name
 			gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
 			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
 			_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})

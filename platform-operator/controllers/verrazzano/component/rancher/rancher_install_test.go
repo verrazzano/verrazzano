@@ -251,20 +251,21 @@ func TestActivateKontainerDriver(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Fetch the object and confirm it was updated
-	kdObj, err := fakeDynamicClient.Resource(common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
+	gvr := common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)
+	kdObj, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.True(t, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool))
 }
 
 // TestUpdateKontainerDriverURL tests the TestUpdateKontainerDriverURL function
-// GIVEN a client with an inactive kontainerdriver
-// WHEN  ActivateKontainerDriver is called
-// THEN  the kontainerdriver object is activated
+// GIVEN a client that has it's dns domain updated
+// WHEN  UpdateKontainerDriverURL is called
+// THEN  the driver url is updated
 func TestUpdateKontainerDriverURL(t *testing.T) {
 	initialURL := "https://test.domain1.io/driver/test.yaml"
 	expectedURL := "https://test.domain2.io/driver/test.yaml"
 
-	// Initialize kontainerdriver object
+	// Initialize kontainerdriver and ingress objects
 	driverObj := createKontainerDriver()
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
 
@@ -293,7 +294,8 @@ func TestUpdateKontainerDriverURL(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Fetch the object and confirm it was updated
-	kdObj, err := fakeDynamicClient.Resource(common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
+	gvr := common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)
+	kdObj, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedURL, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
 }
