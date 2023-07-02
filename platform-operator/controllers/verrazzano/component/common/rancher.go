@@ -42,7 +42,8 @@ const (
 	AuthConfigKeycloak                      = "keycloakoidc"
 	SettingFirstLogin                       = "first-login"
 	KontainerDriverObjectName               = "ociocneengine"
-	KontainerDriverGVR                      = "kontainerdrivers"
+	KontainerDriverResourceName             = "kontainerdrivers"
+	KontainerDriverKind                     = "KontainerDriver"
 )
 
 var GVKAuthConfig = GetRancherMgmtAPIGVKForKind("AuthConfig")
@@ -185,7 +186,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interfa
 	}
 
 	// Activate the driver
-	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverGVR)
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
 	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 
@@ -227,7 +228,7 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext) error {
 			urlSplit1 := strings.Split(url, "//")
 			urlSplit2 := strings.SplitN(urlSplit1[1], "/", 1)
 
-			gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverGVR)
+			gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
 			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = fmt.Sprintf("https://%s/%s", commonName, urlSplit2[0])
 			_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 			if err != nil {
@@ -241,7 +242,7 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext) error {
 
 func getKontainerDriverObject(dynClient dynamic.Interface) (*unstructured.Unstructured, error) {
 	var driverObj *unstructured.Unstructured
-	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverGVR)
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
 	driverObj, err := dynClient.Resource(gvr).Get(context.TODO(), KontainerDriverObjectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, KontainerDriverObjectName, err)

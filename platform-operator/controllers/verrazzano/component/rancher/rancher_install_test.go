@@ -38,7 +38,7 @@ func createKontainerDriver() *unstructured.Unstructured {
 	kontainerDriver := &unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	kontainerDriver.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR))
+	kontainerDriver.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind))
 	kontainerDriver.SetName(common.KontainerDriverObjectName)
 	kontainerDriver.UnstructuredContent()["spec"] = map[string]interface{}{}
 	return kontainerDriver
@@ -182,10 +182,9 @@ func TestCleanupRancherResources(t *testing.T) {
 	scheme := getScheme()
 	scheme.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2, dynamicSchemaND1, dynamicSchemaND2)
-	prevGetDynamicClientFunc := dynamicClientFunc
-	dynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
-		dynamicClientFunc = prevGetDynamicClientFunc
+		resetDynamicClientFunc()
 	}()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&adminv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -227,9 +226,9 @@ func TestCleanupRancherResources(t *testing.T) {
 }
 
 // TestActivateKontainerDriver tests the TestActivateKontainerDriver function
-// GIVEN a client and secret doesn't exist
-// WHEN  the GetAdditionalCA function is called
-// THEN  the function call fails and returns empty slice
+// GIVEN a client with an inactive kontainerdriver
+// WHEN  ActivateKontainerDriver is called
+// THEN  the kontainerdriver object is activated
 func TestActivateKontainerDriver(t *testing.T) {
 	// Initialize kontainerdriver object
 	driverObj := createKontainerDriver()
@@ -237,12 +236,11 @@ func TestActivateKontainerDriver(t *testing.T) {
 
 	// Setup clients and context
 	scheme := getScheme()
-	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverGVR), &unstructured.Unstructured{})
+	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind), &unstructured.Unstructured{})
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj)
-	prevGetDynamicClientFunc := getDynamicClientFunc()
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
-		setDynamicClientFunc(prevGetDynamicClientFunc)
+		resetDynamicClientFunc()
 	}()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build()
@@ -251,4 +249,9 @@ func TestActivateKontainerDriver(t *testing.T) {
 	assert.NoError(t, err)
 	err = common.ActivateKontainerDriver(compContext, dynClient)
 	assert.NoError(t, err)
+
+	// Fetch the object and confirm it was updated
+	kdObj, err := fakeDynamicClient.Resource(common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.True(t, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool))
 }
