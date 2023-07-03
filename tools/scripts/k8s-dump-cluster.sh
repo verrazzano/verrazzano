@@ -276,7 +276,7 @@ function dump_extra_details_per_namespace() {
 function dump_namespaced_object_if_exists() {
   local objectType="${1}"
   local namespace="${2}"
-  if kubectl get cluster.provisioning.cattle.io -n "${namespace}" 2>&1 > /dev/null ; then
+  if kubectl get "${objectType}" -n "${namespace}" 2>&1 > /dev/null ; then
     kubectl --insecure-skip-tls-verify get "${objectType}" -n "${namespace}" -o json 2>/dev/null > "$CAPTURE_DIR"/cluster-snapshot/"${namespace}"/"${objectType}".json || true
   fi
 }
