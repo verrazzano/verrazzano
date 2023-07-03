@@ -69,8 +69,3 @@ cli: ## install the CLI
 .PHONY: unit-test
 unit-test: cli
 	$(GO) test -v  ./...
-
-cli-quality: export FAIL_IF_COVERAGE_DECREASED ?= false
-cli-quality: export UPLOAD_UNIT_TEST_COVERAGE ?= false
-.PHONY: cli-quality
-cli-quality: golangci-lint word-linter

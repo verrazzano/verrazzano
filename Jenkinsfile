@@ -270,8 +270,6 @@ pipeline {
                     when { not { buildingTag() } }
                     steps {
                         sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                    make cli-quality
                     cd ${GO_REPO_PATH}/verrazzano
                     make precommit
                     make unit-test-coverage-ratcheting
