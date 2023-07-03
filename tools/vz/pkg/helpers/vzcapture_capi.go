@@ -14,14 +14,11 @@ import (
 )
 
 const (
-	v1Alpha1                   = "v1alpha1"
-	v1Beta1                    = "v1beta1"
-	addonsGroup                = "addons.cluster.x-k8s.io"
-	bootstrapGroup             = "bootstrap.cluster.x-k8s.io"
-	clusterResourceSetBindings = "clusterresourcesetbindings"
-	clusterResourceSets        = "clusterresourcesets"
-	ocneConfigs                = "ocneconfigs"
-	ocneConfigTemplates        = "ocneconfigtemplates"
+	v1Alpha1       = "v1alpha1"
+	v1Beta1        = "v1beta1"
+	addonsGroup    = "addons.cluster.x-k8s.io"
+	bootstrapGroup = "bootstrap.cluster.x-k8s.io"
+	clusterGroup   = "cluster.x-k8s.io"
 )
 
 type capiResource struct {
@@ -30,18 +27,17 @@ type capiResource struct {
 }
 
 var capiResources = []capiResource{
-	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1, Resource: clusterResourceSetBindings}, Kind: "ClusterResourceSetBindings"},
-	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1, Resource: clusterResourceSets}, Kind: "ClusterResourceSets"},
-	{GVR: schema.GroupVersionResource{Group: bootstrapGroup, Version: v1Alpha1, Resource: ocneConfigs}, Kind: "OCNEConfigs"},
-	{GVR: schema.GroupVersionResource{Group: bootstrapGroup, Version: v1Alpha1, Resource: ocneConfigTemplates}, Kind: "OCNEConfigTemplates"},
-}
-
-func createGVR(group string, version string, resource string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: resource,
-	}
+	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1, Resource: "clusterresourcesetbindings"}, Kind: "ClusterResourceSetBindings"},
+	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1, Resource: "clusterresourcesets"}, Kind: "ClusterResourceSets"},
+	{GVR: schema.GroupVersionResource{Group: bootstrapGroup, Version: v1Alpha1, Resource: "ocneconfigs"}, Kind: "OCNEConfigs"},
+	{GVR: schema.GroupVersionResource{Group: bootstrapGroup, Version: v1Alpha1, Resource: "ocneconfigtemplates"}, Kind: "OCNEConfigTemplates"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "clusterclasses"}, Kind: "ClusterClasses"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "clusters"}, Kind: "Clusters"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "machinedeployments"}, Kind: "MachineDeployments"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "machinehealthchecks"}, Kind: "MachineHealthChecks"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "machinepools"}, Kind: "MachinePools"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "machines"}, Kind: "Machines"},
+	{GVR: schema.GroupVersionResource{Group: clusterGroup, Version: v1Beta1, Resource: "machinesets"}, Kind: "MachineSets"},
 }
 
 // captureCapiResources captures resources related to ClusterAPI
