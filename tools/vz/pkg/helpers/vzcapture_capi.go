@@ -37,13 +37,17 @@ func captureClusterResourceSetBindings(dynamicClient dynamic.Interface, namespac
 	const resource = "clusterresourcesetbindings"
 	const kind = "ClusterResourceSetBindings"
 	gvr := createGVR(addonsGroup, v1Beta1API, resource)
+	return captureResource(dynamicClient, gvr, kind, namespace, captureDir, vzHelper)
+}
+
+func captureResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, namespace, captureDir string, vzHelper VZHelper) error {
 	list, err := dynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while getting the %s in namespace %s: %s\n", kind, namespace, err.Error()))
 	}
 	if len(list.Items) > 0 {
 		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
-		if err = createFile(list, namespace, fmt.Sprintf("%s.json", resource), captureDir, vzHelper); err != nil {
+		if err = createFile(list, namespace, fmt.Sprintf("%s.json", gvr.Resource), captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
