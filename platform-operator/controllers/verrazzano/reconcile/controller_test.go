@@ -2482,11 +2482,11 @@ func TestReconcileEffCRConfig(t *testing.T) {
 	// check if effective CR doesn't contain uname in its byte type or even in decoded format
 	effectiveCR := cm.Data["effective-config.yaml"]
 	assert.NotContains(t, effectiveCR, uname)
-	decoded_uname, err := base64.StdEncoding.DecodeString(uname)
+	decodedUname, err := base64.StdEncoding.DecodeString(uname)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	assert.NotContains(t, effectiveCR, decoded_uname)
+	assert.NotContains(t, effectiveCR, decodedUname)
 
 	// convert it into yaml object
 	vzSpec := &vzapi.VerrazzanoSpec{}
