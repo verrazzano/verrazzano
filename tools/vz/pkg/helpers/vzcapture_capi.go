@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	v1Beta1API                         = "v1beta1"
-	addonsGroup                        = "addons.cluster.x-k8s.io"
-	clusterResourceSetBindingsResource = "clusterresourcesetbindings"
-	clusterResourceSetsResource        = "clusterresourcesets"
+	v1Beta1API                 = "v1beta1"
+	addonsGroup                = "addons.cluster.x-k8s.io"
+	clusterResourceSetBindings = "clusterresourcesetbindings"
+	clusterResourceSets        = "clusterresourcesets"
 )
 
 type capiResource struct {
@@ -26,8 +26,8 @@ type capiResource struct {
 }
 
 var capiResources = []capiResource{
-	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1API, Resource: clusterResourceSetBindingsResource}, Kind: "ClusterResourceSetBindings"},
-	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1API, Resource: clusterResourceSetsResource}, Kind: "ClusterResourceSets"},
+	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1API, Resource: clusterResourceSetBindings}, Kind: "ClusterResourceSetBindings"},
+	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1API, Resource: clusterResourceSets}, Kind: "ClusterResourceSets"},
 }
 
 func createGVR(group string, version string, resource string) schema.GroupVersionResource {
