@@ -17,10 +17,18 @@ const (
 	v1Beta1API                         = "v1beta1"
 	addonsGroup                        = "addons.cluster.x-k8s.io"
 	clusterResourceSetBindingsResource = "clusterresourcesetbindings"
-	clusterResourceSetBindingsKind     = "ClusterResourceSetBindings"
 	clusterResourceSetsResource        = "clusterresourcesets"
-	clusterResourceSetsKind            = "ClusterResourceSets"
 )
+
+type capiResource struct {
+	GVR  schema.GroupVersionResource
+	Kind string
+}
+
+var capiResources = []capiResource{
+	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1API, Resource: clusterResourceSetBindingsResource}, Kind: "ClusterResourceSetBindings"},
+	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1API, Resource: clusterResourceSetsResource}, Kind: "ClusterResourceSets"},
+}
 
 func createGVR(group string, version string, resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
@@ -32,11 +40,11 @@ func createGVR(group string, version string, resource string) schema.GroupVersio
 
 // captureCapiResources captures resources related to ClusterAPI
 func captureCapiResources(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	if err := captureResource(dynamicClient, createGVR(addonsGroup, v1Beta1API, clusterResourceSetBindingsResource), clusterResourceSetBindingsKind, namespace, captureDir, vzHelper); err != nil {
-		return err
-	}
-	if err := captureResource(dynamicClient, createGVR(addonsGroup, v1Beta1API, clusterResourceSetsResource), clusterResourceSetsKind, namespace, captureDir, vzHelper); err != nil {
-		return err
+
+	for _, resource := range capiResources {
+		if err := captureResource(dynamicClient, resource.GVR, resource.Kind, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
 	}
 	return nil
 }
