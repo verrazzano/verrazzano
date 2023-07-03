@@ -8,20 +8,18 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	adminv1 "k8s.io/api/admissionregistration/v1"
+	networking "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	dynfake "k8s.io/client-go/dynamic/fake"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	networking "k8s.io/api/networking/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -244,7 +242,7 @@ func TestActivateKontainerDriver(t *testing.T) {
 	}()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	dynClient, err := getDynamicClientFunc()()
 	assert.NoError(t, err)
 	err = common.ActivateKontainerDriver(compContext, dynClient)
@@ -287,7 +285,7 @@ func TestUpdateKontainerDriverURL(t *testing.T) {
 	}()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ingress).Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	dynClient, err := getDynamicClientFunc()()
 	assert.NoError(t, err)
 	err = common.UpdateKontainerDriverURL(compContext, dynClient)
