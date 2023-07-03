@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	addonsGroup                        = "addons.cluster.x-k8s.io"
 	v1Beta1API                         = "v1beta1"
+	addonsGroup                        = "addons.cluster.x-k8s.io"
 	clusterResourceSetBindingsResource = "clusterresourcesetbindings"
 	clusterResourceSetBindingsKind     = "ClusterResourceSetBindings"
 	clusterResourceSetsResource        = "clusterresourcesets"
