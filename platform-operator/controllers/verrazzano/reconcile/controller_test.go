@@ -2387,6 +2387,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 
 var trueValue = true
 
+// Tests ReconcileEffCRConfig Function
 func TestReconcileEffCRConfig(t *testing.T) {
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
@@ -2517,12 +2518,15 @@ func TestReconcileEffCRConfig(t *testing.T) {
 	assert.Error(t, err)
 
 	// Case -> Positive TestCase when no error is found
+	// Will return
 	vztest := &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-positive",
 			Namespace: "verrazzano-install",
 		},
 	}
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	err = r.reconcileEffCRConfig(context.TODO(), vztest, log)
 	assert.NoError(t, err)
 }
