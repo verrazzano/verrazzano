@@ -123,7 +123,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	ecr := make(chan ErrorsChannel, 1)
 	ecl := make(chan ErrorsChannelLogs, 1)
 
-	go captureVZResource(wg, evr, vz, bugReportDir, vzHelper)
+	go captureVZResource(wg, evr, vz, bugReportDir)
 
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoWebHookPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
@@ -195,9 +195,9 @@ func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface
 }
 
 // captureVZResource collects the Verrazzano resource as a JSON, in parallel
-func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string) {
 	defer wg.Done()
-	err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper)
+	err := pkghelpers.CaptureVZResource(bugReportDir, vz)
 	if err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}

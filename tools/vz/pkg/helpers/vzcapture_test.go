@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -25,6 +24,7 @@ import (
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -235,7 +235,6 @@ func TestCaptureVZResource(t *testing.T) {
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
 	//  GIVEN a k8s cluster with a user provided Verrazzano CR,
 	//	WHEN I call functions to capture the Verrazzano CR,
@@ -256,7 +255,7 @@ func TestCaptureVZResource(t *testing.T) {
 	SetMultiWriterErr(errBuf, tempFile)
 	SetVerboseOutput(true)
 	SetIsLiveCluster()
-	err = CaptureVZResource(captureDir, vz, rc)
+	err = CaptureVZResource(captureDir, vz)
 	assert.NoError(t, err)
 	assert.NotNil(t, GetMultiWriterOut())
 	assert.NotNil(t, GetMultiWriterErr())
@@ -359,7 +358,7 @@ func cleanupFile(t *testing.T, file *os.File) {
 func TestGetPodListAll(t *testing.T) {
 	nsName := "test"
 	podLength := 5
-	var podList = []client.Object{}
+	var podList []client.Object
 	for i := 0; i < podLength; i++ {
 		podList = append(podList, &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{

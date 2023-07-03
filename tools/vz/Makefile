@@ -1,5 +1,6 @@
 # Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+include ../../make/quality.mk
 
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 VZ_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')
@@ -68,3 +69,8 @@ cli: ## install the CLI
 .PHONY: unit-test
 unit-test: cli
 	$(GO) test -v  ./...
+
+cli-quality: export FAIL_IF_COVERAGE_DECREASED ?= false
+cli-quality: export UPLOAD_UNIT_TEST_COVERAGE ?= false
+.PHONY: cli-quality
+cli-quality: golangci-lint word-linter
