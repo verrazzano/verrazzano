@@ -22,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
@@ -57,7 +56,6 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -68,8 +66,6 @@ import (
 
 // For unit testing
 const testBomFilePath = "../testdata/test_bom.json"
-
-var testScheme = runtime.NewScheme()
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
 //
@@ -2394,12 +2390,12 @@ var trueValue = true
 func TestReconcileEffCRConfig(t *testing.T) {
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	var vznamespace string = "test-namespace"
+	vznamespace := "test-namespace"
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
-	var uname string = "dGVzdA=="
-	var passkey string = "cHc="
+	uname := "dGVzdA=="
+	passkey := "cHc="
 	secretName := "test-secret"
 
 	secret := &corev1.Secret{
@@ -2413,7 +2409,7 @@ func TestReconcileEffCRConfig(t *testing.T) {
 		},
 	}
 
-	vz := &v1alpha1.Verrazzano{
+	vz := &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-verrazzano",
 			Namespace: vznamespace,
@@ -2461,7 +2457,7 @@ func TestReconcileEffCRConfig(t *testing.T) {
 	// Add UT for effConfig - Components:
 	// And check if applicationOperator has a field - “overrides”, check if it has field -secretRef:
 	// Check that it shows secretRef and not any other thing
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret, vz, cm).Build()
+	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret, vz, cm).Build()
 	r := &Reconciler{
 		Client:            fakeClient,
 		Scheme:            k8scheme.Scheme,
@@ -2484,19 +2480,19 @@ func TestReconcileEffCRConfig(t *testing.T) {
 	assert.Contains(t, cm.Data, "effective-config.yaml")
 
 	// check if effective CR doesn't contain uname in its byte type or even in decoded format
-	effective_CR := cm.Data["effective-config.yaml"]
-	assert.NotContains(t, effective_CR, uname)
+	effectiveCR := cm.Data["effective-config.yaml"]
+	assert.NotContains(t, effectiveCR, uname)
 	decoded_uname, err := base64.StdEncoding.DecodeString(uname)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	assert.NotContains(t, effective_CR, decoded_uname)
+	assert.NotContains(t, effectiveCR, decoded_uname)
 
 	// convert it into yaml object
-	vzSpec := &v1alpha1.VerrazzanoSpec{}
-	err = yaml.Unmarshal([]byte(effective_CR), vzSpec)
+	vzSpec := &vzapi.VerrazzanoSpec{}
+	err = yaml.Unmarshal([]byte(effectiveCR), vzSpec)
 	assert.NoError(t, err)
-	assert.NotNil(t, effective_CR)
+	assert.NotNil(t, effectiveCR)
 	// assert that yaml object contains the required field.
 	assert.Contains(t, vzSpec.Components.ApplicationOperator.InstallOverrides.ValueOverrides[0].SecretRef.Key, "username")
 	assert.Contains(t, vzSpec.Components.ApplicationOperator.InstallOverrides.ValueOverrides[0].SecretRef.Name, secretName)
@@ -2521,12 +2517,12 @@ func TestReconcileEffCRConfig(t *testing.T) {
 	assert.Error(t, err)
 
 	// Case -> Positive TestCase when no error is found
-	vz_test := &v1alpha1.Verrazzano{
+	vztest := &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-positive",
 			Namespace: "verrazzano-install",
 		},
 	}
-	err = r.reconcileEffCRConfig(context.TODO(), vz_test, log)
+	err = r.reconcileEffCRConfig(context.TODO(), vztest, log)
 	assert.NoError(t, err)
 }

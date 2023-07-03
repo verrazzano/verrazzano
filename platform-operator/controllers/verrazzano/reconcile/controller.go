@@ -54,7 +54,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -1081,7 +1080,7 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 
 // The getEffCRSpec takes in the Actual CR and stores it in the configmap
 // It Reconciles the
-func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *v1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
 	// Get the Effective CR from the Verrazzano CR provided
 	effCR, err := transform.GetEffectiveCR(vz)
