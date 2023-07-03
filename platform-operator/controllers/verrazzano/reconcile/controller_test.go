@@ -2518,13 +2518,14 @@ func TestReconcileEffCRConfig(t *testing.T) {
 	assert.Error(t, err)
 
 	// Case -> Positive TestCase when no error is found
-	// Will return
+	// Will not return any error
 	vztest := &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-positive",
 			Namespace: "verrazzano-install",
 		},
 	}
+	// Expects a mock call for updating which returns no error
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	err = r.reconcileEffCRConfig(context.TODO(), vztest, log)
