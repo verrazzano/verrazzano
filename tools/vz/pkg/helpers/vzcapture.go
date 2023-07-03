@@ -240,11 +240,6 @@ func captureServices(kubeClient kubernetes.Interface, namespace, captureDir stri
 	return nil
 }
 
-// captureCapiResources captures resources related to ClusterAPI
-func captureCapiResources(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	return nil
-}
-
 // captureWorkLoads captures the Deployment and ReplicaSet, StatefulSet, Daemonset in the given namespace
 func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	deployments, err := kubeClient.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
