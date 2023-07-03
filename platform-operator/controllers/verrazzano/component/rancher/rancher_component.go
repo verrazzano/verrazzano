@@ -518,7 +518,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
 		return err
 	}
-	return common.ActivateKontainerDriver(ctx, dynClient)
+	return common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -574,7 +574,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
 		return err
 	}
-	if err := common.ActivateKontainerDriver(ctx, dynClient); err != nil {
+	if err := common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName); err != nil {
 		return log.ErrorfThrottledNewErr("Failed to activate kontainerdriver post upgrade: %s", err.Error())
 	}
 	return cleanupRancherResources(context.TODO(), ctx.Client())

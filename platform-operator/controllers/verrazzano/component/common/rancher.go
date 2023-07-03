@@ -40,8 +40,9 @@ const (
 	APIGroupVersionRancherManagement        = "v3"
 	AuthConfigKeycloak                      = "keycloakoidc"
 	SettingFirstLogin                       = "first-login"
-	KontainerDriverObjectName               = "ociocneengine"
-	KontainerDriverResourceName             = "kontainerdrivers"
+	KontainerDriverOCIName                  = "ociocneengine"
+	KontainerDriverOKEName                  = "oraclecontainerengine"
+	KontainerDriversResourceName            = "kontainerdrivers"
 	KontainerDriverKind                     = "KontainerDriver"
 )
 
@@ -169,10 +170,9 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 	return err
 }
 
-// ActivateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
-// registers the ociocne driver
-func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
-	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
+// ActivateKontainerDriver - activate a kontainerdriver
+func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interface, name string) error {
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriversResourceName)
 
 	// Nothing to do if Capi is not enabled
 	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
@@ -180,7 +180,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interfa
 	}
 
 	// Get the driver object
-	driverObj, err := getKontainerDriverObject(dynClient, gvr, KontainerDriverObjectName)
+	driverObj, err := getKontainerDriverObject(dynClient, gvr, name)
 	if err != nil {
 		// Keep trying until the resource is found
 		return err
@@ -191,7 +191,7 @@ func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interfa
 	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 
 	if err == nil {
-		ctx.Log().Infof("The kontainerdriver %s was successfully activated", KontainerDriverObjectName)
+		ctx.Log().Infof("The kontainerdriver %s was successfully activated", name)
 	}
 	return err
 }
@@ -210,7 +210,10 @@ func UpdateKontainerDriverURLs(ctx spi.ComponentContext, dynClient dynamic.Inter
 		return err
 	}
 	if commonName, ok := ingress.Annotations["cert-manager.io/common-name"]; ok {
-		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverObjectName, commonName); err != nil {
+		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverOCIName, commonName); err != nil {
+			return err
+		}
+		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverOKEName, commonName); err != nil {
 			return err
 		}
 	}
@@ -220,7 +223,7 @@ func UpdateKontainerDriverURLs(ctx spi.ComponentContext, dynClient dynamic.Inter
 
 // updateKontainerDriverURL - Update the URL of a single kontainerdriver if the common-name has changed
 func updateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interface, name string, commonName string) error {
-	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriversResourceName)
 	driverObj, err := getKontainerDriverObject(dynClient, gvr, name)
 	if err != nil {
 		// Keep trying until the resource is found

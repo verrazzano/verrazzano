@@ -32,12 +32,12 @@ var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
 var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
 
-func createKontainerDriver() *unstructured.Unstructured {
+func createKontainerDriver(name string) *unstructured.Unstructured {
 	kontainerDriver := &unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
 	kontainerDriver.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind))
-	kontainerDriver.SetName(common.KontainerDriverObjectName)
+	kontainerDriver.SetName(name)
 	kontainerDriver.UnstructuredContent()["spec"] = map[string]interface{}{}
 	return kontainerDriver
 }
@@ -229,7 +229,8 @@ func TestCleanupRancherResources(t *testing.T) {
 // THEN  the kontainerdriver object is activated
 func TestActivateKontainerDriver(t *testing.T) {
 	// Initialize kontainerdriver object
-	driverObj := createKontainerDriver()
+	driverName := common.KontainerDriverOCIName
+	driverObj := createKontainerDriver(driverName)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
 
 	// Setup clients and context
@@ -245,27 +246,32 @@ func TestActivateKontainerDriver(t *testing.T) {
 	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	dynClient, err := getDynamicClientFunc()()
 	assert.NoError(t, err)
-	err = common.ActivateKontainerDriver(compContext, dynClient)
+	err = common.ActivateKontainerDriver(compContext, dynClient, driverName)
 	assert.NoError(t, err)
 
 	// Fetch the object and confirm it was updated
-	gvr := common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)
-	kdObj, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
+	gvr := common.GetRancherMgmtAPIGVRForResource(common.KontainerDriversResourceName)
+	kdObj, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), driverName, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.True(t, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool))
 }
 
-// TestUpdateKontainerDriverURL tests the TestUpdateKontainerDriverURL function
+// TestUpdateKontainerDriverURLs tests the TestUpdateKontainerDriverURLs function
 // GIVEN a client that has it's dns domain updated
 // WHEN  UpdateKontainerDriverURLs is called
-// THEN  the driver url is updated
-func TestUpdateKontainerDriverURL(t *testing.T) {
+// THEN  the driver URLs are updated
+func TestUpdateKontainerDriverURLs(t *testing.T) {
 	initialURL := "https://test.domain1.io/driver/test.yaml"
 	expectedURL := "https://test.domain2.io/driver/test.yaml"
 
 	// Initialize kontainerdriver and ingress objects
-	driverObj := createKontainerDriver()
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
+	driverObj1Name := common.KontainerDriverOCIName
+	driverObj1 := createKontainerDriver(driverObj1Name)
+	driverObj1.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
+
+	driverObj2Name := common.KontainerDriverOKEName
+	driverObj2 := createKontainerDriver(driverObj2Name)
+	driverObj2.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
 
 	ingress := &networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -278,7 +284,7 @@ func TestUpdateKontainerDriverURL(t *testing.T) {
 	// Setup clients and context
 	scheme := getScheme()
 	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind), &unstructured.Unstructured{})
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj)
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj1, driverObj2)
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
 		resetDynamicClientFunc()
@@ -291,9 +297,14 @@ func TestUpdateKontainerDriverURL(t *testing.T) {
 	err = common.UpdateKontainerDriverURLs(compContext, dynClient)
 	assert.NoError(t, err)
 
-	// Fetch the object and confirm it was updated
-	gvr := common.GetRancherMgmtAPIGVRForResource(common.KontainerDriverResourceName)
-	kdObj, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), common.KontainerDriverObjectName, metav1.GetOptions{})
+	// Fetch the objects and confirm they were updated
+	gvr := common.GetRancherMgmtAPIGVRForResource(common.KontainerDriversResourceName)
+
+	kdObj1, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), driverObj1Name, metav1.GetOptions{})
 	assert.NoError(t, err)
-	assert.Equal(t, expectedURL, kdObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
+	assert.Equal(t, expectedURL, kdObj1.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
+
+	kdObj2, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), driverObj2Name, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedURL, kdObj2.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
 }
