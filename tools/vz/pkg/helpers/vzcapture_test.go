@@ -103,13 +103,14 @@ func TestGroupVersionResource(t *testing.T) {
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
 	k8sClient := k8sfake.NewSimpleClientset()
+	dynamicClient := fakedynamic.NewSimpleDynamicClient(k8scheme.Scheme)
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CaptureK8SResources(k8sClient, constants.VerrazzanoInstall, captureDir, rc)
+	err = CaptureK8SResources(k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 }
 

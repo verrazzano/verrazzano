@@ -85,7 +85,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
 	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList)
+	err = captureResources(client, kubeClient, dynamicClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
@@ -102,7 +102,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	return nil
 }
 
-func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
+func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
@@ -135,7 +135,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
 	}
 	for _, ns := range namespaces {
-		go captureK8SResources(wg, ecr, kubeClient, ns, bugReportDir, vzHelper)
+		go captureK8SResources(wg, ecr, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
 
 	wg.Wait()
@@ -219,9 +219,9 @@ func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kuber
 }
 
 // captureK8SResources captures Kubernetes workloads, pods, events, ingresses and services from the list of namespaces in parallel
-func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
-	if err := pkghelpers.CaptureK8SResources(kubeClient, namespace, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureK8SResources(kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}
 }
