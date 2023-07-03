@@ -5,7 +5,6 @@ package reconcile
 
 import (
 	"context"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -321,14 +320,14 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvision
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
 	// installed explicitly.
 	if !rancherProvisioned {
-		if err := r.runRancherPostInstall(ctx); err != nil {
+		if err := r.runRancherPostUninstall(ctx); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 	return r.deleteNamespaces(ctx, rancherProvisioned)
 }
 
-func (r *Reconciler) runRancherPostInstall(ctx spi.ComponentContext) error {
+func (r *Reconciler) runRancherPostUninstall(ctx spi.ComponentContext) error {
 	// Look up the Rancher component and call PostUninstall explicitly, without checking if it's installed;
 	// this is to catch any lingering managed cluster resources
 	if found, comp := registry.FindComponent(rancher.ComponentName); found {
@@ -412,7 +411,6 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
 			return newRequeueWithDelay(), err
 		}
-		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
 			Client: r.Client,
@@ -454,7 +452,6 @@ func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
 	}
 
 	for _, ns := range namespaces.Items {
-		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
 		err := resource.Resource{
 			Name:      istioRootCertName,
 			Namespace: ns.GetName(),

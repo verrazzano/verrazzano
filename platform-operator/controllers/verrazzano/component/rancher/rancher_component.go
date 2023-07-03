@@ -32,7 +32,6 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -127,7 +126,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, clusterapi.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -225,6 +224,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 	// Configure CA Issuer KVs
 	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
+		letsEncryptEnv := cm.LetsEncrypt.Environment
+		if len(letsEncryptEnv) == 0 {
+			letsEncryptEnv = cmconstants.LetsEncryptProduction
+		}
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
@@ -234,13 +237,13 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.LetsEncrypt.Environment,
+				Value: letsEncryptEnv,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
+				Value: strconv.FormatBool(common.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
@@ -556,7 +559,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := common.ActivateKontainerDriver(ctx); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Failed to activate kontainerdriver post upgrade: %s", err.Error())
 	}
 	return cleanupRancherResources(context.TODO(), ctx.Client())
 }
