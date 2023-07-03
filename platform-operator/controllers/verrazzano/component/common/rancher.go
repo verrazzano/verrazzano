@@ -109,12 +109,12 @@ func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	}
 }
 
-// GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
-func GetRancherMgmtAPIGVRForResource(kind string) schema.GroupVersionResource {
+// GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind
+func GetRancherMgmtAPIGVRForResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    APIGroupRancherManagement,
 		Version:  APIGroupVersionRancherManagement,
-		Resource: "kontainerdrivers",
+		Resource: resource,
 	}
 }
 
@@ -172,20 +172,21 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 // ActivateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
 // registers the ociocne driver
 func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
+
 	// Nothing to do if Capi is not enabled
 	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 
 	// Get the driver object
-	driverObj, err := getKontainerDriverObject(dynClient)
+	driverObj, err := getKontainerDriverObject(dynClient, gvr, KontainerDriverObjectName)
 	if err != nil {
 		// Keep trying until the resource is found
 		return err
 	}
 
 	// Activate the driver
-	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
 	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
 
@@ -195,8 +196,8 @@ func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interfa
 	return err
 }
 
-// UpdateKontainerDriverURL - Update the kontainerdriver URL if the common-name has changed
-func UpdateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
+// UpdateKontainerDriverURLs - Update the kontainerdriver URLs if the common-name has changed
+func UpdateKontainerDriverURLs(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
 	// Nothing to do if Capi is not enabled
 	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
 		return nil
@@ -209,41 +210,49 @@ func UpdateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interf
 		return err
 	}
 	if commonName, ok := ingress.Annotations["cert-manager.io/common-name"]; ok {
-		driverObj, err := getKontainerDriverObject(dynClient)
-		if err != nil {
-			// Keep trying until the resource is found
+		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverObjectName, commonName); err != nil {
 			return err
-		}
-
-		// Does the existing URL contain the common name?
-		url := driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string)
-		if !strings.Contains(url, commonName) {
-			// Parse the existing URL string to remove the http prefix
-			urlSplit1 := strings.Split(url, "//")
-			// Parse the remaining URL string to remove the common name prefix
-			urlSplit2 := strings.SplitN(urlSplit1[1], "/", 2)
-
-			// Update the URL to use the new common name
-			gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
-			newURL := fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
-			driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = newURL
-			_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
-			if err != nil {
-				return err
-			}
-			ctx.Log().Infof("The kontainerdriver %s URL was updated to %s", KontainerDriverObjectName, newURL)
 		}
 	}
 
 	return nil
 }
 
-func getKontainerDriverObject(dynClient dynamic.Interface) (*unstructured.Unstructured, error) {
-	var driverObj *unstructured.Unstructured
+// updateKontainerDriverURL - Update the URL of a single kontainerdriver if the common-name has changed
+func updateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interface, name string, commonName string) error {
 	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriverResourceName)
-	driverObj, err := dynClient.Resource(gvr).Get(context.TODO(), KontainerDriverObjectName, metav1.GetOptions{})
+	driverObj, err := getKontainerDriverObject(dynClient, gvr, name)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, KontainerDriverObjectName, err)
+		// Keep trying until the resource is found
+		return err
+	}
+
+	// Does the existing URL contain the common name?
+	url := driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string)
+	if !strings.Contains(url, commonName) {
+		// Parse the existing URL string to remove the http prefix
+		urlSplit1 := strings.Split(url, "//")
+		// Parse the remaining URL string to remove the common name prefix
+		urlSplit2 := strings.SplitN(urlSplit1[1], "/", 2)
+
+		// Update the URL to use the new common name
+		newURL := fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
+		driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = newURL
+		_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		ctx.Log().Infof("The kontainerdriver %s URL was updated to %s", name, newURL)
+	}
+
+	return nil
+}
+
+func getKontainerDriverObject(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string) (*unstructured.Unstructured, error) {
+	var driverObj *unstructured.Unstructured
+	driverObj, err := dynClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, name, err)
 	}
 	return driverObj, nil
 }

@@ -257,7 +257,7 @@ func TestActivateKontainerDriver(t *testing.T) {
 
 // TestUpdateKontainerDriverURL tests the TestUpdateKontainerDriverURL function
 // GIVEN a client that has it's dns domain updated
-// WHEN  UpdateKontainerDriverURL is called
+// WHEN  UpdateKontainerDriverURLs is called
 // THEN  the driver url is updated
 func TestUpdateKontainerDriverURL(t *testing.T) {
 	initialURL := "https://test.domain1.io/driver/test.yaml"
@@ -288,7 +288,7 @@ func TestUpdateKontainerDriverURL(t *testing.T) {
 	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	dynClient, err := getDynamicClientFunc()()
 	assert.NoError(t, err)
-	err = common.UpdateKontainerDriverURL(compContext, dynClient)
+	err = common.UpdateKontainerDriverURLs(compContext, dynClient)
 	assert.NoError(t, err)
 
 	// Fetch the object and confirm it was updated
