@@ -197,7 +197,6 @@ require (
 require (
 	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 )
 
