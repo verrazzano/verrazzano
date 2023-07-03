@@ -5,6 +5,7 @@ package reconcile
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"sync"
@@ -56,11 +57,13 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/yaml"
 )
 
 // For unit testing
@@ -2389,15 +2392,31 @@ func TestReconcilerProcReadyState(t *testing.T) {
 var trueValue = true
 
 func TestReconcileEffCRConfig(t *testing.T) {
-	var testScheme = runtime.NewScheme()
 
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	var vznamespace string = "test-namespace"
 	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
+
+	var uname string = "dGVzdA=="
+	var passkey string = "cHc="
+	secretName := "test-secret"
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			"username": []byte(uname),
+			"password": []byte(passkey),
+		},
+	}
 
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-verrazzano",
-			Namespace: "test-namespace",
+			Namespace: vznamespace,
 		},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -2408,9 +2427,9 @@ func TestReconcileEffCRConfig(t *testing.T) {
 							{
 								SecretRef: &corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "verrazzano",
+										Name: secretName,
 									},
-									Key: "abc",
+									Key: "username",
 								},
 							},
 						},
@@ -2418,20 +2437,6 @@ func TestReconcileEffCRConfig(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	r := &Reconciler{
-		Client:            mock,
-		Scheme:            testScheme,
-		Controller:        nil,
-		DryRun:            false,
-		WatchedComponents: nil,
-		WatchMutex:        nil,
-		Bom:               nil,
-		StatusUpdater:     nil,
 	}
 
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -2445,28 +2450,83 @@ func TestReconcileEffCRConfig(t *testing.T) {
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
-	// // Case 1 -> Invalid vz instance is passed
-	// err = r.reconcileEffCRConfig(context.TODO(), /* invalid vz instance should be passed here */ vz, log)
-	// assert.Nil(t, err)
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      (vz.ObjectMeta.Name + "-effective-config"),
+			Namespace: (vz.ObjectMeta.Namespace),
+		},
+	}
+
+	// Case -> Simulates the test case that the "k get cm example-verrazzano-effective-config -o yaml" must not show Sensitive Data
+	// Add UT for effConfig - Components:
+	// And check if applicationOperator has a field - “overrides”, check if it has field -secretRef:
+	// Check that it shows secretRef and not any other thing
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret, vz, cm).Build()
+	r := &Reconciler{
+		Client:            fakeClient,
+		Scheme:            k8scheme.Scheme,
+		Controller:        nil,
+		DryRun:            false,
+		WatchedComponents: nil,
+		WatchMutex:        nil,
+		Bom:               nil,
+		StatusUpdater:     nil,
+	}
+
+	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + "-effective-config", Namespace: (vz.ObjectMeta.Namespace)}, cm)
+	assert.NoError(t, err)
+	// check if configmap contains the effective CR in yaml format
+	assert.Contains(t, cm.Data, "effective-config.yaml")
+
+	// check if effective CR doesn't contain uname in its byte type or even in decoded format
+	effective_CR := cm.Data["effective-config.yaml"]
+	assert.NotContains(t, effective_CR, uname)
+	decoded_uname, err := base64.StdEncoding.DecodeString(uname)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	assert.NotContains(t, effective_CR, decoded_uname)
+
+	// convert it into yaml object
+	vzSpec := &v1alpha1.VerrazzanoSpec{}
+	err = yaml.Unmarshal([]byte(effective_CR), vzSpec)
+	assert.NoError(t, err)
+	assert.NotNil(t, effective_CR)
+	// assert that yaml object contains the required field.
+	assert.Contains(t, vzSpec.Components.ApplicationOperator.InstallOverrides.ValueOverrides[0].SecretRef.Key, "username")
+	assert.Contains(t, vzSpec.Components.ApplicationOperator.InstallOverrides.ValueOverrides[0].SecretRef.Name, secretName)
 
 	// Case -> Checking Test Case: When the Update() function finds that no ConfigMap exists, thus proceeds to Create a ConfigMap
 	// Expect a call to get an existing configmap, but return a NotFound error.
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	r.Client = mock
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).Return(errors.NewNotFound(schema.GroupResource{Group: "test-namespace", Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
+		Update(gomock.Any(), gomock.Any()).Return(errors.NewNotFound(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
 	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
 	assert.Error(t, err)
 
 	// Case  -> Simulates the test case when  Update() gives any error other than IsNotFound()
+	// Expects a call to get an existing configmap, but in this case, returns some other err (other than NotFound)
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).Return(errors.NewAlreadyExists(schema.GroupResource{Group: "test-namespace", Resource: "ConfigMap"}, "test-verrazzano-effective-config"))
+		Update(gomock.Any(), gomock.Any()).Return(errors.NewAlreadyExists(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
 	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
 	assert.Error(t, err)
 
-	// Case 4 -> Simulates the test case that the "k get cm example-verrazzano-effective-config -o yaml" must show only the name
-	// Add UT for effConfig - Components:
-	// And check if applicationOperator has a field - “overrides”, check if it has field -secretRef:
-	// Check that it shows secretRef and not any other thing
-
+	// Case -> Positive TestCase when no error is found
+	vz_test := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-positive",
+			Namespace: "verrazzano-install",
+		},
+	}
+	err = r.reconcileEffCRConfig(context.TODO(), vz_test, log)
+	assert.NoError(t, err)
 }

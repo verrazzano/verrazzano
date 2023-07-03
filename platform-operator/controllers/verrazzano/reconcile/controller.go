@@ -1079,7 +1079,8 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	return r.WatchedComponents[compName]
 }
 
-// The getEffCRSpec takes in input as Actual CR and stores in a configmap
+// The getEffCRSpec takes in the Actual CR and stores it in the configmap
+// It Reconciles the
 func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *v1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
 	// Get the Effective CR from the Verrazzano CR provided
