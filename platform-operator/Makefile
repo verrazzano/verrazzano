@@ -66,7 +66,7 @@ SHELL = bash
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug --vz-root-dir=/Users/arunepra/Desktop/verrazzano/
+	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
 
 # Install CRDs into a cluster
 .PHONY: install-crds

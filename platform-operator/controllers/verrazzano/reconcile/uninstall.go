@@ -5,6 +5,7 @@ package reconcile
 
 import (
 	"context"
+
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -99,9 +100,10 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	done := false
 
 	// Delete the ConfigMap
-	err = pkg.DeleteConfigMap(cr.ObjectMeta.Namespace, cr.ObjectMeta.Name)
+	err = pkg.DeleteConfigMap(cr.ObjectMeta.Namespace, cr.ObjectMeta.Name+"-effective-config")
 	if err != nil {
 		log.Errorf(err.Error())
+		return ctrl.Result{}, err
 	}
 
 	for !done {

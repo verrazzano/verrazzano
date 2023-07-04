@@ -2388,7 +2388,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 var trueValue = true
 
 // Tests ReconcileEffCRConfig Function
-func TestReconcileEffCRConfig(t *testing.T) {
+func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	vznamespace := "test-namespace"
@@ -2470,18 +2470,19 @@ func TestReconcileEffCRConfig(t *testing.T) {
 		StatusUpdater:     nil,
 	}
 
-	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
+	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 
+	effConfigYaml := "effective-config.yaml"
 	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + "-effective-config", Namespace: (vz.ObjectMeta.Namespace)}, cm)
 	assert.NoError(t, err)
 	// check if configmap contains the effective CR in yaml format
-	assert.Contains(t, cm.Data, "effective-config.yaml")
+	assert.Contains(t, cm.Data, effConfigYaml)
 
 	// check if effective CR doesn't contain uname in its byte type or even in decoded format
-	effectiveCR := cm.Data["effective-config.yaml"]
+	effectiveCR := cm.Data[effConfigYaml]
 	assert.NotContains(t, effectiveCR, uname)
 	decodedUname, err := base64.StdEncoding.DecodeString(uname)
 	if err != nil {
@@ -2507,14 +2508,14 @@ func TestReconcileEffCRConfig(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).Return(errors.NewNotFound(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
-	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
+	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.Error(t, err)
 
 	// Case  -> Simulates the test case when  Update() gives any error other than IsNotFound()
 	// Expects a call to get an existing configmap, but in this case, returns some other err (other than NotFound)
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(errors.NewAlreadyExists(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
-	err = r.reconcileEffCRConfig(context.TODO(), vz, log)
+	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.Error(t, err)
 
 	// Case -> Positive TestCase when no error is found
@@ -2525,9 +2526,9 @@ func TestReconcileEffCRConfig(t *testing.T) {
 			Namespace: "verrazzano-install",
 		},
 	}
-	// Expects a mock call for updating which returns no error
+	// Expects a mock call for updating, which returns no error
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	err = r.reconcileEffCRConfig(context.TODO(), vztest, log)
+	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vztest, log)
 	assert.NoError(t, err)
 }

@@ -159,9 +159,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	err = r.reconcileEffCRConfig(ctx, vz, log)
+	// Create or Update Configmap that'll store our Effective CR
+	err = r.createOrUpdateEffectiveConfigCM(ctx, vz, log)
 	if err != nil {
-		zap.S().Error(err)
+		log.Error(err.Error())
+		errorCounterMetricObject.Inc()
 	}
 
 	return ctrl.Result{}, nil
@@ -1078,16 +1080,16 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	return r.WatchedComponents[compName]
 }
 
-// The reconcileEffCRConfig takes in the Actual CR and reconciles a configmap
-// If no configmap exists, it will create one, else it updates the configmap with
+// The createOrUpdateEffectiveConfigCM takes in the Actual CR, gets the Effective CR and stores it in a configmap
+// If no configmap exists, it will create one, otherwise it updates the configmap with
 // the effective CR
-func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
-	// Get the Effective CR from the Verrazzano CR provided
+	// Get the Effective CR from the Verrazzano CR supplied
 	effCR, err := transform.GetEffectiveCR(vz)
 	if err != nil {
 		log.Errorf(err.Error())
-		return err // test must contain AssertError
+		return err
 	}
 
 	// Marshal Indent it to format the Effective CR Specs
@@ -1096,7 +1098,7 @@ func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *installv1alph
 		log.Errorf(err.Error())
 		return err
 	}
-
+	effConfigYaml := "effective-config.yaml"
 	// Create a Configmap Object that stores the Effective CR Specs
 	effCRConfigmap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1104,7 +1106,7 @@ func (r *Reconciler) reconcileEffCRConfig(ctx context.Context, vz *installv1alph
 			Namespace: (vz.ObjectMeta.Namespace),
 		},
 		Data: map[string]string{
-			"effective-config.yaml": string(effCRSpecs),
+			effConfigYaml: string(effCRSpecs),
 		},
 	}
 
