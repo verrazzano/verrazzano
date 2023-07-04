@@ -80,6 +80,7 @@ func captureResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionRes
 	list, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while getting the %s in namespace %s: %s\n", kind, namespace, err.Error()))
+		return nil
 	}
 	if len(list.Items) > 0 {
 		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
