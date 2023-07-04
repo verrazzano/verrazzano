@@ -183,31 +183,6 @@ func TestReconcileUninstall(t *testing.T) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	r := &Reconciler{
-		Client:            mock,
-		Scheme:            k8scheme.Scheme,
-		Controller:        nil,
-		DryRun:            false,
-		WatchedComponents: nil,
-		WatchMutex:        nil,
-		Bom:               nil,
-		StatusUpdater:     nil,
-	}
-
-	vz := &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-verrazzano",
-			Namespace: "test-namespace",
-		},
-	}
-	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	err := r.Delete(context.TODO(), vz)
-	assert.NoError(t, err)
-
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{
@@ -727,13 +702,14 @@ func TestReconcileUninstall2(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		return mockClient
 	}
 	getDeletionMock := func() client.Client {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).Times(2)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}

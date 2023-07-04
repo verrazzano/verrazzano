@@ -1325,7 +1325,7 @@ func expectMCCleanup(mock *mocks.MockClient) {
 			return nil
 		}).AnyTimes()
 
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
