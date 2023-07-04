@@ -276,7 +276,10 @@ function dump_extra_details_per_namespace() {
 function dump_namespaced_object_if_exists() {
   local objectType="${1}"
   local namespace="${2}"
-  if ! kubectl get "${objectType}" -n "${namespace}" 2>&1 > /dev/null ; then
+  # Success is always returned for a list, even if no objects found.
+  # Test error output for no resource found.
+  result=`kubectl get "${objectType}" -n "${namespace}" 2>&1`
+  if [[ $result == *"No resource"* ]]; then
     return
   fi
   kubectl --insecure-skip-tls-verify get "${objectType}" -n "${namespace}" -o json 2>/dev/null > "$CAPTURE_DIR"/cluster-snapshot/"${namespace}"/"${objectType}".json || true
