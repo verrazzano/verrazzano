@@ -1081,8 +1081,7 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 }
 
 // The createOrUpdateEffectiveConfigCM takes in the Actual CR, gets the Effective CR and stores it in a configmap
-// If no configmap exists, it will create one, otherwise it updates the configmap with
-// the effective CR
+// If no configmap exists, it will create one, otherwise it updates the configmap with the effective CR
 func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
 	// Get the Effective CR from the Verrazzano CR supplied
