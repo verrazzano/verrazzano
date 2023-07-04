@@ -5,6 +5,10 @@ package healthcheck
 
 import (
 	"context"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
@@ -13,11 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const (
@@ -79,15 +80,16 @@ func TestStatusUpdater(t *testing.T) {
 	}
 	url := "myurl.com"
 	instanceInfo := &vzapi.InstanceInfo{
-		ConsoleURL:    &url,
-		KeyCloakURL:   &url,
-		RancherURL:    &url,
-		ElasticURL:    &url,
-		KibanaURL:     &url,
-		GrafanaURL:    &url,
-		PrometheusURL: &url,
-		KialiURL:      &url,
-		JaegerURL:     &url,
+		ConsoleURL:      &url,
+		KeyCloakURL:     &url,
+		RancherURL:      &url,
+		ElasticURL:      &url,
+		KibanaURL:       &url,
+		GrafanaURL:      &url,
+		PrometheusURL:   &url,
+		KialiURL:        &url,
+		JaegerURL:       &url,
+		AlertmanagerURL: &url,
 	}
 	u := &UpdateEvent{
 		Verrazzano:   vz,

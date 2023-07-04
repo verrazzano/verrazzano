@@ -567,7 +567,9 @@ const pkceClientUrisTemplate = `
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
       "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}/_authentication_callback",{{end}}
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",
@@ -582,7 +584,8 @@ const pkceClientUrisTemplate = `
 	  "https://thanos-query.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-      "https://kibana.vmi.system.{{.DNSSubDomain}}"
+      "https://kibana.vmi.system.{{.DNSSubDomain}}",
+	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}",
  {{end}} 
 	]
 `

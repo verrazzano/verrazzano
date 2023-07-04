@@ -5,11 +5,14 @@ package vzcr
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
 // IsPrometheusEnabled - Returns false only if explicitly disabled in the CR
@@ -651,4 +654,43 @@ func IsComponentStatusEnabled(cr runtime.Object, componentName string) bool {
 		}
 	}
 	return false
+}
+
+// IsAlertmanagerEnabled returns true only if the Alertmanager is explicitly enabled in the CR
+func IsAlertmanagerEnabled(cr runtime.Object, ctx spi.ComponentContext) (bool, error) {
+	var overrideStrings []string
+	var err error
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 == nil || vzv1alpha1.Spec.Components.PrometheusOperator == nil || (vzv1alpha1.Spec.Components.PrometheusOperator.Enabled != nil && !*vzv1alpha1.Spec.Components.PrometheusOperator.Enabled) || vzv1alpha1.Spec.Components.PrometheusOperator.ValueOverrides == nil {
+			return false, nil
+		}
+
+		overrideStrings, err = override.GetInstallOverridesYAML(ctx, vzv1alpha1.Spec.Components.PrometheusOperator.ValueOverrides)
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 == nil || vzv1beta1.Spec.Components.PrometheusOperator == nil || (vzv1beta1.Spec.Components.PrometheusOperator.Enabled != nil && !*vzv1beta1.Spec.Components.PrometheusOperator.Enabled) || vzv1beta1.Spec.Components.PrometheusOperator.ValueOverrides == nil {
+			return false, nil
+		}
+
+		overrideStrings, err = override.GetInstallOverridesYAMLUsingClient(ctx.Client(), vzv1beta1.Spec.Components.PrometheusOperator.ValueOverrides, vzv1beta1.Namespace)
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("error while reading install overrides, error: %v", err.Error())
+	}
+
+	if len(overrideStrings) == 0 {
+		return false, nil
+	}
+
+	for _, overrideYaml := range overrideStrings {
+		if strings.Contains(overrideYaml, "alertmanager:") {
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "alertmanager.enabled")
+			if err != nil {
+				return false, fmt.Errorf("error while reading value for alertmanager.enabled from overrides")
+			}
+			return value.(bool), nil
+		}
+	}
+
+	return false, nil
 }

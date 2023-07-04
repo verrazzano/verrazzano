@@ -629,8 +629,8 @@
           "name": "alertmanager",
           "images": [
             {
-              "image": "alertmanager",
-              "tag": "v0.24.0-20230524114801-18128160",
+              "image": "alertmanager-jenkins",
+              "tag": "v0.25.0-20230703110645-172d31ba",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -924,9 +924,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.24.0",
-    "v1.25.0",
-    "v1.26.0"
-  ]
+  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0"]
 }

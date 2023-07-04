@@ -6,6 +6,8 @@ package operator
 import (
 	"context"
 
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -26,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -46,6 +47,9 @@ const (
 	prometheusCertificateName = "system-tls-prometheus"
 
 	istioPrometheus = "prometheus-server"
+
+	alertmanagerHostName        = "alertmanager.vmi.system"
+	alertmanagerCertificateName = "system-tls-alertmanager"
 )
 
 type prometheusComponent struct {
@@ -196,10 +200,24 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
-	return append(ingressNames, types.NamespacedName{
+	ingressNames = append(ingressNames, types.NamespacedName{
 		Namespace: ns,
 		Name:      constants.PrometheusIngress,
 	})
+
+	alertmanagerEnabled, err := vzcr.IsAlertmanagerEnabled(ctx.EffectiveCR(), ctx)
+	if err != nil {
+		ctx.Log().Errorf("error checking if alertmanager is enabled , %v", err)
+	}
+
+	if alertmanagerEnabled {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      constants.PrometheusIngress,
+		})
+	}
+
+	return ingressNames
 }
 
 // getCertificateNames - gets the names of the TLS ingress certificates associated with this component
