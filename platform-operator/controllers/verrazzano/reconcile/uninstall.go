@@ -95,8 +95,6 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	tracker := getUninstallTracker(cr)
-	done := false
 
 	// Delete the ConfigMap
 	effCRConfigmap := &corev1.ConfigMap{
@@ -109,6 +107,9 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	if err != nil {
 		log.Error(err.Error())
 	}
+
+	tracker := getUninstallTracker(cr)
+	done := false
 
 	for !done {
 		switch tracker.vzState {

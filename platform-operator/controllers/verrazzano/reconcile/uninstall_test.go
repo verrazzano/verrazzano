@@ -6,14 +6,15 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	"reflect"
-	"testing"
-	"time"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -181,6 +182,31 @@ func TestReconcileUninstall(t *testing.T) {
 	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	r := &Reconciler{
+		Client:            mock,
+		Scheme:            k8scheme.Scheme,
+		Controller:        nil,
+		DryRun:            false,
+		WatchedComponents: nil,
+		WatchMutex:        nil,
+		Bom:               nil,
+		StatusUpdater:     nil,
+	}
+
+	vz := &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-verrazzano",
+			Namespace: "test-namespace",
+		},
+	}
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	err := r.Delete(context.TODO(), vz)
+	assert.NoError(t, err)
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
