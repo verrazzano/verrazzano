@@ -62,7 +62,7 @@ var capiResources = []capiResource{
 	{GVR: schema.GroupVersionResource{Group: infrastructureGroup, Version: v1Beta2, Resource: "ocimanagedmachinepooltemplates"}, Kind: "OCIManagedMachinePoolTemplates"},
 	{GVR: schema.GroupVersionResource{Group: ipamGroup, Version: v1Alpha1, Resource: "ipaddressclaims"}, Kind: "IPAddressClaims"},
 	{GVR: schema.GroupVersionResource{Group: ipamGroup, Version: v1Alpha1, Resource: "ipaddresses"}, Kind: "IPAddresses"},
-	{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfigs"},
+	//{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfigs"},
 }
 
 // captureCapiResources captures resources related to ClusterAPI
