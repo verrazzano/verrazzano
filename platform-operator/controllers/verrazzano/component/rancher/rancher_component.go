@@ -117,12 +117,12 @@ func SetDefaultCheckClusterProvisionedFunc() {
 
 var checkContainerDriverProvisionedFunc checkProvisionedFuncSig = checkContainerDriverProvisioned
 
-//func SetCheckContainerDriverProvisionedFunc(newFunc checkProvisionedFuncSig) {
-//	checkClusterProvisionedFunc = newFunc
-//}
-//func SetDefaultCheckContainerDriverProvisionedFunc() {
-//	checkClusterProvisionedFunc = checkContainerDriverProvisioned
-//}
+func SetCheckContainerDriverProvisionedFunc(newFunc checkProvisionedFuncSig) {
+	checkContainerDriverProvisionedFunc = newFunc
+}
+func SetDefaultCheckContainerDriverProvisionedFunc() {
+	checkContainerDriverProvisionedFunc = checkContainerDriverProvisioned
+}
 
 func NewComponent() spi.Component {
 	return rancherComponent{

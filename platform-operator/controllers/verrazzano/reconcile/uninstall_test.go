@@ -11,6 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/client-go/dynamic"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"reflect"
 	"testing"
 	"time"
@@ -584,6 +586,10 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
+
+	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
+	rancher.SetCheckContainerDriverProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckContainerDriverProvisionedFunc()
 
 	const fakeNS = "foo"
 	nameSpaces := []client.Object{}
