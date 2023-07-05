@@ -235,54 +235,10 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true
         kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/pod-monitors.json || true
         kubectl --insecure-skip-tls-verify get endpoints -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/endpoints.json || true
-        # Dump CAPI related resources only if they exist
-        dump_namespaced_object_if_exists "clusterclasses.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "clusterresourcesetbindings.addons.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "clusterresourcesets.addons.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "clusters.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "extensionconfigs.runtime.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ipaddressclaims.ipam.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ipaddresses.ipam.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "machinedeployments.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "machinehealthchecks.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "machinepools.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "machines.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "machinesets.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ociclusteridentities.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ociclusters.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ociclustertemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimachinepools.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimachines.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimachinetemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimanagedclusters.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimanagedclustertemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimanagedcontrolplanes.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimanagedcontrolplanetemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimanagedmachinepools.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocimanagedmachinepooltemplates.infrastructure.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocneconfigs.bootstrap.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocneconfigtemplates.bootstrap.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocnecontrolplanes.controlplane.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "ocnecontrolplanetemplates.controlplane.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "providers.clusterctl.cluster.x-k8s.io" "${NAMESPACE}"
-        dump_namespaced_object_if_exists "clusters.provisioning.cattle.io" "${NAMESPACE}"
       fi
     fi
   done <$CAPTURE_DIR/cluster-snapshot/namespace_list.out
   rm $CAPTURE_DIR/cluster-snapshot/namespace_list.out
-}
-
-# Dump an object only if it exists
-function dump_namespaced_object_if_exists() {
-  local objectType="${1}"
-  local namespace="${2}"
-  # Success is always returned for a list, even if no objects found.
-  # Test error output for no resource found.
-  result=`kubectl get "${objectType}" -n "${namespace}" 2>&1`
-  if [[ $result == *"No resource"* ]]; then
-    return
-  fi
-  kubectl --insecure-skip-tls-verify get "${objectType}" -n "${namespace}" -o json 2>/dev/null > "$CAPTURE_DIR"/cluster-snapshot/"${namespace}"/"${objectType}".json || true
 }
 
 function gather_cronological_events() {
