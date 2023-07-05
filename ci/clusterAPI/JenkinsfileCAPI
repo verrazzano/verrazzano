@@ -120,7 +120,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-clusterAPI-enabled.yaml"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         KIND_NODE_COUNT = "3"
         VZ_ENVIRONMENT_NAME = "default"
@@ -736,32 +736,11 @@ def set_capi_variables() {
    // env.OCI_CREDENTIALS_KEY=sh(returnStdout: true, script: """ awk 'NF {sub(/\r/, ""); printf "%s\\n",\$0;}' ${TF_VAR_api_private_key_path} """).trim()
 }
 
-def waitForPodsToBeUp(namespace) {
-    sh """
-         kubectl wait -n ${namespace} --for=condition=ready pod --all --timeout 10m
-    """
-}
-
-def echoAllPodInfo() {
-    sh """
-         kubectl get pod -A
-    """
-}
 
 def ensureCAPICleanup() {
     sh """
          kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
     """
-}
-
-
-def runSocksVariant(variant) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-            sh """
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
-            """
-        }
 }
 
 
