@@ -245,7 +245,6 @@ func EnsureNSG() error {
 	calicoWorkerRule := SecurityRuleDetails{
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from control plane nodes",
-		//Source:      "10.0.0.0/29",
 		IsStateless: false,
 		TCPPortMax:  5473,
 		TCPPortMin:  5473,
@@ -259,7 +258,6 @@ func EnsureNSG() error {
 	calicoControlPlaneRule := SecurityRuleDetails{
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from worker nodes",
-		//Source:      "10.0.64.0/20",
 		IsStateless: false,
 		TCPPortMax:  5473,
 		TCPPortMin:  5473,
@@ -273,7 +271,6 @@ func EnsureNSG() error {
 	udpWorkerRule := SecurityRuleDetails{
 		Protocol:    "17",
 		Description: "Added by Jenkins to allow UDP communication from control plane node",
-		//Source:      "10.0.0.0/29",
 		IsStateless: false,
 	}
 
@@ -285,7 +282,6 @@ func EnsureNSG() error {
 	udpControlPlaneRule := SecurityRuleDetails{
 		Protocol:    "17",
 		Description: "Added by Jenkins to allow UDP communication from worker node",
-		//Source:      "10.0.64.0/20",
 		IsStateless: false,
 	}
 
