@@ -586,6 +586,7 @@ const pkceClientUrisTemplate = `
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
       "https://kibana.vmi.system.{{.DNSSubDomain}}",
 	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}",
+	  "https://alertmanager1.vmi.system.{{.DNSSubDomain}}",
  {{end}} 
 	]
 `
