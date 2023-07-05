@@ -7,6 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"io"
+	"math"
 	"os"
 	"regexp"
 	"strings"
@@ -50,13 +51,13 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 				if len(mapOfCertificatesInVPOToTheirNamespace) > 0 {
 					namespace, ok := mapOfCertificatesInVPOToTheirNamespace[certificate.ObjectMeta.Name]
 					if ok && namespace == certificate.ObjectMeta.Namespace {
-						reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile, true, false)
+						reportVPOHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 					}
 				}
 			} else if certificate.Status.NotAfter.Unix() < time.Now().Unix() {
-				reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile, false, true)
+				reportCertificateExpirationIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 			} else {
-				reportCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile, false, false)
+				reportGenericCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 			}
 		}
 	}
@@ -65,41 +66,45 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 
 }
 
+//This function accepts a list of
+
 // This function returns a list of certificate objects based on the certificates.json file
 func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *certv1.CertificateList, err error) {
 	certList := &certv1.CertificateList{}
 	file, err := os.Open(path)
 	if err != nil {
-		log.Debugf("file %s not found", path)
+		log.Debug("file %s not found", path)
 		return nil, nil
 	}
 	defer file.Close()
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Debugf("Failed reading Json file %s", path)
+		log.Error("Failed reading Json file %s", path)
 		return nil, err
 	}
 	err = encjson.Unmarshal(fileBytes, &certList)
 	if err != nil {
-		log.Debugf("Failed to unmarshal CertificateList at %s", path)
+		log.Error("Failed to unmarshal CertificateList at %s", path)
 		return nil, err
 	}
 	return certList, err
 }
 
 // This function creates the message and formally adds the issue to the IssueReporter
-func reportCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string, VPOHangingIssue bool, isCertificateExpired bool) {
+
+func reportVPOHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
-	if VPOHangingIssue {
-		message := []string{"The VPO is hanging due to a long time for the certificate to complete, but the certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is ready"}
-		issueReporter.AddKnownIssueMessagesFiles(report.VPOHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
-		return
-	}
-	if isCertificateExpired {
-		message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is expired"}
-		issueReporter.AddKnownIssueMessagesFiles(report.CertificateExpired, clusterRoot, message, files)
-		return
-	}
+	message := []string{"The VPO is hanging due to a long time for the certificate to complete, but the certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is ready"}
+	issueReporter.AddKnownIssueMessagesFiles(report.VPOHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
+
+}
+func reportCertificateExpirationIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
+	files := []string{certificateFile}
+	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is expired"}
+	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExpired, clusterRoot, message, files)
+}
+func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
+	files := []string{certificateFile}
 	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is not valid and experiencing issues"}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
 }
@@ -124,10 +129,8 @@ func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot strin
 		return listOfCertificatesThatVPOIsHangingOn, err
 	}
 	//If the VPO has greater than 10 messages, the last 10 logs are the input. Else, the whole VPO logs are the input
-	lastTenVPOLogs := allMessages[:]
-	if len(allMessages) > 10 {
-		lastTenVPOLogs = allMessages[len(allMessages)-10:]
-	}
+	lastTenVPOLogs := allMessages[int(math.Max(float64(0), float64(len(allMessages)-10))):]
+	//If the VPO has greater than 10 messages, the last 10 logs are the input. Else, the whole VPO logs are the input
 	for _, VPOLog := range lastTenVPOLogs {
 		VPOLogMessage := VPOLog.Message
 		if strings.Contains(VPOLogMessage, "message: Issuing certificate as Secret does not exist") && strings.HasPrefix(VPOLogMessage, "Certificate ") {
