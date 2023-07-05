@@ -67,6 +67,7 @@ var capiResources = []capiResource{
 
 // captureCapiResources captures resources related to ClusterAPI
 func captureCapiResources(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("MGIANATA capi namespace %s to dir %s\n", namespace, captureDir))
 
 	for _, resource := range capiResources {
 		if err := captureResource(dynamicClient, resource.GVR, resource.Kind, namespace, captureDir, vzHelper); err != nil {
