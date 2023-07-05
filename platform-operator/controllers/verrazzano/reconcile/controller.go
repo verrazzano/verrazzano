@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -76,6 +77,9 @@ type Reconciler struct {
 
 // Name of finalizer
 const finalizerName = "install.verrazzano.io"
+
+// Name of Effective Configmap Data Key
+const effConfigYaml = "effective-config.yaml"
 
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
@@ -1097,32 +1101,25 @@ func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *in
 		log.Errorf(err.Error())
 		return err
 	}
-	effConfigYaml := "effective-config.yaml"
+
 	// Create a Configmap Object that stores the Effective CR Specs
 	effCRConfigmap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      (vz.ObjectMeta.Name + "-effective-config"),
 			Namespace: (vz.ObjectMeta.Namespace),
 		},
-		Data: map[string]string{
-			effConfigYaml: string(effCRSpecs),
-		},
 	}
 
 	// Update the configMap if a ConfigMap already exists
 	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
-	err = r.Client.Update(ctx, effCRConfigmap)
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, effCRConfigmap, func() error {
+
+		effCRConfigmap.Data = map[string]string{effConfigYaml: string(effCRSpecs)}
+		return nil
+	})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			createErr := r.Client.Create(ctx, effCRConfigmap)
-			if createErr != nil {
-				log.Errorf(createErr.Error())
-				return createErr
-			}
-		} else {
-			log.Errorf(err.Error())
-			return err
-		}
+		log.Error(err.Error())
+		return err
 	}
 
 	return nil

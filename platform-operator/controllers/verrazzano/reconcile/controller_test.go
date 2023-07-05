@@ -37,7 +37,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -202,6 +201,7 @@ func TestInstall(t *testing.T) {
 			expectGetIngressListExists(mock)
 
 			// Expect a call to update the finalizers - return success
+			mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
 			if test.finalizer != finalizerName {
 				mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			} else {
@@ -505,6 +505,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	expectGetIngressListExists(mock)
 
 	// Expects an Update call for Reconciling the Verrazzano Configmap within the Reconcile() func
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(nil)
 
@@ -597,6 +598,9 @@ func TestUninstallComplete(t *testing.T) {
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	// Expecting a call to get effectiveCRCM
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -702,6 +706,9 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
+
+	// // Expecting a call to get effectiveCRCM
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to update the job - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -815,6 +822,9 @@ func TestUninstallSucceeded(t *testing.T) {
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	// Expecting a call to get effectiveCRCM
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -2436,16 +2446,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		},
 	}
 
-	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           vz.Name,
-		Namespace:      vz.Namespace,
-		ID:             string(vz.UID),
-		Generation:     vz.Generation,
-		ControllerName: "verrazzano",
-	})
-	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
-	}
+	log := vzlog.DefaultLogger()
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2469,12 +2470,10 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		Bom:               nil,
 		StatusUpdater:     nil,
 	}
-
-	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
+	err := r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-
 	effConfigYaml := "effective-config.yaml"
 	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + "-effective-config", Namespace: (vz.ObjectMeta.Namespace)}, cm)
 	assert.NoError(t, err)
@@ -2504,17 +2503,16 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	r.Client = mock
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).Return(errors.NewNotFound(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.NewNotFound(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
 	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.Error(t, err)
 
-	// Case  -> Simulates the test case when  Update() gives any error other than IsNotFound()
-	// Expects a call to get an existing configmap, but in this case, returns some other err (other than NotFound)
+	// Case  -> Simulates the test case when  CreateOrUpdate gets and object successfully gives any error.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).Return(errors.NewAlreadyExists(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
+		Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
 	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.Error(t, err)
 
@@ -2527,8 +2525,8 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		},
 	}
 	// Expects a mock call for updating, which returns no error
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vztest, log)
 	assert.NoError(t, err)
 }
