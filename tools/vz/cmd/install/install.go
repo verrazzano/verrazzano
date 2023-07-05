@@ -207,7 +207,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		vzName = existingvz.Name
 	} else {
 		// Get the verrazzano install resource to be created
-		vz, obj, err := getVerrazzanoYAML(cmd, vzHelper, version)
+		vz, obj, err := getVerrazzanoYAML(cmd, vzHelper, version, args)
 		if err != nil {
 			return err
 		}
@@ -279,11 +279,16 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string) (vz clipkg.Object, obj *unstructured.Unstructured, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string, args []string) (vz clipkg.Object, obj *unstructured.Unstructured, err error) {
 	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Check to invalidate the install process when a Custom Resource is passed to without the filename flag (-f)
+	if len(filenames) == 0 && len(args) > 0 {
+		return nil, nil, fmt.Errorf("missing flag, -f")
 	}
 
 	// Get the set arguments - returning a list of properties and value

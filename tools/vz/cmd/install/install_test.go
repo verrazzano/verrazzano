@@ -910,12 +910,10 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 // GIVEN a filename after install command with filename flags set
 //
 //	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is successful and should catch the missing filename flag
+//	THEN the CLI install command fails and should catch the missing filename flag or the missing file
 func TestInstallFromFilename(t *testing.T) {
-
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
-	//cmd.PersistentFlags().Set(constants.FilenameFlag, "false")
 
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -926,31 +924,12 @@ func TestInstallFromFilename(t *testing.T) {
 	SetValidateCRFunc(FakeValidateCRFunc)
 	defer SetDefaultValidateCRFunc()
 
-	content := []byte(testFilenamePath)
-	tempfile, err := os.CreateTemp("", "test-input.txt")
-	if err != nil {
-		assert.Error(t, err)
-	}
-	// clean up tempfile
-	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(content); err != nil {
-		assert.Error(t, err)
-	}
-	if _, err := tempfile.Seek(0, 0); err != nil {
-		assert.Error(t, err)
-	}
-	oldStdin := os.Stdin
-	// Restore original Stdin
-	defer func() { os.Stdin = oldStdin }()
-	os.Stdin = tempfile
-
 	// Send stdout stderr to a byte bufferF
 	rc.SetClient(c)
 	cmd = NewCmdInstall(rc)
 
-	// Run install command
-	err = cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	os.Args = append(os.Args, testFilenamePath)
+	cmd.Execute()
+	assert.Equal(t, "Error: missing flag, -f\n", errBuf.String())
 
 }
