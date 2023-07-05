@@ -387,7 +387,7 @@ pipeline {
                        TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
                        kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
-                       kubectl --kubeconfig \$TEMPKUBECONFIGPATH-kubeconfig get pods -A
+                       kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
                        ${GO_REPO_PATH}/vz install --kubeconfig \$TEMPKUBECONFIGPATH --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
                    """
                }
@@ -724,16 +724,6 @@ def set_capi_variables() {
    env.CONTROL_PLANE_MACHINE_COUNT =  OCNE_CP_COUNT
    int OCNE_WORKERS_COUNT = params.NODE_MACHINE_COUNT.toInteger()
    env.NODE_MACHINE_COUNT =  OCNE_WORKERS_COUNT
-
-   // env.OCI_IMAGE_ID=sh(returnStdout: true, script: """ oci compute image list -c ${env.OCI_COMPARTMENT_ID} --operating-system "Oracle Linux" --operating-system-version "8" | jq -r '.data[] | select(."display-name"|test("Oracle-Linux-8.7-2023.")) | .id' | head -1 """).trim()
-   // println("OCI_IMAGE_ID=${env.OCI_IMAGE_ID}")
-   // env.OCI_TENANCY_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_TENANCY_ID}" | base64 | tr -d '\n' """).trim()
-   // env.OCI_CREDENTIALS_FINGERPRINT_B64=sh(returnStdout: true, script: """ echo -n "${OCI_CREDENTIALS_FINGERPRINT}" | base64 | tr -d '\n' """).trim()
-   // env.OCI_USER_ID_B64=sh(returnStdout: true, script: """ echo -n "${OCI_USER_ID}" | base64 | tr -d '\n' """).trim()
-   // env.OCI_REGION_B64=sh(returnStdout: true, script: """ echo -n "${OCI_REGION}" | base64 | tr -d '\n' """).trim()
-   // env.OCI_CREDENTIALS_KEY_B64=sh(returnStdout: true, script: """ base64 < ${TF_VAR_api_private_key_path} | tr -d '\n' """).trim()
-   // env.OCI_SSH_KEY=sh(returnStdout: true, script: """ < ${TF_VAR_ssh_public_key_path} """).trim()
-   // env.OCI_CREDENTIALS_KEY=sh(returnStdout: true, script: """ awk 'NF {sub(/\r/, ""); printf "%s\\n",\$0;}' ${TF_VAR_api_private_key_path} """).trim()
 }
 
 
