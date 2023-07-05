@@ -6,7 +6,6 @@ package appoper
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"path/filepath"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
