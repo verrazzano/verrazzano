@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"path/filepath"
 	"strings"
 
@@ -110,6 +111,11 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 	// the system for multicluster.
 	vmcList := vmcv1alpha1.VerrazzanoManagedClusterList{}
 	err := ctx.Client().List(clientCtx, &vmcList)
+	// Ignore if CRD doesn't exist
+	if _, ok := err.(*meta.NoKindMatchError); ok {
+		ctx.Log().Debugf("VerrazzanoManagedCluster kind does not exist, skipping ClusterRoleBinding update")
+		return nil
+	}
 	if err != nil {
 		return err
 	}
