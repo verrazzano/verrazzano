@@ -551,7 +551,9 @@ pipeline {
         stage('uninstall vz from workload cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    script {
+                        TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    }  
                     sh """
                         export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
