@@ -113,7 +113,7 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 	err := ctx.Client().List(clientCtx, &vmcList)
 	// Ignore if CRD doesn't exist
 	if _, ok := err.(*meta.NoKindMatchError); ok {
-		ctx.Log().Debugf("VerrazzanoManagedCluster kind does not exist, skipping ClusterRoleBinding update")
+		ctx.Log().Debugf("VerrazzanoManagedCluster kind does not exist, skipping ClusterRoleBinding delete")
 		return nil
 	}
 	if err != nil {
