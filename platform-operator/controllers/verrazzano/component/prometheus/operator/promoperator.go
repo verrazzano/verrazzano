@@ -779,7 +779,7 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		alertmanagerProps := common.IngressProperties{
 			IngressName:   constants.AlertmanagerIngress,
 			HostName:      alertmanagerHostName,
-			TLSSecretName: alertmanagerHostName,
+			TLSSecretName: alertmanagerCertificateName,
 		}
 		err := common.CreateOrUpdateSystemComponentIngress(ctx, alertmanagerProps)
 		if err != nil {
