@@ -1,0 +1,47 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: keycloak-fbc
+  namespace: {{ .Release.Namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "keycloak"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "keycloak"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "keycloak"
+  name: keycloak-filter
+  namespace: {{ .Release.Namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: keycloak-parser
+  match: "kube.*keycloak*_keycloak*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "keycloak"
+  name: keycloak-parser
+  namespace: {{ .Release.Namespace }}
+spec:
+  regex:
+    regex: '/^.*?(?<logtime>\d{2}:\d{2}:\d{2},\d{3}) (?<level>.*?)( |\t)+\[.*?\]( |\t)+\(.*?\)( |\t)+(?<message>.*)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%H:%M:%S,%L"
+{{ end -}}

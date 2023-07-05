@@ -36,7 +36,7 @@ type ComponentConfigMapReconciler struct {
 func initShimComponentList() {
 	// Add any shim components here that you want to test.
 	// For example,
-	// shimComponents[capi.ComponentName] = capi.NewComponent()
+	// shimComponents[clusterapi.ComponentName] = clusterapi.NewComponent()
 }
 
 func (r *ComponentConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {

@@ -1,0 +1,49 @@
+# Verrazzano Specific
+# Create OpenSearch RoleMappings required for Verrazzano
+# Required to map backend role to OpenSearch role
+
+# Maps to Verrazzano role which has access to push logs to verrazzano specific indices
+apiVersion: opensearch.opster.io/v1
+kind: OpensearchUserRoleBinding
+metadata:
+  name: vz-log-pusher-rb
+  namespace: {{ .Release.Namespace }}
+spec:
+  opensearchCluster:
+    name: {{ .Values.openSearchCluster.name }}
+  backendRoles:
+    - vz_log_pusher
+  roles:
+    - vz-log-pusher
+
+---
+# Maps vz_opensearch_admin to all_access
+apiVersion: opensearch.opster.io/v1
+kind: OpensearchUserRoleBinding
+metadata:
+  name: vz-opensearch-admin-rb
+  namespace: {{ .Release.Namespace }}
+spec:
+  opensearchCluster:
+    name: {{ .Values.openSearchCluster.name }}
+  backendRoles:
+    - vz_opensearch_admin
+  roles:
+    - all_access
+
+---
+# Maps to Verrazzano role which has access to fetch metrics
+apiVersion: opensearch.opster.io/v1
+kind: OpensearchUserRoleBinding
+metadata:
+  name: vz-metrics-fetcher-rb
+  namespace: {{ .Release.Namespace }}
+spec:
+  opensearchCluster:
+    name: {{ .Values.openSearchCluster.name }}
+  backendRoles:
+    - vz_metrics_fetcher
+  users:
+    - "prometheus-operator"
+  roles:
+    - vz-metrics-fetcher

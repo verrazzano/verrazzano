@@ -43,12 +43,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// getDynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
-type getDynamicClientFuncSig func() (dynamic.Interface, error)
+// dynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
+type dynamicClientFuncSig func() (dynamic.Interface, error)
 
-// getDynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
+// dynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
 // the function for unit testing
-var getDynamicClientFunc getDynamicClientFuncSig = getDynamicClient
+var dynamicClientFunc dynamicClientFuncSig = getDynamicClient
 
 // Constants for Kubernetes resource names
 const (
@@ -64,7 +64,15 @@ const (
 	fleetControllerDeployment = "fleet-controller"
 	gitjobDeployment          = "gitjob"
 	rancherWebhookDeployment  = "rancher-webhook"
+	ociSchemaName             = "ocicredentialconfig"
 )
+
+var cloudCredentialSchemas = []string{
+	ociSchemaName,
+	"azurecredentialconfig",
+	"googlecredentialconfig",
+	"amazonec2credentialconfig",
+}
 
 // Helm Chart setter keys
 const (
@@ -90,14 +98,16 @@ const (
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
 	caCert                     = "ca.crt"
+	customCACertKey            = "tls.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
 
 const (
+	CAPIMutatingWebhook               = "mutating-webhook-configuration"
+	CAPIValidatingWebhook             = "validating-webhook-configuration"
 	SettingServerURL                  = "server-url"
 	KontainerDriverOKE                = "oraclecontainerengine"
-	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	ClusterKind                       = "Cluster"
@@ -186,7 +196,6 @@ const (
 )
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
-var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
 var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
 var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")
@@ -231,7 +240,31 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Resource: "clusterrepos",
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
+var nodeDriverGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "nodedrivers",
+}
+
+var dynamicSchemaGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "dynamicschemas",
+}
+
+func getDynamicClientFunc() dynamicClientFuncSig {
+	return dynamicClientFunc
+}
+
+func setDynamicClientFunc(function dynamicClientFuncSig) {
+	dynamicClientFunc = function
+}
+
+func resetDynamicClientFunc() {
+	dynamicClientFunc = getDynamicClient
+}
+
+func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }
 
@@ -316,7 +349,7 @@ func getDynamicClient() (dynamic.Interface, error) {
 // helm charts for the previous release of Rancher are used (instead of the charts on the Rancher
 // container image).
 func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
-	dynamicClient, err := getDynamicClientFunc()
+	dynamicClient, err := dynamicClientFunc()
 	if err != nil {
 		log.Errorf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
 		return err

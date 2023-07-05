@@ -1,0 +1,67 @@
+# Portions of the code in this file are derived from https://github.com/cert-manager/webhook-example/blob/master/deploy/example-webhook/values.yaml
+# Portions of the code in this file are derived from https://gitlab.com/dn13/cert-manager-webhook-oci/-/blob/1.1.0/deploy/cert-manager-webhook-oci/values.yaml
+
+# The GroupName here is used to identify the company or business unit that created this webhook.
+# This name will need to be referenced in each Issuer's `webhook` stanza to
+# inform cert-manager of where to send ChallengePayload resources in order to
+# solve the DNS01 challenge.
+# This group name should be **unique**, hence using your own company's domain
+# here is recommended.
+
+groupName: verrazzano.io
+
+certManager:
+  namespace: cert-manager
+  clusterResourceNamespace: ""
+  serviceAccountName: cert-manager
+
+image:
+  repository: ghcr.io/verrazzano/cert-manager-webhook-oci
+  tag: v0.1.0
+  pullPolicy: IfNotPresent
+
+global:
+  imagePullSecrets: []
+
+nameOverride: "cert-manager-webhook-oci"
+fullnameOverride: "cert-manager-webhook-oci"
+
+service:
+  type: ClusterIP
+  port: 443
+
+securePort: 9443
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+ociAuthSecrets: []
+
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 999
+  capabilities:
+    drop:
+      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault

@@ -1,0 +1,63 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{- if .Values.fluentbit.enable -}}
+{{- if .Values.fluentbit.input.tail.enable }}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: tail-input-filter
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        parser: kind-cri,oke,json-custom
+  match: "kube.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: tail-input-record-filter
+spec:
+  filters:
+    - recordModifier:
+        records:
+          - "cluster_name ${CLUSTER_NAME}"
+  match: "kube.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: kind-cri
+spec:
+  regex:
+    regex: '/^(?<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{1,9}Z) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/'
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: oke
+spec:
+  regex:
+    regex: '/^(?<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{8,9}\+\d{2}:\d{2}) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/'
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%L%z"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: json-custom
+spec:
+  json:
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%L%:z"
+{{- end }}
+{{- end }}

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysqloperator
@@ -6,17 +6,26 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-
 	"path/filepath"
 	"strconv"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -27,13 +36,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -68,7 +70,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   getOverrides,
 			InstallBeforeUpgrade:      true,
 			AvailabilityObjects: &ready.AvailabilityObjects{

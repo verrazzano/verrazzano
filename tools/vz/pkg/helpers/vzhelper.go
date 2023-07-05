@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
@@ -49,6 +50,7 @@ type VZHelper interface {
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
+	GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error)
 }
 
 type ReportCtx struct {

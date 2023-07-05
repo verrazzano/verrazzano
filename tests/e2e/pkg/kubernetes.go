@@ -762,10 +762,20 @@ func GetACMEEnvironment(kubeconfigPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if vz.Spec.Components.CertManager == nil {
-		return "", nil
+
+	// first check if letsEncrypt configured in clusterIssuer component
+	clusterIssuer := vz.Spec.Components.ClusterIssuer
+	if clusterIssuer != nil && clusterIssuer.LetsEncrypt != nil {
+		Log(Info, fmt.Sprintf("Let's Encrypt env is %s", clusterIssuer.LetsEncrypt.Environment))
+		return clusterIssuer.LetsEncrypt.Environment, nil
 	}
-	return vz.Spec.Components.CertManager.Certificate.Acme.Environment, nil
+
+	// then check if letsEncrypt configured in cert-manager certificate field
+	certManager := vz.Spec.Components.CertManager
+	if certManager != nil && strings.ToLower(string(certManager.Certificate.Acme.Provider)) == strings.ToLower(string(v1alpha1.LetsEncrypt)) {
+		return certManager.Certificate.Acme.Environment, nil
+	}
+	return "", nil
 }
 
 // IsCoherenceOperatorEnabled returns true if the COH operator component is not set, or the value of its Enabled field otherwise
@@ -1063,17 +1073,17 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
-// IsCAPIEnabled returns false if the CAPI component is not set, or the value of its Enabled field otherwise
-func IsCAPIEnabled(kubeconfigPath string) bool {
+// IsClusterAPIEnabled returns false if the ClusterAPI component is not set, or the value of its Enabled field otherwise
+func IsClusterAPIEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
 		return false
 	}
-	if vz.Spec.Components.CAPI == nil || vz.Spec.Components.CAPI.Enabled == nil {
+	if vz.Spec.Components.ClusterAPI == nil || vz.Spec.Components.ClusterAPI.Enabled == nil {
 		return false
 	}
-	return *vz.Spec.Components.CAPI.Enabled
+	return *vz.Spec.Components.ClusterAPI.Enabled
 }
 
 // IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise
@@ -1087,6 +1097,29 @@ func IsArgoCDEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.ArgoCD.Enabled
+}
+
+// IsClusterAgentEnabled returns true if the Cluster Agent component is not set, or the value of its Enabled field otherwise
+func IsClusterAgentEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.ClusterAgent == nil || vz.Spec.Components.ClusterAgent.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.ClusterAgent.Enabled
+}
+
+// IsIstioEnabled returns true if the Istio component is not set, or the value of its Enabled field otherwise
+func IsIstioEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	return vz.Spec.Components.Istio == nil || vz.Spec.Components.Istio.Enabled == nil || *vz.Spec.Components.Istio.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -14,14 +17,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -65,7 +67,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				StatefulsetNames: []types.NamespacedName{

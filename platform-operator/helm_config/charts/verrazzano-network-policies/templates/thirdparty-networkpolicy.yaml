@@ -627,6 +627,12 @@ spec:
               - {key: app, operator: In, values: [fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-osd, weblogic-operator, kiali]}
         - namespaceSelector:
             matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+          podSelector:
+            matchExpressions:
+              - {key: "app.kubernetes.io/name", operator: In, values: [fluent-operator, fluent-bit]}
+        - namespaceSelector:
+            matchLabels:
               verrazzano.io/namespace: keycloak
           podSelector:
             matchLabels:
@@ -796,7 +802,7 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
-{{- if .Values.capi.enabled }}
+{{- if .Values.clusterAPI.enabled }}
 ---
 # Network policy for capi-controller-manager
 # Ingress: allow connection from Kubernetes API server to port 9443

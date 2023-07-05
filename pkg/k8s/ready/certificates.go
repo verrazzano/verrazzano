@@ -4,6 +4,7 @@ package ready
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"sort"
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -28,11 +29,9 @@ func CertificatesAreReady(client clipkg.Client, log vzlog.VerrazzanoLogger, vz *
 		return true, []types.NamespacedName{}
 	}
 
-	if vz != nil && vz.Spec.Components.CertManager != nil && vz.Spec.Components.CertManager.Enabled != nil {
-		if !*vz.Spec.Components.CertManager.Enabled {
-			log.Oncef("Cert-Manager disabled, skipping certificates check")
-			return true, []types.NamespacedName{}
-		}
+	if !vzcr.IsClusterIssuerEnabled(vz) {
+		log.Oncef("Cert-Manager ClusterIssuer disabled, skipping certificates check")
+		return true, []types.NamespacedName{}
 	}
 
 	log.Oncef("Checking certificates status for %v", certificates)

@@ -1,0 +1,150 @@
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def SHORT_COMMIT_HASH
+def VERRAZZANO_DEV_VERSION=""
+def STARTED_BY_USER=""
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        disableConcurrentBuilds()
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RELEASE_RUNNER_IMAGE}"
+            args "${RELEASE_RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+
+    parameters {
+        booleanParam (description: 'Indicate whether this is a DRY run, which will do some stuff but will NOT force a new candidate', name: 'DRY_RUN', defaultValue: true)
+        string (name: 'GIT_COMMIT_TO_FORCE_AS_CANDIDATE',
+                        defaultValue: 'NONE',
+                        description: 'This is the full git commit hash to FORCE to be the latest releasable candidate for the current release version on this branch.',
+                        trim: true)
+    }
+
+    environment {
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_OS_REGION = "us-phoenix-1"
+        OCI_REGION = "${env.OCI_OS_REGION}"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        FORCE_TYPE = "${params.DRY_RUN == true ? "DRY_RUN" : "FORCE_FOR_REAL"}"
+    }
+
+    stages {
+        stage('Verify Specified Commit can be Forced') {
+            steps {
+                script {
+                    if (params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE == "NONE") {
+                        echo "Specific GIT commit was not specified, you must supply an explicit commit"
+                        sh "exit 1"
+                    } else {
+                        scmCheckout()
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    echo "Short commit hash: $SHORT_COMMIT_HASH"
+                }
+
+                script {
+                    dir ("${WORKSPACE}") {
+                        def cleanBranchName = "${env.BRANCH_NAME.replace("/", "%2F")}"
+                        sh """
+                          oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/current-dev-version.txt --file ${WORKSPACE}/current_dev_version.txt
+                        """
+                        def propsDevVersion = readProperties file: "current_dev_version.txt"
+                        VERRAZZANO_DEV_VERSION = propsDevVersion['verrazzano-development-version']
+                        println("Current dev version is ${VERRAZZANO_DEV_VERSION}")
+
+                        sh """
+                          # The existence of the versioned images.txt at the commit specific location in object storage is enough to confirm the commit and version. The update last periodics will also
+                          # do this as well, but we are doing it here explicitly so that if the commit specified is not correct we can fail here in the initial stage
+                          oci --region us-phoenix-1 os object head --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Force Candidate') {
+            environment {
+                GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+            }
+            steps {
+                script {
+                    sh """
+                        # This will effectively use the commit specified as the last clean periodic test run. This will verify that all of the files required
+                        # exist in object storage for that commit before copying things across. It will FAIL if that is not the case BEFORE any files are
+                        # copied in, so if the commit doesn't have the necessary artifacts in Object Storage to do this it can't be used and won't leave us
+                        # in a half baked state
+                        ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH} ${FORCE_TYPE}
+                    """
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                if (notifyInSlack()) {
+                    slackSend ( message: "User ${STARTED_BY_USER} started run to FORCE ${env.GIT_BRANCH} at ${env.GIT_COMMIT} to be treated as a passing periodic run to allow it to be seen as the last candidate. ${env.BUILD_URL}" )
+                }
+            }
+            deleteDir()
+        }
+    }
+}
+
+def notifyInSlack() {
+    // Always notify if we are not doing a dry run
+    return !params.DRY_RUN
+}
+
+def getStartedByUser() {
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+    return startedByUser
+}
+
+def scmCheckout() {
+    echo "${NODE_LABELS}"
+    echo "SCM checkout of ${params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE}"
+    def scmInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    // If the commit we were handed is not what the SCM says we are using, fail
+    if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE)) {
+        error( "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE}, Found: ${scmInfo.GIT_COMMIT}")
+    }
+}

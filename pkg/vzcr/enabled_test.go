@@ -5,6 +5,8 @@ package vzcr
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
@@ -214,6 +216,280 @@ func TestIsKeycloakEnabled(t *testing.T) {
 			Components: installv1beta1.ComponentSpec{
 				Keycloak: &installv1beta1.KeycloakComponent{
 					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsClusterIssuerEnabled tests the IsClusterIssuerEnabled function
+// GIVEN a call to IsClusterIssuerEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+func TestIsClusterIssuerEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsClusterIssuerEnabled(nil))
+	asserts.True(IsClusterIssuerEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{},
+			},
+		}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsClusterIssuerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsCertManagerWebhookOCIEnabled tests the IsCertManagerWebhookOCIEnabled function
+// GIVEN a call to IsCertManagerWebhookOCIEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsCertManagerWebhookOCIEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsCertManagerWebhookOCIEnabled(nil))
+	asserts.False(IsCertManagerWebhookOCIEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsCertManagerWebhookOCIEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{},
+			},
+		}}))
+	asserts.True(IsCertManagerWebhookOCIEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsCertManagerWebhookOCIEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsCertManagerWebhookOCIEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				CertManagerWebhookOCI: &installv1beta1.CertManagerWebhookOCIComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsCertManagerWebhookOCIEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				CertManagerWebhookOCI: &installv1beta1.CertManagerWebhookOCIComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsCertManagerWebhookOCIRequiredV1Alpha1 tests the IsCertManagerWebhookOCIRequired function
+// GIVEN a call to IsCertManagerWebhookOCIRequired
+//
+//	THEN true is returned IF the webhook is explicitly enabled OR the issuer component is enabled and OCI DNS
+//	with ACME/LetsEncrypt is configured
+func TestIsCertManagerWebhookOCIRequiredV1Alpha1(t *testing.T) {
+	asserts := assert.New(t)
+
+	asserts.False(IsCertManagerWebhookOCIRequired(nil))
+
+	asserts.False(IsCertManagerWebhookOCIRequired(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+			},
+		}}))
+
+	asserts.False(IsCertManagerWebhookOCIRequired(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{Enabled: &falseValue},
+				DNS:           &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+			},
+		}}))
+
+	asserts.False(IsCertManagerWebhookOCIRequired(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{Enabled: &trueValue},
+				DNS:           &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+			},
+		}}))
+
+	asserts.True(IsCertManagerWebhookOCIRequired(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &trueValue,
+					IssuerConfig: vzapi.IssuerConfig{
+						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{},
+					},
+				},
+				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
+			},
+		}}))
+
+	asserts.True(IsCertManagerWebhookOCIRequired(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: vzapi.NewDefaultClusterIssuer(),
+				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+}
+
+// TestIsCertManagerWebhookOCIRequiredV1Beta1 tests the IsCertManagerWebhookOCIRequired function
+// GIVEN a call to IsCertManagerWebhookOCIRequired
+//
+//	THEN true is returned IF the webhook is explicitly enabled OR the issuer component is enabled and OCI DNS
+//	with ACME/LetsEncrypt is configured
+func TestIsCertManagerWebhookOCIRequiredV1Beta1(t *testing.T) {
+	asserts := assert.New(t)
+
+	asserts.False(IsCertManagerWebhookOCIRequired(nil))
+
+	asserts.False(IsCertManagerWebhookOCIRequired(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				DNS: &installv1beta1.DNSComponent{OCI: &installv1beta1.OCI{}},
+			},
+		}}))
+
+	asserts.False(IsCertManagerWebhookOCIRequired(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{Enabled: &falseValue},
+				DNS:           &installv1beta1.DNSComponent{OCI: &installv1beta1.OCI{}},
+			},
+		}}))
+
+	asserts.False(IsCertManagerWebhookOCIRequired(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{Enabled: &trueValue},
+				DNS:           &installv1beta1.DNSComponent{OCI: &installv1beta1.OCI{}},
+			},
+		}}))
+
+	asserts.True(IsCertManagerWebhookOCIRequired(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					Enabled: &trueValue,
+					IssuerConfig: installv1beta1.IssuerConfig{
+						LetsEncrypt: &installv1beta1.LetsEncryptACMEIssuer{},
+					},
+				},
+				DNS: &installv1beta1.DNSComponent{OCI: &installv1beta1.OCI{}},
+			},
+		}}))
+
+	asserts.True(IsCertManagerWebhookOCIRequired(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: installv1beta1.NewDefaultClusterIssuer(),
+				CertManagerWebhookOCI: &installv1beta1.CertManagerWebhookOCIComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+}
+
+func TestIsCAConfig(t *testing.T) {
+	asserts := assert.New(t)
+
+	isCA, err := IsCAConfig(&corev1.Secret{})
+	asserts.False(isCA)
+	asserts.Error(err)
+
+	asserts.False(IsCAConfig(nil))
+
+	asserts.True(IsCAConfig(&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{}}))
+
+	asserts.True(IsCAConfig(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					IssuerConfig: installv1beta1.IssuerConfig{CA: &installv1beta1.CAIssuer{}},
+				},
+			},
+		}}))
+
+	asserts.False(IsCAConfig(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{},
+			},
+		}}))
+
+	asserts.False(IsCAConfig(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					IssuerConfig: installv1beta1.IssuerConfig{LetsEncrypt: &installv1beta1.LetsEncryptACMEIssuer{}},
+				},
+			},
+		}}))
+
+	asserts.True(IsCAConfig(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+
+	asserts.True(IsCAConfig(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					IssuerConfig: vzapi.IssuerConfig{CA: &vzapi.CAIssuer{}},
+				},
+			},
+		}}))
+
+	asserts.False(IsCAConfig(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{},
+			},
+		}}))
+
+	asserts.False(IsCAConfig(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					IssuerConfig: vzapi.IssuerConfig{LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{}},
 				},
 			},
 		}}))
@@ -1453,6 +1729,188 @@ func TestIsComponentEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.enabled, tt.isEnabled(tt.cr))
+		})
+	}
+}
+
+// TestIsFluentOperatorEnabled tests the IsFluentOperatorEnabled function
+// GIVEN a call to IsFluentOperatorEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsFluentOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsFluentOperatorEnabled(nil))
+	asserts.False(IsFluentOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsFluentOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentOperator: &vzapi.FluentOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsFluentOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentOperator: &vzapi.FluentOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentOperator: &vzapi.FluentOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsFluentOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentOperator: &installv1beta1.FluentOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentOperator: &installv1beta1.FluentOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsFluentbitOpensearchOutputEnabled tests the IsFluentbitOpensearchOutputEnabled function
+// GIVEN a call to IsFluentbitOpensearchOutputEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default).
+func TestIsFluentbitOpensearchOutputEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsFluentbitOpensearchOutputEnabled(nil))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentbitOpensearchOutput: &vzapi.FluentbitOpensearchOutputComponent{},
+			},
+		}}))
+	asserts.True(IsFluentbitOpensearchOutputEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentbitOpensearchOutput: &vzapi.FluentbitOpensearchOutputComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				FluentbitOpensearchOutput: &vzapi.FluentbitOpensearchOutputComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsFluentbitOpensearchOutputEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentbitOpensearchOutput: &installv1beta1.FluentbitOpensearchOutputComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentbitOpensearchOutputEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				FluentbitOpensearchOutput: &installv1beta1.FluentbitOpensearchOutputComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsVMOEnabled tests the IsVMOEnabled function
+// GIVEN a call to IsVMOEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+func TestIsVMOEnabled(t *testing.T) {
+	var tests = []struct {
+		name    string
+		cr      runtime.Object
+		enabled bool
+	}{
+		{
+			"enabled on nil CR",
+			nil,
+			true,
+		},
+		{
+			"enabled on empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			true,
+		},
+		{
+			"enabled on v1alpha1 CR with Prometheus disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Prometheus: &vzapi.PrometheusComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"enabled on v1alpha1 CR with Prometheus Operator disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"enabled on v1alpha1 CR with Opensearch and Opensearch dashboards disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+					Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"disabled on v1alpha1 CR with OpenSearch, OpenSearchDashboards and Grafana disabled",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+					Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
+					Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
+				}}},
+			false,
+		},
+		{
+			"enabled on empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			true,
+		},
+		{
+			"enabled on v1beta1 CR with Prometheus disabled",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+				Components: installv1beta1.ComponentSpec{
+					Prometheus: &installv1beta1.PrometheusComponent{Enabled: &falseValue},
+				}}},
+			true,
+		},
+		{
+			"disabled on v1beta1 CR with OpenSearch, OpenSearchDashboards and Grafana disabled",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+				Components: installv1beta1.ComponentSpec{
+					OpenSearch:           &installv1beta1.OpenSearchComponent{Enabled: &falseValue},
+					OpenSearchDashboards: &installv1beta1.OpenSearchDashboardsComponent{Enabled: &falseValue},
+					Grafana:              &installv1beta1.GrafanaComponent{Enabled: &falseValue},
+				}}},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.enabled, IsVMOEnabled(tt.cr))
 		})
 	}
 }

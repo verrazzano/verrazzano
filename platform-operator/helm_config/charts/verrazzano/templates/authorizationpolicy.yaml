@@ -24,11 +24,11 @@ spec:
       to:
         - operation:
             ports: ["{{ .Values.api.port }}", "{{ .Values.api.grpcPort }}"]
-    # verrazzano-authproxy:8775 <- fluentd
+    # verrazzano-authproxy:8775 <- fluentd, fluentBit
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.name }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.name }}", "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.fluentBitSA }}"]
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]

@@ -4,6 +4,9 @@
 package healthcheck
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -14,8 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const reldir = "../../../manifests/profiles"
@@ -104,21 +105,25 @@ func TestSetAvailabilityFields(t *testing.T) {
 		name       string
 		components []spi.Component
 		available  string
+		states     []vzapi.CompStateType
 	}{
 		{
 			"no components, no availability",
 			[]spi.Component{},
 			zeroOfZero,
+			[]vzapi.CompStateType{},
 		},
 		{
 			"enabled but not available",
 			[]spi.Component{newFakeComponent(rancher, rancher, vzapi.ComponentUnavailable, true)},
 			"0/1",
+			[]vzapi.CompStateType{vzapi.CompStateInstalling},
 		},
 		{
 			"enabled and available",
 			[]spi.Component{newFakeComponent(rancher, rancher, vzapi.ComponentAvailable, true)},
 			"1/1",
+			[]vzapi.CompStateType{vzapi.CompStateReady},
 		},
 		{
 			"multiple components",
@@ -128,6 +133,15 @@ func TestSetAvailabilityFields(t *testing.T) {
 				newFakeComponent(grafana, grafana, vzapi.ComponentUnavailable, true),
 			},
 			"2/3",
+			[]vzapi.CompStateType{vzapi.CompStateReady, vzapi.CompStateReady, vzapi.CompStateInstalling},
+		},
+		{
+			"uninstalled component",
+			[]spi.Component{
+				newFakeComponent(grafana, grafana, vzapi.ComponentAvailable, false),
+			},
+			"0/0",
+			[]vzapi.CompStateType{vzapi.CompStateUninstalled},
 		},
 	}
 
@@ -140,16 +154,22 @@ func TestSetAvailabilityFields(t *testing.T) {
 					Components: map[string]*vzapi.ComponentStatusDetails{},
 				},
 			}
-			for _, component := range tt.components {
-				if component.IsEnabled(nil) {
-					vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{
-						State: vzapi.CompStateReady,
-					}
+			for i, component := range tt.components {
+				vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{
+					State: tt.states[i],
 				}
 			}
 			status, err := p.newStatus(log, vz, tt.components)
 			assert.NoError(t, err)
 			assert.NotNil(t, status)
+			assert.Equal(t, tt.available, status.Available)
+
+			// make sure any components with a state of "uninstalled" have their availability set to "unavailable"
+			for i, component := range tt.components {
+				if tt.states[i] == vzapi.CompStateUninstalled {
+					assert.Equal(t, vzapi.ComponentUnavailable, string(status.Components[component.Name()]))
+				}
+			}
 		})
 	}
 }

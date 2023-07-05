@@ -5,8 +5,10 @@ package main
 
 import (
 	"flag"
+	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
 	"os"
 
+	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -52,6 +54,9 @@ func init() {
 
 	// Add cert-manager components to the scheme
 	_ = cmapiv1.AddToScheme(scheme)
+	_ = acmev1.AddToScheme(scheme)
+
+	_ = v1alpha2.AddToScheme(scheme)
 
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)
@@ -111,10 +116,6 @@ func main() {
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
-	}
-
-	if !validators.IsKubernetesVersionSupported() {
-		os.Exit(1)
 	}
 
 	// Log the Verrazzano version

@@ -210,7 +210,7 @@ func TestValidateNewVersionforInvalidVersions(t *testing.T) {
 // WHEN the respective version string are not in accordance with the rules
 // THEN an error is returned
 func TestValidateNewVersion(t *testing.T) {
-	//can add the case to test each of them separately, when they are invalid
+	// can add the case to test each of them separately, when they are invalid
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
@@ -261,7 +261,7 @@ func TestGetSupportedKubernetesVersion(t *testing.T) {
 	assert.Error(t, err)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	var versionArray = []string{"v1.20.0", "v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0", "v1.25.0"}
+	var versionArray = []string{"v1.24.0", "v1.25.0", "v1.26.0"}
 	kubeSupportedVersions, err := getSupportedKubernetesVersions()
 	assert.NoError(t, err)
 	assert.Equal(t, kubeSupportedVersions, versionArray)
@@ -510,65 +510,65 @@ func Test_cleanTempFiles(t *testing.T) {
 	}
 }
 
-// TestIsKubernetesVersionSupported tests IsKubernetesVersionSupported()
+// TestValidateKubernetesVersionSupported tests ValidateKubernetesVersionSupported()
 // GIVEN a request for the validating that the Kubernetes version of cluster is supported by the operator
 // WHEN the Kubernetes version and Supported versions can be determined without error
 // AND the Kubernetes version is either equal to one of the supported versions or is a patch version of a supported version
-// THEN only true is returned
-func TestIsKubernetesVersionSupported(t *testing.T) {
+// THEN no error is returned, otherwise an error is returned
+func TestValidateKubernetesVersionSupported(t *testing.T) {
 	tests := []struct {
 		name                               string
 		getSupportedKubernetesVersionsFunc func() ([]string, error)
 		getKubernetesVersionFunc           func() (string, error)
-		result                             bool
+		expectSuccess                      bool
 	}{
 		{
 			name:                               "testFailGettingSupportedVersions",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return nil, fmt.Errorf("errored out") },
 			getKubernetesVersionFunc:           func() (string, error) { return "v0.1.5", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testFailGettingKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v0.1.0", "v0.2.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "", fmt.Errorf("errored out") },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testPassNoSupportedVersionsInBom",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return nil, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "", fmt.Errorf("errored out") },
-			result:                             true,
+			expectSuccess:                      true,
 		},
 		{
 			name:                               "testFailInvalidSupportedVersionsInBom",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.0", "vx.y"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.3.9", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testFailInvalidKubernetesVersions",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.0", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "vx.y", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testPassExactSupportedKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.2.5", nil },
-			result:                             true,
+			expectSuccess:                      true,
 		},
 		{
 			name:                               "testPassPatchSupportedKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.3.8", nil },
-			result:                             true,
+			expectSuccess:                      true,
 		},
 		{
 			name:                               "testPassNotSupportedKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.4.8", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 	}
 	for _, tt := range tests {
@@ -582,7 +582,11 @@ func TestIsKubernetesVersionSupported(t *testing.T) {
 				getKubernetesClusterVersion = getKubernetesVersionOriginal
 
 			}()
-			assert.Equal(t, tt.result, IsKubernetesVersionSupported())
+			if tt.expectSuccess {
+				assert.NoError(t, ValidateKubernetesVersionSupported())
+			} else {
+				assert.Error(t, ValidateKubernetesVersionSupported())
+			}
 		})
 	}
 }

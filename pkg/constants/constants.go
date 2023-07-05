@@ -101,6 +101,12 @@ const VerrazzanoESInternal = "verrazzano-es-internal"
 // VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
 const VerrazzanoPromInternal = "verrazzano-prom-internal"
 
+// RancherTLSCA is a tls secret that contains CA if private CA is being used
+const RancherTLSCA = "tls-ca"
+
+// RancherTLSCAKey is the key containing the CA in the secret specified by the RancherTLSCA constant
+const RancherTLSCAKey = "cacerts.pem"
+
 // AdditionalTLS is an optional tls secret that contains additional CA
 const AdditionalTLS = "tls-ca-additional"
 
@@ -115,6 +121,9 @@ const MaxTimesVMCAgentPollingTime = 3
 
 // FluentdDaemonSetName - The name of the Fluentd DaemonSet
 const FluentdDaemonSetName = "fluentd"
+
+// FluentBitDaemonSetName - The name of the FluentBit DaemonSet
+const FluentBitDaemonSetName = "fluent-bit"
 
 // KubeSystem - The name of the kube-system namespace
 const KubeSystem = "kube-system"

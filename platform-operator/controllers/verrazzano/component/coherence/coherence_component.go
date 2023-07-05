@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package coherence
@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/types"
 
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
 	"k8s.io/apimachinery/pkg/runtime"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -49,7 +52,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{

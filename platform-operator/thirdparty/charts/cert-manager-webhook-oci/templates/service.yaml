@@ -1,0 +1,22 @@
+# Portions of the code in this file are derived from https://github.com/cert-manager/webhook-example/blob/master/deploy/example-webhook/templates/service.yaml
+# Portions of the code in this file are derived from https://gitlab.com/dn13/cert-manager-webhook-oci/-/blob/1.1.0/deploy/cert-manager-webhook-oci/templates/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cert-manager-webhook-oci.fullname" . }}
+  labels:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    chart: {{ include "cert-manager-webhook-oci.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app: {{ include "cert-manager-webhook-oci.name" . }}
+    release: {{ .Release.Name }}

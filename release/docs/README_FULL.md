@@ -12,7 +12,7 @@ Verrazzano includes the following capabilities:
 * DevOps and GitOps enablement
 
 
-Select [Quick Start](https://verrazzano.io/latest/docs/quickstart/) to get started.
+Select [Quick Start](https://verrazzano.io/latest/docs/setup/quickstart/) to get started.
 
 Verrazzano [release versions](https://github.com/verrazzano/verrazzano/releases/) and source code are available at [https://github.com/verrazzano/verrazzano](https://github.com/verrazzano/verrazzano).
 This repository contains a Kubernetes operator for installing Verrazzano and example applications for use with Verrazzano.

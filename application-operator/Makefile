@@ -56,6 +56,7 @@ DIST_DIR:=dist
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
+MC_CRD_PATH=../platform-operator/helm_config/charts/verrazzano-cluster-agent/crds
 OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
 .PHONY: build
@@ -87,6 +88,7 @@ install-oam-crds:
 .PHONY: install-verrazzano-crds
 install-verrazzano-crds:
 	kubectl apply -f ${CRD_PATH}
+	kubectl apply -f ${MC_CRD_PATH}
 
 # Install CRDs into a cluster
 .PHONY: install-crds

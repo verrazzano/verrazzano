@@ -4,9 +4,8 @@
 package v1alpha1
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
@@ -115,54 +114,95 @@ func convertSecuritySpecFromV1Beta1(security v1beta1.SecuritySpec) SecuritySpec 
 	}
 }
 
-func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
-	return ComponentSpec{
-		CertManager:            convertCertManagerFromV1Beta1(in.CertManager),
-		ExternalCertManager:    convertExternalCertManagerFromV1Beta1(in.ExternalCertManager),
-		CoherenceOperator:      convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
-		ApplicationOperator:    convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
-		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
-		OAM:                    convertOAMFromV1Beta1(in.OAM),
-		Console:                convertConsoleFromV1Beta1(in.Console),
-		ClusterOperator:        convertClusterOperatorFromV1Beta1(in.ClusterOperator),
-		DNS:                    convertDNSFromV1Beta1(in.DNS),
-		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
-		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
-		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		Ingress:                convertIngressNGINXFromV1Beta1(in.IngressNGINX),
-		Istio:                  convertIstioFromV1Beta1(in.Istio),
-		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
-		Kiali:                  convertKialiFromV1Beta1(in.Kiali),
-		Keycloak:               convertKeycloakFromV1Beta1(in.Keycloak),
-		Kibana:                 convertOSDFromV1Beta1(in.OpenSearchDashboards),
-		KubeStateMetrics:       convertKubeStateMetricsFromV1Beta1(in.KubeStateMetrics),
-		MySQLOperator:          convertMySQLOperatorFromV1Beta1(in.MySQLOperator),
-		Prometheus:             convertPrometheusFromV1Beta1(in.Prometheus),
-		PrometheusAdapter:      convertPrometheusAdapterFromV1Beta1(in.PrometheusAdapter),
-		PrometheusNodeExporter: convertPrometheusNodeExporterFromV1Beta1(in.PrometheusNodeExporter),
-		PrometheusOperator:     convertPrometheusOperatorFromV1Beta1(in.PrometheusOperator),
-		PrometheusPushgateway:  convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
-		Rancher:                convertRancherFromV1Beta1(in.Rancher),
-		RancherBackup:          convertRancherBackupFromV1Beta1(in.RancherBackup),
-		Thanos:                 convertThanosFromV1Beta1(in.Thanos),
-		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
-		Velero:                 convertVeleroFromV1Beta1(in.Velero),
-		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
-		ArgoCD:                 convertArgoCDFromV1Beta1(in.ArgoCD),
-		CAPI:                   convertCAPIFromV1Beta1(in.CAPI),
-	}
-}
-
-func convertExternalCertManagerFromV1Beta1(in *v1beta1.ExternalCertManagerComponent) *ExternalCertManagerComponent {
+// convertFluentbitOpensearchOutputFromV1Beta1 converts the v1beta1 FluentbitOpensearchOutputComponent to v1alpha1 FluentbitOpensearchOutputComponent
+func convertFluentbitOpensearchOutputFromV1Beta1(in *v1beta1.FluentbitOpensearchOutputComponent) *FluentbitOpensearchOutputComponent {
 	if in == nil {
 		return nil
 	}
-	return &ExternalCertManagerComponent{
-		Certificate:              convertCertificateFromV1Beta1(in.Certificate),
+	return &FluentbitOpensearchOutputComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
+	return ComponentSpec{
+		CertManager:               convertCertManagerFromV1Beta1(in.CertManager),
+		ClusterIssuer:             convertClusterIssuerFromV1Beta1(in.ClusterIssuer),
+		CertManagerWebhookOCI:     convertCertManagerWebhookOCIFromV1Beta1(in.CertManagerWebhookOCI),
+		CoherenceOperator:         convertCoherenceOperatorFromV1Beta1(in.CoherenceOperator),
+		ApplicationOperator:       convertApplicationOperatorFromV1Beta1(in.ApplicationOperator),
+		AuthProxy:                 convertAuthProxyFromV1Beta1(in.AuthProxy),
+		OAM:                       convertOAMFromV1Beta1(in.OAM),
+		Console:                   convertConsoleFromV1Beta1(in.Console),
+		ClusterOperator:           convertClusterOperatorFromV1Beta1(in.ClusterOperator),
+		DNS:                       convertDNSFromV1Beta1(in.DNS),
+		Elasticsearch:             convertOpenSearchFromV1Beta1(in.OpenSearch),
+		Fluentd:                   convertFluentdFromV1Beta1(in.Fluentd),
+		FluentOperator:            convertFluentOperatorFromV1Beta1(in.FluentOperator),
+		FluentbitOpensearchOutput: convertFluentbitOpensearchOutputFromV1Beta1(in.FluentbitOpensearchOutput),
+		Grafana:                   convertGrafanaFromV1Beta1(in.Grafana),
+		Ingress:                   convertIngressNGINXFromV1Beta1(in.IngressNGINX),
+		Istio:                     convertIstioFromV1Beta1(in.Istio),
+		JaegerOperator:            convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
+		Kiali:                     convertKialiFromV1Beta1(in.Kiali),
+		Keycloak:                  convertKeycloakFromV1Beta1(in.Keycloak),
+		Kibana:                    convertOSDFromV1Beta1(in.OpenSearchDashboards),
+		KubeStateMetrics:          convertKubeStateMetricsFromV1Beta1(in.KubeStateMetrics),
+		MySQLOperator:             convertMySQLOperatorFromV1Beta1(in.MySQLOperator),
+		Prometheus:                convertPrometheusFromV1Beta1(in.Prometheus),
+		PrometheusAdapter:         convertPrometheusAdapterFromV1Beta1(in.PrometheusAdapter),
+		PrometheusNodeExporter:    convertPrometheusNodeExporterFromV1Beta1(in.PrometheusNodeExporter),
+		PrometheusOperator:        convertPrometheusOperatorFromV1Beta1(in.PrometheusOperator),
+		PrometheusPushgateway:     convertPrometheusPushGatewayFromV1Beta1(in.PrometheusPushgateway),
+		Rancher:                   convertRancherFromV1Beta1(in.Rancher),
+		RancherBackup:             convertRancherBackupFromV1Beta1(in.RancherBackup),
+		Thanos:                    convertThanosFromV1Beta1(in.Thanos),
+		WebLogicOperator:          convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
+		Velero:                    convertVeleroFromV1Beta1(in.Velero),
+		Verrazzano:                convertVerrazzanoFromV1Beta1(in.Verrazzano),
+		ArgoCD:                    convertArgoCDFromV1Beta1(in.ArgoCD),
+		ClusterAPI:                convertClusterAPIFromV1Beta1(in.ClusterAPI),
+		ClusterAgent:              convertClusterAgentFromV1Beta1(in.ClusterAgent),
+	}
+}
+
+func convertClusterIssuerFromV1Beta1(in *v1beta1.ClusterIssuerComponent) *ClusterIssuerComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterIssuerComponent{
 		Enabled:                  in.Enabled,
-		Namespace:                in.Namespace,
-		ServiceAccountName:       in.ServiceAccountName,
 		ClusterResourceNamespace: in.ClusterResourceNamespace,
+		IssuerConfig:             convertIssuerConfigFromV1Beta1(in.IssuerConfig),
+	}
+}
+
+func convertIssuerConfigFromV1Beta1(in v1beta1.IssuerConfig) IssuerConfig {
+	var leIssuer *LetsEncryptACMEIssuer
+	if in.LetsEncrypt != nil {
+		leIssuer = &LetsEncryptACMEIssuer{
+			EmailAddress: in.LetsEncrypt.EmailAddress,
+			Environment:  in.LetsEncrypt.Environment,
+		}
+	}
+	var caIssuer *CAIssuer
+	if in.CA != nil {
+		caIssuer = &CAIssuer{SecretName: in.CA.SecretName}
+	}
+	return IssuerConfig{
+		LetsEncrypt: leIssuer,
+		CA:          caIssuer,
+	}
+}
+
+func convertCertManagerWebhookOCIFromV1Beta1(in *v1beta1.CertManagerWebhookOCIComponent) *CertManagerWebhookOCIComponent {
+	if in == nil {
+		return nil
+	}
+	return &CertManagerWebhookOCIComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
@@ -186,12 +226,23 @@ func convertAuthProxyFromV1Beta1(in *v1beta1.AuthProxyComponent) *AuthProxyCompo
 	}
 }
 
-func convertCAPIFromV1Beta1(in *v1beta1.CAPIComponent) *CAPIComponent {
+func convertClusterAPIFromV1Beta1(in *v1beta1.ClusterAPIComponent) *ClusterAPIComponent {
 	if in == nil {
 		return nil
 	}
-	return &CAPIComponent{
-		Enabled: in.Enabled,
+	return &ClusterAPIComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertClusterAgentFromV1Beta1(in *v1beta1.ClusterAgentComponent) *ClusterAgentComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterAgentComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
@@ -206,16 +257,16 @@ func convertCertManagerFromV1Beta1(in *v1beta1.CertManagerComponent) *CertManage
 	}
 }
 
-func convertCertificateFromV1Beta1(certificate v1beta1.Certificate) Certificate {
+func convertCertificateFromV1Beta1(in v1beta1.Certificate) Certificate {
 	return Certificate{
 		Acme: Acme{
-			Provider:     ProviderType(certificate.Acme.Provider),
-			EmailAddress: certificate.Acme.EmailAddress,
-			Environment:  certificate.Acme.Environment,
+			EmailAddress: in.Acme.EmailAddress,
+			Environment:  in.Acme.Environment,
+			Provider:     ProviderType(in.Acme.Provider),
 		},
 		CA: CA{
-			SecretName:               certificate.CA.SecretName,
-			ClusterResourceNamespace: certificate.CA.ClusterResourceNamespace,
+			ClusterResourceNamespace: in.CA.ClusterResourceNamespace,
+			SecretName:               in.CA.SecretName,
 		},
 	}
 }
@@ -326,6 +377,17 @@ func convertFluentdFromV1Beta1(in *v1beta1.FluentdComponent) *FluentdComponent {
 		ElasticsearchSecret: in.OpenSearchSecret,
 		OCI:                 convertOCILoggingConfigurationFromV1Beta1(in.OCI),
 		InstallOverrides:    convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+// // convertFluentOperatorFromV1Beta1 converts the v1beta1 FluentOperatorComponent to v1alpha1 FluentOperatorComponent
+func convertFluentOperatorFromV1Beta1(in *v1beta1.FluentOperatorComponent) *FluentOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &FluentOperatorComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 

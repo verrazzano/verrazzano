@@ -27,6 +27,10 @@ var testScheme = runtime.NewScheme()
 
 const profileDir = "../../../../manifests/profiles"
 
+func Int32Ptr(v int32) *int32 {
+	return &v
+}
+
 var tests = []struct {
 	name         string
 	description  string
@@ -170,7 +174,7 @@ func init() {
 // TestContextProfilesMerge Tests the profiles context merge
 // GIVEN a Verrazzano instance with a profile
 // WHEN I call NewContext
-// THEN the correct correct context is created with the proper merge of the profile and user overrides
+// THEN the correct context is created with the proper merge of the profile and user overrides
 func TestContextProfilesMerge(t *testing.T) {
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -196,13 +200,22 @@ func TestContextProfilesMerge(t *testing.T) {
 			}
 
 			a.NotNil(context, "Context was nil")
+			if context == nil {
+				return
+			}
+
 			// Tests ActualCR method
 			a.NotNil(context.ActualCR(), "Actual CR was nil")
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			// Tests EffectiveCR method
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results in %s", test.expectedYAML)
+
+			// Compare YAML strings to get proper diffs
+			expectedBytes, _ := yaml.Marshal(expectedVZ)
+			ecrBytes, _ := yaml.Marshal(context.EffectiveCR())
+			a.YAMLEqf(string(expectedBytes), string(ecrBytes), "Unexpected diffs")
+
 			// Tests Log method
 			a.Equal(log, context.Log(), "The log in the context doesn't match the original one")
 		})

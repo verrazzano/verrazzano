@@ -1,0 +1,51 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+        sidecar.istio.io/inject: "false"
+    spec:
+      {{- if .Values.affinity }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
+          args:
+            - --zap-log-level={{ .Values.logLevel }}
+            - --run-cluster-agent=true
+          resources:
+            requests:
+              memory: {{ .Values.requestMemory }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      serviceAccountName: {{ .Values.name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

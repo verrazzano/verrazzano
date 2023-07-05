@@ -109,9 +109,6 @@ type HelmComponent struct {
 	Certificates []types.NamespacedName
 
 	AvailabilityObjects *ready.AvailabilityObjects
-
-	// Cache the resolved namespace
-	resolvedNamespace string
 }
 
 // Verify that HelmComponent implements Component
@@ -662,25 +659,14 @@ func (h HelmComponent) ResolveNamespace(ctx spi.ComponentContext) string {
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
 func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
-	if len(h.resolvedNamespace) > 0 {
-		// Only resolve the namespace once per instance
-		ctx.Log().Debugf("Using cached resolved namespace %s for component %s", h.resolvedNamespace, h.ReleaseName)
-		return h.resolvedNamespace
-	}
-	effectiveCR := ctx.EffectiveCR()
-	if effectiveCR != nil {
-		h.resolvedNamespace = effectiveCR.Namespace
+	namespace := ctx.EffectiveCR().Namespace
+	if h.ResolveNamespaceFunc != nil {
+		namespace = h.ResolveNamespaceFunc(namespace)
 	}
 	if h.IgnoreNamespaceOverride {
-		h.resolvedNamespace = h.ChartNamespace
-		ctx.Log().Debugf("Ignoring namespace overrides for component %s", h.ReleaseName)
-	} else if h.ResolveNamespaceFunc != nil {
-		ctx.Log().Progressf("Resolving namespace for component %s", h.ReleaseName)
-		h.resolvedNamespace = h.ResolveNamespaceFunc(h.resolvedNamespace)
+		namespace = h.ChartNamespace
 	}
-	// Only resolve the namespace once per instance
-	ctx.Log().Debugf("Using resolved namespace %s for component %s", h.resolvedNamespace, h.ReleaseName)
-	return h.resolvedNamespace
+	return namespace
 }
 
 // preInstallUpgrade handles the helm release status and secret cleanup for the helm upgrade or install to avoid conflicts

@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"strings"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	compistio "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -210,9 +210,9 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment prometheus-operator-kube-p-operator", vzconst.PrometheusOperatorNamespace, promoperator.ComponentName, "prometheus-operator-kube-p-operator"),
 			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
 
-			t.Entry("Checking Deployment cert-manager", vzconst.CertManagerNamespace, cmcontroller.ComponentName, "cert-manager"),
-			t.Entry("Checking Deployment cert-manager-cainjector", vzconst.CertManagerNamespace, cmcontroller.ComponentName, "cert-manager-cainjector"),
-			t.Entry("Checking Deployment cert-manager-webhook", vzconst.CertManagerNamespace, cmcontroller.ComponentName, "cert-manager-webhook"),
+			t.Entry("Checking Deployment cert-manager", vzconst.CertManagerNamespace, cmconstants.CertManagerComponentName, "cert-manager"),
+			t.Entry("Checking Deployment cert-manager-cainjector", vzconst.CertManagerNamespace, cmconstants.CertManagerComponentName, "cert-manager-cainjector"),
+			t.Entry("Checking Deployment cert-manager-webhook", vzconst.CertManagerNamespace, cmconstants.CertManagerComponentName, "cert-manager-webhook"),
 
 			t.Entry("Checking Deployment external-dns", externaldns.ResolveExernalDNSNamespace(), externaldns.ComponentName, "external-dns"),
 

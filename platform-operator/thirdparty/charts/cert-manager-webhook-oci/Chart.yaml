@@ -1,0 +1,8 @@
+# Portions of the code in this file are derived from https://github.com/cert-manager/webhook-example/blob/master/deploy/example-webhook/Chart.yaml
+# Portions of the code in this file are derived from https://gitlab.com/dn13/cert-manager-webhook-oci/-/blob/1.1.0/deploy/cert-manager-webhook-oci/Chart.yaml
+
+apiVersion: v1
+description: Allow cert-manager to solve DNS challenges using Oracle Cloud Infrastructure DNS
+name: cert-manager-webhook-oci
+version: 0.1.0
+appVersion: 0.1.0

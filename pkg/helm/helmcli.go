@@ -135,6 +135,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		client.Namespace = namespace
 		client.DryRun = dryRun
 		client.Wait = wait
+		client.MaxHistory = 1
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
@@ -390,6 +391,7 @@ func getActionConfig(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, name
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Debugf); err != nil {
 		return nil, err
 	}
+	actionConfig.Releases.MaxHistory = 1
 	return actionConfig, nil
 }
 

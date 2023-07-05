@@ -100,3 +100,4 @@ rules:
       - list
       - get
       - watch
+      - delete

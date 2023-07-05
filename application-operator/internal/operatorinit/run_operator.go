@@ -4,15 +4,7 @@
 package operatorinit
 
 import (
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
@@ -22,14 +14,13 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/namespace"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
-	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,7 +45,33 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 
-	if err = (&ingresstrait.Reconciler{
+	log.Info("Starting application reconcilers")
+	if err := setupAppReconcilers(mgr, defaultMetricsScraper, log); err != nil {
+		return err
+	}
+
+	// Initialize the metricsExporter
+	if err := metricsexporter.StartMetricsServer(); err != nil {
+		log.Errorf("Failed to create metrics exporter: %v", err)
+		return err
+	}
+
+	// +kubebuilder:scaffold:builder
+
+	log.Info("Starting manager")
+	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Errorf("Failed to run manager: %v", err)
+		return err
+	}
+	return err
+}
+
+func setupAppReconcilers(mgr manager.Manager, defaultMetricsScraper string, log *zap.SugaredLogger) error {
+	logger, err := vzlog.BuildZapInfoLogger(0)
+	if err != nil {
+		return err
+	}
+	if err := (&ingresstrait.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    log,
 		Scheme: mgr.GetScheme(),
@@ -74,7 +91,6 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 
-	logger, err := vzlog.BuildZapInfoLogger(0)
 	if err != nil {
 		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
 		return err
@@ -113,62 +129,6 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		return err
 	}
 
-	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
-	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
-
-	// Initialize the metricsExporter
-	if err := metricsexporter.StartMetricsServer(); err != nil {
-		log.Errorf("Failed to create metrics exporter: %v", err)
-		return err
-	}
-
-	if err = (&multiclustersecret.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterSecretKind, err)
-		return err
-	}
-	if err = (&multiclustercomponent.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterComponentKind, err)
-		return err
-	}
-	if err = (&multiclusterconfigmap.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.MultiClusterConfigMapKind, err)
-		return err
-	}
-	if err = (&multiclusterapplicationconfiguration.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
-		return err
-	}
-	scheme = mgr.GetScheme()
-	vmcclient.AddToScheme(scheme)
-	if err = (&verrazzanoproject.Reconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       scheme,
-		AgentChannel: agentChannel,
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.VerrazzanoProjectKind, err)
-		return err
-	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
 		Client: mgr.GetClient(),
 		Log:    log,
@@ -177,6 +137,7 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		log.Errorf("Failed to create LoggingTrait controller: %v", err)
 		return err
 	}
+
 	if err = (&appconfig.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    logger,
@@ -202,16 +163,5 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		log.Errorf("Failed to create MetricsBinding controller: %v", err)
 		return err
 	}
-
-	// +kubebuilder:scaffold:builder
-
-	log.Debug("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log)
-
-	log.Info("Starting manager")
-	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Errorf("Failed to run manager: %v", err)
-		return err
-	}
-	return err
+	return nil
 }

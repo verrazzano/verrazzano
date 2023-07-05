@@ -74,6 +74,15 @@ func NewFakeContext(c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta
 		}
 	}
 
+	if effectiveCR != nil && effectiveV1beta1CR == nil {
+		effectiveV1beta1CR = &v1beta1.Verrazzano{}
+		effectiveCR.ConvertTo(effectiveV1beta1CR)
+	}
+	if effectiveV1beta1CR != nil && effectiveCR == nil {
+		effectiveCR = &v1alpha1.Verrazzano{}
+		effectiveCR.ConvertFrom(effectiveV1beta1CR)
+	}
+
 	return componentContext{
 		log:                log,
 		client:             c,

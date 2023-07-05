@@ -12,9 +12,10 @@ platform-manifests: controller-gen
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: application-manifests
 application-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/clusters/..." output:crd:artifacts:config=$(CRD_PATH)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/oam/..." output:crd:artifacts:config=$(CRD_PATH)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/app/..." output:crd:artifacts:config=$(CRD_PATH)
+	# Put multicluster CRDs in the cluster agent helm chart
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/clusters/..." output:crd:artifacts:config=$(MC_CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "clusters:v1alpha1 oam:v1alpha1 app:v1alpha1" "boilerplate.go.txt"

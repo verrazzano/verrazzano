@@ -347,7 +347,9 @@ func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 // addNodeGroupReplicas iterates through each OpenSearch node and sums the replicas
 func addNodeGroupReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) {
 	for _, node := range os.Nodes {
-		*replicas += node.Replicas
+		if node.Replicas != nil {
+			*replicas += *node.Replicas
+		}
 	}
 }
 
