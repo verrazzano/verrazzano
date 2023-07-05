@@ -17,11 +17,11 @@ var (
 	OCIVcnID    string
 	OCISubnetID string
 	//OCISubnetCIDR                    string
-	OCISSHKeyPath                    string
-	OCIPrivateKeyPath                string
-	ClusterName                      string
-	ClusterTemplateGeneratedFilePath string
-	OCNENamespace                    string
+	OCISSHKeyPath     string
+	OCIPrivateKeyPath string
+	ClusterName       string
+	//ClusterTemplateGeneratedFilePath string
+	OCNENamespace string
 	//OCIImageID                       string
 	OracleLinuxDisplayName string
 	OperatingSystem        string

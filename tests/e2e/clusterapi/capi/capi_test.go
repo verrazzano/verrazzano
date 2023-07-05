@@ -210,9 +210,14 @@ func EnvSet() error {
 func capiPrerequisites() {
 	t.Logs.Infof("Start capi pre-requisites for cluster '%s'", ClusterName)
 
-	t.Logs.Infof("Setup CAPI base64 env values '%s'", ClusterName)
+	t.Logs.Infof("Setup CAPI base64 encoded env values '%s'", ClusterName)
 	Eventually(func() error {
 		return EnvSet()
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Infof("Process and set OCI private keys base64 encoded '%s'", ClusterName)
+	Eventually(func() error {
+		return ProcessOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI private key '%s'", ClusterName)
@@ -220,19 +225,14 @@ func capiPrerequisites() {
 		return ProcessOCIPrivateKeysSingleLine(OCIPrivateKeyPath, OCICredsKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	t.Logs.Infof("Fetch and set OCI Image ID for cluster '%s'", ClusterName)
-	Eventually(func() error {
-		return SetImageID(OCIImageIDKey, t.Logs)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
-	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
-	Eventually(func() error {
-		return ProcessOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
 		return ProcessOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Infof("Fetch and set OCI Image ID for cluster '%s'", ClusterName)
+	Eventually(func() error {
+		return SetImageID(OCIImageIDKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)

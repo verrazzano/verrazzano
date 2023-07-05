@@ -383,10 +383,11 @@ pipeline {
            steps {
                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                    sh """
-                       kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
-                       kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get nodes -o wide
-                       kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get pods -A
-                       ${GO_REPO_PATH}/vz install --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
+                       export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+                       kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
+                       kubectl --kubeconfig ${TEMPKUBECONFIGPATH} get nodes -o wide
+                       kubectl --kubeconfig ${TEMPKUBECONFIGPATH}-kubeconfig get pods -A
+                       ${GO_REPO_PATH}/vz install --kubeconfig ${TEMPKUBECONFIGPATH} --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
                    """
                }
            }
@@ -400,15 +401,17 @@ pipeline {
        }
 
 
+       /*
        stage('verify-install on workload cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
-                        export KUBECONFIG=/tmp/${CLUSTER_NAME}-kubeconfig
-                        kubectl get nodes -o wide
-                        kubectl get pods -A
+                        export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
+                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH}  get nodes -o wide
+                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH}  get pods -A
                         cd ${WORKSPACE}/tests/e2e
+                        export KUBECONFIG=${TEMPKUBECONFIGPATH}
                         ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
                         unset KUBECONFIG
                     """
@@ -421,6 +424,118 @@ pipeline {
                     }
                 }
             }
+       }
+       */
+       
+       stage('Run Acceptance Tests Infra') {
+
+           parallel {
+               stage('verify-scripts') {
+                   steps {
+                       runGinkgoRandomizeWorkloadCluster('scripts')
+                   }
+               }
+               stage('verify-infra restapi') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+                   }
+                   steps {
+                       runGinkgoRandomizeWorkloadCluster('verify-infra/restapi')
+                   }
+               }
+               stage('verify-infra oam') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+                   }
+                   steps {
+                       runGinkgoRandomizeWorkloadCluster('verify-infra/oam')
+                   }
+               }
+               stage('verify-infra vmi') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+                   }
+                   steps {
+                       runGinkgoRandomizeWorkloadCluster('verify-infra/vmi')
+                   }
+               }
+               stage('security rbac') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                   }
+                   steps {
+                       runGinkgoWorkloadCluster('security/rbac')
+                   }
+               }
+               stage('system component metrics') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+                   }
+                   steps {
+                       runGinkgoWorkloadCluster('metrics/syscomponents')
+                   }
+               }
+               stage ('console') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                   }
+                   steps {
+                       catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                           sh """
+                                export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+                                kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
+                                export KUBECONFIG=${TEMPKUBECONFIGPATH}
+                                CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+                                unset KUBECONFIG
+                            """
+                       }
+                   }
+                   post {
+                       failure {
+                           sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                       }
+                   }
+               }
+               stage ('grafana db') {
+                   when {
+                       expression {params.USE_DB_FOR_GRAFANA == true}
+                   }
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+                   }
+                   steps {
+                       runGinkgoWorkloadCluster('grafana-db')
+                   }
+               }
+               stage('opensearch logging') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
+                   }
+                   steps {
+                       runGinkgoWorkloadCluster('logging/opensearch')
+                   }
+               }
+               stage('system logging') {
+                   environment {
+                       DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+                   }
+                   steps {
+                       runGinkgoWorkloadCluster('logging/system')
+                   }
+               }
+           }
+           post {
+               always {
+                   archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+                   junit testResults: '**/*test-result.xml', allowEmptyResults: true
+               }
+               failure {
+                   script {
+                       dumpK8sCluster('uninstall-vz-cluster-dump')
+                       dumpOCNECluster('uninstall-vz-workload-cluster-dump')
+                   }
+               }
+           }
        }
 
 
@@ -438,7 +553,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster('uninstall-vz-workload-cluster-dump')
+                        dumpK8sCluster('uninstall-vz-cluster-dump')
                         dumpOCNECluster('uninstall-vz-workload-cluster-dump')
                     }
                 }
@@ -525,6 +640,38 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
     }
 }
 
+def runGinkgoWorkloadCluster(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
+            export KUBECONFIG=${TEMPKUBECONFIGPATH}
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            unset KUBECONFIG
+        """
+    }
+}
+
+def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
+            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
+            export KUBECONFIG=${TEMPKUBECONFIGPATH}
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            if [ -d "${testSuitePath}" ]; then
+                ginkgo -vv --progress --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            fi
+            unset KUBECONFIG
+        """
+    }
+}
+
+
 def set_capi_variables() {
    int OCNE_CP_COUNT = params.CONTROL_PLANE_MACHINE_COUNT.toInteger()
    env.CONTROL_PLANE_MACHINE_COUNT =  OCNE_CP_COUNT
@@ -570,14 +717,6 @@ def runSocksVariant(variant) {
         }
 }
 
-def runGinkgo(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
 
 def dumpK8sCluster(dumpDirectory) {
     sh """

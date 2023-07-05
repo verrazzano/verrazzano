@@ -69,16 +69,16 @@ func PrintYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
 }
 
 // ClusterTemplateGenerate used for cluster template generation
-func ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) error {
+func ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) (string, error) {
 	log.Infof("Generate called for clustername '%s'...", clusterName)
 	capiClient, err := capiInitFunc("")
 	if err != nil {
-		return err
+		return "", err
 	}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		log.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	templateOptions := clusterapi.GetClusterTemplateOptions{
@@ -95,18 +95,21 @@ func ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredL
 	template, err := capiClient.GetClusterTemplate(templateOptions)
 	if err != nil {
 		log.Errorf("template '%s' generation error  = %v", templatePath, zap.Error(err))
-		return err
+		return "", err
 	}
 
 	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
 	if err != nil {
-		return fmt.Errorf("Failed to create temporary file: %v", err)
+		return "", fmt.Errorf("Failed to create temporary file: %v", err)
 	}
 
-	log.Infof("Temp file name = %v", tmpFile.Name())
-	ClusterTemplateGeneratedFilePath = tmpFile.Name()
+	//log.Infof("Temp file name = %v", tmpFile.Name())
+	//ClusterTemplateGeneratedFilePath = tmpFile.Name()
 
-	return PrintYamlOutput(template, tmpFile.Name())
+	if err := PrintYamlOutput(template, tmpFile.Name()); err != nil {
+		return "", err
+	}
+	return tmpFile.Name(), nil
 }
 
 // GetUnstructuredData common utility to fetch unstructured data
@@ -229,16 +232,6 @@ func GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLog
 	return &ocneControlPlane, nil
 }
 
-func checkAll(data []bool) bool {
-	for _, item := range data {
-		// return false if any item is false
-		if !item {
-			return false
-		}
-	}
-	return true
-}
-
 func GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -278,13 +271,13 @@ func GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 }
 
 func TriggerCapiClusterCreation(clusterName, templateName string, log *zap.SugaredLogger) error {
-	err := ClusterTemplateGenerate(clusterName, templateName, log)
+	tmpFilePath, err := ClusterTemplateGenerate(clusterName, templateName, log)
 	if err != nil {
 		log.Errorf("unable to generate template for cluster : %v", zap.Error(err))
 		return err
 	}
-
-	clusterTemplateData, err := os.ReadFile(ClusterTemplateGeneratedFilePath)
+	defer os.RemoveAll(tmpFilePath)
+	clusterTemplateData, err := os.ReadFile(tmpFilePath)
 	if err != nil {
 		return nil
 	}
@@ -319,13 +312,13 @@ func DeployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 	os.Setenv(OCIVCNKey, OCIVcnID)
 	os.Setenv(OCISubnetKey, OCISubnetID)
 
-	err = ClusterTemplateGenerate(clusterName, templateName, log)
+	tmpFilePath, err := ClusterTemplateGenerate(clusterName, templateName, log)
 	if err != nil {
 		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
 		return err
 	}
-
-	clusterTemplateData, err := os.ReadFile(ClusterTemplateGeneratedFilePath)
+	defer os.RemoveAll(tmpFilePath)
+	clusterTemplateData, err := os.ReadFile(tmpFilePath)
 	if err != nil {
 		log.Errorf("unable to get read file : %v", zap.Error(err))
 		return err
@@ -339,7 +332,12 @@ func DeployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 
 	log.Infof("Wait for 30 seconds for cluster resourceset resources to deploy")
 	time.Sleep(30 * time.Second)
-	return CreateImagePullSecrets(clusterName, log)
+	localTest := getEnvDefault("LOCAL_TEST", "false")
+	if strings.ToLower(localTest) == "false" {
+		// When running on Jenkins instance
+		return CreateImagePullSecrets(clusterName, log)
+	}
+	return nil
 }
 
 func EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
