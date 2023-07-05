@@ -926,7 +926,6 @@ func TestInstallFromFilename(t *testing.T) {
 
 	// Send stdout stderr to a byte bufferF
 	rc.SetClient(c)
-	cmd = NewCmdInstall(rc)
 
 	os.Args = append(os.Args, testFilenamePath)
 	cmd.Execute()
