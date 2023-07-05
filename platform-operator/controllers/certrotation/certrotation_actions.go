@@ -34,7 +34,7 @@ func (r *CertificateRotationManagerReconciler) ValidateCertDate(certContent []by
 		return true, nil
 
 	}
-	r.log.Progressf("certificate for %s has validity %s",
+	r.log.Progressf("Certificate %s is valid for %s hours",
 		certs.Subject.CommonName,
 		certs.NotAfter.Sub(deadline).Round(time.Hour))
 	return false, nil

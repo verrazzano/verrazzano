@@ -79,7 +79,7 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 	err = r.CheckCertificateExpiration(ctx, certList)
 	if err != nil {
 		result := newRequeueWithDelay(5, 10, time.Second)
-		r.log.Debugf("Error while certification validation: %v", result.RequeueAfter)
+		r.log.Debugf("Error while checking certificate status: %v", result.RequeueAfter)
 		return result, err
 	}
 
@@ -87,7 +87,7 @@ func (r *CertificateRotationManagerReconciler) Reconcile(ctx context.Context, re
 		Requeue:      true,
 		RequeueAfter: r.CheckPeriod, // Check period is in duration already
 	}
-	r.log.Infof("Successfully validated the certificate: %v", result.RequeueAfter)
+	r.log.Infof("Successfully validated webhook certificates: %v", result.RequeueAfter)
 	return result, nil
 
 }
