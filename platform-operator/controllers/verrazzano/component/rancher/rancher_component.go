@@ -750,7 +750,7 @@ func IsClusterProvisionedByOcneContainerDriver() (bool, error) {
 		return false, err
 	}
 
-	return checkContainerDriverProvisioned(client, dynClient)
+	return checkContainerDriverProvisionedFunc(client, dynClient)
 }
 
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.

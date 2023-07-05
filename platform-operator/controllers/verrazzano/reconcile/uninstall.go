@@ -378,6 +378,9 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	log := ctx.Log()
 	// check on whether cluster is OCNE container driver provisioned
 	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOcneContainerDriver()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	// Load a set of all component namespaces plus shared namespaces
 	nsSet := make(map[string]bool)
 	for _, comp := range registry.GetComponents() {
