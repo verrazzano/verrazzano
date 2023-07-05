@@ -256,7 +256,7 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -382,6 +382,48 @@ pipeline {
         stage("Create OKE Cluster") {
             steps {
                 sh "TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=ocne-driver-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+            }
+        }
+
+        stage('Install Verrazzano') {
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+
+                    echo "Create the verrazzano-install namespace"
+                    kubectl create namespace verrazzano-install
+
+                    echo "Create Image Pull Secrets"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                    if [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                        echo "Downloading platform operator from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/platform-operator.yaml
+                    else
+                        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                        env IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRET} DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/platform-operator.yaml
+                    fi
+
+                    echo "Installing Verrazzano"
+                    ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --manifests ${WORKSPACE}/platform-operator.yaml --timeout 45m --platform-operator-timeout 10m
+
+                    # For now, manually scale the VPO webhook to 3 replicas until we have hooks for it in the product
+                    kubectl  scale deployment -n verrazzano-install verrazzano-platform-operator-webhook --replicas 3
+                    kubectl  rollout status deployment -n verrazzano-install verrazzano-platform-operator-webhook -w --timeout 15m
+                """
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('install-fail-cluster-snapshot')
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: '**/platform-operator.yaml', allowEmptyArchive: true
+                }
             }
         }
 
