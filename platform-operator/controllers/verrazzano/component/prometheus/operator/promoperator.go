@@ -627,6 +627,36 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 	authPol := istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName},
 	}
+	var rules []*securityv1beta1.Rule
+
+	// allow Auth Proxy, Grafana, and Kiali to access Prometheus
+	serviceAccounts := []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace)}
+	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		serviceAccounts = append(serviceAccounts, fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace))
+	}
+	if vzcr.IsKialiEnabled(ctx.EffectiveCR()) {
+		serviceAccounts = append(serviceAccounts, fmt.Sprintf("cluster.local/ns/%s/sa/vmi-system-kiali", constants.VerrazzanoSystemNamespace))
+	}
+	rules = append(rules, constructAuthPolicyRule([]string{constants.VerrazzanoSystemNamespace}, serviceAccounts,
+		[]string{"9090", "10901"}))
+
+	// allow Prometheus to scrape its own Envoy sidecar
+	rules = append(rules, constructAuthPolicyRule([]string{ComponentNamespace}, []string{serviceAccount},
+		[]string{"9090"}))
+
+	// allow Jaeger to access Prometheus
+	if vzcr.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
+		rules = append(rules, constructAuthPolicyRule([]string{constants.VerrazzanoMonitoringNamespace}, []string{
+			fmt.Sprintf("cluster.local/ns/%s/sa/jaeger-operator-jaeger", constants.VerrazzanoMonitoringNamespace),
+		}, []string{"9090"}))
+	}
+
+	// allow Thanos Query to access Prometheus Thanos sidecar on port 10901
+	if vzcr.IsThanosEnabled(ctx.EffectiveCR()) {
+		rules = append(rules, constructAuthPolicyRule([]string{constants.VerrazzanoMonitoringNamespace}, []string{
+			fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
+		}, []string{"10901"}))
+	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &authPol, func() error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
@@ -635,72 +665,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 				},
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
-			Rules: []*securityv1beta1.Rule{
-				{
-					// allow Auth Proxy, Grafana, and Kiali to access Prometheus
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{
-								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace),
-								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace), // Grafana uses VMO SA
-								fmt.Sprintf("cluster.local/ns/%s/sa/vmi-system-kiali", constants.VerrazzanoSystemNamespace),
-							},
-							Namespaces: []string{constants.VerrazzanoSystemNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090", "10901"},
-						},
-					}},
-				},
-				{
-					// allow Prometheus to scrape its own Envoy sidecar
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{serviceAccount},
-							Namespaces: []string{ComponentNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{"15090"},
-						},
-					}},
-				},
-				{
-					// allow Jaeger to access Prometheus
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{
-								fmt.Sprintf("cluster.local/ns/%s/sa/jaeger-operator-jaeger", constants.VerrazzanoMonitoringNamespace),
-							},
-							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{"9090"},
-						},
-					}},
-				},
-				{
-					// allow Thanos Query to access Prometheus Thanos sidecar on port 10901
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{
-								fmt.Sprintf("cluster.local/ns/%s/sa/thanos-query", constants.VerrazzanoMonitoringNamespace),
-							},
-							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{"10901"},
-						},
-					}},
-				},
-			},
+			Rules:  rules,
 		}
 		return nil
 	})
@@ -778,4 +743,20 @@ func deleteNetworkPolicy(ctx spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+func constructAuthPolicyRule(namespaces []string, fromPrincipals []string, toPorts []string) *securityv1beta1.Rule {
+	return &securityv1beta1.Rule{
+		From: []*securityv1beta1.Rule_From{{
+			Source: &securityv1beta1.Source{
+				Principals: fromPrincipals,
+				Namespaces: namespaces,
+			},
+		}},
+		To: []*securityv1beta1.Rule_To{{
+			Operation: &securityv1beta1.Operation{
+				Ports: toPorts,
+			},
+		}},
+	}
 }
