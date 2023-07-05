@@ -254,16 +254,29 @@ func checkExistingCNEPrometheus(vz runtime.Object) error {
 
 // PostUninstall is the Prometheus Operator PostInstall SPI function
 func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
-	// delete the legacy prometheus ingress
+	return deletePrometheusStackIngresses(ctx)
+}
+
+// deletePrometheusStackIngresses deletes Prometheus and Alertmanager ingresses
+func deletePrometheusStackIngresses(ctx spi.ComponentContext) error {
+	err := deleteIngress(constants.PrometheusIngress, ctx)
+	if err != nil {
+		return err
+	}
+
+	return deleteIngress(constants.AlertmanagerIngress, ctx)
+}
+
+func deleteIngress(ingressName string, ctx spi.ComponentContext) error {
 	ingress := &networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.PrometheusIngress,
+			Name:      ingressName,
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
 	err := ctx.Client().Delete(context.TODO(), ingress)
 	if err != nil && !errors.IsNotFound(err) {
-		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
+		ctx.Log().Errorf("Error deleting ingress %s, %v", ingressName, err)
 		return err
 	}
 	return nil

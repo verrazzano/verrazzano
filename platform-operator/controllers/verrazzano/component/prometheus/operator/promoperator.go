@@ -128,7 +128,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	if err := createOrUpdateIngresses(ctx); err != nil {
+	if err := reconcileIngresses(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
@@ -751,11 +751,11 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateIngresses creates ingresses for the Prometheus and Alertmanager endpoint
-func createOrUpdateIngresses(ctx spi.ComponentContext) error {
-	// If NGINX is not enabled, skip the ingress creation
+// reconcileIngresses reconciles ingresses for the Prometheus and Alertmanager endpoint
+func reconcileIngresses(ctx spi.ComponentContext) error {
+	// If NGINX is not enabled, skip the ingress creation and delete any existing prometheus or alertmanager ingresses
 	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		return nil
+		return deletePrometheusStackIngresses(ctx)
 	}
 
 	promProps := common.IngressProperties{
@@ -785,6 +785,8 @@ func createOrUpdateIngresses(ctx spi.ComponentContext) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		return deleteIngress(constants.AlertmanagerIngress, ctx)
 	}
 
 	return nil
