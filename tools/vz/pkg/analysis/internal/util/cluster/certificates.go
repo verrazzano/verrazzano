@@ -22,7 +22,7 @@ import (
 // It first determines the status of the VPO, then checks if there are any certificates in the namespaces.
 // It then analyzes those certificates to determine expiration or other issues and then contributes the respective issues to the Issue Reporter.
 // The three issues that it is currently reporting on are the VPO hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
-func AnalyzeCertificateRelatedIsssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
+func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	mapOfCertificatesInVPOToTheirNamespace, err := determineIfVPOIsHangingDueToCerts(log, clusterRoot)
 
 	if err != nil {

@@ -12,5 +12,5 @@ import (
 // This tests asserts that no errors are called when the Certificate Analysis function is called on a valid input
 func TestAnalyzeCertificateIssues(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeCertificateRelatedIsssues(logger, "../../../test/cluster/testCertificateIssue"))
+	assert.NoError(t, AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCertificateIssue"))
 }
