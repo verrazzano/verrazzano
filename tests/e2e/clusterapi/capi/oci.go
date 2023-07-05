@@ -21,9 +21,10 @@ const (
 type OCIClient interface {
 	GetSubnetByID(ctx context.Context, subnetID string, log *zap.SugaredLogger) (*core.Subnet, error)
 	GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
-	GetVcnIDByNane(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
-	GetSubnetIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
-	GetNsgIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetVcnIDByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetSubnetIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetSubnetCIDRByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetNsgIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
 	UpdateNSG(ctx context.Context, nsgID string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
 }
 
@@ -84,8 +85,8 @@ func (c *ClientImpl) GetImageIDByName(ctx context.Context, compartmentID, displa
 	return *images.Items[0].Id, nil
 }
 
-// GetVcnIDByNane retrieves an VCN OCID given a vcn name and a compartment id, if the vcn exists.
-func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error) {
+// GetVcnIDByName retrieves an VCN OCID given a vcn name and a compartment id, if the vcn exists.
+func (c *ClientImpl) GetVcnIDByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error) {
 	vcns, err := c.vnClient.ListVcns(ctx, core.ListVcnsRequest{
 		CompartmentId: &compartmentID,
 		DisplayName:   &displayName,
@@ -101,8 +102,8 @@ func (c *ClientImpl) GetVcnIDByNane(ctx context.Context, compartmentID, displayN
 	return *vcns.Items[0].Id, nil
 }
 
-// GetSubnetIDByNane retrieves an Subnet OCID given a subnet name and a compartment id, if the subnet exists.
-func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
+// GetSubnetIDByName retrieves an Subnet OCID given a subnet name and a compartment id, if the subnet exists.
+func (c *ClientImpl) GetSubnetIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
 	subnets, err := c.vnClient.ListSubnets(ctx, core.ListSubnetsRequest{
 		CompartmentId: &compartmentID,
 		VcnId:         &vcnID,
@@ -119,8 +120,26 @@ func (c *ClientImpl) GetSubnetIDByNane(ctx context.Context, compartmentID, vcnID
 	return *subnets.Items[0].Id, nil
 }
 
-// GetNsgIDByNane retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
-func (c *ClientImpl) GetNsgIDByNane(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
+// GetSubnetCIDRByName retrieves an Subnet CIDR block given a subnet name and a compartment id, if the subnet exists.
+func (c *ClientImpl) GetSubnetCIDRByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
+	subnets, err := c.vnClient.ListSubnets(ctx, core.ListSubnetsRequest{
+		CompartmentId: &compartmentID,
+		VcnId:         &vcnID,
+		DisplayName:   &displayName,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(subnets.Items) == 0 {
+		log.Errorf("no subnet found for %s/%s", compartmentID, displayName)
+		return "", err
+	}
+	return *subnets.Items[0].CidrBlock, nil
+}
+
+// GetNsgIDByName retrieves an NSG OCID given a nsg name and a compartment id, if the nsg exists.
+func (c *ClientImpl) GetNsgIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error) {
 	nsgs, err := c.vnClient.ListNetworkSecurityGroups(ctx, core.ListNetworkSecurityGroupsRequest{
 		CompartmentId: &compartmentID,
 		VcnId:         &vcnID,

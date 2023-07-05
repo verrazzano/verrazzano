@@ -241,17 +241,17 @@ func capiPrerequisites() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
-func ensureNSG() error {
+func EnsureNSG() error {
 	calicoWorkerRule := SecurityRuleDetails{
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from control plane nodes",
-		Source:      "10.0.0.0/29",
+		//Source:      "10.0.0.0/29",
 		IsStateless: false,
 		TCPPortMax:  5473,
 		TCPPortMin:  5473,
 	}
 
-	err := UpdateOCINSG(ClusterName, "worker", "calico typha", &calicoWorkerRule, t.Logs)
+	err := UpdateOCINSG(ClusterName, "worker", "control-plane", "calico typha", &calicoWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -259,13 +259,13 @@ func ensureNSG() error {
 	calicoControlPlaneRule := SecurityRuleDetails{
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from worker nodes",
-		Source:      "10.0.64.0/20",
+		//Source:      "10.0.64.0/20",
 		IsStateless: false,
 		TCPPortMax:  5473,
 		TCPPortMin:  5473,
 	}
 
-	err = UpdateOCINSG(ClusterName, "control-plane", "calico typha", &calicoControlPlaneRule, t.Logs)
+	err = UpdateOCINSG(ClusterName, "control-plane", "worker", "calico typha", &calicoControlPlaneRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -273,11 +273,11 @@ func ensureNSG() error {
 	udpWorkerRule := SecurityRuleDetails{
 		Protocol:    "17",
 		Description: "Added by Jenkins to allow UDP communication from control plane node",
-		Source:      "10.0.0.0/29",
+		//Source:      "10.0.0.0/29",
 		IsStateless: false,
 	}
 
-	err = UpdateOCINSG(ClusterName, "worker", "udp", &udpWorkerRule, t.Logs)
+	err = UpdateOCINSG(ClusterName, "worker", "control-plane", "udp", &udpWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -285,11 +285,11 @@ func ensureNSG() error {
 	udpControlPlaneRule := SecurityRuleDetails{
 		Protocol:    "17",
 		Description: "Added by Jenkins to allow UDP communication from worker node",
-		Source:      "10.0.64.0/20",
+		//Source:      "10.0.64.0/20",
 		IsStateless: false,
 	}
 
-	return UpdateOCINSG(ClusterName, "control-plane", "udp", &udpControlPlaneRule, t.Logs)
+	return UpdateOCINSG(ClusterName, "control-plane", "worker", "udp", &udpControlPlaneRule, t.Logs)
 
 }
 
@@ -326,7 +326,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Update NSG for new VCN created by CAPi cluster", func() {
 			Eventually(func() error {
-				return ensureNSG()
+				return EnsureNSG()
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "ensure nsg update")
 		})
 

@@ -306,12 +306,12 @@ func DeployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 		return err
 	}
 
-	OCIVcnID, err = oci.GetVcnIDByNane(context.TODO(), OCICompartmentID, clusterName, log)
+	OCIVcnID, err = oci.GetVcnIDByName(context.TODO(), OCICompartmentID, clusterName, log)
 	if err != nil {
 		return err
 	}
 
-	OCISubnetID, err = oci.GetSubnetIDByNane(context.TODO(), OCICompartmentID, OCIVcnID, "service-lb", log)
+	OCISubnetID, err = oci.GetSubnetIDByName(context.TODO(), OCICompartmentID, OCIVcnID, "service-lb", log)
 	if err != nil {
 		return err
 	}
@@ -668,23 +668,29 @@ func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
 }
 */
 
-func UpdateOCINSG(clusterName, nsgDisplayName, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
-	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayName, info)
+func UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
+	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayNameToUpdate, info)
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
 	if err != nil {
 		log.Error("Unable to create OCI client %v", zap.Error(err))
 		return err
 	}
 
-	vcnID, err := oci.GetVcnIDByNane(context.TODO(), OCICompartmentID, clusterName, log)
+	vcnID, err := oci.GetVcnIDByName(context.TODO(), OCICompartmentID, clusterName, log)
 	if err != nil {
 		return err
 	}
 
-	nsgID, err := oci.GetNsgIDByNane(context.TODO(), OCICompartmentID, vcnID, nsgDisplayName, log)
+	nsgID, err := oci.GetNsgIDByName(context.TODO(), OCICompartmentID, vcnID, nsgDisplayNameToUpdate, log)
 	if err != nil {
 		return err
 	}
+
+	ruleCIDR, err := oci.GetSubnetCIDRByName(context.TODO(), OCICompartmentID, vcnID, nsgDisplayNameInRule, log)
+	if err != nil {
+		return err
+	}
+	rule.Source = ruleCIDR
 
 	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
 }
