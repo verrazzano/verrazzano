@@ -414,8 +414,6 @@ pipeline {
                     ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
 
                     echo "Installing Verrazzano on OKE"
-                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-                    kubectl apply -f ${INSTALL_CONFIG_FILE}
                     ${VZ_COMMAND} install --filename ${INSTALL_CONFIG_FILE} --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
 
                     # wait for Verrazzano install to complete
