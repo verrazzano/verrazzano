@@ -45,7 +45,7 @@ spec:
               name: http-metric
               protocol: TCP
           args:
-            - --zap-log-level=debug
+            - --zap-log-level=info
             - --health-check-period=60
             {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
             - --experimental-modules=true
