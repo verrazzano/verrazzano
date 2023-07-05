@@ -6,6 +6,7 @@ package cluster
 
 import (
 	encjson "encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"os"
@@ -66,8 +67,6 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 
 }
 
-//This function accepts a list of
-
 // This function returns a list of certificate objects based on the certificates.json file
 func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *certv1.CertificateList, err error) {
 	certList := &certv1.CertificateList{}
@@ -90,22 +89,22 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 	return certList, err
 }
 
-// This function creates the message and formally adds the issue to the IssueReporter
+// Add comments for newly created function later
 
 func reportVPOHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
-	message := []string{"The VPO is hanging due to a long time for the certificate to complete, but the certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is ready"}
+	message := []string{fmt.Sprintf("The VPO is hanging due to a long time for the certificate to complete, but the certificate named %s in namespace %s is ready", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
 	issueReporter.AddKnownIssueMessagesFiles(report.VPOHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
 
 }
 func reportCertificateExpirationIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
-	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is expired"}
+	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is expired", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExpired, clusterRoot, message, files)
 }
 func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
-	message := []string{"The certificate named " + certificate.ObjectMeta.Name + " in namespace " + certificate.ObjectMeta.Namespace + " is not valid and experiencing issues"}
+	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is not valid and experiencing issues", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
 }
 

@@ -27,9 +27,9 @@
                 "uid": "c70a3a3f-7d09-43fe-8de1-5ca9dfb4a608"
             },
             "spec": {
-                "commonName": "elasticsearch.vmi.system.b521.zea2591.v8o.io",
+                "commonName": "abc123.io",
                 "dnsNames": [
-                    "elasticsearch.vmi.system.b521.zea2591.v8o.io"
+                    "abc123.io"
                 ],
                 "issuerRef": {
                     "group": "cert-manager.io",
@@ -85,9 +85,9 @@
                 "uid": "fda1399a-53fb-467e-82da-d0102a5a81f5"
             },
             "spec": {
-                "commonName": "grafana.vmi.system.b521.zea2591.v8o.io",
+                "commonName": "abc123.io",
                 "dnsNames": [
-                    "grafana.vmi.system.b521.zea2591.v8o.io"
+                    "abc123.io"
                 ],
                 "issuerRef": {
                     "group": "cert-manager.io",
@@ -139,9 +139,9 @@
                 "uid": "c275aad8-caf9-4e49-8380-2d7fcb38093c"
             },
             "spec": {
-                "commonName": "kiali.vmi.system.b521.zea2591.v8o.io",
+                "commonName": "abc123.io",
                 "dnsNames": [
-                    "kiali.vmi.system.b521.zea2591.v8o.io"
+                    "abc123.io"
                 ],
                 "issuerRef": {
                     "group": "cert-manager.io",
@@ -197,9 +197,9 @@
                 "uid": "ee44c0dc-e443-49a2-8dfb-d34752fc1229"
             },
             "spec": {
-                "commonName": "kibana.vmi.system.b521.zea2591.v8o.io",
+                "commonName": "abc123.io",
                 "dnsNames": [
-                    "kibana.vmi.system.b521.zea2591.v8o.io"
+                    "abc123.io"
                 ],
                 "issuerRef": {
                     "group": "cert-manager.io",
@@ -251,9 +251,9 @@
                 "uid": "5bf11cc2-9ab2-47a6-85a9-1f68936855d0"
             },
             "spec": {
-                "commonName": "prometheus.vmi.system.b521.zea2591.v8o.io",
+                "commonName": "abc123.io",
                 "dnsNames": [
-                    "prometheus.vmi.system.b521.zea2591.v8o.io"
+                    "abc123.io"
                 ],
                 "issuerRef": {
                     "group": "cert-manager.io",
@@ -308,9 +308,9 @@
                 "uid": "5e322b73-037c-4dd5-9f26-89d9efa272e0"
             },
             "spec": {
-                "commonName": "verrazzano.b521.zea2591.v8o.io",
+                "commonName": "abc123.io",
                 "dnsNames": [
-                    "verrazzano.b521.zea2591.v8o.io"
+                    "abc123.io"
                 ],
                 "issuerRef": {
                     "group": "cert-manager.io",

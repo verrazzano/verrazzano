@@ -6,7 +6,7 @@
             "kind": "Verrazzano",
             "metadata": {
                 "annotations": {
-                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"install.verrazzano.io/v1beta1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"my-verrazzano\",\"namespace\":\"default\"},\"spec\":{\"components\":{\"certManager\":{\"certificate\":{\"acme\":{\"emailAddress\":\"emailAddress@domain.com\",\"environment\":\"staging\",\"provider\":\"letsEncrypt\"}}},\"dns\":{\"oci\":{\"dnsScope\":\"GLOBAL\",\"dnsZoneCompartmentOCID\":\"ocid1.compartment.oc1..aaaaaaaahyfirmf5si5nwycvdiqql77beqfbrd6tiielgutgfw65qnlnugja\",\"dnsZoneName\":\"zea2591.v8o.io\",\"dnsZoneOCID\":\"ocid1.dns-zone.oc1..766e247328a84a57b9e50edf8706c490\\n\",\"ociConfigSecret\":\"oci\"}},\"fluentd\":{\"extraVolumeMounts\":[{\"source\":\"/u01/data\"}]},\"ingressNGINX\":{\"type\":\"LoadBalancer\"},\"keycloak\":{\"overrides\":[{\"values\":{\"persistence\":{\"enabled\":false}}}]},\"kubeStateMetrics\":{\"enabled\":true},\"prometheusAdapter\":{\"enabled\":true},\"prometheusNodeExporter\":{\"enabled\":true},\"prometheusOperator\":{\"enabled\":true},\"prometheusPushgateway\":{\"enabled\":true}},\"environmentName\":\"b521\",\"profile\":\"dev\"}}\n"
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"install.verrazzano.io/v1beta1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"my-verrazzano\",\"namespace\":\"default\"},\"spec\":{\"components\":{\"certManager\":{\"certificate\":{\"acme\":{\"emailAddress\":\"emailAddress@domain.com\",\"environment\":\"staging\",\"provider\":\"letsEncrypt\"}}},\"dns\":{\"oci\":{\"dnsScope\":\"GLOBAL\",\"dnsZoneCompartmentOCID\":\"ocid1.compartment.oc1..abc123\",\"dnsZoneName\":\"abc123.v8o.io\",\"dnsZoneOCID\":\"ocid1.dns-zone.oc1..abc123\\n\",\"ociConfigSecret\":\"oci\"}},\"fluentd\":{\"extraVolumeMounts\":[{\"source\":\"/u01/data\"}]},\"ingressNGINX\":{\"type\":\"LoadBalancer\"},\"keycloak\":{\"overrides\":[{\"values\":{\"persistence\":{\"enabled\":false}}}]},\"kubeStateMetrics\":{\"enabled\":true},\"prometheusAdapter\":{\"enabled\":true},\"prometheusNodeExporter\":{\"enabled\":true},\"prometheusOperator\":{\"enabled\":true},\"prometheusPushgateway\":{\"enabled\":true}},\"environmentName\":\"aiisfs\",\"profile\":\"dev\"}}\n"
                 },
                 "creationTimestamp": "2023-03-08T14:28:21Z",
                 "finalizers": [
@@ -36,9 +36,9 @@
                     "dns": {
                         "oci": {
                             "dnsScope": "GLOBAL",
-                            "dnsZoneCompartmentOCID": "ocid1.compartment.oc1..aaaaaaaahyfirmf5si5nwycvdiqql77beqfbrd6tiielgutgfw65qnlnugja",
-                            "dnsZoneName": "zea2591.v8o.io",
-                            "dnsZoneOCID": "ocid1.dns-zone.oc1..766e247328a84a57b9e50edf8706c490\n",
+                            "dnsZoneCompartmentOCID": "ocid1.compartment.oc1..abc123",
+                            "dnsZoneName": "abc123.v8o.io",
+                            "dnsZoneOCID": "ocid1.dns-zone.oc1..abc123\n",
                             "ociConfigSecret": "oci"
                         }
                     },
@@ -80,7 +80,7 @@
                         "enabled": true
                     }
                 },
-                "environmentName": "b521",
+                "environmentName": "aiisfs",
                 "profile": "dev",
                 "security": {}
             },
@@ -740,14 +740,14 @@
                     }
                 ],
                 "instance": {
-                    "consoleUrl": "https://verrazzano.b521.zea2591.v8o.io",
-                    "grafanaUrl": "https://grafana.vmi.system.b521.zea2591.v8o.io",
-                    "keyCloakUrl": "https://keycloak.b521.zea2591.v8o.io",
-                    "kialiUrl": "https://kiali.vmi.system.b521.zea2591.v8o.io",
-                    "openSearchDashboardsUrl": "https://kibana.vmi.system.b521.zea2591.v8o.io",
-                    "openSearchUrl": "https://elasticsearch.vmi.system.b521.zea2591.v8o.io",
-                    "prometheusUrl": "https://prometheus.vmi.system.b521.zea2591.v8o.io",
-                    "rancherUrl": "https://rancher.b521.zea2591.v8o.io"
+                    "consoleUrl": "https://abc123.io",
+                    "grafanaUrl": "https://abc123.io",
+                    "keyCloakUrl": "https://abc123.io",
+                    "kialiUrl": "https://abc123.io",
+                    "openSearchDashboardsUrl": "https://abc123.io",
+                    "openSearchUrl": "https://abc123.io",
+                    "prometheusUrl": "https://abc123.io",
+                    "rancherUrl": "https://abc123.io"
                 },
                 "state": "Reconciling",
                 "version": "1.4.4"
