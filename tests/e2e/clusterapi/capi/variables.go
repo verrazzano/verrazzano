@@ -8,21 +8,18 @@ import (
 )
 
 var (
-	OCIUserID        string
-	OCIFingerprint   string
-	OCITenancyID     string
-	OCIRegion        string
-	OCICompartmentID string
-	//KubernetesVersion                string
-	OCIVcnID    string
-	OCISubnetID string
-	//OCISubnetCIDR                    string
+	OCIUserID         string
+	OCIFingerprint    string
+	OCITenancyID      string
+	OCIRegion         string
+	OCICompartmentID  string
+	OCIVcnID          string
+	OCISubnetID       string
 	OCISSHKeyPath     string
 	OCIPrivateKeyPath string
 	ClusterName       string
 	//ClusterTemplateGeneratedFilePath string
-	OCNENamespace string
-	//OCIImageID                       string
+	OCNENamespace          string
 	OracleLinuxDisplayName string
 	OperatingSystem        string
 	OperatingSystemVersion string
@@ -38,10 +35,8 @@ func ensureCAPIVarsInitialized() {
 	OCIUserID = os.Getenv("OCI_USER_ID")
 	OCITenancyID = os.Getenv("OCI_TENANCY_ID")
 	OCICompartmentID = os.Getenv("OCI_COMPARTMENT_ID")
-	//KubernetesVersion = os.Getenv("KUBERNETES_VERSION")
 	OCIVcnID = os.Getenv("OCI_VCN_ID")
 	OCISubnetID = os.Getenv("OCI_SUBNET_ID")
-	//OCISubnetCIDR = "10.0.0.32/27"
 	ClusterName = os.Getenv("CLUSTER_NAME")
 	OCIPrivateKeyPath = os.Getenv("CAPI_OCI_PRIVATE_KEY_PATH")
 	OCISSHKeyPath = os.Getenv("CAPI_NODE_SSH_KEY_PATH")

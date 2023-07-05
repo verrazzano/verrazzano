@@ -5,7 +5,6 @@ package capi
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -13,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -48,7 +46,7 @@ const (
 var capiInitFunc = clusterapi.New
 
 // PrintYamlOutput is used to print yaml templates to stdout or a file
-func PrintYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
+func (c CAPITestImpl) PrintYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
 	yaml, err := printer.Yaml()
 	if err != nil {
 		return err
@@ -69,7 +67,7 @@ func PrintYamlOutput(printer clusterapi.YamlPrinter, outputFile string) error {
 }
 
 // ClusterTemplateGenerate used for cluster template generation
-func ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) (string, error) {
+func (c CAPITestImpl) ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) (string, error) {
 	log.Infof("Generate called for clustername '%s'...", clusterName)
 	capiClient, err := capiInitFunc("")
 	if err != nil {
@@ -103,17 +101,14 @@ func ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredL
 		return "", fmt.Errorf("Failed to create temporary file: %v", err)
 	}
 
-	//log.Infof("Temp file name = %v", tmpFile.Name())
-	//ClusterTemplateGeneratedFilePath = tmpFile.Name()
-
-	if err := PrintYamlOutput(template, tmpFile.Name()); err != nil {
+	if err := c.PrintYamlOutput(template, tmpFile.Name()); err != nil {
 		return "", err
 	}
 	return tmpFile.Name(), nil
 }
 
 // GetUnstructuredData common utility to fetch unstructured data
-func GetUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+func (c CAPITestImpl) GetUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
 	var dataFetched *unstructured.Unstructured
 	var err error
 	config, err := k8sutil.GetKubeConfig()
@@ -152,7 +147,7 @@ func GetUnstructuredData(group, version, resource, resourceName, nameSpaceName s
 }
 
 // GetUnstructuredData common utility to fetch list of unstructured data
-func GetUnstructuredDataList(group, version, resource, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
+func (c CAPITestImpl) GetUnstructuredDataList(group, version, resource, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
@@ -179,9 +174,10 @@ func GetUnstructuredDataList(group, version, resource, nameSpaceName string, log
 	return dataFetched, nil
 }
 
-func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error) {
+// GetCluster is used to fetch capi cluster info given a cluster name and namespace, if it exists
+func (c CAPITestImpl) GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error) {
 	var capiCluster Cluster
-	clusterFetched, err := GetUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterName, namespace, log)
+	clusterFetched, err := c.GetUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterName, namespace, log)
 	if err != nil {
 		log.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterName, zap.Error(err))
 		return nil, err
@@ -206,8 +202,9 @@ func GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster
 	return &capiCluster, nil
 }
 
-func GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
-	ocnecpFetched, err := GetUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, log)
+// GetOCNEControlPlane is used to fetch OCNE control plane info given a control plane name and namespace, if it exists
+func (c CAPITestImpl) GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
+	ocnecpFetched, err := c.GetUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, log)
 	if err != nil {
 		log.Errorf("Unable to fetch OCNE control plane '%s' due to '%v'", controlPlaneName, zap.Error(err))
 		return nil, err
@@ -232,7 +229,8 @@ func GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLog
 	return &ocneControlPlane, nil
 }
 
-func GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
+// GetCapiClusterKubeConfig returns the content of the kubeconfig file of an OCNE cluster if it exists.
+func (c CAPITestImpl) GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		log.Errorf("Failed to get clientset with error: %v", err)
@@ -248,8 +246,9 @@ func GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byt
 	return secret.Data["value"], nil
 }
 
-func GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error) {
-	capiK8sConfig, err := GetCapiClusterKubeConfig(clusterName, log)
+// GetCapiClusterK8sClient returns the K8s client of an OCNE cluster if it exists.
+func (c CAPITestImpl) GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error) {
+	capiK8sConfig, err := c.GetCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
 		return nil, err
 	}
@@ -270,8 +269,9 @@ func GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
 }
 
-func TriggerCapiClusterCreation(clusterName, templateName string, log *zap.SugaredLogger) error {
-	tmpFilePath, err := ClusterTemplateGenerate(clusterName, templateName, log)
+// TriggerCapiClusterCreation starts the OCNE workload cluster creation by applying the template YAML
+func (c CAPITestImpl) TriggerCapiClusterCreation(clusterName, templateName string, log *zap.SugaredLogger) error {
+	tmpFilePath, err := c.ClusterTemplateGenerate(clusterName, templateName, log)
 	if err != nil {
 		log.Errorf("unable to generate template for cluster : %v", zap.Error(err))
 		return err
@@ -291,7 +291,12 @@ func TriggerCapiClusterCreation(clusterName, templateName string, log *zap.Sugar
 	return nil
 }
 
-func DeployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
+// DeployClusterResourceSets deploys the ClusterResourceSets by deploying the addon template YAML
+// ClusterResourceSets are used to deploy the following on OCNE workload clusters
+// 1. CCM Secrets
+// 2. Calico Module
+// 3. CCM Module
+func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
 	log.Info("Preparing to deploy Clusterresourcesets...")
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
 	if err != nil {
@@ -312,7 +317,7 @@ func DeployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 	os.Setenv(OCIVCNKey, OCIVcnID)
 	os.Setenv(OCISubnetKey, OCISubnetID)
 
-	tmpFilePath, err := ClusterTemplateGenerate(clusterName, templateName, log)
+	tmpFilePath, err := c.ClusterTemplateGenerate(clusterName, templateName, log)
 	if err != nil {
 		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
 		return err
@@ -335,13 +340,14 @@ func DeployClusterResourceSets(clusterName, templateName string, log *zap.Sugare
 	localTest := getEnvDefault("LOCAL_TEST", "false")
 	if strings.ToLower(localTest) == "false" {
 		// When running on Jenkins instance
-		return CreateImagePullSecrets(clusterName, log)
+		return c.CreateImagePullSecrets(clusterName, log)
 	}
 	return nil
 }
 
-func EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
-	machinesFetched, err := GetUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, log)
+// EnsureMachinesAreProvisioned fetches the machines that are deployed during OCNE cluster creation.
+func (c CAPITestImpl) EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
+	machinesFetched, err := c.GetUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, log)
 	if err != nil {
 		log.Errorf("Unable to fetch machines due to '%v'", zap.Error(err))
 		return err
@@ -387,7 +393,7 @@ func EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.Sugare
 	return fmt.Errorf("All machines are not in 'Running' state")
 }
 
-func MonitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error {
+func (c CAPITestImpl) MonitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error {
 	var err error
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
@@ -432,14 +438,16 @@ func MonitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) erro
 	return fmt.Errorf("cluster '%s' is in '%s' state", clusterName, capiCluster.Status.Phase)
 }
 
-func MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error {
-	klusterData, err := GetCluster(OCNENamespace, clusterName, log)
+// MonitorCapiClusterCreation fetches the workload OCNE cluster elements and prints them as a formatted table.
+// Returns an error if Cluster is not Ready
+func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error {
+	klusterData, err := c.GetCluster(OCNENamespace, clusterName, log)
 	if err != nil {
 		return err
 	}
 
 	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
-	ocneCP, err := GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
+	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
 	if err != nil {
 		return err
 	}
@@ -450,7 +458,7 @@ func MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) erro
 		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
 		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas, time.Until(ocneCP.Metadata.CreationTimestamp).Abs()))
 	writer.Flush()
-	err = EnsureMachinesAreProvisioned(OCNENamespace, clusterName, log)
+	err = c.EnsureMachinesAreProvisioned(OCNENamespace, clusterName, log)
 	if err != nil {
 		return err
 	}
@@ -463,7 +471,7 @@ func MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) erro
 	return fmt.Errorf("cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
 }
 
-func TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
+func (c CAPITestImpl) TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {
 	var err error
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
@@ -490,7 +498,8 @@ func TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.Suga
 	return nil
 }
 
-func ShowNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
+// ShowNodeInfo displays the nodes of workload OCNE cluster as a formatted table.
+func (c CAPITestImpl) ShowNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tRole\tVersion\tInternalIP\tExternalIP\tOSImage\tKernelVersion\tContainerRuntime\tAge")
 	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -524,7 +533,8 @@ func ShowNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.Sug
 	return nil
 }
 
-func ShowPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
+// ShowPodInfo displays the pods of workload OCNE cluster as a formatted table.
+func (c CAPITestImpl) ShowPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
 	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
@@ -556,103 +566,21 @@ func ShowPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.Suga
 	return nil
 }
 
-func DisplayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
-	client, err := GetCapiClusterK8sClient(clusterName, log)
+// DisplayWorkloadClusterResources displays the pods of workload OCNE cluster as a formatted table.
+func (c CAPITestImpl) DisplayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
+	client, err := c.GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
 	}
 
 	log.Infof("----------- Node in workload cluster ---------------------")
-	err = ShowNodeInfo(client, clusterName, log)
+	err = c.ShowNodeInfo(client, clusterName, log)
 	if err != nil {
 		return err
 	}
 
 	log.Infof("----------- Pods running on workload cluster ---------------------")
-	return ShowPodInfo(client, clusterName, log)
-}
-
-func ProcessOCIPrivateKeysBase64(file, key string, log *zap.SugaredLogger) error {
-	_, err := os.Stat(file)
-	if err != nil {
-		log.Errorf("file '%s' not found", file)
-		return err
-	}
-	data, err := os.ReadFile(file)
-	if err != nil {
-		log.Errorf("failed reading file contents: %v", err)
-		return err
-	}
-
-	return os.Setenv(key, base64.StdEncoding.EncodeToString(data))
-}
-
-func ProcessOCISSHKeys(file, key string, log *zap.SugaredLogger) error {
-	_, err := os.Stat(file)
-	if err != nil {
-		log.Errorf("file '%s' not found", file)
-		return err
-	}
-	data, err := os.ReadFile(file)
-	if err != nil {
-		log.Errorf("failed reading file contents: %v", err)
-		return err
-	}
-
-	return os.Setenv(key, string(data))
-}
-
-func ProcessOCIPrivateKeysSingleLine(file, key string, log *zap.SugaredLogger) error {
-	_, err := os.Stat(file)
-	if err != nil {
-		log.Errorf("file '%s' not found", file)
-		return err
-	}
-
-	tmpFile, err := os.CreateTemp(os.TempDir(), "testkey")
-	if err != nil {
-		log.Errorf("Failed to create temporary file : %v", zap.Error(err))
-		return err
-	}
-
-	var cmdArgs []string
-	var bcmd helpers.BashCommand
-	ocicmd := "awk 'NF {sub(/\\r/, \"\"); printf \"%s\\\\n\",$0;}' " + file + "> " + tmpFile.Name()
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", ocicmd)
-	bcmd.CommandArgs = cmdArgs
-	keydata := helpers.Runner(&bcmd, log)
-	if keydata.CommandError != nil {
-		return keydata.CommandError
-	}
-
-	bdata, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		log.Errorf("failed reading file contents: %v", err)
-		return err
-	}
-
-	return os.Setenv(key, string(bdata))
-}
-
-func CreateNamespace(namespace string, log *zap.SugaredLogger) error {
-	log.Infof("creating namespace '%s'", namespace)
-	k8s, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return err
-	}
-
-	nsObj := &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}
-	_, err = k8s.CoreV1().Namespaces().Create(context.TODO(), nsObj, metav1.CreateOptions{})
-	if err != nil {
-		log.Errorf("failed to create namespace %v", zap.Error(err))
-		return err
-	}
-	return nil
-
+	return c.ShowPodInfo(client, clusterName, log)
 }
 
 /*
@@ -666,7 +594,7 @@ func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
 }
 */
 
-func UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
+func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
 	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayNameToUpdate, info)
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
 	if err != nil {
@@ -691,20 +619,6 @@ func UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, inf
 	rule.Source = ruleCIDR
 
 	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
-}
-
-func SetImageID(key string, log *zap.SugaredLogger) error {
-	oci, err := NewClient(GetOCIConfigurationProvider(log))
-	if err != nil {
-		log.Error("Unable to create OCI client %v", zap.Error(err))
-		return err
-	}
-	id, err := oci.GetImageIDByName(context.TODO(), OCICompartmentID, OracleLinuxDisplayName, OperatingSystem, OperatingSystemVersion, log)
-	if err != nil {
-		log.Error("Unable to fetch image id %v", zap.Error(err))
-		return err
-	}
-	return os.Setenv(key, id)
 }
 
 /*
@@ -740,10 +654,10 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 }
 */
 
-func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
+func (c CAPITestImpl) CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 	log.Infof("Creating image pull secrets on workload cluster ...")
 
-	capiK8sConfig, err := GetCapiClusterKubeConfig(clusterName, log)
+	capiK8sConfig, err := c.GetCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
 		return err
 	}

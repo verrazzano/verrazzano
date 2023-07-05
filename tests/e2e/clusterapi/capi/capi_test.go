@@ -53,6 +53,8 @@ var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("cluster-api")
 
+var capiTest = NewCapiTestClient()
+
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
 func WhenClusterAPIInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -75,7 +77,7 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 }
 
 func EnsurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap.SugaredLogger) bool {
-	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
+	k8sclient, err := capiTest.GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -105,7 +107,7 @@ func EnsurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 
-	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
+	err = capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -115,7 +117,7 @@ func EnsurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap
 }
 
 func EnsureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
-	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
+	k8sclient, err := capiTest.GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -128,7 +130,7 @@ func EnsureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
+	err = capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -138,7 +140,7 @@ func EnsureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 }
 
 func EnsureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool {
-	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
+	k8sclient, err := capiTest.GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -160,7 +162,7 @@ func EnsureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
 
-	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
+	err = capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -170,7 +172,7 @@ func EnsureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 }
 
 func EnsureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
-	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
+	k8sclient, err := capiTest.GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -184,7 +186,7 @@ func EnsureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 
-	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
+	err = capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -217,27 +219,27 @@ func capiPrerequisites() {
 
 	t.Logs.Infof("Process and set OCI private keys base64 encoded '%s'", ClusterName)
 	Eventually(func() error {
-		return ProcessOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
+		return capiTest.ProcessOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI private key '%s'", ClusterName)
 	Eventually(func() error {
-		return ProcessOCIPrivateKeysSingleLine(OCIPrivateKeyPath, OCICredsKey, t.Logs)
+		return capiTest.ProcessOCIPrivateKeysSingleLine(OCIPrivateKeyPath, OCICredsKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
-		return ProcessOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
+		return capiTest.ProcessOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Fetch and set OCI Image ID for cluster '%s'", ClusterName)
 	Eventually(func() error {
-		return SetImageID(OCIImageIDKey, t.Logs)
+		return capiTest.SetImageID(OCIImageIDKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
 	Eventually(func() error {
-		return CreateNamespace(OCNENamespace, t.Logs)
+		return capiTest.CreateNamespace(OCNENamespace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
@@ -250,7 +252,7 @@ func EnsureNSG() error {
 		TCPPortMin:  5473,
 	}
 
-	err := UpdateOCINSG(ClusterName, "worker", "control-plane", "calico typha", &calicoWorkerRule, t.Logs)
+	err := capiTest.UpdateOCINSG(ClusterName, "worker", "control-plane", "calico typha", &calicoWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -263,7 +265,7 @@ func EnsureNSG() error {
 		TCPPortMin:  5473,
 	}
 
-	err = UpdateOCINSG(ClusterName, "control-plane", "worker", "calico typha", &calicoControlPlaneRule, t.Logs)
+	err = capiTest.UpdateOCINSG(ClusterName, "control-plane", "worker", "calico typha", &calicoControlPlaneRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -274,7 +276,7 @@ func EnsureNSG() error {
 		IsStateless: false,
 	}
 
-	err = UpdateOCINSG(ClusterName, "worker", "control-plane", "udp", &udpWorkerRule, t.Logs)
+	err = capiTest.UpdateOCINSG(ClusterName, "worker", "control-plane", "udp", &udpWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -285,7 +287,7 @@ func EnsureNSG() error {
 		IsStateless: false,
 	}
 
-	return UpdateOCINSG(ClusterName, "control-plane", "worker", "udp", &udpControlPlaneRule, t.Logs)
+	return capiTest.UpdateOCINSG(ClusterName, "control-plane", "worker", "udp", &udpControlPlaneRule, t.Logs)
 
 }
 
@@ -304,19 +306,19 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
-				return TriggerCapiClusterCreation(OCNENamespace, clusterTemplate, t.Logs)
+				return capiTest.TriggerCapiClusterCreation(OCNENamespace, clusterTemplate, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Monitor Cluster Creation", func() {
 			Eventually(func() error {
-				return MonitorCapiClusterCreation(ClusterName, t.Logs)
+				return capiTest.MonitorCapiClusterCreation(ClusterName, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Monitor Cluster Creation")
 		})
 
 		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
 			Eventually(func() error {
-				return DeployClusterResourceSets(ClusterName, clusterResourceSetTemplate, t.Logs)
+				return capiTest.DeployClusterResourceSets(ClusterName, clusterResourceSetTemplate, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
@@ -370,7 +372,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
-				return DisplayWorkloadClusterResources(ClusterName, t.Logs)
+				return capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
