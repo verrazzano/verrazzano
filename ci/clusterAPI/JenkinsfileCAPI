@@ -382,8 +382,10 @@ pipeline {
        stage('install Verrazzano on workload cluster') {
            steps {
                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                   script {
+                       TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                   }
                    sh """
-                       export TS=$(date +%Y%m%d%H%M%S)
                        export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH} get nodes -o wide
@@ -406,8 +408,10 @@ pipeline {
        stage('verify-install on workload cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                           TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                       }
                     sh """
-                        export TS=$(date +%Y%m%d%H%M%S)
                         export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                         kubectl --kubeconfig ${TEMPKUBECONFIGPATH}  get nodes -o wide
@@ -483,8 +487,10 @@ pipeline {
                    }
                    steps {
                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                           script {
+                              TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                          }
                            sh """
-                                export TS=$(date +%Y%m%d%H%M%S)
                                 export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                                 kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                                 export KUBECONFIG=${TEMPKUBECONFIGPATH}
@@ -545,8 +551,8 @@ pipeline {
         stage('uninstall vz from workload cluster') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     sh """
-                        export TS=$(date +%Y%m%d%H%M%S)
                         export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                         kubectl --kubeconfig ${TEMPKUBECONFIGPATH} get nodes -o wide
@@ -647,9 +653,11 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 
 def runGinkgoWorkloadCluster(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+           TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+       }
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export TS=$(date +%Y%m%d%H%M%S)
             export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
             export KUBECONFIG=${TEMPKUBECONFIGPATH}
@@ -661,11 +669,13 @@ def runGinkgoWorkloadCluster(testSuitePath) {
 
 def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+           TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+       }
         sh """
             if [ ! -z "${kubeConfig}" ]; then
                 export KUBECONFIG="${kubeConfig}"
             fi
-            export TS=$(date +%Y%m%d%H%M%S)
             export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
             export KUBECONFIG=${TEMPKUBECONFIGPATH}
