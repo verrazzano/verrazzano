@@ -383,7 +383,8 @@ pipeline {
            steps {
                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                    sh """
-                       export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+                       export TS=$(date +%Y%m%d%H%M%S)
+                       export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH} get nodes -o wide
                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH}-kubeconfig get pods -A
@@ -406,7 +407,8 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+                        export TS=$(date +%Y%m%d%H%M%S)
+                        export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                         kubectl --kubeconfig ${TEMPKUBECONFIGPATH}  get nodes -o wide
                         kubectl --kubeconfig ${TEMPKUBECONFIGPATH}  get pods -A
@@ -426,7 +428,7 @@ pipeline {
             }
        }
        */
-       
+
        stage('Run Acceptance Tests Infra') {
 
            parallel {
@@ -482,7 +484,8 @@ pipeline {
                    steps {
                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                            sh """
-                                export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+                                export TS=$(date +%Y%m%d%H%M%S)
+                                export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
                                 kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
                                 export KUBECONFIG=${TEMPKUBECONFIGPATH}
                                 CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
@@ -543,10 +546,12 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > /tmp/${CLUSTER_NAME}-kubeconfig
-                        kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get nodes -o wide
-                        kubectl --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig get pods -A
-                        ${GO_REPO_PATH}/vz --kubeconfig /tmp/${CLUSTER_NAME}-kubeconfig uninstall -y --timeout 60m
+                        export TS=$(date +%Y%m%d%H%M%S)
+                        export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
+                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
+                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH} get nodes -o wide
+                        kubectl --kubeconfig ${TEMPKUBECONFIGPATH} get pods -A
+                        ${GO_REPO_PATH}/vz --kubeconfig ${TEMPKUBECONFIGPATH} uninstall -y --timeout 60m
                     """
                 }
             }
@@ -644,7 +649,8 @@ def runGinkgoWorkloadCluster(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+            export TS=$(date +%Y%m%d%H%M%S)
+            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
             export KUBECONFIG=${TEMPKUBECONFIGPATH}
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
@@ -659,7 +665,8 @@ def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
             if [ ! -z "${kubeConfig}" ]; then
                 export KUBECONFIG="${kubeConfig}"
             fi
-            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-$(date +%Y%m%d%H%M%S)-kubeconfig
+            export TS=$(date +%Y%m%d%H%M%S)
+            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${TEMPKUBECONFIGPATH}
             export KUBECONFIG=${TEMPKUBECONFIGPATH}
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
