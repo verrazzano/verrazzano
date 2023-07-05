@@ -213,7 +213,7 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if alertmanagerEnabled {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ns,
-			Name:      constants.PrometheusIngress,
+			Name:      constants.AlertmanagerIngress,
 		})
 	}
 
