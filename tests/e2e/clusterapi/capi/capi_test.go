@@ -74,8 +74,8 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 	}
 }
 
-func ensurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap.SugaredLogger) bool {
-	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
+func EnsurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap.SugaredLogger) bool {
+	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -105,7 +105,7 @@ func ensurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 
-	err = displayWorkloadClusterResources(ClusterName, t.Logs)
+	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -114,8 +114,8 @@ func ensurePodsAreRunning(clusterName, namespace, podNamePrefix string, log *zap
 	return result
 }
 
-func ensureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
-	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
+func EnsureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
+	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -128,7 +128,7 @@ func ensureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	err = displayWorkloadClusterResources(ClusterName, t.Logs)
+	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -137,8 +137,8 @@ func ensureCSIPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 	return result1 && result2
 }
 
-func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool {
-	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
+func EnsureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool {
+	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -160,7 +160,7 @@ func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: calico-system, error: %v", err))
 	}
 
-	err = displayWorkloadClusterResources(ClusterName, t.Logs)
+	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -169,8 +169,8 @@ func ensureCalicoPodsAreRunning(clusterName string, log *zap.SugaredLogger) bool
 	return result1 && result2 && result3 && result4
 }
 
-func ensureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
-	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
+func EnsureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
+	k8sclient, err := GetCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
 		return false
@@ -184,7 +184,7 @@ func ensureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 
-	err = displayWorkloadClusterResources(ClusterName, t.Logs)
+	err = DisplayWorkloadClusterResources(ClusterName, t.Logs)
 	if err != nil {
 		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
 		return false
@@ -193,7 +193,7 @@ func ensureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 	return result1 && result2
 }
 
-func envSet() error {
+func EnvSet() error {
 	if err := os.Setenv(OCITenancyIDKeyBase64, base64.StdEncoding.EncodeToString([]byte(OCITenancyID))); err != nil {
 		return err
 	}
@@ -212,32 +212,32 @@ func capiPrerequisites() {
 
 	t.Logs.Infof("Setup CAPI base64 env values '%s'", ClusterName)
 	Eventually(func() error {
-		return envSet()
+		return EnvSet()
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI private key '%s'", ClusterName)
 	Eventually(func() error {
-		return processOCIPrivateKeysSingleLine(OCIPrivateKeyPath, OCICredsKey, t.Logs)
+		return ProcessOCIPrivateKeysSingleLine(OCIPrivateKeyPath, OCICredsKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Fetch and set OCI Image ID for cluster '%s'", ClusterName)
 	Eventually(func() error {
-		return setImageID(OCIImageIDKey, t.Logs)
+		return SetImageID(OCIImageIDKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
-		return processOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
+		return ProcessOCIPrivateKeysBase64(OCIPrivateKeyPath, OCIPrivateCredsKeyBase64, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Process and set OCI node ssh key '%s'", ClusterName)
 	Eventually(func() error {
-		return processOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
+		return ProcessOCISSHKeys(OCISSHKeyPath, CAPINodeSSHKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
 	Eventually(func() error {
-		return createNamespace(OCNENamespace, t.Logs)
+		return CreateNamespace(OCNENamespace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
@@ -251,7 +251,7 @@ func ensureNSG() error {
 		TCPPortMin:  5473,
 	}
 
-	err := updateOCINSG(ClusterName, "worker", "calico typha", &calicoWorkerRule, t.Logs)
+	err := UpdateOCINSG(ClusterName, "worker", "calico typha", &calicoWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func ensureNSG() error {
 		TCPPortMin:  5473,
 	}
 
-	err = updateOCINSG(ClusterName, "control-plane", "calico typha", &calicoControlPlaneRule, t.Logs)
+	err = UpdateOCINSG(ClusterName, "control-plane", "calico typha", &calicoControlPlaneRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func ensureNSG() error {
 		IsStateless: false,
 	}
 
-	err = updateOCINSG(ClusterName, "worker", "udp", &udpWorkerRule, t.Logs)
+	err = UpdateOCINSG(ClusterName, "worker", "udp", &udpWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func ensureNSG() error {
 		IsStateless: false,
 	}
 
-	return updateOCINSG(ClusterName, "control-plane", "udp", &udpControlPlaneRule, t.Logs)
+	return UpdateOCINSG(ClusterName, "control-plane", "udp", &udpControlPlaneRule, t.Logs)
 
 }
 
@@ -332,67 +332,67 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Ensure ETCD pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "kube-system", "etcd", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "kube-system", "etcd", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube API Server pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "kube-system", "apiserver", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "kube-system", "apiserver", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube controller pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "kube-system", "controller-manager", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "kube-system", "controller-manager", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube scheduler pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "kube-system", "scheduler", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "kube-system", "scheduler", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure kube proxy pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "kube-system", "proxy", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "kube-system", "proxy", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure CCM pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "kube-system", "ccm", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "kube-system", "ccm", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure CSI pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensureCSIPodsAreRunning(ClusterName, "kube-system", t.Logs)
+				return EnsureCSIPodsAreRunning(ClusterName, "kube-system", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
-				return displayWorkloadClusterResources(ClusterName, t.Logs)
+				return DisplayWorkloadClusterResources(ClusterName, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure Calico pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensureCalicoPodsAreRunning(ClusterName, t.Logs)
+				return EnsureCalicoPodsAreRunning(ClusterName, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure Module operator pods in verrazzano-module-operator of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensurePodsAreRunning(ClusterName, "verrazzano-module-operator", "module", t.Logs)
+				return EnsurePodsAreRunning(ClusterName, "verrazzano-module-operator", "module", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
 		WhenClusterAPIInstalledIt("Ensure Verrazzano Platform operator pods in verrazzano-install of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
-				return ensureVPOPodsAreRunning(ClusterName, "verrazzano-install", t.Logs)
+				return EnsureVPOPodsAreRunning(ClusterName, "verrazzano-install", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 	})
