@@ -510,7 +510,15 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return common.ActivateKontainerDriver(ctx)
+
+	dynClient, err := getDynamicClientFunc()()
+	if err != nil {
+		return err
+	}
+	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
+		return err
+	}
+	return common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -558,7 +566,15 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	if err := common.ActivateKontainerDriver(ctx); err != nil {
+
+	dynClient, err := getDynamicClientFunc()()
+	if err != nil {
+		return err
+	}
+	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
+		return err
+	}
+	if err := common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName); err != nil {
 		return log.ErrorfThrottledNewErr("Failed to activate kontainerdriver post upgrade: %s", err.Error())
 	}
 	return cleanupRancherResources(context.TODO(), ctx.Client())
