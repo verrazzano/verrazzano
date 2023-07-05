@@ -135,25 +135,27 @@ func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) 
 
 func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 
-	developmentVersionSplit := strings.Split(developmentVersion, ".")
-	//Split the string into major and minor version values
-	majorVersionValue := parseInt(developmentVersionSplit[0])
-	minorVersionValue := parseInt(developmentVersionSplit[1]) - 1
+	builder := strings.Builder{}
+	var latestForCurrentBranch *semver.SemVersion
 
-	// Iterate over all releases to configure the latest patch release
-	latestPatch := 0
-	var latestRelease string
-	for _, version := range releaseTags {
-		versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-		if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) == minorVersionValue {
-			if parseInt(versionSplit[2]) > latestPatch {
-				latestPatch = parseInt(versionSplit[2])
-			}
-			latestRelease = fmt.Sprintf("v%s.%d.%d", versionSplit[0], minorVersionValue, latestPatch)
+	o, err := semver.NewSemVersion(developmentVersion)
+	o.Patch = 0
+	if err != nil {
+		//return ""
+	}
+	for _, tag := range releaseTags {
+		var t = tag
+		tagVersion, err := semver.NewSemVersion(t)
+		if err != nil {
+			return ""
+		}
+		if tagVersion.IsLessThan(o) {
+			latestForCurrentBranch = tagVersion
 		}
 	}
+	builder.WriteString("v" + latestForCurrentBranch.ToString())
 
-	return latestRelease
+	return builder.String()
 }
 
 func getInterimRelease(releaseTags []string) string {

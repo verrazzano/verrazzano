@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -77,7 +78,7 @@ func addCAIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingress
 
 // cleanupRancherResources cleans up Rancher resources that are no longer supported
 func cleanupRancherResources(ctx context.Context, c client.Client) error {
-	di, err := getDynamicClientFunc()
+	di, err := dynamicClientFunc()
 	if err != nil {
 		return err
 	}

@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230615210154-513bc4d98",
+              "dashboard": "v2.7.2-20230630202538-1f346be21",
               "rancherUI": "v2.7.2-7/release-2.7.2",
               "ocneDriverVersion": "v0.14.0",
               "ocneDriverChecksum": "c10f757291664ae041569934951ae42d2d4021d4031f6ba009370cb92b7173fe",
-              "tag": "v2.7.3-20230628173719-72ada53b0",
+              "tag": "v2.7.3-20230630203604-72ada53b0",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230628173719-72ada53b0"
+              "tag": "v2.7.3-20230630203604-72ada53b0"
             }
           ]
         },
@@ -247,7 +247,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "1.6.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -265,7 +265,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.0-20230518201121-1c995fb",
+              "tag": "v2.0.0-20230628190831-09d3d66",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -287,7 +287,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.6.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.0-20230529135659-b70d524",
+              "tag": "v2.0.0-20230630070726-a727c8b",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -386,7 +386,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "1.6.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -473,7 +473,7 @@
             },
             {
               "image": "fluent-bit",
-              "tag": "v2.0.11-20230526122435-3bff26487",
+              "tag": "v2.0.11-20230628072810-c499f26ce",
               "helmFullImageKey": "fluentbit.image.repository",
               "helmTagKey": "fluentbit.image.tag"
             },
@@ -581,7 +581,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.6.0-20230512022548-e289e05"
+              "tag": "v2.0.0-20230628190510-b8bc75a"
             }
           ]
         }

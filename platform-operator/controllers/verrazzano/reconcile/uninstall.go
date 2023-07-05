@@ -5,7 +5,6 @@ package reconcile
 
 import (
 	"context"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -404,7 +403,6 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
 			return newRequeueWithDelay(), err
 		}
-		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
 			Client: r.Client,
@@ -446,7 +444,6 @@ func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
 	}
 
 	for _, ns := range namespaces.Items {
-		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
 		err := resource.Resource{
 			Name:      istioRootCertName,
 			Namespace: ns.GetName(),
