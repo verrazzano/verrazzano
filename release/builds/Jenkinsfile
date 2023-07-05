@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -6,6 +6,10 @@ def releaseBuild
 def RELEASE_JOB_NAME
 def RELEASE_BRANCH_COMMIT
 def IS_PATCH_RELEASE = false
+def VERRAZZANO_DEV_VERSION
+def IMAGES_TO_PUBLISH_OBJECT_STORE_FILE
+def COMMIT_TO_USE
+
 
 pipeline {
     options {
@@ -23,20 +27,9 @@ pipeline {
         }
     }
 
-    parameters {
-        string (description: 'The location of an existing candidate images file to use. This is provided by automation in the normal flow. The default NONE indicates a full build/test is required', name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', defaultValue: 'NONE', trim: true)
-        string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
-        string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
-        string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
+        parameters {
+        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
         booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
-        booleanParam (description: 'Only create release branch (skips release validation, build, and image push)', name: 'CREATE_BRANCH_ONLY', defaultValue: false)
-        booleanParam (description: 'Whether to copy the product zip into the release object store from the last clean periodic test',
-                name: 'COPY_PRODUCT_ZIP_FROM_PERIODIC', defaultValue: false)
-        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
-        string (name: 'VERRAZZANO_HELPER_BRANCH',
-                        defaultValue: 'master',
-                        description: 'verrazzano-helper branch. master is used for 1.3+, release-1.2 is used for 1.2 and earlier, user branch name is used when testing verrazzano-helper changes',
-                        trim: true)
     }
 
     environment {
@@ -45,42 +38,70 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         GITHUB_CREDENTIALS = credentials('github_rw')
-
-        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_REGION="us-phoenix-1"
-        OCI_OS_SHARED_BUCKET="build-shared-files"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-
+        OCI_CLI_REGION = "us-phoenix-1"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        OCI_OS_SHARED_BUCKET="build-shared-files"
+
         PERIODIC_JOB_OBJECT_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
-        PERIODIC_PRODUCT_LITE_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}-lite.zip"
-        PERIODIC_PRODUCT_FULL_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}.zip"
+        PERIODIC_PRODUCT_LITE_OBJECT_NAME = "verrazzano-${VERRAZZANO_DEV_VERSION}-lite.zip"
+        PERIODIC_PRODUCT_FULL_OBJECT_NAME = "verrazzano-${VERRAZZANO_DEV_VERSION}.zip"
     }
 
     stages {
+        stage('Find Last Releasable Commit') {
+            steps {
+                script {
+                    dir ("${WORKSPACE}") {
+                        sh """
+                          oci --region ${OCI_CLI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/current-dev-version.txt --file ${WORKSPACE}/current_dev_version.txt
+                        """
+                        def propsDevVersion = readProperties file: "current_dev_version.txt"
+                        VERRAZZANO_DEV_VERSION = propsDevVersion['verrazzano-development-version']
+                        println("Current dev version is ${VERRAZZANO_DEV_VERSION}")
+                        sh """
+                          oci --region ${OCI_CLI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt --file ${WORKSPACE}/last_releasable_candidate_commit.txt
+                        """
+                        def props = readProperties file: "last_releasable_candidate_commit.txt"
+                        COMMIT_TO_USE = props['git-commit']
+                        if (!COMMIT_TO_USE) {
+                            println("ERROR: No releasable commit found for dev version ${VERRAZZANO_DEV_VERSION}")
+                            sh "exit 1"
+                        }
+                        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "echo ${COMMIT_TO_USE} | head -c 8")
+                        IMAGES_TO_PUBLISH_OBJECT_STORE_FILE="${CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
+                        sh """
+                          oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --destination-bucket ${OCI_OS_BUCKET} --source-object-name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --destination-object-name ${IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Clean workspace and checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
                 """
                 script {
-                    if (params.COMMIT_TO_USE == "NONE") {
+                    if (COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        echo "SCM checkout of ${params.COMMIT_TO_USE}"
+                        echo "SCM checkout of ${COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: params.COMMIT_TO_USE]],
+                            branches: [[name: COMMIT_TO_USE]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
@@ -88,8 +109,8 @@ pipeline {
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
+                        if (!env.GIT_COMMIT.equals(COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
                             sh "exit 1"
                         }
                     }
@@ -108,12 +129,12 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + COMMIT_TO_USE
                 }
                 script {
                     sh """
                         echo "Downloading verrazzano-helper from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name master/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
                         chmod uog+x ${WORKSPACE}/verrazzano-helper
                     """
                 }
@@ -124,22 +145,22 @@ pipeline {
             steps {
                 script {
                     // major or minor release has a target version that ends in 0
-                    if (params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
+                    if (VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.0$/) {
                         echo "major/minor release detected. test=${params.TEST_RUN}"
                         IS_PATCH_RELEASE = 'false'
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
-                    } else if (env.BRANCH_NAME =~ /release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                    } else if (env.BRANCH_NAME =~ /release-\d+\.\d+$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "patch release detected"
                         IS_PATCH_RELEASE = 'true'
-                    } else if (params.TEST_RUN && env.BRANCH_NAME =~ /mock-release-\d+\.\d+$/ && params.TARGET_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                    } else if (params.TEST_RUN && env.BRANCH_NAME =~ /mock-release-\d+\.\d+$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "test patch release detected"
                         IS_PATCH_RELEASE = 'true'
                     } else {
-                        error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
+                        error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${VERRAZZANO_DEV_VERSION}"
                     }
 
-                    // if CREATE_BRANCH_ONLY is checked, make sure the source branch is master
-                    if (!params.TEST_RUN && params.CREATE_BRANCH_ONLY && env.BRANCH_NAME != "master") {
+                    // Make sure the source branch is master
+                    if (!params.TEST_RUN && env.BRANCH_NAME != "master") {
                         error "Release branch must be created from master, ${env.BRANCH_NAME} is an invalid source branch"
                     }
 
@@ -149,9 +170,7 @@ pipeline {
         }
 
         stage('Pre-release validation') {
-            when {
-                expression { !params.CREATE_BRANCH_ONLY }
-            }
+        
             environment {
                 IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
                 TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
@@ -161,7 +180,7 @@ pipeline {
                 script {
                     sh """
                         cd ${WORKSPACE}
-                        ./release/scripts/prerelease_validation.sh ${params.TARGET_VERSION}
+                        ./release/scripts/prerelease_validation.sh ${VERRAZZANO_DEV_VERSION}
                     """
                 }
             }
@@ -172,7 +191,7 @@ pipeline {
             // this can be extended in the future to allow release from master which would create the branch and then use an existing
             // candidate from master, but for now we aren't adding that complexity and keeping this simple on (not crossing branches yet)
             when {
-                expression { return params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE == 'NONE' }
+                expression { return IMAGES_TO_PUBLISH_OBJECT_STORE_FILE == 'NONE' }
             }
             stages {
                 stage('Release Only: Create branch') {
@@ -187,7 +206,7 @@ pipeline {
                         script {
                             sh """
                                 cd ${WORKSPACE}
-                                ./release/scripts/create_branch.sh -c ${env.GIT_COMMIT} -v ${params.TARGET_VERSION}
+                                ./release/scripts/create_branch.sh -c ${env.GIT_COMMIT} -v ${VERRAZZANO_DEV_VERSION}
                             """
                         }
                     }
@@ -200,7 +219,7 @@ pipeline {
                             if (IS_PATCH_RELEASE == 'true') {
                                 RELEASE_JOB_NAME = 'verrazzano/' + env.BRANCH_NAME
                             } else {
-                                def parts = params.TARGET_VERSION.split("\\.")
+                                def parts = VERRAZZANO_DEV_VERSION.split("\\.")
                                 def MAJOR=parts[0]
                                 def MINOR=parts[1]
                                 if ( params.TEST_RUN ) {
@@ -251,54 +270,53 @@ pipeline {
         }
 
         stage('Copy Product Zip to Release') {
-            when {
+            
                 // When the Verrazzano builds are not run as part of this release job, the GENERATE_TARBALL which
                 // creates the product zip in the release location is not run. This is usually the case when we are using
                 // an existing release candidate, for which periodic tests have already run and identified a release
                 // candidate. In this case, we should copy the product zip generated by the periodic tests, into the
                 // release location so that stage 2 release job has access to it. Also copy the commit file similarly.
-                expression { params.COPY_PRODUCT_ZIP_FROM_PERIODIC }
-            }
+                
             steps {
                 script {
                     // NOTE - this copy operation is asynchronous. The assumption here is that it will complete
                     // by the time the images are pushed to OCR (next build stage), and the release stage2, which uses
                     // these objects, is run.
                     sh """
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME} \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME}
 
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME}.sha256 \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME}.sha256
 
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME} \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME}
 
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME}.sha256 \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME}.sha256
 
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/verrazzano_periodic-commit.txt \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-commit.txt
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-commit.txt
 
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/generated-verrazzano-bom.json \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-bom.json
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-bom.json
 
-                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_CLI_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/operator.yaml \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-platform-operator.yaml
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-platform-operator.yaml
                     """
                 }
             }
@@ -308,13 +326,12 @@ pipeline {
             when {
                 allOf {
                     expression { !params.TEST_RUN }
-                    expression { !params.CREATE_BRANCH_ONLY }
                 }
             }
             steps {
                 retry(count: env.BUILD_RETRIES) {
                     script {
-                        if (params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE.equals("NONE")) {
+                        if (IMAGES_TO_PUBLISH_OBJECT_STORE_FILE.equals("NONE")) {
                             echo "Triggering OCR Image push build"
                             build job: "publish-release-images-to-ocr",
                                 parameters: [
@@ -324,7 +341,7 @@ pipeline {
                             echo "Triggering OCR Image push build supplying existing candidate"
                             build job: "publish-release-images-to-ocr",
                                 parameters: [
-                                    string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: "${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}"),
+                                    string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: "${IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}"),
                                 ], wait: true
                         }
                     }
