@@ -37,7 +37,7 @@ const (
 	rancherURI        = "rancher."
 	kcAdminScript     = "/opt/keycloak/bin/kcadm.sh"
 	argocdURI         = "argocd."
-	alertmanagerURI   = "alertmanager."
+	alertmanagerURI   = "alertmanager.vmi.system."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
