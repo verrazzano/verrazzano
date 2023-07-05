@@ -9,7 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -22,7 +22,7 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = cmcommon.CertManagerWebhookOCIComponentName
+	ComponentName = cmconstants.CertManagerWebhookOCIComponentName
 
 	// ComponentJSONName is the Webhook component JSON name in the Verrazzano CR
 	ComponentJSONName = "certManagerOCIWebhook"
@@ -31,10 +31,10 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// componentChartName is the Webhook Chart name
-	componentChartName = "cert-manager-webhook-oci"
+	componentChartName = cmconstants.CertManagerWebhookOCIComponentName
 
 	// webhookDeploymentName is the Webhook deployment object name
-	webhookDeploymentName = "cert-manager-webhook-oci"
+	webhookDeploymentName = cmconstants.CertManagerWebhookOCIComponentName
 )
 
 // certManagerOciDnsComponent represents an CertManager component
@@ -52,7 +52,7 @@ func NewComponent() spi.Component {
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), componentChartName),
-			ChartNamespace:            ComponentNamespace,
+			ChartNamespace:            constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -60,7 +60,7 @@ func NewComponent() spi.Component {
 			GetInstallOverridesFunc:   GetOverrides,
 			AppendOverridesFunc:       appendOCIDNSOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
-			Dependencies:              []string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{

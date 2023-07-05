@@ -93,16 +93,6 @@ baseServerId: 1000
 #      prefix:
 #      bucketName:
 #      credentials:
-#    s3:
-#      prefix:
-#      config:
-#      bucketName:
-#      profile:
-#      endpoint
-#    azure:
-#      prefix:
-#      config:
-#      containerName:
 #    persistentVolumeClaim:
 #  clone:
 #    donorUrl:
@@ -135,17 +125,7 @@ baseServerId: 1000
 #        prefix : /
 #        bucketName: idbcluster_backup
 #        credentials: oci-credentials
-#      s3:
-#        prefix:
-#        config:
-#        bucketName:
-#        profile:
-#        endpoint
-#      azure:
-#        prefix:
-#        config:
-#        containerName:
-#
+
 #backupSchedules:
 #- name: schedule-ref
 #  schedule: "*/1 * * * *"
@@ -165,9 +145,3 @@ baseServerId: 1000
 #          prefix : /
 #          bucketName: idbcluster_backup
 #          credentials: oci-credentials
-
-
-# If you would like to debug the Helm output with `helm template`, you need
-# to turn disableLookups on as during `helm template` Helm won't contact the kube API
-# and all lookups will thus fail
-disableLookups: false

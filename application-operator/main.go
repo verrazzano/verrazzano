@@ -95,8 +95,10 @@ func main() {
 		exitErr = operatorinit.WebhookInit(certDir, log)
 	} else if runWebhooks {
 		exitErr = operatorinit.StartWebhookServer(metricsAddr, log, enableLeaderElection, certDir, scheme)
+	} else if runClusterAgent {
+		exitErr = operatorinit.StartClusterAgent(metricsAddr, enableLeaderElection, log, scheme)
 	} else {
-		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, runClusterAgent, log, scheme)
+		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, log, scheme)
 	}
 	if exitErr != nil {
 		os.Exit(1)

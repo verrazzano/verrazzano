@@ -1,0 +1,61 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: vpo-fbc
+  namespace: {{ .Values.platformOperator.namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "vpo"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "vpo"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "vpo"
+  name: vpo-filter
+  namespace: {{ .Values.platformOperator.namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: vpo-parser1,vpo-parser2
+  matchRegex: "kube.*verrazzano-.*operator.*|kube.*verrazzano.*_webhook-init.*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "vpo"
+  name: vpo-parser1
+  namespace: {{ .Values.platformOperator.namespace }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%H:%M:%S.%L"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "vpo"
+  name: vpo-parser2
+  namespace: {{ .Values.platformOperator.namespace }}
+spec:
+  json:
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+{{ end -}}

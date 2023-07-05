@@ -1,0 +1,66 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: opensearchdashboards-fbc
+  namespace: {{ .namespace }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "opensearchdashboards"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "opensearchdashboards"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "opensearchdashboards"
+  name: osd-filter
+  namespace: {{ .namespace }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: osd-parser
+    - modify:
+        conditions:
+          - keyDoesNotExist:
+              tags: ""
+        rules:
+          - add:
+              level: "\"\""
+    - modify:
+        conditions:
+          - keyValueDoesNotMatch:
+              tags: "trace|debug|info|warn|error|fail"
+        rules:
+          - add:
+              level: "\"\""
+    - modify:
+        conditions:
+          - keyValueMatches:
+              tags: "trace|debug|info|warn|error|fail"
+        rules:
+          - copy:
+              tags: "level"
+  match: "kube.*vmi-system-osd*osd*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "opensearchdashboards"
+  name: osd-parser
+  namespace: {{ .namespace }}
+spec:
+  json:
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%SZ"

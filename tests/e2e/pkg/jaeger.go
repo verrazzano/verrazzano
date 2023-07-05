@@ -173,7 +173,7 @@ func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, s
 	fields := map[string]string{
 		"process.serviceName": serviceName,
 	}
-	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath)
+	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath, false)
 	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false

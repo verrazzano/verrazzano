@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -36,7 +36,7 @@ if [ -n "${VZ_TEST_DEBUG}" ]; then
 fi
 
 export KUBECONFIG=${KUBECONFIG:-"${WORKSPACE}/test_kubeconfig"}
-export KUBERNETES_CLUSTER_VERSION=${KUBERNETES_CLUSTER_VERSION:-"1.22"}
+export KUBERNETES_CLUSTER_VERSION=${KUBERNETES_CLUSTER_VERSION:-"1.24"}
 
 CONNECT_JENKINS_RUNNER_TO_NETWORK=false
 if [ -n "${JENKINS_URL}" ]; then

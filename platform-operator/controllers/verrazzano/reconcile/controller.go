@@ -9,27 +9,43 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io"
-
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	kblabels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -42,22 +58,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
-	"go.uber.org/zap"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // Reconciler reconciles a Verrazzano object
@@ -936,7 +936,7 @@ func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
 		return false
 	}
-	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName, authproxy.ComponentJSONName)
+	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName, authproxy.ComponentJSONName, fluentoperator.ComponentJSONName, fluentbitosoutput.ComponentJSONName)
 	return true
 }
 

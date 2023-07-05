@@ -43,9 +43,9 @@ pipeline {
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.22", "1.23", "1.24", "1.25", "1.26" ])
+                choices: [ "1.24", "1.25", "1.26" ])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0, v1.1, v1.2",
+                defaultValue: "v1.0, v1.1, v1.2, v1.3",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
@@ -129,6 +129,8 @@ pipeline {
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
                         cat tags.txt
+                        git ls-remote --heads https://github.com/verrazzano/verrazzano.git 'refs/heads/release-*' | cut -d '/' -f 3 | cut -d '-' -f 2 | grep -v '0' > releaseBranches.txt
+                        cat releaseBranches.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -152,37 +154,27 @@ pipeline {
                 stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
+                        // Extract list of releases from git tags
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        def excludeReleases = params.EXCLUDE_RELEASES
-                        def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
-                        println(excludeReleasesList)
-                        def finalReleaseList  = []
-                        //Remove the excluded releases from jobs
-                        for(releaseTag in gitTags){
-                            def excluded = false
-                            for(excludedRelease in excludeReleasesList){
-                                String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
-                                def releaseTagMinorVersion = "v"+ splitReleaseTag[0] + "." + splitReleaseTag[1]
-                                String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
-                                if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease) {
-                                    excluded = true
-                                }
-                            }
-                            if(excluded == false){
-                                finalReleaseList.add(releaseTag)
-                            }
-                        }
+                        List finalReleaseList = removeExcludedReleases(gitTags)
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
-                        minorReleaseList = getCleanReleaseVersion(finalReleaseList)
-                        echo "List of minor release: ${minorReleaseList}"
+
+                        //Extract list of releases from git branches
+                        fileContent = readFile(file: "${workspace}/releaseBranches.txt")
+                        List releaseBranches = extractReleaseTags(fileContent)
+                        echo "Release Branches: ${releaseBranches}"
+                        List finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
+
+                        //minorReleaseList = getCleanReleaseVersion(finalReleaseBranchesList)
+                        echo "List of minor release: ${finalReleaseBranchesList}"
                         def listOfTipOfReleaseUpgradeJobs = []
                         def releaseCommitMap = [:]
-                        for(minorRelease in minorReleaseList){  
-                            releaseCommit = getTipOfReleaseBranches(minorRelease)
-                            String key = "v"+minorRelease
+                        for(releaseBranch in finalReleaseBranchesList){
+                            releaseCommit = getTipOfReleaseBranches(releaseBranch)
+                            String key = "v"+releaseBranch
                             releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
                         }
                         listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
@@ -401,6 +393,32 @@ def getTipOfReleaseBranches(releaseNumber){
     return releaseBranchCommitSHA
 }
 
+// Remove the excluded releases from jobs
+def removeExcludedReleases(List releases){
+    echo "List of release branches inside function: ${releases}"
+    def excludeReleases = params.EXCLUDE_RELEASES
+    def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+    println(excludeReleasesList)
+    def finalReleaseList  = []
+
+    for(releaseTag in releases){
+        def excluded = false
+        for(excludedRelease in excludeReleasesList){
+            String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
+            def releaseTagMinorVersion = splitReleaseTag[0] + "." + splitReleaseTag[1]
+            String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
+            if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease || "v"+releaseTagMinorVersion == excludedRelease) {
+                excluded = true
+            }
+        }
+        if(excluded == false){
+            finalReleaseList.add(releaseTag)
+        }
+    }
+     echo "Final releases: ${finalReleaseList}"
+    return finalReleaseList
+}
+
 def getStageOfUpgradeJob(job) {
     return {
         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
@@ -437,33 +455,31 @@ def getStageOfUpgradeJob(job) {
 def getTipOfBranchToMasterJob(String release, String commitSHA) {
     return {
         stage("Upgrade Verrazzano from tip of ${release} to master") {
-            if( CLEAN_BRANCH_NAME != 'master') {
-                    script{
-                        try{
-                            echo "Running upgrade job from version ${release}-${commitSHA} to master"
-                            retry(count: JOB_PROMOTION_RETRIES) {
-                                def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: "${commitSHA}"),
-                                    string(name: 'VERSION_FOR_INSTALL', value: "${release}" ),
-                                    string(name: 'VERSION_FOR_UPGRADE', value: "master"),
-                                    string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
-                                    string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
-                                ],  wait: true, propagate: true
-                            }
-                        } catch(err) {
-                            catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                echo "Caught: ${err}"
-                                sh "exit 1"
-                            }
-                        }
-                    } 
+            script{
+                try{
+                    echo "Running upgrade job from version ${release}-${commitSHA} to master"
+                    retry(count: JOB_PROMOTION_RETRIES) {
+                        def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
+                        parameters: [
+                            string(name: 'GIT_COMMIT_TO_USE', value: "${commitSHA}"),
+                            string(name: 'VERSION_FOR_INSTALL', value: "${release}" ),
+                            string(name: 'VERSION_FOR_UPGRADE', value: "master"),
+                            string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
+                            string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
+                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                            string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                            string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                            string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                        ],  wait: true, propagate: true
+                    }
+                } catch(err) {
+                    catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        echo "Caught: ${err}"
+                        sh "exit 1"
+                    }
+                }
             }
         }
     }

@@ -352,7 +352,7 @@ func SendRequest(action string, reqURL string, headers map[string]string, payloa
 
 	response, body, err := doRequest(req, rc, log)
 	// If we get an unauthorized response, remove the token from the cache
-	if response.StatusCode == http.StatusUnauthorized {
+	if response != nil && response.StatusCode == http.StatusUnauthorized {
 		deleteStoredToken(rc.User)
 	}
 	return response, body, err

@@ -65,6 +65,9 @@ pipeline {
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
         TEST_ENV = "LRE"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
     }
 
     stages {
@@ -102,6 +105,12 @@ pipeline {
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
+                sh """
+                    echo "Downloading VZ CLI from object storage, lre is special only get latest one from master"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                    tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                    ${VZ_COMMAND} version
                 """
             }
         }

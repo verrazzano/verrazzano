@@ -22,7 +22,7 @@ spec:
                     topologyKey: kubernetes.io/hostname
                   weight: 100
             replicas: 1
-    capi:
+    clusterAPI:
       enabled: false
     certManager:
       certificate:
@@ -292,4 +292,8 @@ spec:
     weblogicOperator:
       enabled: true
     argoCD:
+      enabled: false
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
       enabled: false

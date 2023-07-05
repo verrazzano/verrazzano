@@ -5,6 +5,7 @@ package issuer
 
 import (
 	"context"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"testing"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -24,7 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,7 +50,7 @@ func TestSimpleMethods(t *testing.T) {
 	asserts.Equal(ComponentNamespace, c.Namespace())
 	asserts.Equal(ComponentJSONName, c.GetJSONName())
 	asserts.False(c.ShouldInstallBeforeUpgrade())
-	asserts.ElementsMatch([]string{networkpolicies.ComponentName, cmcommon.CertManagerComponentName}, c.GetDependencies())
+	asserts.ElementsMatch([]string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName}, c.GetDependencies())
 	asserts.Equal(constants.VerrazzanoVersion1_0_0, c.GetMinVerrazzanoVersion())
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetIngressNames(nil))
 	asserts.ElementsMatch([]types.NamespacedName{}, c.GetCertificateNames(nil))
@@ -91,7 +92,7 @@ func runIsInstalledTest(t *testing.T, expectInstalled bool, expectErr bool, objs
 	}
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
@@ -142,7 +143,7 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 	}
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(clientObjs...).Build()
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
@@ -156,24 +157,6 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 		_, availability := fakeComponent.IsAvailable(fakeContext)
 		assert.Equal(t, vzapi.ComponentAvailability(vzapi.ComponentUnavailable), availability)
 	}
-}
-
-// TestValidateInstall tests the ValidateInstall function
-// GIVEN a call to ValidateInstall
-//
-//	WHEN for various Issuer configurations
-//	THEN an error is returned if anything is misconfigured
-func TestValidateInstall(t *testing.T) {
-	validationTests(t, false)
-}
-
-// TestValidateUpdate tests the ValidateInstall function
-// GIVEN a call to ValidateInstall
-//
-//	WHEN for various Issuer configurations
-//	THEN an error is returned if anything is misconfigured
-func TestValidateUpdate(t *testing.T) {
-	validationTests(t, true)
 }
 
 // TestPostInstallCA tests the PostInstall function
@@ -600,7 +583,7 @@ func runUninstallTest(t *testing.T, objs ...clipkg.Object) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 
 	defer func() { k8sutil.ResetGetAPIExtV1ClientFunc() }()
-	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1.ApiextensionsV1Interface, error) {
+	k8sutil.GetAPIExtV1ClientFunc = func() (apiextv1client.ApiextensionsV1Interface, error) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 

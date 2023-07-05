@@ -535,11 +535,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  capi:
-                    properties:
-                      enabled:
-                        type: boolean
-                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -603,6 +598,44 @@ spec:
                         type: array
                     type: object
                   certManagerWebhookOCI:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterAPI:
                     properties:
                       enabled:
                         type: boolean
@@ -983,6 +1016,82 @@ spec:
                           required:
                           - indexPattern
                           - policyName
+                          type: object
+                        type: array
+                    type: object
+                  fluentOperator:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  fluentbitOpensearchOutput:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -4482,11 +4591,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  capi:
-                    properties:
-                      enabled:
-                        type: boolean
-                    type: object
                   certManager:
                     properties:
                       certificate:
@@ -4550,6 +4654,44 @@ spec:
                         type: array
                     type: object
                   certManagerWebhookOCI:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  clusterAPI:
                     properties:
                       enabled:
                         type: boolean
@@ -4829,6 +4971,82 @@ spec:
                         required:
                         - domain
                         type: object
+                    type: object
+                  fluentOperator:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  fluentbitOpensearchOutput:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
                     type: object
                   fluentd:
                     properties:

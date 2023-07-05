@@ -50,7 +50,7 @@ func MergeProfiles(actualCR *v1alpha1.Verrazzano, profileFiles ...string) (*v1al
 		return nil, err
 	}
 
-	mergeOSNodesV1alpha1(actualCR, &newCR)
+	setNilV1alpha1OSReplicasToZero(&newCR)
 	return &newCR, nil
 }
 
@@ -92,7 +92,7 @@ func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...strin
 	if err != nil {
 		return nil, err
 	}
-	mergeOSNodesV1beta1(actualCR, &newCR)
+	setNilV1beta1OSReplicasToZero(&newCR)
 	return &newCR, nil
 }
 
@@ -298,31 +298,29 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	}
 }
 
-// mergeOSNodesV1alpha1 works around omitempty replicas for default node groups
-func mergeOSNodesV1alpha1(actual, merged *v1alpha1.Verrazzano) {
-	actualOpensearch := actual.Spec.Components.Elasticsearch
+// setNilV1alpha1OSReplicasToZero sets the replicas count to 0 if it is nil in the merged v1alpha1 CR
+// this is to avoid any nil pointer de-referencing further down the code
+func setNilV1alpha1OSReplicasToZero(merged *v1alpha1.Verrazzano) {
 	profileOpensearch := merged.Spec.Components.Elasticsearch
-	if actualOpensearch != nil && profileOpensearch != nil {
-		for i := range actualOpensearch.Nodes {
-			for j := range profileOpensearch.Nodes {
-				if actualOpensearch.Nodes[i].Name == profileOpensearch.Nodes[j].Name {
-					profileOpensearch.Nodes[j].Replicas = actualOpensearch.Nodes[i].Replicas
-				}
+	if profileOpensearch != nil {
+		for i := range profileOpensearch.Nodes {
+			if profileOpensearch.Nodes[i].Replicas == nil {
+				var v int32
+				profileOpensearch.Nodes[i].Replicas = &v
 			}
 		}
 	}
 }
 
-// mergeOSNodesV1beta1 works around omitempty replicas for default node groups
-func mergeOSNodesV1beta1(actual, merged *v1beta1.Verrazzano) {
-	actualOpensearch := actual.Spec.Components.OpenSearch
+// setNilV1alpha1OSReplicasToZero sets the replicas count to 0 if it is nil in the merged v1beta1 CR
+// this is to avoid any nil pointer de-referencing further down the code
+func setNilV1beta1OSReplicasToZero(merged *v1beta1.Verrazzano) {
 	profileOpensearch := merged.Spec.Components.OpenSearch
-	if actualOpensearch != nil && profileOpensearch != nil {
-		for i := range actualOpensearch.Nodes {
-			for j := range profileOpensearch.Nodes {
-				if actualOpensearch.Nodes[i].Name == profileOpensearch.Nodes[j].Name {
-					profileOpensearch.Nodes[j].Replicas = actualOpensearch.Nodes[i].Replicas
-				}
+	if profileOpensearch != nil {
+		for i := range profileOpensearch.Nodes {
+			if profileOpensearch.Nodes[i].Replicas == nil {
+				var v int32
+				profileOpensearch.Nodes[i].Replicas = &v
 			}
 		}
 	}

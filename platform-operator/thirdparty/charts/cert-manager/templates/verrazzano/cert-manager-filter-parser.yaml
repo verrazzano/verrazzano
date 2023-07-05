@@ -1,0 +1,47 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: certmanager-fbc
+  namespace: {{ include "cert-manager.namespace" . }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "certmanager"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "certmanager"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "certmanager"
+  name: certmanager-filter
+  namespace: {{ include "cert-manager.namespace" . }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: certmanager-parser
+  match: "kube.*cert-manager*cert-manager*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "certmanager"
+  name: certmanager-parser
+  namespace: {{ include "cert-manager.namespace" . }}
+spec:
+  regex:
+    regex: '/^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%H:%M:%S.%L"
+{{ end -}}

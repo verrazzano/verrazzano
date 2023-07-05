@@ -318,3 +318,18 @@ func verifyScrapePoolsHealthy(scrapeTargets []interface{}, scrapePools []string)
 	}
 	return true, nil
 }
+func GetScrapePools(namespace, appName string, componentNames []string, isMinVersion140 bool) []string {
+	var scrapePools []string
+	var scrapePool string
+	for _, comp := range componentNames {
+		if isMinVersion140 {
+			scrapePool = "serviceMonitor/" + namespace + "/" + GetAppServiceMonitorName(namespace, appName, comp)
+		} else {
+			// For previous versions than 1.4x, scrapePools were named in different way as there was no concept of service monitors
+			scrapePool = appName + "_default_" + namespace + "_" + comp
+		}
+		scrapePools = append(scrapePools, scrapePool)
+	}
+	return scrapePools
+
+}

@@ -9,6 +9,12 @@
 set -x
 CLUSTER_COUNT=${1}
 VZ_CR_FILE=${2}
+MINIMAL_INSTALL=${3}
+
+if [ -n "${MINIMAL_INSTALL}" ] && [ "${MINIMAL_INSTALL}" = "true" ] ; then
+  echo "Minimal install, not applying the overrides"
+  exit 0
+fi
 
 yq -i eval '.spec.components.prometheusAdapter.enabled = true' "${VZ_CR_FILE}"
 yq -i eval '.spec.components.kubeStateMetrics.enabled = true' "${VZ_CR_FILE}"

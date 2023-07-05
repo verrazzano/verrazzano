@@ -531,7 +531,7 @@ func continueUninstall(confirmUninstall bool) (bool, error) {
 	}
 	var response string
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
+	fmt.Print("Are you sure you want to uninstall Verrazzano? [y/N]: ")
 	if scanner.Scan() {
 		response = scanner.Text()
 	}

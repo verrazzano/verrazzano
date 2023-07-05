@@ -4,8 +4,6 @@
 ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
 FROM $BASE_IMAGE AS build_base
 
-ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
-
 # Need to use specific WORKDIR to match verrazzano's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 COPY . .
@@ -18,7 +16,7 @@ RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
 # Create the verrazzano-platform-operator image
 FROM $BASE_IMAGE AS final
 
-ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+ARG VERRAZZANO_PLATFORM_OPERATOR_IMAGE
 
 # copy olcne repos needed to install kubectl, istioctl
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos/*.repo /etc/yum.repos.d/
@@ -51,6 +49,9 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/capi/cluster-api ./capi/cluster-api
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses/
+
+# set the default VPO image in values.yaml for the VPO helm chart
+RUN  sed -i -e "s|image:|image: $VERRAZZANO_PLATFORM_OPERATOR_IMAGE|g" ./platform-operator/helm_config/charts/verrazzano-platform-operator/values.yaml
 
 USER 1000
 

@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 )
 
 var (
@@ -177,7 +178,8 @@ func isCAConfig(certConfig interface{}) (isCAConfig bool, err error) {
 func convertCertificateConfiguration(cmCertificateConfig interface{}, clusterIssuerConfig interface{}, isDefaultIssuer bool) error {
 	isDefaultCertificateConfig := isDefaultCertificateConfig(cmCertificateConfig)
 	if !isDefaultCertificateConfig && !isDefaultIssuer {
-		return fmt.Errorf("Illegal state, both CertManager Certificate and ClusterIssuer components are configured")
+		return fmt.Errorf("update conflict, can not configure Verrazzano ClusterIssuer from both the %s and %s components, %s.certificate is deprecated",
+			cmconstants.ClusterIssuerComponentJSONName, cmconstants.CertManagerComponentJSONName, cmconstants.CertManagerComponentJSONName)
 	}
 
 	if !isDefaultIssuer {

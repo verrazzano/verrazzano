@@ -49,7 +49,3 @@ experimentalFeatures:
   # Experimental support for Module CRDs and controllers
   moduleAPI:
     enabled: false
-
-verrazzano:
-  supportedVersions:
-    - v1.6.0

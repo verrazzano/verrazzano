@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -6,11 +6,12 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
-	"strings"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,6 +59,10 @@ func (v *Verrazzano) ValidateCreate() error {
 		return nil
 	}
 
+	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
+		return err
+	}
+
 	// Verify only one instance of the operator is running
 	if err := v.verifyPlatformOperatorSingleton(); err != nil {
 		return err
@@ -102,6 +107,10 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
 		return nil
+	}
+
+	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
+		return err
 	}
 
 	// Verify only one instance of the operator is running

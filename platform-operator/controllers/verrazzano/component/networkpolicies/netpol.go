@@ -8,6 +8,13 @@ import (
 	"io/fs"
 	"os"
 
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
@@ -17,12 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -69,7 +70,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 	{Namespace: vzconst.ArgoCDNamespace, Name: "argocd"},
-	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "capi"},
+	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "clusterAPI"},
 }
 
 var (
@@ -141,7 +142,8 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
 	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
 	overrides.ArgoCD = &argoCDValues{Enabled: vzcr.IsArgoCDEnabled(effectiveCR)}
-	overrides.Capi = &capiValues{Enabled: vzcr.IsCAPIEnabled(effectiveCR)}
+	overrides.ClusterAPI = &clusterAPIValues{Enabled: vzcr.IsClusterAPIEnabled(effectiveCR)}
+	overrides.FluentOperator = &fluentOperatorValues{Enabled: vzcr.IsFluentOperatorEnabled(effectiveCR)}
 	return nil
 }
 

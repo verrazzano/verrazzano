@@ -6,20 +6,17 @@ package operator
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -28,11 +25,19 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const profilesRelativePath = "../../../../../manifests/profiles"
@@ -642,7 +647,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 // TestGetDependencies tests whether the cert-manager and opensearch components are dependencies
 // that need to be installed prior to Jaeger operator
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"verrazzano-network-policies", "cert-manager", "opensearch"}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"verrazzano-network-policies", "cert-manager", "opensearch", fluentoperator.ComponentName}, NewComponent().GetDependencies())
 }
 
 // TestIsReady tests the IsReady function for the Jaeger Operator

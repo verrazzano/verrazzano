@@ -677,7 +677,7 @@ data:
     # filter to parse verrazzano-capi namespace container log files
     <filter kubernetes.**verrazzano-capi**>
       @type parser
-      @id capi
+      @id clusterapi
       key_name log
       reserve_data true
       emit_invalid_record_to_error true
@@ -1107,7 +1107,74 @@ data:
             }
           ],
           "properties" : {
-            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"}
+            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
+            "kubernetes.pod_ip": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "ip":{
+                  "type": "ip",
+                  "ignore_malformed": true
+                }
+              }
+            },
+            "http_request.remoteIp": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "ip":{
+                  "type": "ip",
+                  "ignore_malformed": true
+                }
+              }
+            },
+            "http_request.responseSize": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "integer":{
+                  "type": "integer"
+                }
+              }
+            },
+            "http_request.status": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "integer":{
+                  "type": "integer"
+                }
+              }
+            },
+            "http_request.requestSize": {
+              "type": "text",
+              "norms": false,
+              "fields":{
+                "keyword":{
+                  "type":"keyword",
+                  "ignore_above":256
+                },
+                "integer":{
+                  "type": "integer"
+                }
+              }
+            }
           }
         }
       }
