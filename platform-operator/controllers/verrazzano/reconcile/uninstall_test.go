@@ -587,6 +587,12 @@ func runDeleteNamespacesTest(t *testing.T, cmEnabled bool) {
 		return apiextv1fake.NewSimpleClientset().ApiextensionsV1(), nil
 	}
 
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
+	defer func() {
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetDynamicClientFunc = k8sutil.GetDynamicClient
+	}()
 	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
 	rancher.SetCheckContainerDriverProvisionedFunc(testFunc)
 	defer rancher.SetDefaultCheckContainerDriverProvisionedFunc()
