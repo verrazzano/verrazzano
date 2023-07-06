@@ -740,8 +740,8 @@ func IsClusterProvisionedByRancher() (bool, error) {
 }
 
 // IsClusterProvisionedByOCNEContainerDriver checks if the Kubernetes cluster was provisioned by the Rancher OCNE container driver.
-func IsClusterProvisionedByOCNEContainerDriver() (bool, error) {
-	vzlog.DefaultLogger().Infof("DEBUG:  IsClusterProvisionedByOCNEContainerDriver called")
+func IsClusterProvisionedByOCNEContainerDriver(ctx spi.ComponentContext) (bool, error) {
+	ctx.Log().Infof("DEBUG:  IsClusterProvisionedByOCNEContainerDriver called")
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return false, err
@@ -750,7 +750,7 @@ func IsClusterProvisionedByOCNEContainerDriver() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	vzlog.DefaultLogger().Infof("DEBUG:  IsClusterProvisionedByOCNEContainerDriver calling %v", checkContainerDriverProvisionedFunc)
+	ctx.Log().Infof("DEBUG:  IsClusterProvisionedByOCNEContainerDriver calling %v", checkContainerDriverProvisionedFunc)
 
 	return checkContainerDriverProvisionedFunc(client, dynClient)
 }

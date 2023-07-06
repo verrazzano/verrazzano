@@ -377,7 +377,7 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
 	log := ctx.Log()
 	// check on whether cluster is OCNE container driver provisioned
-	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
+	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver(ctx)
 	ctx.Log().Infof("ocneContainerDriverProvisioned: %v", ocneContainerDriverProvisioned)
 	if err != nil {
 		ctx.Log().Errorf("Error returned from container provisioned test: %v", err)
@@ -420,6 +420,7 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
 		if err != nil {
+			ctx.Log().Errorf("Error during namespace deletion: %v", err)
 			return ctrl.Result{}, err
 		}
 	}
