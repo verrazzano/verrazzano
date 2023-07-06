@@ -416,8 +416,11 @@ pipeline {
                }
 
                 stage('Run Acceptance Tests Infra on workload cluster') {
-
-                       parallelAcceptanceTests()
+                       steps {
+                           script {
+                               parallelAcceptanceTests()
+                           }
+                       }
                        post {
                            always {
                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
