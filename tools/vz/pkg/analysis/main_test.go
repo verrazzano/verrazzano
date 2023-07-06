@@ -478,15 +478,16 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 	assert.True(t, problemsFound > 0)
 }
 
-// TestCertificateVPOHangingIssue tests analysis of a cluster dump when the VPO is hanging
+// TestCertificateCLIHangingIssue tests analysis of a cluster dump when the CLI is hanging
 // GIVEN a call to analyze a cluster-snapshot
-// WHEN the VPO is hanging on a certificate, but the certificate is not expired
+// WHEN the CLI is hanging on a certificate, but the certificate is not expired
 // THEN a report is generated with issues identified
-func TestCertificateVPOHangingIssue(t *testing.T) {
+// This test also tests for detecting a separate expired certificate in the certificates.json
+func TestCertificateCLIHangingIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/testVPOHangingIssue")
+	err := Analyze(logger, "cluster", "test/cluster/testCLIHangingIssue")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -494,7 +495,7 @@ func TestCertificateVPOHangingIssue(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	problemsFound := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.VPOHangingIssueDueToLongCertificateApproval {
+		if issue.Type == report.CLIHangingIssueDueToLongCertificateApproval {
 			problemsFound++
 		}
 		if issue.Type == report.CertificateExpired {
