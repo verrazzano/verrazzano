@@ -416,7 +416,6 @@ pipeline {
                 """
             }
             post {
-
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                 }
@@ -443,8 +442,10 @@ pipeline {
             steps {
                 script {
                     // Required environment variables for running the ocne-driver Ginkgo test suite
+                    sh "echo Setting up inputs for the OCNE cluster driver tests"
                     setUpEnvVarsForOCNEClusterCreation()
 
+                    sh "echo Starting the OCNE cluster driver tests"
                     runGinkgo('clusterapi/ocne-driver')
                 }
             }
