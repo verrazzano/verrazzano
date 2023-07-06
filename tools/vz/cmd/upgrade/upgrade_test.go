@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -83,6 +84,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
@@ -160,6 +162,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
@@ -192,6 +195,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
@@ -329,6 +333,7 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 
@@ -351,6 +356,7 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.3")
