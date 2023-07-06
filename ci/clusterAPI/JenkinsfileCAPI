@@ -518,6 +518,7 @@ pipeline {
                                 kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
                                 kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
                                 ${GO_REPO_PATH}/vz --kubeconfig \$TEMPKUBECONFIGPATH uninstall -y --timeout 60m
+                                rm -rf \$TEMPKUBECONFIGPATH
                             """
                         }
                     }
@@ -677,6 +678,7 @@ def runGinkgoWorkloadCluster(testSuitePath) {
             export KUBECONFIG=\$TEMPKUBECONFIGPATH
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
@@ -696,6 +698,7 @@ def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
                 ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
             unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
@@ -713,6 +716,7 @@ def runGinkgoAppTestWorkloadCluster(testSuitePath, namespace, dumpDir='', skipDe
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace} --component=${component} --appconfig=${appConfig}
             unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
@@ -736,6 +740,7 @@ def ensureCAPICleanup() {
         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
         kubectl --kubeconfig \$TEMPKUBECONFIGPATH delete vz --all --timeout=10m
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
+        rm -rf \$TEMPKUBECONFIGPATH
     """
 }
 
@@ -754,6 +759,7 @@ def dumpOCNECluster(dumpDirectory) {
         export KUBECONFIG=\$TEMPKUBECONFIGPATH
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
         unset KUBECONFIG
+        rm -rf \$TEMPKUBECONFIGPATH
     """
 }
 
@@ -1157,6 +1163,7 @@ def createOverridesOnWorkloadCluster() {
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
             kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
             kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
