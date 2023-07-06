@@ -796,7 +796,7 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 // checkContainerDriverProvisioned checks if the Kubernetes cluster was provisioned by the OCNE KontainerDriver.
 func checkContainerDriverProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Find the provisioner configmap resource and check if ociocne is indicated as the driver.
-	_, err := client.ConfigMaps(ComponentNamespace).Get(context.TODO(), clusterProvisioner, metav1.GetOptions{})
+	_, err := client.ConfigMaps(constants.DefaultNamespace).Get(context.TODO(), clusterProvisioner, metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
 		return false, nil
 	}
@@ -804,7 +804,7 @@ func checkContainerDriverProvisioned(client corev1.CoreV1Interface, dynClient dy
 		return false, err
 	}
 
-	// NOTE: not checking driver version since the existence of configmap alone indicates a container driver is responsible
+	// NOTE: not checking driver type since the existence of configmap alone indicates a container driver is responsible
 	// for the provisioning of the cluster
 	return true, nil
 }
