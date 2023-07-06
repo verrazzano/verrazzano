@@ -744,7 +744,7 @@ func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Comma
 	if c != nil {
 		rc.SetClient(c)
 	}
-	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -811,7 +811,7 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	}()
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
-	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 
 	cmd := analyze.NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)

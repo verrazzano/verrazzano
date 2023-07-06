@@ -7,7 +7,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -19,6 +19,15 @@ func GetScheme() *runtime.Scheme {
 	_ = vmcv1alpha1.AddToScheme(scheme)
 	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: clustersv1alpha1.SchemeGroupVersion.Group, Version: clustersv1alpha1.SchemeGroupVersion.Version, Kind: clustersv1alpha1.VerrazzanoProjectKind + "List"}, &clustersv1alpha1.VerrazzanoProjectList{})
 	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: vmcv1alpha1.SchemeGroupVersion.Group, Version: vmcv1alpha1.SchemeGroupVersion.Version, Kind: vmcv1alpha1.VerrazzanoManagedClusterKind + "List"}, &vmcv1alpha1.VerrazzanoManagedClusterList{})
-	helpers.AddCapiToScheme(scheme)
+	AddCapiToScheme(scheme)
 	return scheme
+}
+
+func AddCapiToScheme(scheme *runtime.Scheme) {
+	for _, resource := range capiNamespacedResources {
+		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
+	}
+	for _, resource := range capiResources {
+		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
+	}
 }

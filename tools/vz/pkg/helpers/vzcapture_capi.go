@@ -9,8 +9,6 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -123,13 +121,4 @@ func captureNamespacedResource(dynamicClient dynamic.Interface, gvr schema.Group
 		}
 	}
 	return nil
-}
-
-func AddCapiToScheme(scheme *runtime.Scheme) {
-	for _, resource := range capiNamespacedResources {
-		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
-	}
-	for _, resource := range capiResources {
-		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
-	}
 }

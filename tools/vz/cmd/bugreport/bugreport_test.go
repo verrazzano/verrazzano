@@ -9,15 +9,13 @@ import (
 	"os"
 	"testing"
 
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -526,6 +524,6 @@ func setUpAndVerifyResources(t *testing.T) *cobra.Command {
 func setupFakeDynamicClient(c client.WithWatch, ioStreams genericclioptions.IOStreams) *helpers.FakeRootCmdContext {
 	rc := helpers.NewFakeRootCmdContext(ioStreams)
 	rc.SetClient(c)
-	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(testhelpers.GetScheme()))
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(pkghelper.GetScheme()))
 	return rc
 }
