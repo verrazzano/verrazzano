@@ -23,6 +23,7 @@ data:
     kind: Verrazzano
     metadata:
       name: workload-verrazzano
+      namespace: default
     spec:
       profile: dev
       components:

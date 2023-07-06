@@ -261,11 +261,8 @@ stringData:
             override: "true"
     kind: Secret
     metadata:
-      creationTimestamp: "2023-07-06T16:26:30Z"
       name: test-overrides
       namespace: default
-      resourceVersion: "563904"
-      uid: f58a3829-2250-44e2-a5ec-c57a0ad15a5b
     type: Opaque
 kind: Secret
 type: addons.cluster.x-k8s.io/resource-set

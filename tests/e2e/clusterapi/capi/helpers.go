@@ -697,7 +697,7 @@ func (c CAPITestImpl) GetVerrazzano(clusterName, namespace, vzinstallname string
 
 func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 
-	vzFetched, err := c.GetVerrazzano(clusterName, "default", "verrazzano", log)
+	vzFetched, err := c.GetVerrazzano(clusterName, "default", "workload-verrazzano", log)
 	if err != nil {
 		log.Errorf("unable to fetch vz resource from %s due to '%v'", clusterName, zap.Error(err))
 		return err
