@@ -388,13 +388,7 @@ pipeline {
         stage('Install Verrazzano') {
             steps {
                 sh """
-                    # Create image pull secret for Verrazzano docker images
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-
-                    echo "Install Platform Operator"
+                    echo "Download Platform Operator"
                     cd ${GO_REPO_PATH}/verrazzano
                     if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                         echo "Using operator.yaml from object storage"
@@ -405,7 +399,6 @@ pipeline {
                         env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
                     fi
 
-                    # make sure ns exists
                     echo "Create the verrazzano-install namespace"
                     kubectl create namespace verrazzano-install
 
@@ -413,11 +406,18 @@ pipeline {
                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
                     ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
 
+                    # Create image pull secret for Verrazzano docker images
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+
                     echo "Installing Verrazzano on OKE"
                     ${VZ_COMMAND} install --filename ${INSTALL_CONFIG_FILE} --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
 
-                    # wait for Verrazzano install to complete
-                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                    # For now, manually scale the VPO webhook to 3 replicas until we have hooks for it in the product
+                    kubectl  scale deployment -n verrazzano-install verrazzano-platform-operator-webhook --replicas 3
+                    kubectl  rollout status deployment -n verrazzano-install verrazzano-platform-operator-webhook -w --timeout 15m
                 """
             }
             post {
