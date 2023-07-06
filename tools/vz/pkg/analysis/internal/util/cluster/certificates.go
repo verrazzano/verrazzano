@@ -80,7 +80,7 @@ func isVPOHangingonCert(mapOfCertsThatVPOIsHangingOn map[string]string, certific
 		return false
 	}
 	namespace, ok := mapOfCertsThatVPOIsHangingOn[certificate.ObjectMeta.Name]
-	if ok && namespace == certificate.ObjectMeta.Name {
+	if ok && namespace == certificate.ObjectMeta.Namespace {
 		return true
 	}
 	return false

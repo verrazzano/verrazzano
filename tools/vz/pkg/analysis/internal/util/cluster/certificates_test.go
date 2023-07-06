@@ -7,10 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 )
 
-// This tests asserts that no errors are called when the Certificate Analysis function is called on a valid input
+// TestAnalyzeCertificateIssues asserts that no errors are called when the Certificate Analysis function is called on a valid input
 func TestAnalyzeCertificateIssues(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	assert.NoError(t, AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCertificateIssue"))
+	report.ClearReports()
 }
