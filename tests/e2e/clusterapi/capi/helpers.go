@@ -345,6 +345,33 @@ func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string
 	return nil
 }
 
+// DeployVerrazzanoClusterResourceSets deploys the VZ ClusterResourceSets by deploying the addon template YAML
+func (c CAPITestImpl) DeployVerrazzanoClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
+	log.Info("Preparing to deploy VZ Clusterresourcesets...")
+
+	tmpFilePath, err := c.ClusterTemplateGenerate(clusterName, templateName, log)
+	if err != nil {
+		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
+		return err
+	}
+	defer os.RemoveAll(tmpFilePath)
+	clusterTemplateData, err := os.ReadFile(tmpFilePath)
+	if err != nil {
+		log.Errorf("unable to get read file : %v", zap.Error(err))
+		return err
+	}
+
+	err = resource.CreateOrUpdateResourceFromBytes(clusterTemplateData, log)
+	if err != nil {
+		log.Error("unable to get create clusterresourcesets on workload cluster :", zap.Error(err))
+		return err
+	}
+
+	log.Infof("Wait for 30 seconds for cluster resourceset resources to deploy")
+	time.Sleep(30 * time.Second)
+	return nil
+}
+
 // EnsureMachinesAreProvisioned fetches the machines that are deployed during OCNE cluster creation.
 func (c CAPITestImpl) EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error {
 	machinesFetched, err := c.GetUnstructuredDataList("cluster.x-k8s.io", "v1beta1", "machines", namespace, log)

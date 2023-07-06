@@ -28,6 +28,7 @@ type CapiTestClient interface {
 	GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error)
 	TriggerCapiClusterCreation(clusterName, templateName string, log *zap.SugaredLogger) error
 	DeployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error
+	DeployVerrazzanoClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error
 	EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error
 	MonitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error
 	MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error

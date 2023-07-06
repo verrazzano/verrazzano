@@ -4,10 +4,12 @@
 package capi
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"time"
 
@@ -29,7 +31,7 @@ const (
 	// file paths
 	clusterTemplate              = "templates/cluster-template-addons-new-vcn.yaml"
 	clusterResourceSetTemplate   = "templates/cluster-template-addons.yaml"
-	clusterResourceSetTemplateVZ = "templates/cluster-template-addons-verrazzano.yaml"
+	clusterResourceSetTemplateVZ = "templates/cluster-template-verrazzano-resource.yaml"
 )
 
 func init() {
@@ -194,6 +196,42 @@ func EnsureVPOPodsAreRunning(clusterName, namespace string, log *zap.SugaredLogg
 	}
 
 	return result1 && result2
+}
+
+func EnsureSecret(clusterName, namespace, secretName string, log *zap.SugaredLogger) bool {
+	k8sclient, err := capiTest.GetCapiClusterK8sClient(clusterName, log)
+	if err != nil {
+		t.Logs.Info("Failed to get k8s client for workload cluster")
+		return false
+	}
+	secret, err := k8sclient.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		t.Logs.Info("Failed to get secret from workload cluster: %v", zap.Error(err))
+		return false
+	}
+
+	if secret != nil {
+		return true
+	}
+	return false
+}
+
+func EnsureConfigMap(clusterName, namespace, configMapName string, log *zap.SugaredLogger) bool {
+	k8sclient, err := capiTest.GetCapiClusterK8sClient(clusterName, log)
+	if err != nil {
+		t.Logs.Info("Failed to get k8s client for workload cluster")
+		return false
+	}
+	cm, err := k8sclient.CoreV1().ConfigMaps(namespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		t.Logs.Info("Failed to get configmap from workload cluster: %v", zap.Error(err))
+		return false
+	}
+
+	if cm != nil {
+		return true
+	}
+	return false
 }
 
 func EnvSet() error {
@@ -393,6 +431,24 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			Eventually(func() bool {
 				return EnsureVPOPodsAreRunning(ClusterName, "verrazzano-install", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+
+		WhenClusterAPIInstalledIt("Ensure secret 'test-overrides' is created on CAPI workload cluster", func() {
+			Eventually(func() bool {
+				return EnsureSecret(ClusterName, "default", "test-overrides", t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if secret exists")
+		})
+
+		WhenClusterAPIInstalledIt("Ensure configmap 'test-overrides' is created on CAPI workload cluster", func() {
+			Eventually(func() bool {
+				return EnsureConfigMap(ClusterName, "default", "test-overrides", t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if secret exists")
+		})
+
+		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
+			Eventually(func() error {
+				return capiTest.DeployVerrazzanoClusterResourceSets(ClusterName, clusterResourceSetTemplateVZ, t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
 		t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
