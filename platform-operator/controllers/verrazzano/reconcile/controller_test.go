@@ -540,6 +540,8 @@ func TestUninstallComplete(t *testing.T) {
 	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
 	rancher.SetCheckClusterProvisionedFunc(testFunc)
 	defer rancher.SetDefaultCheckClusterProvisionedFunc()
+	rancher.SetCheckContainerDriverProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckContainerDriverProvisionedFunc()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -645,6 +647,8 @@ func TestUninstallStarted(t *testing.T) {
 	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
 	rancher.SetCheckClusterProvisionedFunc(testFunc)
 	defer rancher.SetDefaultCheckClusterProvisionedFunc()
+	rancher.SetCheckContainerDriverProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckContainerDriverProvisionedFunc()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -765,6 +769,8 @@ func TestUninstallSucceeded(t *testing.T) {
 	testFunc := func(client typedcorev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) { return false, nil }
 	rancher.SetCheckClusterProvisionedFunc(testFunc)
 	defer rancher.SetDefaultCheckClusterProvisionedFunc()
+	rancher.SetCheckContainerDriverProvisionedFunc(testFunc)
+	defer rancher.SetDefaultCheckContainerDriverProvisionedFunc()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
