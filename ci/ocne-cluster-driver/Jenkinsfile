@@ -442,10 +442,8 @@ pipeline {
             steps {
                 script {
                     // Required environment variables for running the ocne-driver Ginkgo test suite
-                    sh "echo Setting up inputs for the OCNE cluster driver tests"
                     setUpEnvVarsForOCNEClusterCreation()
 
-                    sh "echo Starting the OCNE cluster driver tests"
                     runGinkgo('clusterapi/ocne-driver')
                 }
             }
@@ -550,6 +548,7 @@ def createImagePullSecrets() {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
+            echo Starting the OCNE cluster driver tests
             cd ${WORKSPACE}/tests/e2e
             ginkgo -p -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
@@ -557,6 +556,7 @@ def runGinkgo(testSuitePath) {
 }
 
 def setUpEnvVarsForOCNEClusterCreation() {
+    sh "echo Setting up inputs for the OCNE cluster driver tests"
     // env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${OKE_CLUSTER_PREFIX}-oke-vcn | jq -r '.data[0].id' """).trim()
     // env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${OKE_CLUSTER_PREFIX}-workers | jq -r '.data[0].id' """).trim()
     env.VCN_ID="dummyVCN"
