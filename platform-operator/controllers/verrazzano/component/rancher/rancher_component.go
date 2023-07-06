@@ -739,8 +739,8 @@ func IsClusterProvisionedByRancher() (bool, error) {
 	return checkClusterProvisionedFunc(client, dynClient)
 }
 
-// IsClusterProvisionedByContainerDriver checks if the Kubernetes cluster was provisioned by the Rancher OCNE container driver.
-func IsClusterProvisionedByOcneContainerDriver() (bool, error) {
+// IsClusterProvisionedByOCNEContainerDriver checks if the Kubernetes cluster was provisioned by the Rancher OCNE container driver.
+func IsClusterProvisionedByOCNEContainerDriver() (bool, error) {
 	client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return false, err
