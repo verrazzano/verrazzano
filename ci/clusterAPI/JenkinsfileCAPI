@@ -584,6 +584,7 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            ensureVZCleanupFromWorkloadCluster()
             ensureCAPICleanup()
             deleteCluster()
         }
@@ -729,18 +730,22 @@ def set_capi_variables() {
    env.NODE_MACHINE_COUNT =  OCNE_WORKERS_COUNT
 }
 
+def ensureVZCleanupFromWorkloadCluster() {
+    sh """
+        TS=\$(date +%Y%m%d%H%M%S)
+        TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+        kubectl --kubeconfig \$TEMPKUBECONFIGPATH delete vz --all --timeout=10m
+        rm -rf \$TEMPKUBECONFIGPATH
+    """
+}
 
 def ensureCAPICleanup() {
     script {
         dumpOCNECluster("final-workload-cluster-dump")
     }
     sh """
-        TS=\$(date +%Y%m%d%H%M%S)
-        TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
-        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-        kubectl --kubeconfig \$TEMPKUBECONFIGPATH delete vz --all --timeout=10m
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
-        rm -rf \$TEMPKUBECONFIGPATH
     """
 }
 
