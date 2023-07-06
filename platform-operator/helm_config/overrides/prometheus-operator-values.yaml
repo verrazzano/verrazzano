@@ -73,6 +73,9 @@ alertmanager:
         securityContext:
           privileged: false
     version: 0.25.0
+    podMetadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
 prometheusOperator:
   labels:
     sidecar.istio.io/inject: 'false'
