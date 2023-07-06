@@ -23,11 +23,16 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Indicate whether this is a DRY run, which will do some stuff but will NOT force a new candidate', name: 'DRY_RUN', defaultValue: true)
+        booleanParam (description: 'Indicate whether this is a DRY run, which will do some stuff but will NOT force a new candidate',
+            name: 'DRY_RUN',
+            defaultValue: true)
         string (name: 'GIT_COMMIT_TO_FORCE_AS_CANDIDATE',
-                        defaultValue: 'NONE',
-                        description: 'This is the full git commit hash to FORCE to be the latest releasable candidate for the current release version on this branch.',
-                        trim: true)
+            defaultValue: 'NONE',
+            description: 'This is the full git commit hash to FORCE to be the latest releasable candidate for the current release version on this branch.',
+            trim: true)
+        booleanParam (description: 'Ignore pre-release validation failures',
+            name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES',
+            defaultValue: false)
     }
 
     environment {
@@ -93,6 +98,22 @@ pipeline {
                         # copied in, so if the commit doesn't have the necessary artifacts in Object Storage to do this it can't be used and won't leave us
                         # in a half baked state
                         ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH} ${FORCE_TYPE}
+                    """
+                }
+            }
+        }
+
+        stage('Pre-release validation') {
+            environment {
+                IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
+            }
+            steps {
+                script {
+                    sh """
+                        cd ${WORKSPACE}
+                        ./release/scripts/prerelease_validation.sh ${params.TARGET_VERSION}
                     """
                 }
             }
