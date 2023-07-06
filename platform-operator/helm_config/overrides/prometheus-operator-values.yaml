@@ -72,6 +72,7 @@ alertmanager:
       - name: config-reloader
         securityContext:
           privileged: false
+    version: 0.25.0
 prometheusOperator:
   labels:
     sidecar.istio.io/inject: 'false'
