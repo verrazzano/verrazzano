@@ -7,8 +7,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -20,14 +26,14 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
-	"path/filepath"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 const (
@@ -737,10 +743,13 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
+
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	if c != nil {
 		rc.SetClient(c)
 	}
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(getScheme()))
+
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	return cmd, buf, errBuf, rc
@@ -806,6 +815,8 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	}()
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(getScheme()))
+
 	cmd := analyze.NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
@@ -903,4 +914,15 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+}
+
+func getScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = vmcv1alpha1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: clustersv1alpha1.SchemeGroupVersion.Group, Version: clustersv1alpha1.SchemeGroupVersion.Version, Kind: clustersv1alpha1.VerrazzanoProjectKind + "List"}, &clustersv1alpha1.VerrazzanoProjectList{})
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: vmcv1alpha1.SchemeGroupVersion.Group, Version: vmcv1alpha1.SchemeGroupVersion.Version, Kind: vmcv1alpha1.VerrazzanoManagedClusterKind + "List"}, &vmcv1alpha1.VerrazzanoManagedClusterList{})
+	helpers.AddCapiToScheme(scheme)
+	return scheme
 }
