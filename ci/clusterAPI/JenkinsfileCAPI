@@ -1096,7 +1096,7 @@ def createOverridesOnWorkloadCluster() {
             TS=\$(date +%Y%m%d%H%M%S)
             TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-            kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE
+            kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
             kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
         """
     }
