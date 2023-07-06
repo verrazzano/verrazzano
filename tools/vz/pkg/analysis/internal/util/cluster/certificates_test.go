@@ -38,7 +38,7 @@ func TestDetermineIfCLIIsHangingDueToCerts(t *testing.T) {
 	assert.Equal(t, len(listOfCerts), 0)
 }
 
-// TestGetLatestCondition tests whether the certificate condition recieves the latest condition and if the function ignores conditions if they do not have a timestamp
+// TestGetLatestCondition tests whether the certificate condition receives the latest condition and if the function ignores conditions if they do not have a timestamp
 // GIVEN a call to analyze a cluster-snapshot and report if issues with certificates exist
 // WHEN a condition in a certificate's conditionlist does not have a timestamp
 // THEN it is ignored

@@ -132,7 +132,7 @@ func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) 
 	return latestCondition
 }
 
-// This function reports when a VPO hanging issue has occured
+// This function reports when a VPO hanging issue has occurred
 
 func reportCLIHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
@@ -148,7 +148,7 @@ func reportCertificateExpirationIssue(log *zap.SugaredLogger, clusterRoot string
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExpired, clusterRoot, message, files)
 }
 
-// This function reports when a certificate is not expired, and the VPO is not hanging, but an issue has occured.
+// This function reports when a certificate is not expired, and the VPO is not hanging, but an issue has occurred.
 
 func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
