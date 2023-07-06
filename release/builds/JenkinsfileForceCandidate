@@ -86,6 +86,22 @@ pipeline {
             }
         }
 
+        stage('Pre-release validation') {
+            environment {
+                IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
+            }
+            steps {
+                script {
+                    sh """
+                        cd ${WORKSPACE}
+                        ./release/scripts/prerelease_validation.sh ${params.TARGET_VERSION}
+                    """
+                }
+            }
+        }
+
         stage('Force Candidate') {
             environment {
                 GIT_COMMIT_USED = "${env.GIT_COMMIT}"
@@ -98,22 +114,6 @@ pipeline {
                         # copied in, so if the commit doesn't have the necessary artifacts in Object Storage to do this it can't be used and won't leave us
                         # in a half baked state
                         ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH} ${FORCE_TYPE}
-                    """
-                }
-            }
-        }
-
-        stage('Pre-release validation') {
-            environment {
-                IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
-                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
-                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
-            }
-            steps {
-                script {
-                    sh """
-                        cd ${WORKSPACE}
-                        ./release/scripts/prerelease_validation.sh ${params.TARGET_VERSION}
                     """
                 }
             }
