@@ -497,7 +497,7 @@ pipeline {
                         }
                 }
 
-                stage('Run Acceptance Tests Deployments Group 1 on workload cluster') {
+                stage('Run Acceptance Tests Deployments Group 2 on workload cluster') {
                    steps {
                        script {
                            parallelDGAcceptanceTestsTwo()
