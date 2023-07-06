@@ -256,7 +256,7 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-default.yaml
+        INSTALL_CONFIG_FILE = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-default.yaml"
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
