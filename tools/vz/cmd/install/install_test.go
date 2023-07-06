@@ -929,6 +929,5 @@ func TestInstallFromFilename(t *testing.T) {
 
 	os.Args = append(os.Args, testFilenamePath)
 	cmd.Execute()
-	assert.Equal(t, "Error: missing flag, -f\n", errBuf.String())
-
+	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
 }

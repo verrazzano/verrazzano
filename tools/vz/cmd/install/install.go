@@ -110,6 +110,13 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
+	// Check that command args are not set at the creation of the command
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return fmt.Errorf("invalid arguments specified: %s", args)
+		}
+		return nil
+	}
 	return cmd
 }
 
@@ -284,11 +291,6 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	// Check to invalidate the install process when a Custom Resource is passed to without the filename flag (-f)
-	if len(filenames) == 0 && len(args) > 0 {
-		return nil, nil, fmt.Errorf("missing flag, -f")
 	}
 
 	// Get the set arguments - returning a list of properties and value
