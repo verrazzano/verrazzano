@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	goerrors "errors"
 	"fmt"
 	"io"
@@ -34,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -56,6 +56,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -79,7 +80,7 @@ type Reconciler struct {
 const finalizerName = "install.verrazzano.io"
 
 // Name of Effective Configmap Data Key
-const effConfigYaml = "effective-config.yaml"
+const effConfigKey = "effective-config.yaml"
 
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
@@ -101,6 +102,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if ctx == nil {
 		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
+
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
@@ -147,6 +149,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
+	// CreateOrUpdateEffectiveConfigCM will store our Effective CR in the configmap
+	err = r.createOrUpdateEffectiveConfigCM(ctx, vz, log)
+	if err != nil {
+		errorCounterMetricObject.Inc()
+	}
+
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(ctx, log, vz)
 	if vzctrl.ShouldRequeue(res) {
@@ -162,13 +170,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
-
-	// Create or Update Configmap that'll store our Effective CR
-	err = r.createOrUpdateEffectiveConfigCM(ctx, vz, log)
-	if err != nil {
-		log.Error(err.Error())
-		errorCounterMetricObject.Inc()
-	}
 
 	return ctrl.Result{}, nil
 }
@@ -201,7 +202,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
 	}
-
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
@@ -1084,21 +1084,28 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	return r.WatchedComponents[compName]
 }
 
-// The createOrUpdateEffectiveConfigCM takes in the Actual CR, gets the Effective CR and stores it in a configmap
-// If no configmap exists, it will create one, otherwise it updates the configmap with the effective CR
+// CreateOrUpdateEffectiveConfigCM takes in the Actual CR, retrieves the Effective CR,
+// converts it into YAML and stores it in a configmap If no configmap exists,
+// it will create one, otherwise it updates the configmap with the effective CR
 func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
-	// Get the Effective CR from the Verrazzano CR supplied
-	effCR, err := transform.GetEffectiveCR(vz)
+	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
+	v1beta1Actual := &v1beta1.Verrazzano{}
+	err := vz.ConvertTo(v1beta1Actual)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Errorf("Failed Converting v1alpha1 Verrazzano to v1beta1: %v", err)
+	}
+
+	effCR, err := transform.GetEffectiveV1beta1CR(v1beta1Actual)
+	if err != nil {
+		log.Errorf("Failed retrieving the Effective CR: %v", err)
 		return err
 	}
 
-	// Marshal Indent it to format the Effective CR Specs
-	effCRSpecs, err := json.MarshalIndent(effCR.Spec, "", " ")
+	// Marshal Indent it to format the Effective CR Specs into YAML
+	effCRSpecs, err := yaml.Marshal(effCR)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Errorf("Failed to convert effective CR into YAML: %v", err)
 		return err
 	}
 
@@ -1114,11 +1121,11 @@ func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *in
 	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, effCRConfigmap, func() error {
 
-		effCRConfigmap.Data = map[string]string{effConfigYaml: string(effCRSpecs)}
+		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
 	if err != nil {
-		log.Error(err.Error())
+		log.Errorf("Failed to Create or Update the configmap: %v", err)
 		return err
 	}
 

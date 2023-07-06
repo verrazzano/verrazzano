@@ -96,18 +96,6 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 		return ctrl.Result{}, err
 	}
 
-	// Delete the ConfigMap
-	effCRConfigmap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      (cr.ObjectMeta.Name + "-effective-config"),
-			Namespace: (cr.ObjectMeta.Namespace),
-		},
-	}
-	err = r.Client.Delete(context.TODO(), effCRConfigmap)
-	if err != nil {
-		log.Error(err.Error())
-	}
-
 	tracker := getUninstallTracker(cr)
 	done := false
 
@@ -182,6 +170,19 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			done = true
 		}
 	}
+
+	// Delete the ConfigMap
+	err = resource.Resource{
+		Namespace: cr.ObjectMeta.Namespace,
+		Name:      cr.ObjectMeta.Name + "-effective-config",
+		Client:    r.Client,
+		Object:    &corev1.ConfigMap{},
+		Log:       log,
+	}.Delete()
+	if err != nil {
+		log.Errorf("Failed Deleting the Configmap: %v", err)
+	}
+
 	// Uninstall done, no need to requeue
 	return ctrl.Result{}, nil
 }

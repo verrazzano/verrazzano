@@ -2397,7 +2397,7 @@ func TestReconcilerProcReadyState(t *testing.T) {
 
 var trueValue = true
 
-// Tests ReconcileEffCRConfig Function
+// TestCreateOrUpdateEffectiveConfigCM tests CreateOrUpdateEffectiveConfigCM( Function
 func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
@@ -2455,10 +2455,9 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		},
 	}
 
-	// Case -> Simulates the test case that the "k get cm example-verrazzano-effective-config -o yaml" must not show Sensitive Data
-	// Add UT for effConfig - Components:
-	// And check if applicationOperator has a field - “overrides”, check if it has field -secretRef:
-	// Check that it shows secretRef and not any other thing
+	// GIVEN verrazzano CR with an existing EffectiveConfigCM and a secretRef to a secret with data
+	// WHEN createOrUpdateEffectiveConfigCM() is called
+	// THEN no error is returned and it should contain the effectiveCR
 	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret, vz, cm).Build()
 	r := &Reconciler{
 		Client:            fakeClient,
@@ -2471,24 +2470,21 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		StatusUpdater:     nil,
 	}
 	err := r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	effConfigYaml := "effective-config.yaml"
+	assert.NoError(t, err)
 	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + "-effective-config", Namespace: (vz.ObjectMeta.Namespace)}, cm)
 	assert.NoError(t, err)
-	// check if configmap contains the effective CR in yaml format
-	assert.Contains(t, cm.Data, effConfigYaml)
+	// check if configmap contains the effective CR Key
+	assert.Contains(t, cm.Data, effConfigKey)
 
-	// check if effective CR doesn't contain uname in its byte type or even in decoded format
-	effectiveCR := cm.Data[effConfigYaml]
+	// GIVEN configmap with data in effConfigKey
+	// WHEN createOrUpdateEffectiveConfigCM is called and user tries to access Data
+	// THEN it should not contain sensitive data or it's decoded equivalent
+	// THEN it should contain metadata like keys, name etc.
+	effectiveCR := cm.Data[effConfigKey]
 	assert.NotContains(t, effectiveCR, uname)
 	decodedUname, err := base64.StdEncoding.DecodeString(uname)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	assert.NoError(t, err)
 	assert.NotContains(t, effectiveCR, decodedUname)
-
 	// convert it into yaml object
 	vzSpec := &vzapi.VerrazzanoSpec{}
 	err = yaml.Unmarshal([]byte(effectiveCR), vzSpec)
@@ -2498,8 +2494,9 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	assert.Contains(t, vzSpec.Components.ApplicationOperator.InstallOverrides.ValueOverrides[0].SecretRef.Key, "username")
 	assert.Contains(t, vzSpec.Components.ApplicationOperator.InstallOverrides.ValueOverrides[0].SecretRef.Name, secretName)
 
-	// Case -> Checking Test Case: When the Update() function finds that no ConfigMap exists, thus proceeds to Create a ConfigMap
-	// Expect a call to get an existing configmap, but return a NotFound error.
+	// GIVEN verrazzano CR with no existing EffectiveConfigCM
+	// WHEN createOrUpdateEffectiveConfigCM() is called
+	// THEN error is returned if there is any error while creating the configmap
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	r.Client = mock
@@ -2509,15 +2506,18 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.Error(t, err)
 
-	// Case  -> Simulates the test case when  CreateOrUpdate gets and object successfully gives any error.
+	// GIVEN verrazzano CR with an already existing EffectiveConfigCM
+	// WHEN createOrUpdateEffectiveConfigCM() is called
+	// THEN error is returned if there is any error while updating the configmap
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
 	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.Error(t, err)
 
-	// Case -> Positive TestCase when no error is found
-	// Will not return any error
+	// GIVEN verrazzano CR with an existing EffectiveConfigCM
+	// WHEN createOrUpdateEffectiveConfigCM()
+	// THEN no error is returned
 	vztest := &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-positive",
