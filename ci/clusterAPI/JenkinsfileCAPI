@@ -352,6 +352,10 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
                         failure {
                             script {
                                 dumpK8sCluster('verify-install-admin-cluster-dump')
@@ -372,10 +376,14 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
                         failure {
                             script {
-                                dumpOCNECluster('verify-capi-cluster-creation')
-                                dumpK8sCluster('verify-capi-cluster-creation')
+                                dumpK8sCluster('deploy-ocne-admin-cluster-dump')
+                                dumpOCNECluster('deploy-ocne-workload-cluster-dump')
                             }
                         }
                     }
@@ -391,9 +399,14 @@ pipeline {
                        }
                    }
                    post {
+                       always {
+                           archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                           junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                       }
                        failure {
                            script {
-                               dumpOCNECluster('verrazzano-install-overrides-cluster-dump')
+                               dumpK8sCluster('verrazzano-install-overrides-admin-cluster-dump')
+                               dumpOCNECluster('verrazzano-install-overrides-workload-cluster-dump')
                            }
                        }
                    }
@@ -413,12 +426,17 @@ pipeline {
                        }
                    }
                    post {
-                       failure {
-                           script {
-                               dumpOCNECluster('verrazzano-install-workload-cluster-dump')
-                           }
-                       }
-                   }
+                      always {
+                          archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                          junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                      }
+                      failure {
+                          script {
+                              dumpK8sCluster('verrazzano-install-admin-cluster-dump')
+                              dumpOCNECluster('verrazzano-install-workload-cluster-dump')
+                          }
+                      }
+                  }
                 }
 
                 stage('Post-install Verify Tests on workload cluster') {
@@ -428,11 +446,17 @@ pipeline {
                        }
                    }
                    post {
-                       always {
-                           archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                           junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                       }
-                   }
+                     always {
+                         archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                         junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                     }
+                     failure {
+                         script {
+                             dumpOCNECluster('verify-install-workload-cluster-dump')
+                         }
+                     }
+                 }
+
                }
 
                 stage('Run Acceptance Tests Infra on workload cluster') {
@@ -442,11 +466,16 @@ pipeline {
                            }
                        }
                        post {
-                           always {
-                               archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-                               junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                           }
-                       }
+                             always {
+                                 archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                                 junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                             }
+                             failure {
+                                 script {
+                                     dumpOCNECluster('infra-test-workload-cluster-dump')
+                                 }
+                             }
+                         }
                 }
 
                 stage('Run Acceptance Tests Deployments Group 1 on workload cluster') {
@@ -456,12 +485,36 @@ pipeline {
                            }
                        }
                        post {
-                           always {
-                               archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-                               junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                           }
-                       }
+                            always {
+                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                                junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            }
+                            failure {
+                                script {
+                                    dumpOCNECluster('deploy-group-test-1-workload-cluster-dump')
+                                }
+                            }
+                        }
                 }
+
+                stage('Run Acceptance Tests Deployments Group 1 on workload cluster') {
+                   steps {
+                       script {
+                           parallelDGAcceptanceTestsTwo()
+                       }
+                   }
+                   post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                dumpOCNECluster('deploy-group-test-2-workload-cluster-dump')
+                            }
+                        }
+                    }
+            }
 
                 stage('Uninstall vz from workload cluster') {
                     steps {
@@ -477,10 +530,13 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
                         failure {
                             script {
-                                dumpK8sCluster('uninstall-vz-cluster-dump')
-                                dumpOCNECluster('uninstall-vz-workload-cluster-dump')
+                                dumpOCNECluster('uninstall-vz--workload-cluster-dump')
                             }
                         }
                     }
@@ -495,9 +551,13 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
                         failure {
                             script {
-                                dumpK8sCluster('cleanup-capi-admin-cluster-dump')
+                                dumpOCNECluster('delete-capi-admin-cluster-dump')
                             }
                         }
                     }
