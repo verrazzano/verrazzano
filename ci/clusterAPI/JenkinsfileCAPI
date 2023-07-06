@@ -867,11 +867,9 @@ def parallelAcceptanceTests() {
                }
                steps {
                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                       script {
-                          TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                      }
                        sh """
-                            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
+                            TS=\$(date +%Y%m%d%H%M%S)
+                            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
                             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
                             export KUBECONFIG=\$TEMPKUBECONFIGPATH
                             CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
@@ -1095,11 +1093,12 @@ def parallelDGAcceptanceTestsTwo() {
 def createOverridesOnWorkloadCluster() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-              TS=\$(date +%Y%m%d%H%M%S)
-              export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
-              kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-              kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE
-              kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+            TS=\$(date +%Y%m%d%H%M%S)
+            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE
+            kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+
         """
     }
 }
