@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -75,11 +74,6 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // PreInstall performs pre-install actions
 func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
-	// Create all namespaces needed by network policies
-	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
-		return err
-	}
-
 	// Associate the network policies to the verrazzano-network-policies release
 	if err := associateNetworkPoliciesWithHelm(ctx); err != nil {
 		return err
@@ -96,10 +90,6 @@ func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade performs pre-upgrade actions
 func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Create all namespaces needed by network policies
-	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
-		return err
-	}
 
 	// Associate the network policies to the verrazzano-network-policies release
 	err := associateNetworkPoliciesWithHelm(ctx)
