@@ -25,6 +25,8 @@
 package networkpolicies
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,6 +76,11 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // PreInstall performs pre-install actions
 func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
+
+	if err := namespace.CreateAndLabelNamespace(ctx.Client(), common.CattleSystem, true, false); err != nil {
+		return err
+	}
+
 	// Associate the network policies to the verrazzano-network-policies release
 	if err := associateNetworkPoliciesWithHelm(ctx); err != nil {
 		return err
@@ -90,6 +97,10 @@ func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade performs pre-upgrade actions
 func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
+
+	if err := namespace.CreateAndLabelNamespace(ctx.Client(), common.CattleSystem, true, false); err != nil {
+		return err
+	}
 
 	// Associate the network policies to the verrazzano-network-policies release
 	err := associateNetworkPoliciesWithHelm(ctx)
