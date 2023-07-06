@@ -214,7 +214,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		vzName = existingvz.Name
 	} else {
 		// Get the verrazzano install resource to be created
-		vz, obj, err := getVerrazzanoYAML(cmd, vzHelper, version, args)
+		vz, obj, err := getVerrazzanoYAML(cmd, vzHelper, version)
 		if err != nil {
 			return err
 		}
@@ -286,7 +286,7 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string, args []string) (vz clipkg.Object, obj *unstructured.Unstructured, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string) (vz clipkg.Object, obj *unstructured.Unstructured, err error) {
 	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
