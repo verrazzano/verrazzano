@@ -377,22 +377,17 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
 	log := ctx.Log()
 	// check on whether cluster is OCNE container driver provisioned
-	//ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver(ctx)
-	//ctx.Log().Infof("ocneContainerDriverProvisioned: %v", ocneContainerDriverProvisioned)
-	//if err != nil {
-	//	ctx.Log().Errorf("Error returned from container provisioned test: %v", err)
-	//	return ctrl.Result{}, err
-	//}
+	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	// Load a set of all component namespaces plus shared namespaces
 	nsSet := make(map[string]bool)
 	for _, comp := range registry.GetComponents() {
 		// Don't delete the rancher component namespace if cluster was provisioned by Rancher.
-		if rancherProvisioned && comp.Namespace() == rancher.ComponentNamespace {
+		if (rancherProvisioned || ocneContainerDriverProvisioned) && comp.Namespace() == rancher.ComponentNamespace {
 			continue
 		}
-		//if ocneContainerDriverProvisioned && comp.Namespace() == rancher.ComponentNamespace {
-		//	continue
-		//}
 		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
 			log.Progressf("Cert-Manager not enabled, skip namespace cleanup")
 			continue
