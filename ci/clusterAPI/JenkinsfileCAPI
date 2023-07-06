@@ -417,104 +417,7 @@ pipeline {
 
                 stage('Run Acceptance Tests Infra on workload cluster') {
 
-                       parallel {
-                           stage('verify-scripts') {
-                               steps {
-                                   runGinkgoRandomizeWorkloadCluster('scripts')
-                               }
-                           }
-                           stage('verify-infra restapi') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                               }
-                               steps {
-                                   runGinkgoRandomizeWorkloadCluster('verify-infra/restapi')
-                               }
-                           }
-                           stage('verify-infra oam') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                               }
-                               steps {
-                                   runGinkgoRandomizeWorkloadCluster('verify-infra/oam')
-                               }
-                           }
-                           stage('verify-infra vmi') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                               }
-                               steps {
-                                   runGinkgoRandomizeWorkloadCluster('verify-infra/vmi')
-                               }
-                           }
-                           stage('security rbac') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                               }
-                               steps {
-                                   runGinkgoWorkloadCluster('security/rbac')
-                               }
-                           }
-                           stage('system component metrics') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                               }
-                               steps {
-                                   runGinkgoWorkloadCluster('metrics/syscomponents')
-                               }
-                           }
-                           stage ('console') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                               }
-                               steps {
-                                   catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                       script {
-                                          TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                                      }
-                                       sh """
-                                            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
-                                            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-                                            export KUBECONFIG=\$TEMPKUBECONFIGPATH
-                                            CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-                                            unset KUBECONFIG
-                                        """
-                                   }
-                               }
-                               post {
-                                   failure {
-                                       sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-                                   }
-                               }
-                           }
-                           stage ('grafana db') {
-                               when {
-                                   expression {params.USE_DB_FOR_GRAFANA == true}
-                               }
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
-                               }
-                               steps {
-                                   runGinkgoWorkloadCluster('grafana-db')
-                               }
-                           }
-                           stage('opensearch logging') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
-                               }
-                               steps {
-                                   runGinkgoWorkloadCluster('logging/opensearch')
-                               }
-                           }
-                           stage('system logging') {
-                               environment {
-                                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-                               }
-                               steps {
-                                   runGinkgoWorkloadCluster('logging/system')
-                               }
-                           }
-                       }
+                       parallelAcceptanceTests()
                        post {
                            always {
                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
@@ -966,4 +869,106 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+
+def parallelAcceptanceTests() {
+    parallel {
+           stage('verify-scripts') {
+               steps {
+                   runGinkgoRandomizeWorkloadCluster('scripts')
+               }
+           }
+           stage('verify-infra restapi') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+               }
+               steps {
+                   runGinkgoRandomizeWorkloadCluster('verify-infra/restapi')
+               }
+           }
+           stage('verify-infra oam') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+               }
+               steps {
+                   runGinkgoRandomizeWorkloadCluster('verify-infra/oam')
+               }
+           }
+           stage('verify-infra vmi') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+               }
+               steps {
+                   runGinkgoRandomizeWorkloadCluster('verify-infra/vmi')
+               }
+           }
+           stage('security rbac') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+               }
+               steps {
+                   runGinkgoWorkloadCluster('security/rbac')
+               }
+           }
+           stage('system component metrics') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+               }
+               steps {
+                   runGinkgoWorkloadCluster('metrics/syscomponents')
+               }
+           }
+           stage ('console') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+               }
+               steps {
+                   catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                       script {
+                          TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                      }
+                       sh """
+                            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-${TS}
+                            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+                            export KUBECONFIG=\$TEMPKUBECONFIGPATH
+                            CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+                            unset KUBECONFIG
+                        """
+                   }
+               }
+               post {
+                   failure {
+                       sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                   }
+               }
+           }
+           stage ('grafana db') {
+               when {
+                   expression {params.USE_DB_FOR_GRAFANA == true}
+               }
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+               }
+               steps {
+                   runGinkgoWorkloadCluster('grafana-db')
+               }
+           }
+           stage('opensearch logging') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
+               }
+               steps {
+                   runGinkgoWorkloadCluster('logging/opensearch')
+               }
+           }
+           stage('system logging') {
+               environment {
+                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+               }
+               steps {
+                   runGinkgoWorkloadCluster('logging/system')
+               }
+           }
+    }
 }
