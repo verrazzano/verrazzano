@@ -1106,7 +1106,7 @@ def createOverridesOnWorkloadCluster() {
           fi
 
           echo "Creating Override Secret"
-          kubectl kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file="${TEST_OVERRIDE_SECRET_FILE}"
+          kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file="${TEST_OVERRIDE_SECRET_FILE}"
           if [ $? -ne 0 ]; then
             echo "Could not create Override Secret"
             exit 1
