@@ -399,10 +399,6 @@ pipeline {
                        }
                    }
                    post {
-                       always {
-                           archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                           junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                       }
                        failure {
                            script {
                                dumpK8sCluster('verrazzano-install-overrides-admin-cluster-dump')
@@ -426,10 +422,6 @@ pipeline {
                        }
                    }
                    post {
-                      always {
-                          archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                          junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                      }
                       failure {
                           script {
                               dumpK8sCluster('verrazzano-install-admin-cluster-dump')
