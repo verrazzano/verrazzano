@@ -50,7 +50,7 @@ pipeline {
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
-        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
+        string defaultValue: 'prod', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
