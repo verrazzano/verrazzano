@@ -46,4 +46,5 @@ type CapiTestClient interface {
 	GetCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error)
 	GetVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
 	EnsureVerrazzano(clusterName string, log *zap.SugaredLogger) error
+	DebugSVCOutput(clusterName string, log *zap.SugaredLogger) error
 }

@@ -734,7 +734,7 @@ def ensureCAPICleanup() {
         TS=\$(date +%Y%m%d%H%M%S)
         TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
         kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-        kubectl --kubeconfig \$TEMPKUBECONFIGPATH delete vz --all
+        kubectl --kubeconfig \$TEMPKUBECONFIGPATH delete vz --all --timeout=10m
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
     """
 }

@@ -734,10 +734,77 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 		return err
 	}
 
+	err = c.DebugSVCOutput(clusterName, log)
+	if err != nil {
+		log.Errorf("Unable to display service resources from workload cluster ", zap.Error(err))
+		return err
+	}
+
 	if curState == "InstallComplete" {
 		return nil
 	}
 	return fmt.Errorf("All components are not ready: Current State = %v", curState)
+}
+
+func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger) error {
+
+	capiK8sConfig, err := c.GetCapiClusterKubeConfig(clusterName, log)
+	if err != nil {
+		return err
+	}
+	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
+	if err != nil {
+		log.Error("Failed to create temporary file ", zap.Error(err))
+		return err
+	}
+
+	if err = os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		log.Error("failed to write to destination file ", zap.Error(err))
+		return err
+	}
+
+	var cmdArgs []string
+	var bcmd helpers.BashCommand
+	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s get svc -n verrazzano-ingress-nginx   ingress-controller-ingress-nginx-controller", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	debugCmdResponse := helpers.Runner(&bcmd, log)
+	if debugCmdResponse.CommandError != nil {
+		return debugCmdResponse.CommandError
+	}
+	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get svc -n istio-system istio-ingressgateway ", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	debugCmdResponse = helpers.Runner(&bcmd, log)
+	if debugCmdResponse.CommandError != nil {
+		return debugCmdResponse.CommandError
+	}
+	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s describe svc -n verrazzano-ingress-nginx   ingress-controller-ingress-nginx-controller", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	debugCmdResponse = helpers.Runner(&bcmd, log)
+	if debugCmdResponse.CommandError != nil {
+		return debugCmdResponse.CommandError
+	}
+	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s describe svc -n istio-system istio-ingressgateway", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	debugCmdResponse = helpers.Runner(&bcmd, log)
+	if debugCmdResponse.CommandError != nil {
+		return debugCmdResponse.CommandError
+	}
+	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
+
+	return nil
 }
 
 func (c CAPITestImpl) CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
