@@ -294,7 +294,7 @@ pipeline {
         stage('Acceptance Tests on OCNE cluster') {
             stages {
 
-                stage('Prepare KinD environment') {
+                stage('Prepare KinD environment as admin cluster') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -607,6 +607,23 @@ def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
     }
 }
 
+def runGinkgoAppTestWorkloadCluster(testSuitePath, namespace, dumpDir='', skipDeploy='false', skipUndeploy='false', component='', appConfig='') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            TS=\$(date +%Y%m%d%H%M%S)
+            export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            export KUBECONFIG=\$TEMPKUBECONFIGPATH
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace} --component=${component} --appconfig=${appConfig}
+            unset KUBECONFIG
+        """
+    }
+}
+
 
 def set_capi_variables() {
    int OCNE_CP_COUNT = params.CONTROL_PLANE_MACHINE_COUNT.toInteger()
@@ -908,7 +925,7 @@ def parallelDGAcceptanceTestsOne() {
                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
            }
            steps {
-               runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
+               runGinkgoAppTestWorkloadCluster('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
            }
        }
        stage('examples helidon manualscalertait') {
@@ -916,7 +933,7 @@ def parallelDGAcceptanceTestsOne() {
                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
            }
            steps {
-               runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+               runGinkgoAppTestWorkloadCluster('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
            }
        }
 
@@ -982,4 +999,54 @@ def parallelDGAcceptanceTestsOne() {
            }
        }
    }
+}
+
+def parallelDGAcceptanceTestsTwo() {
+    parallel {
+        stage('opensearch-topology') {
+            steps {
+                runGinkgoRandomizeWorkloadCluster('opensearch/topology')
+            }
+        }
+        stage('Ingress & logging trait WebLogic workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+            }
+            steps {
+                runGinkgoWorkloadCluster('loggingtrait/weblogicworkload')
+            }
+        }
+        stage('weblogic workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+            }
+            steps {
+                runGinkgoWorkloadCluster('workloads/weblogic')
+            }
+        }
+        stage('coherence workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+            }
+            steps {
+                runGinkgoWorkloadCluster('workloads/coherence')
+            }
+        }
+        stage('oam workloads') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+            }
+            steps {
+                runGinkgoWorkloadCluster('workloads/oam')
+            }
+        }
+        stage('logging trait Coherence workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+            }
+            steps {
+                runGinkgoWorkloadCluster('loggingtrait/coherenceworkload')
+            }
+        }
+    }
 }
