@@ -478,11 +478,11 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 	assert.True(t, problemsFound > 0)
 }
 
-// TestCertificateExpirationIssue tests analysis of a cluster dump when the VPO is hanging
+// TestCertificateVPOHangingIssue tests analysis of a cluster dump when the VPO is hanging
 // GIVEN a call to analyze a cluster-snapshot
 // WHEN the VPO is hanging on a certificate, but the certificate is not expired
 // THEN a report is generated with issues identified
-func TestCertificateExpirationIssue(t *testing.T) {
+func TestCertificateVPOHangingIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
 	report.ClearReports()
