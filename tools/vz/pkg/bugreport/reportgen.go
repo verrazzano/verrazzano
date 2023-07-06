@@ -96,7 +96,12 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 
 	// Capture Verrazzano Projects and VerrazzanoManagedCluster
-	if err := captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
+	if err = captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
+		return err
+	}
+
+	// Capture global CAPI resources
+	if err = pkghelpers.CaptureGlobalCapiResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
 		return err
 	}
 	return nil

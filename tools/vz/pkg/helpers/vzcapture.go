@@ -108,7 +108,7 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
-	if err := captureCapiResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
+	if err := captureCapiNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil

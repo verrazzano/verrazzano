@@ -106,7 +106,7 @@ func TestGroupVersionResource(t *testing.T) {
 func TestCaptureK8SResources(t *testing.T) {
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
-	for _, resource := range capiResources {
+	for _, resource := range capiNamespacedResources {
 		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
 	}
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)

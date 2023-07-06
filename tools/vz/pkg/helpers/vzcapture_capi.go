@@ -25,6 +25,7 @@ const (
 	controlPlaneGroup   = "controlplane.cluster.x-k8s.io"
 	infrastructureGroup = "infrastructure.cluster.x-k8s.io"
 	ipamGroup           = "ipam.cluster.x-k8s.io"
+	managementGroup     = "management.cattle.io"
 	runtimeGroup        = "runtime.cluster.x-k8s.io"
 )
 
@@ -33,7 +34,14 @@ type capiResource struct {
 	Kind string
 }
 
+// capiResources - resources that are not namespaced
 var capiResources = []capiResource{
+	{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfigs"},
+	{GVR: schema.GroupVersionResource{Group: managementGroup, Version: "v3", Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
+}
+
+// capiNamespacedResources - resources that are namespaced
+var capiNamespacedResources = []capiResource{
 	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1, Resource: "clusterresourcesetbindings"}, Kind: "ClusterResourceSetBinding"},
 	{GVR: schema.GroupVersionResource{Group: addonsGroup, Version: v1Beta1, Resource: "clusterresourcesets"}, Kind: "ClusterResourceSet"},
 	{GVR: schema.GroupVersionResource{Group: bootstrapGroup, Version: v1Alpha1, Resource: "ocneconfigs"}, Kind: "OCNEConfig"},
@@ -62,25 +70,48 @@ var capiResources = []capiResource{
 	{GVR: schema.GroupVersionResource{Group: infrastructureGroup, Version: v1Beta2, Resource: "ocimanagedmachinepooltemplates"}, Kind: "OCIManagedMachinePoolTemplate"},
 	{GVR: schema.GroupVersionResource{Group: ipamGroup, Version: v1Alpha1, Resource: "ipaddressclaims"}, Kind: "IPAddressClaim"},
 	{GVR: schema.GroupVersionResource{Group: ipamGroup, Version: v1Alpha1, Resource: "ipaddresses"}, Kind: "IPAddress"},
-	//{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfigs"},
 }
 
-// captureCapiResources captures resources related to ClusterAPI
-func captureCapiResources(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("MGIANATA capi namespace %s to dir %s\n", namespace, captureDir))
-
+// CaptureGlobalCapiResources captures global resources related to ClusterAPI
+func CaptureGlobalCapiResources(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
 	for _, resource := range capiResources {
-		if err := captureResource(dynamicClient, resource.GVR, resource.Kind, namespace, captureDir, vzHelper); err != nil {
+		if err := captureGlobalResource(dynamicClient, resource.GVR, resource.Kind, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func captureResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, namespace, captureDir string, vzHelper VZHelper) error {
+// captureCapiNamespacedResources captures resources related to ClusterAPI
+func captureCapiNamespacedResources(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	for _, resource := range capiNamespacedResources {
+		if err := captureNamespacedResource(dynamicClient, resource.GVR, resource.Kind, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func captureGlobalResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, captureDir string, vzHelper VZHelper) error {
+	namespace := "default"
+	list, err := dynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while listing %s in namespace %s: %s\n", kind, namespace, err.Error()))
+		return nil
+	}
+	if len(list.Items) > 0 {
+		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
+		if err = createFile(list, namespace, fmt.Sprintf("%s.json", strings.ToLower(kind)), captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func captureNamespacedResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, namespace, captureDir string, vzHelper VZHelper) error {
 	list, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while getting the %s in namespace %s: %s\n", kind, namespace, err.Error()))
+		LogError(fmt.Sprintf("An error occurred while listing %s in namespace %s: %s\n", kind, namespace, err.Error()))
 		return nil
 	}
 	if len(list.Items) > 0 {
