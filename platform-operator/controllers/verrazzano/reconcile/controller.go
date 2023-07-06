@@ -82,6 +82,9 @@ const finalizerName = "install.verrazzano.io"
 // Name of Effective Configmap Data Key
 const effConfigKey = "effective-config.yaml"
 
+// Suffix of the Name of the Configmap containing effective CR
+const effConfigSuffix = "-effective-config"
+
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
 
@@ -1103,7 +1106,7 @@ func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *in
 	}
 
 	// Marshal Indent it to format the Effective CR Specs into YAML
-	effCRSpecs, err := yaml.Marshal(effCR)
+	effCRSpecs, err := yaml.Marshal(effCR.Spec)
 	if err != nil {
 		log.Errorf("Failed to convert effective CR into YAML: %v", err)
 		return err
@@ -1112,7 +1115,7 @@ func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *in
 	// Create a Configmap Object that stores the Effective CR Specs
 	effCRConfigmap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      (vz.ObjectMeta.Name + "-effective-config"),
+			Name:      (vz.ObjectMeta.Name + effConfigSuffix),
 			Namespace: (vz.ObjectMeta.Namespace),
 		},
 	}

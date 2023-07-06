@@ -174,7 +174,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	// Delete the ConfigMap
 	err = resource.Resource{
 		Namespace: cr.ObjectMeta.Namespace,
-		Name:      cr.ObjectMeta.Name + "-effective-config",
+		Name:      cr.ObjectMeta.Name + effConfigSuffix,
 		Client:    r.Client,
 		Object:    &corev1.ConfigMap{},
 		Log:       log,

@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -201,7 +202,7 @@ func TestInstall(t *testing.T) {
 			expectGetIngressListExists(mock)
 
 			// Expect a call to update the finalizers - return success
-			mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
+			mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 			if test.finalizer != finalizerName {
 				mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			} else {
@@ -291,6 +292,9 @@ func TestInstallInitComponents(t *testing.T) {
 			}
 		})
 	})
+	// Expecting a call to get effective-config ConfigMap and update it
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
+	mock.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).Return(nil).Times(1)
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -599,8 +603,8 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Expecting a call to get effectiveCRCM
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
+	// Expecting a call to get effective-config ConfigMap
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -707,8 +711,8 @@ func TestUninstallStarted(t *testing.T) {
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
-	// // Expecting a call to get effectiveCRCM
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
+	// Expecting a call to get effective-config ConfigMap
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to update the job - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -823,8 +827,8 @@ func TestUninstallSucceeded(t *testing.T) {
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Expecting a call to get effectiveCRCM
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + "-effective-config"}, gomock.Any()).Return(nil).Times(1)
+	// Expecting a call to get effective-config ConfigMap
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -944,6 +948,10 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		State: vzapi.VzStateReady}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
+	// Expecting a call to get effective-config ConfigMap and update it
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
+	mock.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).Return(nil).Times(1)
+
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
@@ -1001,6 +1009,10 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+
+	// Expecting a call to get effective-config ConfigMap and update it
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
+	mock.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).Return(nil).Times(1)
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1072,6 +1084,10 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+
+	// Expecting a call to get effective-config ConfigMap and update it
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
+	mock.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).Return(nil).Times(1)
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1335,7 +1351,10 @@ func expectMCCleanup(mock *mocks.MockClient) {
 			return nil
 		}).AnyTimes()
 
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+	// Expects a mock call for Deleting the effective-config CM, which returns no error
+	mock.EXPECT().Delete(gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).Return(nil).Times(1)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
@@ -2450,7 +2469,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      (vz.ObjectMeta.Name + "-effective-config"),
+			Name:      (vz.ObjectMeta.Name + effConfigSuffix),
 			Namespace: (vz.ObjectMeta.Namespace),
 		},
 	}
@@ -2471,7 +2490,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	}
 	err := r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
 	assert.NoError(t, err)
-	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + "-effective-config", Namespace: (vz.ObjectMeta.Namespace)}, cm)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + effConfigSuffix, Namespace: (vz.ObjectMeta.Namespace)}, cm)
 	assert.NoError(t, err)
 	// check if configmap contains the effective CR Key
 	assert.Contains(t, cm.Data, effConfigKey)
@@ -2486,7 +2505,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotContains(t, effectiveCR, decodedUname)
 	// convert it into yaml object
-	vzSpec := &vzapi.VerrazzanoSpec{}
+	vzSpec := &v1beta1.VerrazzanoSpec{}
 	err = yaml.Unmarshal([]byte(effectiveCR), vzSpec)
 	assert.NoError(t, err)
 	assert.NotNil(t, effectiveCR)
