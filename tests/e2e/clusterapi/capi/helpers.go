@@ -621,9 +621,8 @@ func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDispl
 	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
 }
 
-/*
-func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
-	capiK8sConfig, err := GetCapiClusterKubeConfig(clusterName, log)
+func (c CAPITestImpl) GetCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
+	capiK8sConfig, err := c.GetCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +651,67 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 	return dclient, nil
 
 }
-*/
+
+func (c CAPITestImpl) GetVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	dclient, err := c.GetCapiClusterDynamicClient(clusterName, log)
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return nil, err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "install.verrazzano.io",
+		Version:  "v1beta1",
+		Resource: "verrazzanos",
+	}
+
+	return dclient.Resource(gvr).Namespace(namespace).Get(context.TODO(), vzinstallname, metav1.GetOptions{})
+}
+
+func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
+
+	vzFetched, err := c.GetVerrazzano(clusterName, "default", "verrazzano", log)
+	if err != nil {
+		log.Errorf("unable to fetch vz resource from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	var vz Verrazzano
+	modBinaryData, err := json.Marshal(vzFetched)
+	if err != nil {
+		log.Error("json marshalling error ", zap.Error(err))
+		return err
+	}
+
+	err = json.Unmarshal(modBinaryData, &vz)
+	if err != nil {
+		log.Error("json unmarshalling error ", zap.Error(err))
+		return err
+	}
+
+	curState := "InstallStarted"
+	for _, cond := range vz.Status.Conditions {
+		if cond.Type == "InstallComplete" {
+			curState = cond.Type
+		}
+	}
+
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tStatus\tVersion")
+	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
+		vz.Metadata.Name, curState, vz.Status.Version))
+	writer.Flush()
+
+	err = c.DisplayWorkloadClusterResources(clusterName, log)
+	if err != nil {
+		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
+		return err
+	}
+
+	if curState == "InstallComplete" {
+		return nil
+	}
+	return fmt.Errorf("All components are not ready: Current State = %v", curState)
+}
 
 func (c CAPITestImpl) CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 	log.Infof("Creating image pull secrets on workload cluster ...")

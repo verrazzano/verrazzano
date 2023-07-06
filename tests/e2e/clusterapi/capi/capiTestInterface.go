@@ -6,6 +6,7 @@ package capi
 import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -41,4 +42,7 @@ type CapiTestClient interface {
 	ProcessOCIPrivateKeysSingleLine(file, key string, log *zap.SugaredLogger) error
 	CreateNamespace(namespace string, log *zap.SugaredLogger) error
 	SetImageID(key string, log *zap.SugaredLogger) error
+	GetCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error)
+	GetVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
+	EnsureVerrazzano(clusterName string, log *zap.SugaredLogger) error
 }

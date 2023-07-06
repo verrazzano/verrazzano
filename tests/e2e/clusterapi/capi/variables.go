@@ -8,17 +8,16 @@ import (
 )
 
 var (
-	OCIUserID         string
-	OCIFingerprint    string
-	OCITenancyID      string
-	OCIRegion         string
-	OCICompartmentID  string
-	OCIVcnID          string
-	OCISubnetID       string
-	OCISSHKeyPath     string
-	OCIPrivateKeyPath string
-	ClusterName       string
-	//ClusterTemplateGeneratedFilePath string
+	OCIUserID              string
+	OCIFingerprint         string
+	OCITenancyID           string
+	OCIRegion              string
+	OCICompartmentID       string
+	OCIVcnID               string
+	OCISubnetID            string
+	OCISSHKeyPath          string
+	OCIPrivateKeyPath      string
+	ClusterName            string
 	OCNENamespace          string
 	OracleLinuxDisplayName string
 	OperatingSystem        string

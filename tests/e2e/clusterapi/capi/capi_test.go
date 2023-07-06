@@ -24,6 +24,7 @@ const (
 	waitTimeout                    = 30 * time.Minute
 	capiClusterCreationWaitTimeout = 60 * time.Minute
 	pollingInterval                = 30 * time.Second
+	vzPollingInterval              = 60 * time.Second
 
 	// file paths
 	clusterTemplate              = "templates/cluster-template-addons-new-vcn.yaml"
@@ -392,6 +393,14 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			Eventually(func() bool {
 				return EnsureVPOPodsAreRunning(ClusterName, "verrazzano-install", t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
+		})
+
+		t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
+			WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
+				Eventually(func() error {
+					return capiTest.EnsureVerrazzano(ClusterName, t.Logs)
+				}, capiClusterCreationWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano is installed")
+			})
 		})
 	})
 

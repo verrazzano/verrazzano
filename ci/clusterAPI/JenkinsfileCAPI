@@ -389,7 +389,7 @@ pipeline {
                     }
                 }
 
-
+                /*
                 stage('Install overrides on workload cluster') {
                    steps {
                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -438,25 +438,25 @@ pipeline {
                       }
                   }
                 }
+                */
 
                 stage('Post-install Verify Tests on workload cluster') {
-                   steps {
-                       script {
-                           parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
+                       steps {
+                           script {
+                               parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
+                           }
                        }
-                   }
-                   post {
-                     always {
-                         archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                         junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                     }
-                     failure {
-                         script {
-                             dumpOCNECluster('verify-install-workload-cluster-dump')
+                       post {
+                         always {
+                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                         }
+                         failure {
+                             script {
+                                 dumpOCNECluster('verify-install-workload-cluster-dump')
+                             }
                          }
                      }
-                 }
-
                }
 
                 stage('Run Acceptance Tests Infra on workload cluster') {
@@ -514,7 +514,7 @@ pipeline {
                             }
                         }
                     }
-            }
+                }
 
                 stage('Uninstall vz from workload cluster') {
                     steps {
@@ -735,6 +735,9 @@ def set_capi_variables() {
 
 
 def ensureCAPICleanup() {
+    script {
+        dumpOCNECluster("final-workload-cluster-dump")
+    }
     sh """
          kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
     """
