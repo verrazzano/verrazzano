@@ -6,21 +6,28 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	vzhelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -29,10 +36,10 @@ const (
 	testKubeConfig = "kubeconfig"
 	testK8sContext = "testcontext"
 
-// captureResourceErrMsg   = "Capturing resources from the cluster"
-// sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
-// captureLogErrMsg        = "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace"
-// dummyNamespaceErrMsg    = "Namespace dummy not found in the cluster"
+	// captureResourceErrMsg   = "Capturing resources from the cluster"
+	// sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
+	// captureLogErrMsg        = "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace"
+	// dummyNamespaceErrMsg    = "Namespace dummy not found in the cluster"
 )
 
 // TestBugReportHelp
@@ -62,7 +69,7 @@ func TestBugReportHelp(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
-	cmd := setUpandVerifyResources(t)
+	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -88,7 +95,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
-	cmd := setUpandVerifyResources(t)
+	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -111,7 +118,7 @@ func TestBugReportExistingDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
-	cmd := setUpandVerifyResources(t)
+	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -132,7 +139,7 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
-	cmd := setUpandVerifyResources(t)
+	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -156,7 +163,7 @@ func TestBugReportFileNoPermission(t *testing.T) {
 // WHEN I call cmd.Execute
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
-	cmd := setUpandVerifyResources(t)
+	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -192,7 +199,7 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -221,7 +228,7 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -266,7 +273,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(stderrFile.Name())
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
@@ -290,7 +297,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -325,7 +332,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -467,7 +474,7 @@ func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 // WHEN I call cmd.Execute with include logs of  additional namespace and duration
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccessWithDuration(t *testing.T) {
-	cmd := setUpandVerifyResources(t)
+	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -501,7 +508,7 @@ func setUpGlobalFlags(cmd *cobra.Command) {
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 }
 
-func setUpandVerifyResources(t *testing.T) *cobra.Command {
+func setUpAndVerifyResources(t *testing.T) *cobra.Command {
 	c := getClientWithVZWatch()
 
 	// Verify the vz resource is as expected
@@ -512,11 +519,25 @@ func setUpandVerifyResources(t *testing.T) *cobra.Command {
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
 	return cmd
+}
+
+func setupFakeDynamicClient(c client.WithWatch, ioStreams genericclioptions.IOStreams) *helpers.FakeRootCmdContext {
+	rc := helpers.NewFakeRootCmdContext(ioStreams)
+	rc.SetClient(c)
+
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = vmcv1alpha1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: clustersv1alpha1.SchemeGroupVersion.Group, Version: clustersv1alpha1.SchemeGroupVersion.Version, Kind: clustersv1alpha1.VerrazzanoProjectKind + "List"}, &clustersv1alpha1.VerrazzanoProjectList{})
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: vmcv1alpha1.SchemeGroupVersion.Group, Version: vmcv1alpha1.SchemeGroupVersion.Version, Kind: vmcv1alpha1.VerrazzanoManagedClusterKind + "List"}, &vmcv1alpha1.VerrazzanoManagedClusterList{})
+	vzhelper.AddCapiToScheme(scheme)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(scheme))
+	return rc
 }

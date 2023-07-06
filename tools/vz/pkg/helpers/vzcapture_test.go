@@ -20,8 +20,6 @@ import (
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
@@ -106,9 +104,7 @@ func TestGroupVersionResource(t *testing.T) {
 func TestCaptureK8SResources(t *testing.T) {
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
-	for _, resource := range capiNamespacedResources {
-		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
-	}
+	AddCapiToScheme(scheme)
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)

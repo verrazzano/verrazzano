@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -36,7 +38,7 @@ type capiResource struct {
 
 // capiResources - resources that are not namespaced
 var capiResources = []capiResource{
-	{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfigs"},
+	{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfig"},
 	{GVR: schema.GroupVersionResource{Group: managementGroup, Version: "v3", Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
 }
 
@@ -121,4 +123,13 @@ func captureNamespacedResource(dynamicClient dynamic.Interface, gvr schema.Group
 		}
 	}
 	return nil
+}
+
+func AddCapiToScheme(scheme *runtime.Scheme) {
+	for _, resource := range capiNamespacedResources {
+		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
+	}
+	for _, resource := range capiResources {
+		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
+	}
 }
