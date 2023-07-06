@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -208,15 +207,6 @@ func TestPreUninstall(t *testing.T) {
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: netPolName}, netpol)
 	assert.NoError(t, err)
 	assert.Empty(t, netpol.Annotations)
-}
-
-// assertNamespaces asserts that all namespaces with Verrazzano network policies exist
-func assertNamespaces(t *testing.T, client clipkg.Client) {
-	nsObj := &corev1.Namespace{}
-	for _, ns := range netPolNamespaces() {
-		err := client.Get(context.TODO(), types.NamespacedName{Name: ns}, nsObj)
-		assert.NoErrorf(t, err, "Expected namespace %s to exist", ns)
-	}
 }
 
 // assertNetPolicyHelmOwnership asserts that any network policies are now associated with the helm release
