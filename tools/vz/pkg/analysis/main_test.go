@@ -497,6 +497,9 @@ func TestCertificateVPOHangingIssue(t *testing.T) {
 		if issue.Type == report.VPOHangingIssueDueToLongCertificateApproval {
 			problemsFound++
 		}
+		if issue.Type == report.CertificateExpired {
+			problemsFound++
+		}
 	}
-	assert.True(t, problemsFound > 0)
+	assert.True(t, problemsFound == 2)
 }
