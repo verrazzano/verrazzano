@@ -48,23 +48,42 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 		}
 
 		for _, certificate := range certificateListForNamespace.Items {
-			if certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Status == "True" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Type == "Ready" && certificate.Status.Conditions[len(certificate.Status.Conditions)-1].Message == "Certificate is up to date and has not expired" {
-				if len(mapOfCertificatesInVPOToTheirNamespace) > 0 {
-					namespace, ok := mapOfCertificatesInVPOToTheirNamespace[certificate.ObjectMeta.Name]
-					if ok && namespace == certificate.ObjectMeta.Namespace {
-						reportVPOHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
-					}
-				}
-			} else if certificate.Status.NotAfter.Unix() < time.Now().Unix() {
+			if certificate.Status.NotAfter.Unix() < time.Now().Unix() {
 				reportCertificateExpirationIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
-			} else {
+			}
+			if getLatestCondition(log, certificate) == nil {
+				continue
+			}
+			conditionOfCert := getLatestCondition(log, certificate)
+			if isCertConditionValid(conditionOfCert) && isVPOHangingonCert(mapOfCertificatesInVPOToTheirNamespace, certificate) {
+				reportVPOHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
+			}
+			if !(isCertConditionValid(conditionOfCert)) {
 				reportGenericCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 			}
+
 		}
 	}
 	issueReporter.Contribute(log, clusterRoot)
 	return nil
 
+}
+
+// Checks if a condition of a certificate is valid
+func isCertConditionValid(conditionOfCert *certv1.CertificateCondition) bool {
+	return conditionOfCert.Status == "True" && conditionOfCert.Type == "Ready" && conditionOfCert.Message == "Certificate is up to date and has not expired"
+}
+
+// Determines if the VPO is currently hanging on a certificate
+func isVPOHangingonCert(mapOfCertsThatVPOIsHangingOn map[string]string, certificate certv1.Certificate) bool {
+	if len(mapOfCertsThatVPOIsHangingOn) <= 0 {
+		return false
+	}
+	namespace, ok := mapOfCertsThatVPOIsHangingOn[certificate.ObjectMeta.Name]
+	if ok && namespace == certificate.ObjectMeta.Name {
+		return true
+	}
+	return false
 }
 
 // This function returns a list of certificate objects based on the certificates.json file
@@ -89,7 +108,30 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 	return certList, err
 }
 
-// Add comments for newly created function later
+// This function returns the latest condition in a certificate, if one exists
+func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) *certv1.CertificateCondition {
+	if certificate.Status.Conditions == nil {
+		return nil
+	}
+	var latestCondition *certv1.CertificateCondition
+	latestCondition = nil
+	for _, condition := range certificate.Status.Conditions {
+		if condition.LastTransitionTime == nil {
+			continue
+		}
+		if latestCondition == nil && &condition.LastTransitionTime != nil {
+			latestCondition = &condition
+			continue
+		}
+		if latestCondition.LastTransitionTime.UnixNano() < condition.LastTransitionTime.UnixNano() {
+			latestCondition = &condition
+		}
+
+	}
+	return latestCondition
+}
+
+// This function reports when a VPO hanging issue has occured
 
 func reportVPOHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
@@ -97,11 +139,16 @@ func reportVPOHangingIssue(log *zap.SugaredLogger, clusterRoot string, certifica
 	issueReporter.AddKnownIssueMessagesFiles(report.VPOHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
 
 }
+
+// This function reports if a certificate has expired
 func reportCertificateExpirationIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is expired", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExpired, clusterRoot, message, files)
 }
+
+// This function reports when a certificate is not expired, and the VPO is not hanging, but an issue has occured.
+
 func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is not valid and experiencing issues", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
@@ -125,6 +172,7 @@ func determineIfVPOIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot strin
 	vpoLog := allPodFiles[0]
 	allMessages, err := files.ConvertToLogMessage(vpoLog)
 	if err != nil {
+		log.Error("Failed to convert files to the vpo message")
 		return listOfCertificatesThatVPOIsHangingOn, err
 	}
 	//If the VPO has greater than 10 messages, the last 10 logs are the input. Else, the whole VPO logs are the input
