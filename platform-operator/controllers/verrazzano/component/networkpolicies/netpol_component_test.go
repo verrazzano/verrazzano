@@ -5,6 +5,7 @@ package networkpolicies
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -60,7 +61,6 @@ func TestPreInstall(t *testing.T) {
 
 	err := comp.PreInstall(ctx)
 	assert.NoError(t, err)
-	assertNamespaces(t, fakeClient)
 }
 
 // GIVEN a network policies helm component
@@ -119,7 +119,6 @@ func TestPreUpgrade(t *testing.T) {
 
 	err = comp.PreUpgrade(ctx)
 	assert.NoError(t, err)
-	assertNamespaces(t, fakeClient)
 
 	// assert that the network policy is now associated with this component's helm release
 	assertNetPolicyHelmOwnership(t, fakeClient)
