@@ -115,16 +115,17 @@ func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) 
 	}
 	var latestCondition *certv1.CertificateCondition
 	latestCondition = nil
-	for _, condition := range certificate.Status.Conditions {
+	conditions := certificate.Status.Conditions
+	for i, condition := range conditions {
 		if condition.LastTransitionTime == nil {
 			continue
 		}
 		if latestCondition == nil && condition.LastTransitionTime != nil {
-			latestCondition = &condition
+			latestCondition = &(conditions[i])
 			continue
 		}
 		if latestCondition.LastTransitionTime.UnixNano() < condition.LastTransitionTime.UnixNano() {
-			latestCondition = &condition
+			latestCondition = &(conditions[i])
 		}
 
 	}
