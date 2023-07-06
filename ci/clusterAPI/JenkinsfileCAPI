@@ -58,7 +58,7 @@ pipeline {
                 description: 'Path in OCNE registry value. Default olcne',
                 trim: true)
         choice (description: 'Number of OCNE control plane nodes', name: 'CONTROL_PLANE_MACHINE_COUNT', choices: ["1", "3"])
-        choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["1","2","3"])
+        choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["2","1","3"])
         string (name: 'NODE_OCPU',defaultValue: '4',description: 'Number of OCPUs for worker nodes with shape VM.Standard.E4.Flex',trim: true)
         string (name: 'MEMORY_GBS',defaultValue: '80',description: 'Amount of memeriry assigned to nodes with shape VM.Standard.E4.Flex',trim: true)
         string (name: 'ORACLE_LINUX_NAME',defaultValue: 'Oracle-Linux-8.7-2023',description: 'Oracle Linux Display Name',trim: true)
@@ -121,6 +121,8 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
+        TEST_OVERRIDE_CONFIGMAP_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
+        TEST_OVERRIDE_SECRET_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         KIND_NODE_COUNT = "3"
         VZ_ENVIRONMENT_NAME = "default"
@@ -379,6 +381,24 @@ pipeline {
                     }
                 }
 
+
+                stage('Install overrides on workload cluster') {
+                   steps {
+                       catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                           script {
+                               createOverridesOnWorkloadCluster()
+                           }
+                       }
+                   }
+                   post {
+                       failure {
+                           script {
+                               dumpOCNECluster('verrazzano-install-overrides-cluster-dump')
+                           }
+                       }
+                   }
+                }
+
                 stage('Install Verrazzano on workload cluster') {
                    steps {
                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -570,6 +590,27 @@ def generateVerifyInstallStages(dumpRoot) {
         },
         "verify-install web": {
             runGinkgoRandomizeWorkloadCluster('verify-install/web')
+        },
+        "verify-install clusteragent": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/clusteragent')
+        },
+        "verify-install clusterapi": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/clusterapi')
+        },
+        "verify-install jaegar-operator": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/jaegar-operator')
+        },
+        "verify-install thanos": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/thanos')
+        },
+         "verify-install security": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/security')
+        },
+         "verify-install velero": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/velero')
+        },
+         "verify-install validators": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/validators')
         },
     ]
 }
@@ -1049,4 +1090,27 @@ def parallelDGAcceptanceTestsTwo() {
             }
         }
     }
+}
+
+def createOverridesOnWorkloadCluster() {
+
+    sh """
+          echo "Creating Override ConfigMap"
+          TS=\$(date +%Y%m%d%H%M%S)
+          export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+          kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+          kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+          if [ $? -ne 0 ]; then
+            echo "Could not create Override ConfigMap"
+            exit 1
+          fi
+
+          echo "Creating Override Secret"
+          kubectl kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+          if [ $? -ne 0 ]; then
+            echo "Could not create Override Secret"
+            exit 1
+          fi
+    """
+
 }
