@@ -291,7 +291,10 @@ pipeline {
             }
         }
 
-        stage('Prepare KinD environment') {
+        stage('Acceptance Tests on OCNE cluster') {
+            stages {
+
+                stage('Prepare KinD environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
@@ -337,85 +340,81 @@ pipeline {
                     }
                 }
 
-
-        stage('verify-install on admin cluster') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                    """
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster('verify-install-admin-cluster-dump')
+                stage('Verify-install on admin cluster') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                cd ${WORKSPACE}/tests/e2e
+                                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                            """
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                dumpK8sCluster('verify-install-admin-cluster-dump')
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-
-        stage('Deploy OCNE workload cluster using CAPI') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        // This will deploy an OCNE cluster
-                        // Then proceed to create image pull secrets required for jenkins
-                        set_capi_variables()
-                        runGinkgo('clusterapi/capi')
+                stage('Deploy OCNE workload cluster using CAPI') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                // This will deploy an OCNE cluster
+                                // Then proceed to create image pull secrets required for jenkins
+                                set_capi_variables()
+                                runGinkgo('clusterapi/capi')
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                dumpOCNECluster('verify-capi-cluster-creation')
+                                dumpK8sCluster('verify-capi-cluster-creation')
+                            }
+                        }
                     }
                 }
-            }
-            post {
-                failure {
-                    script {
-                        dumpOCNECluster('verify-capi-cluster-creation')
-                        dumpK8sCluster('verify-capi-cluster-creation')
-                    }
-                }
-            }
-        }
 
-        stage('install Verrazzano on workload cluster') {
-           steps {
-               catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                   sh """
-                       TS=\$(date +%Y%m%d%H%M%S)
-                       TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
-                       kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-                       kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
-                       kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
-                       ${GO_REPO_PATH}/vz install --kubeconfig \$TEMPKUBECONFIGPATH --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
-                   """
-               }
-           }
-           post {
-               failure {
-                   script {
-                       dumpOCNECluster('verrazzano-install-workload-cluster-dump')
+                stage('Install Verrazzano on workload cluster') {
+                   steps {
+                       catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                           sh """
+                               TS=\$(date +%Y%m%d%H%M%S)
+                               TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+                               kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+                               kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
+                               kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
+                               ${GO_REPO_PATH}/vz install --kubeconfig \$TEMPKUBECONFIGPATH --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
+                           """
+                       }
+                   }
+                   post {
+                       failure {
+                           script {
+                               dumpOCNECluster('verrazzano-install-workload-cluster-dump')
+                           }
+                       }
+                   }
+                }
+
+                stage('Post-install Verify Tests on workload cluster') {
+                   steps {
+                       script {
+                           parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
+                       }
+                   }
+                   post {
+                       always {
+                           archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                           junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                       }
                    }
                }
-           }
-       }
 
-       stage('Post-install Verify Tests on workload cluster') {
-           steps {
-               script {
-                   parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
-               }
-           }
-           post {
-               always {
-                   archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                   junit testResults: '**/*test-result.xml', allowEmptyResults: true
-               }
-           }
-       }
-
-        stage('Acceptance Tests on OCNE cluster') {
-            stages {
                 stage('Run Acceptance Tests Infra on workload cluster') {
 
                        parallel {
@@ -657,48 +656,48 @@ pipeline {
                        }
                 }
 
-            }
-        }
-
-
-        stage('uninstall vz from workload cluster') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        TS=\$(date +%Y%m%d%H%M%S)
-                        export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
-                        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-                        kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
-                        kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
-                        ${GO_REPO_PATH}/vz --kubeconfig \$TEMPKUBECONFIGPATH uninstall -y --timeout 60m
-                    """
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster('uninstall-vz-cluster-dump')
-                        dumpOCNECluster('uninstall-vz-workload-cluster-dump')
+                stage('Uninstall vz from workload cluster') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                TS=\$(date +%Y%m%d%H%M%S)
+                                export TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+                                kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+                                kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
+                                kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
+                                ${GO_REPO_PATH}/vz --kubeconfig \$TEMPKUBECONFIGPATH uninstall -y --timeout 60m
+                            """
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                dumpK8sCluster('uninstall-vz-cluster-dump')
+                                dumpOCNECluster('uninstall-vz-workload-cluster-dump')
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        stage('cleanup workload cluster from admin cluster') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
-                    """
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster('cleanup-capi-admin-cluster-dump')
+                stage('Cleanup workload cluster from admin cluster') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
+                            """
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                dumpK8sCluster('cleanup-capi-admin-cluster-dump')
+                            }
+                        }
                     }
                 }
+
             }
+
         }
 
     }
