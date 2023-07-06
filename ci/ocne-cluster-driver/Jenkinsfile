@@ -256,7 +256,7 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-default.yaml"
+        INSTALL_CONFIG_FILE = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -388,8 +388,13 @@ pipeline {
         stage('Install Verrazzano') {
             steps {
                 sh """
-                    echo "Download Platform Operator"
+                    # Create image pull secret for Verrazzano docker images
                     cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+
+                    echo "Download Platform Operator"
                     if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                         echo "Using operator.yaml from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -405,12 +410,6 @@ pipeline {
                     # create secret in verrazzano-install ns
                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
                     ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
-
-                    # Create image pull secret for Verrazzano docker images
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 
                     echo "Installing Verrazzano on OKE"
                     ${VZ_COMMAND} install --filename ${INSTALL_CONFIG_FILE} --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
