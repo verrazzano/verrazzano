@@ -556,8 +556,8 @@ def runGinkgo(testSuitePath) {
 }
 
 def setUpEnvVarsForOCNEClusterCreation() {
-    env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${env.TF_VAR_label_prefix}-oke-vcn | jq -r '.data[0].id' """).trim()
-    env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id' """).trim()
+    env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${OKE_CLUSTER_PREFIX}-oke-vcn | jq -r '.data[0].id' """).trim()
+    env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${OKE_CLUSTER_PREFIX}-workers | jq -r '.data[0].id' """).trim()
 
     // required environment variables for the Ginkgo test suite
     env.OCI_REGION="${env.TF_VAR_region}"
