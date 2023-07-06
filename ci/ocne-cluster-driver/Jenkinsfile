@@ -415,6 +415,9 @@ pipeline {
 
                     echo "Installing Verrazzano on OKE"
                     ${VZ_COMMAND} install --filename ${INSTALL_CONFIG_FILE} --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 45m
+
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                 """
             }
             post {
