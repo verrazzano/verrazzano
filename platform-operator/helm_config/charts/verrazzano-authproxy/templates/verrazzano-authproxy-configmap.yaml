@@ -450,6 +450,8 @@ data:
                 check_host = 'opensearch.logging'..me.hostSuffix
             elseif backend == 'osd-logging' then
                 check_host = 'osd.logging'..me.hostSuffix
+            elseif backend == 'alertmanager' then
+                check_host =  backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
             end
