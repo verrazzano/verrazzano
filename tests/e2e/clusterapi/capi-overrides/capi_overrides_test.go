@@ -26,13 +26,19 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-const ocneOverrides = `
+const versionOverrides = `
 {
   "defaultProviders": {
+    "oci": {
+      "version": "%s"
+    },
     "ocneBootstrap": {
       "version": "%s"
     },
     "ocneControlPlane": {
+      "version": "%s"
+    },
+    "core": {
       "version": "%s"
     }
   }
@@ -54,7 +60,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	// Get the components from the BOM
-	_, capiComp := getComponents()
+	ociComp, ocneComp, coreComp := getComponents()
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
@@ -65,12 +71,12 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
-	t.Context("override ocneBootstrap and ocneControlPlane version", func() {
+	t.Context("override oci, core, ocneBootstrap and ocneControlPlane versions", func() {
 		// GIVEN the CAPI environment is ready
-		// WHEN we override ocneBootstrap and ocneControlPlane versions
+		// WHEN we override versions
 		// THEN the overrides get successfully applied
-		capipkg.WhenClusterAPIInstalledIt(t, "and check for success", func() {
-			applyOverrides(fmt.Sprintf(ocneOverrides, capiComp.Version, capiComp.Version))
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
+			applyOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version))
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -80,7 +86,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// GIVEN the CAPI environment is ready
 		// WHEN we remove the overrides
 		// THEN the default values will get restored
-		capipkg.WhenClusterAPIInstalledIt(t, "and check for success", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			applyOverrides("")
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
@@ -138,7 +144,7 @@ func applyOverrides(overrides string) {
 }
 
 // getComponents - return some components from the BOM file
-func getComponents() (*bom.BomComponent, *bom.BomComponent) {
+func getComponents() (*bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
 	bomDoc, err := pkg.GetBOMDoc()
 	if err != nil {
@@ -146,17 +152,21 @@ func getComponents() (*bom.BomComponent, *bom.BomComponent) {
 	}
 
 	// Find the Rancher and CAPI components
-	var rancherComp *bom.BomComponent
+	var ociComp *bom.BomComponent
 	var capiComp *bom.BomComponent
+	var coreComp *bom.BomComponent
 	for i, component := range bomDoc.Components {
 		switch component.Name {
-		case "rancher":
-			rancherComp = &bomDoc.Components[i]
+		case "capi-oci":
+			ociComp = &bomDoc.Components[i]
 		case "capi-ocne":
 			capiComp = &bomDoc.Components[i]
+		case "capi-cluster-api":
+			coreComp = &bomDoc.Components[i]
 		}
 	}
-	Expect(rancherComp).To(Not(BeNil()))
-	Expect(capiComp).To(Not(BeNil()))
-	return rancherComp, capiComp
+	Expect(ociComp).ToNot(BeNil())
+	Expect(capiComp).ToNot(BeNil())
+	Expect(coreComp).ToNot(BeNil())
+	return ociComp, capiComp, coreComp
 }
