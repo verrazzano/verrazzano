@@ -13,9 +13,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,9 +25,8 @@ import (
 )
 
 const (
-	waitTimeout       = 5 * time.Minute
-	pollingInterval   = 10 * time.Second
-	minimumK8sVersion = "1.24.0"
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var t = framework.NewTestFramework("clusterapi")
@@ -53,22 +52,11 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 // 'It' Wrapper to only run spec if the ClusterAPI is supported on the current Verrazzano version and is installed
 func WhenClusterAPIInstalledIt(description string, f func()) {
 	t.It(description, func() {
-		kubeconfig := getKubeConfigOrAbort()
-		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
+		capiInstalled, err := capipkg.IsClusterAPIInstalled()
 		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+			AbortSuite(err.Error())
 		}
-		isClusterAPIEnabled := vzcr.IsClusterAPIEnabled(inClusterVZ)
-		isMinimumK8sVersion, err := k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to check Minimum k8s version: %v", err))
-		}
-		isClusterAPISupported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
-		}
-		isComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, clusterapi.ComponentName)
-		if isMinimumK8sVersion && isClusterAPISupported && (isClusterAPIEnabled && isComponentStatusEnabled) {
+		if capiInstalled {
 			f()
 		} else {
 			t.Logs.Infof("Skipping test '%v', Cluster API  is not installed/supported on this cluster", description)
