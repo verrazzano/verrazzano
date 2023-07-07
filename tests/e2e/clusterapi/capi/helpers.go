@@ -800,6 +800,15 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 		return debugCmdResponse.CommandError
 	}
 
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz --all", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	debugCmdResponse = helpers.Runner(&bcmd, log)
+	if debugCmdResponse.CommandError != nil {
+		return debugCmdResponse.CommandError
+	}
+
 	return nil
 }
 
