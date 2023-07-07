@@ -84,6 +84,11 @@ func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzP
 	filePath := filepath.Join(directoryPath, fileName)
 
 	authzPolicyYaml, err := yaml.Marshal(authzPolicy)
+	if err != nil {
+		fmt.Printf("Failed to Marshal file: %v\n", err)
+		return err
+	}
+
 	// Write the YAML content to the file
 	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -99,6 +104,10 @@ func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzP
 		return err
 	}
 	_, err = file.WriteString("---\n")
+	if err != nil {
+		fmt.Printf("Failed to write string: %v\n", err)
+		return err
+	}
 	return nil
 }
 

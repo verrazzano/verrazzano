@@ -15,7 +15,7 @@ const (
 	VirtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
 	DestinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	AuthorizationAPIVersion   = "security.istio.io/v1beta1"
-	HttpsProtocol             = "HTTPS"
+	HTTPSProtocol             = "HTTPS"
 	VerrazzanoClusterIssuer   = "verrazzano-cluster-issuer"
 	CertificateAPIVersion     = "cert-manager.io/v1"
 )

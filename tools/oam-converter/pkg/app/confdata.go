@@ -68,7 +68,11 @@ func ConfData() error {
 		components = append(components, component)
 	}
 	weblogicMap := make(map[string]*vzapi.VerrazzanoWebLogicWorkload)
-	coherenceWorkloads, helidonWorkloads, weblogicMap = segregateWorkloads(weblogicMap, components, componentNames, helidonWorkloads, coherenceWorkloads)
+	err, coherenceWorkloads, helidonWorkloads, weblogicMap = segregateWorkloads(weblogicMap, components, componentNames, helidonWorkloads, coherenceWorkloads)
+	if err != nil {
+		fmt.Printf("Failed to segregate: %v\n", err)
+		return err
+	}
 
 	for _, trait := range metricsTraits {
 
@@ -83,7 +87,7 @@ func ConfData() error {
 	}
 	return nil
 }
-func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload, components []map[string]interface{}, componentNames []string, helidonWorkloads []*vzapi.VerrazzanoHelidonWorkload, coherenceWorkloads []*vzapi.VerrazzanoCoherenceWorkload) ([]*vzapi.VerrazzanoCoherenceWorkload, []*vzapi.VerrazzanoHelidonWorkload, map[string]*vzapi.VerrazzanoWebLogicWorkload) {
+func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload, components []map[string]interface{}, componentNames []string, helidonWorkloads []*vzapi.VerrazzanoHelidonWorkload, coherenceWorkloads []*vzapi.VerrazzanoCoherenceWorkload) (error, []*vzapi.VerrazzanoCoherenceWorkload, []*vzapi.VerrazzanoHelidonWorkload, map[string]*vzapi.VerrazzanoWebLogicWorkload) {
 	//A weblogic map with the key as component name and value as a VerrazzanoWeblogicWorkload struct
 
 	for _, comp := range components {
@@ -105,9 +109,14 @@ func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload
 
 				if err != nil {
 					log.Fatalf("Failed to marshal trait: %v", err)
+
 				}
 
 				err = json.Unmarshal(workloadJSON, &weblogicWorkload)
+				if err != nil {
+					fmt.Printf("Failed to unmarshal: %v\n", err)
+					return err, nil, nil, nil
+				}
 
 				//putting into map of workloads whose key is the component name and
 				//value is the weblogic workload
@@ -124,6 +133,11 @@ func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload
 				}
 
 				err = json.Unmarshal(workloadJSON, &helidonWorkload)
+				if err != nil {
+					fmt.Printf("Failed to unmarshal: %v\n", err)
+					return err, nil, nil, nil
+				}
+
 				helidonWorkloads = append(helidonWorkloads, helidonWorkload)
 			}
 			if kind == "VerrazzanoCoherenceWorkload" {
@@ -139,12 +153,17 @@ func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload
 				}
 
 				err = json.Unmarshal(workloadJSON, &coherenceWorkload)
+				if err != nil {
+					fmt.Printf("Failed to unmarshal: %v\n", err)
+					return err, nil, nil, nil
+				}
+
 				coherenceWorkloads = append(coherenceWorkloads, coherenceWorkload)
 
 			}
 		}
 	}
-	return coherenceWorkloads, helidonWorkloads, weblogicMap
+	return nil, coherenceWorkloads, helidonWorkloads, weblogicMap
 }
 func createResources(workloadTraitMap map[string]*vzapi.IngressTrait, weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload, coherenceWorkloads []*vzapi.VerrazzanoCoherenceWorkload, helidonWorkloads []*vzapi.VerrazzanoHelidonWorkload) error {
 	//Create child resources of each ingress trait

@@ -74,6 +74,10 @@ func mutateDestinationRuleFromWeblogicWorkload(destinationRule *istioclient.Dest
 	filePath := filepath.Join(directoryPath, fileName)
 
 	destinationRuleYaml, err := yaml.Marshal(destinationRule)
+	if err != nil {
+		fmt.Printf("Failed to marshal: %v\n", err)
+		return err
+	}
 	// Write the YAML content to the file
 	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -89,6 +93,10 @@ func mutateDestinationRuleFromWeblogicWorkload(destinationRule *istioclient.Dest
 		return err
 	}
 	_, err = file.WriteString("---\n")
+	if err != nil {
+		fmt.Printf("Failed to write to file: %v\n", err)
+		return err
+	}
 	return nil
 }
 
