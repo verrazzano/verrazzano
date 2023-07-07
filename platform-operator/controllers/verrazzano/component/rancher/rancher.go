@@ -43,12 +43,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// getDynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
-type getDynamicClientFuncSig func() (dynamic.Interface, error)
+// dynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
+type dynamicClientFuncSig func() (dynamic.Interface, error)
 
-// getDynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
+// dynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
 // the function for unit testing
-var getDynamicClientFunc getDynamicClientFuncSig = getDynamicClient
+var dynamicClientFunc dynamicClientFuncSig = getDynamicClient
 
 // Constants for Kubernetes resource names
 const (
@@ -252,6 +252,18 @@ var dynamicSchemaGVR = schema.GroupVersionResource{
 	Resource: "dynamicschemas",
 }
 
+func getDynamicClientFunc() dynamicClientFuncSig {
+	return dynamicClientFunc
+}
+
+func setDynamicClientFunc(function dynamicClientFuncSig) {
+	dynamicClientFunc = function
+}
+
+func resetDynamicClientFunc() {
+	dynamicClientFunc = getDynamicClient
+}
+
 func useAdditionalCAs(acme vzapi.LetsEncryptACMEIssuer) bool {
 	return acme.Environment != "production"
 }
@@ -337,7 +349,7 @@ func getDynamicClient() (dynamic.Interface, error) {
 // helm charts for the previous release of Rancher are used (instead of the charts on the Rancher
 // container image).
 func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
-	dynamicClient, err := getDynamicClientFunc()
+	dynamicClient, err := dynamicClientFunc()
 	if err != nil {
 		log.Errorf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
 		return err

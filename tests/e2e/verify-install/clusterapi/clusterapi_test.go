@@ -142,7 +142,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 				}
 
 				foundCount := 0
-				// The condition of each driver must be active
+				// Each driver is expected to exist
 				for _, driver := range cattleDrivers.Items {
 					switch driver.GetName() {
 					case "amazonelasticcontainerservice":

@@ -95,8 +95,10 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	tracker := getUninstallTracker(cr)
 	done := false
+
 	for !done {
 		switch tracker.vzState {
 		case vzStateUninstallStart:
@@ -168,6 +170,19 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			done = true
 		}
 	}
+
+	// Delete the ConfigMap
+	err = resource.Resource{
+		Namespace: cr.ObjectMeta.Namespace,
+		Name:      cr.ObjectMeta.Name + effConfigSuffix,
+		Client:    r.Client,
+		Object:    &corev1.ConfigMap{},
+		Log:       log,
+	}.Delete()
+	if err != nil {
+		log.Errorf("Failed Deleting the Configmap: %v", err)
+	}
+
 	// Uninstall done, no need to requeue
 	return ctrl.Result{}, nil
 }
@@ -404,7 +419,6 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
 			return newRequeueWithDelay(), err
 		}
-		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
 			Client: r.Client,
@@ -446,7 +460,6 @@ func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
 	}
 
 	for _, ns := range namespaces.Items {
-		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
 		err := resource.Resource{
 			Name:      istioRootCertName,
 			Namespace: ns.GetName(),

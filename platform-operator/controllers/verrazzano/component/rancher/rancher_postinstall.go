@@ -166,7 +166,9 @@ func labelNamespace(c client.Client) error {
 		}
 		if _, found := nsList.Items[i].Labels[constants.VerrazzanoManagedKey]; isRancherNamespace(&(nsList.Items[i])) && !found {
 			nsList.Items[i].Labels[constants.VerrazzanoManagedKey] = nsList.Items[i].Name
-			c.Update(context.TODO(), &(nsList.Items[i]), &client.UpdateOptions{})
+			if err := c.Update(context.TODO(), &(nsList.Items[i]), &client.UpdateOptions{}); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
