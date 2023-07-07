@@ -71,8 +71,8 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and check for success", func() {
 			applyOverrides(fmt.Sprintf(ocneOverrides, capiComp.Version, capiComp.Version))
-			Eventually(isStatusMet(v1beta1.VzStateReconciling)).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
-			Eventually(isStatusMet(v1beta1.VzStateReady)).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -82,18 +82,25 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// THEN the default values will get restored
 		capipkg.WhenClusterAPIInstalledIt(t, "and check for success", func() {
 			applyOverrides("")
-			Eventually(isStatusMet(v1beta1.VzStateReconciling), waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusMet(v1beta1.VzStateReady), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
+
+func isStatusReconciling() bool {
+	return isStatusMet(v1beta1.VzStateReconciling)
+}
+
+func isStatusReady() bool {
+	return isStatusMet(v1beta1.VzStateReady)
+}
 
 // isStatusMet - Return boolean indicating if expected status is met
 func isStatusMet(state v1beta1.VzStateType) bool {
 	// Get the VZ resource
 	vz, err := pkg.GetVerrazzanoV1beta1()
 	Expect(err).ToNot(HaveOccurred())
-	t.Logs.Infof("vz status is %s", vz.Status.State)
 	return vz.Status.State == state
 }
 
