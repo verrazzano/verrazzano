@@ -380,6 +380,9 @@ pipeline {
                         }
                     }
                     post {
+                        aborted {
+                            dumpOCNECluster('aborted-deploy-ocne-workload-cluster-dump')
+                        }
                         failure {
                             script {
                                 dumpK8sCluster('deploy-ocne-admin-cluster-dump')
