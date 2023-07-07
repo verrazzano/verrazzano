@@ -95,6 +95,9 @@ pipeline {
         }
 
         stage('Force Candidate') {
+            when {
+                expression { !params.DRY_RUN }
+            }
             environment {
                 GIT_COMMIT_USED = "${env.GIT_COMMIT}"
             }
