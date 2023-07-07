@@ -75,6 +75,17 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 			Eventually(isStatusMet(v1beta1.VzStateReady), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
+
+	t.Context("restore VZ to default values for clusterAPI", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we remove the overrides
+		// THEN the default values will get restored
+		capipkg.WhenClusterAPIInstalledIt(t, "so that default values get reinstated", func() {
+			applyOverrides("")
+			Eventually(isStatusMet(v1beta1.VzStateReconciling), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusMet(v1beta1.VzStateReady), waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
 })
 
 // isStatusMet - Return boolean indicating if expected status is met
@@ -96,17 +107,22 @@ func applyOverrides(overrides string) {
 	Expect(err).ToNot(HaveOccurred())
 
 	// Update the VZ with the overrides
-	if vz.Spec.Components.ClusterAPI == nil {
-		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
-	}
-	vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
-		ValueOverrides: []v1beta1.Overrides{
-			{
-				Values: &apiextensionsv1.JSON{
-					Raw: []byte(overrides),
+	if len(overrides) == 0 {
+		// Restore the VZ to default values
+		vz.Spec.Components.ClusterAPI = nil
+	} else {
+		if vz.Spec.Components.ClusterAPI == nil {
+			vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
+		}
+		vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
+			ValueOverrides: []v1beta1.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte(overrides),
+					},
 				},
 			},
-		},
+		}
 	}
 
 	_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
