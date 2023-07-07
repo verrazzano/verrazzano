@@ -93,7 +93,7 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
 // services, and cert-manager certificates from the specified namespace, as JSON files
-func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -107,6 +107,9 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 		return err
 	}
 	if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
+	if err := captureCapiNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
@@ -159,7 +162,7 @@ func GetPodListAll(client clipkg.Client, namespace string) ([]corev1.Pod, error)
 }
 
 // CaptureVZResource captures Verrazzano resources as a JSON file
-func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano, vzHelper VZHelper) error {
+func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 	var vzRes = filepath.Join(captureDir, constants.VzResource)
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -305,7 +308,7 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 	return nil
 }
 
-// captureLog captures the log from the pod in the captureDir
+// CapturePodLog captures the log from the pod in the captureDir
 func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64) error {
 	podName := pod.Name
 	if len(podName) == 0 {
@@ -457,7 +460,7 @@ func GetVZManagedNamespaces(kubeClient kubernetes.Interface) []string {
 // RemoveDuplicate removes duplicates from origSlice
 func RemoveDuplicate(origSlice []string) []string {
 	allKeys := make(map[string]bool)
-	returnSlice := []string{}
+	var returnSlice []string
 	for _, item := range origSlice {
 		if _, value := allKeys[item]; !value {
 			allKeys[item] = true
