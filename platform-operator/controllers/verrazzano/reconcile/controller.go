@@ -156,6 +156,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	err = r.createOrUpdateEffectiveConfigCM(ctx, vz, log)
 	if err != nil {
 		errorCounterMetricObject.Inc()
+		log.Errorf("Failed to Create/Update the effective-config ConfigMap: %v", err)
+
+		// Not returning an error since it has already been logged and we don't want the
+		// controller runtime to log again.  Just re-queue if there is an error.
+		return newRequeueWithDelay(), nil
 	}
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
@@ -1093,23 +1098,21 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
 	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
-	v1beta1Actual := &v1beta1.Verrazzano{}
-	err := vz.ConvertTo(v1beta1Actual)
+	v1beta1ActualCR := &v1beta1.Verrazzano{}
+	err := vz.ConvertTo(v1beta1ActualCR)
 	if err != nil {
-		log.Errorf("Failed Converting v1alpha1 Verrazzano to v1beta1: %v", err)
+		return fmt.Errorf("failed Converting v1alpha1 Verrazzano to v1beta1: %v", err)
 	}
 
-	effCR, err := transform.GetEffectiveV1beta1CR(v1beta1Actual)
+	effCR, err := transform.GetEffectiveV1beta1CR(v1beta1ActualCR)
 	if err != nil {
-		log.Errorf("Failed retrieving the Effective CR: %v", err)
-		return err
+		return fmt.Errorf("failed retrieving the Effective CR: %v", err)
 	}
 
 	// Marshal Indent it to format the Effective CR Specs into YAML
 	effCRSpecs, err := yaml.Marshal(effCR.Spec)
 	if err != nil {
-		log.Errorf("Failed to convert effective CR into YAML: %v", err)
-		return err
+		return fmt.Errorf("failed to convert effective CR into YAML: %v", err)
 	}
 
 	// Create a Configmap Object that stores the Effective CR Specs
@@ -1128,8 +1131,7 @@ func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *in
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Failed to Create or Update the configmap: %v", err)
-		return err
+		return fmt.Errorf("failed to Create or Update the configmap: %v", err)
 	}
 
 	return nil
