@@ -283,6 +283,21 @@ func capiPrerequisites() {
 }
 
 func EnsureNSG() error {
+
+	eastWestRule := SecurityRuleDetails{
+		Description: "Added by Jenkins to allow communication for east-west traffic",
+		IsStateless: false,
+	}
+	err := capiTest.UpdateOCINSGEW(ClusterName, "worker", "east-west traffic", &eastWestRule, t.Logs)
+	if err != nil {
+		return err
+	}
+
+	err = capiTest.UpdateOCINSGEW(ClusterName, "control-plane", "east-west traffic", &eastWestRule, t.Logs)
+	if err != nil {
+		return err
+	}
+
 	calicoWorkerRule := SecurityRuleDetails{
 		Protocol:    "6",
 		Description: "Added by Jenkins to allow communication for Typha from control plane nodes",
@@ -291,7 +306,7 @@ func EnsureNSG() error {
 		TCPPortMin:  5473,
 	}
 
-	err := capiTest.UpdateOCINSG(ClusterName, "worker", "control-plane", "calico typha", &calicoWorkerRule, t.Logs)
+	err = capiTest.UpdateOCINSG(ClusterName, "worker", "control-plane", "calico typha", &calicoWorkerRule, t.Logs)
 	if err != nil {
 		return err
 	}

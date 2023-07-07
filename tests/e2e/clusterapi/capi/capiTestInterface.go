@@ -37,6 +37,7 @@ type CapiTestClient interface {
 	ShowPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error
 	DisplayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error
 	UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
+	UpdateOCINSGEW(clusterName, nsgDisplayNameToUpdate, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
 	CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error
 	ProcessOCIPrivateKeysBase64(file, key string, log *zap.SugaredLogger) error
 	ProcessOCISSHKeys(file, key string, log *zap.SugaredLogger) error

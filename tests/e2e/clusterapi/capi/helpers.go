@@ -648,6 +648,33 @@ func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDispl
 	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
 }
 
+func (c CAPITestImpl) UpdateOCINSGEW(clusterName, nsgDisplayNameToUpdate, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
+	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayNameToUpdate, info)
+	oci, err := NewClient(GetOCIConfigurationProvider(log))
+	if err != nil {
+		log.Error("Unable to create OCI client %v", zap.Error(err))
+		return err
+	}
+
+	vcnID, err := oci.GetVcnIDByName(context.TODO(), OCICompartmentID, clusterName, log)
+	if err != nil {
+		return err
+	}
+
+	nsgID, err := oci.GetNsgIDByName(context.TODO(), OCICompartmentID, vcnID, nsgDisplayNameToUpdate, log)
+	if err != nil {
+		return err
+	}
+
+	ruleCIDR, err := oci.GetVcnCIDRByName(context.TODO(), OCICompartmentID, clusterName, log)
+	if err != nil {
+		return err
+	}
+	rule.Source = ruleCIDR
+
+	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
+}
+
 func (c CAPITestImpl) GetCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
 	capiK8sConfig, err := c.GetCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
@@ -782,14 +809,14 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 		return debugCmdResponse.CommandError
 	}
 
-	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz workload-verrazzano -o yaml", tmpFile.Name())
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
-	bcmd.CommandArgs = cmdArgs
-	debugCmdResponse = helpers.Runner(&bcmd, log)
-	if debugCmdResponse.CommandError != nil {
-		return debugCmdResponse.CommandError
-	}
+	//cmdArgs = []string{}
+	//dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz workload-verrazzano -o yaml", tmpFile.Name())
+	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	//bcmd.CommandArgs = cmdArgs
+	//debugCmdResponse = helpers.Runner(&bcmd, log)
+	//if debugCmdResponse.CommandError != nil {
+	//	return debugCmdResponse.CommandError
+	//}
 
 	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz", tmpFile.Name())

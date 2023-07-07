@@ -22,6 +22,7 @@ type OCIClient interface {
 	GetSubnetByID(ctx context.Context, subnetID string, log *zap.SugaredLogger) (*core.Subnet, error)
 	GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
 	GetVcnIDByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
+	GetVcnCIDRByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
 	GetSubnetIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
 	GetSubnetCIDRByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
 	GetNsgIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
@@ -100,6 +101,23 @@ func (c *ClientImpl) GetVcnIDByName(ctx context.Context, compartmentID, displayN
 		return "", err
 	}
 	return *vcns.Items[0].Id, nil
+}
+
+// GetVcnCIDRByName retrieves an VCN CIDR given a vcn name and a compartment id, if the vcn exists.
+func (c *ClientImpl) GetVcnCIDRByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error) {
+	vcns, err := c.vnClient.ListVcns(ctx, core.ListVcnsRequest{
+		CompartmentId: &compartmentID,
+		DisplayName:   &displayName,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(vcns.Items) == 0 {
+		log.Errorf("no vcns found for %s/%s", compartmentID, displayName)
+		return "", err
+	}
+	return vcns.Items[0].CidrBlocks[0], nil
 }
 
 // GetSubnetIDByName retrieves an Subnet OCID given a subnet name and a compartment id, if the subnet exists.
