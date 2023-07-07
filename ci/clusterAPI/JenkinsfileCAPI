@@ -586,6 +586,7 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            ensureVZCleanupFromWorkloadCluster()
             ensureCAPICleanup()
             deleteCluster()
         }
