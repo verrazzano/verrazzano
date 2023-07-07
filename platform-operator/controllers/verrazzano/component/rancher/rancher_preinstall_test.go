@@ -97,7 +97,7 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, tt.vz, nil, false, profilesRelativePath)
-			err := copyDefaultCACertificate(log, tt.c, ctx.EffectiveCR())
+			err := copyPrivateCABundles(log, tt.c, ctx.EffectiveCR())
 			if tt.isErr {
 				assert.NotNil(t, err)
 			} else {
@@ -208,7 +208,7 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 		t.Run(tt.testName, func(t *testing.T) {
 			common.HTTPDo = tt.httpDo
 			ctx := spi.NewFakeContext(c, tt.vz, nil, false, profilesRelativePath)
-			err := common.ProcessAdditionalCertificates(log, c, ctx.EffectiveCR())
+			err := common.SetupLetsEncryptStagingCABundle(log, c, ctx.EffectiveCR())
 			if tt.isErr {
 				assert.NotNil(t, err)
 				assert.True(t, strings.Contains(err.Error(), "boom"))

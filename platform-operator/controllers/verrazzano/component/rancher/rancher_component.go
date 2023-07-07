@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -239,8 +238,26 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 		return kvs, log.ErrorfThrottledNewErr("Failed to find clusterIssuer component in effective cr")
 	}
 
+	isLetsEncryptIssuer, err := cm.IsLetsEncryptIssuer()
+	if err != nil {
+		return kvs, err
+	}
+
+	isPrivateIssuer, _ := cm.IsPrivateIssuer()
+
+	if isPrivateIssuer {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   ingressTLSSourceKey,
+			Value: caTLSSource,
+		})
+		kvs = append(kvs, bom.KeyValue{
+			Key:   privateCAKey,
+			Value: privateCAValue,
+		})
+	}
+
 	// Configure CA Issuer KVs
-	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
+	if isLetsEncryptIssuer {
 		letsEncryptEnv := cm.LetsEncrypt.Environment
 		if len(letsEncryptEnv) == 0 {
 			letsEncryptEnv = cmconstants.LetsEncryptProduction
@@ -258,19 +275,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
-			}, bom.KeyValue{
-				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(common.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
-	} else { // Certificate issuer type is CA
-		kvs = append(kvs, bom.KeyValue{
-			Key:   ingressTLSSourceKey,
-			Value: caTLSSource,
-		})
-		kvs = append(kvs, bom.KeyValue{
-			Key:   privateCAKey,
-			Value: privateCAValue,
-		})
 	}
 
 	return kvs, nil
@@ -431,8 +436,8 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		log.ErrorfThrottledNewErr("Failed creating cattle-system namespace: %s", err.Error())
 		return err
 	}
-	if err := copyDefaultCACertificate(log, c, vz); err != nil {
-		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
+	if err := copyPrivateCABundles(log, c, vz); err != nil {
+		ctx.Log().ErrorfThrottledNewErr("Failed setting up private CA bundles for Rancher: %s", err.Error())
 		return err
 	}
 	return r.HelmComponent.PreInstall(ctx)
@@ -444,6 +449,10 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 */
 func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := chartsNotUpdatedWorkaround(ctx); err != nil {
+		return err
+	}
+	if err := copyPrivateCABundles(ctx.Log(), ctx.Client(), ctx.EffectiveCR()); err != nil {
+		ctx.Log().ErrorfThrottledNewErr("Failed setting up private CA bundles for Rancher: %s", err.Error())
 		return err
 	}
 	return r.HelmComponent.PreUpgrade(ctx)
