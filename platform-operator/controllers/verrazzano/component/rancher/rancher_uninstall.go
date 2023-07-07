@@ -200,7 +200,7 @@ func rancherArtifactsExist(ctx spi.ComponentContext) bool {
 // forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Infof("Rancher not enabled - no post uninstall cleanup performed")
+		ctx.Log().Progressf("Rancher not enabled - no post uninstall cleanup performed")
 		return nil
 	}
 
