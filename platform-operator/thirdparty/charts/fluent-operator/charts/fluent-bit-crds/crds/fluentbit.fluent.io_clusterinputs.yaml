@@ -134,14 +134,6 @@ spec:
               systemd:
                 description: Systemd defines Systemd Input configuration.
                 properties:
-                  PauseOnChunksOverlimit:
-                    description: Specifies if the input plugin should be paused (stop
-                      ingesting new data) when the storage.max_chunks_up value is
-                      reached.
-                    enum:
-                    - "on"
-                    - "off"
-                    type: string
                   db:
                     description: Specify the database file to keep track of monitored
                       files and offsets.
@@ -174,6 +166,14 @@ spec:
                     description: Optional path to the Systemd journal directory, if
                       not set, the plugin will use default paths to read local-only
                       logs.
+                    type: string
+                  pauseOnChunksOverlimit:
+                    description: Specifies if the input plugin should be paused (stop
+                      ingesting new data) when the storage.max_chunks_up value is
+                      reached.
+                    enum:
+                    - "on"
+                    - "off"
                     type: string
                   readFromTail:
                     description: Start reading new entries. Skip entries already stored
@@ -224,14 +224,6 @@ spec:
               tail:
                 description: Tail defines Tail Input configuration.
                 properties:
-                  PauseOnChunksOverlimit:
-                    description: Specifies if the input plugin should be paused (stop
-                      ingesting new data) when the storage.max_chunks_up value is
-                      reached.
-                    enum:
-                    - "on"
-                    - "off"
-                    type: string
                   bufferChunkSize:
                     description: Set the initial buffer size to read files data. This
                       value is used too to increase buffer size. The value must be
@@ -341,6 +333,14 @@ spec:
                     description: If enabled, it appends the name of the monitored
                       file as part of the record. The value assigned becomes the key
                       in the map.
+                    type: string
+                  pauseOnChunksOverlimit:
+                    description: Specifies if the input plugin should be paused (stop
+                      ingesting new data) when the storage.max_chunks_up value is
+                      reached.
+                    enum:
+                    - "on"
+                    - "off"
                     type: string
                   readFromHead:
                     description: For new discovered files on start (without a database
