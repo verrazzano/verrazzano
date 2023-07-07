@@ -37,6 +37,32 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
+	// Get the components from the BOM
+	rancherComp, capiComp := getComponents()
+	Expect(capiComp.Version).To(Equal("v1.6.1"))
+	Expect(rancherComp.Version).To(Equal("v2.7.3"))
+
+	t.Context("initial state", func() {
+		// GIVEN the Cluster API is installed
+		// WHEN we check the kontainerdrivers
+		// THEN we successfully find them all active
+		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
+			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	t.Context("override ocneBootstrap and ocneControlPlane version", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we override ocneBootstrap and ocneControlPlane versions
+		// THEN the overrides get successfully applied
+		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
+			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+})
+
+func getComponents() (*bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
 	bomDoc, err := pkg.GetBOMDoc()
 	if err != nil {
@@ -45,24 +71,16 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 
 	// Find the Rancher and CAPI components
 	var rancherComp *bom.BomComponent
-	var capiOCNE *bom.BomComponent
+	var capiComp *bom.BomComponent
 	for i, component := range bomDoc.Components {
 		switch component.Name {
 		case "rancher":
 			rancherComp = &bomDoc.Components[i]
 		case "capi-ocne":
-			capiOCNE = &bomDoc.Components[i]
+			capiComp = &bomDoc.Components[i]
 		}
 	}
 	Expect(rancherComp).To(Not(BeNil()))
-	Expect(capiOCNE).To(Not(BeNil()))
-
-	t.Context("after successful installation", func() {
-		// GIVEN the Cluster API is installed
-		// WHEN we check the kontainerdrivers
-		// THEN we successfully find them all active
-		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
-			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
-})
+	Expect(capiComp).To(Not(BeNil()))
+	return rancherComp, capiComp
+}
