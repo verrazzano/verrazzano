@@ -36,15 +36,15 @@ fluentbit:
   input:
     tail:
       readFromHead: true
-      storageType: filesystem
-      pauseOnChunksOverlimit: on
+      storageType: memory
+      pauseOnChunksOverlimit: "on"
     systemd:
       path: "/run/log/journal"
       stripUnderscores: "on"
       systemdFilter:
         enable: false
       storageType: filesystem
-      pauseOnChunksOverlimit: on
+      pauseOnChunksOverlimit: "on"
   filter:
     systemd:
       enable: false
@@ -71,7 +71,7 @@ fluentbit:
       checksum: "off"
       deleteIrrecoverableChunks: "on"
       maxChunksUp: 130
-      metrics: off
+      metrics: "off"
       sync: normal
 
 operator:
