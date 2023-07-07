@@ -446,7 +446,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 					return EnsureConfigMap(ClusterName, "default", "test-overrides", t.Logs)
 				}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if secret exists")
 			})
-		
+
 				WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
 					Eventually(func() error {
 						return capiTest.DeployVerrazzanoClusterResourceSets(ClusterName, clusterResourceSetTemplateVZ, t.Logs)

@@ -121,6 +121,8 @@ pipeline {
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
+        GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
+        GHCR_REPO = 'ghcr.io'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         TEST_OVERRIDE_CONFIGMAP_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
@@ -1198,3 +1200,4 @@ def createImagePullSecretsOnWorkloadCluster() {
         """
     }
 }
+
