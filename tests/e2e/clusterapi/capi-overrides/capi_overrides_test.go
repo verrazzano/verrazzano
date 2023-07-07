@@ -40,7 +40,7 @@ const ocneOverrides = `
 
 var t = framework.NewTestFramework("capi_overrides")
 
-var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	var dynClient dynamic.Interface
 
 	// Get dynamic client
@@ -69,10 +69,10 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		// GIVEN the CAPI environment is ready
 		// WHEN we override ocneBootstrap and ocneControlPlane versions
 		// THEN the overrides get successfully applied
-		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "and check for success", func() {
 			applyOverrides(fmt.Sprintf(ocneOverrides, capiComp.Version, capiComp.Version))
-			Eventually(isStatusMet(v1beta1.VzStateReconciling), waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusMet(v1beta1.VzStateReady), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusMet(v1beta1.VzStateReconciling)).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+			Eventually(isStatusMet(v1beta1.VzStateReady)).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -80,7 +80,7 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		// GIVEN the CAPI environment is ready
 		// WHEN we remove the overrides
 		// THEN the default values will get restored
-		capipkg.WhenClusterAPIInstalledIt(t, "so that default values get reinstated", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "and check for success", func() {
 			applyOverrides("")
 			Eventually(isStatusMet(v1beta1.VzStateReconciling), waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusMet(v1beta1.VzStateReady), waitTimeout, pollingInterval).Should(BeTrue())
@@ -93,6 +93,7 @@ func isStatusMet(state v1beta1.VzStateType) bool {
 	// Get the VZ resource
 	vz, err := pkg.GetVerrazzanoV1beta1()
 	Expect(err).ToNot(HaveOccurred())
+	t.Logs.Infof("vz status is %s", vz.Status.State)
 	return vz.Status.State == state
 }
 
