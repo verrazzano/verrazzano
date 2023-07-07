@@ -45,5 +45,6 @@ spec:
       caFile: {{ .Values.application.tls.caFile }}
       crtFile: {{ .Values.application.tls.crtFile }}
     {{- end }}
+    totalLimitSize: 5M
 {{- end }}
 {{ end -}}

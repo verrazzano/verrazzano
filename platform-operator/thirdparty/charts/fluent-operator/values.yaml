@@ -130,6 +130,8 @@ fluentbit:
       path: "/var/log/containers/*.log"
       skipLongLines: true
       readFromHead: false
+      storageType: memory
+      pauseOnChunksOverlimit: off
     systemd:
       enable: true
       systemdFilter:
@@ -138,6 +140,8 @@ fluentbit:
       path: "/var/log/journal"
       includeKubelet: true
       stripUnderscores: "off"
+      storageType: memory
+      pauseOnChunksOverlimit: off
     nodeExporterMetrics: {}
     # uncomment below nodeExporterMetrics section if you want to collect node exporter metrics
   #   nodeExporterMetrics:
@@ -183,6 +187,8 @@ fluentbit:
     # You can configure the opensearch-related configuration here
     stdout:
       enable: false
+  service:
+    storage: {}
 
   # Configure the default filters in FluentBit.
   # The `filter` will filter and parse the collected log information and output the logs into a uniform format. You can choose whether to turn this on or not.

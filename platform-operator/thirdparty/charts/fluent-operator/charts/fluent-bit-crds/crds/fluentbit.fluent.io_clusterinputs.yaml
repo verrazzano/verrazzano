@@ -134,6 +134,14 @@ spec:
               systemd:
                 description: Systemd defines Systemd Input configuration.
                 properties:
+                  PauseOnChunksOverlimit:
+                    description: Specifies if the input plugin should be paused (stop
+                      ingesting new data) when the storage.max_chunks_up value is
+                      reached.
+                    enum:
+                    - "on"
+                    - "off"
+                    type: string
                   db:
                     description: Specify the database file to keep track of monitored
                       files and offsets.
@@ -174,6 +182,13 @@ spec:
                     - "on"
                     - "off"
                     type: string
+                  storageType:
+                    description: Specify the buffering mechanism to use. It can be
+                      memory or filesystem
+                    enum:
+                    - filesystem
+                    - memory
+                    type: string
                   stripUnderscores:
                     description: Remove the leading underscore of the Journald field
                       (key). For example the Journald field _PID becomes the key PID.
@@ -209,6 +224,14 @@ spec:
               tail:
                 description: Tail defines Tail Input configuration.
                 properties:
+                  PauseOnChunksOverlimit:
+                    description: Specifies if the input plugin should be paused (stop
+                      ingesting new data) when the storage.max_chunks_up value is
+                      reached.
+                    enum:
+                    - "on"
+                    - "off"
+                    type: string
                   bufferChunkSize:
                     description: Set the initial buffer size to read files data. This
                       value is used too to increase buffer size. The value must be
@@ -341,6 +364,13 @@ spec:
                       behavior and instruct Fluent Bit to skip long lines and continue
                       processing other lines that fits into the buffer size.
                     type: boolean
+                  storageType:
+                    description: Specify the buffering mechanism to use. It can be
+                      memory or filesystem
+                    enum:
+                    - filesystem
+                    - memory
+                    type: string
                   tag:
                     description: Set a tag (with regex-extract fields) that will be
                       placed on lines read. E.g. kube.<namespace_name>.<pod_name>.<container_name>
