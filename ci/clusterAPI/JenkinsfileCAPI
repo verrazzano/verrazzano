@@ -391,14 +391,18 @@ pipeline {
                     }
                 }
 
+                stage("Create-image-pull-secrets") {
+                    steps {
+                        createImagePullSecretsOnWorkloadCluster()
+                    }
+                }
+
 
                 stage('Install overrides on workload cluster') {
                    steps {
-                       catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                           script {
-                               createOverridesOnWorkloadCluster()
-                           }
-                       }
+                       script {
+                          createOverridesOnWorkloadCluster()
+                      }
                    }
                    post {
                        failure {
@@ -947,6 +951,7 @@ def parallelAcceptanceTests() {
                             export KUBECONFIG=\$TEMPKUBECONFIGPATH
                             CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
                             unset KUBECONFIG
+                            rm -rf \$TEMPKUBECONFIGPATH
                         """
                    }
                }
@@ -1171,6 +1176,24 @@ def createOverridesOnWorkloadCluster() {
             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
             kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
             kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+            rm -rf \$TEMPKUBECONFIGPATH
+        """
+    }
+}
+
+def createImagePullSecretsOnWorkloadCluster() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            # Create image pull secrets for Verrazzano docker images
+            TS=\$(date +%Y%m%d%H%M%S)
+            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            export KUBECONFIG=\$TEMPKUBECONFIGPATH
+            cd ${WORKSPACE}
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+            unset KUBECONFIG
             rm -rf \$TEMPKUBECONFIGPATH
         """
     }

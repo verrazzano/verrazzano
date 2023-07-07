@@ -337,11 +337,11 @@ func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string
 
 	log.Infof("Wait for 30 seconds for cluster resourceset resources to deploy")
 	time.Sleep(30 * time.Second)
-	localTest := getEnvDefault("LOCAL_TEST", "false")
-	if strings.ToLower(localTest) == "false" {
-		// When running on Jenkins instance
-		return c.CreateImagePullSecrets(clusterName, log)
-	}
+	//localTest := getEnvDefault("LOCAL_TEST", "false")
+	//if strings.ToLower(localTest) == "false" {
+	//	// When running on Jenkins instance
+	//	return c.CreateImagePullSecrets(clusterName, log)
+	//}
 	return nil
 }
 
