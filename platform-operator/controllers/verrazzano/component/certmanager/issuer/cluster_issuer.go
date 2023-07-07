@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"text/template"
 
@@ -389,7 +388,7 @@ func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client,
 
 	// Verify the acme environment and set the server
 	acmeServer := letsEncryptProdEndpoint
-	if common.IsLetsEncryptStagingEnv(*vzCertAcme) {
+	if vzcr.IsLetsEncryptStagingEnv(*vzCertAcme) {
 		acmeServer = letsEncryptStageEndpoint
 	}
 
@@ -551,7 +550,7 @@ func getACMEIssuerName(acme *vzapi.LetsEncryptACMEIssuer) ([]string, error) {
 	if acme == nil {
 		return []string{}, fmt.Errorf("Illegal state, LetsEncrypt issuer not configured")
 	}
-	if common.IsLetsEncryptProductionEnv(*acme) {
+	if vzcr.IsLetsEncryptProductionEnv(*acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
