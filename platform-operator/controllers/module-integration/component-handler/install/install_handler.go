@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 )
 
 type ComponentHandler struct {
@@ -44,6 +45,14 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
+	// Wait for dependencies
+	if !registry.ComponentDependenciesMet(comp, compCtx) {
+		ctx.Log.Oncef("Component %s is waiting for dependenct components to be installed", comp.Name())
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Do the pre-install
 	if err := comp.PreInstall(compCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -61,6 +70,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
 	if err := comp.Install(compCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
