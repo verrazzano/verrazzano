@@ -728,11 +728,11 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 		vz.Metadata.Name, curState, vz.Status.Version))
 	writer.Flush()
 
-	err = c.DisplayWorkloadClusterResources(clusterName, log)
-	if err != nil {
-		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
-		return err
-	}
+	//err = c.DisplayWorkloadClusterResources(clusterName, log)
+	//if err != nil {
+	//	log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
+	//	return err
+	//}
 
 	err = c.DebugSVCOutput(clusterName, log)
 	if err != nil {
@@ -765,7 +765,7 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 
 	var cmdArgs []string
 	var bcmd helpers.BashCommand
-	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s get svc -n verrazzano-ingress-nginx", tmpFile.Name())
+	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s get svc -A", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	debugCmdResponse := helpers.Runner(&bcmd, log)
@@ -774,7 +774,7 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	}
 
 	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get svc -n istio-system", tmpFile.Name())
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get pod -A", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	debugCmdResponse = helpers.Runner(&bcmd, log)
@@ -783,7 +783,7 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	}
 
 	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz --all", tmpFile.Name())
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	debugCmdResponse = helpers.Runner(&bcmd, log)
