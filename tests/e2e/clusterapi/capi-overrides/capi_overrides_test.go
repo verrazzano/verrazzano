@@ -26,7 +26,7 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-const capiOverrides1 = `
+const ocneOverrides = `
 {
   "defaultProviders": {
     "ocneBootstrap": {
@@ -69,15 +69,23 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		// GIVEN the CAPI environment is ready
 		// WHEN we override ocneBootstrap and ocneControlPlane versions
 		// THEN the overrides get successfully applied
-
 		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
-			applyOverrides(fmt.Sprintf(capiOverrides1, capiComp.Version, capiComp.Version))
-			Eventually(capipkg.IsAllDriversActive(t, dynClient), waitTimeout, pollingInterval).Should(BeTrue())
+			applyOverrides(fmt.Sprintf(ocneOverrides, capiComp.Version, capiComp.Version))
+			Eventually(isStatusMet(v1beta1.VzStateReconciling), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusMet(v1beta1.VzStateReady), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
 
-// applyOverrides - apply overrides to CAPI component
+// isStatusMet - Return boolean indicating if expected status is met
+func isStatusMet(state v1beta1.VzStateType) bool {
+	// Get the VZ resource
+	vz, err := pkg.GetVerrazzanoV1beta1()
+	Expect(err).ToNot(HaveOccurred())
+	return vz.Status.State == state
+}
+
+// applyOverrides - apply overrides to the CAPI component
 func applyOverrides(overrides string) {
 	// Get the VZ resource
 	vz, err := pkg.GetVerrazzanoV1beta1()
@@ -105,6 +113,7 @@ func applyOverrides(overrides string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+// getComponents - return some components from the BOM file
 func getComponents() (*bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
 	bomDoc, err := pkg.GetBOMDoc()
