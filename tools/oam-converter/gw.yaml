@@ -1,0 +1,66 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  creationTimestamp: null
+  name: bobs-books-bobs-books-gw
+  namespace: bobs-books
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - bobs-books.bobs-books.172.18.0.230.nip.io
+    name: bobs-books
+    port:
+      name: https-bobs-orders-wls
+      number: 443
+      protocol: HTTPS
+    tls:
+      credentialName: bobs-books-bobs-books-cert-secret
+      mode: SIMPLE
+status: {}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  creationTimestamp: null
+  name: bobs-books-bobs-books-gw
+  namespace: bobs-books
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - bobs-books.bobs-books.172.18.0.230.nip.io
+    name: bobs-books
+    port:
+      name: https-robert-helidon
+      number: 443
+      protocol: HTTPS
+    tls:
+      credentialName: bobs-books-bobs-books-cert-secret
+      mode: SIMPLE
+status: {}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  creationTimestamp: null
+  name: bobs-books-bobs-books-gw
+  namespace: bobs-books
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - bobs-books.bobs-books.172.18.0.230.nip.io
+    name: bobs-books
+    port:
+      name: https-bobby-wls
+      number: 443
+      protocol: HTTPS
+    tls:
+      credentialName: bobs-books-bobs-books-cert-secret
+      mode: SIMPLE
+status: {}
+---
