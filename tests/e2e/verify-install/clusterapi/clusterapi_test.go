@@ -70,8 +70,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
-			driversActive := capipkg.IsAllDriversActive(t, clientset)
-			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		capipkg.WhenClusterAPIInstalledIt(t, "expected kontainerdrivers must exist", func() {
