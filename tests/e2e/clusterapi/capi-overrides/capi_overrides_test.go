@@ -30,10 +30,10 @@ const capiOverrides1 = `
 {
   "defaultProviders": {
     "ocneBootstrap": {
-      "version": "%s",
+      "version": "%s"
     },
     "ocneControlPlane": {
-      "version": "%s",
+      "version": "%s"
     }
   }
 }`
