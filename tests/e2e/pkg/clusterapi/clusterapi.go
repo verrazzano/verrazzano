@@ -7,6 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	. "github.com/onsi/ginkgo/v2"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
@@ -23,8 +27,23 @@ const (
 	minimumVerrazzanoVersion = "1.6.0"
 )
 
-// IsClusterAPIInstalled - determine if Cluster API is installed on the cluster
-func IsClusterAPIInstalled() (bool, error) {
+// WhenClusterAPIInstalledIt - 'It' Wrapper to only run spec if the ClusterAPI is supported on the current Verrazzano version and is installed
+func WhenClusterAPIInstalledIt(t *framework.TestFramework, description string, f func()) {
+	t.It(description, func() {
+		capiInstalled, err := isClusterAPIInstalled()
+		if err != nil {
+			AbortSuite(err.Error())
+		}
+		if capiInstalled {
+			f()
+		} else {
+			t.Logs.Infof("Skipping test '%v', Cluster API  is not installed/supported on this cluster", description)
+		}
+	})
+}
+
+// isClusterAPIInstalled - determine if Cluster API is installed on the cluster
+func isClusterAPIInstalled() (bool, error) {
 	kubeConfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return false, fmt.Errorf("Failed to get default kubeconfig path: %s", err.Error())

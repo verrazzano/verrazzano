@@ -31,7 +31,7 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check to make sure the pods exist
 		// THEN we successfully find the pods in the cluster
-		WhenClusterAPIInstalledIt("expected pods are running", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "expected pods are running", func() {
 			pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoCAPINamespace, pods)
@@ -43,21 +43,6 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 		})
 	})
 })
-
-// 'It' Wrapper to only run spec if the ClusterAPI is supported on the current Verrazzano version and is installed
-func WhenClusterAPIInstalledIt(description string, f func()) {
-	t.It(description, func() {
-		capiInstalled, err := capipkg.IsClusterAPIInstalled()
-		if err != nil {
-			AbortSuite(err.Error())
-		}
-		if capiInstalled {
-			f()
-		} else {
-			t.Logs.Infof("Skipping test '%v', Cluster API  is not installed/supported on this cluster", description)
-		}
-	})
-}
 
 var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), func() {
 
@@ -81,7 +66,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			return clientset, err
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-		WhenClusterAPIInstalledIt("kontainerdrivers must be ready", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers must be ready", func() {
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
@@ -115,7 +100,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		WhenClusterAPIInstalledIt("expected kontainerdrivers must exist", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "expected kontainerdrivers must exist", func() {
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
