@@ -772,7 +772,6 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	if debugCmdResponse.CommandError != nil {
 		return debugCmdResponse.CommandError
 	}
-	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
 
 	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get svc -n istio-system istio-ingressgateway ", tmpFile.Name())
@@ -782,7 +781,6 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	if debugCmdResponse.CommandError != nil {
 		return debugCmdResponse.CommandError
 	}
-	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
 
 	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s describe svc -n verrazzano-ingress-nginx   ingress-controller-ingress-nginx-controller", tmpFile.Name())
@@ -792,7 +790,6 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	if debugCmdResponse.CommandError != nil {
 		return debugCmdResponse.CommandError
 	}
-	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
 
 	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s describe svc -n istio-system istio-ingressgateway", tmpFile.Name())
@@ -802,7 +799,6 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	if debugCmdResponse.CommandError != nil {
 		return debugCmdResponse.CommandError
 	}
-	log.Infof("CMD output = %+v", debugCmdResponse.StandardOut)
 
 	return nil
 }
