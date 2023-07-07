@@ -98,7 +98,7 @@ func NewComponent() spi.Component {
 }
 
 // AppendOverrides set the ArgoCD overrides for Helm
-func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
@@ -158,6 +158,15 @@ func (c argoCDComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// PostUninstall runs the ArgoCD PostUninstall function
+// Remove the argo application resources
+func (c argoCDComponent) PostUninstall(ctx spi.ComponentContext) error {
+	if err := removeArgoResources(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostUninstall(ctx)
 }
 
 // ConfigureKeycloakOIDC
