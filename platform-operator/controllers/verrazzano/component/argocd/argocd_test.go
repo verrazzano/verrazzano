@@ -4,6 +4,9 @@
 package argocd
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -56,4 +59,28 @@ func TestBuildArgoCDDNSNames(t *testing.T) {
 	// THEN correct FQDN for ArgoCD is returned.
 	argoCDDNSName := buildArgoCDHostNameForDomain("default.nip.io")
 	assert.Equal(t, "argocd.default.nip.io", argoCDDNSName)
+}
+
+func TestRemoveArgoResources(t *testing.T) {
+	appResource := &unstructured.Unstructured{}
+	appResource.SetGroupVersionKind(common.GetArgoProjAPIGVRForResource(common.ArgoCDKindApplication))
+	appResource.SetName("test app")
+	appResource.SetNamespace("argocd")
+	appResource.SetFinalizers([]string{"finalizer1", "finalizer2"})
+
+	appSetResource := &unstructured.Unstructured{}
+	appSetResource.SetGroupVersionKind(common.GetArgoProjAPIGVRForResource(common.ArgoCDKindApplicationSet))
+	appSetResource.SetName("test app")
+	appSetResource.SetNamespace("argocd")
+	appSetResource.SetFinalizers([]string{"finalizer1"})
+
+	projectResource := &unstructured.Unstructured{}
+	projectResource.SetGroupVersionKind(common.GetArgoProjAPIGVRForResource(common.ArgoCDKindAppProject))
+	projectResource.SetName("test app")
+	projectResource.SetNamespace("argocd")
+	projectResource.SetFinalizers([]string{"finalizer1"})
+
+	fakeClient := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(appResource, appSetResource, projectResource).Build()
+
+	assert.NoError(t, removeArgoResources(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
