@@ -783,6 +783,15 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	}
 
 	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz workload-verrazzano -o yaml", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	debugCmdResponse = helpers.Runner(&bcmd, log)
+	if debugCmdResponse.CommandError != nil {
+		return debugCmdResponse.CommandError
+	}
+
+	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
