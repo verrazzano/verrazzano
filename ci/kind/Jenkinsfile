@@ -7,7 +7,7 @@ def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
-        timeout(time: 1, unit: 'HOURS')
+        timeout(time: 90, unit: 'MINUTES')
         skipDefaultCheckout true
         timestamps ()
     }
