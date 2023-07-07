@@ -380,10 +380,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
                         failure {
                             script {
                                 dumpK8sCluster('deploy-ocne-admin-cluster-dump')
@@ -448,10 +444,6 @@ pipeline {
                            }
                        }
                        post {
-                         always {
-                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                         }
                          failure {
                              script {
                                  dumpOCNECluster('verify-install-workload-cluster-dump')
@@ -467,10 +459,6 @@ pipeline {
                            }
                        }
                        post {
-                             always {
-                                 archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                                 junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                             }
                              failure {
                                  script {
                                      dumpOCNECluster('infra-test-workload-cluster-dump')
@@ -486,10 +474,6 @@ pipeline {
                            }
                        }
                        post {
-                            always {
-                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                                junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                            }
                             failure {
                                 script {
                                     dumpOCNECluster('deploy-group-test-1-workload-cluster-dump')
@@ -505,10 +489,6 @@ pipeline {
                        }
                    }
                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
                         failure {
                             script {
                                 dumpOCNECluster('deploy-group-test-2-workload-cluster-dump')
@@ -532,10 +512,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
                         failure {
                             script {
                                 dumpOCNECluster('uninstall-vz--workload-cluster-dump')
@@ -553,10 +529,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
                         failure {
                             script {
                                 dumpOCNECluster('delete-capi-admin-cluster-dump')
