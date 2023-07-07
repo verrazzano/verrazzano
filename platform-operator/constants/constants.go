@@ -271,4 +271,4 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
 
 // AlertmanagerIngress is the name of the ingress for Alertmanager
-const AlertmanagerIngress = "vmi-system-alertmanager"
+const AlertmanagerIngress = "alertmanager"

@@ -770,6 +770,24 @@ func reconcileIngresses(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	return reconcileAlertmanagerIngress(ctx)
+}
+
+// deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
+// upgrading from a previous installation fails if the NetworkPolicy already exists and is not owned by the Helm chart,
+// so we delete it before upgrading.
+func deleteNetworkPolicy(ctx spi.ComponentContext) error {
+	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
+	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
+	if err != nil {
+		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s: %v", networkPolicyName, ComponentNamespace, err)
+		return err
+	}
+	return nil
+}
+
+// reconcileAlertmanagerIngress reconciles the ingress for Alertmanager endpoint
+func reconcileAlertmanagerIngress(ctx spi.ComponentContext) error {
 	alertmanagerEnabled, err := vzcr.IsAlertmanagerEnabled(ctx.EffectiveCR(), ctx)
 	if err != nil {
 		return err
@@ -789,18 +807,5 @@ func reconcileIngresses(ctx spi.ComponentContext) error {
 		return deleteIngress(constants.AlertmanagerIngress, ctx)
 	}
 
-	return nil
-}
-
-// deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
-// upgrading from a previous installation fails if the NetworkPolicy already exists and is not owned by the Helm chart,
-// so we delete it before upgrading.
-func deleteNetworkPolicy(ctx spi.ComponentContext) error {
-	netpol := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
-	err := client.IgnoreNotFound(ctx.Client().Delete(context.TODO(), netpol))
-	if err != nil {
-		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s: %v", networkPolicyName, ComponentNamespace, err)
-		return err
-	}
 	return nil
 }

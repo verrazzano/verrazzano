@@ -656,7 +656,7 @@ func IsComponentStatusEnabled(cr runtime.Object, componentName string) bool {
 	return false
 }
 
-// IsAlertmanagerEnabled returns true only if the Alertmanager is explicitly enabled in the CR
+// IsAlertmanagerEnabled returns true only if the Alertmanager is explicitly enabled in the CR as part of Prometheus Operator overrides
 func IsAlertmanagerEnabled(cr runtime.Object, ctx spi.ComponentContext) (bool, error) {
 	var overrideStrings []string
 	var err error

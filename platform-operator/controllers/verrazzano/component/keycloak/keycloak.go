@@ -564,8 +564,8 @@ const pkceClientUrisTemplate = `
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://jaeger.{{.DNSSubDomain}}/*",
-	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{ if .OSHostExists}},
+	  "https://alertmanager.{{.DNSSubDomain}}/*",
+	  "https://alertmanager.{{.DNSSubDomain}}/_authentication_callback"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
       "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
@@ -583,7 +583,7 @@ const pkceClientUrisTemplate = `
 	  "https://opensearch.logging.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}",
-	  "https://alertmanager.vmi.system.{{.DNSSubDomain}}"{{ if .OSHostExists}},
+	  "https://alertmanager.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
       "https://kibana.vmi.system.{{.DNSSubDomain}}"
  {{end}} 
