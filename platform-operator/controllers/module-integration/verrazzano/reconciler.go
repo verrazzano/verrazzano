@@ -168,7 +168,7 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 
 		// get the module
 		module := &moduleapi.Module{}
-		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: comp.Namespace(), Name: comp.Name()}, module); err != nil {
+		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
 			if errors.IsNotFound(err) {
 				continue
 			}
