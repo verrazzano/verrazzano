@@ -287,62 +287,14 @@ func EnsureNSG() error {
 	eastWestRule := SecurityRuleDetails{
 		Description: "Added by Jenkins to allow communication for east-west traffic",
 		IsStateless: false,
+		Protocol:    "All",
 	}
 	err := capiTest.UpdateOCINSGEW(ClusterName, "worker", "east-west traffic", &eastWestRule, t.Logs)
 	if err != nil {
 		return err
 	}
 
-	err = capiTest.UpdateOCINSGEW(ClusterName, "control-plane", "east-west traffic", &eastWestRule, t.Logs)
-	if err != nil {
-		return err
-	}
-
-	calicoWorkerRule := SecurityRuleDetails{
-		Protocol:    "6",
-		Description: "Added by Jenkins to allow communication for Typha from control plane nodes",
-		IsStateless: false,
-		TCPPortMax:  5473,
-		TCPPortMin:  5473,
-	}
-
-	err = capiTest.UpdateOCINSG(ClusterName, "worker", "control-plane", "calico typha", &calicoWorkerRule, t.Logs)
-	if err != nil {
-		return err
-	}
-
-	calicoControlPlaneRule := SecurityRuleDetails{
-		Protocol:    "6",
-		Description: "Added by Jenkins to allow communication for Typha from worker nodes",
-		IsStateless: false,
-		TCPPortMax:  5473,
-		TCPPortMin:  5473,
-	}
-
-	err = capiTest.UpdateOCINSG(ClusterName, "control-plane", "worker", "calico typha", &calicoControlPlaneRule, t.Logs)
-	if err != nil {
-		return err
-	}
-
-	udpWorkerRule := SecurityRuleDetails{
-		Protocol:    "17",
-		Description: "Added by Jenkins to allow UDP communication from control plane node",
-		IsStateless: false,
-	}
-
-	err = capiTest.UpdateOCINSG(ClusterName, "worker", "control-plane", "udp", &udpWorkerRule, t.Logs)
-	if err != nil {
-		return err
-	}
-
-	udpControlPlaneRule := SecurityRuleDetails{
-		Protocol:    "17",
-		Description: "Added by Jenkins to allow UDP communication from worker node",
-		IsStateless: false,
-	}
-
-	return capiTest.UpdateOCINSG(ClusterName, "control-plane", "worker", "udp", &udpControlPlaneRule, t.Logs)
-
+	return capiTest.UpdateOCINSGEW(ClusterName, "control-plane", "east-west traffic", &eastWestRule, t.Logs)
 }
 
 /*

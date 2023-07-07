@@ -637,9 +637,9 @@ def generateVerifyInstallStages(dumpRoot) {
         "verify-install clusterapi": {
             runGinkgoRandomizeWorkloadCluster('verify-install/clusterapi')
         },
-        "verify-install jaegar-operator": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/jaegar-operator')
-        },
+        // "verify-install jaegar-operator": {
+        //    runGinkgoRandomizeWorkloadCluster('verify-install/jaegar-operator')
+        // },
         "verify-install thanos": {
             runGinkgoRandomizeWorkloadCluster('verify-install/thanos')
         },

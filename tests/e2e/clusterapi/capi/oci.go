@@ -208,7 +208,7 @@ func (c *ClientImpl) UpdateNSG(ctx context.Context, nsgID string, rule *Security
 	})
 
 	if err != nil {
-		log.Error("unable to update nsg '%s':  %v", nsgID, zap.Error(err))
+		log.Errorf("unable to update nsg '%s':  %v", nsgID, zap.Error(err))
 		return err
 	}
 

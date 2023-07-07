@@ -621,6 +621,7 @@ func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
 }
 */
 
+// UpdateOCINSG allows updating nsg based on source subnet cidr using the source subnet name
 func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
 	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayNameToUpdate, info)
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
@@ -648,6 +649,7 @@ func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDispl
 	return oci.UpdateNSG(context.TODO(), nsgID, rule, log)
 }
 
+// UpdateOCINSGEW allows updating nsg based on vcn cidr
 func (c CAPITestImpl) UpdateOCINSGEW(clusterName, nsgDisplayNameToUpdate, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
 	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayNameToUpdate, info)
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
@@ -761,11 +763,11 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 	//	return err
 	//}
 
-	err = c.DebugSVCOutput(clusterName, log)
-	if err != nil {
-		log.Errorf("Unable to display service resources from workload cluster ", zap.Error(err))
-		return err
-	}
+	//err = c.DebugSVCOutput(clusterName, log)
+	//if err != nil {
+	//	log.Errorf("Unable to display service resources from workload cluster ", zap.Error(err))
+	//	return err
+	//}
 
 	if curState == "InstallComplete" {
 		return nil
