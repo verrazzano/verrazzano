@@ -6,12 +6,17 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	metrics "github.com/verrazzano/verrazzano/pkg/metrics"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"io/ioutil"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -25,8 +30,11 @@ import (
 	k8net "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"log"
+	"reflect"
+	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
@@ -182,59 +190,194 @@ func createIngressChildResources(ingresstrait *vzapi.IngressTrait) {
 	}
 }
 //creates Server Monitor Instance
-func createServiceMonitor(trait *vzapi.MetricsTrait){
+func createServiceMonitor(trait *vzapi.MetricsTrait) (monitor promoperapi.ServiceMonitor){
 	// Creating a service monitor with name and namespace
 	pmName, err := createServiceMonitorName(trait, 0)
 	if err != nil {
 		print(err)
 	}
 
+	// Fetch workload resource using information from the trait
+	var workload *unstructured.Unstructured
+	workload, err = FetchWorkloadFromTrait(trait)
+	if err != nil {
+		print(err)
+	}
+
+	//fetch trait defailts
+	traitDefaults, supported, err := fetchTraitDefaults(workload)
+	if err != nil {
+		print(err)
+	}
+	if !supported || traitDefaults == nil {
+		print(err)
+	}
+
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
 	//do I need fetchSourceCrednentials and Istio enabled
-	var workload *unstructured.Unstructured
 	secret, err := fetchSourceCredentialsSecretIfRequired(trait, traitDefaults, workload)
 	if err != nil {
 		print(err)
 	}
 
-	//find workload
-	//wlsWorkload, err := isWLSWorkload(workload)
-	//if err != nil {
-	//	print(err)
-	//}
+	useHTTPS, err := useHTTPSForScrapeTarget(trait)
+	if err != nil {
+		print(err)
+	}
 
-	//vzPromLabels := !wlsWorkload
+	wlsWorkload, err := isWLSWorkload(workload)
+	if err != nil {
+		print(err)
+	}
 
-	//scrapeInfo := metrics.ScrapeInfo{
-	//	Ports:              len(getPortSpecs(trait, traitDefaults)),
-	//	BasicAuthSecret:    secret,
-	//	IstioEnabled:       &useHTTPS,
-	//	VZPrometheusLabels: &vzPromLabels,
-	//	ClusterName:        clusters.GetClusterName(ctx, r.Client),
-	//}
-	//
-	//// Fill in the scrape info if it is populated in the trait
-	//if trait.Spec.Path != nil {
-	//	scrapeInfo.Path = trait.Spec.Path
-	//}
-	//
-	//// Populate the keep labels to match the oam pod labels
-	//scrapeInfo.KeepLabels = map[string]string{
-	//	"__meta_kubernetes_pod_label_app_oam_dev_name":      trait.Labels[oam.LabelAppName],
-	//	"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[oam.LabelAppComponent],
-	//}
-	//
-	//serviceMonitor := promoperapi.ServiceMonitor{}
-	//serviceMonitor.SetName(pmName)
-	//serviceMonitor.SetNamespace(workload.GetNamespace())
-	//result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
-	//	return metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor, log)
-	//})
+	vzPromLabels := !wlsWorkload
+
+	scrapeInfo := metrics.ScrapeInfo{
+		Ports:              len(getPortSpecs(trait, traitDefaults)),
+		BasicAuthSecret:    secret,
+		IstioEnabled:       &useHTTPS,
+		VZPrometheusLabels: &vzPromLabels,
+		//sClusterName:        clusters.GetClusterName(ctx, r.Client),
+	}
+
+	// Fill in the scrape info if it is populated in the trait
+	if trait.Spec.Path != nil {
+		scrapeInfo.Path = trait.Spec.Path
+	}
+
+	// Populate the keep labels to match the oam pod labels
+	scrapeInfo.KeepLabels = map[string]string{
+		"__meta_kubernetes_pod_label_app_oam_dev_name":      trait.Labels[oam.LabelAppName],
+		"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[oam.LabelAppComponent],
+	}
+
+	serviceMonitor := promoperapi.ServiceMonitor{}
+	serviceMonitor.SetName(pmName)
+	serviceMonitor.SetNamespace(workload.GetNamespace())
+	metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor)
+	return serviceMonitor
 
 }
 
 func createService(){
 
+}
+func getPortSpecs(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) []vzapi.PortSpec {
+	ports := trait.Spec.Ports
+	if len(ports) == 0 {
+		// create a port spec from the existing port
+		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	} else {
+		// if there are existing ports and a port/path setting, add the latter to the ports
+		if trait.Spec.Port != nil {
+			// add the port to the ports
+			path := trait.Spec.Path
+			if path == nil {
+				path = traitDefaults.Path
+			}
+			portSpec := vzapi.PortSpec{
+				Port: trait.Spec.Port,
+				Path: path,
+			}
+			ports = append(ports, portSpec)
+		}
+	}
+	return ports
+}
+func FetchWorkloadFromTrait(trait *vzapi.MetricsTrait) (*unstructured.Unstructured, error) {
+	var workload = &unstructured.Unstructured{}
+	workload.SetAPIVersion(trait.GetWorkloadReference().APIVersion)
+	workload.SetKind(trait.GetWorkloadReference().Kind)
+	//workloadKey := client.ObjectKey{Name: trait.GetWorkloadReference().Name, Namespace: trait.GetNamespace()}
+
+	return FetchWorkloadResource(workload)
+}
+func isWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
+	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
+	if err != nil {
+		return false, err
+	}
+	// Match any version of APIVersion=weblogic.oracle and Kind=Domain
+	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+		return true, nil
+	}
+	return false, nil
+}
+func FetchWorkloadResource(workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// Getting kind of helidon workload i.e. "VerrazzanoHelidonWorkload"
+	helidonWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoHelidonWorkload{}).Name()
+	// If the workload does not wrap unstructured data
+	if !IsVerrazzanoWorkloadKind(workload) || (helidonWorkloadKind == workload.GetKind()) {
+		return workload, nil
+	}
+
+	// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
+	resource, err := FetchContainedWorkload(workload)
+	if err != nil {
+		return nil,err
+	}
+
+	return resource, nil
+}
+func FetchContainedWorkload(workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	apiVersion, kind, _, err := GetContainedWorkloadVersionKindName(workload)
+	if err != nil {
+		return nil,err
+	}
+	_ = ""
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion(apiVersion)
+	u.SetKind(kind)
+
+	return u, nil
+}
+func GetContainedWorkloadVersionKindName(workload *unstructured.Unstructured) (string, string, string, error) {
+	gvk := WorkloadToContainedGVK(workload)
+	if gvk == nil {
+		return "", "", "", fmt.Errorf("unable to find contained GroupVersionKind for workload: %v", workload)
+	}
+
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+
+	// NOTE: this may need to change if we do not allow the user to set the name or if we do and default it
+	// to the workload or component name
+	name, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
+	if !found || err != nil {
+		return "", "", "", errors.New("unable to find metadata name in contained workload")
+	}
+
+	return apiVersion, kind, name, nil
+}
+func WorkloadToContainedGVK(workload *unstructured.Unstructured) *schema.GroupVersionKind {
+	if workload.GetKind() == vzconst.VerrazzanoWebLogicWorkloadKind {
+		apiVersion, found, _ := unstructured.NestedString(workload.Object, "spec", "template", "apiVersion")
+		var gvk schema.GroupVersionKind
+		if found {
+			gvk = schema.FromAPIVersionAndKind(apiVersion, "Domain")
+		} else {
+			gvk = schema.GroupVersionKind{Group: "weblogic.oracle", Version: "v8", Kind: "Domain"}
+		}
+		return &gvk
+	}
+
+	return APIVersionAndKindToContainedGVK(workload.GetAPIVersion(), workload.GetKind())
+}
+func APIVersionAndKindToContainedGVK(apiVersion string, kind string) *schema.GroupVersionKind {
+	var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
+		"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  {Group: "weblogic.oracle", Version: "v9", Kind: "Domain"},
+		"oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload": {Group: "coherence.oracle.com", Version: "v1", Kind: "Coherence"},
+	}
+	key := fmt.Sprintf("%s.%s", apiVersion, kind)
+	gvk, ok := workloadToContainedGVKMap[key]
+	if ok {
+		return &gvk
+	}
+	return nil
+}
+
+func IsVerrazzanoWorkloadKind(workload *unstructured.Unstructured) bool {
+	kind := workload.GetKind()
+	return strings.HasPrefix(kind, "Verrazzano") && strings.HasSuffix(kind, "Workload")
 }
 func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	sname, err := createJobOrServiceMonitorName(trait, portNum)
@@ -276,7 +419,7 @@ func getNamespaceFromObjectMetaOrDefault(meta metav1.ObjectMeta) string {
 	return name
 }
 //if kind == app config && doesnt specify, create metricstrait
-func fetchSourceCredentialsSecretIfRequired(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured){
+func fetchSourceCredentialsSecretIfRequired(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured)(*corev1.Secret, error){
 	secretName := trait.Spec.Secret
 	// If no secret name explicitly provided use the default secret name.
 	if secretName == nil && traitDefaults != nil {
@@ -287,20 +430,17 @@ func fetchSourceCredentialsSecretIfRequired(trait *vzapi.MetricsTrait, traitDefa
 		return nil, nil
 	}
 	// Use the workload namespace for the secret to fetch.
-	secretNamespace, found, err := unstructured.NestedString(workload.Object, "metadata", "namespace")
-	if err != nil {
-		return nil, fmt.Errorf("failed to determine namespace for secret %s: %w", *secretName, err)
-	}
-	if !found {
-		return nil, fmt.Errorf("failed to find namespace for secret %s", *secretName)
-	}
+	//secretNamespace, found, err := unstructured.NestedString(workload.Object, "metadata", "namespace")
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to determine namespace for secret %s: %w", *secretName, err)
+	//}
+	//if !found {
+	//	return nil, fmt.Errorf("failed to find namespace for secret %s", *secretName)
+	//}
 	// Fetch the secret.
-	secretKey := client.ObjectKey{Namespace: secretNamespace, Name: *secretName}
-	secretObj := k8score.Secret{}
-	err = cli.Get(ctx, secretKey, &secretObj)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch secret %v: %w", secretKey, err)
-	}
+	//secretKey := client.ObjectKey{Namespace: secretNamespace, Name: *secretName}
+	secretObj := corev1.Secret{}
+
 	return &secretObj, nil
 }
 func useHTTPSForScrapeTarget(trait *vzapi.MetricsTrait) (bool, error) {
@@ -308,13 +448,174 @@ func useHTTPSForScrapeTarget(trait *vzapi.MetricsTrait) (bool, error) {
 		return false, nil
 	}
 	// Get the namespace resource that the MetricsTrait is deployed to
-	namespace := &k8score.Namespace{}
+	namespace := &corev1.Namespace{}
 
 	value, ok := namespace.Labels["istio-injection"]
 	if ok && value == "enabled" {
 		return true, nil
 	}
 	return false, nil
+}
+func fetchTraitDefaults(workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, bool, error) {
+	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
+	if err != nil {
+		print(err)
+	}
+
+	workloadType := GetSupportedWorkloadType(apiVerKind)
+	switch workloadType {
+	case constants.WorkloadTypeWeblogic:
+		spec, err := NewTraitDefaultsForWLSDomainWorkload(workload)
+		return spec, true, err
+	case constants.WorkloadTypeCoherence:
+		spec, err := NewTraitDefaultsForCOHWorkload(workload)
+		return spec, true, err
+	case constants.WorkloadTypeGeneric:
+		spec, err := NewTraitDefaultsForGenericWorkload()
+		return spec, true, err
+	default:
+		// Log the kind/workload is unsupported and return a nil trait.
+		return nil, false, nil
+	}
+
+}
+// NewTraitDefaultsForCOHWorkload creates metrics trait default values for a Coherence workload.
+func NewTraitDefaultsForCOHWorkload(workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+	path := "/metrics"
+	port := 9612
+	var secret *string
+
+	enabled, p, s, err := fetchCoherenceMetricsSpec(workload)
+	if err != nil {
+		return nil, err
+	}
+	if enabled == nil || *enabled {
+		if p != nil {
+			port = *p
+		}
+		if s != nil {
+			secret = s
+		}
+	}
+	return &vzapi.MetricsTraitSpec{
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
+		Path:    &path,
+		Secret:  secret,
+		//Scraper: &r.Scraper
+	}, nil
+}
+func fetchCoherenceMetricsSpec(workload *unstructured.Unstructured) (*bool, *int, *string, error) {
+	// determine if metrics is enabled
+	enabled, found, err := unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "enabled")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var e *bool
+	if found {
+		e = &enabled
+	}
+
+	// get the metrics port
+	port, found, err := unstructured.NestedInt64(workload.Object, "spec", "coherence", "metrics", "port")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var p *int
+	if found {
+		p2 := int(port)
+		p = &p2
+	}
+
+	// get the secret if ssl is enabled
+	enabled, found, err = unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "ssl", "enabled")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var s *string
+	if found && enabled {
+		secret, found, err := unstructured.NestedString(workload.Object, "spec", "coherence", "metrics", "ssl", "secrets")
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if found {
+			s = &secret
+		}
+	}
+	return e, p, s, nil
+}
+// NewTraitDefaultsForGenericWorkload creates metrics trait default values for a containerized workload.
+func NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSpec, error) {
+	port := 8080
+	path := "/metrics"
+	return &vzapi.MetricsTraitSpec{
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
+		Path:    &path,
+		Secret:  nil,
+		//Scraper: &r.Scraper
+	}, nil
+}
+func NewTraitDefaultsForWLSDomainWorkload( workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+	// Port precedence: trait, workload annotation, default
+	port := 7001
+	path := "/wls-exporter/metrics"
+	secret, err := fetchWLSDomainCredentialsSecretName(workload)
+	if err != nil {
+		return nil, err
+	}
+	return &vzapi.MetricsTraitSpec{
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
+		Path:    &path,
+		Secret:  secret,
+		//Scraper: &r.Scraper
+	}, nil
+}
+func fetchWLSDomainCredentialsSecretName(workload *unstructured.Unstructured) (*string, error) {
+	secretName, found, err := unstructured.NestedString(workload.Object, "spec", "webLogicCredentialsSecret", "name")
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, nil
+	}
+	return &secretName, nil
+}
+
+func GetSupportedWorkloadType(apiVerKind string) string {
+	// Match any version of Group=weblogic.oracle and Kind=Domain
+	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+		return constants.WorkloadTypeWeblogic
+	}
+	// Match any version of Group=coherence.oracle and Kind=Coherence
+	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
+		return constants.WorkloadTypeCoherence
+	}
+
+	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload or
+	// In the case of Helidon, the workload isn't currently being unwrapped
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
+	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
+	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
+	// Match any version of Group=apps and Kind=Deployment
+	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
+	return ""
 }
 // creates Authorization Policy
 func createAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string) {

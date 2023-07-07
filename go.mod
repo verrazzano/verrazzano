@@ -40,7 +40,7 @@ require (
 	istio.io/client-go v1.15.4
 	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.1
-	k8s.io/apimachinery v0.27.2
+	k8s.io/apimachinery v0.27.3
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.26.3
 	k8s.io/code-generator v0.25.4
