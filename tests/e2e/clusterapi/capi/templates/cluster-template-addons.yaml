@@ -194,82 +194,82 @@ metadata:
   name: ${CLUSTER_NAME}-calico-module-cr
   namespace: ${CLUSTER_NAMESPACE}
 ---
-#apiVersion: addons.cluster.x-k8s.io/v1beta1
-#kind: ClusterResourceSet
-#metadata:
-#  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
-#  namespace: ${CLUSTER_NAMESPACE}
-#spec:
-#  clusterSelector:
-#    matchLabels:
-#      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-#  resources:
-#    - kind: ConfigMap
-#      name: ${CLUSTER_NAME}-vpo-cm-test-overrides
-#  strategy: Reconcile
-#---
-#apiVersion: v1
-#data:
-#  test-overrides-configmap.yaml: |
-#    apiVersion: v1
-#    data:
-#      test-overrides-configmap.yaml: |-
-#        # Copyright (c) 2022, Oracle and/or its affiliates.
-#        # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-#
-#        prometheusOperator:
-#          podLabels:
-#            override: "true"
-#    kind: ConfigMap
-#    metadata:
-#      name: test-overrides
-#      namespace: default
-#kind: ConfigMap
-#metadata:
-#  annotations:
-#    note: generated
-#  labels:
-#    type: generated
-#  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
-#  namespace: ${CLUSTER_NAMESPACE}
-#---
-#apiVersion: addons.cluster.x-k8s.io/v1beta1
-#kind: ClusterResourceSet
-#metadata:
-#  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
-#  namespace: ${CLUSTER_NAMESPACE}
-#spec:
-#  clusterSelector:
-#    matchLabels:
-#      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-#  resources:
-#    - kind: Secret
-#      name: ${CLUSTER_NAME}-vpo-secret-test-overrides
-#  strategy: Reconcile
-#---
-#apiVersion: v1
-#stringData:
-#  test-overrides-secret.yaml: |
-#    apiVersion: v1
-#    stringData:
-#      test-overrides-secret.yaml: |-
-#        # Copyright (c) 2022, Oracle and/or its affiliates.
-#        # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-#
-#        prometheusOperator:
-#          podAnnotations:
-#            override: "true"
-#    kind: Secret
-#    metadata:
-#      name: test-overrides
-#      namespace: default
-#    type: Opaque
-#kind: Secret
-#type: addons.cluster.x-k8s.io/resource-set
-#metadata:
-#  annotations:
-#    note: generated
-#  labels:
-#    type: generated
-#  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
-#  namespace: ${CLUSTER_NAMESPACE}
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  test-overrides-configmap.yaml: |
+    apiVersion: v1
+    data:
+      test-overrides-configmap.yaml: |-
+        # Copyright (c) 2022, Oracle and/or its affiliates.
+        # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+        prometheusOperator:
+          podLabels:
+            override: "true"
+    kind: ConfigMap
+    metadata:
+      name: test-overrides
+      namespace: default
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: Secret
+      name: ${CLUSTER_NAME}-vpo-secret-test-overrides
+  strategy: Reconcile
+---
+apiVersion: v1
+stringData:
+  test-overrides-secret.yaml: |
+    apiVersion: v1
+    stringData:
+      test-overrides-secret.yaml: |-
+        # Copyright (c) 2022, Oracle and/or its affiliates.
+        # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+        prometheusOperator:
+          podAnnotations:
+            override: "true"
+    kind: Secret
+    metadata:
+      name: test-overrides
+      namespace: default
+    type: Opaque
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}

@@ -389,6 +389,7 @@ pipeline {
                     }
                 }
 
+                /*
                 stage("Create-image-pull-secrets") {
                     steps {
                         createImagePullSecretsOnWorkloadCluster()
@@ -435,6 +436,7 @@ pipeline {
                       }
                   }
                 }
+                */
 
 
                 stage('Post-install Verify Tests on workload cluster') {

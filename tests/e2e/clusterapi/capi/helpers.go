@@ -337,11 +337,11 @@ func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string
 
 	log.Infof("Wait for 30 seconds for cluster resourceset resources to deploy")
 	time.Sleep(30 * time.Second)
-	//localTest := getEnvDefault("LOCAL_TEST", "false")
-	//if strings.ToLower(localTest) == "false" {
-	//	// When running on Jenkins instance
-	//	return c.CreateImagePullSecrets(clusterName, log)
-	//}
+	localTest := getEnvDefault("LOCAL_TEST", "false")
+	if strings.ToLower(localTest) == "false" {
+		// When running on Jenkins instance
+		return c.CreateImagePullSecrets(clusterName, log)
+	}
 	return nil
 }
 
@@ -765,7 +765,7 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 
 	var cmdArgs []string
 	var bcmd helpers.BashCommand
-	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s get svc -n verrazzano-ingress-nginx   ingress-controller-ingress-nginx-controller", tmpFile.Name())
+	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s get svc -n verrazzano-ingress-nginx", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	debugCmdResponse := helpers.Runner(&bcmd, log)
@@ -774,25 +774,7 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 	}
 
 	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get svc -n istio-system istio-ingressgateway ", tmpFile.Name())
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
-	bcmd.CommandArgs = cmdArgs
-	debugCmdResponse = helpers.Runner(&bcmd, log)
-	if debugCmdResponse.CommandError != nil {
-		return debugCmdResponse.CommandError
-	}
-
-	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s describe svc -n verrazzano-ingress-nginx   ingress-controller-ingress-nginx-controller", tmpFile.Name())
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
-	bcmd.CommandArgs = cmdArgs
-	debugCmdResponse = helpers.Runner(&bcmd, log)
-	if debugCmdResponse.CommandError != nil {
-		return debugCmdResponse.CommandError
-	}
-
-	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s describe svc -n istio-system istio-ingressgateway", tmpFile.Name())
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get svc -n istio-system", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	debugCmdResponse = helpers.Runner(&bcmd, log)

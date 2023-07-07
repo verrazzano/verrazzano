@@ -77,10 +77,10 @@ metadata:
 spec:
   moduleOperator:
     enabled: true
-#  verrazzanoPlatformOperator:
-#    enabled: true
-#    imagePullSecrets:
-#      - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+  verrazzanoPlatformOperator:
+    enabled: true
+    imagePullSecrets:
+      - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
   controlPlaneConfig:
     clusterConfiguration:
       apiServer:
