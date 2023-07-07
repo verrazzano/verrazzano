@@ -4,12 +4,18 @@
 package clusterapi
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const (
@@ -17,6 +23,7 @@ const (
 	minimumVerrazzanoVersion = "1.6.0"
 )
 
+// IsClusterAPIInstalled - determine if Cluster API is installed on the cluster
 func IsClusterAPIInstalled() (bool, error) {
 	kubeConfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -40,4 +47,22 @@ func IsClusterAPIInstalled() (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// ListKontainerDrivers return list of kontainerdrvier objects
+func ListKontainerDrivers(clientset dynamic.Interface) (*unstructured.UnstructuredList, error) {
+	cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
+		Group:    "management.cattle.io",
+		Version:  "v3",
+		Resource: "kontainerdrivers",
+	}).List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, fmt.Errorf("No kontainerdrivers found: %v", err)
+		} else {
+			return nil, fmt.Errorf("Failed to list kontainerdrivers: %v", err)
+		}
+	}
+	return cattleDrivers, err
 }

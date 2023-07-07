@@ -4,7 +4,6 @@
 package clusterapi
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -17,10 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -91,8 +86,9 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 				Skip("Skipping test because Rancher is not configured")
 			}
 			driversActive := func() bool {
-				cattleDrivers, err := listKontainerDrivers(clientset)
+				cattleDrivers, err := capipkg.ListKontainerDrivers(clientset)
 				if err != nil {
+					t.Logs.Info(err.Error())
 					return false
 				}
 
@@ -124,8 +120,9 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 				Skip("Skipping test because Rancher is not configured")
 			}
 			expectedDriversFound := func() bool {
-				cattleDrivers, err := listKontainerDrivers(clientset)
+				cattleDrivers, err := capipkg.ListKontainerDrivers(clientset)
 				if err != nil {
+					t.Logs.Info(err.Error())
 					return false
 				}
 
@@ -158,21 +155,4 @@ func getKubeConfigOrAbort() string {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	return kubeconfigPath
-}
-
-func listKontainerDrivers(clientset dynamic.Interface) (*unstructured.UnstructuredList, error) {
-	cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
-		Group:    "management.cattle.io",
-		Version:  "v3",
-		Resource: "kontainerdrivers",
-	}).List(context.TODO(), metav1.ListOptions{})
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			t.Logs.Info("No kontainerdrivers found")
-		} else {
-			t.Logs.Errorf("Failed to list kontainerdrivers: %v", err)
-		}
-	}
-	return cattleDrivers, err
 }
