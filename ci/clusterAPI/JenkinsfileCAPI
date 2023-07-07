@@ -391,7 +391,7 @@ pipeline {
                     }
                 }
 
-                /*
+
                 stage('Install overrides on workload cluster') {
                    steps {
                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -420,6 +420,7 @@ pipeline {
                                kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
                                kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
                                ${GO_REPO_PATH}/vz install --kubeconfig \$TEMPKUBECONFIGPATH --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
+                               rm -rf \$TEMPKUBECONFIGPATH
                            """
                        }
                    }
@@ -432,7 +433,7 @@ pipeline {
                       }
                   }
                 }
-                */
+
 
                 stage('Post-install Verify Tests on workload cluster') {
                        steps {
