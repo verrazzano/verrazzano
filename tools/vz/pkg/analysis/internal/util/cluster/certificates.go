@@ -48,18 +48,20 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 		}
 
 		for _, certificate := range certificateListForNamespace.Items {
-			if certificate.Status.NotAfter.Unix() < time.Now().Unix() {
-				reportCertificateExpirationIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
-			}
 			if getLatestCondition(log, certificate) == nil {
 				continue
 			}
 			conditionOfCert := getLatestCondition(log, certificate)
 			if isCertConditionValid(conditionOfCert) && isVPOHangingonCert(mapOfCertificatesInVPOToTheirNamespace, certificate) {
 				reportCLIHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
+				continue
 			}
 			if !(isCertConditionValid(conditionOfCert)) {
 				reportGenericCertificateIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
+				continue
+			}
+			if certificate.Status.NotAfter.Unix() < time.Now().Unix() {
+				reportCertificateExpirationIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 			}
 
 		}
