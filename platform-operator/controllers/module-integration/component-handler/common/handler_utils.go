@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func GetComponentAndContext(ctx handlerspi.HandlerContext) (spi.ComponentContext, spi.Component, error) {
+func GetComponentAndContext(ctx handlerspi.HandlerContext, operation string) (spi.ComponentContext, spi.Component, error) {
 	module := ctx.CR.(*moduleapi.Module)
 
 	vz, err := GetVerrazzanoCR(ctx)
@@ -36,7 +36,7 @@ func GetComponentAndContext(ctx handlerspi.HandlerContext) (spi.ComponentContext
 		return nil, nil, err
 	}
 
-	return compCtx, comp, nil
+	return compCtx.Operation(operation), comp, nil
 }
 
 func GetVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {

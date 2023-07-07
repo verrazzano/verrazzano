@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module-integration/component-handler/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 )
@@ -41,7 +42,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -66,7 +67,7 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 
 // DoWork installs the module using Helm
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -79,7 +80,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 // IsWorkDone Indicates whether a module is installed and ready
 func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	compCtx, comp, err := common.GetComponentAndContext(ctx)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
 	if err != nil {
 		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -95,7 +96,7 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 
 // PostWork does installation post-work
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
