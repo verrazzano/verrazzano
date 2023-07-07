@@ -53,9 +53,6 @@ pipeline {
 
     stages {
         stage('Verify Specified Commit can be Forced') {
-            when {
-                expression { !params.DRY_RUN }
-            }
             steps {
                 script {
                     if (params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE == "NONE") {
