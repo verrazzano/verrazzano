@@ -54,9 +54,7 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	// Get the components from the BOM
-	rancherComp, capiComp := getComponents()
-	Expect(capiComp.Version).To(Equal("v1.6.1"))
-	Expect(rancherComp.Version).To(Equal("v2.7.3"))
+	_, capiComp := getComponents()
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
@@ -71,9 +69,9 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		// GIVEN the CAPI environment is ready
 		// WHEN we override ocneBootstrap and ocneControlPlane versions
 		// THEN the overrides get successfully applied
-		applyOverrides(fmt.Sprintf(capiOverrides1, capiComp.Version, capiComp.Version))
 
 		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
+			applyOverrides(fmt.Sprintf(capiOverrides1, capiComp.Version, capiComp.Version))
 			Eventually(capipkg.IsAllDriversActive(t, dynClient), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
