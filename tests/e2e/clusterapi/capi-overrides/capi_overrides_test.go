@@ -4,6 +4,7 @@
 package capi_overrides
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,9 +12,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -22,10 +26,22 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
+const capiOverrides1 = `
+{
+  "defaultProviders": {
+    "ocneBootstrap": {
+      "version": "%s",
+    },
+    "ocneControlPlane": {
+      "version": "%s",
+    }
+  }
+}`
+
 var t = framework.NewTestFramework("capi_overrides")
 
 var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), func() {
-	var clientset dynamic.Interface
+	var dynClient dynamic.Interface
 
 	// Get dynamic client
 	Eventually(func() (dynamic.Interface, error) {
@@ -33,8 +49,8 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		if err != nil {
 			return nil, err
 		}
-		clientset, err = pkg.GetDynamicClientInCluster(kubePath)
-		return clientset, err
+		dynClient, err = pkg.GetDynamicClientInCluster(kubePath)
+		return dynClient, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	// Get the components from the BOM
@@ -47,7 +63,7 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		// WHEN we check the kontainerdrivers
 		// THEN we successfully find them all active
 		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
-			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(capipkg.IsAllDriversActive(t, dynClient), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -55,12 +71,41 @@ var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), fun
 		// GIVEN the CAPI environment is ready
 		// WHEN we override ocneBootstrap and ocneControlPlane versions
 		// THEN the overrides get successfully applied
+		applyOverrides(fmt.Sprintf(capiOverrides1, capiComp.Version, capiComp.Version))
+
 		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
-			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(capipkg.IsAllDriversActive(t, dynClient), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
-
 })
+
+// applyOverrides - apply overrides to CAPI component
+func applyOverrides(overrides string) {
+	// Get the VZ resource
+	vz, err := pkg.GetVerrazzanoV1beta1()
+	Expect(err).ToNot(HaveOccurred())
+
+	// Get the client
+	client, err := pkg.GetVerrazzanoClientset()
+	Expect(err).ToNot(HaveOccurred())
+
+	// Update the VZ with the overrides
+	if vz.Spec.Components.ClusterAPI == nil {
+		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
+	}
+	vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				Values: &apiextensionsv1.JSON{
+					Raw: []byte(overrides),
+				},
+			},
+		},
+	}
+
+	_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
+	Expect(err).ToNot(HaveOccurred())
+}
 
 func getComponents() (*bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
