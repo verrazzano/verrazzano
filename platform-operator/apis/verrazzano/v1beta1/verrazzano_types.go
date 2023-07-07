@@ -294,6 +294,9 @@ const (
 
 	// CompStateFailed is the state when an install/uninstall/upgrade has failed
 	CompStateFailed CompStateType = "Failed"
+
+	// CompStateReconciling is the state when a module is reconciling
+	CompStateReconciling CompStateType = "Reconciling"
 )
 
 // ComponentSpec contains a set of components used by Verrazzano.

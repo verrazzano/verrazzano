@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const finalizerName = "module.platform.verrazzano.io/finalizer"
+const finalizerName = "install.verrazzano.io"
 
 // GetName returns the name of the finalizer
 func (r Reconciler) GetName() string {

@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"context"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
-	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -21,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -53,17 +51,16 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-
-	log := vzlog.DefaultLogger()
-	res := r.initReconcile(log, actualCR)
-	if res.ShouldRequeue() {
-		return res
-	}
-
 	// Get effective CR
 	vzcr, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	log := vzlog.DefaultLogger()
+	res := r.initReconcile(log, vzcr)
+	if res.ShouldRequeue() {
+		return res
 	}
 
 	err = r.createOrUpdateModules(vzcr)
@@ -179,17 +176,15 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 			continue
 		}
 		// Set the vzcr status
-		r.loadModuleStatusIntoComponentStatus(log, vzcr, comp)
-		cond := modulestatus.GetReadyCondition(module)
-		if cond == nil || cond.Status != corev1.ConditionTrue {
-			continue
+		compStatus := r.loadModuleStatusIntoComponentStatus(vzcr, comp.Name(), module)
+		if compStatus.State == vzapi.CompStateReady {
+			readyCount++
 		}
+	}
 
-		// return if module generation doesn't reconcile gen then not ready
-		if module.Generation != module.Status.LastSuccessfulGeneration {
-			continue
-		}
-		readyCount++
+	vzReady := moduleCount == readyCount
+	if vzReady {
+		vzcr.Status.State = vzapi.VzStateReady
 	}
 
 	// Update the status.  If it didn't change then the Kubernetes API server will not be called
@@ -197,8 +192,9 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 	if err != nil {
 		return false, err
 	}
+
 	// return true if all modules are ready
-	return moduleCount == readyCount, nil
+	return vzReady, nil
 }
 
 func (r *Reconciler) getBOM() (*bom.Bom, error) {
@@ -244,7 +240,8 @@ func (r Reconciler) initReconcile(log vzlog.VerrazzanoLogger, actualCR *vzapi.Ve
 	// Init the state to Ready if this CR has never been processed
 	// Always requeue to update cache, ignore error since requeue anyway
 	if len(actualCR.Status.State) == 0 {
-		r.updateVzState(log, actualCR, vzapi.VzStateReady)
+		actualCR.Status.State = vzapi.VzStateReconciling
+		r.updateStatus(log, actualCR)
 		return result.NewResultShortRequeueDelay()
 	}
 
