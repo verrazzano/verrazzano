@@ -26,7 +26,7 @@ const (
 
 var t = framework.NewTestFramework("clusterapi")
 
-var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check to make sure the pods exist

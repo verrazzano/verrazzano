@@ -4,10 +4,12 @@
 package capi_overrides
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
@@ -22,7 +24,7 @@ const (
 
 var t = framework.NewTestFramework("capi_overrides")
 
-var _ = t.Describe("Cluster API Overrides ", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("Cluster API Overrides", Label("f:platform-lcm.install"), func() {
 	var clientset dynamic.Interface
 
 	// Get dynamic client
@@ -34,6 +36,26 @@ var _ = t.Describe("Cluster API Overrides ", Label("f:platform-lcm.install"), fu
 		clientset, err = pkg.GetDynamicClientInCluster(kubePath)
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	// Get the BOM from the installed Platform Operator
+	bomDoc, err := pkg.GetBOMDoc()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get BOM from platform operator: %v", err))
+	}
+
+	// Find the Rancher and CAPI components
+	var rancherComp *bom.BomComponent
+	var capiOCNE *bom.BomComponent
+	for i, component := range bomDoc.Components {
+		switch component.Name {
+		case "rancher":
+			rancherComp = &bomDoc.Components[i]
+		case "capi-ocne":
+			capiOCNE = &bomDoc.Components[i]
+		}
+	}
+	Expect(rancherComp).To(Not(BeNil()))
+	Expect(capiOCNE).To(Not(BeNil()))
 
 	t.Context("after successful installation", func() {
 		// GIVEN the Cluster API is installed
