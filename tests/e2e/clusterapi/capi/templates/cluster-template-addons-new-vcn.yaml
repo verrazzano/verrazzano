@@ -81,6 +81,9 @@ spec:
     enabled: true
     imagePullSecrets:
       - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+    image:
+      repository: ${VPO_IMAGE}
+      tag: ${VPO_TAG}
   controlPlaneConfig:
     clusterConfiguration:
       apiServer:

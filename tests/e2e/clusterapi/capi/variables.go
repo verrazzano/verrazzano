@@ -26,6 +26,8 @@ var (
 	DockerRepo             string
 	DockerCredsUser        string
 	DockerCredsPassword    string
+	ImageName              string
+	ImageTag               string
 )
 
 func ensureCAPIVarsInitialized() {
@@ -47,4 +49,6 @@ func ensureCAPIVarsInitialized() {
 	DockerRepo = os.Getenv("DOCKER_REPO")
 	DockerCredsUser = os.Getenv("DOCKER_CREDS_USR")
 	DockerCredsPassword = os.Getenv("DOCKER_CREDS_PSW")
+	ImageName = os.Getenv("VPO_IMAGE")
+	ImageTag = os.Getenv("VPO_TAG")
 }
