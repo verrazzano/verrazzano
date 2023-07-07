@@ -70,33 +70,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
-			driversActive := func() bool {
-				cattleDrivers, err := capipkg.ListKontainerDrivers(clientset)
-				if err != nil {
-					t.Logs.Info(err.Error())
-					return false
-				}
-
-				allActive := true
-				// The condition of each driver must be active
-				for _, driver := range cattleDrivers.Items {
-					status := driver.UnstructuredContent()["status"].(map[string]interface{})
-					conditions := status["conditions"].([]interface{})
-					driverActive := false
-					for _, condition := range conditions {
-						conditionData := condition.(map[string]interface{})
-						if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
-							driverActive = true
-							break
-						}
-					}
-					if !driverActive {
-						t.Logs.Infof("Driver %s not Active", driver.GetName())
-						allActive = false
-					}
-				}
-				return allActive
-			}
+			driversActive := capipkg.IsAllDriversActive(t, clientset)
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 

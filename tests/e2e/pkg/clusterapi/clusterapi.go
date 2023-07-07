@@ -85,3 +85,32 @@ func ListKontainerDrivers(clientset dynamic.Interface) (*unstructured.Unstructur
 	}
 	return cattleDrivers, err
 }
+
+func IsAllDriversActive(t *framework.TestFramework, clientset dynamic.Interface) bool {
+	cattleDrivers, err := ListKontainerDrivers(clientset)
+	if err != nil {
+		t.Logs.Info(err.Error())
+		return false
+	}
+
+	allActive := true
+	// The condition of each driver must be active
+	for _, driver := range cattleDrivers.Items {
+		status := driver.UnstructuredContent()["status"].(map[string]interface{})
+		conditions := status["conditions"].([]interface{})
+		driverActive := false
+		for _, condition := range conditions {
+			conditionData := condition.(map[string]interface{})
+			if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
+				driverActive = true
+				break
+			}
+		}
+		if !driverActive {
+			t.Logs.Infof("Driver %s not Active", driver.GetName())
+			allActive = false
+		}
+	}
+	return allActive
+
+}
