@@ -149,8 +149,8 @@
               "image": "rancher",
               "dashboard": "v2.7.2-20230630202538-1f346be21",
               "rancherUI": "v2.7.2-8/release-2.7.2",
-              "ocneDriverVersion": "v0.15.0",
-              "ocneDriverChecksum": "1f9f716b2f14f51fdab19e1ee98042801bcc40098eae2aca6725d4f360f4f7c9",
+              "ocneDriverVersion": "v0.16.0",
+              "ocneDriverChecksum": "67f9a55465bc28b120b085eb1591e16467e031740f4f374869554e7f50e06535",
               "tag": "v2.7.3-20230706150326-72ada53b0",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
