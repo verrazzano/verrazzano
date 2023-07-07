@@ -93,7 +93,8 @@ func removeArgoResourceKind(ctx spi.ComponentContext, kind string) error {
 	if err := c.List(context.TODO(), &resources, client.InNamespace(constants.ArgoCDNamespace)); err != nil {
 		return err
 	}
-	for _, resource := range resources.Items {
+	for i := range resources.Items {
+		resource := resources.Items[i]
 		// for each resource delete the finalizer and then delete the resource
 		_, err := controllerruntime.CreateOrUpdate(context.TODO(), c, &resource, func() error {
 			resource.SetFinalizers([]string{})
