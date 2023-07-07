@@ -715,8 +715,8 @@ def set_capi_variables() {
    int OCNE_WORKERS_COUNT = params.NODE_MACHINE_COUNT.toInteger()
    env.NODE_MACHINE_COUNT =  OCNE_WORKERS_COUNT
 
-   env.VPO_IMAGE = sh(returnStdout: true, script: "cat \${WORKSPACE}/acceptance-test-operator.yaml | grep image: | grep ghcr | head -1 | awk '{print $2}' | cut -d: -f1").trim()
-   env.VPO_TAG = sh(returnStdout: true, script: "cat \${WORKSPACE}/acceptance-test-operator.yaml | grep image: | grep ghcr | head -1 | awk '{print $2}' | cut -d: -f2-").trim()
+   env.VPO_IMAGE = sh(returnStdout: true, script: "cat \${WORKSPACE}/acceptance-test-operator.yaml | grep image: | grep ghcr | head -1 | awk '{print \$2}' | cut -d: -f1").trim()
+   env.VPO_TAG = sh(returnStdout: true, script: "cat \${WORKSPACE}/acceptance-test-operator.yaml | grep image: | grep ghcr | head -1 | awk '{print \$2}' | cut -d: -f2-").trim()
    println("VPO Image is ${env.VPO_IMAGE}, VPO Tag is ${env.VPO_TAG}")
 }
 
