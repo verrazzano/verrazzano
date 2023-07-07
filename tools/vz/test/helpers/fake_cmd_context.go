@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
 
@@ -115,6 +116,11 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 // GetDynamicClient - return a dynamic client for use with the fake go-client
 func (rc *FakeRootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error) {
 	return rc.dynamicClient, nil
+}
+
+// SetDynamicClient - set a dynamic client for use with the fake go-client (used for testing)
+func (rc *FakeRootCmdContext) SetDynamicClient(dynClient dynamic.Interface) {
+	rc.dynamicClient = dynClient
 }
 
 func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdContext {
