@@ -52,8 +52,6 @@ pipeline {
         OCI_OS_SHARED_BUCKET="build-shared-files"
 
         PERIODIC_JOB_OBJECT_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
-        PERIODIC_PRODUCT_LITE_OBJECT_NAME = "verrazzano-${VERRAZZANO_DEV_VERSION}-lite.zip"
-        PERIODIC_PRODUCT_FULL_OBJECT_NAME = "verrazzano-${VERRAZZANO_DEV_VERSION}.zip"
     }
 
     stages {
@@ -182,6 +180,10 @@ pipeline {
         }
 
         stage('Copy Product Zip to Release') {
+            environment {
+                PERIODIC_PRODUCT_LITE_OBJECT_NAME = "verrazzano-${VERRAZZANO_DEV_VERSION}-lite.zip"
+                PERIODIC_PRODUCT_FULL_OBJECT_NAME = "verrazzano-${VERRAZZANO_DEV_VERSION}.zip"
+            }
             
                 // When the Verrazzano builds are not run as part of this release job, the GENERATE_TARBALL which
                 // creates the product zip in the release location is not run. This is usually the case when we are using
