@@ -48,7 +48,7 @@ const (
 
 	istioPrometheus = "prometheus-server"
 
-	alertmanagerHostName        = "alertmanager.vmi.system"
+	alertmanagerHostName        = "alertmanager"
 	alertmanagerCertificateName = "system-tls-alertmanager"
 )
 
