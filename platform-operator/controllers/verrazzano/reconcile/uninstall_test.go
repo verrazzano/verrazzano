@@ -719,7 +719,7 @@ func TestReconcileUninstall2(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).Times(1)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}

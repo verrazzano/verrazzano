@@ -5,6 +5,7 @@ package reconcile
 
 import (
 	"context"
+
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -94,8 +95,10 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	tracker := getUninstallTracker(cr)
 	done := false
+
 	for !done {
 		switch tracker.vzState {
 		case vzStateUninstallStart:
@@ -167,6 +170,19 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			done = true
 		}
 	}
+
+	// Delete the ConfigMap
+	err = resource.Resource{
+		Namespace: cr.ObjectMeta.Namespace,
+		Name:      cr.ObjectMeta.Name + effConfigSuffix,
+		Client:    r.Client,
+		Object:    &corev1.ConfigMap{},
+		Log:       log,
+	}.Delete()
+	if err != nil {
+		log.Errorf("Failed Deleting the Configmap: %v", err)
+	}
+
 	// Uninstall done, no need to requeue
 	return ctrl.Result{}, nil
 }
