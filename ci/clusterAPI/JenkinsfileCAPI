@@ -364,12 +364,13 @@ pipeline {
                     }
                 }
 
-                stage('Deploy OCNE workload cluster using CAPI') {
+                stage('Deploy OCNE workload cluster using CAPI and install Verrazzano') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
                                 // This will deploy an OCNE cluster
                                 // Then proceed to create image pull secrets required for jenkins
+                                // Also deploy Verrazzano
                                 set_capi_variables()
                                 runGinkgo('clusterapi/capi')
                             }
