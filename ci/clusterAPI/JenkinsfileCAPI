@@ -675,7 +675,7 @@ def generateVerifyInfraStages(dumpRoot) {
         },
         "system component metrics": {
             runGinkgoRandomizeWorkloadCluster('metrics/syscomponents', "${dumpRoot}/system-component-metrics")        },
-
+        },
         "opensearch logging": {
             runGinkgoRandomizeWorkloadCluster('logging/opensearch, "${dumpRoot}/opensearch-logging")
         },
