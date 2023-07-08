@@ -395,58 +395,41 @@ pipeline {
                                parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
                            }
                        }
-                       post {
-                         failure {
-                             script {
-                                 dumpOCNECluster('verify-install-workload-cluster-dump')
-                             }
-                         }
-                     }
+                       //post {
+                       //  failure {
+                       //      script {
+                       //               dumpOCNECluster('verify-install-workload-cluster-dump')
+                       //           }
+                       //       }
+                       //     }
                }
 
-                stage('Run Acceptance Tests Infra on workload cluster') {
-                       steps {
-                           script {
-                               parallel acceptanceTests()
-                           }
-                       }
-                       post {
-                             failure {
-                                 script {
-                                     dumpOCNECluster('infra-test-workload-cluster-dump')
-                                 }
-                             }
-                         }
-                }
-
-                stage('Run Acceptance Tests Deployments Group 1 on workload cluster') {
-                       steps {
-                           script {
-                               parallelDGAcceptanceTestsOne()
-                           }
-                       }
-                       post {
-                            failure {
-                                script {
-                                    dumpOCNECluster('deploy-group-test-1-workload-cluster-dump')
-                                }
-                            }
-                        }
-                }
-
-                stage('Run Acceptance Tests Deployments Group 2 on workload cluster') {
-                   steps {
-                       script {
-                           parallelDGAcceptanceTestsTwo()
-                       }
-                   }
-                   post {
-                        failure {
-                            script {
-                                dumpOCNECluster('deploy-group-test-2-workload-cluster-dump')
-                            }
+               stage('Post-install Infra Tests') {
+                    steps {
+                        script {
+                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
                         }
                     }
+                    //post {
+                    //    always {
+                    //        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    //        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    //    }
+                    //}
+                }
+
+                stage('Post-install Acceptance Tests') {
+                    steps {
+                        script {
+                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'false', 'false')
+                        }
+                    }
+                    //post {
+                    //    always {
+                    //        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    //        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    //    }
+                    //}
                 }
 
                 stage('Uninstall vz from workload cluster') {
@@ -557,51 +540,12 @@ def runGinkgo(testSuitePath, kubeConfig = '') {
     }
 }
 
-
-def generateVerifyInstallStages(dumpRoot) {
-    return [
-        "verify-install keycloak": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/keycloak')
-        },
-        "verify-install kubernetes": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/kubernetes')
-        },
-        "verify-install istio": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/istio')
-        },
-        "verify-install kiali": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/kiali')
-        },
-        "verify-install verrazzano": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/verrazzano')
-        },
-        "verify-install web": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/web')
-        },
-        "verify-install clusteragent": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/clusteragent')
-        },
-        "verify-install clusterapi": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/clusterapi')
-        },
-        "verify-install thanos": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/thanos')
-        },
-         "verify-install security": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/security')
-        },
-         "verify-install velero": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/velero')
-        },
-         "verify-install validators": {
-            runGinkgoRandomizeWorkloadCluster('verify-install/validators')
-        },
-    ]
-}
-
-def runGinkgoWorkloadCluster(testSuitePath) {
+def runGinkgoWorkloadCluster(testSuitePath,dumpDir='') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             TS=\$(date +%Y%m%d%H%M%S%N)
             TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
@@ -614,11 +558,11 @@ def runGinkgoWorkloadCluster(testSuitePath) {
     }
 }
 
-def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
+def runGinkgoRandomizeWorkloadCluster(testSuitePath,dumpDir='') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            if [ ! -z "${kubeConfig}" ]; then
-                export KUBECONFIG="${kubeConfig}"
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
             fi
             TS=\$(date +%Y%m%d%H%M%S%N)
             TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
@@ -650,6 +594,164 @@ def runGinkgoAppTestWorkloadCluster(testSuitePath, namespace, dumpDir='', skipDe
             rm -rf \$TEMPKUBECONFIGPATH
         """
     }
+}
+
+
+def saveConsoleScreenShots() {
+    sh "$GO_REPO_PATH/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+}
+
+
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole(dumpRoot) {
+    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        try {
+            sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} $GO_REPO_PATH/verrazzano/ci/scripts/run_console_tests.sh"
+        } catch (err) {
+            saveConsoleScreenShots()
+            error "${err}"
+        }
+    }
+}
+
+
+def generateVerifyInstallStages(dumpRoot) {
+    return [
+        "verify-install keycloak": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/keycloak',"${dumpRoot}/verify-install-keycloak")
+        },
+        "verify-install kubernetes": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/kubernetes',"${dumpRoot}/verify-install-kubernetes")
+        },
+        "verify-install istio": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/istio',"${dumpRoot}/verify-install-istio")
+        },
+        "verify-install kiali": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/kiali',"${dumpRoot}/verify-install-kiali")
+        },
+        "verify-install verrazzano": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/verrazzano',"${dumpRoot}/verify-install-verrazzano")
+        },
+        "verify-install web": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/web',"${dumpRoot}/verify-install-web")
+        },
+        "verify-install clusteragent": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/clusteragent',"${dumpRoot}/verify-install-clusteragent")
+        },
+        "verify-install clusterapi": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/clusterapi',"${dumpRoot}/verify-install-clusterapi")
+        },
+        "verify-install thanos": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/thanos',"${dumpRoot}/verify-install-thanos")
+        },
+         "verify-install security": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/security',"${dumpRoot}/verify-install-security")
+        },
+         "verify-install velero": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/velero',"${dumpRoot}/verify-install-velero")
+        },
+         "verify-install validators": {
+            runGinkgoRandomizeWorkloadCluster('verify-install/validators',"${dumpRoot}/verify-install-validators")
+        },
+    ]
+}
+
+def generateVerifyInfraStages(dumpRoot) {
+    return [
+        "verify-scripts": {
+            runGinkgoWorkloadCluster('scripts')
+        },
+        "verify-infra oam": {
+            runGinkgoRandomizeWorkloadCluster('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomizeWorkloadCluster('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
+        },
+        "verify-infra vmi": {
+            runGinkgoRandomizeWorkloadCluster('verify-infra/vmi', "${dumpRoot}/verify-infra-vmi")
+        },
+        "security rbac": {
+            runGinkgoRandomizeWorkloadCluster('security/rbac', "${dumpRoot}/sec-role-based-access")
+        },
+        "system component metrics": {
+            runGinkgoRandomizeWorkloadCluster('metrics/syscomponents', "${dumpRoot}/system-component-metrics")        },
+
+        "opensearch logging": {
+            runGinkgoRandomizeWorkloadCluster('logging/opensearch, "${dumpRoot}/opensearch-logging")
+        },
+
+        "system logging": {
+            runGinkgoRandomizeWorkloadCluster('logging/system, "${dumpRoot}/system-logging")
+        },
+
+        "console": {
+            acceptanceTestsConsole("${dumpRoot}")
+        },
+    ]
+}
+
+def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+    return generateSecurityTests(dumpRoot) +
+        generateNonWLSTests(dumpRoot, skipDeploy, skipUndeploy) +
+        generateWLSTests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateNonWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+    return [
+        "deployment metrics": {
+            runGinkgoWorkloadCluster('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
+        },
+        "examples logging helidon": {
+            runGinkgoWorkloadCluster('logging/helidon', "${dumpRoot}/examples-logging-helidon")
+        },
+        "examples springboot": {
+            runGinkgoAppTestWorkloadCluster('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
+        },
+        "examples helidon": {
+            runGinkgoAppTestWorkloadCluster('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", skipDeploy, skipUndeploy)
+        },
+        "examples helidon-config": {
+            runGinkgoAppTestWorkloadCluster('examples/helidonconfig', "helidon-config", "${dumpRoot}/examples-helidon-config", skipDeploy, skipUndeploy)
+        },
+
+        "istio authorization policy": {
+            runGinkgoWorkloadCluster('istio/authz', "${dumpRoot}/istio-authz-policy")
+        },
+
+        "security network policies": {
+            runGinkgoWorkloadCluster('security/netpol', "${dumpRoot}/netpol")
+        },
+
+        "examples helidon service template: {
+            runGinkgoAppTestWorkloadCluster('examples/helidon', 'hello-helidon-service-template', "${dumpRoot}/examples-helidon-service-template", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
+        },
+
+        "examples helidon manualscalertait: {
+            runGinkgoAppTestWorkloadCluster('examples/helidon', 'examples-helidon-manualscalertait', "${dumpRoot}/examples-helidon-manualscalertait", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+        },
+
+       "jaeger helidon": {
+            runGinkgoWorkloadCluster('jaeger/helidon', "${dumpRoot}/jaeger-helidon")
+        },
+        "jaeger system": {
+            runGinkgoWorkloadCluster('jaeger/system', "${dumpRoot}/jaeger-system")
+        },
+    ]
+}
+
+def generateWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+    return [
+        "weblogic workload": {
+            runGinkgoAppTestWorkloadCluster('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
+        },
+        "coherence workload": {
+            runGinkgoAppTestWorkloadCluster('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
+        },
+        "console ingress": {
+            // doesn't work with the deployment hooks
+            runGinkgoWorkloadCluster('ingress/console', "wls-console")
+        },
+    ]
 }
 
 
@@ -701,6 +803,7 @@ def dumpOCNECluster(dumpDirectory) {
         rm -rf \$TEMPKUBECONFIGPATH
     """
 }
+
 
 def dumpVerrazzanoSystemPods() {
     sh """
@@ -815,266 +918,4 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
-}
-
-
-def acceptanceTests() {
-    return [
-            "verify-scripts": {
-                steps {
-                    runGinkgoRandomizeWorkloadCluster('scripts')
-                }
-            },
-            "verify-infra restapi": {
-                environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                }
-                steps {
-                    runGinkgoRandomizeWorkloadCluster('verify-infra/restapi')
-                }
-            },
-            "verify-infra oam": {
-               environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-               }
-               steps {
-                   runGinkgoRandomizeWorkloadCluster('verify-infra/oam')
-               }
-            },
-            "verify-infra vmi": {
-                environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-               }
-               steps {
-                   runGinkgoRandomizeWorkloadCluster('verify-infra/vmi')
-               }
-            },
-            "security rbac": {
-                environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-               }
-               steps {
-                   runGinkgoWorkloadCluster('security/rbac')
-               }
-            },
-            "system component metrics": {
-                environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-               }
-               steps {
-                   runGinkgoWorkloadCluster('metrics/syscomponents')
-               }
-            },
-            "console": {
-               environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-               }
-               steps {
-                   catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                       sh """
-                            TS=\$(date +%Y%m%d%H%M%S%N)
-                            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
-                            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-                            export KUBECONFIG=\$TEMPKUBECONFIGPATH
-                            CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-                            unset KUBECONFIG
-                            rm -rf \$TEMPKUBECONFIGPATH
-                        """
-                   }
-               }
-            },
-            "opensearch logging": {
-               environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
-               }
-               steps {
-                   runGinkgoWorkloadCluster('logging/opensearch')
-               }
-            },
-            "system logging": {
-               environment {
-                   DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-               }
-               steps {
-                   runGinkgoWorkloadCluster('logging/system')
-               }
-        },
-    ]
-}
-
-def parallelDGAcceptanceTestsOne() {
-    parallel {
-       stage('istio authorization policy') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-           }
-           steps {
-               runGinkgoWorkloadCluster('istio/authz')
-           }
-       }
-       stage('security network policies') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-           }
-           steps {
-               script {
-                   if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                       runGinkgoWorkloadCluster('security/netpol')
-                   }
-               }
-           }
-       }
-       stage('deployment metrics') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-           }
-           steps {
-               runGinkgoWorkloadCluster('metrics/deploymetrics')
-           }
-       }
-       stage('examples logging helidon') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-           }
-           steps {
-               runGinkgoWorkloadCluster('logging/helidon')
-           }
-       }
-       stage('examples helidon') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-           }
-           steps {
-               runGinkgoWorkloadCluster('examples/helidon')
-           }
-       }
-       stage('examples helidon service template') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
-           }
-           steps {
-               runGinkgoAppTestWorkloadCluster('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
-           }
-       }
-       stage('examples helidon manualscalertait') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
-           }
-           steps {
-               runGinkgoAppTestWorkloadCluster('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
-           }
-       }
-
-       stage('jaeger helidon') {
-           environment {
-              DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
-           }
-           steps {
-              runGinkgoWorkloadCluster('jaeger/helidon')
-           }
-       }
-       stage('jaeger system') {
-           environment {
-              DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
-           }
-           steps {
-              runGinkgoWorkloadCluster('jaeger/system')
-           }
-       }
-       stage('jwt helidon') {
-           when {
-               expression {params.ENABLE_JWT_TESTING == true}
-           }
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
-               REALM_USER_PASSWORD = credentials('todo-mysql-password')
-               REALM_NAME="test-realm"
-           }
-           steps {
-               runGinkgoWorkloadCluster('jwt/helidon')
-           }
-       }
-       stage('jwt helidon svc') {
-           when {
-               expression {params.ENABLE_JWT_TESTING == true}
-           }
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
-               REALM_USER_PASSWORD = credentials('todo-mysql-password')
-               REALM_NAME="test-realm"
-           }
-           steps {
-               runGinkgoWorkloadCluster('jwt/helidon-svc')
-           }
-       }
-       stage('examples helidon-metrics') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
-           }
-           when {
-               expression {params.RUN_SLOW_TESTS == true}
-           }
-           steps {
-               runGinkgoWorkloadCluster('examples/helidonmetrics')
-           }
-       }
-       stage('logging trait Helidon workload') {
-           environment {
-               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-           }
-           steps {
-               runGinkgoWorkloadCluster('loggingtrait/helidonworkload')
-           }
-       }
-   }
-}
-
-def parallelDGAcceptanceTestsTwo() {
-    parallel {
-        stage('opensearch-topology') {
-            steps {
-                runGinkgoRandomizeWorkloadCluster('opensearch/topology')
-            }
-        }
-        stage('Ingress & logging trait WebLogic workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-            }
-            steps {
-                runGinkgoWorkloadCluster('loggingtrait/weblogicworkload')
-            }
-        }
-        stage('weblogic workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-            }
-            steps {
-                runGinkgoWorkloadCluster('workloads/weblogic')
-            }
-        }
-        stage('coherence workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-            }
-            steps {
-                runGinkgoWorkloadCluster('workloads/coherence')
-            }
-        }
-        stage('oam workloads') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
-            }
-            steps {
-                runGinkgoWorkloadCluster('workloads/oam')
-            }
-        }
-        stage('logging trait Coherence workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-            }
-            steps {
-                runGinkgoWorkloadCluster('loggingtrait/coherenceworkload')
-            }
-        }
-    }
 }
