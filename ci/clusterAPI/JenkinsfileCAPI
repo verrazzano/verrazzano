@@ -674,16 +674,14 @@ def generateVerifyInfraStages(dumpRoot) {
             runGinkgoRandomizeWorkloadCluster('security/rbac', "${dumpRoot}/sec-role-based-access")
         },
         "system component metrics": {
-            runGinkgoRandomizeWorkloadCluster('metrics/syscomponents', "${dumpRoot}/system-component-metrics")        },
+            runGinkgoRandomizeWorkloadCluster('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
         },
         "opensearch logging": {
             runGinkgoRandomizeWorkloadCluster('logging/opensearch', "${dumpRoot}/opensearch-logging")
         },
-
         "system logging": {
             runGinkgoRandomizeWorkloadCluster('logging/system', "${dumpRoot}/system-logging")
         },
-
         "console": {
             acceptanceTestsConsole("${dumpRoot}")
         },
