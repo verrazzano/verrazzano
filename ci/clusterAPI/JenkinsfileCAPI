@@ -391,10 +391,8 @@ pipeline {
 
                  stage("Fetch and configure Kubeconfig path for workload cluster") {
                     steps {
-                        script {
-                            TMP_DIR = sh(returnStdout: true, script: "mktemp -d").trim()
-                            WORKLOAD_CLUSTER_KUBECONFIG_PATH = "${TMP_DIR}/${CLUSTER_NAME}-kubeconfig"
-                        }
+                         TMP_DIR = sh(returnStdout: true, script: "mktemp -d").trim()
+                         WORKLOAD_CLUSTER_KUBECONFIG_PATH = "${TMP_DIR}/${CLUSTER_NAME}-kubeconfig"
                          sh """
                             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
                          """
