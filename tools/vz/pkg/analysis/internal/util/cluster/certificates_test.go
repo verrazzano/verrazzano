@@ -76,11 +76,11 @@ func TestNoIssuesFoundInCertificates(t *testing.T) {
 	assert.True(t, len(reportedIssues) == 0)
 }
 
-// TestCertificatesAreNotGrantedReturnsError tests that an issue is reported when a cluster-snapshot has certificates that are waiting to be issued
+// TestCertificatesAreNotGrantedReturnsNoError tests that an issue is reported when a cluster-snapshot has certificates that are waiting to be issued
 // GIVEN a call to analyze a cluster-snapshot
 // WHEN the cluster snapshot has certificates that are hanging/not yet granted
 // Then a generic certificate issue should be reported and no errors should be raised
-func TestCertificatesAreNotGrantedReturnsError(t *testing.T) {
+func TestCertificatesAreNotGrantedReturnsNoError(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
 	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCertificatesNotGranted/cluster-snapshot")
