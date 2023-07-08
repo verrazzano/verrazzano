@@ -8,7 +8,6 @@ def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def clusterSuffix = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
-def WORKLOAD_CLUSTER_KUBECONFIG_PATH
 
 pipeline {
     options {
@@ -389,15 +388,54 @@ pipeline {
                     }
                 }
 
-                 stage("Fetch and configure Kubeconfig path for workload cluster") {
+                /*
+                stage("Create-image-pull-secrets") {
                     steps {
-                         TMP_DIR = sh(returnStdout: true, script: "mktemp -d").trim()
-                         WORKLOAD_CLUSTER_KUBECONFIG_PATH = "${TMP_DIR}/${CLUSTER_NAME}-kubeconfig"
-                         sh """
-                            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > ${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
-                         """
+                        createImagePullSecretsOnWorkloadCluster()
                     }
                 }
+
+
+                stage('Install overrides on workload cluster') {
+                   steps {
+                       script {
+                          createOverridesOnWorkloadCluster()
+                      }
+                   }
+                   post {
+                       failure {
+                           script {
+                               dumpK8sCluster('verrazzano-install-overrides-admin-cluster-dump')
+                               dumpOCNECluster('verrazzano-install-overrides-workload-cluster-dump')
+                           }
+                       }
+                   }
+                }
+
+                stage('Install Verrazzano on workload cluster') {
+                   steps {
+                       catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                           sh """
+                               TS=\$(date +%Y%m%d%H%M%S%N)
+                               TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+                               kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+                               kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
+                               kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
+                               ${GO_REPO_PATH}/vz install --kubeconfig \$TEMPKUBECONFIGPATH --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${WORKSPACE}/acceptance-test-operator.yaml --timeout 60m
+                               rm -rf \$TEMPKUBECONFIGPATH
+                           """
+                       }
+                   }
+                   post {
+                      failure {
+                          script {
+                              dumpK8sCluster('verrazzano-install-admin-cluster-dump')
+                              dumpOCNECluster('verrazzano-install-workload-cluster-dump')
+                          }
+                      }
+                  }
+                }
+                */
 
 
                 stage('Post-install Verify Tests on workload cluster') {
@@ -464,9 +502,13 @@ pipeline {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
-                                kubectl --kubeconfig ${WORKLOAD_CLUSTER_KUBECONFIG_PATH} get nodes -o wide
-                                kubectl --kubeconfig ${WORKLOAD_CLUSTER_KUBECONFIG_PATH} get pods -A
-                                ${GO_REPO_PATH}/vz --kubeconfig ${WORKLOAD_CLUSTER_KUBECONFIG_PATH} uninstall -y --timeout 60m
+                                TS=\$(date +%Y%m%d%H%M%S%N)
+                                TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+                                kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+                                kubectl --kubeconfig \$TEMPKUBECONFIGPATH get nodes -o wide
+                                kubectl --kubeconfig \$TEMPKUBECONFIGPATH get pods -A
+                                ${GO_REPO_PATH}/vz --kubeconfig \$TEMPKUBECONFIGPATH uninstall -y --timeout 60m
+                                rm -rf \$TEMPKUBECONFIGPATH
                             """
                         }
                     }
@@ -613,9 +655,13 @@ def runGinkgoWorkloadCluster(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export KUBECONFIG=${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
+            TS=\$(date +%Y%m%d%H%M%S%N)
+            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            export KUBECONFIG=\$TEMPKUBECONFIGPATH
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
@@ -626,12 +672,16 @@ def runGinkgoRandomizeWorkloadCluster(testSuitePath, kubeConfig = '') {
             if [ ! -z "${kubeConfig}" ]; then
                 export KUBECONFIG="${kubeConfig}"
             fi
-            export KUBECONFIG=${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
+            TS=\$(date +%Y%m%d%H%M%S%N)
+            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            export KUBECONFIG=\$TEMPKUBECONFIGPATH
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
                 ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
             unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
@@ -642,10 +692,14 @@ def runGinkgoAppTestWorkloadCluster(testSuitePath, namespace, dumpDir='', skipDe
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
-            export KUBECONFIG=${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
+            TS=\$(date +%Y%m%d%H%M%S%N)
+            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            export KUBECONFIG=\$TEMPKUBECONFIGPATH
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace} --component=${component} --appconfig=${appConfig}
             unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
         """
     }
 }
@@ -664,7 +718,11 @@ def set_capi_variables() {
 
 def ensureVZCleanupFromWorkloadCluster() {
     sh """
-        kubectl --kubeconfig ${WORKLOAD_CLUSTER_KUBECONFIG_PATH} delete vz --all --timeout=10m
+        TS=\$(date +%Y%m%d%H%M%S%N)
+        TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+        kubectl --kubeconfig \$TEMPKUBECONFIGPATH delete vz --all --timeout=10m
+        rm -rf \$TEMPKUBECONFIGPATH
     """
 }
 
@@ -686,9 +744,13 @@ def dumpK8sCluster(dumpDirectory) {
 
 def dumpOCNECluster(dumpDirectory) {
     sh """
-        export KUBECONFIG=${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
+        TS=\$(date +%Y%m%d%H%M%S%N)
+        TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+        kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+        export KUBECONFIG=\$TEMPKUBECONFIGPATH
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
         unset KUBECONFIG
+        rm -rf \$TEMPKUBECONFIGPATH
     """
 }
 
@@ -865,9 +927,10 @@ def parallelAcceptanceTests() {
                             TS=\$(date +%Y%m%d%H%M%S%N)
                             TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
                             kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
-                            export KUBECONFIG=${WORKLOAD_CLUSTER_KUBECONFIG_PATH}
+                            export KUBECONFIG=\$TEMPKUBECONFIGPATH
                             CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
                             unset KUBECONFIG
+                            rm -rf \$TEMPKUBECONFIGPATH
                         """
                    }
                }
@@ -1083,3 +1146,35 @@ def parallelDGAcceptanceTestsTwo() {
         }
     }
 }
+
+def createOverridesOnWorkloadCluster() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            TS=\$(date +%Y%m%d%H%M%S%N)
+            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            kubectl --kubeconfig \$TEMPKUBECONFIGPATH create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+            kubectl --kubeconfig \$TEMPKUBECONFIGPATH create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+            rm -rf \$TEMPKUBECONFIGPATH
+        """
+    }
+}
+
+def createImagePullSecretsOnWorkloadCluster() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            # Create image pull secrets for Verrazzano docker images
+            TS=\$(date +%Y%m%d%H%M%S%N)
+            TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
+            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-kubeconfig -o json | jq -r '.data.value' | base64 -d > \$TEMPKUBECONFIGPATH
+            export KUBECONFIG=\$TEMPKUBECONFIGPATH
+            cd ${WORKSPACE}
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+            unset KUBECONFIG
+            rm -rf \$TEMPKUBECONFIGPATH
+        """
+    }
+}
+
