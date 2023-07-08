@@ -27,6 +27,32 @@ data:
     spec:
       profile: dev
       components:
+        ingressNGINX:
+          overrides:
+            - values:
+                controller:
+                  service:
+                    annotations:
+                      service.beta.kubernetes.io/oci-load-balancer-shape : "flexible"
+                      service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+                      service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"                      
+          type: LoadBalancer
+        istio:
+          overrides:
+            - values:
+                apiVersion: install.istio.io/v1alpha1
+                kind: IstioOperator
+                spec:
+                  values:
+                    gateways:
+                      istio-ingressgateway:
+                        serviceAnnotations:
+                          service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+                          service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+                          service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"                          
+        dns:
+          wildcard:
+            domain: nip.io
         velero:
           enabled: true
         prometheusOperator:

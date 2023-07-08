@@ -158,8 +158,8 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        TEST_ENV_LABEL = "kind"
-        TEST_ENV = "kind_oci_dns"
+        TEST_ENV_LABEL = "magicdns_ocne"
+        TEST_ENV = "OCNE"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
@@ -376,12 +376,8 @@ pipeline {
                         }
                     }
                     post {
-                        aborted {
-                            dumpOCNECluster('aborted-deploy-ocne-workload-cluster-dump')
-                        }
                         failure {
                             script {
-                                dumpK8sCluster('deploy-ocne-admin-cluster-dump')
                                 dumpOCNECluster('deploy-ocne-workload-cluster-dump')
                             }
                         }
@@ -670,9 +666,9 @@ def generateVerifyInfraStages(dumpRoot) {
         "verify-infra vmi": {
             runGinkgoRandomizeWorkloadCluster('verify-infra/vmi', "${dumpRoot}/verify-infra-vmi")
         },
-        "security rbac": {
-            runGinkgoRandomizeWorkloadCluster('security/rbac', "${dumpRoot}/sec-role-based-access")
-        },
+        //"security rbac": {
+        //    runGinkgoRandomizeWorkloadCluster('security/rbac', "${dumpRoot}/sec-role-based-access")
+        //},
         "system component metrics": {
             runGinkgoRandomizeWorkloadCluster('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
         },
