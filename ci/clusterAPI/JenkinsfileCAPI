@@ -720,11 +720,11 @@ def generateNonWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
             runGinkgoWorkloadCluster('security/netpol', "${dumpRoot}/netpol")
         },
 
-        "examples helidon service template: {
+        "examples helidon service template": {
             runGinkgoAppTestWorkloadCluster('examples/helidon', 'hello-helidon-service-template', "${dumpRoot}/examples-helidon-service-template", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
         },
 
-        "examples helidon manualscalertait: {
+        "examples helidon manualscalertait": {
             runGinkgoAppTestWorkloadCluster('examples/helidon', 'examples-helidon-manualscalertait', "${dumpRoot}/examples-helidon-manualscalertait", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
         },
 
