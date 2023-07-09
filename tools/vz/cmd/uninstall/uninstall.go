@@ -89,6 +89,14 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// When set to false, uninstall prompt can be suppressed
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, "Used to confirm uninstall and suppress prompt")
+
+	// Check that command args are not set at the creation of the command
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return fmt.Errorf("invalid arguments specified: %s", args)
+		}
+		return nil
+	}
 	return cmd
 }
 
