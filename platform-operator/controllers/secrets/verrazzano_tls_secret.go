@@ -46,6 +46,11 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	caSecret := corev1.Secret{}
 	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Secret may have been deleted, skip reconcile
+			zap.S().Infof("Secret %s does not exist, skipping reconcile", req.NamespacedName)
+			return ctrl.Result{}, nil
+		}
 		// Secret should never be not found, unless we're running while installation is still underway
 		zap.S().Errorf("Failed to fetch secret %s/%s: %v",
 			req.Namespace, req.Name, err)

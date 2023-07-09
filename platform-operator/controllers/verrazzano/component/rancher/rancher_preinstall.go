@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -95,7 +96,7 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	if err != nil {
 		return []byte{}, err
 	}
-	isLetsEncryptStagingEnv, _ := clusterIssuer.IsLetsEncryptStagingEnv()
+	isLetsEncryptStagingEnv := vzcr.IsLetsEncryptStagingEnv(clusterIssuer)
 
 	var bundleData []byte
 	if isCAIssuer {

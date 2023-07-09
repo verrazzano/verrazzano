@@ -6,7 +6,6 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 )
 
 func NewDefaultClusterIssuer() *ClusterIssuerComponent {
@@ -48,34 +47,4 @@ func (c *ClusterIssuerComponent) IsDefaultIssuer() (bool, error) {
 	}
 	return isCAIssuer && c.ClusterResourceNamespace == constants.CertManagerNamespace &&
 		c.CA.SecretName == constants.DefaultVerrazzanoCASecretName, nil
-}
-
-func (c *ClusterIssuerComponent) IsPrivateIssuer() (bool, error) {
-	isCAIssuer, err := c.IsCAIssuer()
-	if err != nil {
-		return false, err
-	}
-	return isCAIssuer || vzcr.IsLetsEncryptStagingEnv(*c.LetsEncrypt), nil
-}
-
-func (c *ClusterIssuerComponent) IsLetsEncryptProductionEnv() (bool, error) {
-	isLetsEncrypt, err := c.IsLetsEncryptIssuer()
-	if err != nil {
-		return false, err
-	}
-	if !isLetsEncrypt {
-		return false, nil
-	}
-	return vzcr.IsLetsEncryptProductionEnv(*c.LetsEncrypt), nil
-}
-
-func (c *ClusterIssuerComponent) IsLetsEncryptStagingEnv() (bool, error) {
-	isLetsEncrypt, err := c.IsLetsEncryptIssuer()
-	if err != nil {
-		return false, err
-	}
-	if !isLetsEncrypt {
-		return false, nil
-	}
-	return vzcr.IsLetsEncryptStagingEnv(*c.LetsEncrypt), nil
 }

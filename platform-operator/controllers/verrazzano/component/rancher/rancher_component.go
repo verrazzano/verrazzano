@@ -37,6 +37,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,7 +47,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -243,7 +243,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 		return kvs, err
 	}
 
-	isPrivateIssuer, _ := cm.IsPrivateIssuer()
+	isPrivateIssuer, _ := vzcr.IsPrivateIssuer(cm)
 
 	if isPrivateIssuer {
 		kvs = append(kvs, bom.KeyValue{
@@ -260,7 +260,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	if isLetsEncryptIssuer {
 		letsEncryptEnv := cm.LetsEncrypt.Environment
 		if len(letsEncryptEnv) == 0 {
-			letsEncryptEnv = cmconstants.LetsEncryptProduction
+			letsEncryptEnv = vzconst.LetsEncryptProduction
 		}
 		kvs = append(kvs,
 			bom.KeyValue{
