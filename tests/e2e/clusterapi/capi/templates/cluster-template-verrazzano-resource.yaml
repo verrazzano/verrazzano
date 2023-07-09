@@ -31,11 +31,11 @@ data:
           overrides:
             - values:
                 replicas: 3
-        mysql:
-          overrides:
-            - values:
-                serverInstances: 3
-                routerInstances: 3
+          mysql:
+            overrides:
+              - values:
+                  serverInstances: 3
+                  routerInstances: 3
         ingressNGINX:
           overrides:
             - values:
