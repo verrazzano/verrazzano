@@ -19,7 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -28,7 +28,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -91,17 +90,17 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 28, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
+	assert.Equal(t, 29, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs)) // one extra for the systemDefaultRegistry override
+	assert.Equal(t, 30, len(kvs)) // one extra for the systemDefaultRegistry override
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
 
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs))
+	assert.Equal(t, 30, len(kvs))
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
@@ -124,9 +123,9 @@ func TestApplendLetsEncryptDefaultEnvOverrides(t *testing.T) {
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
-	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: cmconstants.LetsEncryptProduction})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: vzconst.LetsEncryptProduction})
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
-	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
@@ -140,7 +139,7 @@ func TestApplendLetsEncryptProdEnvOverrides(t *testing.T) {
 	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
 	// convert the CertManager config to the ClusterIssuer config
 	vzACMEProd := vzAcmeDev.DeepCopy()
-	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = cmconstants.LetsEncryptProduction
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = vzconst.LetsEncryptProduction
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
 		false, profilesRelativePath)
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -148,9 +147,9 @@ func TestApplendLetsEncryptProdEnvOverrides(t *testing.T) {
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
-	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: cmconstants.LetsEncryptProduction})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: vzconst.LetsEncryptProduction})
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
-	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
@@ -164,7 +163,7 @@ func TestApplendLetsEncryptStagingEnvOverrides(t *testing.T) {
 	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
 	// convert the CertManager config to the ClusterIssuer config
 	vzACMEProd := vzAcmeDev.DeepCopy()
-	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = cmconstants.LetsEncryptStaging
+	vzACMEProd.Spec.Components.CertManager.Certificate.Acme.Environment = vzconst.LetsEncryptStaging
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), vzACMEProd, nil,
 		false, profilesRelativePath)
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -172,11 +171,12 @@ func TestApplendLetsEncryptStagingEnvOverrides(t *testing.T) {
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptIngressClassKey, Value: common.RancherName})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
-	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: cmconstants.LetsEncryptStaging})
+	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: vzconst.LetsEncryptStaging})
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
-	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
-	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
-	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
+	assert.NotContains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
+	// We set the LE Staging bundles in the tls-ca secret when that is configured
+	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
+	assert.Contains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
 
 // TestAppendImageOverrides verifies that Rancher image overrides are added
@@ -1492,7 +1492,7 @@ func TestGetSecret(t *testing.T) {
 //	THEN the Rancher deployment is annotated for a rolling restart if present, or an error is returned for unexpected errors
 func TestRestartRancherDeployment(t *testing.T) {
 	log := vzlog.DefaultLogger()
-	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
+	deploymentName := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: ComponentName}
 
 	tests := []struct {
 		name             string
@@ -1516,8 +1516,8 @@ func TestRestartRancherDeployment(t *testing.T) {
 				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
 					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
 						assert.Equal(t, deploymentName, client.ObjectKeyFromObject(deployment))
-						_, restartAnnotationFound := deployment.Spec.Template.ObjectMeta.Annotations[constants2.VerrazzanoRestartAnnotation]
-						assert.Truef(t, restartAnnotationFound, "Restart annotation %s not found", constants2.RestartVersionAnnotation)
+						_, restartAnnotationFound := deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation]
+						assert.Truef(t, restartAnnotationFound, "Restart annotation %s not found", vzconst.RestartVersionAnnotation)
 						return nil
 					}).Times(1)
 				return mockClient
@@ -1761,7 +1761,7 @@ func TestIsPrivateCABundleInSync(t *testing.T) {
 //	THEN the Rancher deployment is restarted if the CA bundle is out of sync with the secret AND a Rancher deployment
 //	  	rolling update is NOT already in progress
 func TestCheckRestartRequired(t *testing.T) {
-	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
+	deploymentName := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: ComponentName}
 	bundleData1 := "cabundledata"
 	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
 	staleBundleData := "otherData"
@@ -1865,7 +1865,7 @@ func TestCheckRestartRequired(t *testing.T) {
 			if !assert.NoError(t, crtClient.Get(context.TODO(), deploymentName, depObject)) {
 				return
 			}
-			_, restarted := depObject.Spec.Template.ObjectMeta.Annotations[constants2.VerrazzanoRestartAnnotation]
+			_, restarted := depObject.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation]
 			assert.Equalf(t, tt.restartExpected, restarted, "Did not get expected restart value")
 		})
 	}

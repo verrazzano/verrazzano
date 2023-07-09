@@ -232,3 +232,9 @@ const ThanosQueryStoreIngress = "thanos-query-store"
 
 // ThanosRulerIngress is the name of the ingress for the Thanos Ruler
 const ThanosRulerIngress = "thanos-ruler"
+
+// LetsEncryptProduction - LetsEncrypt production env
+const LetsEncryptProduction = "production"
+
+// LetsEncryptStaging - LetsEncrypt staging env
+const LetsEncryptStaging = "staging"
