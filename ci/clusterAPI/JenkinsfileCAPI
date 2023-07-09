@@ -452,23 +452,6 @@ pipeline {
                     //}
                }
 
-                stage('Cleanup workload cluster from admin cluster') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
-                            """
-                        }
-                    }
-                   // post {
-                   //     failure {
-                   //         script {
-                   //             dumpOCNECluster('delete-capi-admin-cluster-dump')
-                   //         }
-                   //     }
-                   // }
-                }
-
             }
 
         }
@@ -784,9 +767,9 @@ def ensureVZCleanupFromWorkloadCluster() {
 }
 
 def ensureCAPICleanup() {
-    script {
-        dumpOCNECluster("final-workload-cluster-dump")
-    }
+    //script {
+    //    dumpOCNECluster("final-workload-cluster-dump")
+    //}
     sh """
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
         kubectl delete ns -n ${CLUSTER_NAME}
