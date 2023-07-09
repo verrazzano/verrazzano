@@ -691,6 +691,24 @@ def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='
         generateWLSTests(dumpRoot, skipDeploy, skipUndeploy)
 }
 
+def generateSecurityTests(dumpRoot) {
+    return [
+        "istio authorization policy": {
+            runGinkgoWorkloadCluster('istio/authz', "${dumpRoot}/istio-authz-policy")
+        },
+        "security rbac": {
+            runGinkgoWorkloadCluster('security/rbac', "${dumpRoot}/sec-role-based-access")
+        },
+        "security network policies": {
+            if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                runGinkgoWorkloadCluster('security/netpol', "${dumpRoot}/netpol")
+            } else {
+                echo "[INFO] Calico not enabled, skipping network policies tests"
+            }
+        },
+    ]
+}
+
 def generateNonWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
     return [
         "deployment metrics": {
