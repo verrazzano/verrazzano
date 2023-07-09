@@ -127,6 +127,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         TEST_OVERRIDE_CONFIGMAP_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
         TEST_OVERRIDE_SECRET_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
+        VZ_CLUSTERRESOURCESET_FILE = ".tests/e2e/clusterapi/capi/templates/cluster-template-verrazzano-resource.yaml"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         KIND_NODE_COUNT = "3"
         VZ_ENVIRONMENT_NAME = "default"
@@ -355,14 +356,18 @@ pipeline {
                             """
                         }
                     }
-                    post {
-                        failure {
-                            script {
-                                dumpK8sCluster('verify-install-admin-cluster-dump')
-                            }
+                }
+
+                stage('Display Verrazzano config to be deployed on workload cluster') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                yq eval '. | select (.apiVersion == "v1") | .data."verrazzano.yaml"' ${VZ_CLUSTERRESOURCESET_FILE}
+                            """
                         }
                     }
                 }
+
 
                 stage('Deploy OCNE workload cluster using CAPI and install Verrazzano') {
                     steps {
@@ -729,7 +734,6 @@ def generateWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
         },
     ]
 }
-
 
 def set_capi_variables() {
    int OCNE_CP_COUNT = params.CONTROL_PLANE_MACHINE_COUNT.toInteger()
