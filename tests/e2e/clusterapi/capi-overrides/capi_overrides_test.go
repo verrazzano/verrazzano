@@ -73,6 +73,9 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 
 	// Get the components from the BOM
 	ociComp, ocneComp, coreComp := getComponents()
+	Expect(ocneComp).NotTo(BeNil())
+	Expect(ociComp).NotTo(BeNil())
+	Expect(coreComp).NotTo(BeNil())
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
