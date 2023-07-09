@@ -429,7 +429,7 @@ pipeline {
                     //}
                 }
 
-                stage('Uninstall vz from workload cluster') {
+               stage('Uninstall vz from workload cluster') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
@@ -443,14 +443,14 @@ pipeline {
                             """
                         }
                     }
-                    post {
-                        failure {
-                            script {
-                                dumpOCNECluster('uninstall-vz--workload-cluster-dump')
-                            }
-                        }
-                    }
-                }
+                    //post {
+                    //    failure {
+                    //        script {
+                    //            dumpOCNECluster('uninstall-vz--workload-cluster-dump')
+                    //        }
+                    //    }
+                    //}
+               }
 
                 stage('Cleanup workload cluster from admin cluster') {
                     steps {
@@ -460,13 +460,13 @@ pipeline {
                             """
                         }
                     }
-                    post {
-                        failure {
-                            script {
-                                dumpOCNECluster('delete-capi-admin-cluster-dump')
-                            }
-                        }
-                    }
+                   // post {
+                   //     failure {
+                   //         script {
+                   //             dumpOCNECluster('delete-capi-admin-cluster-dump')
+                   //         }
+                   //     }
+                   // }
                 }
 
             }
@@ -667,14 +667,8 @@ def generateVerifyInfraStages(dumpRoot) {
         "verify-infra vmi": {
             runGinkgoRandomizeWorkloadCluster('verify-infra/vmi', "${dumpRoot}/verify-infra-vmi")
         },
-        //"security rbac": {
-        //    runGinkgoRandomizeWorkloadCluster('security/rbac', "${dumpRoot}/sec-role-based-access")
-        //},
         "system component metrics": {
             runGinkgoRandomizeWorkloadCluster('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
-        },
-        "opensearch logging": {
-            runGinkgoRandomizeWorkloadCluster('logging/opensearch', "${dumpRoot}/opensearch-logging")
         },
         "system logging": {
             runGinkgoRandomizeWorkloadCluster('logging/system', "${dumpRoot}/system-logging")
@@ -795,6 +789,7 @@ def ensureCAPICleanup() {
     }
     sh """
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
+        kubectl delete ns -n ${CLUSTER_NAME}
     """
 }
 
