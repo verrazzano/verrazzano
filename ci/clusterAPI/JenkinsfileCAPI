@@ -376,13 +376,6 @@ pipeline {
                             }
                         }
                     }
-                    post {
-                        failure {
-                            script {
-                                dumpOCNECluster('deploy-ocne-workload-cluster-dump')
-                            }
-                        }
-                    }
                 }
 
 
@@ -392,13 +385,12 @@ pipeline {
                                parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
                            }
                        }
-                       //post {
-                       //  failure {
-                       //      script {
-                       //               dumpOCNECluster('verify-install-workload-cluster-dump')
-                       //           }
-                       //       }
-                       //     }
+                       post {
+                           always {
+                               archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                               junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                           }
+                       }
                }
 
                stage('Post-install Infra Tests on workload cluster') {
@@ -407,12 +399,12 @@ pipeline {
                             parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
                         }
                     }
-                    //post {
-                    //    always {
-                    //        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                    //        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    //    }
-                    //}
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
 
                 stage('Post-install Acceptance Tests on workload cluster') {
@@ -421,12 +413,12 @@ pipeline {
                             parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'false', 'false')
                         }
                     }
-                    //post {
-                    //    always {
-                    //        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                    //        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    //    }
-                    //}
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
 
                stage('Uninstall vz from workload cluster') {
@@ -443,13 +435,7 @@ pipeline {
                             """
                         }
                     }
-                    //post {
-                    //    failure {
-                    //        script {
-                    //            dumpOCNECluster('uninstall-vz--workload-cluster-dump')
-                    //        }
-                    //    }
-                    //}
+
                }
 
             }
@@ -767,9 +753,9 @@ def ensureVZCleanupFromWorkloadCluster() {
 }
 
 def ensureCAPICleanup() {
-    //script {
-    //    dumpOCNECluster("final-workload-cluster-dump")
-    //}
+    script {
+        dumpOCNECluster("final-workload-cluster-dump")
+    }
     sh """
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
         kubectl delete ns -n ${CLUSTER_NAME}
