@@ -758,7 +758,7 @@ def ensureCAPICleanup() {
     }
     sh """
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
-        kubectl delete ns -n ${CLUSTER_NAME}
+        kubectl delete ns ${CLUSTER_NAME}
     """
 }
 

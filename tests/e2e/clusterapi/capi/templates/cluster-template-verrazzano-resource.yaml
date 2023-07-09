@@ -25,8 +25,17 @@ data:
       name: workload-verrazzano
       namespace: default
     spec:
-      profile: dev
+      profile: prod
       components:
+        keycloak:
+          overrides:
+            - values:
+                replicas: 3
+        mysql:
+          overrides:
+            - values:
+                serverInstances: 3
+                routerInstances: 3
         ingressNGINX:
           overrides:
             - values:
@@ -35,7 +44,7 @@ data:
                     annotations:
                       service.beta.kubernetes.io/oci-load-balancer-shape : "flexible"
                       service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
-                      service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"                      
+                      service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
           type: LoadBalancer
         istio:
           overrides:
@@ -49,7 +58,7 @@ data:
                         serviceAnnotations:
                           service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
                           service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
-                          service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"                          
+                          service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
         dns:
           wildcard:
             domain: nip.io
@@ -80,6 +89,9 @@ data:
           enabled: true
         opensearch:
           enabled: true
+          nodes:
+            - name: es-ingest
+              replicas: 2
           policies:
             - policyName: "verrazzano-system"
               indexPattern: "verrazzano-system*"

@@ -31,6 +31,7 @@ const (
 	// file paths
 	clusterTemplate              = "templates/cluster-template-addons-new-vcn.yaml"
 	clusterResourceSetTemplate   = "templates/cluster-template-addons.yaml"
+	clusterSecurityListTemplate  = "templates/cluster-template-addons-new-vcn-securitylist.yaml"
 	clusterResourceSetTemplateVZ = "templates/cluster-template-verrazzano-resource.yaml"
 )
 
@@ -312,7 +313,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
-				return capiTest.TriggerCapiClusterCreation(OCNENamespace, clusterTemplate, t.Logs)
+				return capiTest.TriggerCapiClusterCreation(OCNENamespace, clusterSecurityListTemplate, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
@@ -328,11 +329,11 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
-		WhenClusterAPIInstalledIt("Update NSG for new VCN created by CAPi cluster", func() {
-			Eventually(func() error {
-				return EnsureNSG()
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "ensure nsg update")
-		})
+		//WhenClusterAPIInstalledIt("Update NSG for new VCN created by CAPi cluster", func() {
+		//	Eventually(func() error {
+		//		return EnsureNSG()
+		//	}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "ensure nsg update")
+		//})
 
 		WhenClusterAPIInstalledIt("Ensure ETCD pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {

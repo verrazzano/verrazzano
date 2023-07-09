@@ -41,6 +41,7 @@ const (
 	OCIImageIDKey                = "OCI_IMAGE_ID"
 	OCIVCNKey                    = "OCI_VCN_ID"
 	OCISubnetKey                 = "OCI_SUBNET_ID"
+	ocneServiceLbName            = "ocne-service-lb"
 )
 
 var capiInitFunc = clusterapi.New
@@ -309,7 +310,7 @@ func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string
 		return err
 	}
 
-	OCISubnetID, err = oci.GetSubnetIDByName(context.TODO(), OCICompartmentID, OCIVcnID, "service-lb", log)
+	OCISubnetID, err = oci.GetSubnetIDByName(context.TODO(), OCICompartmentID, OCIVcnID, ocneServiceLbName, log)
 	if err != nil {
 		return err
 	}
