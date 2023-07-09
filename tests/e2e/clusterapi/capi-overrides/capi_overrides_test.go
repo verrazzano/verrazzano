@@ -205,24 +205,26 @@ func isGlobalRegUsed() bool {
 }
 
 func isSubstringInDeploymentImages(substring string) bool {
-	matchCount := 0
+	var capiFound, ocneBootstrapFound, ocneControlFound, ociFound = false, false, false, false
 	deployments := getCAPIDeployments()
 	for _, deployment := range deployments {
-		switch deployment.Name {
-		case "capi-controller-manager":
-		case "capi-ocne-bootstrap-controller-manager":
-		case "capi-ocne-control-plane-controller-manager":
-		case "capoci-controller-manager":
-			for _, container := range deployment.Spec.Template.Spec.Containers {
-				if strings.Contains(container.Image, substring) {
-					matchCount++
-					break
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			if strings.Contains(container.Image, substring) {
+				switch deployment.Name {
+				case "capi-controller-manager":
+					capiFound = true
+				case "capi-ocne-bootstrap-controller-manager":
+					ocneBootstrapFound = true
+				case "capi-ocne-control-plane-controller-manager":
+					ocneControlFound = true
+				case "capoci-controller-manager":
+					ociFound = true
 				}
 			}
 		}
 	}
 	// Expect four deployments to match
-	return matchCount == 4
+	return capiFound && ocneBootstrapFound && ocneControlFound && ociFound
 }
 
 func getCAPIDeployments() []appsv1.Deployment {
