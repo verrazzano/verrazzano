@@ -216,6 +216,7 @@ func isSubstringInDeploymentImages(substring string) bool {
 			for _, container := range deployment.Spec.Template.Spec.Containers {
 				if strings.Contains(container.Image, substring) {
 					matchCount++
+					break
 				}
 			}
 		}
