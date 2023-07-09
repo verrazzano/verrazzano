@@ -92,17 +92,6 @@ data:
           nodes:
             - name: es-ingest
               replicas: 2
-          policies:
-            - policyName: "verrazzano-system"
-              indexPattern: "verrazzano-system*"
-              minIndexAge: "7d"
-              rollover:
-                minIndexAge: "1d"
-            - policyName: "verrazzano-application"
-              indexPattern: "verrazzano-application*"
-              minIndexAge: "7d"
-              rollover:
-                minIndexAge: "1d"
         jaegerOperator:
           enabled: true
         thanos:
