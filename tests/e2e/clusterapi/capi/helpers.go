@@ -751,7 +751,7 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 			curState = cond.Type
 		}
 	}
-	
+
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tStatus\tVersion")
 	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
