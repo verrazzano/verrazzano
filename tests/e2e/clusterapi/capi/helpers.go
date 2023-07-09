@@ -751,24 +751,12 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 			curState = cond.Type
 		}
 	}
-
+	
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Name\tStatus\tVersion")
 	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
 		vz.Metadata.Name, curState, vz.Status.Version))
 	writer.Flush()
-
-	//err = c.DisplayWorkloadClusterResources(clusterName, log)
-	//if err != nil {
-	//	log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
-	//	return err
-	//}
-
-	//err = c.DebugSVCOutput(clusterName, log)
-	//if err != nil {
-	//	log.Errorf("Unable to display service resources from workload cluster ", zap.Error(err))
-	//	return err
-	//}
 
 	if curState == "InstallComplete" {
 		return nil
