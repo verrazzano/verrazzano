@@ -245,7 +245,7 @@ func isGlobalRegUsed() bool {
 
 // IsImageTagUsed - determine if the image tag override is being used in the CAPI deployments
 func IsImageTagUsed() bool {
-	return isSubstringInDeploymentImages(imageTagOverride)
+	return isSubstringInDeploymentImages(fmt.Sprintf(":%s", imageTagOverride))
 }
 
 func isSubstringInDeploymentImages(substring string) bool {
