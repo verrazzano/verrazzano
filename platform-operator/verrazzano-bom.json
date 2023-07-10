@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230630070726-a727c8b",
+              "tag": "v2.0.0-20230710062314-6fb1764",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -630,7 +630,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20230524114801-18128160",
+              "tag": "v0.25.0-20230706085154-660afb41",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -924,9 +924,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.24.0",
-    "v1.25.0",
-    "v1.26.0"
-  ]
+  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0"]
 }
