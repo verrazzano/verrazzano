@@ -417,7 +417,7 @@ func verifyClusterPods(clusterName, kubeconfigPath string, log *zap.SugaredLogge
 	return nil
 }
 
-// Gets a specified cluster by using the Rancher REST API
+// Gets a specified cluster by using the Rancher REST API.
 func getCluster(clusterName string, log *zap.SugaredLogger) (*gabs.Container, error) {
 	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/cluster?name=%s", clusterName), log)
 	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
