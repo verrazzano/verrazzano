@@ -32,7 +32,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -621,7 +620,7 @@ func cleanupUnusedResourcesForNamespace(compContext spi.ComponentContext, cluste
 	if isCAValue {
 		log.Oncef("Clean up ACME issuer secret")
 		// clean up ACME secret if present
-		if err := deleteObject(client, caAcmeSecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
+		if err := deleteObject(log, client, caAcmeSecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
 	}
@@ -631,13 +630,13 @@ func cleanupUnusedResourcesForNamespace(compContext spi.ComponentContext, cluste
 		// - self-signed CA certificate
 		// - self-signed secret object
 		log.Oncef("Clean up Verrazzano self-signed issuer resources")
-		if err := deleteObject(client, caSelfSignedIssuerName, clusterResourceNamespace, &certv1.Issuer{}); err != nil {
+		if err := deleteObject(log, client, caSelfSignedIssuerName, clusterResourceNamespace, &certv1.Issuer{}); err != nil {
 			return err
 		}
-		if err := deleteObject(client, caCertificateName, clusterResourceNamespace, &certv1.Certificate{}); err != nil {
+		if err := deleteObject(log, client, caCertificateName, clusterResourceNamespace, &certv1.Certificate{}); err != nil {
 			return err
 		}
-		if err := deleteObject(client, constants.DefaultVerrazzanoCASecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
+		if err := deleteObject(log, client, constants.DefaultVerrazzanoCASecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
 	}
@@ -762,11 +761,14 @@ func (c clusterIssuerComponent) deleteCertManagerIssuerResources(log vzlog.Verra
 	return nil
 }
 
-func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
+func deleteObject(log vzlog.VerrazzanoLogger, client crtclient.Client, name string, namespace string, object crtclient.Object) error {
 	object.SetName(name)
 	object.SetNamespace(namespace)
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err == nil {
-		return client.Delete(context.TODO(), object)
-	}
-	return nil
+	return vzresource.Resource{
+		Name:      name,
+		Namespace: namespace,
+		Client:    client,
+		Object:    object,
+		Log:       log,
+	}.Delete()
 }

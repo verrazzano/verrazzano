@@ -67,11 +67,16 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 
+		if vz.Status.State != installv1alpha1.VzStateReady {
+			vzlog.DefaultLogger().Progressf("Verrazzano state is %s, secrets reconciling paused", vz.Status.State)
+			return vzctrl.NewRequeueWithDelay(10, 30, time.Second), nil
+		}
+
 		// We care about the CA secret for the cluster - this can come from the verrazzano ingress
 		// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
 		// cattle-system NS (used in the Let's Encrypt staging cert case)
 		if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
-			return r.reconcileVerrazzanoTLS(ctx, req)
+			return r.reconcileVerrazzanoTLS(ctx, req, vz)
 		}
 
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
@@ -101,18 +106,6 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	}
 	r.log = log
 	return ctrl.Result{}, nil
-}
-
-func (r *VerrazzanoSecretsReconciler) additionalTLSSecretExists() bool {
-	sec := corev1.Secret{}
-	err := r.Get(context.TODO(), client.ObjectKey{
-		Namespace: vzconst.RancherSystemNamespace,
-		Name:      vzconst.AdditionalTLS,
-	}, &sec)
-	if err != nil && apierrors.IsNotFound(err) {
-		return false
-	}
-	return true
 }
 
 func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
