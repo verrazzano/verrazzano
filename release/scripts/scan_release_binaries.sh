@@ -78,7 +78,7 @@ function install_local_scanner() {
   tar --overwrite -xvf $SCANNER_TARGZ_FILE
 }
 
-function install_remove_scanner() {
+function install_remote_scanner() {
   echo "Downloading and installing scanner from: $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE"
   mkdir -p $SCANNER_HOME
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
