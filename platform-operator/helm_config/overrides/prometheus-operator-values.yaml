@@ -186,6 +186,14 @@ kubelet:
         - pod
         targetLabel: verrazzano_component
       - action: replace
+        regex: (verrazzano-capi);(clusterAPI);(capi-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;clusterAPI;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
         regex: (verrazzano-system);(coherenceOperator);(coherence-operator-[a-z0-9-]+)(.*)
         replacement: $2
         separator: ;coherenceOperator;
@@ -410,6 +418,14 @@ kubelet:
         - pod
         targetLabel: verrazzano_component
       - action: replace
+        regex: (verrazzano-monitoring);(thanos);(thanos-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;thanos;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
         regex: (verrazzano-system);(weblogicOperator);(weblogic-operator-[a-z0-9-]+)(.*)
         replacement: $2
         separator: ;weblogicOperator;
@@ -495,6 +511,22 @@ kubelet:
         regex: (verrazzano-system);(fluentd);(fluentd-[a-z0-9-]+)(.*)
         replacement: $2
         separator: ;fluentd;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(fluentbitOpensearchOutput);(fluent-bit-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;fluentbitOpensearchOutput;
+        sourceLabels:
+        - namespace
+        - pod
+        targetLabel: verrazzano_component
+      - action: replace
+        regex: (verrazzano-system);(fluentOperator);(fluent-operator-[a-z0-9-]+)(.*)
+        replacement: $2
+        separator: ;fluentOperator;
         sourceLabels:
         - namespace
         - pod
