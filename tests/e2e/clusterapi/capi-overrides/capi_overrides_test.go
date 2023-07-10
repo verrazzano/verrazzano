@@ -184,6 +184,17 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	t.Context("restore VZ to default values for clusterAPI", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we remove the overrides
+		// THEN the default values will get restored
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
+			applyOverrides("")
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	t.Context("override image tags", func() {
 		// GIVEN a CAPI environment
 		// WHEN we override the image tags
@@ -197,6 +208,17 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	t.Context("restore VZ to default values for clusterAPI", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we remove the overrides
+		// THEN the default values will get restored
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
+			applyOverrides("")
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	t.Context("override repository", func() {
 		// GIVEN a CAPI environment
 		// WHEN we override the registry/repository tags
@@ -207,6 +229,17 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			// The CAPI pods are now in a broken state because the repository does not exist.
 			// Verify the deployments get updated to use the new value.
 			Eventually(isRepositoryUsed, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	t.Context("restore VZ to default values for clusterAPI", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we remove the overrides
+		// THEN the default values will get restored
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
+			applyOverrides("")
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
