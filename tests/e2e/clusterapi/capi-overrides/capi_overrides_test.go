@@ -116,15 +116,12 @@ const (
     },
     "ocneControlPlane": {
       "version": "%s"
+	   },
+    "core": {
+      "version": "%s"
     }
   }
 }`
-
-	/*
-	   },
-	   "core": {
-	     "version": "%s"
-	*/
 
 	// urlOverrides - format string to override the URL of each provider
 	urlOverrides = `
@@ -166,7 +163,6 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 
 	// Get the components from the BOM to pick up their current versions
 	ociComp, ocneComp, coreComp := getComponents()
-	Expect(coreComp).NotTo(BeNil())
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
@@ -223,7 +219,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
-			applyOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version))
+			applyOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version))
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
