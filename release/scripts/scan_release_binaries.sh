@@ -169,7 +169,7 @@ function scan_release_binaries() {
 if [ "true" == "${SKIP_INSTALL_SCANNER}" ];then
   echo "Skip installing scanner ..."
 else
-  if [ -f ${SCANNER_TARGZ_FILE} ]; then
+  if [ -f "${SCANNER_TARGZ_FILE}" ]; then
     install_local_scanner || exit 1
   else
     install_remote_scanner || exit 1
