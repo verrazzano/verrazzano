@@ -71,6 +71,9 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 // fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
 const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
 
+// clusterProvisioner is the configmap indicating the kontainer driver that provisioned the cluster
+const clusterProvisioner = "cluster-provisioner"
+
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
@@ -101,15 +104,24 @@ var certificates = []types.NamespacedName{
 }
 
 // For use to override during unit tests
-type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
+type checkProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
 
-var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
+var checkClusterProvisionedFunc checkProvisionedFuncSig = checkClusterProvisioned
 
-func SetCheckClusterProvisionedFunc(newFunc checkClusterProvisionedFuncSig) {
+func SetCheckClusterProvisionedFunc(newFunc checkProvisionedFuncSig) {
 	checkClusterProvisionedFunc = newFunc
 }
 func SetDefaultCheckClusterProvisionedFunc() {
 	checkClusterProvisionedFunc = checkClusterProvisioned
+}
+
+var checkContainerDriverProvisionedFunc checkProvisionedFuncSig = checkContainerDriverProvisioned
+
+func SetCheckContainerDriverProvisionedFunc(newFunc checkProvisionedFuncSig) {
+	checkContainerDriverProvisionedFunc = newFunc
+}
+func SetDefaultCheckContainerDriverProvisionedFunc() {
+	checkContainerDriverProvisionedFunc = checkContainerDriverProvisioned
 }
 
 func NewComponent() spi.Component {
@@ -727,6 +739,20 @@ func IsClusterProvisionedByRancher() (bool, error) {
 	return checkClusterProvisionedFunc(client, dynClient)
 }
 
+// IsClusterProvisionedByOCNEContainerDriver checks if the Kubernetes cluster was provisioned by the Rancher OCNE container driver.
+func IsClusterProvisionedByOCNEContainerDriver() (bool, error) {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return false, err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return false, err
+	}
+
+	return checkContainerDriverProvisionedFunc(client, dynClient)
+}
+
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
 func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Check for the "local" namespace.
@@ -765,6 +791,22 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 	}
 
 	return false, nil
+}
+
+// checkContainerDriverProvisioned checks if the Kubernetes cluster was provisioned by the OCNE KontainerDriver.
+func checkContainerDriverProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+	// Find the provisioner configmap resource and check if ociocne is indicated as the driver.
+	_, err := client.ConfigMaps(constants.DefaultNamespace).Get(context.TODO(), clusterProvisioner, metav1.GetOptions{})
+	if kerrs.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// NOTE: not checking driver type since the existence of configmap alone indicates a container driver is responsible
+	// for the provisioning of the cluster
+	return true, nil
 }
 
 // createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano
