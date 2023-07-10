@@ -37,6 +37,7 @@ const (
 	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
 	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
 	ociInfraURLFmt         = "https://github.com/oracle/cluster-api-provider-oci/releases/download/%s/infrastructure-components.yaml"
+	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/%s/core-components.yaml"
 
 	// globalRegistryOverride - format string to override the registry to use for all providers
 	globalRegistryOverride = `
@@ -135,15 +136,12 @@ const (
     },
     "ocneControlPlane": {
       "url": "%s"
+    },
+    "core": {
+      "url": "%s"
     }
   }
 }`
-
-	/*
-	   },
-	   "core": {
-	     "url": "%s"
-	*/
 )
 
 var t = framework.NewTestFramework("capi_overrides")
@@ -233,7 +231,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
 			applyOverrides(fmt.Sprintf(urlOverrides, fmt.Sprintf(ociInfraURLFmt, ociComp.Version), fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
-				fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version)))
+				fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version), fmt.Sprintf(coreURLFmt, coreComp.Version)))
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
