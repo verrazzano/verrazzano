@@ -72,7 +72,7 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 
 }
 
-// isCertConditionValid retuns a boolean value that is true if a condition of a certificate is valid and false otherwise
+// isCertConditionValid returns a boolean value that is true if a condition of a certificate is valid and false otherwise
 func isCertConditionValid(conditionOfCert *certv1.CertificateCondition) bool {
 	return conditionOfCert.Status == "True" && conditionOfCert.Type == "Ready" && conditionOfCert.Message == "Certificate is up to date and has not expired"
 }
