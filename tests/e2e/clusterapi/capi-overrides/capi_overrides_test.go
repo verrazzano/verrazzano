@@ -298,6 +298,9 @@ func applyOverrides(overrides string) {
 		}
 
 		_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
+		if err != nil {
+			t.Logs.Infof("failed to apply overrides: %v", err)
+		}
 		return err == nil
 	}(), waitTimeout, pollingInterval).Should(BeTrue())
 }
