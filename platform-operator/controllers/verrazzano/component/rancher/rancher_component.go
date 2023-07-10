@@ -275,6 +275,11 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
+			}, bom.KeyValue{
+				Key: additionalTrustedCAsKey,
+				// by default disable this explicitly so upgrade works, as all untrusted CAs for Rancher SSO are
+				// managed via tls-ca; can still be overridden by users via custom Helm overrides
+				Value: "false",
 			})
 	}
 

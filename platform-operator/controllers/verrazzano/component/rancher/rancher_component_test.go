@@ -90,17 +90,17 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
+	assert.Equal(t, 30, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 30, len(kvs)) // one extra for the systemDefaultRegistry override
+	assert.Equal(t, 31, len(kvs)) // one extra for the systemDefaultRegistry override
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
 
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 30, len(kvs))
+	assert.Equal(t, 31, len(kvs))
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
@@ -125,7 +125,7 @@ func TestApplendLetsEncryptDefaultEnvOverrides(t *testing.T) {
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: vzconst.LetsEncryptProduction})
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
-	assert.NotContains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
@@ -149,7 +149,7 @@ func TestApplendLetsEncryptProdEnvOverrides(t *testing.T) {
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: vzconst.LetsEncryptProduction})
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
-	assert.NotContains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
 	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
@@ -173,7 +173,7 @@ func TestApplendLetsEncryptStagingEnvOverrides(t *testing.T) {
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEmailKey, Value: vzACMEProd.Spec.Components.CertManager.Certificate.Acme.EmailAddress})
 	assert.Contains(t, kvs, bom.KeyValue{Key: letsEncryptEnvironmentKey, Value: vzconst.LetsEncryptStaging})
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: letsEncryptTLSSource})
-	assert.NotContains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "true"})
+	assert.Contains(t, kvs, bom.KeyValue{Key: additionalTrustedCAsKey, Value: "false"})
 	// We set the LE Staging bundles in the tls-ca secret when that is configured
 	assert.Contains(t, kvs, bom.KeyValue{Key: ingressTLSSourceKey, Value: caTLSSource})
 	assert.Contains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
