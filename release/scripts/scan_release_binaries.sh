@@ -71,6 +71,10 @@ if [ "$BUNDLE_TO_SCAN" == "Full" ];then
 fi
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
+export NO_PROXY="${ORACLE_NO_PROXY},${NO_PROXY_SUFFIX}"
+export HTTP_PROXY="${ORACLE_PROXY}"
+export HTTPS_PROXY="${ORACLE_PROXY}"
+
 function install_local_scanner() {
   echo "Installing scanner from local file: $SCANNER_TARGZ_FILE"
   mkdir -p $SCANNER_HOME
@@ -81,9 +85,6 @@ function install_local_scanner() {
 function install_remote_scanner() {
   echo "Downloading and installing scanner from: $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE"
   mkdir -p $SCANNER_HOME
-  NO_PROXY="${ORACLE_NO_PROXY},${NO_PROXY_SUFFIX}"
-  HTTP_PROXY="${ORACLE_PROXY}"
-  HTTPS_PROXY="${ORACLE_PROXY}"
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
   tar --overwrite -xvf $SCANNER_ARCHIVE_FILE
