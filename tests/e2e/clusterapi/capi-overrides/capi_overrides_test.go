@@ -299,7 +299,7 @@ func applyOverrides(overrides string) {
 
 		_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
 		return err == nil
-	}(), waitTimeout, pollingInterval).Should(BeTrue())
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
 
 // getComponentsFromBom - return some components from the BOM file
