@@ -131,7 +131,7 @@ func main() {
 
 		fmt.Printf("Trait API Version: %s\n", trait.APIVersion)
 		fmt.Printf("Trait name: %s\n", trait.Name)
-		createIngressChildResources(trait)
+		//createIngressChildResources(trait)
 	}
 
 }
