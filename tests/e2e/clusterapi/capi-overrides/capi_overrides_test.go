@@ -135,7 +135,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			// The CAPI pods are now in a broken state because the image tag does not exist.
 			// Verify the deployments get updated to use the new value.
-			Eventually(imageTagOverride, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(IsImageTagUsed, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -241,6 +241,11 @@ func getComponents() (*bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
 // isGlobalRegUsed - determine if the global registry override is being used in the CAPI deployments
 func isGlobalRegUsed() bool {
 	return isSubstringInDeploymentImages(globalRegistryName)
+}
+
+// IsImageTagUsed - determine if the image tag override is being used in the CAPI deployments
+func IsImageTagUsed() bool {
+	return isSubstringInDeploymentImages(imageTagOverride)
 }
 
 func isSubstringInDeploymentImages(substring string) bool {
