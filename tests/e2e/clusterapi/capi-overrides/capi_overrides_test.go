@@ -31,6 +31,8 @@ const (
 const (
 	globalRegistryName     = "testreg.io"
 	imageTagOverride       = "v1.2.3"
+	imageRepoOverride      = "acme"
+	imageRegistryOverride  = "myreg.io"
 	globalRegistryOverride = `
 {
   "global": {
@@ -59,6 +61,35 @@ const (
     "core": {
       "image": {
         "tag": "%s"
+      }
+    }
+  }
+}`
+	repoOverrides = `
+{
+  "defaultProviders": {
+    "oci": {
+      "image": {
+        "registry": "%s",
+        "repository": "%s"
+      }
+    },
+    "ocneBootstrap": {
+      "image": {
+        "registry": "%s",
+        "repository": "%s"
+      }
+    },
+    "ocneControlPlane": {
+      "image": {
+        "registry": "%s",
+        "repository": "%s"
+      }
+    },
+    "core": {
+      "image": {
+        "registry": "%s",
+        "repository": "%s"
       }
     }
   }
@@ -135,7 +166,20 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			// The CAPI pods are now in a broken state because the image tag does not exist.
 			// Verify the deployments get updated to use the new value.
-			Eventually(IsImageTagUsed, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isImageTagUsed, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	t.Context("override repository", func() {
+		// GIVEN a CAPI environment
+		// WHEN we override the registry/repository tags
+		// THEN the overrides get successfully applied
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
+			applyOverrides(fmt.Sprintf(repoOverrides, imageRegistryOverride, imageRepoOverride, imageRegistryOverride, imageRepoOverride, imageRegistryOverride, imageRepoOverride, imageRegistryOverride, imageRepoOverride))
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			// The CAPI pods are now in a broken state because the repository does not exist.
+			// Verify the deployments get updated to use the new value.
+			Eventually(isRepositoryUsed, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -243,9 +287,14 @@ func isGlobalRegUsed() bool {
 	return isSubstringInDeploymentImages(fmt.Sprintf("%s/", globalRegistryName))
 }
 
-// IsImageTagUsed - determine if the image tag override is being used in the CAPI deployments
-func IsImageTagUsed() bool {
+// isImageTagUsed - determine if the image tag override is being used in the CAPI deployments
+func isImageTagUsed() bool {
 	return isSubstringInDeploymentImages(fmt.Sprintf(":%s", imageTagOverride))
+}
+
+// isRepositoryUsed - determine if the image tag overrides for registry and repo are being used in the CAPI deployments
+func isRepositoryUsed() bool {
+	return isSubstringInDeploymentImages(fmt.Sprintf("%s/%s", imageRegistryOverride, imageRepoOverride))
 }
 
 func isSubstringInDeploymentImages(substring string) bool {
