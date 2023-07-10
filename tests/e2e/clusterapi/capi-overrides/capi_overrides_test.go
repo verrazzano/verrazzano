@@ -127,7 +127,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			// The CAPI pods are now in a broken state because the image tag does not exist.
 			// Verify the deployments get updated to use the new value.
-			Eventually(isGlobalRegUsed, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(imageTagOverride, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
