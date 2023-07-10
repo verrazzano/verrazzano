@@ -1,3 +1,12 @@
+### v1.6.1
+Features:
+
+- Enabled Alertmanager UI 
+
+Component version updates:
+
+- Alertmanager 0.25.0
+
 ### v1.6.0
 Features:
 
