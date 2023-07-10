@@ -144,6 +144,15 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return c.createOrUpdateKialiResources(ctx)
 }
 
+// PostUninstall Kiali-post-uninstall processing, delete the Kiali ingress
+func (c kialiComponent) PostUninstall(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Kiali post-uninstall")
+	if err := c.HelmComponent.Uninstall(ctx); err != nil {
+		return err
+	}
+	return deleteKialiIngress(ctx, c.ChartNamespace)
+}
+
 // IsReady Kiali-specific ready-check
 func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {

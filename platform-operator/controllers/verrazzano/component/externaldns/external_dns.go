@@ -8,9 +8,16 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strconv"
+	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,8 +43,10 @@ const (
 	ownerIDHelmKey         = "txtOwnerId"
 	prefixKey              = "txtPrefix"
 
-	clusterRoleName        = ComponentName
-	clusterRoleBindingName = ComponentName
+	clusterRoleName                 = ComponentName
+	clusterRoleBindingName          = ComponentName
+	externalDNSIngressAnnotationKey = "external-dns.alpha.kubernetes.io/target"
+	externalDNSSvcAnnotationKey     = "external-dns.alpha.kubernetes.io/hostname"
 )
 
 type isInstalledFuncType func(releaseName string, namespace string) (found bool, err error)
@@ -52,7 +61,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	}
 
 	compContext.Log().Debug("Creating namespace %s namespace if necessary", ComponentNamespace)
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
@@ -93,6 +102,64 @@ func ResolveExernalDNSNamespace() string {
 	}
 	logger.Oncef("Using namespace %s for component %s", resolvedNamespace, ComponentName)
 	return resolvedNamespace
+}
+
+// preUninstall checks to make sure that all ingresses/services in the Verrazzano namespaces which
+// have the external DNS target containing the word verrazzano have already been uninstalled, and
+// also that the VMO has been uninstalled.
+// If not, they may require external-dns to clean up the corresponding
+// DNS records, so we cannot start external-dns uninstall yet.
+func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
+	log.Progressf("Checking for leftover ingresses in Verrazzano component namespaces before uninstalling %s", ComponentName)
+	namespaceList := []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace, vzconst.RancherSystemNamespace, vzconst.VerrazzanoMonitoringNamespace}
+	for _, ns := range namespaceList {
+		ingressList := netv1.IngressList{}
+		if err := cli.List(context.TODO(), &ingressList, client.InNamespace(ns)); err != nil {
+			log.Errorf("Failed to list ingresses in namespace %s: %v", ns, err)
+			return err
+		}
+		for _, ing := range ingressList.Items {
+			if strings.Contains(ing.Annotations[externalDNSIngressAnnotationKey], constants.VzIngress) {
+				log.Progressf("Component %s pre-uninstall is waiting for ingress %s in namespace %s to be uninstalled", ComponentName, ing.Name, ns)
+				return ctrlerrors.RetryableError{Source: ComponentName}
+			}
+		}
+	}
+
+	vmoUninstalled := verifyVMOUninstalled(log, cli)
+	ingressNginxUninstalled := verifyIngressNginxUninstalled(log, cli)
+	if !vmoUninstalled {
+		log.Progressf("Component %s pre-uninstall is waiting for %s to be uninstalled", ComponentName, common.VMOComponentName)
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+	if !ingressNginxUninstalled {
+		log.Progressf("Component %s pre-uninstall is waiting for the %s namespace to be deleted", ComponentName, constants.IngressNginxNamespace)
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+	return nil
+}
+
+func verifyIngressNginxUninstalled(log vzlog.VerrazzanoLogger, cli client.Client) bool {
+	ns := corev1.Namespace{}
+	// The ingress nginx namespace would be deleted if the ingress nginx component has been uninstalled.
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.IngressNginxNamespace}, &ns)
+	return err != nil && errors.IsNotFound(err)
+}
+
+func verifyVMOUninstalled(log vzlog.VerrazzanoLogger, cli client.Client) bool {
+	vmoDeployment := appsv1.Deployment{}
+	err := cli.Get(context.TODO(),
+		types.NamespacedName{Namespace: common.VMOComponentNamespace, Name: common.VMOComponentName},
+		&vmoDeployment)
+
+	if err != nil {
+		// VMO is uninstalled if the VMO deployment does not exist
+		if errors.IsNotFound(err) {
+			return true
+		}
+		log.Errorf("Failed to get VMO deployment: %v", err)
+	}
+	return false
 }
 
 // postUninstall Clean up the cluster role/bindings

@@ -346,8 +346,8 @@ func TestReassociateResources(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme2.Scheme).WithObjects(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vmoComponentNamespace,
-			Name:      vmoComponentName,
+			Namespace: VMOComponentNamespace,
+			Name:      VMOComponentName,
 		},
 	}).Build()
 	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, nil, false))
@@ -355,11 +355,11 @@ func TestReassociateResources(t *testing.T) {
 	err = ReassociateVMOResources(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: vmoComponentNamespace, Name: vmoComponentName}, &service)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: VMOComponentNamespace, Name: VMOComponentName}, &service)
 	assert.NoError(t, err)
 	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], vmoComponentName)
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], vmoComponentNamespace)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], VMOComponentName)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], VMOComponentNamespace)
 	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
 
@@ -376,18 +376,18 @@ func TestExportVmoHelmChart(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme2.Scheme).WithObjects(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vmoComponentNamespace,
-			Name:      vmoComponentName,
+			Namespace: VMOComponentNamespace,
+			Name:      VMOComponentName,
 		},
 	}).Build()
 	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: vmoComponentNamespace, Name: vmoComponentName}, &service)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: VMOComponentNamespace, Name: VMOComponentName}, &service)
 	assert.NoError(t, err)
 	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], vmoComponentName)
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], vmoComponentNamespace)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], VMOComponentName)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], VMOComponentNamespace)
 	assert.Contains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
 
