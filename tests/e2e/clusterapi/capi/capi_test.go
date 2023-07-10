@@ -59,7 +59,7 @@ var t = framework.NewTestFramework("cluster-api")
 
 var capiTest = NewCapiTestClient()
 
-// 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
+// 'It' Wrapper to only run spec if the ClusterAPI is supported on the current Verrazzano version
 func WhenClusterAPIInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -283,30 +283,6 @@ func capiPrerequisites() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
-func EnsureNSG() error {
-
-	eastWestRule := SecurityRuleDetails{
-		Description: "Added by Jenkins to allow communication for east-west traffic",
-		IsStateless: false,
-		Protocol:    "All",
-	}
-	err := capiTest.UpdateOCINSGEW(ClusterName, "worker", "east-west traffic", &eastWestRule, t.Logs)
-	if err != nil {
-		return err
-	}
-
-	return capiTest.UpdateOCINSGEW(ClusterName, "control-plane", "east-west traffic", &eastWestRule, t.Logs)
-}
-
-/*
-	func capiCleanup() {
-		t.Logs.Infof("Deleting namespace for capi objects '%s'", ClusterName)
-		Eventually(func() error {
-			return deleteNamespace(OCNENamespace, t.Logs)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
-}
-*/
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
 
 	t.Context(fmt.Sprintf("Create CAPI cluster '%s'", ClusterName), func() {
@@ -328,12 +304,6 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 				return capiTest.DeployClusterResourceSets(ClusterName, clusterResourceSetTemplate, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
-
-		//WhenClusterAPIInstalledIt("Update NSG for new VCN created by CAPi cluster", func() {
-		//	Eventually(func() error {
-		//		return EnsureNSG()
-		//	}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "ensure nsg update")
-		//})
 
 		WhenClusterAPIInstalledIt("Ensure ETCD pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
