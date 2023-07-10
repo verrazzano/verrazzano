@@ -132,7 +132,10 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading verrazzano-helper from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name master/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        if [[${env.BRANCH_NAME} =~ "release-*"]]; then
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        else
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name master/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
                         chmod uog+x ${WORKSPACE}/verrazzano-helper
                     """
                 }
