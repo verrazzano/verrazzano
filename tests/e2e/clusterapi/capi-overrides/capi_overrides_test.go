@@ -32,12 +32,12 @@ const (
 	globalRegistryName    = "testreg.io"
 	imageTagOverride      = "v1.2.3"
 	imageRepoOverride     = "acme"
-	imageRegistryOverride = "myreg.io"
+	imageRegistryOverride = "github.com"
 
-	coreURLFmt             = "https://%s/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
-	ocneBootstrapURLFmt    = "https://%s/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
-	ocneControlPlaneURLFmt = "https://%s/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
-	ociInfraURLFmt         = "https://%s/oracle/cluster-api-provider-oci/releases/download/%s/infrastructure-components.yaml"
+	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
+	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
+	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
+	ociInfraURLFmt         = "https://github.com/oracle/cluster-api-provider-oci/releases/download/%s/infrastructure-components.yaml"
 
 	// globalRegistryOverride - format string to override the registry to use for all providers
 	globalRegistryOverride = `
@@ -160,7 +160,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	// Get the components from the BOM to pick up their current versions
-	bomDoc, ociComp, ocneComp, coreComp := getComponentsFromBom()
+	ociComp, ocneComp, coreComp := getComponentsFromBom()
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
@@ -184,17 +184,6 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
-	t.Context("restore VZ to default values for clusterAPI", func() {
-		// GIVEN the CAPI environment is ready
-		// WHEN we remove the overrides
-		// THEN the default values will get restored
-		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
-			applyOverrides("")
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
-
 	t.Context("override image tags", func() {
 		// GIVEN a CAPI environment
 		// WHEN we override the image tags
@@ -208,17 +197,6 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
-	t.Context("restore VZ to default values for clusterAPI", func() {
-		// GIVEN the CAPI environment is ready
-		// WHEN we remove the overrides
-		// THEN the default values will get restored
-		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
-			applyOverrides("")
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
-
 	t.Context("override repository", func() {
 		// GIVEN a CAPI environment
 		// WHEN we override the registry/repository tags
@@ -229,17 +207,6 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			// The CAPI pods are now in a broken state because the repository does not exist.
 			// Verify the deployments get updated to use the new value.
 			Eventually(isRepositoryUsed, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
-
-	t.Context("restore VZ to default values for clusterAPI", func() {
-		// GIVEN the CAPI environment is ready
-		// WHEN we remove the overrides
-		// THEN the default values will get restored
-		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
-			applyOverrides("")
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -264,10 +231,10 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
 			applyOverrides(fmt.Sprintf(urlOverrides,
-				fmt.Sprintf(ociInfraURLFmt, bomDoc.Registry, ociComp.Version),
-				fmt.Sprintf(ocneBootstrapURLFmt, bomDoc.Registry, ocneComp.Version),
-				fmt.Sprintf(ocneControlPlaneURLFmt, bomDoc.Registry, ocneComp.Version),
-				fmt.Sprintf(coreURLFmt, bomDoc.Registry, coreComp.Version)))
+				fmt.Sprintf(ociInfraURLFmt, ociComp.Version),
+				fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
+				fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version),
+				fmt.Sprintf(coreURLFmt, coreComp.Version)))
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -339,7 +306,7 @@ func applyOverrides(overrides string) {
 }
 
 // getComponentsFromBom - return some components from the BOM file
-func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
+func getComponentsFromBom() (*bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
 	bomDoc, err := pkg.GetBOMDoc()
 	if err != nil {
@@ -363,7 +330,7 @@ func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, 
 	Expect(ociComp).ToNot(BeNil())
 	Expect(capiComp).ToNot(BeNil())
 	Expect(coreComp).ToNot(BeNil())
-	return bomDoc, ociComp, capiComp, coreComp
+	return ociComp, capiComp, coreComp
 }
 
 // isGlobalRegUsed - determine if the global registry override is being used in the CAPI deployments
