@@ -29,10 +29,16 @@ const (
 )
 
 const (
-	globalRegistryName     = "testreg.io"
-	imageTagOverride       = "v1.2.3"
-	imageRepoOverride      = "acme"
-	imageRegistryOverride  = "myreg.io"
+	globalRegistryName    = "testreg.io"
+	imageTagOverride      = "v1.2.3"
+	imageRepoOverride     = "acme"
+	imageRegistryOverride = "myreg.io"
+
+	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
+	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
+	ociInfraURLFmt         = "https://github.com/oracle/cluster-api-provider-oci/releases/download/%s/infrastructure-components.yaml"
+
+	// globalRegistryOverride - format string to override the registry to use for all providers
 	globalRegistryOverride = `
 {
   "global": {
@@ -40,6 +46,7 @@ const (
   }
 }
 `
+	// tagOverrides - format string to override the image tags of each provider
 	tagOverrides = `
 {
   "defaultProviders": {
@@ -65,6 +72,8 @@ const (
     }
   }
 }`
+
+	// repoOverrides - format string to override the image registry and repository tags of each provider
 	repoOverrides = `
 {
   "defaultProviders": {
@@ -95,6 +104,7 @@ const (
   }
 }`
 
+	// versionOverrides - format string to override the version of each provider
 	versionOverrides = `
 {
   "defaultProviders": {
@@ -106,12 +116,37 @@ const (
     },
     "ocneControlPlane": {
       "version": "%s"
-    },
-    "core": {
-      "version": "%s"
     }
   }
 }`
+
+	/*
+	   },
+	   "core": {
+	     "version": "%s"
+	*/
+
+	// urlOverrides - format string to override the URL of each provider
+	urlOverrides = `
+{
+  "defaultProviders": {
+    "oci": {
+      "url": "%s"
+    },
+    "ocneBootstrap": {
+      "url": "%s"
+    },
+    "ocneControlPlane": {
+      "url": "%s"
+    }
+  }
+}`
+
+	/*
+	   },
+	   "core": {
+	     "url": "%s"
+	*/
 )
 
 var t = framework.NewTestFramework("capi_overrides")
@@ -129,10 +164,8 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		return dynClient, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	// Get the components from the BOM
+	// Get the components from the BOM to pick up their current versions
 	ociComp, ocneComp, coreComp := getComponents()
-	Expect(ocneComp).NotTo(BeNil())
-	Expect(ociComp).NotTo(BeNil())
 	Expect(coreComp).NotTo(BeNil())
 
 	t.Context("initial state", func() {
@@ -183,18 +216,33 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
-	/*
-		t.Context("override oci, core, ocneBootstrap and ocneControlPlane versions", func() {
-			// GIVEN the CAPI environment is ready
-			// WHEN we override versions
-			// THEN the overrides get successfully applied
-			capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
-				applyOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version))
-				Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-				Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
-			})
+	t.Context("override oci, core, ocneBootstrap and ocneControlPlane versions", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we override versions
+		// THEN the overrides get successfully applied
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
+			// Using the current actual versions from the BOM, these are expected to work but download
+			// from the internet instead of from the container image.
+			applyOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version))
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-	*/
+	})
+
+	t.Context("override URL of each provider", func() {
+		// GIVEN the CAPI environment is ready
+		// WHEN we override the URL of each provider
+		// THEN the overrides get successfully applied
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
+			// Using the current actual versions from the BOM, these are expected to work but download
+			// from the internet instead of from the container image.
+			applyOverrides(fmt.Sprintf(urlOverrides, fmt.Sprintf(ociInfraURLFmt, ociComp.Version), fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
+				fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version)))
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	t.Context("restore VZ to default values for clusterAPI", func() {
 		// GIVEN the CAPI environment is ready
 		// WHEN we remove the overrides
