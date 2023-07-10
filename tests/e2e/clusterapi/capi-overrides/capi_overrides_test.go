@@ -42,16 +42,24 @@ const (
 {
   "defaultProviders": {
     "oci": {
-      "tag": "%s"
+      "image": {
+        "tag": "%s"
+      }
     },
     "ocneBootstrap": {
-      "tag": "%s"
+      "image": {
+        "tag": "%s"
+      }
     },
     "ocneControlPlane": {
-      "tag": "%s"
+      "image": {
+        "tag": "%s"
+      }
     },
     "core": {
-      "tag": "%s"
+      "image": {
+        "tag": "%s"
+      }
     }
   }
 }`
