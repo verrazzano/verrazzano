@@ -21,7 +21,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// This is the initial entry function for certificate related issues.
+// AnalyzeCertificateRelatedIssues is the initial entry function for certificate related issues and it returns an error.
 // It first determines the status of the VPO, then checks if there are any certificates in the namespaces.
 // It then analyzes those certificates to determine expiration or other issues and then contributes the respective issues to the Issue Reporter.
 // The three issues that it is currently reporting on are the VPO hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
@@ -53,7 +53,7 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 				continue
 			}
 			conditionOfCert := getLatestCondition(log, certificate)
-			if isCertConditionValid(conditionOfCert) && isVPOHangingonCert(mapOfCertificatesInVPOToTheirNamespace, certificate) {
+			if isCertConditionValid(conditionOfCert) && isVPOHangingOnCert(mapOfCertificatesInVPOToTheirNamespace, certificate) {
 				reportCLIHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 				continue
 			}
@@ -72,13 +72,13 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 
 }
 
-// Checks if a condition of a certificate is valid
+// isCertConditionValid retuns a boolean value that is true if a condition of a certificate is valid and false otherwise
 func isCertConditionValid(conditionOfCert *certv1.CertificateCondition) bool {
 	return conditionOfCert.Status == "True" && conditionOfCert.Type == "Ready" && conditionOfCert.Message == "Certificate is up to date and has not expired"
 }
 
-// Determines if the VPO is currently hanging on a certificate
-func isVPOHangingonCert(mapOfCertsThatVPOIsHangingOn map[string]string, certificate certv1.Certificate) bool {
+// isVPOHangingOnCertDetermines returns a boolean value that is true if the VPO CLI is currently hanging on a certificate and false otherwise
+func isVPOHangingOnCert(mapOfCertsThatVPOIsHangingOn map[string]string, certificate certv1.Certificate) bool {
 	if len(mapOfCertsThatVPOIsHangingOn) <= 0 {
 		return false
 	}
@@ -89,7 +89,7 @@ func isVPOHangingonCert(mapOfCertsThatVPOIsHangingOn map[string]string, certific
 	return false
 }
 
-// This function returns a list of certificate objects based on the certificates.json file
+// getCertificateList returns a list of certificate objects based on the certificates.json file
 func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *certv1.CertificateList, err error) {
 	certList := &certv1.CertificateList{}
 	file, err := os.Open(path)
@@ -111,7 +111,7 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 	return certList, err
 }
 
-// This function returns the latest condition in a certificate, if one exists
+// getLatestCondition returns the latest condition in a certificate, if one exists
 func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) *certv1.CertificateCondition {
 	if certificate.Status.Conditions == nil {
 		return nil
@@ -135,8 +135,7 @@ func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) 
 	return latestCondition
 }
 
-// This function reports when a VPO hanging issue has occurred
-
+// reportCLIHangingIssue reports when a VPO hanging issue has occurred
 func reportCLIHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The CLI is hanging due to a long time for the certificate to complete, but the certificate named %s in namespace %s is ready", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
@@ -144,7 +143,7 @@ func reportCLIHangingIssue(log *zap.SugaredLogger, clusterRoot string, certifica
 
 }
 
-// This function reports if a certificate has expired
+// reportCertificateExpirationIssue reports if a certificate has expired
 func reportCertificateExpirationIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is expired", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
@@ -152,16 +151,15 @@ func reportCertificateExpirationIssue(log *zap.SugaredLogger, clusterRoot string
 }
 
 // This function reports when a certificate is not expired, and the VPO is not hanging, but an issue has occurred.
-
 func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is not valid and experiencing issues", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
 }
 
-// This function determines if the VPO is currently hanging due to certificate issues
-// It does this by checking the last 10 logs of the VPO and determines all the certificates that the VPO is hanging along
-// It returns a map containing these certificates as keys and their respective namespaces as values
+// determineIfCLIIsHangingDueToCerts determines if the VPO is currently hanging due to certificate issues
+// It does this by checking the last 10 logs of the VPO and determines all the certificates that the VPO CLI is hanging on
+// It returns a map containing these certificates as keys and their respective namespaces as values, along with an error
 // This map is used by the main certificate analysis function to determine if the VPO is hanging on a valid certificate
 func determineIfCLIIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
 	listOfCertificatesThatCLIIsHangingOn := make(map[string]string)

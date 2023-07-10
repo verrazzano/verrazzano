@@ -391,6 +391,7 @@ func TestGetPodListAll(t *testing.T) {
 	assert.Equal(t, podLength, len(pods))
 }
 
+//		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
 //	 	GIVEN a k8s cluster with certificates present in a namespace  ,
 //		WHEN I call functions to create a list of certificates for the namespace,
 //		THEN expect it to write to the provided resource file and no error should be returned.

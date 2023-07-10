@@ -292,7 +292,7 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	return nil
 }
 
-// This function gets the certificates from the client for the current namespace and outputs the objects to a certificates.json file, if certificates are present in that namespace.
+// captureCertificates finds the certificates from the client for the current namespace, returns an error, and outputs the objects to a certificates.json file, if certificates are present in that namespace.
 func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
 	certificateList := v1.CertificateList{}
 	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
