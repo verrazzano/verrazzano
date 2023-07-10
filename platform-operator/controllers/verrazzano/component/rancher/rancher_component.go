@@ -37,7 +37,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,6 +46,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -931,7 +931,7 @@ func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentC
 // in sync with the "cacerts" Settings object being used by pods; if they are not in sync it is an indicator that we
 // need to roll the Rancher deployment
 func (r rancherComponent) isPrivateCABundleInSync(ctx spi.ComponentContext) (bool, error) {
-	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSCASecretName, caCertsPem)
 	if err != nil {
 		return false, err
 	}

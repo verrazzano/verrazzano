@@ -8,6 +8,9 @@ import (
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"time"
@@ -26,7 +29,7 @@ import (
 const rancherDeploymentName = "rancher"
 
 // reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
-func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request, vz *vzapi.Verrazzano) (ctrl.Result, error) {
 
 	isVzIngressSecret := isVerrazzanoIngressSecretName(req.NamespacedName)
 	isAddnlTLSSecret := isAdditionalTLSSecretName(req.NamespacedName)
@@ -36,16 +39,9 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		caKey = vzconst.AdditionalTLSCAKey
 	}
 
-	if isVzIngressSecret && r.additionalTLSSecretExists() {
-		// When the additional TLS secret exists, it is considered the source of truth - ignore
-		// reconciles for the VZ Ingress TLS secret in that case
-		return ctrl.Result{}, nil
-	}
-
 	// Get the secret
 	caSecret := corev1.Secret{}
-	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
-	if err != nil {
+	if err := r.Get(context.TODO(), req.NamespacedName, &caSecret); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Secret may have been deleted, skip reconcile
 			zap.S().Infof("Secret %s does not exist, skipping reconcile", req.NamespacedName)
@@ -61,6 +57,17 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	if result, err := r.initLogger(caSecret); err != nil {
 		return result, err
+	}
+
+	componentCtx, err := spi.NewContext(r.log, r.Client, vz, nil, false)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
+	if isVzIngressSecret && r.isLetsEncryptStaging(componentCtx.EffectiveCR()) {
+		// When Let's Encrypt staging is configured, do not update the tls-ca secret
+		r.log.Infof("Using Let's Encrypt staging, skipping update of Rancher bundle")
+		return ctrl.Result{}, nil
 	}
 
 	if !r.multiclusterNamespaceExists() {
@@ -88,6 +95,13 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) isLetsEncryptStaging(effectiveCR *vzapi.Verrazzano) bool {
+	if isLEConfig, _ := vzcr.IsLetsEncryptConfig(effectiveCR); isLEConfig {
+		return vzcr.IsLetsEncryptStagingEnv(*effectiveCR.Spec.Components.ClusterIssuer.LetsEncrypt)
+	}
+	return false
 }
 
 func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string, destCAKey string,

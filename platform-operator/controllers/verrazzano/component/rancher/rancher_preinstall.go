@@ -56,7 +56,7 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	rancherCaSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,
-			Name:      rancherTLSSecretName,
+			Name:      rancherTLSCASecretName,
 		},
 	}
 
@@ -96,7 +96,10 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	if err != nil {
 		return []byte{}, err
 	}
-	isLetsEncryptStagingEnv := vzcr.IsLetsEncryptStagingEnv(clusterIssuer)
+	var isLetsEncryptStagingEnv bool
+	if clusterIssuer.LetsEncrypt != nil {
+		isLetsEncryptStagingEnv = vzcr.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
+	}
 
 	var bundleData []byte
 	if isCAIssuer {

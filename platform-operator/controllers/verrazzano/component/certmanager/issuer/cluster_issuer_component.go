@@ -39,7 +39,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager-config is enabled, which is the default
 func (c clusterIssuerComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsClusterIssuerEnabled(effectiveCR) || vzcr.IsCertManagerEnabled(effectiveCR)
+	return vzcr.IsClusterIssuerEnabled(effectiveCR)
 }
 
 // IsReady component check

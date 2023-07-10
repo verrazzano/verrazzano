@@ -296,13 +296,13 @@ func TestDeleteObject(t *testing.T) {
 		).Build()
 
 	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir)
-	assert.NoError(t, deleteObject(fakeContext.Client(), name, ns, &v1.Secret{}))
+	assert.NoError(t, deleteObject(vzlog.DefaultLogger(), fakeContext.Client(), name, ns, &v1.Secret{}))
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, &v1.Secret{})
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 
 	// Ensure this is idempotent, and no error is returned if the secret isn't found
-	assert.NoError(t, deleteObject(fakeContext.Client(), name, ns, &v1.Secret{}))
+	assert.NoError(t, deleteObject(vzlog.DefaultLogger(), fakeContext.Client(), name, ns, &v1.Secret{}))
 
 }
 
