@@ -79,15 +79,15 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 	if len(issue.Summary) == 0 {
 		return errors.New("A Summary is required for an Issue")
 	}
-	//	if len(issue.Actions) > 0 {
-	//		for _, action := range issue.Actions {
-	//			err = action.Validate(log)
-	//			if err != nil {
-	//				log.Debugf("Action related to issue %s was invalid", issue.Summary, err)
-	//				return err
-	//			}
-	//		}
-	//	}
+	if len(issue.Actions) > 0 {
+		for _, action := range issue.Actions {
+			err = action.Validate(log)
+			if err != nil {
+				log.Debugf("Action related to issue %s was invalid", issue.Summary, err)
+				return err
+			}
+		}
+	}
 	if issue.Confidence < 0 || issue.Confidence > 10 {
 		log.Debugf("Confidence %d is out of range, related to issue %s", issue.Confidence, issue.Summary)
 		return fmt.Errorf("Confidence %d is out of range, related to issue %s", issue.Confidence, issue.Summary)

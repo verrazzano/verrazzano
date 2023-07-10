@@ -53,6 +53,8 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string) error {
 	return nil
 }
 
+// reportKontainerDriverIssue will check the ociocneengine and oraclecontainerengine KontainerDriver resources and
+// report any issues that are found with them
 func reportKontainerDriverIssue(log *zap.SugaredLogger, clusterRoot string, driver interface{}, issueReporter *report.IssueReporter) error {
 	name, err := json.GetJSONValue(log, driver, "metadata.name")
 	if err != nil {
