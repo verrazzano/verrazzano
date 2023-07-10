@@ -801,7 +801,6 @@ func checkContainerDriverProvisioned(client corev1.CoreV1Interface, dynClient dy
 		return false, nil
 	}
 	if err != nil {
-		vzlog.DefaultLogger().Infof("DEBUG:  checkContainerDriverProvisioned called.  Returning error %v", err)
 		return false, err
 	}
 
