@@ -17,6 +17,7 @@ import (
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
 )
 
@@ -38,7 +39,7 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 		PendingIssues: make(map[string]report.Issue),
 	}
 	for _, namespace := range allNamespacesFound {
-		certificateFile := files.FindFileInNamespace(clusterRoot, namespace, "certificates.json")
+		certificateFile := files.FindFileInNamespace(clusterRoot, namespace, constants.CertificatesJSON)
 		certificateListForNamespace, err := getCertificateList(log, certificateFile)
 		if err != nil {
 			return err
