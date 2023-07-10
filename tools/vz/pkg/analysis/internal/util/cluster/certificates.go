@@ -26,7 +26,7 @@ import (
 // It then analyzes those certificates to determine expiration or other issues and then contributes the respective issues to the Issue Reporter.
 // The three issues that it is currently reporting on are the VPO hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
 func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
-	mapOfCertificatesInVPOToTheirNamespace, err := determineIfCLIIsHangingDueToCerts(log, clusterRoot)
+	mapOfCertificatesInVPOToTheirNamespace, err := determineIfVZClientIsHangingDueToCerts(log, clusterRoot)
 
 	if err != nil {
 		return err
@@ -53,8 +53,8 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 				continue
 			}
 			conditionOfCert := getLatestCondition(log, certificate)
-			if isCertConditionValid(conditionOfCert) && isVPOHangingOnCert(mapOfCertificatesInVPOToTheirNamespace, certificate) {
-				reportCLIHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
+			if isCertConditionValid(conditionOfCert) && isVZClientHangingOnCert(mapOfCertificatesInVPOToTheirNamespace, certificate) {
+				reportVZClientHangingIssue(log, clusterRoot, certificate, &issueReporter, certificateFile)
 				continue
 			}
 			if !(isCertConditionValid(conditionOfCert)) {
@@ -78,11 +78,11 @@ func isCertConditionValid(conditionOfCert *certv1.CertificateCondition) bool {
 }
 
 // isVPOHangingOnCertDetermines returns a boolean value that is true if the VPO CLI is currently hanging on a certificate and false otherwise
-func isVPOHangingOnCert(mapOfCertsThatVPOIsHangingOn map[string]string, certificate certv1.Certificate) bool {
-	if len(mapOfCertsThatVPOIsHangingOn) <= 0 {
+func isVZClientHangingOnCert(mapOfCertsThatVZClientIsHangingOn map[string]string, certificate certv1.Certificate) bool {
+	if len(mapOfCertsThatVZClientIsHangingOn) <= 0 {
 		return false
 	}
-	namespace, ok := mapOfCertsThatVPOIsHangingOn[certificate.ObjectMeta.Name]
+	namespace, ok := mapOfCertsThatVZClientIsHangingOn[certificate.ObjectMeta.Name]
 	if ok && namespace == certificate.ObjectMeta.Namespace {
 		return true
 	}
@@ -136,10 +136,10 @@ func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) 
 }
 
 // reportCLIHangingIssue reports when a VPO hanging issue has occurred
-func reportCLIHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
+func reportVZClientHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
-	message := []string{fmt.Sprintf("The CLI is hanging due to a long time for the certificate to complete, but the certificate named %s in namespace %s is ready", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
-	issueReporter.AddKnownIssueMessagesFiles(report.CLIHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
+	message := []string{fmt.Sprintf("The VZ Client is hanging due to a long time for the certificate to complete, but the certificate named %s in namespace %s is ready", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
+	issueReporter.AddKnownIssueMessagesFiles(report.VZClientHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
 
 }
 
@@ -157,25 +157,25 @@ func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, c
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
 }
 
-// determineIfCLIIsHangingDueToCerts determines if the VPO is currently hanging due to certificate issues
+// determineIfVZClientIsHangingDueToCerts determines if the VZ client is currently hanging due to certificate issues
 // It does this by checking the last 10 logs of the VPO and determines all the certificates that the VPO CLI is hanging on
 // It returns a map containing these certificates as keys and their respective namespaces as values, along with an error
 // This map is used by the main certificate analysis function to determine if the VPO is hanging on a valid certificate
-func determineIfCLIIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
-	listOfCertificatesThatCLIIsHangingOn := make(map[string]string)
+func determineIfVZClientIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
+	listOfCertificatesThatVZClientIsHangingOn := make(map[string]string)
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
 	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
 	if err != nil {
-		return listOfCertificatesThatCLIIsHangingOn, err
+		return listOfCertificatesThatVZClientIsHangingOn, err
 	}
 	if len(allPodFiles) == 0 {
-		return listOfCertificatesThatCLIIsHangingOn, nil
+		return listOfCertificatesThatVZClientIsHangingOn, nil
 	}
 	vpoLog := allPodFiles[0]
 	allMessages, err := files.ConvertToLogMessage(vpoLog)
 	if err != nil {
 		log.Error("Failed to convert files to the vpo message")
-		return listOfCertificatesThatCLIIsHangingOn, err
+		return listOfCertificatesThatVZClientIsHangingOn, err
 	}
 	//If the VPO has greater than 10 messages, the last 10 logs are the input. Else, the whole VPO logs are the input
 	lastTenVPOLogs := allMessages[int(math.Max(float64(0), float64(len(allMessages)-10))):]
@@ -187,12 +187,12 @@ func determineIfCLIIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot strin
 			namespaceAndCertificateNameSplit := strings.Split(VPOLogCertificateNameAndNamespace, "/")
 			nameSpace := namespaceAndCertificateNameSplit[0]
 			certificateName := namespaceAndCertificateNameSplit[1]
-			_, ok := listOfCertificatesThatCLIIsHangingOn[certificateName]
+			_, ok := listOfCertificatesThatVZClientIsHangingOn[certificateName]
 			if !ok {
-				listOfCertificatesThatCLIIsHangingOn[certificateName] = nameSpace
+				listOfCertificatesThatVZClientIsHangingOn[certificateName] = nameSpace
 			}
 		}
 
 	}
-	return listOfCertificatesThatCLIIsHangingOn, nil
+	return listOfCertificatesThatVZClientIsHangingOn, nil
 }

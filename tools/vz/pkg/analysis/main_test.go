@@ -495,7 +495,7 @@ func TestCertificateCLIHangingIssue(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	problemsFound := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.CLIHangingIssueDueToLongCertificateApproval {
+		if issue.Type == report.VZClientHangingIssueDueToLongCertificateApproval {
 			problemsFound++
 		}
 		if issue.Type == report.CertificateExpired {

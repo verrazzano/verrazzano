@@ -30,10 +30,10 @@ func TestAnalyzeCertificateIssues(t *testing.T) {
 func TestDetermineIfCLIIsHangingDueToCerts(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	listOfCerts, err := determineIfCLIIsHangingDueToCerts(logger, "../../../test/cluster/testCLIHangingIssue/cluster-snapshot")
+	listOfCerts, err := determineIfVZClientIsHangingDueToCerts(logger, "../../../test/cluster/testCLIHangingIssue/cluster-snapshot")
 	assert.Equal(t, err, nil)
 	assert.Greater(t, len(listOfCerts), 0)
-	listOfCerts, err = determineIfCLIIsHangingDueToCerts(logger, "../../../test/cluster/testCertificateExpirationIssue/cluster-snapshot")
+	listOfCerts, err = determineIfVZClientIsHangingDueToCerts(logger, "../../../test/cluster/testCertificateExpirationIssue/cluster-snapshot")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(listOfCerts), 0)
 }
