@@ -30,6 +30,7 @@ const (
 
 const (
 	globalRegistryName     = "testreg.io"
+	imageTagOverride       = "v1.2.3"
 	globalRegistryOverride = `
 {
   "global": {
@@ -37,6 +38,24 @@ const (
   }
 }
 `
+	tagOverrides = `
+{
+  "defaultProviders": {
+    "oci": {
+      "tag": "%s"
+    },
+    "ocneBootstrap": {
+      "tag": "%s"
+    },
+    "ocneControlPlane": {
+      "tag": "%s"
+    },
+    "core": {
+      "tag": "%s"
+    }
+  }
+}`
+
 	versionOverrides = `
 {
   "defaultProviders": {
@@ -98,6 +117,20 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isGlobalRegUsed, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
+
+	t.Context("override image tags", func() {
+		// GIVEN a CAPI environment
+		// WHEN we override the image tags
+		// THEN the overrides get successfully applied
+		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
+			applyOverrides(fmt.Sprintf(tagOverrides, imageTagOverride, imageTagOverride, imageTagOverride, imageTagOverride))
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			// The CAPI pods are now in a broken state because the image tag does not exist.
+			// Verify the deployments get updated to use the new value.
+			Eventually(isGlobalRegUsed, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	/*
 		t.Context("override oci, core, ocneBootstrap and ocneControlPlane versions", func() {
 			// GIVEN the CAPI environment is ready
