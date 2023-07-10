@@ -1,16 +1,19 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package servicemonitor
 
 import (
 	"fmt"
-	"strconv"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	extract "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	extract "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"strconv"
 	"strings"
 )
 const (
