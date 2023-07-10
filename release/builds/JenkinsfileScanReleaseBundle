@@ -90,11 +90,8 @@ pipeline {
                     sh """
                         mkdir -p ${RELEASE_BINARIES_DIR}
                         cd ${WORKSPACE}/release/scripts
-                        if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
-                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
-                        else
-                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
-                        fi
+                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
+                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
                     """
                 }
             }
@@ -107,22 +104,24 @@ pipeline {
                 VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
-           steps {
+            steps {
                 script {
                     // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
                     timeout(time: 300, unit: 'MINUTES') {
                         sh """
-                            cd ${WORKSPACE}/release/scripts
-                            if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
-                                ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} ${params.DISTRIBUTION_VARIANT}
-                            else
-                                ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} ${params.DISTRIBUTION_VARIANT}
-                            fi
+                            # Scan Verrazzano lite distribution
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
+
+                            # Scan Verrazzano full distribution
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} "Full" "true"
                         """
                    }
                 }
             }
         }
+
+
+
     }
     post {
         always {
