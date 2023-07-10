@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -27,6 +28,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,11 +36,13 @@ import (
 )
 
 const (
-	system                = "system"
-	vmoComponentName      = "verrazzano-monitoring-operator"
-	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
+	VMIName               = "system"
+	VMOComponentName      = "verrazzano-monitoring-operator"
+	VMOComponentNamespace = constants.VerrazzanoSystemNamespace
 	defaultStorageSize    = "50Gi"
 )
+
+var vmoLabelSelector = labels.SelectorFromSet(labels.Set{vmoconst.VMOLabel: VMIName})
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
 type ResourceRequestValues struct {
@@ -53,10 +57,24 @@ type VMIMutateFunc func(ctx spi.ComponentContext, storage *ResourceRequestValues
 func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 	return &vmov1.VerrazzanoMonitoringInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      system,
+			Name:      VMIName,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
 	}
+}
+
+// DeleteVMI deletes the VMI resource
+func DeleteVMI(ctx spi.ComponentContext) error {
+	vmi := NewVMI()
+	err := ctx.Client().Delete(context.TODO(), vmi)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("failed to delete VMI: %v", err)
+	}
+	return nil
 }
 
 // CreateOrUpdateVMI instantiates the VMI resource
@@ -91,7 +109,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 
 		vmi.Labels = map[string]string{
 			"k8s-app":            "verrazzano.io",
-			"verrazzano.binding": system,
+			"verrazzano.binding": VMIName,
 		}
 		if vzcr.IsNGINXEnabled(effectiveCR) {
 			vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
@@ -406,7 +424,7 @@ func SetStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage
 // managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm chart.
 func ExportVMOHelmChart(ctx spi.ComponentContext) error {
-	releaseName := types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}
+	releaseName := types.NamespacedName{Name: VMOComponentName, Namespace: VMOComponentNamespace}
 	managedResources := GetVMOHelmManagedResources()
 	for _, managedResource := range managedResources {
 		if _, err := AssociateHelmObject(ctx.Client(), managedResource.Obj, releaseName, managedResource.NamespacedName, true); err != nil {
@@ -435,16 +453,72 @@ func ReassociateVMOResources(ctx spi.ComponentContext) error {
 // VMO helm chart
 func GetVMOHelmManagedResources() []HelmManagedResource {
 	return []HelmManagedResource{
-		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: vmoComponentNamespace}},
-		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
-		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: VMOComponentNamespace}},
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: VMOComponentName, Namespace: VMOComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: VMOComponentName, Namespace: VMOComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: VMOComponentName, Namespace: VMOComponentNamespace}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "vmi-cluster-role-default"}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-binding"}},
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-default-binding"}},
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
-		{Obj: &netv1.NetworkPolicy{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &netv1.NetworkPolicy{}, NamespacedName: types.NamespacedName{Name: VMOComponentName, Namespace: VMOComponentNamespace}},
 	}
+}
+
+// GetVMOManagedDeployments returns the list of deployments managed by VMO
+func GetVMOManagedDeployments(ctx spi.ComponentContext) (*appsv1.DeploymentList, error) {
+	opts := client.ListOptions{
+		LabelSelector: vmoLabelSelector,
+	}
+
+	objList := appsv1.DeploymentList{}
+	err := ctx.Client().List(context.TODO(), &objList, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return &objList, nil
+}
+
+// GetVMOManagedStatefulsets returns the list of statefulsets managed by VMO
+func GetVMOManagedStatefulsets(ctx spi.ComponentContext) (*appsv1.StatefulSetList, error) {
+	opts := client.ListOptions{
+		LabelSelector: vmoLabelSelector,
+	}
+
+	objList := appsv1.StatefulSetList{}
+	err := ctx.Client().List(context.TODO(), &objList, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return &objList, nil
+}
+
+// GetVMOManagedIngresses returns the list of ingresses managed by VMO
+func GetVMOManagedIngresses(ctx spi.ComponentContext) (*netv1.IngressList, error) {
+	opts := client.ListOptions{
+		LabelSelector: vmoLabelSelector,
+	}
+
+	objList := netv1.IngressList{}
+	err := ctx.Client().List(context.TODO(), &objList, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return &objList, nil
+}
+
+// GetVMOManagedServices returns the list of services managed by VMO
+func GetVMOManagedServices(ctx spi.ComponentContext) (*corev1.ServiceList, error) {
+	opts := client.ListOptions{
+		LabelSelector: vmoLabelSelector,
+	}
+
+	objList := corev1.ServiceList{}
+	err := ctx.Client().List(context.TODO(), &objList, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return &objList, nil
 }
