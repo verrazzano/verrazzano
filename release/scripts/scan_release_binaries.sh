@@ -82,6 +82,8 @@ function install_remote_scanner() {
   echo "Downloading and installing scanner from: $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE"
   mkdir -p $SCANNER_HOME
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
+  http_proxy="${ORACLE_PROXY}"
+  https_proxy="${ORACLE_PROXY}"
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
   tar --overwrite -xvf $SCANNER_ARCHIVE_FILE
