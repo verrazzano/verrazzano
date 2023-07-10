@@ -186,9 +186,7 @@ func applyOverrides(overrides string) {
 		// Restore the VZ to default values
 		vz.Spec.Components.ClusterAPI = nil
 	} else {
-		if vz.Spec.Components.ClusterAPI == nil {
-			vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
-		}
+		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
 		vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
 			ValueOverrides: []v1beta1.Overrides{
 				{
