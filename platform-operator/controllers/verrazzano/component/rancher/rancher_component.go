@@ -32,7 +32,6 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -72,6 +71,9 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 // fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
 const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
 
+// clusterProvisioner is the configmap indicating the kontainer driver that provisioned the cluster
+const clusterProvisioner = "cluster-provisioner"
+
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
@@ -102,15 +104,24 @@ var certificates = []types.NamespacedName{
 }
 
 // For use to override during unit tests
-type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
+type checkProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
 
-var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
+var checkClusterProvisionedFunc checkProvisionedFuncSig = checkClusterProvisioned
 
-func SetCheckClusterProvisionedFunc(newFunc checkClusterProvisionedFuncSig) {
+func SetCheckClusterProvisionedFunc(newFunc checkProvisionedFuncSig) {
 	checkClusterProvisionedFunc = newFunc
 }
 func SetDefaultCheckClusterProvisionedFunc() {
 	checkClusterProvisionedFunc = checkClusterProvisioned
+}
+
+var checkContainerDriverProvisionedFunc checkProvisionedFuncSig = checkContainerDriverProvisioned
+
+func SetCheckContainerDriverProvisionedFunc(newFunc checkProvisionedFuncSig) {
+	checkContainerDriverProvisionedFunc = newFunc
+}
+func SetDefaultCheckContainerDriverProvisionedFunc() {
+	checkContainerDriverProvisionedFunc = checkContainerDriverProvisioned
 }
 
 func NewComponent() spi.Component {
@@ -127,7 +138,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, clusterapi.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -225,6 +236,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 	// Configure CA Issuer KVs
 	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
+		letsEncryptEnv := cm.LetsEncrypt.Environment
+		if len(letsEncryptEnv) == 0 {
+			letsEncryptEnv = cmconstants.LetsEncryptProduction
+		}
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
@@ -234,13 +249,13 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				Value: cm.LetsEncrypt.EmailAddress,
 			}, bom.KeyValue{
 				Key:   letsEncryptEnvironmentKey,
-				Value: cm.LetsEncrypt.Environment,
+				Value: letsEncryptEnv,
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
 			}, bom.KeyValue{
 				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(*cm.LetsEncrypt)),
+				Value: strconv.FormatBool(common.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
@@ -507,7 +522,15 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
-	return common.ActivateKontainerDriver(ctx)
+
+	dynClient, err := getDynamicClientFunc()()
+	if err != nil {
+		return err
+	}
+	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
+		return err
+	}
+	return common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -555,8 +578,16 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	if err := common.ActivateKontainerDriver(ctx); err != nil {
+
+	dynClient, err := getDynamicClientFunc()()
+	if err != nil {
 		return err
+	}
+	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
+		return err
+	}
+	if err := common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName); err != nil {
+		return log.ErrorfThrottledNewErr("Failed to activate kontainerdriver post upgrade: %s", err.Error())
 	}
 	return cleanupRancherResources(context.TODO(), ctx.Client())
 }
@@ -708,6 +739,20 @@ func IsClusterProvisionedByRancher() (bool, error) {
 	return checkClusterProvisionedFunc(client, dynClient)
 }
 
+// IsClusterProvisionedByOCNEContainerDriver checks if the Kubernetes cluster was provisioned by the Rancher OCNE container driver.
+func IsClusterProvisionedByOCNEContainerDriver() (bool, error) {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return false, err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return false, err
+	}
+
+	return checkContainerDriverProvisionedFunc(client, dynClient)
+}
+
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
 func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Check for the "local" namespace.
@@ -746,6 +791,22 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 	}
 
 	return false, nil
+}
+
+// checkContainerDriverProvisioned checks if the Kubernetes cluster was provisioned by the OCNE KontainerDriver.
+func checkContainerDriverProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+	// Find the provisioner configmap resource and check if ociocne is indicated as the driver.
+	_, err := client.ConfigMaps(constants.DefaultNamespace).Get(context.TODO(), clusterProvisioner, metav1.GetOptions{})
+	if kerrs.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// NOTE: not checking driver type since the existence of configmap alone indicates a container driver is responsible
+	// for the provisioning of the cluster
+	return true, nil
 }
 
 // createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano

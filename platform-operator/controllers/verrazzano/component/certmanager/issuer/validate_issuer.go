@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/mail"
@@ -141,7 +142,7 @@ func validateCAConfiguration(ca *v1beta1.CAIssuer, clusterResourceNamespace stri
 
 // validateAcmeConfiguration Validate the LetsEncrypt/LetsEncrypt values
 func validateAcmeConfiguration(acme v1beta1.LetsEncryptACMEIssuer) error {
-	if len(acme.Environment) > 0 && !cmcommon.IsLetsEncryptProductionEnv(acme) && !cmcommon.IsLetsEncryptStagingEnv(acme) {
+	if len(acme.Environment) > 0 && !common.IsLetsEncryptProductionEnv(acme) && !common.IsLetsEncryptStagingEnv(acme) {
 		return fmt.Errorf("Invalid Let's Encrypt environment: %s", acme.Environment)
 	}
 	if _, err := mail.ParseAddress(acme.EmailAddress); err != nil {
@@ -197,10 +198,10 @@ func validateCertificateCAConfiguration(ca v1beta1.CA) error {
 
 // validateAcmeConfiguration Validate the ACME/LetsEncrypt values
 func validateCertificateAcmeConfiguration(acme v1beta1.Acme) error {
-	if !cmcommon.IsLetsEncryptProvider(acme) {
+	if !common.IsLetsEncryptProvider(acme) {
 		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
 	}
-	if len(acme.Environment) > 0 && !cmcommon.IsLetsEncryptProductionEnv(acme) && !cmcommon.IsLetsEncryptStagingEnv(acme) {
+	if len(acme.Environment) > 0 && !common.IsLetsEncryptProductionEnv(acme) && !common.IsLetsEncryptStagingEnv(acme) {
 		return fmt.Errorf("Invalid Let's Encrypt environment: %s", acme.Environment)
 	}
 	if _, err := mail.ParseAddress(acme.EmailAddress); err != nil {

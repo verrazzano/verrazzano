@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -147,6 +148,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -293,6 +295,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -328,6 +331,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
@@ -365,6 +369,7 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -440,6 +445,7 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 			errBuf := new(bytes.Buffer)
 			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 			rc.SetClient(c)
+			rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 			cmd := NewCmdUninstall(rc)
 
 			if tt.fields.doesUninstall {

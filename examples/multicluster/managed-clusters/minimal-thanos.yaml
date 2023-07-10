@@ -20,6 +20,8 @@ spec:
                 integration: sidecar
     kubeStateMetrics:
       enabled: true
+    prometheusNodeExporter:
+      enabled: true
     authProxy:
       enabled: true
     thanos:

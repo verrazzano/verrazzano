@@ -51,7 +51,7 @@ var (
 						Acme: vzapi.Acme{
 							Provider:     "foobar",
 							EmailAddress: "foo@bar.com",
-							Environment:  "dev",
+							Environment:  "staging",
 						},
 					},
 				},
@@ -291,11 +291,10 @@ func TestChartsNotUpdatedWorkaround(t *testing.T) {
 	// create a fake dynamic client to serve the Setting and ClusterRepo resources
 	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), newClusterRepoResources()...)
 
-	// override the getDynamicClientFunc for unit testing and reset it when done
-	prevGetDynamicClientFunc := getDynamicClientFunc
-	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	// override the dynamicClientFunc for unit testing and reset it when done
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
-		getDynamicClientFunc = prevGetDynamicClientFunc
+		resetDynamicClientFunc()
 	}()
 
 	// the second pass now shows the available replicas to be zero

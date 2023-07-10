@@ -7,20 +7,22 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,6 +40,10 @@ const (
 	APIGroupVersionRancherManagement        = "v3"
 	AuthConfigKeycloak                      = "keycloakoidc"
 	SettingFirstLogin                       = "first-login"
+	KontainerDriverOCIName                  = "ociocneengine"
+	KontainerDriverOKEName                  = "oraclecontainerengine"
+	KontainerDriversResourceName            = "kontainerdrivers"
+	KontainerDriverKind                     = "KontainerDriver"
 )
 
 var GVKAuthConfig = GetRancherMgmtAPIGVKForKind("AuthConfig")
@@ -104,12 +110,12 @@ func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	}
 }
 
-// GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
-func GetRancherMgmtAPIGVRForResource(kind string) schema.GroupVersionResource {
+// GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind
+func GetRancherMgmtAPIGVRForResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    APIGroupRancherManagement,
 		Version:  APIGroupVersionRancherManagement,
-		Resource: "kontainerdrivers",
+		Resource: resource,
 	}
 }
 
@@ -164,34 +170,92 @@ func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, 
 	return err
 }
 
-// ActivateKontainerDriver - Create or update the kontainerdrivers.management.cattle.io object that
-// registers the ociocne driver
-func ActivateKontainerDriver(ctx spi.ComponentContext) error {
-	kontainerDriverObjectName := "ociocneengine"
+// ActivateKontainerDriver - activate a kontainerdriver
+func ActivateKontainerDriver(ctx spi.ComponentContext, dynClient dynamic.Interface, name string) error {
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriversResourceName)
+
 	// Nothing to do if Capi is not enabled
 	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 
-	// Setup dynamic client
-	dynClient, err := k8sutil.GetDynamicClient()
-	if err != nil {
-		return fmt.Errorf("Failed to get dynamic client: %v", err)
-	}
-
 	// Get the driver object
-	var driverObj *unstructured.Unstructured
-	gvr := GetRancherMgmtAPIGVRForResource("kontainerdrivers")
-	driverObj, err = dynClient.Resource(gvr).Get(context.TODO(), kontainerDriverObjectName, metav1.GetOptions{})
+	driverObj, err := getKontainerDriverObject(dynClient, gvr, name)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, kontainerDriverObjectName, err)
+		// Keep trying until the resource is found
+		return err
 	}
 
 	// Activate the driver
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
 	_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+
+	if err == nil {
+		ctx.Log().Infof("The kontainerdriver %s was successfully activated", name)
+	}
 	return err
+}
+
+// UpdateKontainerDriverURLs - Update the kontainerdriver URLs if the common-name has changed
+func UpdateKontainerDriverURLs(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
+	// Nothing to do if Capi is not enabled
+	if !vzcr.IsClusterAPIEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+
+	// Get the Rancher ingress to determine if the "cert-manager.io/common-name" annotation has changed
+	ingress := &networking.Ingress{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: CattleSystem, Name: RancherName}, ingress)
+	if err != nil {
+		return err
+	}
+	if commonName, ok := ingress.Annotations["cert-manager.io/common-name"]; ok {
+		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverOCIName, commonName); err != nil {
+			return err
+		}
+		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverOKEName, commonName); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// updateKontainerDriverURL - Update the URL of a single kontainerdriver if the common-name has changed
+func updateKontainerDriverURL(ctx spi.ComponentContext, dynClient dynamic.Interface, name string, commonName string) error {
+	gvr := GetRancherMgmtAPIGVRForResource(KontainerDriversResourceName)
+	driverObj, err := getKontainerDriverObject(dynClient, gvr, name)
+	if err != nil {
+		// Keep trying until the resource is found
+		return err
+	}
+
+	// Does the existing URL contain the common name?
+	url := driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string)
+	if !strings.Contains(url, commonName) {
+		// Parse the existing URL string to remove the http prefix
+		urlSplit1 := strings.Split(url, "//")
+		// Parse the remaining URL string to remove the common name prefix
+		urlSplit2 := strings.SplitN(urlSplit1[1], "/", 2)
+
+		// Update the URL to use the new common name
+		newURL := fmt.Sprintf("https://%s/%s", commonName, urlSplit2[1])
+		driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = newURL
+		_, err = dynClient.Resource(gvr).Update(context.TODO(), driverObj, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		ctx.Log().Infof("The kontainerdriver %s URL was updated to %s", name, newURL)
+	}
+
+	return nil
+}
+
+func getKontainerDriverObject(dynClient dynamic.Interface, gvr schema.GroupVersionResource, name string) (*unstructured.Unstructured, error) {
+	var driverObj *unstructured.Unstructured
+	driverObj, err := dynClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get %s/%s/%s %s: %v", gvr.Resource, gvr.Group, gvr.Version, name, err)
+	}
+	return driverObj, nil
 }

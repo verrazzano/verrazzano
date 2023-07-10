@@ -16,7 +16,7 @@ data:
     alerting:
       alertmanagers:
         - static_configs:
-          - targets: ["vmi-system-alertmanager:9093"]
+          - targets: ["prometheus-operator-kube-p-alertmanager:9093"]
     scrape_configs:
      - job_name: 'prometheus'
        scrape_interval: 20s
