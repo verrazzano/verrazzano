@@ -99,9 +99,9 @@ prometheus:
         - pod
         targetLabel: verrazzano_component
       - action: replace
-        regex: (verrazzano-system);(fluentd);(fluentd-[a-z0-9-]+)(.*)
+        regex: (verrazzano-system);(fluentOperator);(fluent-operator-[a-z0-9-]+)(.*)
         replacement: $2
-        separator: ;fluentd;
+        separator: ;fluentOperator;
         sourceLabels:
         - namespace
         - pod
@@ -113,7 +113,7 @@ prometheus:
         sourceLabels:
         - namespace
         - pod
-        targetLabel: verrazzano_componentv
+        targetLabel: verrazzano_component
       - action: replace
         regex: (verrazzano-system);(grafana);(vmi-system-grafana-[a-z0-9-]+)(.*)
         replacement: $2
