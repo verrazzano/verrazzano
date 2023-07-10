@@ -34,10 +34,10 @@ const (
 	imageRepoOverride     = "acme"
 	imageRegistryOverride = "myreg.io"
 
+	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
 	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
 	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
 	ociInfraURLFmt         = "https://github.com/oracle/cluster-api-provider-oci/releases/download/%s/infrastructure-components.yaml"
-	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/%s/core-components.yaml"
 
 	// globalRegistryOverride - format string to override the registry to use for all providers
 	globalRegistryOverride = `
@@ -267,33 +267,36 @@ func isStatusMet(state v1beta1.VzStateType) bool {
 
 // applyOverrides - apply overrides to the CAPI component
 func applyOverrides(overrides string) {
-	// Get the VZ resource
-	vz, err := pkg.GetVerrazzanoV1beta1()
-	Expect(err).ToNot(HaveOccurred())
+	// May need to retry the update because VPO can be updating the VZ custom resource
+	Eventually(func() bool {
+		// Get the VZ resource
+		vz, err := pkg.GetVerrazzanoV1beta1()
+		Expect(err).ToNot(HaveOccurred())
 
-	// Get the client
-	client, err := pkg.GetVerrazzanoClientset()
-	Expect(err).ToNot(HaveOccurred())
+		// Get the client
+		client, err := pkg.GetVerrazzanoClientset()
+		Expect(err).ToNot(HaveOccurred())
 
-	// Update the VZ with the overrides
-	if len(overrides) == 0 {
-		// Restore the VZ to default values
-		vz.Spec.Components.ClusterAPI = nil
-	} else {
-		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
-		vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
-			ValueOverrides: []v1beta1.Overrides{
-				{
-					Values: &apiextensionsv1.JSON{
-						Raw: []byte(overrides),
+		// Update the VZ with the overrides
+		if len(overrides) == 0 {
+			// Restore the VZ to default values
+			vz.Spec.Components.ClusterAPI = nil
+		} else {
+			vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
+			vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
+				ValueOverrides: []v1beta1.Overrides{
+					{
+						Values: &apiextensionsv1.JSON{
+							Raw: []byte(overrides),
+						},
 					},
 				},
-			},
+			}
 		}
-	}
 
-	_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
-	Expect(err).ToNot(HaveOccurred())
+		_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
+		return err == nil
+	}(), waitTimeout, pollingInterval).Should(BeTrue())
 }
 
 // getComponents - return some components from the BOM file
