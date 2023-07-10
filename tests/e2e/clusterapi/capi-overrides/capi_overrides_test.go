@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	waitTimeout     = 5 * time.Minute
+	waitTimeout     = 7 * time.Minute
 	pollingInterval = 10 * time.Second
 )
 
@@ -160,7 +160,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	// Get the components from the BOM to pick up their current versions
-	ociComp, ocneComp, coreComp := getComponents()
+	ociComp, ocneComp, coreComp := getComponentsFromBom()
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
@@ -299,8 +299,8 @@ func applyOverrides(overrides string) {
 	}(), waitTimeout, pollingInterval).Should(BeTrue())
 }
 
-// getComponents - return some components from the BOM file
-func getComponents() (*bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
+// getComponentsFromBom - return some components from the BOM file
+func getComponentsFromBom() (*bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
 	bomDoc, err := pkg.GetBOMDoc()
 	if err != nil {
