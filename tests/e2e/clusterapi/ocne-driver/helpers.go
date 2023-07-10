@@ -30,7 +30,7 @@ func createCloudCredential(credentialName string, log *zap.SugaredLogger) (strin
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cloudcredentials", log)
 	privateKeyContents, err := getFileContents(privateKeyPath, log)
 	if err != nil {
-		log.Infof("error reading private key file: %v", err)
+		log.Errorf("error reading private key file: %v", err)
 		return "", err
 	}
 
@@ -109,7 +109,7 @@ func getCredential(credID string, log *zap.SugaredLogger) (*gabs.Container, erro
 func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
 	if err != nil {
-		log.Infof("error reading node public key file: %v", err)
+		log.Errorf("error reading node public key file: %v", err)
 		return err
 	}
 
@@ -125,7 +125,7 @@ func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
 func createNodePoolCluster(clusterName, nodePoolName string, log *zap.SugaredLogger) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
 	if err != nil {
-		log.Infof("error reading node public key file: %v", err)
+		log.Errorf("error reading node public key file: %v", err)
 		return err
 	}
 
@@ -165,7 +165,7 @@ func createCluster(clusterName string, requestPayload RancherOCNECluster, log *z
 func deleteCluster(clusterName string, log *zap.SugaredLogger) error {
 	clusterID, err := getClusterIDFromName(clusterName, log)
 	if err != nil {
-		log.Infof("could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+		log.Errorf("could not fetch cluster ID from cluster name %s: %s", clusterName, err)
 		return err
 	}
 	log.Infof("clusterID for deletion: %s", clusterID)
