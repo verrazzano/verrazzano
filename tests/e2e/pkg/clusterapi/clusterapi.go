@@ -79,9 +79,8 @@ func ListKontainerDrivers(clientset dynamic.Interface) (*unstructured.Unstructur
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, fmt.Errorf("No kontainerdrivers found: %v", err)
-		} else {
-			return nil, fmt.Errorf("Failed to list kontainerdrivers: %v", err)
 		}
+		return nil, fmt.Errorf("Failed to list kontainerdrivers: %v", err)
 	}
 	return cattleDrivers, err
 }
