@@ -226,20 +226,20 @@ kubelet:
         - pod
         targetLabel: verrazzano_component
       - action: replace
-        regex: (verrazzano-system);(fluentd);(fluentd-[a-z0-9-]+)(.*)
+        regex: (verrazzano-system);(fluentOperator);(fluent-operator-[a-z0-9-]+)(.*)
         replacement: $2
-        separator: ;fluentd;
+        separator: ;fluentOperator;
         sourceLabels:
-          - namespace
-          - pod
+        - namespace
+        - pod
         targetLabel: verrazzano_component
       - action: replace
         regex: (verrazzano-system);(fluentbitOpensearchOutput);(fluent-bit-[a-z0-9-]+)(.*)
         replacement: $2
         separator: ;fluentbitOpensearchOutput;
         sourceLabels:
-          - namespace
-          - pod
+        - namespace
+        - pod
         targetLabel: verrazzano_component
       - action: replace
         regex: (verrazzano-system);(grafana);(vmi-system-grafana-[a-z0-9-]+)(.*)
