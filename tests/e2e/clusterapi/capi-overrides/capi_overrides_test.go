@@ -240,7 +240,7 @@ func getComponents() (*bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
 
 // isGlobalRegUsed - determine if the global registry override is being used in the CAPI deployments
 func isGlobalRegUsed() bool {
-	return isSubstringInDeploymentImages(globalRegistryName)
+	return isSubstringInDeploymentImages(fmt.Sprintf("%s/", globalRegistryName))
 }
 
 // IsImageTagUsed - determine if the image tag override is being used in the CAPI deployments
