@@ -22,9 +22,9 @@ import (
 )
 
 // AnalyzeCertificateRelatedIssues is the initial entry function for certificate related issues and it returns an error.
-// It first determines the status of the VPO, then checks if there are any certificates in the namespaces.
+// It first determines the status of the VZ Client, then checks if there are any certificates in the namespaces.
 // It then analyzes those certificates to determine expiration or other issues and then contributes the respective issues to the Issue Reporter.
-// The three issues that it is currently reporting on are the VPO hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
+// The three issues that it is currently reporting on are the VZ Client hanging due to a long time to issues validate certificates, expired certificates, and when the certificate is not in a ready status.
 func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	mapOfCertificatesInVPOToTheirNamespace, err := determineIfVZClientIsHangingDueToCerts(log, clusterRoot)
 
@@ -77,7 +77,7 @@ func isCertConditionValid(conditionOfCert *certv1.CertificateCondition) bool {
 	return conditionOfCert.Status == "True" && conditionOfCert.Type == "Ready" && conditionOfCert.Message == "Certificate is up to date and has not expired"
 }
 
-// isVPOHangingOnCertDetermines returns a boolean value that is true if the VPO CLI is currently hanging on a certificate and false otherwise
+// isVZClientHangingOnCertDetermines returns a boolean value that is true if the VZ Client is currently hanging on a certificate and false otherwise
 func isVZClientHangingOnCert(mapOfCertsThatVZClientIsHangingOn map[string]string, certificate certv1.Certificate) bool {
 	if len(mapOfCertsThatVZClientIsHangingOn) <= 0 {
 		return false
@@ -135,7 +135,7 @@ func getLatestCondition(log *zap.SugaredLogger, certificate certv1.Certificate) 
 	return latestCondition
 }
 
-// reportCLIHangingIssue reports when a VPO hanging issue has occurred
+// reportVZClientHangingIssue reports when a VZ Client issue has occurred due to certificate approval
 func reportVZClientHangingIssue(log *zap.SugaredLogger, clusterRoot string, certificate certv1.Certificate, issueReporter *report.IssueReporter, certificateFile string) {
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The VZ Client is hanging due to a long time for the certificate to complete, but the certificate named %s in namespace %s is ready", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
@@ -158,9 +158,9 @@ func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, c
 }
 
 // determineIfVZClientIsHangingDueToCerts determines if the VZ client is currently hanging due to certificate issues
-// It does this by checking the last 10 logs of the VPO and determines all the certificates that the VPO CLI is hanging on
+// It does this by checking the last 10 logs of the VPO and determines all the certificates that the VZ Client is hanging on
 // It returns a map containing these certificates as keys and their respective namespaces as values, along with an error
-// This map is used by the main certificate analysis function to determine if the VPO is hanging on a valid certificate
+// This map is used by the main certificate analysis function to determine if the VZ Client is hanging on a valid certificate
 func determineIfVZClientIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
 	listOfCertificatesThatVZClientIsHangingOn := make(map[string]string)
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)

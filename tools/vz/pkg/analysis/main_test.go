@@ -478,12 +478,12 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 	assert.True(t, problemsFound > 0)
 }
 
-// TestCertificateCLIHangingIssue tests analysis of a cluster dump when the CLI is hanging
+// TestCertificateVZClientHangingIssue tests analysis of a cluster dump when the VZ Client is hanging
 // GIVEN a call to analyze a cluster-snapshot
-// WHEN the CLI is hanging on a certificate, but the certificate is not expired
+// WHEN the VZ Client is hanging on a certificate, but the certificate is not expired
 // THEN a report is generated with issues identified
 // This test also tests for detecting a separate expired certificate in the certificates.json
-func TestCertificateCLIHangingIssue(t *testing.T) {
+func TestCertificateVZClientHangingIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
 	report.ClearReports()

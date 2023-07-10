@@ -23,11 +23,11 @@ func TestAnalyzeCertificateIssues(t *testing.T) {
 
 }
 
-// TestDetermineIfCLIIsHangingDueToCerts tests whether the function is able to detect the CLI hanging on certificate-related issues
-// GIVEN a call to see if the CLI is currently hanging
-// WHEN VPO logs indicate that the CLI is hanging, or VPO logs do not indicate than the CLI is hangign
+// TestDetermineIfVZClientIsHangingDueToCerts tests whether the function is able to detect the VZ Client hanging on certificate-related issues
+// GIVEN a call to see if the VZ Client is currently hanging
+// WHEN VPO logs indicate that the VZ Client is hanging, or VPO logs do not indicate than the VZ Client is hanging
 // THEN an appropriate output is provided depending on the VPO logs
-func TestDetermineIfCLIIsHangingDueToCerts(t *testing.T) {
+func TestDetermineIfVZClientIsHangingDueToCerts(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
 	listOfCerts, err := determineIfVZClientIsHangingDueToCerts(logger, "../../../test/cluster/testCLIHangingIssue/cluster-snapshot")
