@@ -106,6 +106,8 @@ pipeline {
                     // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
                     timeout(time: 300, unit: 'MINUTES') {
                         sh """
+                            cd ${WORKSPACE}/release/scripts
+
                             # Scan Verrazzano lite distribution
                             sh -x scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
 
