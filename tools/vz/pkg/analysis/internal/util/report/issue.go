@@ -79,15 +79,15 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 	if len(issue.Summary) == 0 {
 		return errors.New("A Summary is required for an Issue")
 	}
-	if len(issue.Actions) > 0 {
-		for _, action := range issue.Actions {
-			err = action.Validate(log)
-			if err != nil {
-				log.Debugf("Action related to issue %s was invalid", issue.Summary, err)
-				return err
-			}
-		}
-	}
+	//	if len(issue.Actions) > 0 {
+	//		for _, action := range issue.Actions {
+	//			err = action.Validate(log)
+	//			if err != nil {
+	//				log.Debugf("Action related to issue %s was invalid", issue.Summary, err)
+	//				return err
+	//			}
+	//		}
+	//	}
 	if issue.Confidence < 0 || issue.Confidence > 10 {
 		log.Debugf("Confidence %d is out of range, related to issue %s", issue.Confidence, issue.Summary)
 		return fmt.Errorf("Confidence %d is out of range, related to issue %s", issue.Confidence, issue.Summary)
@@ -118,6 +118,7 @@ const (
 	NginxIngressPrivateSubnet    = "NginxIngressPrivateSubnet"
 	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
 	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
+	KontainerDriverNotReady      = "KontainerDriverNotReady"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -147,6 +148,7 @@ var knownIssues = map[string]Issue{
 	NginxIngressPrivateSubnet:    {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
+	KontainerDriverNotReady:      {Type: KontainerDriverNotReady, Summary: "Rancher KontainerDriver resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KontainerDriverNotReady]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

@@ -31,8 +31,9 @@ import (
 //	Analyzers that may fall into this category should be annotated, with a comment, there currently is only
 //	one that may require that.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
-	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
-	"Pod Related Issues": AnalyzePodIssues,
+	"Verrazzano Status":      AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
+	"Pod Related Issues":     AnalyzePodIssues,
+	"KontainerDriver Status": AnalyzeKontainerDrivers,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches
