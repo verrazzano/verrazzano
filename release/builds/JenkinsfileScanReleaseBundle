@@ -88,7 +88,7 @@ pipeline {
                         mkdir -p ${RELEASE_BINARIES_DIR}
                         cd ${WORKSPACE}/release/scripts
                         ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
-                        # ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
+                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
                     """
                 }
             }
@@ -109,10 +109,10 @@ pipeline {
                             cd ${WORKSPACE}/release/scripts
 
                             # Scan Verrazzano lite distribution
-                            sh -x scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
 
                             # Scan Verrazzano full distribution
-                            # ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} "Full" "true"
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} "Full" "true"
                         """
                    }
                 }
