@@ -342,3 +342,8 @@ spec:
       overrides:
         - values:
             frobber: frob
+    opensearchOperator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
