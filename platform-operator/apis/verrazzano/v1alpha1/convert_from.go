@@ -166,6 +166,17 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		ArgoCD:                    convertArgoCDFromV1Beta1(in.ArgoCD),
 		ClusterAPI:                convertClusterAPIFromV1Beta1(in.ClusterAPI),
 		ClusterAgent:              convertClusterAgentFromV1Beta1(in.ClusterAgent),
+		OpenSearchOperator:        convertOpenSearchOperatorFromV1Beta1(in.OpenSearchOperator),
+	}
+}
+
+func convertOpenSearchOperatorFromV1Beta1(in *v1beta1.OpenSearchOperatorComponent) *OpenSearchOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &OpenSearchOperatorComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
