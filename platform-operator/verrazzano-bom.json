@@ -148,16 +148,16 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230630202538-1f346be21",
-              "rancherUI": "v2.7.2-7/release-2.7.2",
-              "ocneDriverVersion": "v0.14.0",
-              "ocneDriverChecksum": "c10f757291664ae041569934951ae42d2d4021d4031f6ba009370cb92b7173fe",
-              "tag": "v2.7.3-20230630203604-72ada53b0",
+              "rancherUI": "v2.7.2-8/release-2.7.2",
+              "ocneDriverVersion": "v0.15.0",
+              "ocneDriverChecksum": "1f9f716b2f14f51fdab19e1ee98042801bcc40098eae2aca6725d4f360f4f7c9",
+              "tag": "v2.7.3-20230706150326-72ada53b0",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230630203604-72ada53b0"
+              "tag": "v2.7.3-20230706150326-72ada53b0"
             }
           ]
         },
@@ -442,7 +442,7 @@
     },
     {
       "name": "coherence-operator",
-      "version": "3.2.10",
+      "version": "3.2.11",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.10",
+              "tag": "3.2.11",
               "helmFullImageKey": "image"
             }
           ]

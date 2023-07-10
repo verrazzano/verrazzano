@@ -6,14 +6,15 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	"reflect"
-	"testing"
-	"time"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -707,7 +708,7 @@ func TestReconcileUninstall2(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).Times(1)
 		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}
