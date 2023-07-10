@@ -148,16 +148,16 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230630202538-1f346be21",
-              "rancherUI": "v2.7.2-7/release-2.7.2",
-              "ocneDriverVersion": "v0.14.0",
-              "ocneDriverChecksum": "c10f757291664ae041569934951ae42d2d4021d4031f6ba009370cb92b7173fe",
-              "tag": "v2.7.3-20230630203604-72ada53b0",
+              "rancherUI": "v2.7.2-8/release-2.7.2",
+              "ocneDriverVersion": "v0.15.0",
+              "ocneDriverChecksum": "1f9f716b2f14f51fdab19e1ee98042801bcc40098eae2aca6725d4f360f4f7c9",
+              "tag": "v2.7.3-20230706150326-72ada53b0",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230630203604-72ada53b0"
+              "tag": "v2.7.3-20230706150326-72ada53b0"
             }
           ]
         },
@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230630070726-a727c8b",
+              "tag": "v2.0.0-20230710062314-6fb1764",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -630,7 +630,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20230524114801-18128160",
+              "tag": "v0.25.0-20230706085154-660afb41",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -924,9 +924,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.24.0",
-    "v1.25.0",
-    "v1.26.0"
-  ]
+  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0"]
 }

@@ -269,3 +269,6 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 
 // VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
+
+// AlertmanagerIngress is the name of the ingress for Alertmanager
+const AlertmanagerIngress = "alertmanager"

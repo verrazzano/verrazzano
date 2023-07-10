@@ -128,7 +128,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	if err := createOrUpdateIngress(ctx); err != nil {
+	if err := reconcileIngresses(ctx); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
@@ -751,12 +751,13 @@ func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateIngress creates ingress for the Prometheus endpoint
-func createOrUpdateIngress(ctx spi.ComponentContext) error {
-	// If NGINX is not enabled, skip the ingress creation
+// reconcileIngresses reconciles ingresses for the Prometheus and Alertmanager endpoint
+func reconcileIngresses(ctx spi.ComponentContext) error {
+	// If NGINX is not enabled, skip the ingress creation and delete any existing prometheus or alertmanager ingresses
 	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		return nil
+		return deletePrometheusStackIngresses(ctx)
 	}
+
 	promProps := common.IngressProperties{
 		IngressName:   constants.PrometheusIngress,
 		HostName:      prometheusHostName,
@@ -764,7 +765,12 @@ func createOrUpdateIngress(ctx spi.ComponentContext) error {
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
 		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
-	return common.CreateOrUpdateSystemComponentIngress(ctx, promProps)
+	err := common.CreateOrUpdateSystemComponentIngress(ctx, promProps)
+	if err != nil {
+		return err
+	}
+
+	return reconcileAlertmanagerIngress(ctx)
 }
 
 // deleteNetworkPolicy deletes the existing NetworkPolicy. Since the NetworkPolicy is now part of the Helm chart,
@@ -777,5 +783,29 @@ func deleteNetworkPolicy(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Error deleting existing NetworkPolicy %s/%s: %v", networkPolicyName, ComponentNamespace, err)
 		return err
 	}
+	return nil
+}
+
+// reconcileAlertmanagerIngress reconciles the ingress for Alertmanager endpoint
+func reconcileAlertmanagerIngress(ctx spi.ComponentContext) error {
+	alertmanagerEnabled, err := vzcr.IsAlertmanagerEnabled(ctx.EffectiveCR(), ctx)
+	if err != nil {
+		return err
+	}
+
+	if alertmanagerEnabled {
+		alertmanagerProps := common.IngressProperties{
+			IngressName:   constants.AlertmanagerIngress,
+			HostName:      alertmanagerHostName,
+			TLSSecretName: alertmanagerCertificateName,
+		}
+		err := common.CreateOrUpdateSystemComponentIngress(ctx, alertmanagerProps)
+		if err != nil {
+			return err
+		}
+	} else {
+		return deleteIngress(constants.AlertmanagerIngress, ctx)
+	}
+
 	return nil
 }

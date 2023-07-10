@@ -152,6 +152,8 @@ type InstanceInfo struct {
 	// The Thanos Query URL for this Verrazzano installation.
 	// The Thanos Query ingress gets forwarded to the Thanos Query Frontend service.
 	ThanosQueryURL *string `json:"thanosQueryUrl,omitempty"`
+	// The Alertmanager URL for this Verrazzano installation.
+	AlertmanagerURL *string `json:"alertmanagerUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
