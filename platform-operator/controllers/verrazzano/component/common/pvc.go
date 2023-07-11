@@ -120,7 +120,7 @@ func ResetVolumeReclaimPolicy(ctx spi.ComponentContext, componentName string) er
 
 	for i := range pvList.Items {
 		pv := pvList.Items[i] // avoids "Implicit memory aliasing in for loop" linter complaint
-		ctx.Log().Infof("ResetVolumeReclaimPolicy - PV %s status: %s", pv.Name, pv.Status.Phase)
+		ctx.Log().Debugf("ResetVolumeReclaimPolicy - PV %s status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase != v1.VolumeBound {
 			continue
 		}
