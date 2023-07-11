@@ -241,23 +241,6 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 
 // Returns true if the OCNE cluster is deleted/does not exist
 func isClusterDeleted(clusterName string, log *zap.SugaredLogger) (bool, error) {
-	jsonBody, err := getCluster(clusterName, log)
-	if err != nil {
-		return false, err
-	}
-
-	// Status logs
-	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
-	log.Infof("deleting cluster %s state: %s", clusterName, state)
-
-	// A deleted cluster should have an empty "data" array
-	data := jsonBody.Path("data").Children()
-	if len(data) > 0 {
-		err = fmt.Errorf("cluster %s still has a non-empty data array from GET call to the API", clusterName)
-		log.Error(err)
-		return false, err
-	}
-
 	// Check that the CAPI cluster object was deleted
 	clusterID, err := getClusterIDFromName(clusterName, log)
 	if err != nil {
