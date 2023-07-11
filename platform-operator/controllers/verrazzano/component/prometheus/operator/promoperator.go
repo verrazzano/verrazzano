@@ -634,7 +634,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		serviceAccounts = append(serviceAccounts, common.GetAuthProxyPrincipal())
 	}
-	if vzcr.IsGrafanaEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsVMOEnabled(ctx.EffectiveCR()) {
 		serviceAccounts = append(serviceAccounts, common.GetVMOPrincipal())
 	}
 	if vzcr.IsKialiEnabled(ctx.EffectiveCR()) {
