@@ -5,6 +5,8 @@ package reconcile
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -16,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"time"
 )
 
 // checkInstallComplete checks to see if the install is complete

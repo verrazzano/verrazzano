@@ -33,9 +33,10 @@ import (
 
 // These are the high level analysis functions that are called. The "Runtime Issues" maps to only certificate functions currently.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
-	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
-	"Pod Related Issues": AnalyzePodIssues,
-	"Runtime Issues":     AnalyzeCertificateRelatedIssues,
+	"Verrazzano Status":      AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
+	"Pod Related Issues":     AnalyzePodIssues,
+	"KontainerDriver Status": AnalyzeKontainerDrivers,
+	"Runtime Issues":         AnalyzeCertificateRelatedIssues,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches

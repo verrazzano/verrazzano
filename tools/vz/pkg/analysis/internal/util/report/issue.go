@@ -118,6 +118,7 @@ const (
 	NginxIngressPrivateSubnet                        = "NginxIngressPrivateSubnet"
 	ExternalDNSConfigureIssue                        = "ExternalDNSConfigureIssue"
 	KeycloakDataMigrationFailure                     = "KeycloakDataMigrationFailure"
+	KontainerDriverNotReady                          = "KontainerDriverNotReady"
 	VZClientHangingIssueDueToLongCertificateApproval = "VZClientHangingIssueDueToLongCertificateApproval"
 	CertificateExpired                               = "CertificateExpired"
 	CertificateExperiencingIssuesInCluster           = "CertificateExperiencingIssuesInCluster"
@@ -150,6 +151,7 @@ var knownIssues = map[string]Issue{
 	NginxIngressPrivateSubnet:    {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
+	KontainerDriverNotReady:      {Type: KontainerDriverNotReady, Summary: "Rancher KontainerDriver resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KontainerDriverNotReady]}},
 	VZClientHangingIssueDueToLongCertificateApproval: {Type: VZClientHangingIssueDueToLongCertificateApproval, Summary: " VZ Client is hanging due to the long time that it takes to approve and provision certificates", Informational: true, Impact: 10, Confidence: 10},
 	CertificateExpired:                     {Type: CertificateExpired, Summary: "A certificate in the cluster is currently expired", Informational: true, Impact: 10, Confidence: 10},
 	CertificateExperiencingIssuesInCluster: {Type: CertificateExperiencingIssuesInCluster, Summary: "A certificate in the cluster is experiencing issues, but it is not expired", Informational: true, Impact: 10, Confidence: 10},
