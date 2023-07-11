@@ -1,0 +1,475 @@
+{
+  "apiVersion": "management.cattle.io/v3",
+  "items": [
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "KontainerDriver",
+      "metadata": {
+        "annotations": {
+          "lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": "true"
+        },
+        "creationTimestamp": "2023-07-10T12:39:24Z",
+        "finalizers": [
+          "controller.cattle.io/mgmt-kontainer-driver-lifecycle"
+        ],
+        "generation": 3,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "management.cattle.io/v3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": {}
+                },
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"controller.cattle.io/mgmt-kontainer-driver-lifecycle\"": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:cattle.io/creator": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:active": {},
+                "f:builtIn": {},
+                "f:checksum": {},
+                "f:uiUrl": {},
+                "f:url": {}
+              },
+              "f:status": {
+                ".": {},
+                "f:actualUrl": {},
+                "f:conditions": {},
+                "f:displayName": {},
+                "f:executablePath": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2023-07-10T12:39:37Z"
+          }
+        ],
+        "name": "amazonelasticcontainerservice",
+        "resourceVersion": "6512",
+        "uid": "5962b183-7f0d-4d37-902b-11109ec198ec"
+      },
+      "spec": {
+        "active": true,
+        "builtIn": true,
+        "checksum": "",
+        "uiUrl": "",
+        "url": ""
+      },
+      "status": {
+        "actualUrl": "",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-10T12:39:36Z",
+            "status": "True",
+            "type": "Downloaded"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:36Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:46Z",
+            "status": "True",
+            "type": "Active"
+          }
+        ],
+        "displayName": "amazonElasticContainerService",
+        "executablePath": ""
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "KontainerDriver",
+      "metadata": {
+        "annotations": {
+          "lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": "true"
+        },
+        "creationTimestamp": "2023-07-10T12:39:24Z",
+        "finalizers": [
+          "controller.cattle.io/mgmt-kontainer-driver-lifecycle"
+        ],
+        "generation": 3,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "management.cattle.io/v3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": {}
+                },
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"controller.cattle.io/mgmt-kontainer-driver-lifecycle\"": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:cattle.io/creator": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:active": {},
+                "f:builtIn": {},
+                "f:checksum": {},
+                "f:uiUrl": {},
+                "f:url": {}
+              },
+              "f:status": {
+                ".": {},
+                "f:actualUrl": {},
+                "f:conditions": {},
+                "f:displayName": {},
+                "f:executablePath": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2023-07-10T12:39:37Z"
+          }
+        ],
+        "name": "azurekubernetesservice",
+        "resourceVersion": "6492",
+        "uid": "7ebba1e0-2f66-4c4e-ade1-4b5a7d1b0b6a"
+      },
+      "spec": {
+        "active": true,
+        "builtIn": true,
+        "checksum": "",
+        "uiUrl": "",
+        "url": ""
+      },
+      "status": {
+        "actualUrl": "",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-10T12:39:36Z",
+            "status": "True",
+            "type": "Downloaded"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:36Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:46Z",
+            "status": "True",
+            "type": "Active"
+          }
+        ],
+        "displayName": "azureKubernetesService",
+        "executablePath": ""
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "KontainerDriver",
+      "metadata": {
+        "annotations": {
+          "lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": "true"
+        },
+        "creationTimestamp": "2023-07-10T12:39:24Z",
+        "finalizers": [
+          "controller.cattle.io/mgmt-kontainer-driver-lifecycle"
+        ],
+        "generation": 3,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "management.cattle.io/v3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": {}
+                },
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"controller.cattle.io/mgmt-kontainer-driver-lifecycle\"": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:cattle.io/creator": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:active": {},
+                "f:builtIn": {},
+                "f:checksum": {},
+                "f:uiUrl": {},
+                "f:url": {}
+              },
+              "f:status": {
+                ".": {},
+                "f:actualUrl": {},
+                "f:conditions": {},
+                "f:displayName": {},
+                "f:executablePath": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2023-07-10T12:39:37Z"
+          }
+        ],
+        "name": "googlekubernetesengine",
+        "resourceVersion": "6485",
+        "uid": "53042c7a-9f9f-41cc-bf7b-e2a5f251a8ea"
+      },
+      "spec": {
+        "active": true,
+        "builtIn": true,
+        "checksum": "",
+        "uiUrl": "",
+        "url": ""
+      },
+      "status": {
+        "actualUrl": "",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-10T12:39:35Z",
+            "status": "True",
+            "type": "Downloaded"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:35Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:45Z",
+            "status": "True",
+            "type": "Active"
+          }
+        ],
+        "displayName": "googleKubernetesEngine",
+        "executablePath": ""
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "KontainerDriver",
+      "metadata": {
+        "annotations": {
+          "lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": "true"
+        },
+        "creationTimestamp": "2023-07-10T12:39:24Z",
+        "finalizers": [
+          "controller.cattle.io/mgmt-kontainer-driver-lifecycle"
+        ],
+        "generation": 6,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "management.cattle.io/v3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": {}
+                },
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"controller.cattle.io/mgmt-kontainer-driver-lifecycle\"": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:cattle.io/creator": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:builtIn": {},
+                "f:checksum": {},
+                "f:uiUrl": {},
+                "f:url": {}
+              },
+              "f:status": {
+                ".": {},
+                "f:actualUrl": {},
+                "f:conditions": {},
+                "f:displayName": {},
+                "f:executablePath": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2023-07-10T12:39:37Z"
+          },
+          {
+            "apiVersion": "management.cattle.io/v3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:active": {}
+              }
+            },
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "time": "2023-07-10T12:40:54Z"
+          }
+        ],
+        "name": "ociocneengine",
+        "resourceVersion": "8115",
+        "uid": "f9918451-0b72-482a-bc68-3f508037b19c"
+      },
+      "spec": {
+        "active": true,
+        "builtIn": false,
+        "checksum": "c10f757291664ae041569934951ae42d2d4021d4031f6ba009370cb92b7173fe",
+        "uiUrl": "",
+        "url": "https://rancher.default.ce8d94d9a5e772236d3ab668e855f09a1838e5f9ee98c71294ef704a642f6189.nip.io/kontainerdriver/ociocne/v0.14.0/kontainer-engine-driver-ociocne-linux"
+      },
+      "status": {
+        "actualUrl": "https://rancher.default.ce8d94d9a5e772236d3ab668e855f09a1838e5f9ee98c71294ef704a642f6189.nip.io/kontainerdriver/ociocne/v0.14.0/kontainer-engine-driver-ociocne-linux",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-10T12:39:36Z",
+            "status": "True",
+            "type": "Inactive"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:40:56Z",
+            "status": "True",
+            "type": "Downloaded"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:40:56Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:41:01Z",
+            "status": "True",
+            "type": "Active"
+          }
+        ],
+        "displayName": "ociocne",
+        "executablePath": "/management-state/bin/kontainer-engine-driver-ociocne"
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "KontainerDriver",
+      "metadata": {
+        "annotations": {
+          "lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": "true"
+        },
+        "creationTimestamp": "2023-07-10T12:39:24Z",
+        "finalizers": [
+          "controller.cattle.io/mgmt-kontainer-driver-lifecycle"
+        ],
+        "generation": 4,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "management.cattle.io/v3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:lifecycle.cattle.io/create.mgmt-kontainer-driver-lifecycle": {}
+                },
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"controller.cattle.io/mgmt-kontainer-driver-lifecycle\"": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:cattle.io/creator": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:active": {},
+                "f:builtIn": {},
+                "f:checksum": {},
+                "f:uiUrl": {},
+                "f:url": {},
+                "f:whitelistDomains": {}
+              },
+              "f:status": {
+                ".": {},
+                "f:actualUrl": {},
+                "f:conditions": {},
+                "f:displayName": {},
+                "f:executablePath": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2023-07-10T12:39:37Z"
+          }
+        ],
+        "name": "oraclecontainerengine",
+        "resourceVersion": "6753",
+        "uid": "244d57a5-b067-4e9a-9303-962e2342050a"
+      },
+      "spec": {
+        "active": true,
+        "builtIn": false,
+        "checksum": "7bfde567e6d478f1da8d36531f765d348bff1cd3abe83c70ddf7766f46112170",
+        "uiUrl": "",
+        "url": "https://rancher.default.ce8d94d9a5e772236d3ab668e855f09a1838e5f9ee98c71294ef704a642f6189.nip.io/kontainerdriver/oke/v1.8.3/kontainer-engine-driver-oke-linux",
+        "whitelistDomains": [
+          "*.oraclecloud.com"
+        ]
+      },
+      "status": {
+        "actualUrl": "https://rancher.default.ce8d94d9a5e772236d3ab668e855f09a1838e5f9ee98c71294ef704a642f6189.nip.io/kontainerdriver/oke/v1.8.3/kontainer-engine-driver-oke-linux",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-10T12:39:46Z",
+            "status": "True",
+            "type": "Downloaded"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:46Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-07-10T12:39:52Z",
+            "status": "True",
+            "type": "Active"
+          }
+        ],
+        "displayName": "oke",
+        "executablePath": "/management-state/bin/kontainer-engine-driver-oke"
+      }
+    }
+  ],
+  "kind": "KontainerDriverList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "30173"
+  }
+}

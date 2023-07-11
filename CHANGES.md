@@ -1,3 +1,14 @@
+### v1.6.1
+Features:
+
+- Enabled Alertmanager UI 
+
+Component version updates:
+
+- Alertmanager 0.25.0
+- WebLogic Kubernetes Operator v4.1.0
+- WebLogic Monitoring Exporter v2.1.4
+
 ### v1.6.0
 Features:
 
