@@ -84,6 +84,9 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	}.Delete()
 }
 
+// getPrivateBundleData returns the CA cert bundle when a private CA configuration is in use (self-signed, customer CA,
+// or Let's Encrypt Staging); this data will be stored in the tls-ca secret used by Rancher for private/untrusted CA
+// configurations
 func getPrivateBundleData(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) ([]byte, error) {
 	clusterIssuer := vz.Spec.Components.ClusterIssuer
 	if clusterIssuer == nil {
@@ -116,6 +119,7 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	return bundleData, nil
 }
 
+// createPrivateCABundle Obtains the private CA bundle for the self-signed/customer-provided CA configuration
 func createPrivateCABundle(log vzlog.VerrazzanoLogger, c client.Client, clusterIssuer *vzapi.ClusterIssuerComponent) ([]byte, error) {
 	caSecretNamespace := clusterIssuer.ClusterResourceNamespace
 	caSecretName := clusterIssuer.CA.SecretName
@@ -139,6 +143,7 @@ func createPrivateCABundle(log vzlog.VerrazzanoLogger, c client.Client, clusterI
 	return caSecret.Data[certKey], nil
 }
 
+// isUsingDefaultCACertificate Returns true if the default self-signed issuer is in use
 func isUsingDefaultCACertificate(cm *vzapi.ClusterIssuerComponent) bool {
 	if cm == nil {
 		return false

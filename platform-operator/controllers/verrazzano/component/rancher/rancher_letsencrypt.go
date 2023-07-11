@@ -60,6 +60,7 @@ func (c *certBuilder) buildLetsEncryptStagingChain() error {
 	return nil
 }
 
+// createLetsEncryptStagingBundle Builds the Let's Encrypt Staging environment CA cert chain
 func createLetsEncryptStagingBundle() ([]byte, error) {
 	builder := &certBuilder{
 		hc: &http.Client{},
