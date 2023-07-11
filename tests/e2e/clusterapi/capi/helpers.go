@@ -292,12 +292,12 @@ func (c CAPITestImpl) TriggerCapiClusterCreation(clusterName, templateName strin
 	return nil
 }
 
-// DeployClusterResourceSets deploys the ClusterResourceSets by deploying the addon template YAML
+// DeployClusterInfraClusterResourceSets deploys the ClusterResourceSets by deploying the addon template YAML
 // ClusterResourceSets are used to deploy the following on OCNE workload clusters
 // 1. CCM Secrets
 // 2. Calico Module
 // 3. CCM Module
-func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
+func (c CAPITestImpl) DeployClusterInfraClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
 	log.Info("Preparing to deploy Clusterresourcesets...")
 	oci, err := NewClient(GetOCIConfigurationProvider(log))
 	if err != nil {
@@ -346,8 +346,8 @@ func (c CAPITestImpl) DeployClusterResourceSets(clusterName, templateName string
 	return nil
 }
 
-// DeployVerrazzanoClusterResourceSets deploys the VZ ClusterResourceSets by deploying the addon template YAML
-func (c CAPITestImpl) DeployVerrazzanoClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
+// DeployAnyClusterResourceSets deploys the VZ ClusterResourceSets by deploying the addon template YAML
+func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error {
 	log.Info("Preparing to deploy VZ Clusterresourcesets...")
 
 	tmpFilePath, err := c.ClusterTemplateGenerate(clusterName, templateName, log)
@@ -800,15 +800,6 @@ func (c CAPITestImpl) DebugSVCOutput(clusterName string, log *zap.SugaredLogger)
 		return debugCmdResponse.CommandError
 	}
 
-	//cmdArgs = []string{}
-	//dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz workload-verrazzano -o yaml", tmpFile.Name())
-	//cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
-	//bcmd.CommandArgs = cmdArgs
-	//debugCmdResponse = helpers.Runner(&bcmd, log)
-	//if debugCmdResponse.CommandError != nil {
-	//	return debugCmdResponse.CommandError
-	//}
-
 	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s get vz", tmpFile.Name())
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
@@ -878,4 +869,34 @@ func (c CAPITestImpl) CreateImagePullSecrets(clusterName string, log *zap.Sugare
 
 	return nil
 
+}
+
+func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusType, expectedStatus, expectedReason string, log *zap.SugaredLogger) bool {
+	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
+	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
+	if err != nil {
+		return false
+	}
+
+	for _, cond := range ocneCP.Status.Conditions {
+		if cond.Type == expectedStatusType {
+			if strings.ToLower(cond.Status) == expectedStatus {
+				switch strings.ToLower(cond.Status) {
+				case "false":
+					if cond.Reason == expectedReason {
+						// all matched
+						return true
+					}
+				case "true":
+					// reason is irrelevant
+					return true
+				}
+			}
+			log.Errorf("HAVE status type = %s, value = %s, reason = %s. WANT status type = %s, value= %s.", cond.Type, cond.Status, cond.Reason, expectedStatusType, expectedStatus)
+			return false
+		}
+	}
+
+	log.Errorf("OCNE controlplane check failure. All conditions %+v", ocneCP.Status.Conditions)
+	return false
 }

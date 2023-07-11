@@ -24,11 +24,12 @@ type CapiTestClient interface {
 	GetUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
 	GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error)
 	GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error)
+	CheckOCNEControlPlaneStatus(clusterName, expectedStatusType, expectedStatus, expectedReason string, log *zap.SugaredLogger) bool
 	GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error)
 	GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error)
 	TriggerCapiClusterCreation(clusterName, templateName string, log *zap.SugaredLogger) error
-	DeployClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error
-	DeployVerrazzanoClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error
+	DeployClusterInfraClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error
+	DeployAnyClusterResourceSets(clusterName, templateName string, log *zap.SugaredLogger) error
 	EnsureMachinesAreProvisioned(namespace, clusterName string, log *zap.SugaredLogger) error
 	MonitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error
 	MonitorCapiClusterCreation(clusterName string, log *zap.SugaredLogger) error

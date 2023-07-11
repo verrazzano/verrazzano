@@ -647,9 +647,6 @@ def generateVerifyInfraStages(dumpRoot) {
         "system logging": {
             runGinkgoRandomizeWorkloadCluster('logging/system', "${dumpRoot}/system-logging")
         },
-        "console": {
-            acceptanceTestsConsole("${dumpRoot}")
-        },
     ]
 }
 

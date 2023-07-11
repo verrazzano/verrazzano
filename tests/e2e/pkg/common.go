@@ -323,6 +323,23 @@ func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *ku
 	return len(missing) == 0, nil
 }
 
+// SpecificPodsPodsNotRunningInClusterWithClient returns true if all pods in namePrefixes are not running
+func SpecificPodsPodsNotRunningInClusterWithClient(namespace string, clientset *kubernetes.Clientset, namePrefixes []string) (bool, error) {
+	allPods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
+		return false, err
+	}
+	terminatedPods, _ := notRunning(allPods.Items, namePrefixes...)
+	if len(terminatedPods) != len(namePrefixes) {
+		runningPods := areRunning(allPods.Items, namePrefixes...)
+		Log(Info, fmt.Sprintf("Pods %v were RUNNING in %v", runningPods, namespace))
+		return false, nil
+	}
+	Log(Info, fmt.Sprintf("ALL pods %v were TERMINATED in %v", terminatedPods, namespace))
+	return true, nil
+}
+
 // SpecificPodsRunningInCluster checks if all the pods identified by labels and are ready and running in the given cluster
 func SpecificPodsRunningInCluster(namespace, labels string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)

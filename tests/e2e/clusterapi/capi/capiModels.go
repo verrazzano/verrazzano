@@ -185,6 +185,8 @@ type OCNEControlPlane struct {
 			LastTransitionTime time.Time `json:"lastTransitionTime"`
 			Status             string    `json:"status"`
 			Type               string    `json:"type"`
+			Reason             string    `json:"reason"`
+			Severity           string    `json:"severity"`
 		} `json:"conditions"`
 		Initialized         bool   `json:"initialized"`
 		ObservedGeneration  int    `json:"observedGeneration"`
