@@ -147,7 +147,13 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[CertKey] = serverPEMBytes
 	webhookCrt.Data[PrivKey] = serverKeyPEMBytes
-
+	webhookCrt.OwnerReferences = []metav1.OwnerReference{
+		{
+			Kind:       "Pod",
+			APIVersion: "v1",
+			Name:       "initwebhooks",
+		},
+	}
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
@@ -224,6 +230,13 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[CertKey] = caPEMBytes
 	webhookCA.Data[PrivKey] = caKeyPEMBytes
+	webhookCA.OwnerReferences = []metav1.OwnerReference{
+		{
+			Kind:       "Pod",
+			APIVersion: "v1",
+			Name:       "initwebhooks",
+		},
+	}
 
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {
