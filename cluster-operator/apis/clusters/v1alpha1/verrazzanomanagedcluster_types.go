@@ -8,6 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const VerrazzanoManagedClusterKind = "VerrazzanoManagedCluster"
+
 // The VerrazzanoManagedCluster custom resource contains information about a
 // kubernetes cluster where Verrazzano managed applications are deployed.
 

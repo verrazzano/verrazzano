@@ -23,11 +23,16 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Indicate whether this is a DRY run, which will do some stuff but will NOT force a new candidate', name: 'DRY_RUN', defaultValue: true)
+        booleanParam (name: 'DRY_RUN',
+            description: 'Indicate whether this is a DRY run, which will do some stuff but will NOT force a new candidate',
+            defaultValue: true)
         string (name: 'GIT_COMMIT_TO_FORCE_AS_CANDIDATE',
-                        defaultValue: 'NONE',
-                        description: 'This is the full git commit hash to FORCE to be the latest releasable candidate for the current release version on this branch.',
-                        trim: true)
+            defaultValue: 'NONE',
+            description: 'This is the full git commit hash to FORCE to be the latest releasable candidate for the current release version on this branch.',
+            trim: true)
+        booleanParam (name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES',
+            description: 'Ignore pre-release validation failures',
+            defaultValue: false)
     }
 
     environment {
@@ -81,7 +86,18 @@ pipeline {
             }
         }
 
+        stage('Release Candidate Validation Checks') {
+            steps {
+                script {
+                    releaseValidationChecks()
+                }
+            }
+        }
+
         stage('Force Candidate') {
+            when {
+                expression { !params.DRY_RUN }
+            }
             environment {
                 GIT_COMMIT_USED = "${env.GIT_COMMIT}"
             }
@@ -146,5 +162,20 @@ def scmCheckout() {
     // If the commit we were handed is not what the SCM says we are using, fail
     if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE)) {
         error( "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_FORCE_AS_CANDIDATE}, Found: ${scmInfo.GIT_COMMIT}")
+    }
+}
+
+def releaseValidationChecks() {
+    def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+        parameters: [
+            string (name: 'COMMIT_TO_USE', value: env.GIT_COMMIT),
+            booleanParam (name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', value: params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES)
+        ], wait: true, propagate: false
+    println("Result of verrazzano-prerelease-check is ${built.result}")
+    dir ("${WORKSPACE}") {
+        copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                selector: specific("${built.number}"));
+        def releaseStatus = readFile file: "release_status.out"
+        currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
     }
 }

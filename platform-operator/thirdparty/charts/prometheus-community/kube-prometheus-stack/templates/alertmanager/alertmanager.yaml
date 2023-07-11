@@ -23,7 +23,11 @@ spec:
   {{- else }}
   image: "{{ $registry }}/{{ .Values.alertmanager.alertmanagerSpec.image.repository }}"
   {{- end }}
+  {{- if .Values.alertmanager.alertmanagerSpec.version }}
+  version: {{ .Values.alertmanager.alertmanagerSpec.version }}
+  {{- else }}
   version: {{ .Values.alertmanager.alertmanagerSpec.image.tag }}
+  {{- end }}
   {{- if .Values.alertmanager.alertmanagerSpec.image.sha }}
   sha: {{ .Values.alertmanager.alertmanagerSpec.image.sha }}
   {{- end }}

@@ -79,7 +79,7 @@ func TestNamespace(t *testing.T) {
 func TestShouldInstallBeforeUpgrade(t *testing.T) {
 	var comp clusterAPIComponent
 	flag := comp.ShouldInstallBeforeUpgrade()
-	assert.Equal(t, true, flag)
+	assert.Equal(t, false, flag)
 }
 
 // TestGetDependencies tests the GetDependencies function

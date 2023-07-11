@@ -95,8 +95,10 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	tracker := getUninstallTracker(cr)
 	done := false
+
 	for !done {
 		switch tracker.vzState {
 		case vzStateUninstallStart:
@@ -168,6 +170,19 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			done = true
 		}
 	}
+
+	// Delete the ConfigMap
+	err = resource.Resource{
+		Namespace: cr.ObjectMeta.Namespace,
+		Name:      cr.ObjectMeta.Name + effConfigSuffix,
+		Client:    r.Client,
+		Object:    &corev1.ConfigMap{},
+		Log:       log,
+	}.Delete()
+	if err != nil {
+		log.Errorf("Failed Deleting the Configmap: %v", err)
+	}
+
 	// Uninstall done, no need to requeue
 	return ctrl.Result{}, nil
 }
@@ -377,11 +392,16 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 // - returns an error or a requeue with delay result
 func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
 	log := ctx.Log()
+	// check on whether cluster is OCNE container driver provisioned
+	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	// Load a set of all component namespaces plus shared namespaces
 	nsSet := make(map[string]bool)
 	for _, comp := range registry.GetComponents() {
 		// Don't delete the rancher component namespace if cluster was provisioned by Rancher.
-		if rancherProvisioned && comp.Namespace() == rancher.ComponentNamespace {
+		if (rancherProvisioned || ocneContainerDriverProvisioned) && comp.Namespace() == rancher.ComponentNamespace {
 			continue
 		}
 		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
@@ -404,7 +424,6 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 		if err := cmCleanupFunc(ctx.Log(), ctx.Client(), ns); err != nil {
 			return newRequeueWithDelay(), err
 		}
-		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
 			Client: r.Client,
@@ -412,6 +431,7 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
 		if err != nil {
+			ctx.Log().Errorf("Error during namespace deletion: %v", err)
 			return ctrl.Result{}, err
 		}
 	}
@@ -446,7 +466,6 @@ func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
 	}
 
 	for _, ns := range namespaces.Items {
-		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
 		err := resource.Resource{
 			Name:      istioRootCertName,
 			Namespace: ns.GetName(),

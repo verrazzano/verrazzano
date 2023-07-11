@@ -93,7 +93,7 @@ func (c clusterAPIComponent) Namespace() string {
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
 func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
-	return true
+	return false
 }
 
 // GetDependencies returns the dependencies of this component.

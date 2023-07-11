@@ -95,7 +95,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				return ctrl.Result{}, err
 			}
 			if !installed {
-				compLog.Oncef("Component %s is not installed, nothing to do for uninstall", compName)
+				compLog.Debugf("Component %s is not installed, nothing to do for uninstall", compName)
 				UninstallContext.uninstallState = compStateUninstallEnd
 				continue
 			}
