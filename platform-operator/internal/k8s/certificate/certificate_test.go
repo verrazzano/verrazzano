@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificate
@@ -6,6 +6,8 @@ package certificate
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"strings"
 	"testing"
@@ -29,7 +31,9 @@ import (
 func TestCreateWebhookCertificates(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
-
+	if err := createFakeWebhookDeployment(client); err != nil {
+		t.Errorf("Error while creating the fake deployment %s", err)
+	}
 	// create temp dir for certs
 	tempDir, err := os.MkdirTemp("", "certs")
 	t.Logf("Using temp dir %s", tempDir)
@@ -89,7 +93,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 func TestCreateWebhookCertificatesRaceCondition(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
-
+	createFakeWebhookDeployment(client)
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 
 	log := zap.S()
@@ -167,4 +171,22 @@ func validateFile(asserts *assert.Assertions, certFile string, certPrefix string
 	asserts.Nilf(err, "Error reading file", certFile)
 	asserts.True(strings.Contains(string(file), certPrefix))
 	return file
+}
+
+func createFakeWebhookDeployment(kubeClient kubernetes.Interface) error {
+	// Create a pod with Istio injection disabled
+	p := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "webhookpod",
+			Namespace: OperatorNamespace,
+			Labels: map[string]string{
+				"app": "verrazzano-platform-operator-webhook",
+			},
+		},
+	}
+	if _, err := kubeClient.CoreV1().Pods(OperatorNamespace).Create(context.TODO(), p, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	return nil
 }

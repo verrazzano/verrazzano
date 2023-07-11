@@ -77,7 +77,7 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 
 func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string, ca *x509.Certificate, caKey *rsa.PrivateKey) ([]byte, []byte, error) {
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
-
+	podsClient := kubeClient.CoreV1().Pods(OperatorNamespace)
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("Secret %s exists, using...", OperatorTLS)
@@ -119,12 +119,13 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 		return []byte{}, []byte{}, err
 	}
 
-	return createTLSCertSecretIfNecesary(log, secretsClient, serverCertBytes, serverPrivKey)
+	return createTLSCertSecretIfNecesary(log, secretsClient, serverCertBytes, serverPrivKey, podsClient)
 }
 
 func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface,
-	serverCertBytes []byte, serverPrivKey *rsa.PrivateKey) ([]byte, []byte, error) {
+	serverCertBytes []byte, serverPrivKey *rsa.PrivateKey, podClient corev1.PodInterface) ([]byte, []byte, error) {
 	// PEM encode Server cert
+	pods := getPodList(log, podClient)
 	serverPEM := new(bytes.Buffer)
 	_ = pem.Encode(serverPEM, &pem.Block{
 		Type:  "CERTIFICATE",
@@ -149,6 +150,14 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[CertKey] = serverPEMBytes
 	webhookCrt.Data[PrivKey] = serverKeyPEMBytes
+	webhookCrt.OwnerReferences = []metav1.OwnerReference{
+		{
+			Kind:       "Pod",
+			APIVersion: "v1",
+			Name:       pods.Items[0].GetName(),
+			UID:        pods.Items[0].GetUID(),
+		},
+	}
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
