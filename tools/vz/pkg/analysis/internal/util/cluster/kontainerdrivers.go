@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-// AnalyzeKontainerDrivers handles the checking af the status of KontainerDriver resource.
+// AnalyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
 func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string) error {
 	log.Debugf("AnalyzeKontainerDrivers called for %s", clusterRoot)
 
@@ -23,7 +23,7 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string) error {
 	return analyzeKontainerDrivers(log, clusterRoot, &issueReporter)
 }
 
-// analyzeKontainerDrivers handles the checking af the status of KontainerDriver resource.
+// analyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
 func analyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
 
 	kontainerDriverPath := files.FindFileInClusterRoot(clusterRoot, "default/kontainerdriver.json")
@@ -36,14 +36,14 @@ func analyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueRe
 		return err
 	}
 
-	// Get the JSON from the kontainerdriver.json file
+	// Get the JSON from the kontainerdriver.json file.
 	jsonData, err := json.GetJSONDataFromFile(log, kontainerDriverPath)
 	if err != nil {
 		log.Errorf("failed to get JSON data from file %s: %s", kontainerDriverPath, err.Error())
 		return err
 	}
 
-	// Get the list of kontainer drivers
+	// Get the list of kontainer drivers.
 	drivers, err := json.GetJSONValue(log, jsonData, "items")
 	if err != nil {
 		log.Errorf("failed to get the list of kontainer drivers: %s", err.Error())
@@ -63,7 +63,7 @@ func analyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueRe
 }
 
 // reportKontainerDriverIssue will check the ociocneengine and oraclecontainerengine KontainerDriver resources and
-// report any issues that are found with them
+// report any issues that are found with them.
 func reportKontainerDriverIssue(log *zap.SugaredLogger, clusterRoot string, driver interface{}, issueReporter *report.IssueReporter) error {
 	name, err := json.GetJSONValue(log, driver, "metadata.name")
 	if err != nil {

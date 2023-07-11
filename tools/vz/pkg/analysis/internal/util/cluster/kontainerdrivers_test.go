@@ -10,20 +10,20 @@ import (
 	"testing"
 )
 
-// Analyze KontainerDriver Resources with variety of cluster roo
+// Test analyze KontainerDriver resources with different cluster snapshots.
 func TestAnalyzeKontainerDrivers(t *testing.T) {
 	var issueReporter = report.IssueReporter{
 		PendingIssues: make(map[string]report.Issue),
 	}
 	logger := zap.S()
 
-	// Expect no errors and no reported issues
+	// Expect no errors and no reported issues.
 	report.ClearReports()
 	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot", &issueReporter))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Empty(t, reportedIssues)
 
-	// Expect no errors and one reported issue that a Kontainer Driver is not ready
+	// Expect no errors and one reported issue that a Kontainer Driver is not ready.
 	report.ClearReports()
 	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot", &issueReporter))
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
