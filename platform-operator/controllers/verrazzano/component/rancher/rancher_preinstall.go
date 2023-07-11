@@ -112,7 +112,7 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 		}
 	} else if isLetsEncryptStagingEnv {
 		log.Infof("Getting Let's Encrypt Staging CA bundle for Rancher")
-		if bundleData, err = createLetsEncryptStagingBundle(); err != nil {
+		if bundleData, err = CreateLetsEncryptStagingBundle(); err != nil {
 			return []byte{}, err
 		}
 	}
