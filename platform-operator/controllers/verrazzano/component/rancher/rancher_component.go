@@ -243,19 +243,6 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 		return kvs, err
 	}
 
-	isPrivateIssuer, _ := vzcr.IsPrivateIssuer(cm)
-
-	if isPrivateIssuer {
-		kvs = append(kvs, bom.KeyValue{
-			Key:   ingressTLSSourceKey,
-			Value: caTLSSource,
-		})
-		kvs = append(kvs, bom.KeyValue{
-			Key:   privateCAKey,
-			Value: privateCAValue,
-		})
-	}
-
 	// Configure CA Issuer KVs
 	if isLetsEncryptIssuer {
 		letsEncryptEnv := cm.LetsEncrypt.Environment
@@ -281,6 +268,17 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 				// managed via tls-ca; can still be overridden by users via custom Helm overrides
 				Value: "false",
 			})
+	}
+
+	if isPrivateIssuer, _ := vzcr.IsPrivateIssuer(cm); isPrivateIssuer {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   ingressTLSSourceKey,
+			Value: caTLSSource,
+		})
+		kvs = append(kvs, bom.KeyValue{
+			Key:   privateCAKey,
+			Value: privateCAValue,
+		})
 	}
 
 	return kvs, nil
