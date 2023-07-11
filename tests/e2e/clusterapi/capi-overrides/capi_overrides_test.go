@@ -151,6 +151,10 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 
 	// Get the components from the BOM to pick up their current versions
 	bomDoc, ociComp, ocneComp, coreComp := getComponentsFromBom()
+	Expect(bomDoc).ToNot(BeNil())
+	Expect(ociComp).ToNot(BeNil())
+	Expect(ocneComp).ToNot(BeNil())
+	Expect(coreComp).ToNot(BeNil())
 
 	t.Context("initial state", func() {
 		// GIVEN the Cluster API is installed
@@ -268,7 +272,9 @@ func isStatusReady() bool {
 func isStatusMet(state v1beta1.VzStateType) bool {
 	// Get the VZ resource
 	vz, err := pkg.GetVerrazzanoV1beta1()
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return false
+	}
 	return vz.Status.State == state
 }
 
@@ -276,11 +282,15 @@ func isStatusMet(state v1beta1.VzStateType) bool {
 func updateClusterAPIOverrides(overrides string) error {
 	// Get the VZ resource
 	vz, err := pkg.GetVerrazzanoV1beta1()
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	// Get the client
 	client, err := pkg.GetVerrazzanoClientset()
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	// Update the VZ with the overrides
 	if len(overrides) == 0 {
@@ -308,7 +318,7 @@ func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, 
 	// Get the BOM from the installed Platform Operator
 	bomDoc, err := pkg.GetBOMDoc()
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get BOM from platform operator: %v", err))
+		return nil, nil, nil, nil
 	}
 
 	// Find the Rancher and CAPI components
@@ -325,8 +335,5 @@ func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, 
 			coreComp = &bomDoc.Components[i]
 		}
 	}
-	Expect(ociComp).ToNot(BeNil())
-	Expect(capiComp).ToNot(BeNil())
-	Expect(coreComp).ToNot(BeNil())
 	return bomDoc, ociComp, capiComp, coreComp
 }

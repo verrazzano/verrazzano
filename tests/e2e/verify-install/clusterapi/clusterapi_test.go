@@ -4,6 +4,7 @@
 package clusterapi
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -16,6 +17,10 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -70,7 +75,33 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
-			Eventually(capipkg.IsAllDriversActive(t, clientset), waitTimeout, pollingInterval).Should(BeTrue())
+			driversActive := func() bool {
+				cattleDrivers, err := listKontainerDrivers(clientset)
+				if err != nil {
+					return false
+				}
+
+				allActive := true
+				// The condition of each driver must be active
+				for _, driver := range cattleDrivers.Items {
+					status := driver.UnstructuredContent()["status"].(map[string]interface{})
+					conditions := status["conditions"].([]interface{})
+					driverActive := false
+					for _, condition := range conditions {
+						conditionData := condition.(map[string]interface{})
+						if conditionData["type"].(string) == "Active" && conditionData["status"].(string) == "True" {
+							driverActive = true
+							break
+						}
+					}
+					if !driverActive {
+						t.Logs.Infof("Driver %s not Active", driver.GetName())
+						allActive = false
+					}
+				}
+				return allActive
+			}
+			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		capipkg.WhenClusterAPIInstalledIt(t, "expected kontainerdrivers must exist", func() {
@@ -113,4 +144,21 @@ func getKubeConfigOrAbort() string {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	return kubeconfigPath
+}
+
+func listKontainerDrivers(clientset dynamic.Interface) (*unstructured.UnstructuredList, error) {
+	cattleDrivers, err := clientset.Resource(schema.GroupVersionResource{
+		Group:    "management.cattle.io",
+		Version:  "v3",
+		Resource: "kontainerdrivers",
+	}).List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			t.Logs.Info("No kontainerdrivers found")
+		} else {
+			t.Logs.Errorf("Failed to list kontainerdrivers: %v", err)
+		}
+	}
+	return cattleDrivers, err
 }
