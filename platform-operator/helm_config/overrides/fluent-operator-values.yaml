@@ -67,7 +67,7 @@ fluentbit:
   service:
     storage:
       path: "/fluent-bit/tail/"
-      backlogMemLimit: "50MB"
+      backlogMemLimit: "5M"
       checksum: "off"
       metrics: "off"
       sync: normal
