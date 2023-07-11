@@ -36,11 +36,11 @@ type defaultProviders struct {
 }
 
 type capiProvider struct {
-	Image         capiImage `json:"image,omitempty"`
-	Version       string    `json:"version,omitempty"`
-	URL           string    `json:"url,omitempty"`
-	Name          string    `json:"name,omitempty"`
-	MetaddataFile string    `json:"metaddataFile,omitempty"`
+	Image        capiImage `json:"image,omitempty"`
+	Version      string    `json:"version,omitempty"`
+	URL          string    `json:"url,omitempty"`
+	Name         string    `json:"name,omitempty"`
+	MetadataFile string    `json:"metadataFile,omitempty"`
 }
 
 type capiImage struct {
@@ -176,10 +176,10 @@ func getURLForProvider(provider capiProvider, ownerRepo string) string {
 		return provider.URL
 	}
 	if len(provider.Version) > 0 {
-		return formatProviderURL(true, provider.Image.Repository, ownerRepo, provider.Version, provider.MetaddataFile)
+		return formatProviderURL(true, provider.Image.Repository, ownerRepo, provider.Version, provider.MetadataFile)
 	}
 	// Return default value
-	return formatProviderURL(false, provider.Image.Repository, provider.Name, provider.Image.BomVersion, provider.MetaddataFile)
+	return formatProviderURL(false, provider.Image.Repository, provider.Name, provider.Image.BomVersion, provider.MetadataFile)
 }
 
 // formatProviderURL - return the provider URL using the following format
@@ -228,13 +228,13 @@ func getBaseOverrides() (*capiOverrides, error) {
 
 	// Initialize internal static values
 	overrides.DefaultProviders.Core.Name = "cluster-api"
-	overrides.DefaultProviders.Core.MetaddataFile = "core-components.yaml"
+	overrides.DefaultProviders.Core.MetadataFile = "core-components.yaml"
 	overrides.DefaultProviders.OCI.Name = "infrastructure-oci"
-	overrides.DefaultProviders.OCI.MetaddataFile = "infrastructure-components.yaml"
+	overrides.DefaultProviders.OCI.MetadataFile = "infrastructure-components.yaml"
 	overrides.DefaultProviders.OCNEBootstrap.Name = "bootstrap-ocne"
-	overrides.DefaultProviders.OCNEBootstrap.MetaddataFile = "bootstrap-components.yaml"
+	overrides.DefaultProviders.OCNEBootstrap.MetadataFile = "bootstrap-components.yaml"
 	overrides.DefaultProviders.OCNEControlPlane.Name = "control-plane-ocne"
-	overrides.DefaultProviders.OCNEControlPlane.MetaddataFile = "control-plane-components.yaml"
+	overrides.DefaultProviders.OCNEControlPlane.MetadataFile = "control-plane-components.yaml"
 
 	return overrides, err
 }
