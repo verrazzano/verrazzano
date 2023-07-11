@@ -147,6 +147,20 @@ pipeline {
                         }
                     }
                 }
+
+                stage('Start Asynchronous Scan Distributions') {
+                    steps {
+                        script {
+                            build job: "verrazzano-scan-distribution/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_DEV_VERSION', value: env.VERRAZZANO_DEV_VERSION),
+                                    booleanParam(name: 'TEST_RUN', value: false)
+                                ], wait: false
+                        }
+                    }
+                }
+
                 stage('Push to OCIR for scanning') {
                     environment {
                         OCI_CLI_AUTH="api_key"
