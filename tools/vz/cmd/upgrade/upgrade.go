@@ -67,13 +67,9 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
-	// Check that command args are not set at the creation of the command
-	cmd.Args = func(cmd *cobra.Command, args []string) error {
-		if len(args) != 0 {
-			return fmt.Errorf("invalid arguments specified: %s", args)
-		}
-		return nil
-	}
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
+
 	return cmd
 }
 
