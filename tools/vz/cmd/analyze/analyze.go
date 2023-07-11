@@ -95,7 +95,7 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
 	}
 	reportFormat := getReportFormat(cmd)
 
