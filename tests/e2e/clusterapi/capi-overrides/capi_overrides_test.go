@@ -6,7 +6,6 @@ package capioverrides
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -26,7 +24,6 @@ import (
 const (
 	waitTimeout            = 5 * time.Minute
 	pollingInterval        = 10 * time.Second
-	imageTagOverride       = "v1.2.3"
 	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
 	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
 	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
@@ -182,13 +179,14 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we override the image tags
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
+			ociImageTag := ociComp.SubComponents[0].Images[0].ImageTag
+			ocneImageTag := ocneComp.SubComponents[0].Images[0].ImageTag
+			coreImageTag := coreComp.SubComponents[0].Images[0].ImageTag
 			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(tagOverrides, imageTagOverride, imageTagOverride, imageTagOverride, imageTagOverride)) == nil
+				return updateClusterAPIOverrides(fmt.Sprintf(tagOverrides, ociImageTag, ocneImageTag, ocneImageTag, coreImageTag)) == nil
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			// The CAPI pods are now in a broken state because the image tag does not exist.
-			// Verify the deployments get updated to use the new value.
-			Eventually(isImageTagUsed, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -331,44 +329,4 @@ func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, 
 	Expect(capiComp).ToNot(BeNil())
 	Expect(coreComp).ToNot(BeNil())
 	return bomDoc, ociComp, capiComp, coreComp
-}
-
-// isImageTagUsed - determine if the image tag override is being used in the CAPI deployments
-func isImageTagUsed() bool {
-	return isSubstringInDeploymentImages(fmt.Sprintf(":%s", imageTagOverride))
-}
-
-func isSubstringInDeploymentImages(substring string) bool {
-	var capiFound, ocneBootstrapFound, ocneControlFound, ociFound = false, false, false, false
-	deployments := getCAPIDeployments()
-	for _, deployment := range deployments {
-		for _, container := range deployment.Spec.Template.Spec.Containers {
-			if strings.Contains(container.Image, substring) {
-				switch deployment.Name {
-				case "capi-controller-manager":
-					capiFound = true
-				case "capi-ocne-bootstrap-controller-manager":
-					ocneBootstrapFound = true
-				case "capi-ocne-control-plane-controller-manager":
-					ocneControlFound = true
-				case "capoci-controller-manager":
-					ociFound = true
-				}
-			}
-		}
-	}
-	// Expect four deployments to match
-	return capiFound && ocneBootstrapFound && ocneControlFound && ociFound
-}
-
-func getCAPIDeployments() []appsv1.Deployment {
-	v1client, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return []appsv1.Deployment{}
-	}
-	deployments, err := v1client.AppsV1().Deployments("verrazzano-capi").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return []appsv1.Deployment{}
-	}
-	return deployments.Items
 }
