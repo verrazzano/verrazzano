@@ -43,8 +43,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 
 	IngressNGINXNamespace := nginxutil.IngressNGINXNamespace()
-	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
+		}
 	}
 
 	if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
