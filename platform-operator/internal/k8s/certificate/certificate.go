@@ -12,6 +12,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
 	"math/big"
 	"os"
 	"time"
@@ -76,6 +77,7 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 
 func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string, ca *x509.Certificate, caKey *rsa.PrivateKey) ([]byte, []byte, error) {
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
+
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("Secret %s exists, using...", OperatorTLS)
@@ -147,13 +149,6 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[CertKey] = serverPEMBytes
 	webhookCrt.Data[PrivKey] = serverKeyPEMBytes
-	webhookCrt.OwnerReferences = []metav1.OwnerReference{
-		{
-			Kind:       "Pod",
-			APIVersion: "v1",
-			Name:       "initwebhooks",
-		},
-	}
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
@@ -173,6 +168,7 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 
 func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
+	podClient := kubeClient.CoreV1().Pods(OperatorNamespace)
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("CA secret %s exists, using...", OperatorCA)
@@ -215,18 +211,17 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 		return nil, nil, err
 	}
 
-	return createCACertSecretIfNecessary(log, secretsClient, ca, caPrivKey, caBytes)
+	return createCACertSecretIfNecessary(log, secretsClient, ca, caPrivKey, caBytes, podClient)
 }
 
 func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface, ca *x509.Certificate,
-	caPrivKey *rsa.PrivateKey, caBytes []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
+	caPrivKey *rsa.PrivateKey, caBytes []byte, podClient corev1.PodInterface) (*x509.Certificate, *rsa.PrivateKey, error) {
+	pods := getPodList(log, podClient)
 	caPEMBytes, caKeyPEMBytes := encodeCABytes(caBytes, caPrivKey)
-
 	webhookCA := v1.Secret{}
 	webhookCA.Namespace = OperatorNamespace
 	webhookCA.Name = OperatorCA
 	webhookCA.Type = v1.SecretTypeTLS
-
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[CertKey] = caPEMBytes
 	webhookCA.Data[PrivKey] = caKeyPEMBytes
@@ -234,7 +229,8 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 		{
 			Kind:       "Pod",
 			APIVersion: "v1",
-			Name:       "initwebhooks",
+			Name:       pods.Items[0].GetName(),
+			UID:        pods.Items[0].GetUID(),
 		},
 	}
 
@@ -332,4 +328,18 @@ func writeFile(log *zap.SugaredLogger, filepath string, pemData []byte) error {
 	}
 
 	return nil
+}
+
+func getPodList(log *zap.SugaredLogger, podClient corev1.PodInterface) *v1.PodList {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator-webhook"}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	pods, err := podClient.List(context.TODO(), listOptions)
+	if err != nil {
+		log.Errorf("Failed listing pods in namespace %s: %v", OperatorNamespace, err)
+		return nil
+	}
+	return pods
+
 }
