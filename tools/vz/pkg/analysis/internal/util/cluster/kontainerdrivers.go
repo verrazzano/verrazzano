@@ -20,6 +20,12 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string) error {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
+	return analyzeKontainerDrivers(log, clusterRoot, &issueReporter)
+}
+
+// analyzeKontainerDrivers handles the checking af the status of KontainerDriver resource.
+func analyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+
 	kontainerDriverPath := files.FindFileInClusterRoot(clusterRoot, "default/kontainerdriver.json")
 	_, err := os.Stat(kontainerDriverPath)
 	if os.IsNotExist(err) {
@@ -45,7 +51,7 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string) error {
 	}
 
 	for _, driver := range drivers.([]interface{}) {
-		err = reportKontainerDriverIssue(log, clusterRoot, driver, &issueReporter)
+		err = reportKontainerDriverIssue(log, clusterRoot, driver, issueReporter)
 		if err != nil {
 			return err
 		}
