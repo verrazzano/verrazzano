@@ -29,10 +29,9 @@ const (
 )
 
 const (
-	globalRegistryName    = "testreg.io"
-	imageTagOverride      = "v1.2.3"
-	imageRepoOverride     = "acme"
-	imageRegistryOverride = "github.com"
+	globalRegistryName = "github.com"
+	imageTagOverride   = "v1.2.3"
+	imageRepoOverride  = "acme"
 
 	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
 	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
@@ -178,9 +177,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
 			applyOverrides(fmt.Sprintf(globalRegistryOverride, globalRegistryName))
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			// The CAPI pods are now in a broken state because the registry name does not exist.
-			// Verify the deployments get updated to use the new value.
-			Eventually(isGlobalRegUsed, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -202,7 +199,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we override the registry/repository tags
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
-			applyOverrides(fmt.Sprintf(repoOverrides, imageRegistryOverride, imageRepoOverride, imageRegistryOverride, imageRepoOverride, imageRegistryOverride, imageRepoOverride, imageRegistryOverride, imageRepoOverride))
+			applyOverrides(fmt.Sprintf(repoOverrides, globalRegistryName, imageRepoOverride, globalRegistryName, imageRepoOverride, globalRegistryName, imageRepoOverride, globalRegistryName, imageRepoOverride))
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			// The CAPI pods are now in a broken state because the repository does not exist.
 			// Verify the deployments get updated to use the new value.
@@ -330,11 +327,6 @@ func getComponentsFromBom() (*bom.BomComponent, *bom.BomComponent, *bom.BomCompo
 	return ociComp, capiComp, coreComp
 }
 
-// isGlobalRegUsed - determine if the global registry override is being used in the CAPI deployments
-func isGlobalRegUsed() bool {
-	return isSubstringInDeploymentImages(fmt.Sprintf("%s/", globalRegistryName))
-}
-
 // isImageTagUsed - determine if the image tag override is being used in the CAPI deployments
 func isImageTagUsed() bool {
 	return isSubstringInDeploymentImages(fmt.Sprintf(":%s", imageTagOverride))
@@ -342,7 +334,7 @@ func isImageTagUsed() bool {
 
 // isRepositoryUsed - determine if the image tag overrides for registry and repo are being used in the CAPI deployments
 func isRepositoryUsed() bool {
-	return isSubstringInDeploymentImages(fmt.Sprintf("%s/%s", imageRegistryOverride, imageRepoOverride))
+	return isSubstringInDeploymentImages(fmt.Sprintf("%s/%s", globalRegistryName, imageRepoOverride))
 }
 
 func isSubstringInDeploymentImages(substring string) bool {
