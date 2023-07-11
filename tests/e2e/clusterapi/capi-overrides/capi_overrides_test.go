@@ -171,7 +171,9 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we override the global registry
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
-			applyOverrides(fmt.Sprintf(globalRegistryOverride, bomDoc.Registry))
+			Eventually(func() bool {
+				return updateClusterAPIOverrides(fmt.Sprintf(globalRegistryOverride, bomDoc.Registry)) == nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -182,7 +184,9 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we override the image tags
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
-			applyOverrides(fmt.Sprintf(tagOverrides, imageTagOverride, imageTagOverride, imageTagOverride, imageTagOverride))
+			Eventually(func() bool {
+				return updateClusterAPIOverrides(fmt.Sprintf(tagOverrides, imageTagOverride, imageTagOverride, imageTagOverride, imageTagOverride)) == nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			// The CAPI pods are now in a broken state because the image tag does not exist.
 			// Verify the deployments get updated to use the new value.
@@ -195,7 +199,10 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we override the registry/repository tags
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
-			applyOverrides(fmt.Sprintf(repoOverrides, bomDoc.Registry, imageRepoOverride, bomDoc.Registry, imageRepoOverride, bomDoc.Registry, imageRepoOverride, bomDoc.Registry, imageRepoOverride))
+			Eventually(func() bool {
+				return updateClusterAPIOverrides(fmt.Sprintf(repoOverrides, bomDoc.Registry, imageRepoOverride,
+					bomDoc.Registry, imageRepoOverride, bomDoc.Registry, imageRepoOverride, bomDoc.Registry, imageRepoOverride)) == nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			// The CAPI pods are now in a broken state because the repository does not exist.
 			// Verify the deployments get updated to use the new value.
@@ -210,7 +217,9 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
-			applyOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version))
+			Eventually(func() bool {
+				return updateClusterAPIOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version)) == nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -223,11 +232,13 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
-			applyOverrides(fmt.Sprintf(urlOverrides,
-				fmt.Sprintf(ociInfraURLFmt, ociComp.Version),
-				fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
-				fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version),
-				fmt.Sprintf(coreURLFmt, coreComp.Version)))
+			Eventually(func() bool {
+				return updateClusterAPIOverrides(fmt.Sprintf(urlOverrides,
+					fmt.Sprintf(ociInfraURLFmt, ociComp.Version),
+					fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
+					fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version),
+					fmt.Sprintf(coreURLFmt, coreComp.Version))) == nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -238,7 +249,9 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we remove the overrides
 		// THEN the default values will get restored
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
-			applyOverrides("")
+			Eventually(func() bool {
+				return updateClusterAPIOverrides("") == nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -261,38 +274,35 @@ func isStatusMet(state v1beta1.VzStateType) bool {
 	return vz.Status.State == state
 }
 
-// applyOverrides - apply overrides to the CAPI component
-func applyOverrides(overrides string) {
-	// May need to retry the update because VPO can be updating the VZ custom resource
-	Eventually(func() bool {
-		// Get the VZ resource
-		vz, err := pkg.GetVerrazzanoV1beta1()
-		Expect(err).ToNot(HaveOccurred())
+// updateClusterAPIOverrides - Update the VZ with the set of overrides pass for clusterAPI component
+func updateClusterAPIOverrides(overrides string) error {
+	// Get the VZ resource
+	vz, err := pkg.GetVerrazzanoV1beta1()
+	Expect(err).ToNot(HaveOccurred())
 
-		// Get the client
-		client, err := pkg.GetVerrazzanoClientset()
-		Expect(err).ToNot(HaveOccurred())
+	// Get the client
+	client, err := pkg.GetVerrazzanoClientset()
+	Expect(err).ToNot(HaveOccurred())
 
-		// Update the VZ with the overrides
-		if len(overrides) == 0 {
-			// Restore the VZ to default values
-			vz.Spec.Components.ClusterAPI = nil
-		} else {
-			vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
-			vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
-				ValueOverrides: []v1beta1.Overrides{
-					{
-						Values: &apiextensionsv1.JSON{
-							Raw: []byte(overrides),
-						},
+	// Update the VZ with the overrides
+	if len(overrides) == 0 {
+		// Restore the VZ to default values
+		vz.Spec.Components.ClusterAPI = nil
+	} else {
+		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
+		vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
+			ValueOverrides: []v1beta1.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte(overrides),
 					},
 				},
-			}
+			},
 		}
+	}
 
-		_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
-		return err == nil
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+	_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
+	return err
 }
 
 // getComponentsFromBom - return some components from the BOM file
