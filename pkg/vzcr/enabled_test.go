@@ -2086,3 +2086,35 @@ func TestIsAlertmanagerEnabled(t *testing.T) {
 		})
 	}
 }
+
+// TestIsOpenSearchOperatorEnabled tests whether the OpenSearchOperator is enabled or not
+// GIVEN a call to IsOpenSearchOperatorEnabled
+// WHEN OpenSearchOperator is explicitly enabled or disabled
+// THEN return the value as expected in the enabled variable
+func TestIsOpenSearchOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsOpenSearchOperatorEnabled(nil))
+	asserts.False(IsOpenSearchOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsOpenSearchOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsOpenSearchOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsOpenSearchOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}

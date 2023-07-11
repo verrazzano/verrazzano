@@ -40,6 +40,27 @@ spec:
               memory: 1G
           roles:
             - master
+    opensearchOperator:
+      overrides:
+        - values:
+            opensearchCluster:
+              bootstrap:
+                additionalConfig:
+                  cluster.initial_master_nodes: opensearch-es-master-0
+              nodePools:
+                - component: es-master
+                  additionalConfig:
+                    discovery.seed_hosts: opensearch-es-master
+                    cluster.initial_master_nodes: opensearch-es-master-0
+                  replicas: 1
+                  resources:
+                    requests:
+                      memory: "1Gi"
+                  roles:
+                    - "data"
+                    - "master"
+                  persistence:
+                    emptyDir: { }
     fluentd:
       enabled: false
     fluentOperator:
