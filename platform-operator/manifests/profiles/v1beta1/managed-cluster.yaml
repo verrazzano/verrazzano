@@ -14,6 +14,8 @@ spec:
       enabled: false
     opensearchDashboards:
       enabled: false
+    opensearchOperator:
+      enabled: false
     console:
       enabled: false
     kiali:

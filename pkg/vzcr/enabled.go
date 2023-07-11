@@ -236,6 +236,20 @@ func IsOpenSearchEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsOpenSearchOperatorEnabled returns false only if OpenSearchOperator is explicitly disabled in the CR
+func IsOpenSearchOperatorEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.OpenSearchOperator != nil && vzv1alpha1.Spec.Components.OpenSearchOperator.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.OpenSearchOperator.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.OpenSearchOperator != nil && vzv1beta1.Spec.Components.OpenSearchOperator.Enabled != nil {
+			return *vzv1beta1.Spec.Components.OpenSearchOperator.Enabled
+		}
+	}
+	return true
+}
+
 // IsGrafanaEnabled - Returns false only if explicitly disabled in the CR
 func IsGrafanaEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {

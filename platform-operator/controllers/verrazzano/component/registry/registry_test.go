@@ -57,8 +57,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
@@ -119,7 +118,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 40, "Wrong number of components")
+	a.Len(comps, 39, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
@@ -152,9 +151,11 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), vmo.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), opensearch.ComponentName)
-	i++
-	a.Equal(comps[i].Name(), opensearchdashboards.ComponentName)
+	//a.Equal(comps[i].Name(), opensearch.ComponentName)
+	//i++
+	//a.Equal(comps[i].Name(), opensearchdashboards.ComponentName)
+	//i++
+	a.Equal(comps[i].Name(), opensearchoperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), grafana.ComponentName)
 	i++
