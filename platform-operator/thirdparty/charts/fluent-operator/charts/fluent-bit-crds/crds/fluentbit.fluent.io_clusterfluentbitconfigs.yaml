@@ -298,7 +298,9 @@ spec:
                     type: string
                   storage:
                     description: Configure a global environment for the storage layer
-                      in Service
+                      in Service. It is recommended to configure the volume and volumeMount
+                      separately for this storage. The hostPath type should be used
+                      for that Volume in Fluentbit daemon set.
                     properties:
                       backlogMemLimit:
                         description: This option configure a hint of maximum value

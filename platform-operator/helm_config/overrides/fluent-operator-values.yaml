@@ -69,8 +69,6 @@ fluentbit:
       path: "/fluent-bit/tail/"
       backlogMemLimit: "50MB"
       checksum: "off"
-      deleteIrrecoverableChunks: "on"
-      maxChunksUp: 130
       metrics: "off"
       sync: normal
 
