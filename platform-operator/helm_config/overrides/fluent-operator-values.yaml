@@ -36,7 +36,7 @@ fluentbit:
   input:
     tail:
       readFromHead: true
-      storageType: memory
+      storageType: filesystem
       pauseOnChunksOverlimit: "on"
     systemd:
       path: "/run/log/journal"
