@@ -7,6 +7,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	monitor "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/servicemonitor"
 )
+
 func CreateMetricsChildResources(metricstrait *vzapi.MetricsTrait) {
 	//createService()
 	monitor.CreateServiceMonitor(metricstrait)

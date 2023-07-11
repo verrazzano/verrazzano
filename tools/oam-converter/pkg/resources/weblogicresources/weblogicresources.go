@@ -65,7 +65,7 @@ func CreateIngressChildResourcesFromWeblogic(traitName string, ingressTrait *vza
 	}
 	return nil
 }
-func NewTraitDefaultsForWLSDomainWorkload( workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+func NewTraitDefaultsForWLSDomainWorkload(workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
 	// Port precedence: trait, workload annotation, default
 	port := 7001
 	path := "/wls-exporter/metrics"
@@ -78,8 +78,8 @@ func NewTraitDefaultsForWLSDomainWorkload( workload *unstructured.Unstructured) 
 			Port: &port,
 			Path: &path,
 		}},
-		Path:    &path,
-		Secret:  secret,
+		Path:   &path,
+		Secret: secret,
 		//Scraper: &r.Scraper
 	}, nil
 }

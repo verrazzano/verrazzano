@@ -104,8 +104,8 @@ func NewTraitDefaultsForCOHWorkload(workload *unstructured.Unstructured) (*vzapi
 			Port: &port,
 			Path: &path,
 		}},
-		Path:    &path,
-		Secret:  secret,
+		Path:   &path,
+		Secret: secret,
 		//Scraper: &r.Scraper
 	}, nil
 }

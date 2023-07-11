@@ -16,10 +16,12 @@ import (
 	"strconv"
 	"strings"
 )
+
 const (
 	prometheusClusterNameLabel = "verrazzano_cluster"
 )
-func CreateServiceMonitor(trait *vzapi.MetricsTrait) (monitor promoperapi.ServiceMonitor, err error){
+
+func CreateServiceMonitor(trait *vzapi.MetricsTrait) (monitor promoperapi.ServiceMonitor, err error) {
 
 	serviceMonitor := promoperapi.ServiceMonitor{}
 

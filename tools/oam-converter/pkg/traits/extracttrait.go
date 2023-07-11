@@ -100,7 +100,7 @@ func FetchWorkloadFromTrait(trait *vzapi.MetricsTrait) (*unstructured.Unstructur
 func FetchContainedWorkload(workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	apiVersion, kind, _, err := GetContainedWorkloadVersionKindName(workload)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	_ = ""
 	u := &unstructured.Unstructured{}
@@ -120,7 +120,7 @@ func FetchWorkloadResource(workload *unstructured.Unstructured) (*unstructured.U
 	// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
 	resource, err := FetchContainedWorkload(workload)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	return resource, nil
@@ -231,12 +231,12 @@ func NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSpec, error) {
 			Port: &port,
 			Path: &path,
 		}},
-		Path:    &path,
-		Secret:  nil,
+		Path:   &path,
+		Secret: nil,
 		//Scraper: &r.Scraper
 	}, nil
 }
-func FetchSourceCredentialsSecretIfRequired(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured)(*corev1.Secret, error){
+func FetchSourceCredentialsSecretIfRequired(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured) (*corev1.Secret, error) {
 	secretName := trait.Spec.Secret
 	// If no secret name explicitly provided use the default secret name.
 	if secretName == nil && traitDefaults != nil {
