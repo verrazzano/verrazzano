@@ -109,7 +109,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 				Skip("Skipping test because Rancher is not configured")
 			}
 			expectedDriversFound := func() bool {
-				cattleDrivers, err := capipkg.ListKontainerDrivers(clientset)
+				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
 					t.Logs.Info(err.Error())
 					return false
