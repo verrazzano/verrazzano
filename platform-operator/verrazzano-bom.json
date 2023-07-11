@@ -265,7 +265,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230628190831-09d3d66",
+              "tag": "v2.0.0-20230711035747-67edc78",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -467,7 +467,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230616102644-d8debc6",
+              "tag": "v2.2.0-20230711070818-2fe76f7",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
