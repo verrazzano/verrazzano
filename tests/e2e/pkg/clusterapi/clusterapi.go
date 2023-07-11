@@ -7,14 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	. "github.com/onsi/ginkgo/v2"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,7 +30,7 @@ func WhenClusterAPIInstalledIt(t *framework.TestFramework, description string, f
 	t.It(description, func() {
 		capiInstalled, err := isClusterAPIInstalled()
 		if err != nil {
-			AbortSuite(err.Error())
+			ginkgo.AbortSuite(err.Error())
 		}
 		if capiInstalled {
 			f()
