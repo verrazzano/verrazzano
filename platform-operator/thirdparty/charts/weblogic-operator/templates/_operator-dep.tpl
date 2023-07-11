@@ -86,9 +86,11 @@ spec:
         - name: "JAVA_LOGGING_LEVEL"
           value: {{ .javaLoggingLevel | quote }}
         - name: "JAVA_LOGGING_MAXSIZE"
-          value: {{ .javaLoggingFileSizeLimit | default 20000000 | quote }}
+          value: {{ int64 .javaLoggingFileSizeLimit | default 20000000 | quote }}
         - name: "JAVA_LOGGING_COUNT"
           value: {{ .javaLoggingFileCount | default 10 | quote }}
+        - name: "JVM_OPTIONS"
+          value: {{ .jvmOptions | default "-XshowSettings:vm -XX:MaxRAMPercentage=70" | quote }}
         {{- if .remoteDebugNodePortEnabled }}
         - name: "REMOTE_DEBUG_PORT"
           value: {{ .internalDebugHttpPort | quote }}
@@ -222,6 +224,12 @@ spec:
       namespace: {{ .Release.Namespace | quote }}
     data:
       serviceaccount: {{ .serviceAccount | quote }}
+      {{- if .featureGates }}
+      featureGates: {{ .featureGates | quote }}
+      {{- end }}
+      {{- if .domainNamespaceSelectionStrategy }}
+      domainNamespaceSelectionStrategy: {{ .domainNamespaceSelectionStrategy | quote }}
+      {{- end }}
 ---
     # webhook does not exist or chart version is newer, create a new webhook
     apiVersion: "apps/v1"
@@ -302,7 +310,7 @@ spec:
             - name: "JAVA_LOGGING_LEVEL"
               value: {{ .javaLoggingLevel | quote }}
             - name: "JAVA_LOGGING_MAXSIZE"
-              value: {{ .javaLoggingFileSizeLimit | default 20000000 | quote }}
+              value: {{ int64 .javaLoggingFileSizeLimit | default 20000000 | quote }}
             - name: "JAVA_LOGGING_COUNT"
               value: {{ .javaLoggingFileCount | default 10 | quote }}
             {{- if .remoteDebugNodePortEnabled }}

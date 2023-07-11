@@ -145,7 +145,7 @@ function dump_es_indexes() {
   fi
 }
 
-# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currenntly
+# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currently
 # should only be called after that has been called
 function dump_configmaps() {
   # Get list of all config maps in the cluster
@@ -276,8 +276,10 @@ function full_k8s_cluster_snapshot() {
     if kubectl get ns verrazzano-monitoring 2>&1 > /dev/null ; then
       kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-snapshot/prom-scrape-config.yaml || true
     fi
-    # Gather event messages in crhonological order
+    # Gather event messages in chronological order
     gather_cronological_events
+    # Dump CAPI resources
+    kubectl --insecure-skip-tls-verify get kontainerdrivers -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kontainerdrivers.json || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi
