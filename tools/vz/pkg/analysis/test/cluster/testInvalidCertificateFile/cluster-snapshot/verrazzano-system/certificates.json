@@ -3,6 +3,7 @@
     "resourceVersion": "27383"
   },
   "items": [
+    {
     
       "kind": "Certificate",
       "apiVersion": "cert-manager.io/v1",
