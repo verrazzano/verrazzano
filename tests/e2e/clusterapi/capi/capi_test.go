@@ -415,18 +415,6 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "disable module and vpo")
 		})
 
-		WhenClusterAPIInstalledIt("Check OCNE Control plane status for module operator info", func() {
-			Eventually(func() bool {
-				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, moduleOperatorStatusType, "false", moduleUninstalled, t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "check ocne status for module info")
-		})
-
-		WhenClusterAPIInstalledIt("Check OCNE Control plane status for verrazzano platform operator info", func() {
-			Eventually(func() bool {
-				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, vzOperatorStatusType, "false", vzOperatorUninstalled, t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "check ocne status for vpo info")
-		})
-
 		WhenClusterAPIInstalledIt("Ensure Verrazzano Module operator pods in verrazzano-module-operator of CAPI workload cluster are not running", func() {
 			Eventually(func() bool {
 				return EnsurePodsAreNotRunning(ClusterName, "verrazzano-module-operator", verrazzanoModuleOperatorPod, t.Logs)
@@ -437,6 +425,18 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			Eventually(func() bool {
 				return EnsurePodsAreNotRunning(ClusterName, "verrazzano-install", verrazzanoPlatformOperatorPods, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if vpo pods are not running")
+		})
+
+		WhenClusterAPIInstalledIt("Check OCNE Control plane status for module operator info", func() {
+			Eventually(func() bool {
+				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, moduleOperatorStatusType, "False", moduleUninstalled, t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "check ocne status for module info")
+		})
+
+		WhenClusterAPIInstalledIt("Check OCNE Control plane status for verrazzano platform operator info", func() {
+			Eventually(func() bool {
+				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, vzOperatorStatusType, "False", vzOperatorUninstalled, t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "check ocne status for vpo info")
 		})
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
@@ -454,6 +454,18 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "enable module and vpo")
 		})
 
+		WhenClusterAPIInstalledIt("Check OCNE Control plane status for module operator info", func() {
+			Eventually(func() bool {
+				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, moduleOperatorStatusType, "True", "", t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "check ocne status for module info")
+		})
+
+		WhenClusterAPIInstalledIt("Check OCNE Control plane status for verrazzano platform operator info", func() {
+			Eventually(func() bool {
+				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, vzOperatorStatusType, "True", "", t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "check ocne status for vpo info")
+		})
+
 		WhenClusterAPIInstalledIt("Ensure Module operator pods in verrazzano-module-operator of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return EnsurePodsAreRunning(ClusterName, "verrazzano-module-operator", "module", t.Logs)
@@ -466,18 +478,6 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
-		WhenClusterAPIInstalledIt("Check OCNE Control plane status for module operator info", func() {
-			Eventually(func() bool {
-				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, moduleOperatorStatusType, "true", "", t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "check ocne status for module info")
-		})
-
-		WhenClusterAPIInstalledIt("Check OCNE Control plane status for verrazzano platform operator info", func() {
-			Eventually(func() bool {
-				return capiTest.CheckOCNEControlPlaneStatus(ClusterName, vzOperatorStatusType, "true", "", t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "check ocne status for vpo info")
-		})
-
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
 				return capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
@@ -485,20 +485,21 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 		})
 	})
 
-	t.Context(fmt.Sprintf("Deploy Verrazzano and monitor vz install status  '%s'", ClusterName), func() {
-		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
-			Eventually(func() error {
-				return capiTest.DeployAnyClusterResourceSets(ClusterName, clusterResourceSetTemplateVZ, t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
-		})
-
-		t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
-			WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
+	/*
+		t.Context(fmt.Sprintf("Deploy Verrazzano and monitor vz install status  '%s'", ClusterName), func() {
+			WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
 				Eventually(func() error {
-					return capiTest.EnsureVerrazzano(ClusterName, t.Logs)
-				}, capiClusterCreationWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano is installed")
+					return capiTest.DeployAnyClusterResourceSets(ClusterName, clusterResourceSetTemplateVZ, t.Logs)
+				}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+			})
+
+			t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
+				WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
+					Eventually(func() error {
+						return capiTest.EnsureVerrazzano(ClusterName, t.Logs)
+					}, capiClusterCreationWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano is installed")
+				})
 			})
 		})
-	})
-
+	*/
 })

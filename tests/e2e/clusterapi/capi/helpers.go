@@ -287,7 +287,7 @@ func (c CAPITestImpl) TriggerCapiClusterCreation(clusterName, templateName strin
 		log.Errorf("Error creating cluster from template ", zap.Error(err))
 		return err
 	}
-	log.Infof("Wait for 10 seconds before verification")
+	log.Infof("Wait for 30 seconds before verification")
 	time.Sleep(30 * time.Second)
 	return nil
 }
@@ -368,8 +368,9 @@ func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName str
 		return err
 	}
 
-	log.Infof("Wait for 30 seconds for cluster resourceset resources to deploy")
-	time.Sleep(30 * time.Second)
+	log.Infof("Wait for 5 seconds for controllers to reconcile...")
+	time.Sleep(5 * time.Second)
+
 	return nil
 }
 
@@ -875,19 +876,20 @@ func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusTyp
 	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
 	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
 	if err != nil {
+		log.Error("unable to fetch OCNE control plane : ", zap.Error(err))
 		return false
 	}
 
 	for _, cond := range ocneCP.Status.Conditions {
 		if cond.Type == expectedStatusType {
-			if strings.ToLower(cond.Status) == expectedStatus {
-				switch strings.ToLower(cond.Status) {
-				case "false":
+			if cond.Status == expectedStatus {
+				switch cond.Status {
+				case "False":
 					if cond.Reason == expectedReason {
 						// all matched
 						return true
 					}
-				case "true":
+				case "True":
 					// reason is irrelevant
 					return true
 				}

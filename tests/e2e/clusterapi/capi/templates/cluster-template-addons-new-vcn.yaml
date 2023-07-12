@@ -76,8 +76,6 @@ spec:
     name: ${CLUSTER_NAME}-cluster-identity
     namespace: ${CLUSTER_NAMESPACE}
   networkSpec:
-    apiServerLoadBalancer:
-      loadBalancerType: "lb"
     vcn:
       name: ${CLUSTER_NAME}
       cidr: "10.0.0.0/16"
