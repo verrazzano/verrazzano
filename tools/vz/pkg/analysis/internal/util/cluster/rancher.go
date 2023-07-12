@@ -94,51 +94,58 @@ func analyzeClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *
 func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
 
 	var messages []string
-	var message string
+	var subMessage string
 	for _, condition := range cluster.Status.Conditions {
-		switch condition.Type {
-		case "Ready":
-			if condition.Reason == "" {
-				condition.Reason = "Not Given"
-			}
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not ready, reason is %s", cluster.Name, cluster.Spec.DisplayName, condition.Reason)
-		case "Provisioning":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not provisioning", cluster.Name, cluster.Spec.DisplayName)
-		case "Provisioned":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not provisioned", cluster.Name, cluster.Spec.DisplayName)
-		case "Waiting":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is waiting", cluster.Name, cluster.Spec.DisplayName)
-		case "Connected":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not connected", cluster.Name, cluster.Spec.DisplayName)
-		case "RKESecretsMigrated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, RKE secrets not migrated", cluster.Name, cluster.Spec.DisplayName)
-		case "SecretsMigrated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, secrets not migrated", cluster.Name, cluster.Spec.DisplayName)
-		case "NoMemoryPressure":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, has memory pressure", cluster.Name, cluster.Spec.DisplayName)
-		case "NoDiskPressure":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, has disk pressure", cluster.Name, cluster.Spec.DisplayName)
-		case "SystemAccountCreated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, system account not created", cluster.Name, cluster.Spec.DisplayName)
-		case "SystemProjectCreated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, system project not created", cluster.Name, cluster.Spec.DisplayName)
-		case "DefaultProjectCreated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, default project not created", cluster.Name, cluster.Spec.DisplayName)
-		case "GlobalAdminsSynced":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, global admins not synced", cluster.Name, cluster.Spec.DisplayName)
-		case "ServiceAccountMigrated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, service account not migrated", cluster.Name, cluster.Spec.DisplayName)
-		case "ServiceAccountSecretsMigrated":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, service account secrets not migrated", cluster.Name, cluster.Spec.DisplayName)
-		case "AgentDeployed":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, agent not deployed", cluster.Name, cluster.Spec.DisplayName)
-		case "CreatorMadeOwner":
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, creator not made owner", cluster.Name, cluster.Spec.DisplayName)
-		default:
-			fmt.Println(condition)
-		}
 		if condition.Status != corev1.ConditionTrue {
-			messages = append([]string{message}, messages...)
+			switch condition.Type {
+			case "Ready":
+				subMessage = "is not ready"
+			case "Provisioning":
+				subMessage = "is not provisioning"
+			case "Provisioned":
+				subMessage = "is not provisioned"
+			case "Waiting":
+				subMessage = "is waiting"
+			case "Connected":
+				subMessage = "is not connected"
+			case "RKESecretsMigrated":
+				subMessage = "RKE secrets not migrated"
+			case "SecretsMigrated":
+				subMessage = "secrets not migrated"
+			case "NoMemoryPressure":
+				subMessage = "has memory pressure"
+			case "NoDiskPressure":
+				subMessage = "has disk pressure"
+			case "SystemAccountCreated":
+				subMessage = "system account not created"
+			case "SystemProjectCreated":
+				subMessage = "system project not created"
+			case "DefaultProjectCreated":
+				subMessage = "default project not created"
+			case "GlobalAdminsSynced":
+				subMessage = "global admins not synced"
+			case "ServiceAccountMigrated":
+				subMessage = "service account not migrated"
+			case "ServiceAccountSecretsMigrated":
+				subMessage = "service account secrets not migrated"
+			case "AgentDeployed":
+				subMessage = "agent not deployed"
+			case "CreatorMadeOwner":
+				subMessage = "creator not made owner"
+			case "InitialRolesPopulated":
+				subMessage = "initial roles not populated"
+			case "BackingNamespaceCreated":
+				subMessage = "backing namespace not created"
+			}
+			if condition.Status != corev1.ConditionTrue {
+				var message string
+				if len(condition.Reason) == 0 {
+					message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s", cluster.Name, cluster.Spec.DisplayName, subMessage)
+				} else {
+					message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s - reason is %s", cluster.Name, cluster.Spec.DisplayName, subMessage, condition.Reason)
+				}
+				messages = append([]string{message}, messages...)
+			}
 		}
 	}
 
