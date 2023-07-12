@@ -107,3 +107,10 @@ ingressNGINX:
 
 platformOperator:
   namespace: verrazzano-install
+
+fluentd:
+  enabled: true
+fluentOperator:
+  enabled: true
+fluentbitOpensearchOutput:
+  enabled: true
