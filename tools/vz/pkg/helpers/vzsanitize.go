@@ -49,6 +49,7 @@ var opcid = regexPlan{
 // Append to this map for any future additions
 func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, ipv4Regex)
+	regexToReplacementList = append(regexToReplacementList, hostnameRegex)
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)

@@ -172,8 +172,8 @@ func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
-// and services from the specified namespace, as JSON files
-func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+// services, and cert-manager certificates from the specified namespace, as JSON files
+func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -193,6 +193,9 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.
 		return err
 	}
 	if err := captureRancherNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
+	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil

@@ -1,0 +1,348 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "creationTimestamp": "2023-03-08T14:31:49Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "system-tls-es-ingest",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Ingress",
+                        "name": "vmi-system-es-ingest",
+                        "uid": "c1e63e86-3fd1-477d-85b5-c4a8641d7659"
+                    }
+                ],
+                "resourceVersion": "12946",
+                "uid": "c70a3a3f-7d09-43fe-8de1-5ca9dfb4a608"
+            },
+            "spec": {
+                "commonName": "abc123.io",
+                "dnsNames": [
+                    "abc123.io"
+                ],
+                "issuerRef": {
+                    "group": "cert-manager.io",
+                    "kind": "ClusterIssuer",
+                    "name": "verrazzano-cluster-issuer"
+                },
+                "secretName": "system-tls-es-ingest",
+                "usages": [
+                    "digital signature",
+                    "key encipherment"
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "message": "Certificate is up to date and has not expired",
+                        "observedGeneration": 1,
+                        "reason": "Ready",
+                        "status": "True",
+                        "type": "Not Ready"
+                    }
+                ],
+                "notAfter": "2024-06-06T13:37:56Z",
+                "notBefore": "2023-03-08T13:37:57Z",
+                "renewalTime": "2023-05-07T13:37:56Z",
+                "revision": 1
+            }
+        },
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "creationTimestamp": "2023-03-08T14:31:49Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "system-tls-grafana",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Ingress",
+                        "name": "vmi-system-grafana",
+                        "uid": "ebbccb4c-1a32-466b-8d9a-44eb78857f5c"
+                    }
+                ],
+                "resourceVersion": "26805",
+                "uid": "fda1399a-53fb-467e-82da-d0102a5a81f5"
+            },
+            "spec": {
+                "commonName": "abc123.io",
+                "dnsNames": [
+                    "abc123.io"
+                ],
+                "issuerRef": {
+                    "group": "cert-manager.io",
+                    "kind": "ClusterIssuer",
+                    "name": "verrazzano-cluster-issuer"
+                },
+                "secretName": "system-tls-grafana",
+                "usages": [
+                    "digital signature",
+                    "key encipherment"
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2023-03-08T15:04:08Z",
+                        "message": "Certificate is up to date and has not expired",
+                        "observedGeneration": 1,
+                        "reason": "Ready",
+                        "status": "True",
+                        "type": "Not Ready"
+                    }
+                ],
+                "notAfter": "2024-06-06T14:04:06Z",
+                "notBefore": "2023-03-08T14:04:07Z",
+                "renewalTime": "2023-05-07T14:04:06Z",
+                "revision": 1
+            }
+        },
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "creationTimestamp": "2023-03-08T14:34:41Z",
+                "generation": 1,
+                "name": "system-tls-kiali",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Ingress",
+                        "name": "vmi-system-kiali",
+                        "uid": "e347ca20-c5b1-46ea-954a-a58e957a2336"
+                    }
+                ],
+                "resourceVersion": "12935",
+                "uid": "c275aad8-caf9-4e49-8380-2d7fcb38093c"
+            },
+            "spec": {
+                "commonName": "abc123.io",
+                "dnsNames": [
+                    "abc123.io"
+                ],
+                "issuerRef": {
+                    "group": "cert-manager.io",
+                    "kind": "ClusterIssuer",
+                    "name": "verrazzano-cluster-issuer"
+                },
+                "secretName": "system-tls-kiali",
+                "usages": [
+                    "digital signature",
+                    "key encipherment"
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2023-03-08T14:37:58Z",
+                        "message": "Certificate is up to date and has not expired",
+                        "observedGeneration": 1,
+                        "reason": "Ready",
+                        "status": "True",
+                        "type": "Ready"
+                    }
+                ],
+                "notAfter": "2024-06-06T13:37:55Z",
+                "notBefore": "2023-03-08T13:37:56Z",
+                "renewalTime": "2023-05-07T13:37:55Z",
+                "revision": 1
+            }
+        },
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "creationTimestamp": "2023-03-08T14:31:49Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "system-tls-kibana",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Ingress",
+                        "name": "vmi-system-kibana",
+                        "uid": "e94f773b-150a-4e2e-b9be-4c13349f59fd"
+                    }
+                ],
+                "resourceVersion": "26990",
+                "uid": "ee44c0dc-e443-49a2-8dfb-d34752fc1229"
+            },
+            "spec": {
+                "commonName": "abc123.io",
+                "dnsNames": [
+                    "abc123.io"
+                ],
+                "issuerRef": {
+                    "group": "cert-manager.io",
+                    "kind": "ClusterIssuer",
+                    "name": "verrazzano-cluster-issuer"
+                },
+                "secretName": "system-tls-kibana",
+                "usages": [
+                    "digital signature",
+                    "key encipherment"
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2023-03-08T15:04:27Z",
+                        "message": "Certificate is up to date and has not expired",
+                        "observedGeneration": 1,
+                        "reason": "Ready",
+                        "status": "True",
+                        "type": "Ready"
+                    }
+                ],
+                "notAfter": "2024-06-06T14:04:25Z",
+                "notBefore": "2023-03-08T14:04:26Z",
+                "renewalTime": "2023-05-07T14:04:25Z",
+                "revision": 1
+            }
+        },
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "creationTimestamp": "2023-03-08T14:34:45Z",
+                "generation": 1,
+                "name": "system-tls-prometheus",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Ingress",
+                        "name": "vmi-system-prometheus",
+                        "uid": "d4140a1a-3b34-462b-8397-dc6c541500d7"
+                    }
+                ],
+                "resourceVersion": "12924",
+                "uid": "5bf11cc2-9ab2-47a6-85a9-1f68936855d0"
+            },
+            "spec": {
+                "commonName": "abc123.io",
+                "dnsNames": [
+                    "abc123.io"
+                ],
+                "issuerRef": {
+                    "group": "cert-manager.io",
+                    "kind": "ClusterIssuer",
+                    "name": "verrazzano-cluster-issuer"
+                },
+                "secretName": "system-tls-prometheus",
+                "usages": [
+                    "digital signature",
+                    "key encipherment"
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2023-03-08T14:37:57Z",
+                        "message": "Certificate is up to date and has not expired",
+                        "observedGeneration": 1,
+                        "reason": "Ready",
+                        "status": "True",
+                        "type": "Ready"
+                    }
+                ],
+                "notAfter": "2024-06-06T13:37:55Z",
+                "notBefore": "2023-03-08T13:37:56Z",
+                "renewalTime": "2023-05-07T13:37:55Z",
+                "revision": 1
+            }
+        },
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "creationTimestamp": "2023-03-08T14:31:05Z",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "name": "verrazzano-tls",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Ingress",
+                        "name": "verrazzano-ingress",
+                        "uid": "7722d0d6-e8bf-46ff-a687-2f2d77c65936"
+                    }
+                ],
+                "resourceVersion": "12917",
+                "uid": "5e322b73-037c-4dd5-9f26-89d9efa272e0"
+            },
+            "spec": {
+                "commonName": "abc123.io",
+                "dnsNames": [
+                    "abc123.io"
+                ],
+                "issuerRef": {
+                    "group": "cert-manager.io",
+                    "kind": "ClusterIssuer",
+                    "name": "verrazzano-cluster-issuer"
+                },
+                "secretName": "verrazzano-tls",
+                "usages": [
+                    "digital signature",
+                    "key encipherment"
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2023-03-08T14:37:56Z",
+                        "message": "Certificate is up to date and has not expired",
+                        "observedGeneration": 1,
+                        "reason": "Ready",
+                        "status": "True",
+                        "type": "Ready"
+                    }
+                ],
+                "notAfter": "2024-06-06T13:37:54Z",
+                "notBefore": "2023-03-08T13:37:55Z",
+                "renewalTime": "2023-05-07T13:37:54Z",
+                "revision": 1
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": "",
+        "selfLink": ""
+    }
+}

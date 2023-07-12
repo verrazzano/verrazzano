@@ -1,15 +1,17 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
 package cluster
 
 import (
+	"strings"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
-	"strings"
 )
 
 // TODO: Helpers to access this info as needed
@@ -73,7 +75,7 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		// These are Verrazzano owned namespaces
 		if strings.Contains(namespace, "verrazzano") {
 			verrazzanoNamespacesFound = append(verrazzanoNamespacesFound, namespace)
-			deploymentList, err := GetDeploymentList(log, files.FindFileInNamespace(clusterRoot, namespace, "deployments.json"))
+			deploymentList, err := GetDeploymentList(log, files.FindFileInNamespace(clusterRoot, namespace, constants.DeploymentsJSON))
 			if err != nil {
 				// Log the error and continue on
 				log.Debugf("Error getting deployments in %s", namespace, err)

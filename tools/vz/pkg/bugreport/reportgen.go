@@ -152,7 +152,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
 	}
 	for _, ns := range namespaces {
-		go captureK8SResources(wg, ecr, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
+		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
 
 	wg.Wait()
@@ -236,9 +236,9 @@ func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kuber
 }
 
 // captureK8SResources captures Kubernetes workloads, pods, events, ingresses and services from the list of namespaces in parallel
-func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
-	if err := pkghelpers.CaptureK8SResources(kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureK8SResources(client, kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}
 }

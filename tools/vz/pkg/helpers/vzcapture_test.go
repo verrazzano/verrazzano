@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -13,7 +13,6 @@ import (
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -110,17 +109,21 @@ func TestGroupVersionResource(t *testing.T) {
 //	WHEN I call functions to capture k8s resource
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
 	AddCapiToScheme(scheme)
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).Build()
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CaptureK8SResources(k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
+	err = CaptureK8SResources(client, k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 }
 
@@ -402,6 +405,7 @@ func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
 	err := v1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
+<<<<<<< HEAD
 	sampleCert := v1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
 		Spec: v1.CertificateSpec{
@@ -409,6 +413,9 @@ func TestCreateCertificateFile(t *testing.T) {
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
+=======
+	sampleCert := v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"}}
+>>>>>>> e88ba3958... VZ-9336 (#6389)
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
 	assert.NoError(t, err)
@@ -423,6 +430,7 @@ func TestCreateCertificateFile(t *testing.T) {
 	err = captureCertificates(client, "cattle-system", captureDir, rc)
 	assert.NoError(t, err)
 }
+<<<<<<< HEAD
 
 // TestRedactHostNamesForCertificates tests the captureCertificates function
 // GIVEN when sample cert with DNSNames and IPAddresses which are sensitive information
@@ -469,3 +477,5 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
 }
+=======
+>>>>>>> e88ba3958... VZ-9336 (#6389)
