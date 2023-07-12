@@ -6,6 +6,13 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -14,10 +21,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
-	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -34,12 +39,8 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"net/http"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 type VZHelper interface {
@@ -210,6 +211,7 @@ func NewScheme() *runtime.Scheme {
 	_ = networkingv1.AddToScheme(scheme)
 	_ = oam.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
+	_ = certv1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -348,8 +350,8 @@ func GetVersionOut() string {
 }
 
 // VerifyVzInstallNamespaceExists returns existence of verrazzano-install namespace
-func VerifyVzInstallNamespaceExists() bool {
-	pods, err := pkg.ListPods(vzconstants.VerrazzanoInstall, metav1.ListOptions{})
+func VerifyVzInstallNamespaceExists(kubeClient kubernetes.Interface) bool {
+	pods, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstall).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return false
 	}

@@ -12,6 +12,7 @@ import (
 var regexToReplacementList = []string{}
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
+const hostnameRegex = `([a-z0-9][a-z0-9\-]*\.)([a-z0-9\-]*\.)+([a-z0-9\-]+)`
 const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
 const sshAuthKeys = "ssh-rsa\\s+[A-Za-z0-9=+ \\-\\/@]+"
 const ocid = "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"
@@ -20,13 +21,14 @@ const ocid = "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"
 // Append to this map for any future additions
 func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, ipv4Regex)
+	regexToReplacementList = append(regexToReplacementList, hostnameRegex)
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)
 }
 
 // SanitizeString sanitizes each line in a given file,
-// Sanitizes based on the regex map initialized above
+// Sanitizes based on the regex map initialized above, which is currently filtering for IPv4 addresses and hostnames
 func SanitizeString(l string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
