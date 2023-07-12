@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Perform malware scan on release binaries
@@ -22,16 +22,19 @@ usage() {
 
   The script expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
-    SCANNER_ARCHIVE_LOCATION - command line scanner
-    SCANNER_ARCHIVE_FILE - scanner archive
+    if installing command line scanner using local file:
+         SCANNER_TARGZ_FILE - command line scanner (in a local tar.gz)
+    if installing command line scanner using URL location:
+         SCANNER_ARCHIVE_LOCATION - command line scanner
+         SCANNER_ARCHIVE_FILE - scanner archive
     VIRUS_DEFINITION_LOCATION - virus definition location
     NO_PROXY_SUFFIX - suffix for no_proxy environment variable
 EOM
     exit 0
 }
 
-[ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$SCANNER_TARGZ_FILE" ] && ( [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] ) && { usage; }
+[ -z "$NO_PROXY_SUFFIX" ] || [ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
 
 . $SCRIPT_DIR/common.sh
 
@@ -68,9 +71,20 @@ if [ "$BUNDLE_TO_SCAN" == "Full" ];then
 fi
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
-function install_scanner() {
+export NO_PROXY="${ORACLE_NO_PROXY},${NO_PROXY_SUFFIX}"
+export HTTP_PROXY="${ORACLE_PROXY}"
+export HTTPS_PROXY="${ORACLE_PROXY}"
+
+function install_local_scanner() {
+  echo "Installing scanner from local file: $SCANNER_TARGZ_FILE"
   mkdir -p $SCANNER_HOME
-  no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
+  cd $SCANNER_HOME
+  tar --overwrite -xvf $SCANNER_TARGZ_FILE
+}
+
+function install_remote_scanner() {
+  echo "Downloading and installing scanner from: $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE"
+  mkdir -p $SCANNER_HOME
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
   tar --overwrite -xvf $SCANNER_ARCHIVE_FILE
@@ -98,7 +112,7 @@ function scan_release_binaries() {
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
   echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration."
   echo "The output of the scan is being written to $SCAN_REPORT ..."
-  ./uvscan $DIR_TO_SCAN --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
+  ./uvscan $DIR_TO_SCAN --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS --AFC=512 >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
   local scan_summary="${SCAN_REPORT_DIR}/scan_summary.out"
@@ -158,7 +172,11 @@ function scan_release_binaries() {
 if [ "true" == "${SKIP_INSTALL_SCANNER}" ];then
   echo "Skip installing scanner ..."
 else
-  install_scanner || exit 1
+  if [ -f "${SCANNER_TARGZ_FILE}" ]; then
+    install_local_scanner || exit 1
+  else
+    install_remote_scanner || exit 1
+  fi
   update_virus_definition || exit 1
 fi
 
