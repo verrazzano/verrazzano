@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -147,7 +146,7 @@ func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.
 
 	// if module doesn't have the current VZ generation then return true
 	if module.Annotations != nil {
-		gen, _ := module.Annotations[constants.VerrazzanoObservedGeneration]
+		gen := module.Annotations[constants.VerrazzanoObservedGeneration]
 		return gen != strconv.FormatInt(vzcr.Generation, 10), nil
 	}
 
@@ -195,17 +194,6 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 
 	// return true if all modules are ready
 	return vzReady, nil
-}
-
-func (r *Reconciler) getBOM() (*bom.Bom, error) {
-	if localbom == nil {
-		newbom, err := bom.NewBom(config.GetDefaultBOMFilePath())
-		if err != nil {
-			return nil, err
-		}
-		localbom = &newbom
-	}
-	return localbom, nil
 }
 
 // initForVzResource will do initialization for the given Verrazzano resource.

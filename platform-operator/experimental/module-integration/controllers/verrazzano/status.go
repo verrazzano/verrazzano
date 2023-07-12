@@ -9,17 +9,15 @@ import (
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	corev1 "k8s.io/api/core/v1"
 )
 
 // updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) result.Result {
+func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *vzapi.Verrazzano) result.Result {
 	err := r.Client.Status().Update(context.TODO(), cr)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -27,39 +25,12 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 	return result.NewResult()
 }
 
-// checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
-func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	cr := vzctx.ActualCR
-	if unitTesting {
-		for _, compStatus := range cr.Status.Components {
-			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
-				return false, nil
-			}
-		}
-		return true, nil
-	}
-
-	// Return false if any enabled component is not ready
-	for _, comp := range registry.GetComponents() {
-		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
-		if err != nil {
-			vzctx.Log.Errorf("Failed to create component context: %v", err)
-			return false, err
-		}
-		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
-			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
-func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) result.Result {
+func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *vzapi.Verrazzano) result.Result {
 	if cr.Status.Components == nil {
-		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
+		cr.Status.Components = make(map[string]*vzapi.ComponentStatusDetails)
 	}
 
 	newContext, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
@@ -78,7 +49,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
 			lastReconciled := int64(0)
-			state := installv1alpha1.CompStateDisabled
+			state := vzapi.CompStateDisabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
@@ -87,11 +58,11 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 
 				}
 				if installed {
-					state = installv1alpha1.CompStateReady
+					state = vzapi.CompStateReady
 					lastReconciled = compContext.ActualCR().Generation
 				}
 			}
-			compStatus = &installv1alpha1.ComponentStatusDetails{
+			compStatus = &vzapi.ComponentStatusDetails{
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,
