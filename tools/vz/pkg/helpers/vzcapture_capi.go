@@ -6,11 +6,12 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/dynamic"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 )
 
 const (
@@ -95,6 +96,9 @@ func captureCapiNamespacedResources(dynamicClient dynamic.Interface, namespace, 
 func captureGlobalResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, captureDir string, vzHelper VZHelper) error {
 	namespace := "default"
 	list, err := dynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while listing %s in namespace %s: %s\n", kind, namespace, err.Error()))
 		return nil
@@ -110,6 +114,9 @@ func captureGlobalResource(dynamicClient dynamic.Interface, gvr schema.GroupVers
 
 func captureNamespacedResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, namespace, captureDir string, vzHelper VZHelper) error {
 	list, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while listing %s in namespace %s: %s\n", kind, namespace, err.Error()))
 		return nil

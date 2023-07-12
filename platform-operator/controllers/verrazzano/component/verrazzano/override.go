@@ -110,6 +110,9 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzcr.IsPrometheusNodeExporterEnabled(effectiveCR)}
 	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzcr.IsJaegerOperatorEnabled(effectiveCR)}
 	overrides.IngressNGINX = &ingressNGINXValues{Namespace: nginxutil.IngressNGINXNamespace()}
+	overrides.Fluentd = &fluentdValues{Enabled: vzcr.IsFluentdEnabled(effectiveCR)}
+	overrides.FluentOperator = &fluentOperatorValues{Enabled: vzcr.IsFluentOperatorEnabled(effectiveCR)}
+	overrides.FluentbitOpensearchOutput = &fluentbitOpensearchOutput{Enabled: vzcr.IsFluentbitOpensearchOutputEnabled(effectiveCR)}
 	return nil
 }
 

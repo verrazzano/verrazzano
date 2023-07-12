@@ -105,7 +105,7 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsCompleted() {
-		ctx.Log().Progress("Cleaning up Rancher resources remaining after component clean up")
+		ctx.Log().Once("Cleaning up Rancher resources remaining after component clean up")
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
 			return err
@@ -119,7 +119,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		succeeded, err := monitor.CheckResult()
 		if err != nil {
 			// Background goroutine is not finished yet, requeue
-			ctx.Log().Progress("Component Rancher waiting to finish post-uninstall in the background")
+			ctx.Log().Once("Component Rancher waiting to finish post-uninstall in the background")
 			return err
 		}
 		// If it's not finished running, requeue
@@ -216,7 +216,7 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProce
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
 // This calls the rancher-cleanup tool.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	ctx.Log().Progress("Component Rancher background post-uninstall goroutine is running")
+	ctx.Log().Once("Component Rancher background post-uninstall goroutine is running")
 
 	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
 	if !rancherFinalizersDeleted {
@@ -263,7 +263,7 @@ func runCleanupJob(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	}
 
 	if !jobComplete {
-		ctx.Log().Progressf("Component %s waiting for cleanup job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
+		ctx.Log().Oncef("Component %s waiting for cleanup job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
 		return ctrlerrors.RetryableError{}
 	}
 	ctx.Log().Infof("Component %s job successfully completed: %s/%s", ComponentName, job.Namespace, job.Name)
@@ -292,7 +292,7 @@ func createCleanupJob(ctx spi.ComponentContext) error {
 	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(file.Name()); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 	}
-	ctx.Log().Progressf("Component %s waiting for cleanup job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+	ctx.Log().Oncef("Component %s waiting for cleanup job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 	return ctrlerrors.RetryableError{}
 }
 
@@ -411,7 +411,7 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 
 // removeCRs deletes any remaining Rancher cattle.io custom resources
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
-	ctx.Log().Progress("Removing Rancher custom resources")
+	ctx.Log().Once("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
 		if strings.HasSuffix(crd.Name, finalizerSubString) {
 			for _, version := range crd.Spec.Versions {
