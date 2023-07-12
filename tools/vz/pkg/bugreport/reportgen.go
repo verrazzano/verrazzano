@@ -257,9 +257,7 @@ func collectNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, capiNS := range capiNSList {
-		nsList = append(nsList, capiNS)
-	}
+	nsList = append(nsList, capiNSList...)
 
 	// Include the namespaces specified by flag --include-namespaces
 	var additionalNS []string
