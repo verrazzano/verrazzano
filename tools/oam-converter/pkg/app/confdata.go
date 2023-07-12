@@ -4,6 +4,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
@@ -53,9 +54,12 @@ func ConfData() error {
 		components = append(components, component)
 	}
 	conversionComponents, err := traits.ExtractTrait(appMap)
+	if err != nil {
+		return errors.New("failed extracting traits from app")
+	}
 	conversionComponents, err = traits.ExtractWorkload(components, conversionComponents)
 	if err != nil {
-		fmt.Printf("Error in extractingthe trait and workload - %s", err)
+		return errors.New("error in extractingthe trait and workload - %s")
 	}
 
 	err = resources.CreateResources(conversionComponents)

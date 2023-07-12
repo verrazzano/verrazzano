@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"fmt"
+	"errors"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/coherenceresources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/helidonresources"
 	weblogic "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/weblogicresources"
@@ -14,22 +14,22 @@ func CreateResources(conversionComponents []*types.ConversionComponents) error {
 			//conversionComponent.AppNamespace, conversionComponent.AppName, conversionComponent.ComponentName, conversionComponent.IngressTrait, conversionComponent.WeblogicworkloadMap[conversionComponent.ComponentName]
 			err := weblogic.CreateIngressChildResourcesFromWeblogic(conversionComponent)
 			if err != nil {
-				fmt.Printf("Failed to create Child resources from Weblogic workload", err)
-				return err
+				return errors.New("failed to create Child resources from Weblogic workload")
+
 			}
 		}
 		if conversionComponent.Coherenceworkload != nil {
 			err := coherenceresources.CreateIngressChildResourcesFromCoherence(conversionComponent)
 			if err != nil {
-				fmt.Printf("Failed to create Child resources from Coherence workload", err)
-				return err
+				return errors.New("failed to create Child resources from Coherence workload")
+
 			}
 		}
 		if conversionComponent.Helidonworkload != nil {
 			err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent)
 			if err != nil {
-				fmt.Printf("Failed to create Child resources from Helidon workload", err)
-				return err
+				return errors.New("failed to create Child resources from Helidon workload")
+
 			}
 		}
 	}
