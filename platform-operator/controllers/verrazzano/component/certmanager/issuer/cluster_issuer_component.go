@@ -66,9 +66,9 @@ func (c clusterIssuerComponent) PreInstall(compContext spi.ComponentContext) err
 		compContext.Log().Debug("cert-manager-config PreInstall dry run")
 		return nil
 	}
-	//if err := common.ProcessAdditionalCertificates(compContext.Log(), compContext.Client(), compContext.EffectiveCR()); err != nil {
-	//	return err
-	//}
+	if err := c.createOrUpdatePrivateCABundleSecret(compContext); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -91,7 +91,7 @@ func (c clusterIssuerComponent) Upgrade(compContext spi.ComponentContext) error 
 }
 
 func (c clusterIssuerComponent) PreUpgrade(compContext spi.ComponentContext) error {
-	return nil
+	return c.createOrUpdatePrivateCABundleSecret(compContext)
 }
 
 // Uninstall removes cert-manager-config objects that are created outside of Helm

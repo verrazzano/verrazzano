@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/meta"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -19,6 +19,7 @@ import (
 	cmclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -29,9 +30,12 @@ import (
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -686,6 +690,91 @@ func (c clusterIssuerComponent) createOrUpdateClusterIssuer(compContext spi.Comp
 		return err
 	}
 	return nil
+}
+
+func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	cli := ctx.Client()
+
+	clusterIssuer := ctx.EffectiveCR().Spec.Components.ClusterIssuer
+	if clusterIssuer == nil {
+		// Not necessarily an error, since CM and the ClusterIssuer could be disabled
+		log.Progressf("No cluster issuer found, skipping CA certificate bundle configuration")
+		return nil
+	}
+
+	var bundleData []byte
+	var err error
+	if bundleData, err = getPrivateBundleData(log, cli, clusterIssuer); err != nil {
+		return err
+	}
+
+	privateCASecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconst.VerrazzanoSystemNamespace,
+			Name:      vzconst.PrivateCASecret,
+		},
+	}
+
+	_, err = controllerruntime.CreateOrUpdate(context.TODO(), cli, privateCASecret, func() error {
+		if len(privateCASecret.Data) == 0 {
+			if len(privateCASecret.Data) == 0 {
+				privateCASecret.Data = make(map[string][]byte)
+			}
+			privateCASecret.Data[vzconst.CABundleKey] = bundleData
+		}
+		return nil
+	})
+	return err
+}
+
+// createPrivateCABundle Obtains the private CA bundle for the self-signed/customer-provided CA configuration
+func createPrivateCABundle(log vzlog.VerrazzanoLogger, c crtclient.Client, clusterIssuer *vzapi.ClusterIssuerComponent) ([]byte, error) {
+	caSecretNamespace := clusterIssuer.ClusterResourceNamespace
+	caSecretName := clusterIssuer.CA.SecretName
+	namespacedName := types.NamespacedName{
+		Namespace: caSecretNamespace,
+		Name:      caSecretName,
+	}
+	certKey := vzconst.CACertKey
+	if isDefault, _ := clusterIssuer.IsDefaultIssuer(); !isDefault {
+		certKey = vzconst.CustomCACertKey
+	}
+	caSecret := &v1.Secret{}
+	if err := c.Get(context.TODO(), namespacedName, caSecret); err != nil {
+		return []byte{}, err
+	}
+	if len(caSecret.Data[certKey]) < 1 {
+		return nil, log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s",
+			caSecretNamespace,
+			caSecretName, certKey)
+	}
+	return caSecret.Data[certKey], nil
+}
+
+func getPrivateBundleData(log vzlog.VerrazzanoLogger, c crtclient.Client, clusterIssuer *vzapi.ClusterIssuerComponent) ([]byte, error) {
+	isCAIssuer, err := clusterIssuer.IsCAIssuer()
+	if err != nil {
+		return []byte{}, err
+	}
+	var isLetsEncryptStagingEnv bool
+	if clusterIssuer.LetsEncrypt != nil {
+		isLetsEncryptStagingEnv = vzcr.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
+	}
+
+	var bundleData []byte
+	if isCAIssuer {
+		log.Infof("Getting private CA bundle for Rancher")
+		if bundleData, err = createPrivateCABundle(log, c, clusterIssuer); err != nil {
+			return []byte{}, err
+		}
+	} else if isLetsEncryptStagingEnv {
+		log.Infof("Getting Let's Encrypt Staging CA bundle for Rancher")
+		if bundleData, err = certs.CreateLetsEncryptStagingBundle(); err != nil {
+			return []byte{}, err
+		}
+	}
+	return bundleData, nil
 }
 
 // uninstallVerrazzanoCertManagerResources is the implementation for the cert-manager uninstall step

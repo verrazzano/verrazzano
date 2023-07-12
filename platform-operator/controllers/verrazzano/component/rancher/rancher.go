@@ -9,6 +9,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"reflect"
 	"strings"
 	"time"
@@ -97,8 +98,8 @@ const (
 	letsEncryptTLSSource       = "letsEncrypt"
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
-	caCert                     = "ca.crt"
-	customCACertKey            = "tls.crt"
+	caCert                     = vzconst.CACertKey
+	customCACertKey            = vzconst.CustomCACertKey
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )

@@ -233,6 +233,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 
 // appendCAOverrides sets overrides for CA Issuers, LetsEncrypt or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
+
 	cm := ctx.EffectiveCR().Spec.Components.ClusterIssuer
 	if cm == nil {
 		return kvs, log.ErrorfThrottledNewErr("Failed to find clusterIssuer component in effective cr")
@@ -242,6 +243,14 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	if err != nil {
 		return kvs, err
 	}
+
+	// Always disable this as we're no longer using this helm value for Let's Encrypt staging anymore
+	kvs = append(kvs, bom.KeyValue{
+		Key: additionalTrustedCAsKey,
+		// by default disable this explicitly so upgrade works, as all untrusted CAs for Rancher SSO are
+		// managed via tls-ca; can still be overridden by users via custom Helm overrides
+		Value: "false",
+	})
 
 	// Configure CA Issuer KVs
 	if isLetsEncryptIssuer {
@@ -262,14 +271,10 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
-			}, bom.KeyValue{
-				Key: additionalTrustedCAsKey,
-				// by default disable this explicitly so upgrade works, as all untrusted CAs for Rancher SSO are
-				// managed via tls-ca; can still be overridden by users via custom Helm overrides
-				Value: "false",
 			})
 	}
 
+	// Configure private issuer bundle if necessary
 	if isPrivateIssuer, _ := vzcr.IsPrivateIssuer(cm); isPrivateIssuer {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
