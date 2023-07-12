@@ -77,7 +77,11 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 
 	// Update the Rancher TLS CA secret with the CA in Verrazzano TLS Secret
 	if isVzIngressSecret {
-		result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
+		// Update the Verrazzano private CA bundle; source of truth from a VZ perspective
+		result, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCASecret,
+			vzconst.CABundleKey, caKey, caSecret, false)
+
+		result, err = r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
 			vzconst.RancherTLSCAKey, caKey, caSecret, false)
 		if err != nil {
 			return newRequeueWithDelay(), nil
