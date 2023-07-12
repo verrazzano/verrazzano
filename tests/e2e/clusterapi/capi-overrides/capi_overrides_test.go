@@ -160,7 +160,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check the initial state of the Verrazzano install
 		// THEN we successfully find it ready
-		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers are active", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "the VZ status is ready", func() {
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
