@@ -100,7 +100,7 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 	defer file.Close()
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Error("Failed reading Json file %s", path)
+		log.Error("Failed reading Certificates.json file %s", path)
 		return nil, err
 	}
 	err = encjson.Unmarshal(fileBytes, &certList)
