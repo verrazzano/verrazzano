@@ -94,32 +94,40 @@ func analyzeClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *
 func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
 
 	var messages []string
+	var message string
 	for _, condition := range cluster.Status.Conditions {
-		switch condition.Type {
-		case "Ready":
-			if condition.Status != corev1.ConditionTrue {
+		if condition.Status != corev1.ConditionTrue {
+			switch condition.Type {
+			case "Ready":
 				if condition.Reason == "" {
 					condition.Reason = "Not Given"
 				}
-				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not ready, reason is %s", cluster.Name, cluster.Spec.DisplayName, condition.Reason)}, messages...)
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not ready, reason is %s", cluster.Name, cluster.Spec.DisplayName, condition.Reason)
+			case "Provisioning":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not provisioned", cluster.Name, cluster.Spec.DisplayName)
+			case "Waiting":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is waiting", cluster.Name, cluster.Spec.DisplayName)
+			case "Connected":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not connected", cluster.Name, cluster.Spec.DisplayName)
+			case "RKESecretsMigrated":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, RKE secrets not migrated", cluster.Name, cluster.Spec.DisplayName)
+			case "SecretsMigrated":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, secrets not migrated", cluster.Name, cluster.Spec.DisplayName)
+			case "NoMemoryPressure":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, has memory pressure", cluster.Name, cluster.Spec.DisplayName)
+			case "NoDiskPressure":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, has disk pressure", cluster.Name, cluster.Spec.DisplayName)
+			case "SystemAccountCreated":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, system account not created", cluster.Name, cluster.Spec.DisplayName)
+			case "DefaultProjectCreated":
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, default project not created", cluster.Name, cluster.Spec.DisplayName)
+			default:
+				fmt.Println(condition)
 			}
-		case "Provisioning":
 			if condition.Status != corev1.ConditionTrue {
-				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not provisioned", cluster.Name, cluster.Spec.DisplayName)}, messages...)
-			}
-		case "Waiting":
-			if condition.Reason == "" {
-				condition.Reason = "Not Given"
-			}
-			if condition.Status != corev1.ConditionTrue {
-				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is waiting", cluster.Name, cluster.Spec.DisplayName)}, messages...)
-			}
-		case "Connected":
-			if condition.Status != corev1.ConditionTrue {
-				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not connected", cluster.Name, cluster.Spec.DisplayName)}, messages...)
+				messages = append([]string{message}, messages...)
 			}
 		}
-		fmt.Println(condition)
 	}
 
 	issueReporter.AddKnownIssueMessagesFiles(report.KontainerDriverNotReady, clusterRoot, messages, []string{})
