@@ -6,13 +6,14 @@ package install
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -79,6 +80,9 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
 	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
+
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }
