@@ -392,11 +392,16 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 // - returns an error or a requeue with delay result
 func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) (ctrl.Result, error) {
 	log := ctx.Log()
+	// check on whether cluster is OCNE container driver provisioned
+	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	// Load a set of all component namespaces plus shared namespaces
 	nsSet := make(map[string]bool)
 	for _, comp := range registry.GetComponents() {
 		// Don't delete the rancher component namespace if cluster was provisioned by Rancher.
-		if rancherProvisioned && comp.Namespace() == rancher.ComponentNamespace {
+		if (rancherProvisioned || ocneContainerDriverProvisioned) && comp.Namespace() == rancher.ComponentNamespace {
 			continue
 		}
 		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
@@ -426,6 +431,7 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
 		if err != nil {
+			ctx.Log().Errorf("Error during namespace deletion: %v", err)
 			return ctrl.Result{}, err
 		}
 	}

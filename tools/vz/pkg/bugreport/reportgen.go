@@ -4,7 +4,11 @@
 package bugreport
 
 import (
+	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"path/filepath"
 	"sync"
@@ -73,7 +77,10 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
-	nsList, additionalNS := collectNamespaces(kubeClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
+	nsList, additionalNS, err := collectNamespaces(kubeClient, dynamicClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
+	if err != nil {
+		return err
+	}
 	var msgPrefix string
 	if pkghelpers.GetIsLiveCluster() {
 		msgPrefix = constants.AnalysisMsgPrefix
@@ -140,7 +147,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
 	}
 	for _, ns := range namespaces {
-		go captureK8SResources(wg, ecr, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
+		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
 
 	wg.Wait()
@@ -224,15 +231,15 @@ func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kuber
 }
 
 // captureK8SResources captures Kubernetes workloads, pods, events, ingresses and services from the list of namespaces in parallel
-func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
-	if err := pkghelpers.CaptureK8SResources(kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureK8SResources(client, kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}
 }
 
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information
-func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper) ([]string, []string) {
+func collectNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, includedNS []string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper) ([]string, []string, error) {
 
 	var nsList []string
 
@@ -241,9 +248,16 @@ func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz 
 	nsList = append(nsList, allCompNS...)
 
 	// Verify and Include verrazzano-install namespace
-	if pkghelpers.VerifyVzInstallNamespaceExists() {
+	if pkghelpers.VerifyVzInstallNamespaceExists(kubeClient) {
 		nsList = append(nsList, vzconstants.VerrazzanoInstallNamespace)
 	}
+
+	// Add any namespaces that have CAPI clusters
+	capiNSList, err := getCAPIClusterNamespaces(kubeClient, dynamicClient)
+	if err != nil {
+		return nil, nil, err
+	}
+	nsList = append(nsList, capiNSList...)
 
 	// Include the namespaces specified by flag --include-namespaces
 	var additionalNS []string
@@ -260,7 +274,34 @@ func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz 
 
 	// Remove the duplicates from nsList
 	nsList = pkghelpers.RemoveDuplicate(nsList)
-	return nsList, additionalNS
+	return nsList, additionalNS, nil
+}
+
+// This function returns a list of namespaces that have a CAPI cluster resource.
+// We want to always capture these resources.
+func getCAPIClusterNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]string, error) {
+	namespaces, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	nsList := []string{}
+	gvr := schema.GroupVersionResource{Group: "cluster.x-k8s.io", Version: "v1beta1", Resource: "clusters"}
+	for _, namespace := range namespaces.Items {
+		list, err := dynamicClient.Resource(gvr).Namespace(namespace.Name).List(context.TODO(), metav1.ListOptions{})
+		// Resource type does not exist, return here since there will be no "cluster" resources.
+		// This will be the case if the cluster-api component is not installed.
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		if len(list.Items) > 0 {
+			nsList = append(nsList, namespace.Name)
+		}
+	}
+	return nsList, nil
 }
 
 // captureLogsAllPods captures logs from all pods without filtering in given namespace.

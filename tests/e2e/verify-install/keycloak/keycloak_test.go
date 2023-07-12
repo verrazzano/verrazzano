@@ -37,6 +37,7 @@ const (
 	rancherURI        = "rancher."
 	kcAdminScript     = "/opt/keycloak/bin/kcadm.sh"
 	argocdURI         = "argocd."
+	alertmanagerURI   = "alertmanager."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -450,25 +451,25 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	// Verify Correct number of RedirectURIs
-	// 21 redirect Uris for new installation
-	// 25 redirect Uris for upgrade from older versions. The urls are deprecated ingress hosts.
+	// 23 redirect Uris for new installation
+	// 27 redirect Uris for upgrade from older versions. The urls are deprecated ingress hosts.
 	if isMinVersion150 {
-		if !(len(keycloakClient.RedirectUris) == 25 || len(keycloakClient.RedirectUris) == 21) {
+		if !(len(keycloakClient.RedirectUris) == 27 || len(keycloakClient.RedirectUris) == 23) {
 			t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 			return false
 		}
-	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 21 {
+	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 27 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
 	if isMinVersion150 {
-		if !(len(keycloakClient.WebOrigins) == 13 || len(keycloakClient.WebOrigins) == 11) {
+		if !(len(keycloakClient.WebOrigins) == 14 || len(keycloakClient.WebOrigins) == 12) {
 			t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 			return false
 		}
-	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 11 {
+	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 12 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
@@ -536,6 +537,17 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 
 	if !verifyURIs(keycloakClient.WebOrigins, verrazzanoURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Verrazzano weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	// Alertmanager
+	if !verifyURIs(keycloakClient.RedirectUris, alertmanagerURI+env, 2) {
+		t.Logs.Error(fmt.Printf("Expected 2 Alertmanager redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	if !verifyURIs(keycloakClient.WebOrigins, alertmanagerURI+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 Alertmanager weborigin URIs. Found %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
 

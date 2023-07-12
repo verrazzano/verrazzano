@@ -13,9 +13,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	capipkg "github.com/verrazzano/verrazzano/tests/e2e/pkg/clusterapi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,19 +25,18 @@ import (
 )
 
 const (
-	waitTimeout       = 5 * time.Minute
-	pollingInterval   = 10 * time.Second
-	minimumK8sVersion = "1.24.0"
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var t = framework.NewTestFramework("clusterapi")
 
-var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Cluster API is installed
 		// WHEN we check to make sure the pods exist
 		// THEN we successfully find the pods in the cluster
-		WhenClusterAPIInstalledIt("expected pods are running", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "expected pods are running", func() {
 			pods := []string{"capi-controller-manager", "capi-ocne-bootstrap-controller-manager", "capi-ocne-control-plane-controller-manager", "capoci-controller-manager"}
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoCAPINamespace, pods)
@@ -54,32 +53,6 @@ var _ = t.Describe("Cluster API ", Label("f:platform-lcm.install"), func() {
 		})
 	})
 })
-
-// 'It' Wrapper to only run spec if the ClusterAPI is supported on the current Verrazzano version and is installed
-func WhenClusterAPIInstalledIt(description string, f func()) {
-	t.It(description, func() {
-		kubeconfig := getKubeConfigOrAbort()
-		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
-		}
-		isClusterAPIEnabled := vzcr.IsClusterAPIEnabled(inClusterVZ)
-		isMinimumK8sVersion, err := k8sutil.IsMinimumk8sVersion(minimumK8sVersion)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to check Minimum k8s version: %v", err))
-		}
-		isClusterAPISupported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfig)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
-		}
-		isComponentStatusEnabled := vzcr.IsComponentStatusEnabled(inClusterVZ, clusterapi.ComponentName)
-		if isMinimumK8sVersion && isClusterAPISupported && (isClusterAPIEnabled && isComponentStatusEnabled) {
-			f()
-		} else {
-			t.Logs.Infof("Skipping test '%v', Cluster API  is not installed/supported on this cluster", description)
-		}
-	})
-}
 
 var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), func() {
 
@@ -103,7 +76,7 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			return clientset, err
 		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-		WhenClusterAPIInstalledIt("kontainerdrivers must be ready", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "kontainerdrivers must be ready", func() {
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
@@ -136,13 +109,14 @@ var _ = t.Describe("KontainerDriver status", Label("f:platform-lcm.install"), fu
 			Eventually(driversActive, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		WhenClusterAPIInstalledIt("expected kontainerdrivers must exist", func() {
+		capipkg.WhenClusterAPIInstalledIt(t, "expected kontainerdrivers must exist", func() {
 			if !rancherConfigured {
 				Skip("Skipping test because Rancher is not configured")
 			}
 			expectedDriversFound := func() bool {
 				cattleDrivers, err := listKontainerDrivers(clientset)
 				if err != nil {
+					t.Logs.Info(err.Error())
 					return false
 				}
 
