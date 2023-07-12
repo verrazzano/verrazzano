@@ -1089,8 +1089,8 @@ func TestIsReady(t *testing.T) {
 func TestPostInstall(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, _ := prepareContexts()
-	assert.IsType(t, fmt.Errorf(""), component.PostInstall(ctxWithoutIngress))
-	//	assert.Nil(t, component.PostInstall(ctxWithIngress))
+	err := component.PostInstall(ctxWithoutIngress)
+	assert.Error(t, err)
 }
 
 // TestPostUpgrade tests a happy path post upgrade run

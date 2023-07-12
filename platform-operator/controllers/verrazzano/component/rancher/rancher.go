@@ -129,6 +129,7 @@ const (
 	SettingUILinkColorValue           = "rgb(49, 118, 217)"
 	SettingUIBrand                    = "ui-brand"
 	SettingUIBrandValue               = "verrazzano"
+	SettingCACerts                    = "cacerts"
 )
 
 // auth config
@@ -518,6 +519,22 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 	}
 
 	return nil
+}
+
+// getSettingValue Returns a Rancher Settings objecgt value
+func getSettingValue(c client.Client, settingName string) string {
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(common.GVKSetting)
+	resource.SetName(settingName)
+	err := c.Get(context.Background(), types.NamespacedName{Name: resource.GetName()}, &resource)
+	if err != nil {
+		return ""
+	}
+	settingsContent := resource.UnstructuredContent()
+	if value, found := settingsContent["value"]; found {
+		return strings.TrimSpace(value.(string))
+	}
+	return ""
 }
 
 // createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher
