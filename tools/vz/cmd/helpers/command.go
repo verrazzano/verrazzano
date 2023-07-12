@@ -146,3 +146,14 @@ func AddManifestsFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.ManifestsFlagHelp)
 	cmd.PersistentFlags().MarkDeprecated(constants.OperatorFileFlag, constants.OperatorFileDeprecateMsg)
 }
+
+// VerifyCLIArgsNil checks that command args are not set at the creation of the command
+func VerifyCLIArgsNil(cmd *cobra.Command) error {
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return fmt.Errorf("invalid arguments specified: %s", args)
+		}
+		return nil
+	}
+	return nil
+}
