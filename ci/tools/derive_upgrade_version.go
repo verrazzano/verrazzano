@@ -160,8 +160,8 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 
 func getInterimRelease(releaseTags []string) string {
 	// Get the latest release tag
+	//releaseTags = []string{"v1.4.0"}
 	latestReleaseTag := releaseTags[len(releaseTags)-1]
-	//releaseTags = releaseTags[len(releaseTags)]
 
 	builder := strings.Builder{}
 	var interimRelease *semver.SemVersion
@@ -171,13 +171,14 @@ func getInterimRelease(releaseTags []string) string {
 	if err != nil {
 		return ""
 	}
+	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
 	for _, tag := range releaseTags {
 		var t = tag
 		tagVersion, err := semver.NewSemVersion(t)
 		if err != nil {
 			return ""
 		}
-		if len(releaseTags) > 2 {
+		if uniqueMinorReleaseCount > 2 {
 			if tagVersion.IsLessThan(o) {
 				interimRelease = tagVersion
 			}
@@ -186,11 +187,16 @@ func getInterimRelease(releaseTags []string) string {
 			// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x, then return 1.5.0
 			// as an interim release
 			if tagVersion.IsGreatherThan(o) {
+				tagVersion.Patch = 0
 				interimRelease = tagVersion
 			}
 		}
 	}
-	builder.WriteString("v" + interimRelease.ToString())
+	if len(releaseTags) == 1 {
+		builder.WriteString(latestReleaseTag)
+	} else {
+		builder.WriteString(interimRelease.ToString())
+	}
 
 	//Split the string excluding prefix 'v' into major and minor version values
 	/*	latestReleaseTagSplit := strings.Split(strings.TrimPrefix(latestReleaseTag, "v"), ".")
@@ -342,6 +348,21 @@ func parseInt(s string) int {
 		fmt.Printf("\nunable to convert the given string to int %s, %v", s, err.Error())
 	}
 	return n
+}
+
+func getUniqueMinorVersionCount(releaseTags []string) int {
+	minorVersionsMap := make(map[string]bool)
+
+	// count the number of minor releases
+	for _, tag := range releaseTags {
+		tagVersion, err := semver.NewSemVersion(tag)
+		if err == nil {
+			minorVersion := fmt.Sprintf("%d", tagVersion.Minor)
+			minorVersionsMap[minorVersion] = true
+		}
+	}
+	uniqueMinorReleasesCount := len(minorVersionsMap)
+	return uniqueMinorReleasesCount
 }
 
 // printUsage Prints the help for this program
