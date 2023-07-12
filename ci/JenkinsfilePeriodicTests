@@ -260,7 +260,8 @@ pipeline {
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                                 string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
+                                                booleanParam(name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', value: true)
                                         ], wait: true
                             }
                         }
@@ -277,7 +278,8 @@ pipeline {
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                                 string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
+                                                booleanParam(name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', value: true)
                                         ], wait: true
                             }
                         }
