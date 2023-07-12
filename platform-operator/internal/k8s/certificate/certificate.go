@@ -11,18 +11,18 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	customerror "errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-	"math/big"
-	"os"
-	"time"
-
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"math/big"
+	"os"
+	"time"
 )
 
 const (
@@ -39,7 +39,9 @@ const (
 	CertKey = "tls.crt"
 	PrivKey = "tls.key"
 
-	certYearsValid = 3
+	certYearsValid            = 3
+	OperatorWebhookLabelKey   = "app"
+	OperatorWebhookLabelValue = "verrazzano-platform-operator-webhook"
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
@@ -81,6 +83,10 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("Secret %s exists, using...", OperatorTLS)
+		if err = updateSecretOwnerReference(log, secretsClient, existingSecret, podsClient); err != nil {
+			log.Errorf("Error while updating labels in the secret %s", OperatorTLS)
+			return nil, nil, err
+		}
 		return existingSecret.Data[CertKey], existingSecret.Data[PrivKey], nil
 	}
 	if !errors.IsNotFound(err) {
@@ -123,9 +129,12 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 }
 
 func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface,
-	serverCertBytes []byte, serverPrivKey *rsa.PrivateKey, podClient corev1.PodInterface) ([]byte, []byte, error) {
+	serverCertBytes []byte, serverPrivKey *rsa.PrivateKey, podsClient corev1.PodInterface) ([]byte, []byte, error) {
 	// PEM encode Server cert
-	pods := getPodList(log, podClient)
+	pods, err := getPodList(log, podsClient)
+	if err != nil {
+		return nil, nil, err
+	}
 	serverPEM := new(bytes.Buffer)
 	_ = pem.Encode(serverPEM, &pem.Block{
 		Type:  "CERTIFICATE",
@@ -167,6 +176,10 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 				return []byte{}, []byte{}, err
 			}
 			log.Infof("Secret %s exists, using...", OperatorTLS)
+			if err = updateSecretOwnerReference(log, secretsClient, existingSecret, podsClient); err != nil {
+				log.Errorf("Error while updating labels in the secret %s", OperatorTLS)
+				return nil, nil, err
+			}
 			return existingSecret.Data[CertKey], existingSecret.Data[PrivKey], nil
 		}
 		return []byte{}, []byte{}, createError
@@ -177,10 +190,14 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 
 func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
-	podClient := kubeClient.CoreV1().Pods(OperatorNamespace)
+	podsClient := kubeClient.CoreV1().Pods(OperatorNamespace)
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("CA secret %s exists, using...", OperatorCA)
+		if err = updateSecretOwnerReference(log, secretsClient, existingSecret, podsClient); err != nil {
+			log.Errorf("Error while updating labels in the secret %s", OperatorTLS)
+			return nil, nil, err
+		}
 		return decodeExistingSecretData(existingSecret)
 	}
 	if !errors.IsNotFound(err) {
@@ -220,12 +237,15 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 		return nil, nil, err
 	}
 
-	return createCACertSecretIfNecessary(log, secretsClient, ca, caPrivKey, caBytes, podClient)
+	return createCACertSecretIfNecessary(log, secretsClient, ca, caPrivKey, caBytes, podsClient)
 }
 
 func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface, ca *x509.Certificate,
 	caPrivKey *rsa.PrivateKey, caBytes []byte, podClient corev1.PodInterface) (*x509.Certificate, *rsa.PrivateKey, error) {
-	pods := getPodList(log, podClient)
+	pods, err := getPodList(log, podClient)
+	if err != nil {
+		return nil, nil, err
+	}
 	caPEMBytes, caKeyPEMBytes := encodeCABytes(caBytes, caPrivKey)
 	webhookCA := v1.Secret{}
 	webhookCA.Namespace = OperatorNamespace
@@ -248,6 +268,10 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, using existing secret", OperatorCA)
 			existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+			if err = updateSecretOwnerReference(log, secretsClient, existingSecret, podClient); err != nil {
+				log.Errorf("Error while updating labels in the secret %s", OperatorTLS)
+				return nil, nil, err
+			}
 			if err != nil {
 				return nil, nil, err
 			}
@@ -339,16 +363,42 @@ func writeFile(log *zap.SugaredLogger, filepath string, pemData []byte) error {
 	return nil
 }
 
-func getPodList(log *zap.SugaredLogger, podClient corev1.PodInterface) *v1.PodList {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator-webhook"}}
+func getPodList(log *zap.SugaredLogger, podClient corev1.PodInterface) (*v1.PodList, error) {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{OperatorWebhookLabelKey: OperatorWebhookLabelValue}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
 	pods, err := podClient.List(context.TODO(), listOptions)
 	if err != nil {
 		log.Errorf("Failed listing pods in namespace %s: %v", OperatorNamespace, err)
-		return nil
+		return nil, err
+	} else if len(pods.Items) == 0 {
+		log.Errorf("Failed to find pods in namespace %s with label %s:%s", OperatorNamespace, OperatorWebhookLabelKey, OperatorWebhookLabelValue)
+		return nil, customerror.New("no pods found with label")
 	}
-	return pods
+	return pods, nil
 
+}
+
+func updateSecretOwnerReference(log *zap.SugaredLogger, secretsClient corev1.SecretInterface, secret *v1.Secret, podsClient corev1.PodInterface) error {
+	pods, err := getPodList(log, podsClient)
+	if err != nil {
+		return err
+	}
+	owenRef := []metav1.OwnerReference{
+		{
+			Kind:       "Pod",
+			APIVersion: "v1",
+			Name:       pods.Items[0].GetName(),
+			UID:        pods.Items[0].GetUID(),
+		},
+	}
+	if secret.OwnerReferences == nil {
+		secret.OwnerReferences = owenRef
+		_, err = secretsClient.Update(context.TODO(), secret, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
