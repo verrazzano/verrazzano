@@ -4,9 +4,45 @@
 package cluster
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type rancherClusterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []rancherCluster `json:"items"`
+}
+
+// Minimal definition of cluster object that only contains the fields that will be analyzed
+type rancherCluster struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              rancherClusterSpec   `json:"spec"`
+	Status            rancherClusterStatus `json:"status,omitempty"`
+}
+
+type rancherClusterSpec struct {
+	DisplayName string `json:"displayName,omitempty"`
+}
+type rancherClusterStatus struct {
+	Conditions []clusterCondition `json:"conditions,omitempty"`
+}
+
+type clusterCondition struct {
+	Status corev1.ConditionStatus `json:"status"`
+	Type   string                 `json:"type"`
+	Reason string                 `json:"reason,omitempty"`
+}
 
 // AnalyzeRancher handles the checking of the status of Rancher resources.
 func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
@@ -16,9 +52,77 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
-	return analyzeRancher(log, clusterRoot, &issueReporter)
+	return analyzeClusters(log, clusterRoot, &issueReporter)
 }
 
-func analyzeRancher(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+// analyzeClusters - analyze the status of Rancher clusters
+func analyzeClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+	clusterPath := files.FindFileInClusterRoot(clusterRoot, "default/cluster.json")
+
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if err != nil {
+		log.Debugf("file %s not found", clusterPath)
+		return err
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Debugf("Failed reading Json file %s", clusterPath)
+		return err
+	}
+	clusterList := &rancherClusterList{}
+	err = json.Unmarshal(fileBytes, &clusterList)
+	if err != nil {
+		log.Debugf("Failed to unmarshal Rancher Cluster list at %s", clusterPath)
+		return err
+	}
+
+	for _, cluster := range clusterList.Items {
+		err = reportClusterIssue(log, clusterRoot, cluster, issueReporter)
+		if err != nil {
+			return err
+		}
+	}
+
+	issueReporter.Contribute(log, clusterRoot)
+	return nil
+}
+
+// reportClusterIssue - analyze a single Rancher cluster and report any issues
+func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
+
+	var messages []string
+	for _, condition := range cluster.Status.Conditions {
+		switch condition.Type {
+		case "Ready":
+			if condition.Status != corev1.ConditionTrue {
+				if condition.Reason == "" {
+					condition.Reason = "Not Given"
+				}
+				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not ready, reason is %s", cluster.Name, cluster.Spec.DisplayName, condition.Reason)}, messages...)
+			}
+		case "Provisioning":
+			if condition.Status != corev1.ConditionTrue {
+				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not provisioned", cluster.Name, cluster.Spec.DisplayName)}, messages...)
+			}
+		case "Waiting":
+			if condition.Reason == "" {
+				condition.Reason = "Not Given"
+			}
+			if condition.Status != corev1.ConditionTrue {
+				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is waiting, reason is %s", cluster.Name, cluster.Spec.DisplayName, condition.Reason)}, messages...)
+			}
+		case "Connected":
+			if condition.Status != corev1.ConditionTrue {
+				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is not connected", cluster.Name, cluster.Spec.DisplayName)}, messages...)
+			}
+		}
+		fmt.Println(condition)
+	}
+
+	issueReporter.AddKnownIssueMessagesFiles(report.KontainerDriverNotReady, clusterRoot, messages, []string{})
+
 	return nil
 }
