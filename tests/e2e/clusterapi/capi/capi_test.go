@@ -370,12 +370,6 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
-		//WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
-		//	Eventually(func() error {
-		//		return capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
-		//	}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
-		//})
-
 		WhenClusterAPIInstalledIt("Ensure Calico pods in kube-system of CAPI workload cluster are running", func() {
 			Eventually(func() bool {
 				return EnsureCalicoPodsAreRunning(ClusterName, t.Logs)
@@ -478,11 +472,6 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are running")
 		})
 
-		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
-			Eventually(func() error {
-				return capiTest.DisplayWorkloadClusterResources(ClusterName, t.Logs)
-			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
-		})
 	})
 
 	t.Context(fmt.Sprintf("Deploy Verrazzano and monitor vz install status  '%s'", ClusterName), func() {

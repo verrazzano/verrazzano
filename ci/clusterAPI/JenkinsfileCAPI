@@ -39,10 +39,7 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
-                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
-                        trim: true)
+        choice (description: 'OCI region to launch CAPI clusters in', name: 'CAPI_CLUSTER_REGION', choices: availableRegions )
         string (name: 'POD_CIDR',
                         defaultValue: '192.168.0.0/16',
                         description: 'POD cidr to be used in workload/managed OCNE cluster',
@@ -66,43 +63,26 @@ pipeline {
         string (name: 'ORACLE_LINUX_NAME',defaultValue: 'Oracle-Linux-8.7-2023',description: 'Oracle Linux Display Name',trim: true)
         string (name: 'OPERATING_SYSTEM',defaultValue: 'Oracle Linux',description: 'Operating system filter used to fetch stock images',trim: true)
         string (name: 'OPERATING_SYSTEM_VERSION',defaultValue: '8',description: 'Version of Operating system to fetch',trim: true)
-        choice (name: 'WILDCARD_DNS_DOMAIN',
-                description: 'This is the wildcard DNS domain',
-                // 1st choice is the default value
-                choices: [ "nip.io", "sslip.io"])
-        choice (name: 'CRD_API_VERSION',
-                description: 'This is the API crd version.',
-                // 1st choice is the default value
-                choices: [ "v1beta1", "v1alpha1"])
-        choice (description: 'OCI region to launch CAPI clusters in', name: 'CAPI_CLUSTER_REGION',
-                    // 1st choice is the default value
-                    choices: availableRegions )
+
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                                defaultValue: 'NONE',
+                                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
+                                trim: true)
+        choice (name: 'WILDCARD_DNS_DOMAIN',description: 'This is the wildcard DNS domain',choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION', description: 'This is the API crd version.', choices: [ "v1beta1", "v1alpha1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to use a database for Grafana persistence', name: 'USE_DB_FOR_GRAFANA', defaultValue: false)
-        string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: '',
-                description: 'The branch to check out after cloning the console repository.',
-                trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH', defaultValue: '',description: 'The branch to check out after cloning the console repository.',trim: true)
         booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
-        string (name: 'TAGGED_TESTS',
-                defaultValue: '',
-                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
-                trim: true)
-        string (name: 'INCLUDED_TESTS',
-                defaultValue: '.*',
-                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
-                trim: true)
-        string (name: 'EXCLUDED_TESTS',
-                defaultValue: '_excluded_test',
-                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
-                trim: true)
-        string (name: 'INSTALL_PROFILE',
-                defaultValue: 'dev',
-                description: 'Verrazzano install profile (prod/dev). default: dev',
-                trim: true)
+        string (name: 'TAGGED_TESTS',defaultValue: '',description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',trim: true)
+        string (name: 'INCLUDED_TESTS', defaultValue: '.*', description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',trim: true)
+        string (name: 'EXCLUDED_TESTS', defaultValue: '_excluded_test',description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',trim: true)
+        string (name: 'INSTALL_PROFILE',defaultValue: 'dev', description: 'Verrazzano install profile (prod/dev) on admin cluster. default: dev',trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-
+        booleanParam (description: 'Whether to run Post-install Verify Tests on workload cluster', name: 'RUN_POST_INSTALL_VERIFY_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run Post-install Infra Tests on workload cluster.', name: 'RUN_POST_INSTALL_INFRA_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run Post-install Acceptance Tests on workload cluster.', name: 'RUN_POST_INSTALL_ACCEPTANCE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -385,6 +365,9 @@ pipeline {
 
 
                 stage('Post-install Verify Tests on workload cluster') {
+                       when {
+                           expression {params.RUN_POST_INSTALL_VERIFY_TESTS == true}
+                       }
                        steps {
                            script {
                                parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
@@ -399,6 +382,9 @@ pipeline {
                }
 
                stage('Post-install Infra Tests on workload cluster') {
+                    when {
+                        expression {params.RUN_POST_INSTALL_INFRA_TESTS == true}
+                    }
                     steps {
                         script {
                             parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
@@ -412,7 +398,10 @@ pipeline {
                     }
                 }
 
-                stage('Post-install Acceptance Tests on workload cluster') {
+               stage('Post-install Acceptance Tests on workload cluster') {
+                    when {
+                        expression {params.RUN_POST_INSTALL_ACCEPTANCE_TESTS == true}
+                    }
                     steps {
                         script {
                             parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'false', 'false')
@@ -424,7 +413,7 @@ pipeline {
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
-                }
+               }
 
                stage('Uninstall vz from workload cluster') {
                     steps {
