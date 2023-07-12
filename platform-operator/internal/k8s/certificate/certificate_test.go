@@ -6,7 +6,6 @@ package certificate
 import (
 	"context"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"os"
 	"strings"
@@ -175,7 +174,7 @@ func validateFile(asserts *assert.Assertions, certFile string, certPrefix string
 
 func createFakeWebhookDeployment(kubeClient kubernetes.Interface) error {
 	// Create a pod with Istio injection disabled
-	p := &corev1.Pod{
+	p := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webhookpod",
