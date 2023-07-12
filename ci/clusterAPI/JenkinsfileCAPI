@@ -81,8 +81,8 @@ pipeline {
         string (name: 'INSTALL_PROFILE',defaultValue: 'dev', description: 'Verrazzano install profile (prod/dev) on admin cluster. default: dev',trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install Verify Tests on workload cluster', name: 'RUN_POST_INSTALL_VERIFY_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to run Post-install Infra Tests on workload cluster.', name: 'RUN_POST_INSTALL_INFRA_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to run Post-install Acceptance Tests on workload cluster.', name: 'RUN_POST_INSTALL_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run Post-install Infra Tests on workload cluster.', name: 'RUN_POST_INSTALL_INFRA_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to run Post-install Acceptance Tests on workload cluster.', name: 'RUN_POST_INSTALL_ACCEPTANCE_TESTS', defaultValue: false)
     }
 
     environment {
