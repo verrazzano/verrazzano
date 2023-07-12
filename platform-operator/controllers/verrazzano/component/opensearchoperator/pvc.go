@@ -123,7 +123,7 @@ func createNewPVCs(ctx spi.ComponentContext) error {
 		}
 
 		// If there are old PVs and all new PVCs are yet to be created, create the remaining PVCs
-		// If all new PVCs are already created, do not recreate as PVCs are immutable after creation
+		// If all new PVCs are already created, do not update as PVCs are immutable after creation
 		if len(pvList) > 0 && len(pvcList) != len(pvList) {
 			// replicaCount denotes the replica number for which the PVC will be created
 			// Initially starts at 0, since the number of newly created PVC will be 0 initially

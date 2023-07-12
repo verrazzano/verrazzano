@@ -67,10 +67,7 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            opensearchCluster:
-              bootstrap:
-                additionalConfig:
-                  cluster.initial_master_nodes: opensearch-es-master-0
+            openSearchCluster:
               nodePools:
                 - component: es-master
                   additionalConfig:
