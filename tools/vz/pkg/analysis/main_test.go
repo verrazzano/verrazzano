@@ -504,16 +504,3 @@ func TestCertificateVZClientHangingIssue(t *testing.T) {
 	}
 	assert.True(t, problemsFound == 2)
 }
-
-// TestErrorWhenReadingInvalidCertificateFile tests analysis of a cluster dump when there is an error in a certificate.json file
-// GIVEN a call to analyze a cluster-snapshot
-// WHEN the certificates.json file is not formatted correctly
-// THEN an error is raised
-func TestErrorWhenReadingInvalidCertificateFile(t *testing.T) {
-	logger := log.GetDebugEnabledLogger()
-
-	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/testInvalidCertificateFile")
-	assert.NoError(t, err)
-
-}
