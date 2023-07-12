@@ -739,7 +739,7 @@ func TestSyncLocalClusterCA(t *testing.T) {
 					Namespace: tt.testAdminMCCASecret.Namespace,
 					Name:      tt.testAdminMCCASecret.Name},
 				&adminMCSecretAfterTest)
-
+			assert.NoError(err)
 			// in all cases, after the call to syncLocalClusterCAs, the managed cluster CA on the
 			// admin side should equal the one on the managed side (either through update or because
 			// they were equal to start with
