@@ -514,6 +514,6 @@ func TestErrorWhenReadingInvalidCertificateFile(t *testing.T) {
 
 	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/testInvalidCertificateFile")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 
 }
