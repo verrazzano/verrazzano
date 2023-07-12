@@ -5,76 +5,178 @@ package traits
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"log"
 )
 
-// handling YAML structure panic
-func HandleYAMLStructurePanic(yamlMap map[string]interface{}) (map[string]*vzapi.IngressTrait, []string, []*vzapi.IngressTrait, []*vzapi.MetricsTrait) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println("panic occurred in YAML structure:", err)
-		}
-	}()
-	return extractTraitFromMap(yamlMap)
-}
+// ExtractTrait - Extract traits from the app map
+func ExtractTrait(appMap map[string]interface{}) ([]*types.ConversionComponents, error) {
+	conversionComponents := []*types.ConversionComponents{}
 
-// Extract traits from the component map
-func extractTraitFromMap(yamlMap map[string]interface{}) (map[string]*vzapi.IngressTrait, []string, []*vzapi.IngressTrait, []*vzapi.MetricsTrait) {
+	appMetadata, found, err := unstructured.NestedMap(appMap, "metadata")
+	if !found || err != nil {
+		return nil, errors.New("app metadata doesn't exist")
+	}
+	appName, found, err := unstructured.NestedString(appMetadata, "name")
+	if !found || err != nil {
+		return nil, errors.New("app name key doesn't exist")
+	}
 
-	ingressTraits := []*vzapi.IngressTrait{} //Array of ingresstraits
-	metricsTraits := []*vzapi.MetricsTrait{}
+	appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
+	if !found || err != nil {
+		return nil, errors.New("namespace key doesn't exist")
+	}
 
-	// Create an ingress map
-	ingressMap := make(map[string]*vzapi.IngressTrait)
+	appSpec, found, err := unstructured.NestedMap(appMap, "spec")
+	if !found || err != nil {
+		return nil, errors.New("app spec doesn't exist")
+	}
 
-	var componentNames []string
+	appComponents, found, err := unstructured.NestedSlice(appSpec, "components")
+	if !found || err != nil {
+		return nil, errors.New("app components doesn't exist")
+	}
 
-	// Access nested objects within the YAML data and extract traits by checking the kind of the object
-	components := yamlMap[consts.YamlSpec].(map[string]interface{})[consts.YamlComponents].([]interface{})
-	for _, component := range components {
+	for _, component := range appComponents {
 		componentMap := component.(map[string]interface{})
 		componentTraits, ok := componentMap[consts.YamlTraits].([]interface{})
 		if ok && len(componentTraits) > 0 {
 			for _, trait := range componentTraits {
 				traitMap := trait.(map[string]interface{})
-				traitSpec := traitMap[consts.TraitComponent].(map[string]interface{})
-				traitKind := traitSpec[consts.TraitKind].(string)
+				//traitSpec := traitMap[consts.TraitComponent].(map[string]interface{})
+				traitSpec, found, err := unstructured.NestedMap(traitMap, "trait")
+				if !found || err != nil {
+					return nil, errors.New("trait spec doesn't exist")
+				}
+
+				traitKind, found, err := unstructured.NestedString(traitSpec, "kind")
+				if !found || err != nil {
+					return nil, errors.New("trait kind doesn't exist")
+				}
 				if traitKind == consts.IngressTrait {
 					ingressTrait := &vzapi.IngressTrait{}
 					traitJSON, err := json.Marshal(traitSpec)
 
 					if err != nil {
-						log.Fatalf("Failed to marshal trait: %v", err)
+						fmt.Printf("Failed to marshal trait: %v", err)
 					}
 
 					err = json.Unmarshal(traitJSON, ingressTrait)
-					ingressTrait.Name = yamlMap[consts.YamlMetadata].(map[string]interface{})[consts.YamlName].(string)
-					ingressTrait.Namespace = yamlMap[consts.YamlMetadata].(map[string]interface{})[consts.YamlNamespace].(string)
+
 					if err != nil {
-						log.Fatalf("Failed to unmarshal trait: %v", err)
+						fmt.Printf("Failed to unmarshal trait: %v", err)
 					}
-					fmt.Println(componentMap["componentName"].(string))
 
-					//Assigning ingresstrait to a map with the key as component name
-					ingressMap[componentMap["componentName"].(string)] = ingressTrait
-
-					componentNames = append(componentNames, componentMap["componentName"].(string))
-					ingressTraits = append(ingressTraits, ingressTrait)
-				}
-
-				fmt.Println("check map", ingressMap[" robert-helidon"])
-				if traitKind == consts.MetricsTrait {
-					//	Add metricstrait code
-
+					conversionComponents = append(conversionComponents, &types.ConversionComponents{
+						AppNamespace:  appNamespace,
+						AppName:       appName,
+						ComponentName: componentMap["componentName"].(string),
+						IngressTrait:  ingressTrait,
+					})
 				}
 			}
 		}
 	}
-	for _, name := range componentNames {
-		fmt.Println("name of the component who has ingress trait", name)
+
+	return conversionComponents, nil
+}
+
+// ExtractWorkload - Extract workload from comp map
+func ExtractWorkload(components []map[string]interface{}, conversionComponents []*types.ConversionComponents) ([]*types.ConversionComponents, error) {
+	weblogicMap := make(map[string]*vzapi.VerrazzanoWebLogicWorkload)
+	for _, comp := range components {
+
+		spec, found, err := unstructured.NestedMap(comp, "spec")
+		if !found || err != nil {
+			return nil, errors.New("spec key in a component doesn't exist")
+		}
+		workload, found, err := unstructured.NestedMap(spec, "workload")
+		if !found || err != nil {
+			return nil, errors.New("workload in a component doesn't exist")
+		}
+		kind, found, err := unstructured.NestedString(workload, "kind")
+		if !found || err != nil {
+			return nil, errors.New("workload kind in a component doesn't exist")
+		}
+
+		compMetadata, found, err := unstructured.NestedMap(comp, "metadata")
+		if !found || err != nil {
+			return nil, errors.New("component metadata doesn't exist")
+		}
+		name, found, err := unstructured.NestedString(compMetadata, "name")
+		if !found || err != nil {
+			return nil, errors.New("component name doesn't exist")
+		}
+
+		//Checking if the specific component name is present in the component names array
+		//where component names array is the array of component names
+		//which has ingress traits applied on it
+
+		for i := range conversionComponents {
+			if conversionComponents[i].ComponentName == name {
+				// Assign the desired value to the specific element
+				switch kind {
+				case "VerrazzanoWebLogicWorkload":
+
+					weblogicWorkload := &vzapi.VerrazzanoWebLogicWorkload{}
+					workloadJSON, err := json.Marshal(workload)
+
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+
+					}
+
+					err = json.Unmarshal(workloadJSON, &weblogicWorkload)
+					if err != nil {
+						fmt.Printf("Failed to unmarshal: %v\n", err)
+
+					}
+
+					//putting into map of workloads whose key is the component name and
+					//value is the weblogic workload
+					weblogicMap[name] = weblogicWorkload
+					conversionComponents[i].WeblogicworkloadMap = weblogicMap
+
+				case "VerrazzanoHelidonWorkload":
+					//Appending the helidon workloads in the helidon workload array
+					helidonWorkload := &vzapi.VerrazzanoHelidonWorkload{}
+					workloadJSON, err := json.Marshal(workload)
+
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+					}
+
+					err = json.Unmarshal(workloadJSON, &helidonWorkload)
+					if err != nil {
+						fmt.Printf("Failed to unmarshal: %v\n", err)
+
+					}
+					conversionComponents[i].Helidonworkload = helidonWorkload
+				case "VerrazzanoCoherenceWorkload":
+
+					//Appending the coherence workloads in the coherence workload array
+					coherenceWorkload := &vzapi.VerrazzanoCoherenceWorkload{}
+					workloadJSON, err := json.Marshal(workload)
+
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+					}
+
+					err = json.Unmarshal(workloadJSON, &coherenceWorkload)
+					if err != nil {
+						fmt.Printf("Failed to unmarshal: %v\n", err)
+
+					}
+					conversionComponents[i].Coherenceworkload = coherenceWorkload
+				}
+				break
+			}
+		}
 	}
-	return ingressMap, componentNames, ingressTraits, metricsTraits
+	return conversionComponents, nil
 }

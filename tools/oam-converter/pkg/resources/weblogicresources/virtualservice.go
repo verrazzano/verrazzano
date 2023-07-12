@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +44,7 @@ func mutateVirtualServiceFromWeblogicWorkload(virtualService *vsapi.VirtualServi
 		matches = append(matches, &istio.HTTPMatchRequest{
 			Uri: vs.CreateVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest, err := createDestinationFromRuleOrWeblogicWorkload(rule, weblogicWorkload)
+	dest, err := destination.CreateDestinationFromRule(rule)
 	if err != nil {
 		print(err)
 		return err

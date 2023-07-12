@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -39,7 +40,7 @@ func createDestinationRuleFromCoherenceWorkload(trait *vzapi.IngressTrait, rule 
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
 func mutateDestinationRuleFromCoherenceWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, coherenceWorkload *vzapi.VerrazzanoCoherenceWorkload) error {
-	dest, err := createDestinationFromRuleOrCoherenceWorkload(rule, coherenceWorkload)
+	dest, err := destination.CreateDestinationFromRule(rule)
 	if err != nil {
 		print(err)
 		return err

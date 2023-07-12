@@ -20,15 +20,15 @@ import (
 
 // createGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
 // if one is configured in the ingress.
-func CreateGatewaySecret(trait *vzapi.IngressTrait, hostsForTrait []string) string {
+func CreateGatewaySecret(trait *vzapi.IngressTrait, hostsForTrait []string, appNamespace string, appName string) string {
 	var secretName string
 
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
 		secretName = validateConfiguredSecret(trait)
 	} else {
-		buildLegacyCertificateName(trait)
-		buildLegacyCertificateSecretName(trait)
-		secretName = createGatewayCertificate(trait, hostsForTrait)
+		buildLegacyCertificateName(trait, appNamespace, appName)
+		buildLegacyCertificateSecretName(trait, appNamespace, appName)
+		secretName = createGatewayCertificate(trait, hostsForTrait, appNamespace, appName)
 	}
 	return secretName
 }
@@ -37,7 +37,7 @@ func CreateGatewaySecret(trait *vzapi.IngressTrait, hostsForTrait []string) stri
 // that is embedded in a secret. The gateway will use the secret to offer TLS/HTTPS endpoints for installed applications.
 // Each application will generate a single gateway. The application-wide gateway will be used to route the produced
 // virtual services
-func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string) string {
+func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string, appNamespace string, appName string) string {
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
@@ -46,8 +46,8 @@ func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string)
 			break
 		}
 	}
-	certName := buildCertificateName(trait)
-	secretName := buildCertificateSecretName(trait)
+	certName := buildCertificateName(trait, appNamespace, appName)
+	secretName := buildCertificateSecretName(trait, appNamespace, appName)
 	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Certificate",
@@ -70,31 +70,31 @@ func createGatewayCertificate(trait *vzapi.IngressTrait, hostsForTrait []string)
 }
 
 // buildCertificateSecretName will construct a cert secret name from the trait.
-func buildCertificateSecretName(trait *vzapi.IngressTrait) string {
-	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, trait.Name)
+func buildCertificateSecretName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
+	return fmt.Sprintf("%s-%s-cert-secret", appNamespace, appName)
 }
 
 // buildCertificateName will construct a cert name from the trait.
-func buildCertificateName(trait *vzapi.IngressTrait) string {
-	return fmt.Sprintf("%s-%s-cert", trait.Namespace, trait.Name)
+func buildCertificateName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
+	return fmt.Sprintf("%s-%s-cert", appNamespace, appName)
 }
 
 // buildLegacyCertificateName will generate a cert name
-func buildLegacyCertificateName(trait *vzapi.IngressTrait) string {
+func buildLegacyCertificateName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return ""
 	}
-	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName)
+	return fmt.Sprintf("%s-%s-cert", appNamespace, appName)
 }
 
 // buildLegacyCertificateSecretName will generate a cert secret name
-func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait) string {
+func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return ""
 	}
-	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, appName)
+	return fmt.Sprintf("%s-%s-cert-secret", appNamespace, appName)
 }
 
 // validateConfiguredSecret ensures that a secret is specified and the trait rules specify a "hosts" setting.  The
@@ -107,9 +107,9 @@ func validateConfiguredSecret(trait *vzapi.IngressTrait) string {
 
 // buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
 // an error if the app name is not available.
-func BuildGatewayName(trait *vzapi.IngressTrait) (string, error) {
+func BuildGatewayName(trait *vzapi.IngressTrait, traitName string, appNamespace string) (string, error) {
 
-	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, trait.Name)
+	gwName := fmt.Sprintf("%s-%s-gw", appNamespace, traitName)
 	return gwName, nil
 }
 
