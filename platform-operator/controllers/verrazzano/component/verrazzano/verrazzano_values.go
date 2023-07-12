@@ -19,30 +19,33 @@ import (
 //   - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //     value to the VMO to indicate ephemeral storage is to be used
 type verrazzanoValues struct {
-	Name                   string                        `json:"name,omitempty"`
-	Global                 *globalValues                 `json:"global,omitempty"`
-	Image                  *imageValues                  `json:"image,omitempty"`
-	AppBinding             *appBindingValues             `json:"appBinding,omitempty"`
-	ElasticSearch          *elasticsearchValues          `json:"elasticSearch,omitempty"`
-	Prometheus             *prometheusValues             `json:"prometheus,omitempty"`
-	Grafana                *grafanaValues                `json:"grafana,omitempty"`
-	Kibana                 *kibanaValues                 `json:"kibana,omitempty"`
-	Istio                  *istioValues                  `json:"istio,omitempty"`
-	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
-	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
-	Rancher                *rancherValues                `json:"rancher,omitempty"`
-	API                    *apiValues                    `json:"api,omitempty"`
-	Config                 *configValues                 `json:"config,omitempty"`
-	Security               *securityRoleBindingValues    `json:"security,omitempty"`
-	Kubernetes             *kubernetesValues             `json:"kubernetes,omitempty"`
-	Externaldns            *externalDNSValues            `json:"externaldns,omitempty"`
-	PrometheusOperator     *prometheusOperatorValues     `json:"prometheusOperator,omitempty"`
-	PrometheusAdapter      *prometheusAdapterValues      `json:"prometheusAdapter,omitempty"`
-	KubeStateMetrics       *kubeStateMetricsValues       `json:"kubeStateMetrics,omitempty"`
-	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
-	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
-	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
-	IngressNGINX           *ingressNGINXValues           `json:"ingressNGINX,omitempty"`
+	Name                      string                        `json:"name,omitempty"`
+	Global                    *globalValues                 `json:"global,omitempty"`
+	Image                     *imageValues                  `json:"image,omitempty"`
+	AppBinding                *appBindingValues             `json:"appBinding,omitempty"`
+	ElasticSearch             *elasticsearchValues          `json:"elasticSearch,omitempty"`
+	Prometheus                *prometheusValues             `json:"prometheus,omitempty"`
+	Grafana                   *grafanaValues                `json:"grafana,omitempty"`
+	Kibana                    *kibanaValues                 `json:"kibana,omitempty"`
+	Istio                     *istioValues                  `json:"istio,omitempty"`
+	Kiali                     *kialiValues                  `json:"kiali,omitempty"`
+	Keycloak                  *keycloakValues               `json:"keycloak,omitempty"`
+	Rancher                   *rancherValues                `json:"rancher,omitempty"`
+	API                       *apiValues                    `json:"api,omitempty"`
+	Config                    *configValues                 `json:"config,omitempty"`
+	Security                  *securityRoleBindingValues    `json:"security,omitempty"`
+	Kubernetes                *kubernetesValues             `json:"kubernetes,omitempty"`
+	Externaldns               *externalDNSValues            `json:"externaldns,omitempty"`
+	PrometheusOperator        *prometheusOperatorValues     `json:"prometheusOperator,omitempty"`
+	PrometheusAdapter         *prometheusAdapterValues      `json:"prometheusAdapter,omitempty"`
+	KubeStateMetrics          *kubeStateMetricsValues       `json:"kubeStateMetrics,omitempty"`
+	PrometheusPushgateway     *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
+	PrometheusNodeExporter    *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
+	JaegerOperator            *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
+	IngressNGINX              *ingressNGINXValues           `json:"ingressNGINX,omitempty"`
+	Fluentd                   *fluentdValues                `json:"fluentd,omitempty"`
+	FluentOperator            *fluentOperatorValues         `json:"fluentOperator,omitempty"`
+	FluentbitOpensearchOutput *fluentbitOpensearchOutput    `json:"fluentbitOpensearchOutput,omitempty"`
 }
 
 type subject struct {
@@ -161,4 +164,16 @@ type jaegerOperatorValues struct {
 
 type ingressNGINXValues struct {
 	Namespace string `json:"namespace"`
+}
+
+type fluentdValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type fluentOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type fluentbitOpensearchOutput struct {
+	Enabled bool `json:"enabled"` // Always write
 }
