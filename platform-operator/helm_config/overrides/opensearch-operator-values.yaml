@@ -1,3 +1,6 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 nodeSelector: {}
 tolerations: []
 manager:
@@ -32,8 +35,8 @@ manager:
   image:
     repository: public.ecr.aws/opsterio/opensearch-operator
     ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
-    tag: ""
-    pullPolicy: "Always"
+    tag: "2.3.0"
+    pullPolicy: "IfNotPresent"
 
   dnsBase: cluster.local
 
@@ -123,11 +126,14 @@ openSearchCluster:
         secret:
           name: opensearch-master-cert
   general:
+    image: "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
     httpPort: 9200
     serviceName: opensearch
     version: 2.3.0
     drainDataNodes: true
+    setVMMaxMapCount: true
   dashboards:
+    image: "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
     opensearchCredentialsSecret:
       name: admin-credentials-secret
     additionalConfig:

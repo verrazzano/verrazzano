@@ -50,6 +50,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AppendOverridesFunc:       AppendOverrides,
 		},
 	}
 }

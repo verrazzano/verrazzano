@@ -50,7 +50,7 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            opensearchCluster:
+            openSearchCluster:
               nodePools:
                 - component: es-master
                   replicas: 3
