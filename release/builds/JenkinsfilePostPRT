@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -116,31 +116,6 @@ pipeline {
             }
         }
 
-        stage('Scan Release Binaries') {
-            environment {
-                SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
-                SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
-                VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
-                NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
-            }
-           steps {
-                script {
-                    // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
-                    timeout(time: 300, unit: 'MINUTES') {
-                        sh """
-                            cd ${WORKSPACE}/release/scripts
-
-                            # Scan Verrazzano lite distribution
-                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
-
-                            # Scan Verrazzano full distribution
-                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} "Full" "true"
-                        """
-                   }
-                }
-            }
-        }
-
         stage('Create Github Release') {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
@@ -162,32 +137,13 @@ pipeline {
             }
         }
 
-        stage('Copy Results to Release') {
-            steps {
-                script {
-                    sh """
-                        if [ $TEST_RUN == true ] ; then
-                          echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
-                          echo ""
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
-                        else
-                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
-                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
-
-                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report_vz_full.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
-                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary_vz_full.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
-                        fi
-                    """
-                }
-            }
-        }
+        // REVIEW: If it doesn't add too much complexity, verify that the scan job has completed here, was OK, and then copy the scan results from the
+        // ephemeral release-commit location to the release location here. The scan results are only stored in the ephemeral per-commit bucket as they
+        // are updated asynchronously (avoids complexity and race conditions).
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/scan_report.out,**/scan_summary.out,", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/scan_report.out,**/scan_summary.out,**/scan_report_debug.out", allowEmptyArchive: true
         }
         cleanup {
             deleteDir()
