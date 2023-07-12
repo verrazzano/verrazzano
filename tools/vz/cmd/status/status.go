@@ -76,6 +76,9 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 	cmd.Example = helpExample
 
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
+
 	return cmd
 }
 
