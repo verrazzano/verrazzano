@@ -149,7 +149,7 @@ func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster ranc
 		}
 	}
 
-	issueReporter.AddKnownIssueMessagesFiles(report.KontainerDriverNotReady, clusterRoot, messages, []string{})
+	issueReporter.AddKnownIssueMessagesFiles(report.RancherClusterNotReady, clusterRoot, messages, []string{})
 
 	return nil
 }
