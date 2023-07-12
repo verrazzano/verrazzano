@@ -112,7 +112,7 @@ func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster ranc
 				condition.Reason = "Not Given"
 			}
 			if condition.Status != corev1.ConditionTrue {
-				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is waiting, reason is %s", cluster.Name, cluster.Spec.DisplayName, condition.Reason)}, messages...)
+				messages = append([]string{fmt.Sprintf("Rancher cluster resource %q, displayed as %s, is waiting", cluster.Name, cluster.Spec.DisplayName)}, messages...)
 			}
 		case "Connected":
 			if condition.Status != corev1.ConditionTrue {
