@@ -21,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	adminv1 "k8s.io/api/admissionregistration/v1"
@@ -351,8 +350,8 @@ func GetVersionOut() string {
 }
 
 // VerifyVzInstallNamespaceExists returns existence of verrazzano-install namespace
-func VerifyVzInstallNamespaceExists() bool {
-	pods, err := pkg.ListPods(vzconstants.VerrazzanoInstall, metav1.ListOptions{})
+func VerifyVzInstallNamespaceExists(kubeClient kubernetes.Interface) bool {
+	pods, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstall).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return false
 	}
