@@ -78,7 +78,6 @@ pipeline {
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
         booleanParam (description: 'Whether to skip the VZ install in the prepare environment script', name: 'SKIP_VERRAZZANO_INSTALL_PARAM', defaultValue: false)
         booleanParam (description: 'Whether to run with an external cert-manager and NGINX installed', name: 'EXTERNAL_CERT_MANAGER', defaultValue: false)
-        booleanParam (description: 'Whether to run clusterAPI Override Tests', name: 'CLUSTER_API_OVERRIDES', defaultValue: false)
         string (name: 'CLUSTER_RESOURCE_NAMESPACE',
                 defaultValue: 'my-cert-manager',
                 description: 'The namespace for cluster-scoped Cert-Manager resources; defaults to where Cert-Manager is installed.',
@@ -560,23 +559,6 @@ pipeline {
                     }
                     steps {
                         runGinkgo('update/fluent-operator/infra')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
-                stage('ClusterAPI Override Tests') {
-                    when { expression {params.ClUSTER_API_OVERRIDES} }
-                    environment {
-                        TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/clusterapi-overrides"
-                    }
-                    steps {
-                        runGinkgo('clusterapi/capi-overrides')
                     }
                     post {
                         always {

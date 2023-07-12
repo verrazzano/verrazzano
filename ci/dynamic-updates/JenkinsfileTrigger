@@ -185,15 +185,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('Component clusterAPI Overrides') {
-                    steps {
-                        retry (count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                startDCTestJob([booleanParam(name: 'CLUSTER_API_OVERRIDES', value: true)])
-                            }
-                        }
-                    }
-                }
             }
         }
     }
