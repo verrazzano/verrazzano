@@ -18,10 +18,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/factory"
 	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
+	"sync"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -93,21 +95,37 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
 
-	//healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-	//reconciler := reconcile.Reconciler{
-	//	Client:            mgr.GetClient(),
-	//	Scheme:            mgr.GetScheme(),
-	//	DryRun:            vzconfig.DryRun,
-	//	WatchedComponents: map[string]bool{},
-	//	WatchMutex:        &sync.RWMutex{},
-	//	StatusUpdater:     statusUpdater,
-	//}
-	//if err = reconciler.SetupWithManager(mgr); err != nil {
-	//	return errors.Wrap(err, "Failed to setup controller")
-	//}
-	//if vzconfig.HealthCheckPeriodSeconds > 0 {
-	//	healthCheck.Start()
-	//}
+	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
+	// Use the new controller if module integration is enabled, otherwise use the original verrazzano controller
+	if vzconfig.ModuleIntegration {
+		// init module controllers, one for each component
+		if err := initModuleControllers(log, mgr); err != nil {
+			log.Errorf("Failed to start all module controllers", err)
+			return errors.Wrap(err, "Failed to setup controller for module controller for the components")
+		}
+
+		// init verrazzano module controller
+		if err := verrazzanomodule.InitController(mgr); err != nil {
+			log.Errorf("Failed to start module-based Verrazzano controller", err)
+			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
+		}
+	} else {
+		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+		reconciler := reconcile.Reconciler{
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			DryRun:            vzconfig.DryRun,
+			WatchedComponents: map[string]bool{},
+			WatchMutex:        &sync.RWMutex{},
+			StatusUpdater:     statusUpdater,
+		}
+		if err = reconciler.SetupWithManager(mgr); err != nil {
+			return errors.Wrap(err, "Failed to setup controller")
+		}
+		if vzconfig.HealthCheckPeriodSeconds > 0 {
+			healthCheck.Start()
+		}
+	}
 
 	// Setup secrets reconciler
 	if err = (&secrets.VerrazzanoSecretsReconciler{
@@ -145,18 +163,6 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 
 	if vzconfig.ExperimentalModules {
 		log.Infof("Experimental Modules API enabled")
-	}
-
-	// init module controllers
-	if err := initModuleControllers(log, mgr); err != nil {
-		log.Errorf("Failed to start OCI-CCM controller", err)
-		return errors.Wrap(err, "Failed to setup controller for module controller for the components")
-	}
-
-	// init verrazzano module controller
-	if err := verrazzanomodule.InitController(mgr); err != nil {
-		log.Errorf("Failed to start module-based Verrazzano controller", err)
-		return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
 	}
 
 	// +kubebuilder:scaffold:builder
