@@ -40,7 +40,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *v
 
 	statusUpdated := false
 	for _, comp := range registry.GetComponents() {
-		compStatus, ok := cr.Status.Components[comp.Name()]
+		_, ok := cr.Status.Components[comp.Name()]
 		if ok {
 			// Skip components that have already been processed
 			continue
@@ -62,7 +62,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *v
 					lastReconciled = compContext.ActualCR().Generation
 				}
 			}
-			compStatus = &vzapi.ComponentStatusDetails{
+			compStatus := &vzapi.ComponentStatusDetails{
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,

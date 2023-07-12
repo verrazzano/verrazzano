@@ -8,11 +8,8 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -28,16 +25,8 @@ import (
 	"strconv"
 )
 
-var localbom *bom.Bom
-
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
-
-// systemNamespaceLabels the verrazzano-system namespace labels required
-var systemNamespaceLabels = map[string]string{
-	"istio-injection":         "enabled",
-	"verrazzano.io/namespace": vzconst.VerrazzanoSystemNamespace,
-}
 
 // Set to true during unit testing
 var unitTesting bool
@@ -199,7 +188,7 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 // initForVzResource will do initialization for the given Verrazzano resource.
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
-func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) result.Result {
+func (r *Reconciler) initForVzResource(vz *vzapi.Verrazzano, log vzlog.VerrazzanoLogger) result.Result {
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
