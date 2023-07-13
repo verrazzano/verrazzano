@@ -30,11 +30,9 @@ type clusterAPIClusterStatus struct {
 	Conditions []clusterAPIClusterCondition `json:"conditions,omitempty"`
 }
 type clusterAPIClusterCondition struct {
-	Message  string                 `json:"message,omitempty"`
-	Reason   string                 `json:"reason,omitempty"`
-	Severity string                 `json:"severity"`
-	Status   corev1.ConditionStatus `json:"status"`
-	Type     string                 `json:"type"`
+	Reason string                 `json:"reason,omitempty"`
+	Status corev1.ConditionStatus `json:"status"`
+	Type   string                 `json:"type"`
 }
 
 // AnalyzeClusterAPIIssues handles the checking of cluster-api cluster resource.
@@ -82,8 +80,6 @@ func analyzeClusterAPICLusters(log *zap.SugaredLogger, clusterRoot string, issue
 		for _, cluster := range clusterList.Items {
 			analyzeClusterAPICluster(clusterRoot, cluster, issueReporter)
 		}
-
-		// check if this is the correct CAPI json file and handle multiple cluster resources in the same namespace
 	}
 
 	issueReporter.Contribute(log, clusterRoot)
