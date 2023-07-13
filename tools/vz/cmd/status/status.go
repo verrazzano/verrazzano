@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package status
@@ -148,6 +148,9 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 		return runCmdStatus(cmd, vzHelper)
 	}
 	cmd.Example = helpExample
+
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }
