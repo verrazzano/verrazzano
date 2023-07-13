@@ -1,0 +1,1241 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Cluster",
+      "metadata": {
+        "annotations": {
+          "authz.management.cattle.io/creator-role-bindings": "{\"created\":[\"cluster-owner\"],\"required\":[\"cluster-owner\"]}",
+          "field.cattle.io/creatorId": "user-tjcxf",
+          "lifecycle.cattle.io/create.cluster-agent-controller-cleanup": "true",
+          "lifecycle.cattle.io/create.cluster-provisioner-controller": "true",
+          "lifecycle.cattle.io/create.cluster-scoped-gc": "true",
+          "lifecycle.cattle.io/create.mgmt-cluster-rbac-remove": "true",
+          "management.cattle.io/current-cluster-controllers-version": "v1.25.7+1.el8",
+          "provisioner.cattle.io/ke-driver-update": "updated"
+        },
+        "creationTimestamp": "2023-07-12T15:30:03Z",
+        "finalizers": [
+          "verrazzano.io/rancher-cluster",
+          "wrangler.cattle.io/mgmt-cluster-remove",
+          "controller.cattle.io/cluster-agent-controller-cleanup",
+          "controller.cattle.io/cluster-scoped-gc",
+          "controller.cattle.io/cluster-provisioner-controller",
+          "controller.cattle.io/mgmt-cluster-rbac-remove"
+        ],
+        "generateName": "c-",
+        "generation": 27,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "name": "c-nqf7g",
+        "resourceVersion": "50737786",
+        "uid": "27ac8a98-3486-4241-a434-25d2b6638f85"
+      },
+      "spec": {
+        "agentImageOverride": "",
+        "answers": {},
+        "clusterSecrets": {},
+        "description": "",
+        "desiredAgentImage": "",
+        "desiredAuthImage": "",
+        "displayName": "sginc-2",
+        "dockerRootDir": "/var/lib/docker",
+        "enableClusterAlerting": false,
+        "enableClusterMonitoring": false,
+        "enableNetworkPolicy": false,
+        "fleetWorkspaceName": "fleet-default",
+        "genericEngineConfig": {
+          "applyYamls": null,
+          "cloudCredentialId": "cattle-global-data:cc-b542x",
+          "clusterCidr": "10.96.0.0/16",
+          "cnePath": "olcne",
+          "compartmentId": "ocid1.compartment.oc1..aaaaaaaa2w3plm6x3qojzsqh5r4xpmyikjavnkncuupldtocbxjt6sf3n6ga",
+          "controlPlaneMemoryGbs": 16,
+          "controlPlaneOcpus": 2,
+          "controlPlaneShape": "VM.Standard.E4.Flex",
+          "controlPlaneSubnet": "",
+          "controlPlaneVolumeGbs": 100,
+          "corednsImageTag": "v1.9.3",
+          "displayName": "sginc-2",
+          "driverName": "ociocneengine",
+          "etcdImageTag": "3.5.6",
+          "imageDisplayName": "Oracle-Linux-8.8-2023.06.30-0",
+          "imageId": "",
+          "installCalico": true,
+          "installCcm": true,
+          "installVerrazzano": true,
+          "kubernetesVersion": "v1.25.7",
+          "loadBalancerSubnet": "",
+          "name": "",
+          "nodePools": [
+            "{\"name\":\"pool-0ao54\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+          ],
+          "nodePublicKeyContents": "",
+          "numControlPlaneNodes": 1,
+          "ocneVersion": "1.6",
+          "podCidr": "10.244.0.0/16",
+          "privateRegistry": "",
+          "proxyEndpoint": "",
+          "quickCreateVcn": true,
+          "region": "us-phoenix-1",
+          "skipOcneInstall": false,
+          "tigeraImageTag": "v1.29.0",
+          "useNodePvEncryption": true,
+          "vcnId": "",
+          "verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+          "verrazzanoTag": "v2.0.0-20230712094030-ed65a6c1",
+          "verrazzanoVersion": "2.0.0-4683+ed65a6c1",
+          "workerNodeSubnet": ""
+        },
+        "internal": false,
+        "localClusterAuthEndpoint": {
+          "enabled": false
+        },
+        "windowsPreferedCluster": false
+      },
+      "status": {
+        "agentFeatures": {
+          "embedded-cluster-api": false,
+          "fleet": false,
+          "monitoringv1": false,
+          "multi-cluster-management": false,
+          "multi-cluster-management-agent": true,
+          "provisioningv2": false
+        },
+        "agentImage": "ghcr.io/verrazzano/rancher-agent:v2.7.3-20230712031816-51373799e",
+        "aksStatus": {
+          "privateRequiresTunnel": null,
+          "rbacEnabled": null,
+          "upstreamSpec": null
+        },
+        "allocatable": {
+          "cpu": "8",
+          "memory": "48416020Ki",
+          "pods": "220"
+        },
+        "apiEndpoint": "https://129.146.118.238:6443",
+        "appliedAgentEnvVars": [
+          {
+            "name": "CATTLE_SERVER_VERSION",
+            "value": "v2.7.3-20230712031816-51373799e"
+          },
+          {
+            "name": "CATTLE_INSTALL_UUID",
+            "value": "191b4620-7469-40a6-b3b1-22cde6602699"
+          },
+          {
+            "name": "CATTLE_INGRESS_IP_DOMAIN",
+            "value": "sslip.io"
+          }
+        ],
+        "appliedEnableNetworkPolicy": false,
+        "appliedPodSecurityPolicyTemplateId": "",
+        "appliedSpec": {
+          "agentImageOverride": "",
+          "answers": {},
+          "clusterSecrets": {},
+          "description": "",
+          "desiredAgentImage": "",
+          "desiredAuthImage": "",
+          "displayName": "sginc-2",
+          "dockerRootDir": "/var/lib/docker",
+          "enableClusterAlerting": false,
+          "enableClusterMonitoring": false,
+          "enableNetworkPolicy": false,
+          "fleetWorkspaceName": "fleet-default",
+          "genericEngineConfig": {
+            "applyYamls": null,
+            "cloudCredentialId": "cattle-global-data:cc-b542x",
+            "clusterCidr": "10.96.0.0/16",
+            "cnePath": "olcne",
+            "compartmentId": "ocid1.compartment.oc1..aaaaaaaa2w3plm6x3qojzsqh5r4xpmyikjavnkncuupldtocbxjt6sf3n6ga",
+            "controlPlaneMemoryGbs": 16,
+            "controlPlaneOcpus": 2,
+            "controlPlaneShape": "VM.Standard.E4.Flex",
+            "controlPlaneSubnet": "",
+            "controlPlaneVolumeGbs": 100,
+            "corednsImageTag": "v1.9.3",
+            "displayName": "sginc-2",
+            "driverName": "ociocneengine",
+            "etcdImageTag": "3.5.6",
+            "imageDisplayName": "Oracle-Linux-8.8-2023.06.30-0",
+            "imageId": "",
+            "installCalico": true,
+            "installCcm": true,
+            "installVerrazzano": true,
+            "kubernetesVersion": "v1.25.7",
+            "loadBalancerSubnet": "",
+            "name": "",
+            "nodePools": [
+              "{\"name\":\"pool-0ao54\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+            ],
+            "nodePublicKeyContents": "",
+            "numControlPlaneNodes": 1,
+            "ocneVersion": "1.6",
+            "podCidr": "10.244.0.0/16",
+            "privateRegistry": "",
+            "proxyEndpoint": "",
+            "quickCreateVcn": true,
+            "region": "us-phoenix-1",
+            "skipOcneInstall": false,
+            "tigeraImageTag": "v1.29.0",
+            "useNodePvEncryption": true,
+            "vcnId": "",
+            "verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+            "verrazzanoTag": "v2.0.0-20230712094030-ed65a6c1",
+            "verrazzanoVersion": "2.0.0-4683+ed65a6c1",
+            "workerNodeSubnet": ""
+          },
+          "internal": false,
+          "localClusterAuthEndpoint": {
+            "enabled": false
+          },
+          "windowsPreferedCluster": false
+        },
+        "authImage": "",
+        "caCert": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM2akNDQWRLZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJek1EY3hNakUxTWpZek4xb1hEVE16TURjd09URTFNekV6TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTWdmClNoWXVwTEpRTkl1S0lSTkRmdDE5NDRCSmZwaVFkbDIxMHhJVFhYZFM0NG1CM2FuSXlsYXErVm0vWHRQKzY2MHMKdC9SUUVCdUROSTdPQStucHBmU1FUUWdWZy9hZURDaWx4NU9uZ09nYVZPMUszd1NyeWp4ZkZGdEhuS2FObitWcwpPK0k0N1hQd0hIaC9tdWllbHVrSWduenREd1ZwVFEzZXp3Y0dPWHhRMUJaczV6NjNtTGFoRzlnMWR3aytxWDZCCnc5ckNON0NEUGt4Z25HOEFFeTdrTGUrUTBlTk9OdnRiTHFPL24zSkI1RUw1YlE3aEIxREZHNXNxZ1lDcFlUZFcKNEM2Slhqd0RabTBRaXRzQXFPM1JlZ2FZU1UwMjRTRUlRazNFbVNuR1FpTkV4VlAxV1FZSUlLUjM0TE92VGFYUAowYS9zdDJpQUxCeEZmVjVmVzM4Q0F3RUFBYU5GTUVNd0RnWURWUjBQQVFIL0JBUURBZ0trTUJJR0ExVWRFd0VCCi93UUlNQVlCQWY4Q0FRQXdIUVlEVlIwT0JCWUVGRXRtdmwzSmN0Mk9BTGpEbEUrZ0RPUjRnc2FhTUEwR0NTcUcKU0liM0RRRUJDd1VBQTRJQkFRQjM0RUltSkRaZGtaV3FrVXRpQjRHdFN2dGJ0aDZzNjBrc3ltVWlySEFDWmMvawpKMTZ2ZGtGZUJ1REN4N3c4QytudDB5c2NqWVF5YVh3R2RveUl2Y01qTG9STitGQUZlS2dLc2ZrSFd1bzRyM0tHCldZNXl0VTVHbTd3K2M3NHlsK3FBMEphRExCcjRGSFpETWpMdVFGNFRaVzBzamt6VkFCU2xwV0F1NkZRYkRqdGMKZkwrV3lzNWIxUXZxbVB4Sy9iRjBwdk84Y0FwVkpjVUpxQkN1WEZoQld0dVN4eWtueE0rNDZvTUFFbGk3VE1wNQp5TExaMkIrS3RzYXB3M2U0alV5T2x3MEFOUEovU1NsMGo3cXcvdmVGblhDYS9wYUpQRkYrNXhpUU5Fd3RkTGpxCnlGWTJMTXNJUmpxVnA4UDFhMVhBVDhOTGJZTitEL3lwYk1oR1FPRisKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=",
+        "capabilities": {
+          "loadBalancerCapabilities": {
+            "enabled": true,
+            "healthCheckSupported": true,
+            "protocolsSupported": [
+              "TCP",
+              "HTTP/1.0",
+              "HTTP/1.1"
+            ],
+            "provider": "OCILB"
+          }
+        },
+        "capacity": {
+          "cpu": "8",
+          "memory": "48620820Ki",
+          "pods": "220"
+        },
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Pending"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:49:36Z",
+            "status": "True",
+            "type": "Provisioned"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:40Z",
+            "message": "Waiting for API to be available",
+            "status": "Unknown",
+            "type": "Waiting"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:09Z",
+            "status": "True",
+            "type": "BackingNamespaceCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:09Z",
+            "status": "True",
+            "type": "DefaultProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:09Z",
+            "status": "True",
+            "type": "SystemProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:09Z",
+            "status": "True",
+            "type": "InitialRolesPopulated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:11Z",
+            "status": "False",
+            "type": "Connected"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:14Z",
+            "status": "True",
+            "type": "CreatorMadeOwner"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:52Z",
+            "status": "True",
+            "type": "NoDiskPressure"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:52Z",
+            "status": "True",
+            "type": "NoMemoryPressure"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:57Z",
+            "status": "True",
+            "type": "SecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:57Z",
+            "status": "True",
+            "type": "ServiceAccountSecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:30:57Z",
+            "status": "True",
+            "type": "RKESecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:49:41Z",
+            "message": "Cluster agent is not connected",
+            "reason": "Disconnected",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:49:59Z",
+            "status": "True",
+            "type": "SystemAccountCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:50:01Z",
+            "status": "True",
+            "type": "AgentDeployed"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:51:29Z",
+            "status": "True",
+            "type": "Updated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:51:24Z",
+            "status": "True",
+            "type": "ServiceAccountMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T15:51:35Z",
+            "status": "True",
+            "type": "GlobalAdminsSynced"
+          }
+        ],
+        "driver": "ociocne",
+        "eksStatus": {
+          "generatedNodeRole": "",
+          "managedLaunchTemplateID": "",
+          "managedLaunchTemplateVersions": null,
+          "privateRequiresTunnel": null,
+          "securityGroups": null,
+          "subnets": null,
+          "upstreamSpec": null,
+          "virtualNetwork": ""
+        },
+        "gkeStatus": {
+          "privateRequiresTunnel": null,
+          "upstreamSpec": null
+        },
+        "limits": {
+          "cpu": "0",
+          "memory": "0",
+          "pods": "0"
+        },
+        "linuxWorkerCount": 2,
+        "nodeCount": 2,
+        "provider": "",
+        "requested": {
+          "cpu": "0",
+          "memory": "0",
+          "pods": "0"
+        },
+        "serviceAccountTokenSecret": "cluster-serviceaccounttoken-tsmzl",
+        "version": {
+          "buildDate": "2023-03-07T21:37:30Z",
+          "compiler": "gc",
+          "gitCommit": "26eb3f5fe6860b07d4d25a7044e4bba35088dc3a",
+          "gitTreeState": "clean",
+          "gitVersion": "v1.25.7+1.el8",
+          "goVersion": "go1.19.4 X:boringcrypto",
+          "major": "1",
+          "minor": "25",
+          "platform": "linux/amd64"
+        }
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Cluster",
+      "metadata": {
+        "annotations": {
+          "authz.management.cattle.io/creator-role-bindings": "{\"created\":[\"cluster-owner\"],\"required\":[\"cluster-owner\"]}",
+          "field.cattle.io/creatorId": "user-tjcxf",
+          "lifecycle.cattle.io/create.cluster-agent-controller-cleanup": "true",
+          "lifecycle.cattle.io/create.cluster-scoped-gc": "true",
+          "lifecycle.cattle.io/create.mgmt-cluster-rbac-remove": "true"
+        },
+        "creationTimestamp": "2023-07-12T11:13:01Z",
+        "finalizers": [
+          "verrazzano.io/rancher-cluster",
+          "wrangler.cattle.io/mgmt-cluster-remove",
+          "controller.cattle.io/cluster-agent-controller-cleanup",
+          "controller.cattle.io/cluster-scoped-gc",
+          "controller.cattle.io/cluster-provisioner-controller",
+          "controller.cattle.io/mgmt-cluster-rbac-remove"
+        ],
+        "generateName": "c-",
+        "generation": 24,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "name": "c-vwfkq",
+        "resourceVersion": "50714551",
+        "uid": "c5237fcf-33a4-4983-8653-a97345e60586"
+      },
+      "spec": {
+        "agentImageOverride": "",
+        "answers": {},
+        "clusterSecrets": {},
+        "description": "",
+        "desiredAgentImage": "",
+        "desiredAuthImage": "",
+        "displayName": "sginc",
+        "dockerRootDir": "/var/lib/docker",
+        "enableClusterAlerting": false,
+        "enableClusterMonitoring": false,
+        "enableNetworkPolicy": false,
+        "fleetWorkspaceName": "fleet-default",
+        "genericEngineConfig": {
+          "applyYamls": null,
+          "cloudCredentialId": "cattle-global-data:cc-b542x",
+          "clusterCidr": "10.96.0.0/16",
+          "cnePath": "olcne",
+          "compartmentId": "ocid1.compartment.oc1..aaaaaaaa2w3plm6x3qojzsqh5r4xpmyikjavnkncuupldtocbxjt6sf3n6ga",
+          "controlPlaneMemoryGbs": 16,
+          "controlPlaneOcpus": 2,
+          "controlPlaneShape": "VM.Standard.E4.Flex",
+          "controlPlaneSubnet": "",
+          "controlPlaneVolumeGbs": 100,
+          "corednsImageTag": "v1.9.3",
+          "displayName": "sginc",
+          "driverName": "ociocneengine",
+          "etcdImageTag": "3.5.6",
+          "imageDisplayName": "Oracle-Linux-8.8-2023.06.30-0",
+          "imageId": "",
+          "installCalico": true,
+          "installCcm": true,
+          "installVerrazzano": true,
+          "kubernetesVersion": "v1.25.7",
+          "loadBalancerSubnet": "",
+          "name": "",
+          "nodePools": [
+            "{\"name\":\"pool-tfxeo\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+          ],
+          "nodePublicKeyContents": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoB70a4lglSWLIjbjc9wdRcX1jakAk9I5fwEzqQUGYzy6au+XUkLrpG983AJN3gy6C2MAAaJJsUDVLO2vs7sGJxRMcrrWIi4XDjBVdttX5mrn3h18gNqosAVSqZ+7PRjMGpFzGkb2KsklX8A2XalsSOrplVWcsnc0ikc6sOxtXkGbrlKFu1pBKL4N4Du8WxZ9cQSrV6LqKITlEVJlATlGCYDTXK6KkHRVWmvQx4wsKEFyKZRwl4u8pi9gYOW1pL/IYCZixQi85CbJIv3Rl5s190Y2Oe2p3cumJef9Y99+/ mgianata@MGIANATA-mac",
+          "numControlPlaneNodes": 1,
+          "ocneVersion": "1.6",
+          "podCidr": "10.244.0.0/16",
+          "privateRegistry": "",
+          "proxyEndpoint": "",
+          "quickCreateVcn": true,
+          "region": "us-phoenix-1",
+          "skipOcneInstall": false,
+          "tigeraImageTag": "v1.29.0",
+          "useNodePvEncryption": true,
+          "vcnId": "",
+          "verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+          "verrazzanoTag": "v2.0.0-20230712094030-ed65a6c1",
+          "verrazzanoVersion": "2.0.0-4683+ed65a6c1",
+          "workerNodeSubnet": ""
+        },
+        "internal": false,
+        "localClusterAuthEndpoint": {
+          "enabled": false
+        },
+        "windowsPreferedCluster": false
+      },
+      "status": {
+        "agentImage": "",
+        "aksStatus": {
+          "privateRequiresTunnel": null,
+          "rbacEnabled": null,
+          "upstreamSpec": null
+        },
+        "allocatable": {
+          "cpu": "0",
+          "memory": "0",
+          "pods": "0"
+        },
+        "appliedEnableNetworkPolicy": false,
+        "appliedPodSecurityPolicyTemplateId": "",
+        "appliedSpec": {
+          "agentImageOverride": "",
+          "answers": {},
+          "clusterSecrets": {},
+          "description": "",
+          "desiredAgentImage": "",
+          "desiredAuthImage": "",
+          "displayName": "",
+          "enableClusterAlerting": false,
+          "enableClusterMonitoring": false,
+          "enableNetworkPolicy": null,
+          "internal": false,
+          "localClusterAuthEndpoint": {
+            "enabled": false
+          },
+          "windowsPreferedCluster": false
+        },
+        "authImage": "",
+        "capabilities": {
+          "loadBalancerCapabilities": {
+            "enabled": true,
+            "healthCheckSupported": true,
+            "protocolsSupported": [
+              "TCP",
+              "HTTP/1.0",
+              "HTTP/1.1"
+            ],
+            "provider": "OCILB"
+          }
+        },
+        "capacity": {
+          "cpu": "0",
+          "memory": "0",
+          "pods": "0"
+        },
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Pending"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:45Z",
+            "message": "Waiting for cluster to be ready",
+            "reason": "Error",
+            "status": "False",
+            "type": "Provisioned"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:38Z",
+            "message": "Waiting for API to be available",
+            "status": "Unknown",
+            "type": "Waiting"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:07Z",
+            "status": "True",
+            "type": "BackingNamespaceCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:07Z",
+            "status": "True",
+            "type": "DefaultProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:07Z",
+            "status": "True",
+            "type": "SystemProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:07Z",
+            "status": "True",
+            "type": "InitialRolesPopulated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:11Z",
+            "status": "False",
+            "type": "Connected"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:12Z",
+            "status": "True",
+            "type": "CreatorMadeOwner"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:50Z",
+            "status": "True",
+            "type": "NoDiskPressure"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:50Z",
+            "status": "True",
+            "type": "NoMemoryPressure"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:55Z",
+            "status": "True",
+            "type": "SecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:55Z",
+            "status": "True",
+            "type": "ServiceAccountSecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:13:55Z",
+            "status": "True",
+            "type": "RKESecretsMigrated"
+          }
+        ],
+        "driver": "ociocne",
+        "eksStatus": {
+          "generatedNodeRole": "",
+          "managedLaunchTemplateID": "",
+          "managedLaunchTemplateVersions": null,
+          "privateRequiresTunnel": null,
+          "securityGroups": null,
+          "subnets": null,
+          "upstreamSpec": null,
+          "virtualNetwork": ""
+        },
+        "failedSpec": {
+          "agentImageOverride": "",
+          "answers": {},
+          "clusterSecrets": {},
+          "description": "",
+          "desiredAgentImage": "",
+          "desiredAuthImage": "",
+          "displayName": "sginc",
+          "dockerRootDir": "/var/lib/docker",
+          "enableClusterAlerting": false,
+          "enableClusterMonitoring": false,
+          "enableNetworkPolicy": false,
+          "fleetWorkspaceName": "fleet-default",
+          "genericEngineConfig": {
+            "applyYamls": null,
+            "cloudCredentialId": "cattle-global-data:cc-b542x",
+            "clusterCidr": "10.96.0.0/16",
+            "cnePath": "olcne",
+            "compartmentId": "ocid1.compartment.oc1..aaaaaaaa2w3plm6x3qojzsqh5r4xpmyikjavnkncuupldtocbxjt6sf3n6ga",
+            "controlPlaneMemoryGbs": 16,
+            "controlPlaneOcpus": 2,
+            "controlPlaneShape": "VM.Standard.E4.Flex",
+            "controlPlaneSubnet": "",
+            "controlPlaneVolumeGbs": 100,
+            "corednsImageTag": "v1.9.3",
+            "displayName": "sginc",
+            "driverName": "ociocneengine",
+            "etcdImageTag": "3.5.6",
+            "imageDisplayName": "Oracle-Linux-8.8-2023.06.30-0",
+            "imageId": "",
+            "installCalico": true,
+            "installCcm": true,
+            "installVerrazzano": true,
+            "kubernetesVersion": "v1.25.7",
+            "loadBalancerSubnet": "",
+            "name": "",
+            "nodePools": [
+              "{\"name\":\"pool-tfxeo\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+            ],
+            "nodePublicKeyContents": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoB70a4lglSWLIjbjc9wdRcX1jakAk9I5fwEzqQUGYzy6au+XUkLrpG983AJN3gy6C2MAAaJJsUDVLO2vs7sGJxRMcrrWIi4XDjBVdttX5mrn3h18gNqosAVSqZ+7PRjMGpFzGkb2KsklX8A2XalsSOrplVWcsnc0ikc6sOxtXkGbrlKFu1pBKL4N4Du8WxZ9cQSrV6LqKITlEVJlATlGCYDTXK6KkHRVWmvQx4wsKEFyKZRwl4u8pi9gYOW1pL/IYCZixQi85CbJIv3Rl5s190Y2Oe2p3cumJef9Y99+/ mgianata@MGIANATA-mac",
+            "numControlPlaneNodes": 1,
+            "ocneVersion": "1.6",
+            "podCidr": "10.244.0.0/16",
+            "privateRegistry": "",
+            "proxyEndpoint": "",
+            "quickCreateVcn": true,
+            "region": "us-phoenix-1",
+            "skipOcneInstall": false,
+            "tigeraImageTag": "v1.29.0",
+            "useNodePvEncryption": true,
+            "vcnId": "",
+            "verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+            "verrazzanoTag": "v2.0.0-20230712094030-ed65a6c1",
+            "verrazzanoVersion": "2.0.0-4683+ed65a6c1",
+            "workerNodeSubnet": ""
+          },
+          "internal": false,
+          "localClusterAuthEndpoint": {
+            "enabled": false
+          },
+          "windowsPreferedCluster": false
+        },
+        "gkeStatus": {
+          "privateRequiresTunnel": null,
+          "upstreamSpec": null
+        },
+        "limits": {
+          "cpu": "0",
+          "memory": "0",
+          "pods": "0"
+        },
+        "provider": "",
+        "requested": {
+          "cpu": "0",
+          "memory": "0",
+          "pods": "0"
+        }
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Cluster",
+      "metadata": {
+        "annotations": {
+          "authz.management.cattle.io/creator-role-bindings": "{\"created\":[\"cluster-owner\"],\"required\":[\"cluster-owner\"]}",
+          "field.cattle.io/creatorId": "user-tjcxf",
+          "lifecycle.cattle.io/create.cluster-agent-controller-cleanup": "true",
+          "lifecycle.cattle.io/create.cluster-provisioner-controller": "true",
+          "lifecycle.cattle.io/create.cluster-scoped-gc": "true",
+          "lifecycle.cattle.io/create.mgmt-cluster-rbac-remove": "true",
+          "management.cattle.io/current-cluster-controllers-version": "v1.25.7+1.el8",
+          "provisioner.cattle.io/encrypt-migrated": "true",
+          "provisioner.cattle.io/ke-driver-update": "updated"
+        },
+        "creationTimestamp": "2023-06-30T10:10:05Z",
+        "finalizers": [
+          "verrazzano.io/rancher-cluster",
+          "wrangler.cattle.io/mgmt-cluster-remove",
+          "controller.cattle.io/cluster-agent-controller-cleanup",
+          "controller.cattle.io/cluster-scoped-gc",
+          "controller.cattle.io/cluster-provisioner-controller",
+          "controller.cattle.io/mgmt-cluster-rbac-remove"
+        ],
+        "generateName": "c-",
+        "generation": 138,
+        "labels": {
+          "cattle.io/creator": "norman"
+        },
+        "name": "c-zhp55",
+        "resourceVersion": "50561761",
+        "uid": "257bcc3c-cca6-4e17-8842-1b9871c37788"
+      },
+      "spec": {
+        "agentImageOverride": "",
+        "answers": {},
+        "clusterSecrets": {},
+        "description": "",
+        "desiredAgentImage": "",
+        "desiredAuthImage": "",
+        "displayName": "mgtest",
+        "dockerRootDir": "/var/lib/docker",
+        "enableClusterAlerting": false,
+        "enableClusterMonitoring": false,
+        "enableNetworkPolicy": false,
+        "fleetWorkspaceName": "fleet-default",
+        "genericEngineConfig": {
+          "applyYamls": null,
+          "cloudCredentialId": "cattle-global-data:cc-hnbvg",
+          "clusterCidr": "10.96.0.0/16",
+          "cnePath": "olcne",
+          "compartmentId": "ocid1.compartment.oc1..aaaaaaaa4m5ptdigw3u4mqkz3blgimzs5yxlx3xgjeh5gfi35r5l2quvnfva",
+          "controlPlaneMemoryGbs": 16,
+          "controlPlaneOcpus": 2,
+          "controlPlaneShape": "VM.Standard.E4.Flex",
+          "controlPlaneSubnet": "ocid1.subnet.oc1.phx.aaaaaaaaovai2uux3pbqopx6fybtvea7vvwrvm2ritgt3albwetj4a2r7nsa",
+          "controlPlaneVolumeGbs": 100,
+          "corednsImageTag": "v1.9.3",
+          "displayName": "mgtest",
+          "driverName": "ociocneengine",
+          "etcdImageTag": "3.5.6",
+          "imageDisplayName": "Oracle-Linux-8.8-2023.06.30-0",
+          "imageId": "",
+          "installCalico": true,
+          "installCcm": true,
+          "installVerrazzano": true,
+          "kubernetesVersion": "v1.25.7",
+          "loadBalancerSubnet": "ocid1.subnet.oc1.phx.aaaaaaaa7okpi3tlo75p2tafle2u7n3ma3gdsrhmw5kq3vhpfrv7rxwmhona",
+          "name": "",
+          "nodePools": [
+            "{\"name\":\"pool-ix4th\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+          ],
+          "nodePublicKeyContents": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoB70a4lglSWLIjbjc9wdRcX1jakAk9I5fwEzqQUGYzy6au+XUkLrpG983AJN3gy6C2MAAaJJsUDVLO2vs7sGJxRMcrrWIi4XDjBVdttX5mrn3h18gNqosAVSqZ+7PRjMGpFzGkb2KsklX8A2XalsSOrplVWcsnc0ikc6sOxtXkGbrlKFu1pBKL4N4Du8WxZ9cQSrV6LqKITlEVJlATlGCYDTXK6KkHRVWmvQx4wsKEFyKZRwl4u8pi9gYOW1pL/IYCZixQi85CbJIv3Rl5s190Y2Oe2p3cumJef9Y99+/ mgianata@MGIANATA-mac",
+          "numControlPlaneNodes": 1,
+          "ocneVersion": "1.6",
+          "podCidr": "10.244.0.0/16",
+          "privateRegistry": "",
+          "proxyEndpoint": "",
+          "quickCreateVcn": true,
+          "region": "us-phoenix-1",
+          "skipOcneInstall": false,
+          "tigeraImageTag": "v1.29.0",
+          "useNodePvEncryption": true,
+          "vcnId": "ocid1.vcn.oc1.phx.amaaaaaalknnwbqao4uwwy67s4y5d2da766uhtidsgwtctvozluclm4is6mq",
+          "verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+          "verrazzanoTag": "v2.0.0-20230712094030-ed65a6c1",
+          "verrazzanoVersion": "2.0.0-4683+ed65a6c1",
+          "workerNodeSubnet": "ocid1.subnet.oc1.phx.aaaaaaaaovai2uux3pbqopx6fybtvea7vvwrvm2ritgt3albwetj4a2r7nsa"
+        },
+        "internal": false,
+        "localClusterAuthEndpoint": {
+          "enabled": false
+        },
+        "windowsPreferedCluster": false
+      },
+      "status": {
+        "agentFeatures": {
+          "embedded-cluster-api": false,
+          "fleet": false,
+          "monitoringv1": false,
+          "multi-cluster-management": false,
+          "multi-cluster-management-agent": true,
+          "provisioningv2": false
+        },
+        "agentImage": "ghcr.io/verrazzano/rancher-agent:v2.7.3-20230712031816-51373799e",
+        "aksStatus": {
+          "privateRequiresTunnel": null,
+          "rbacEnabled": null,
+          "upstreamSpec": null
+        },
+        "allocatable": {
+          "cpu": "8",
+          "memory": "48416016Ki",
+          "pods": "220"
+        },
+        "apiEndpoint": "https://10.196.39.133:6443",
+        "appliedAgentEnvVars": [
+          {
+            "name": "CATTLE_SERVER_VERSION",
+            "value": "v2.7.3-20230712031816-51373799e"
+          },
+          {
+            "name": "CATTLE_INSTALL_UUID",
+            "value": "191b4620-7469-40a6-b3b1-22cde6602699"
+          },
+          {
+            "name": "CATTLE_INGRESS_IP_DOMAIN",
+            "value": "sslip.io"
+          }
+        ],
+        "appliedEnableNetworkPolicy": false,
+        "appliedPodSecurityPolicyTemplateId": "",
+        "appliedSpec": {
+          "agentImageOverride": "",
+          "answers": {},
+          "clusterSecrets": {},
+          "description": "",
+          "desiredAgentImage": "",
+          "desiredAuthImage": "",
+          "displayName": "mgtest",
+          "dockerRootDir": "/var/lib/docker",
+          "enableClusterAlerting": false,
+          "enableClusterMonitoring": false,
+          "enableNetworkPolicy": false,
+          "fleetWorkspaceName": "fleet-default",
+          "genericEngineConfig": {
+            "applyYamls": null,
+            "cloudCredentialId": "cattle-global-data:cc-hnbvg",
+            "clusterCidr": "10.96.0.0/16",
+            "cnePath": "olcne",
+            "compartmentId": "ocid1.compartment.oc1..aaaaaaaa4m5ptdigw3u4mqkz3blgimzs5yxlx3xgjeh5gfi35r5l2quvnfva",
+            "controlPlaneMemoryGbs": 16,
+            "controlPlaneOcpus": 2,
+            "controlPlaneShape": "VM.Standard.E4.Flex",
+            "controlPlaneSubnet": "ocid1.subnet.oc1.phx.aaaaaaaaovai2uux3pbqopx6fybtvea7vvwrvm2ritgt3albwetj4a2r7nsa",
+            "controlPlaneVolumeGbs": 100,
+            "corednsImageTag": "v1.9.3",
+            "displayName": "mgtest",
+            "driverName": "ociocneengine",
+            "etcdImageTag": "3.5.6",
+            "imageDisplayName": "Oracle-Linux-8.8-2023.06.30-0",
+            "imageId": "",
+            "installCalico": true,
+            "installCcm": true,
+            "installVerrazzano": true,
+            "kubernetesVersion": "v1.25.7",
+            "loadBalancerSubnet": "ocid1.subnet.oc1.phx.aaaaaaaa7okpi3tlo75p2tafle2u7n3ma3gdsrhmw5kq3vhpfrv7rxwmhona",
+            "name": "",
+            "nodePools": [
+              "{\"name\":\"pool-ix4th\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}"
+            ],
+            "nodePublicKeyContents": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoB70a4lglSWLIjbjc9wdRcX1jakAk9I5fwEzqQUGYzy6au+XUkLrpG983AJN3gy6C2MAAaJJsUDVLO2vs7sGJxRMcrrWIi4XDjBVdttX5mrn3h18gNqosAVSqZ+7PRjMGpFzGkb2KsklX8A2XalsSOrplVWcsnc0ikc6sOxtXkGbrlKFu1pBKL4N4Du8WxZ9cQSrV6LqKITlEVJlATlGCYDTXK6KkHRVWmvQx4wsKEFyKZRwl4u8pi9gYOW1pL/IYCZixQi85CbJIv3Rl5s190Y2Oe2p3cumJef9Y99+/ mgianata@MGIANATA-mac",
+            "numControlPlaneNodes": 1,
+            "ocneVersion": "1.6",
+            "podCidr": "10.244.0.0/16",
+            "privateRegistry": "",
+            "proxyEndpoint": "",
+            "quickCreateVcn": true,
+            "region": "us-phoenix-1",
+            "skipOcneInstall": false,
+            "tigeraImageTag": "v1.29.0",
+            "useNodePvEncryption": true,
+            "vcnId": "ocid1.vcn.oc1.phx.amaaaaaalknnwbqao4uwwy67s4y5d2da766uhtidsgwtctvozluclm4is6mq",
+            "verrazzanoResource": "apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster",
+            "verrazzanoTag": "v2.0.0-20230712094030-ed65a6c1",
+            "verrazzanoVersion": "2.0.0-4683+ed65a6c1",
+            "workerNodeSubnet": "ocid1.subnet.oc1.phx.aaaaaaaaovai2uux3pbqopx6fybtvea7vvwrvm2ritgt3albwetj4a2r7nsa"
+          },
+          "internal": false,
+          "localClusterAuthEndpoint": {
+            "enabled": false
+          },
+          "windowsPreferedCluster": false
+        },
+        "authImage": "",
+        "caCert": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM2akNDQWRLZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJek1EWXpNREV3TURZMU1Wb1hEVE16TURZeU56RXdNVEUxTVZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTHZSCjk4TFZJeWd4NXpmM1RHT3c1ZTNVYmdFcG1RZHBGaXpXcGs0YnVkN0hKa01FY0VXYmJUajIrTHd6LzhXdFdkWnEKemV0TUdyQ2M0b1NDQ3FxNFN2b1FZR3dEb3BPdFNLU2x2OVBUT1ZzQnBEWXVBMldqS2dCL2lyR2Q3NkJ4b1N4dgpYMFFTajNEeEdySks5REg2MEhPYm0rdmNhUmdFUVFNTTZIMHFRMkZBK3NCRCs5Z2RPWXQrZFYzN29IdVZhdERjClhheW1BWjJnVEhtdWxNZU9vcFlwYURSTnVEc3UvL01Rd3hWMjBDeTZYcG05SWVNYU1FWjRXS1lrUGxTQlpPRjEKbTlyZDRaWnRyRkN6VzhuYUJibmFzdnpNaDlkMUJ6MnJzSFFPSWZzb2MxSElwUWJCN3l4N3QrejlkeWhUdDVwQQpGVHRUNllRSG8rdExSWFZnbVFVQ0F3RUFBYU5GTUVNd0RnWURWUjBQQVFIL0JBUURBZ0trTUJJR0ExVWRFd0VCCi93UUlNQVlCQWY4Q0FRQXdIUVlEVlIwT0JCWUVGTFJSVmlVUGZERmcwNUw3UzBFQXRSOFZKWFZOTUEwR0NTcUcKU0liM0RRRUJDd1VBQTRJQkFRQnExQk1ibTRoTkVwalBubnVOcTllUVIwclZubm9rSFpoUENIUFh2Uk1adldBRgpzNGowYW9kcllIT0hlQndLbDc0QTZPb1paQy9DYXJRWTQ5anlvcTNNaDVWL0VvTzZPbExEOFV5SERNeWlnM2IwCjJXeVk5VDd4cVh6MjNBT2g4b3hxeG5yL21xMlhkQnFMRlI1bUszcGJKWFIreHNYSVF5eG9UVVpTa0VrelB3VUUKd290U0hKVFd0ekxvSFhoRWptdHpOOUsvbDd6T1hiUlhYQW5OYnRtbnJmcjZ0MXI2aUhrRElLMGtwSTY0djR4NwppSHFoVjVZdlBYdGtQamw4ZnNXQ0trckYwL1VqallubC9RSE5FSzNObWxMVnB0K3pOWFZUKzY5Z255b3dFRldqCnRUTWVUeTF4UDAzVitRYVMwSHk5RG1jOSt3YmpvWkw2NytISEo5Q04KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=",
+        "capabilities": {
+          "loadBalancerCapabilities": {
+            "enabled": true,
+            "healthCheckSupported": true,
+            "protocolsSupported": [
+              "TCP",
+              "HTTP/1.0",
+              "HTTP/1.1"
+            ],
+            "provider": "OCILB"
+          }
+        },
+        "capacity": {
+          "cpu": "8",
+          "memory": "48620816Ki",
+          "pods": "220"
+        },
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Pending"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:31:49Z",
+            "status": "True",
+            "type": "Provisioned"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:39:04Z",
+            "status": "True",
+            "type": "Waiting"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "BackingNamespaceCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "DefaultProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "SystemProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "InitialRolesPopulated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:16Z",
+            "status": "True",
+            "type": "CreatorMadeOwner"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:26:41Z",
+            "status": "True",
+            "type": "Connected"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:56Z",
+            "status": "True",
+            "type": "NoDiskPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:56Z",
+            "status": "True",
+            "type": "NoMemoryPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:11:01Z",
+            "status": "True",
+            "type": "SecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:11:01Z",
+            "status": "True",
+            "type": "ServiceAccountSecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:11:01Z",
+            "status": "True",
+            "type": "RKESecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:31:54Z",
+            "status": "True",
+            "type": "SystemAccountCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:32:01Z",
+            "status": "True",
+            "type": "AgentDeployed"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:26:42Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:32:02Z",
+            "status": "True",
+            "type": "Updated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:33:42Z",
+            "status": "True",
+            "type": "ServiceAccountMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:33:53Z",
+            "status": "True",
+            "type": "GlobalAdminsSynced"
+          }
+        ],
+        "driver": "ociocne",
+        "eksStatus": {
+          "generatedNodeRole": "",
+          "managedLaunchTemplateID": "",
+          "managedLaunchTemplateVersions": null,
+          "privateRequiresTunnel": null,
+          "securityGroups": null,
+          "subnets": null,
+          "upstreamSpec": null,
+          "virtualNetwork": ""
+        },
+        "gkeStatus": {
+          "privateRequiresTunnel": null,
+          "upstreamSpec": null
+        },
+        "limits": {
+          "cpu": "16200m",
+          "memory": "8582Mi",
+          "pods": "0"
+        },
+        "linuxWorkerCount": 2,
+        "nodeCount": 2,
+        "provider": "",
+        "requested": {
+          "cpu": "2900m",
+          "memory": "4644Mi",
+          "pods": "51"
+        },
+        "serviceAccountTokenSecret": "cluster-serviceaccounttoken-jd72f",
+        "version": {
+          "buildDate": "2023-03-07T21:37:30Z",
+          "compiler": "gc",
+          "gitCommit": "26eb3f5fe6860b07d4d25a7044e4bba35088dc3a",
+          "gitTreeState": "clean",
+          "gitVersion": "v1.25.7+1.el8",
+          "goVersion": "go1.19.4 X:boringcrypto",
+          "major": "1",
+          "minor": "25",
+          "platform": "linux/amd64"
+        }
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Cluster",
+      "metadata": {
+        "annotations": {
+          "authz.management.cattle.io/creator-role-bindings": "{\"created\":[],\"required\":[\"cluster-owner\"]}",
+          "lifecycle.cattle.io/create.cluster-agent-controller-cleanup": "true",
+          "lifecycle.cattle.io/create.cluster-provisioner-controller": "true",
+          "lifecycle.cattle.io/create.cluster-scoped-gc": "true",
+          "lifecycle.cattle.io/create.mgmt-cluster-rbac-remove": "true",
+          "management.cattle.io/current-cluster-controllers-version": "v1.26.2",
+          "provisioner.cattle.io/encrypt-migrated": "true",
+          "provisioner.cattle.io/ke-driver-update": "updated"
+        },
+        "creationTimestamp": "2023-06-27T10:07:00Z",
+        "finalizers": [
+          "controller.cattle.io/cluster-agent-controller-cleanup",
+          "controller.cattle.io/cluster-scoped-gc",
+          "controller.cattle.io/cluster-provisioner-controller",
+          "controller.cattle.io/mgmt-cluster-rbac-remove",
+          "wrangler.cattle.io/mgmt-cluster-remove"
+        ],
+        "generation": 125,
+        "name": "local",
+        "resourceVersion": "50533589",
+        "uid": "550f9eec-b8e8-401e-adfb-9faa894f6f87"
+      },
+      "spec": {
+        "agentImageOverride": "",
+        "answers": {},
+        "clusterSecrets": {},
+        "description": "",
+        "desiredAgentImage": "",
+        "desiredAuthImage": "",
+        "displayName": "local",
+        "dockerRootDir": "/var/lib/docker",
+        "enableClusterAlerting": false,
+        "enableClusterMonitoring": false,
+        "enableNetworkPolicy": null,
+        "fleetWorkspaceName": "fleet-local",
+        "internal": true,
+        "localClusterAuthEndpoint": {
+          "enabled": false
+        },
+        "windowsPreferedCluster": false
+      },
+      "status": {
+        "agentImage": "",
+        "aksStatus": {
+          "privateRequiresTunnel": null,
+          "rbacEnabled": null,
+          "upstreamSpec": null
+        },
+        "allocatable": {
+          "cpu": "16",
+          "memory": "129862532Ki",
+          "pods": "440"
+        },
+        "appliedEnableNetworkPolicy": false,
+        "appliedPodSecurityPolicyTemplateId": "",
+        "appliedSpec": {
+          "agentImageOverride": "",
+          "answers": {},
+          "clusterSecrets": {},
+          "description": "",
+          "desiredAgentImage": "",
+          "desiredAuthImage": "",
+          "displayName": "",
+          "enableClusterAlerting": false,
+          "enableClusterMonitoring": false,
+          "enableNetworkPolicy": null,
+          "internal": false,
+          "localClusterAuthEndpoint": {
+            "enabled": false
+          },
+          "windowsPreferedCluster": false
+        },
+        "authImage": "",
+        "capabilities": {
+          "loadBalancerCapabilities": {}
+        },
+        "capacity": {
+          "cpu": "16",
+          "memory": "130272132Ki",
+          "pods": "440"
+        },
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-05T15:29:54Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:02Z",
+            "status": "True",
+            "type": "BackingNamespaceCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:06Z",
+            "status": "True",
+            "type": "DefaultProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:06Z",
+            "status": "True",
+            "type": "SystemProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:03Z",
+            "status": "True",
+            "type": "CreatorMadeOwner"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "Pending"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:17Z",
+            "status": "True",
+            "type": "Provisioned"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:31Z",
+            "status": "True",
+            "type": "Waiting"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "NoDiskPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "NoMemoryPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "SecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "ServiceAccountSecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:05Z",
+            "status": "True",
+            "type": "RKESecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:15Z",
+            "status": "True",
+            "type": "Connected"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:16Z",
+            "status": "True",
+            "type": "SystemAccountCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:16Z",
+            "status": "True",
+            "type": "GlobalAdminsSynced"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:17Z",
+            "status": "True",
+            "type": "Updated"
+          }
+        ],
+        "driver": "imported",
+        "eksStatus": {
+          "generatedNodeRole": "",
+          "managedLaunchTemplateID": "",
+          "managedLaunchTemplateVersions": null,
+          "privateRequiresTunnel": null,
+          "securityGroups": null,
+          "subnets": null,
+          "upstreamSpec": null,
+          "virtualNetwork": ""
+        },
+        "gkeStatus": {
+          "privateRequiresTunnel": null,
+          "upstreamSpec": null
+        },
+        "limits": {
+          "cpu": "62200m",
+          "memory": "33626Mi",
+          "pods": "0"
+        },
+        "linuxWorkerCount": 4,
+        "nodeCount": 4,
+        "provider": "",
+        "requested": {
+          "cpu": "5100m",
+          "memory": "31268955750400m",
+          "pods": "79"
+        },
+        "version": {
+          "buildDate": "2023-05-23T16:47:36Z",
+          "compiler": "gc",
+          "gitCommit": "434423f05465c7649ca038ad163f5d3b256e7ea6",
+          "gitTreeState": "clean",
+          "gitVersion": "v1.26.2",
+          "goVersion": "go1.19.6 A1727 X:boringcrypto",
+          "major": "1",
+          "minor": "26",
+          "platform": "linux/amd64"
+        }
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
