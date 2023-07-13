@@ -555,13 +555,13 @@ data:
         elseif backend == 'thanos-ruler' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-ruler', '9090')
         elseif backend == 'kibana' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')
+            serverUrl = me.makeLoggingComponentBackendUrl('opensearch-dashboards', '5601')
         elseif backend == 'osd' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')    
+            serverUrl = me.makeLoggingComponentBackendUrl('opensearch-dashboards', '5601')
         elseif backend == 'elasticsearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')
+            serverUrl = me.makeLoggingComponentBackendUrl('opensearch', '9200')
         elseif backend == 'opensearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')    
+            serverUrl = me.makeLoggingComponentBackendUrl('opensearch', '9200')
         elseif backend == 'opensearch-logging' then
             serverUrl = me.makeLoggingComponentBackendUrl('opensearch', '9200')
         elseif backend == 'osd-logging' then
