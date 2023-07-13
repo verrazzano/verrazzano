@@ -76,7 +76,7 @@ func analyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueRep
 	}
 
 	for _, cluster := range clusterList.Items {
-		err = analyzeRancherCluster(log, clusterRoot, cluster, issueReporter)
+		err = analyzeRancherCluster(clusterRoot, cluster, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func analyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueRep
 }
 
 // analyzeRancherCluster - analyze a single Rancher cluster and report any issues
-func analyzeRancherCluster(log *zap.SugaredLogger, clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
+func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
