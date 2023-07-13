@@ -106,7 +106,7 @@ func captureGlobalResource(dynamicClient dynamic.Interface, gvr schema.GroupVers
 	}
 	if len(list.Items) > 0 {
 		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
-		if err = createFile(list, namespace, fmt.Sprintf("%s.json", strings.ToLower(kind)), captureDir, vzHelper); err != nil {
+		if err = createFile(list, namespace, fmt.Sprintf("%s.%s.json", strings.ToLower(kind), strings.ToLower(gvr.Group)), captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
@@ -124,7 +124,7 @@ func captureNamespacedResource(dynamicClient dynamic.Interface, gvr schema.Group
 	}
 	if len(list.Items) > 0 {
 		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
-		if err = createFile(list, namespace, fmt.Sprintf("%s.json", strings.ToLower(kind)), captureDir, vzHelper); err != nil {
+		if err = createFile(list, namespace, fmt.Sprintf("%s.%s.json", strings.ToLower(kind), strings.ToLower(gvr.Group)), captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
