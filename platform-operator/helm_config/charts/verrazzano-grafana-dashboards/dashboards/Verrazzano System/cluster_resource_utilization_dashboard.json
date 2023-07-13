@@ -16,8 +16,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 70,
-  "iteration": 1689275556442,
+  "id": 71,
+  "iteration": 1689285081880,
   "links": [],
   "panels": [
     {
@@ -35,7 +35,11 @@
       "type": "row"
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "Per Cluster": "blue",
+        "Per Max Node": "yellow",
+        "Total Cluster CPU Usage": "blue"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -76,7 +80,11 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [],
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:395"
+        }
+      ],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -85,15 +93,16 @@
           "exemplar": true,
           "expr": "sum(rate(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\", mode!=\"idle\"}[5m]))",
           "interval": "",
-          "legendFormat": "Per Cluster",
+          "legendFormat": "Total Cluster CPU Usage",
           "refId": "A"
         },
         {
           "exemplar": true,
           "expr": "max(sum(rate(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\", mode!=\"idle\"}[5m])) by (instance, verrazzano_cluster)) by (verrazzano_cluster)",
+          "format": "time_series",
           "hide": false,
           "interval": "",
-          "legendFormat": "Per Max Node",
+          "legendFormat": "Max Node CPU Usage",
           "refId": "B"
         }
       ],
@@ -101,7 +110,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU Utilization",
+      "title": "CPU Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -201,7 +210,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Cluster CPU Utilization Percentage",
+      "title": "Cluster CPU Utilization of Capacity",
       "type": "bargauge"
     },
     {
@@ -259,7 +268,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Cluster CPU Utilization",
+      "title": "Maximum Cluster CPU Usage",
       "type": "stat"
     },
     {
@@ -274,7 +283,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "yellow",
                 "value": null
               }
             ]
@@ -317,7 +326,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Per Node CPU Utilization",
+      "title": "Maximum Per Node CPU Usage",
       "type": "stat"
     },
     {
@@ -335,7 +344,10 @@
       "type": "row"
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "Per Cluster": "blue",
+        "Total Cluster Memory Usage": "blue"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -385,7 +397,7 @@
           "exemplar": true,
           "expr": "sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_MemAvailable_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
           "interval": "",
-          "legendFormat": "Per Cluster",
+          "legendFormat": "Total Cluster Memory Usage",
           "refId": "A"
         },
         {
@@ -393,7 +405,7 @@
           "expr": "max(sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_MemAvailable_bytes{verrazzano_cluster=\"$cluster\"}) by (instance, verrazzano_cluster)) by (verrazzano_cluster)",
           "hide": false,
           "interval": "",
-          "legendFormat": "Per Max Node",
+          "legendFormat": "Max Node Memory Usage",
           "refId": "B"
         }
       ],
@@ -401,7 +413,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Memory Utilization",
+      "title": "Memory Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -501,7 +513,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Memory Utilization Percentage",
+      "title": "Cluster Memory Utilization of Capacity",
       "type": "bargauge"
     },
     {
@@ -559,7 +571,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Cluster Memory Utilization",
+      "title": "Maximum Cluster Memory Usage",
       "type": "stat"
     },
     {
@@ -574,7 +586,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "yellow",
                 "value": null
               }
             ]
@@ -617,7 +629,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Per Node Memory Utilization",
+      "title": "Maximum Per Node Memory Usage",
       "type": "stat"
     },
     {
@@ -635,7 +647,10 @@
       "type": "row"
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "Per Cluster": "blue",
+        "Total Cluster Storage Usage": "blue"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -685,7 +700,7 @@
           "exemplar": true,
           "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance)) by (verrazzano_cluster)",
           "interval": "",
-          "legendFormat": "Per Cluster",
+          "legendFormat": "Total Cluster Storage Usage",
           "refId": "A"
         },
         {
@@ -693,7 +708,7 @@
           "expr": "max(sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance, verrazzano_cluster)) by (instance, verrazzano_cluster)) by (verrazzano_cluster) - max(sum(max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance, verrazzano_cluster)) by (instance, verrazzano_cluster)) by (verrazzano_cluster)",
           "hide": false,
           "interval": "",
-          "legendFormat": "Per Max Node",
+          "legendFormat": "Max Node Storage Usage",
           "refId": "B"
         }
       ],
@@ -701,7 +716,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Storage Utilization",
+      "title": "Storage Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -801,7 +816,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Storage Utilization Percentage",
+      "title": "Cluster Storage Utilization of Capacity",
       "type": "bargauge"
     },
     {
@@ -859,7 +874,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Cluster Storage Utilization",
+      "title": "Maximum Cluster Storage Usage",
       "type": "stat"
     },
     {
@@ -874,7 +889,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "yellow",
                 "value": null
               }
             ]
@@ -917,7 +932,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Per Node Storage Utilization",
+      "title": "Maximum Per Node Storage Usage",
       "type": "stat"
     },
     {
@@ -935,7 +950,10 @@
       "type": "row"
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "Total Cluster Persistent Volume Storage Usage": "blue",
+        "instance ": "blue"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -985,7 +1003,7 @@
           "exemplar": true,
           "expr": "sum(kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
           "interval": "",
-          "legendFormat": "instance {{node}}",
+          "legendFormat": "Total Cluster Persistent Volume Storage Usage",
           "refId": "A"
         },
         {
@@ -993,7 +1011,7 @@
           "expr": "max(sum(kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster, node)) by (verrazzano_cluster)",
           "hide": false,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "Max Node Persistent Volume Storage Usage",
           "refId": "B"
         }
       ],
@@ -1001,7 +1019,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Persistent Volume Storage Utilization",
+      "title": "Persistent Volume Storage Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1101,7 +1119,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Persistent Volume Storage Utilization Percentage",
+      "title": "Cluster Persistent Volume Storage Utilization of Capacity",
       "type": "bargauge"
     },
     {
@@ -1159,7 +1177,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Cluster Persistent Volume Storage Utilization",
+      "title": "Maximum Cluster Persistent Volume Storage Usage",
       "type": "stat"
     },
     {
@@ -1174,7 +1192,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "yellow",
                 "value": null
               }
             ]
@@ -1217,7 +1235,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Maximum Per Node Persistent Volume Storage Utilization",
+      "title": "Maximum Per Node Persistent Volume Storage Usage",
       "type": "stat"
     }
   ],
@@ -1266,7 +1284,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Cluster Resource Utilization",
+  "title": "Cluster Resource Usage",
   "uid": "_CJC9SC4k",
-  "version": 2
+  "version": 1
 }
