@@ -118,6 +118,9 @@ const (
 	NginxIngressPrivateSubnet    = "NginxIngressPrivateSubnet"
 	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
 	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
+	KontainerDriverNotReady      = "KontainerDriverNotReady"
+	RancherClusterNotReady       = "RancherClusterNotReady"
+	ClusterAPIClusterNotReady    = "ClusterAPIClusterNotReady"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -147,6 +150,9 @@ var knownIssues = map[string]Issue{
 	NginxIngressPrivateSubnet:    {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
+	KontainerDriverNotReady:      {Type: KontainerDriverNotReady, Summary: "Rancher KontainerDriver resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KontainerDriverNotReady]}},
+	RancherClusterNotReady:       {Type: RancherClusterNotReady, Summary: "Rancher cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherClusterNotReady]}},
+	ClusterAPIClusterNotReady:    {Type: ClusterAPIClusterNotReady, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterNotReady]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

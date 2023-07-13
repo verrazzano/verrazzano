@@ -49,7 +49,12 @@ prometheusPushgateway:
 prometheusNodeExporter:
   enabled: true
 jaegerOperator:
-  enabled: falseistio:
+  enabled: false
+istio:
   enabled: true
 ingressNGINX:
   namespace: "verrazzano-ingress-nginx"
+fluentOperator:
+  enabled: false
+fluentbitOpensearchOutput:
+  enabled: false

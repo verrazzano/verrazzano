@@ -62,6 +62,9 @@ var RunbookLinks = map[string][]string{
 	NginxIngressPrivateSubnet:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/nginxloadbalancercreation"},
 	ExternalDNSConfigureIssue:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/externaldnsconfiguration"},
 	KeycloakDataMigrationFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/keycloakdatamigrationfailure"},
+	KontainerDriverNotReady:      {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/kontainerdrivernotready"},
+	ClusterAPIClusterNotReady:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/clusterapiclusternotready"},
+	RancherClusterNotReady:       {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/rancherclusternotready"},
 }
 
 // KnownActions are Standard Action types
@@ -86,6 +89,9 @@ var KnownActions = map[string]Action{
 	NginxIngressPrivateSubnet:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[NginxIngressPrivateSubnet][0])},
 	ExternalDNSConfigureIssue:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ExternalDNSConfigureIssue][0])},
 	KeycloakDataMigrationFailure: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[KeycloakDataMigrationFailure][0])},
+	KontainerDriverNotReady:      {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[KontainerDriverNotReady][0])},
+	ClusterAPIClusterNotReady:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ClusterAPIClusterNotReady][0])},
+	RancherClusterNotReady:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[RancherClusterNotReady][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {
