@@ -82,8 +82,7 @@ func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMa
 func FindNamespaces(log *zap.SugaredLogger, clusterRoot string) (namespaces []string, err error) {
 	fileInfos, err := os.ReadDir(clusterRoot)
 	if err != nil {
-		log.Debugf("FindNamespaces failed to read directory %s", clusterRoot, err)
-		return nil, err
+		return nil, fmt.Errorf("FindNamespaces failed to read directory %s: %s", clusterRoot, err.Error())
 	}
 
 	for _, fileInfo := range fileInfos {
