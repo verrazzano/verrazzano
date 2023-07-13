@@ -37,7 +37,7 @@ type clusterAPIClusterCondition struct {
 	Type     string                 `json:"type"`
 }
 
-// AnalyzeClusterAPIIssues handles the checking of cluster-api resources.
+// AnalyzeClusterAPIIssues handles the checking of cluster-api cluster resource.
 func AnalyzeClusterAPIIssues(log *zap.SugaredLogger, clusterRoot string) error {
 	log.Debugf("AnalyzeClusterAPIIssues called for %s", clusterRoot)
 
@@ -48,7 +48,7 @@ func AnalyzeClusterAPIIssues(log *zap.SugaredLogger, clusterRoot string) error {
 	return analyzeClusterAPICLusters(log, clusterRoot, &issueReporter)
 }
 
-// analyzeClusterAPICLusters handles the checking of the status of KontainerDriver resources.
+// analyzeClusterAPICLusters handles the checking of the status of cluster-qpi cluster resources.
 func analyzeClusterAPICLusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
 	namespaces, err := files.FindNamespaces(log, clusterRoot)
 	if err != nil {
