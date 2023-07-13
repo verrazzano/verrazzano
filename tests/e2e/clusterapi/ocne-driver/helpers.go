@@ -22,6 +22,8 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+const fleetDefaultNamespace = "fleet-default"
+
 // Acts as a cache, mapping the cluster names to cluster IDs
 var clusterIDMapping = map[string]string{}
 
@@ -182,40 +184,36 @@ func deleteCluster(clusterName string, log *zap.SugaredLogger) error {
 
 // Returns true if the cluster currently exists and is Active
 func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
-	jsonBody, err := getCluster(clusterName, log)
+	clusterID, err := getClusterIDFromName(clusterName, log)
 	if err != nil {
-		return false, err
+		log.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
 	}
 
+	// Debug logging
 	var cmd helpers.BashCommand
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
 	cmd.CommandArgs = cmdArgs
 	response := helpers.Runner(&cmd, log)
-	log.Infof("+++ All CAPI clusters =  %s +++", (&response.StandardOut).String())
+	log.Infof("All CAPI clusters =  %s", (&response.StandardOut).String())
 
 	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, log)
-	log.Infof("+++ All management clusters =  %s +++", (&response.StandardOut).String())
+	log.Infof("All management clusters =  %s", (&response.StandardOut).String())
 
 	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, log)
-	log.Infof("+++ All provisioning clusters =  %s +++", (&response.StandardOut).String())
+	log.Infof("All provisioning clusters =  %s", (&response.StandardOut).String())
 
 	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, log)
-	log.Infof("+++ All CAPI machines =  %s +++", (&response.StandardOut).String())
-
-	clusterID, err := getClusterIDFromName(clusterName, log)
-	if err != nil {
-		log.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-	}
+	log.Infof("All CAPI machines =  %s", (&response.StandardOut).String())
 
 	kubeconfigPath, err := getWorkloadKubeconfig(clusterID, log)
 	if err != nil {
@@ -226,17 +224,16 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, log)
-	log.Infof("+++ All nodes in workload cluster =  %s +++", (&response.StandardOut).String())
+	log.Infof("All nodes in workload cluster =  %s", (&response.StandardOut).String())
 
 	cmdArgs = []string{}
 	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
 	cmd.CommandArgs = cmdArgs
 	response = helpers.Runner(&cmd, log)
-	log.Infof("+++ All pods in workload cluster =  %s +++", (&response.StandardOut).String())
+	log.Infof("All pods in workload cluster =  %s", (&response.StandardOut).String())
 
-	state := fmt.Sprint(jsonBody.Path("data.0.state").Data())
-	log.Infof("State: %s", state)
-	return state == "active", nil
+	// Check if the cluster is active
+	return checkProvisioningClusterReady(fleetDefaultNamespace, clusterID, log)
 }
 
 // Returns true if the OCNE cluster is deleted/does not exist
@@ -246,26 +243,69 @@ func isClusterDeleted(clusterName string, log *zap.SugaredLogger) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	clusterObjectFound, err := getClusterFromK8s(clusterID, clusterID, log)
-	if clusterObjectFound {
+	clusterObjectFound, err := checkClusterExistsFromK8s(clusterID, clusterID, log)
+	return !clusterObjectFound, err
+}
+
+// Returns true if the requested provisioning cluster object has a ready status set to true
+func checkProvisioningClusterReady(namespace, clusterID string, log *zap.SugaredLogger) (bool, error) {
+	provClusterFetched, err := fetchProvisioningClusterFromK8s(namespace, clusterID, log)
+	if err != nil {
 		return false, err
 	}
-	return true, err
+	if provClusterFetched == nil {
+		err = fmt.Errorf("no provisioning cluster %s found", clusterID)
+		log.Error(err)
+		return false, err
+	}
+
+	// convert the fetched unstructured object to a provisioning cluster struct
+	var provCluster ProvisioningCluster
+	bdata, err := json.Marshal(provClusterFetched)
+	if err != nil {
+		log.Errorf("json marshalling error %v", zap.Error(err))
+		return false, err
+	}
+	err = json.Unmarshal(bdata, &provCluster)
+	if err != nil {
+		log.Errorf("json unmarshall error %v", zap.Error(err))
+		return false, err
+	}
+
+	return provCluster.Status.Ready, err
+}
+
+// Fetches the provisioning cluster object
+func fetchProvisioningClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	clusterFetched, err := getUnstructuredData("provisioning.cattle.io", "v1", "clusters", clusterID, namespace, log)
+	if err != nil {
+		log.Errorf("unable to fetch provisioning cluster '%s' due to '%v'", clusterID, zap.Error(err))
+		return nil, err
+	}
+	return clusterFetched, nil
 }
 
 // This retrieves the clusters.cluster.x-k8s.io object and returns true if it exists.
-func getClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (bool, error) {
-	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterID, namespace, log)
+func checkClusterExistsFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (bool, error) {
+	clusterFetched, err := fetchClusterFromK8s(namespace, clusterID, log)
 	if err != nil {
-		log.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterID, zap.Error(err))
 		return false, err
 	}
-
 	if clusterFetched == nil {
 		log.Infof("No CAPI clusters with id '%s' in namespace '%s' was detected", clusterID, namespace)
 		return false, nil
 	}
 	return true, nil
+}
+
+// This fetches the clusters.cluster.x-k8s.io object
+func fetchClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterID, namespace, log)
+	if err != nil {
+		log.Errorf("unable to fetch CAPI cluster '%s' due to '%v'", clusterID, zap.Error(err))
+		return nil, err
+	}
+	return clusterFetched, nil
 }
 
 // Checks whether the cluster was created as expected. Returns nil if all is good.

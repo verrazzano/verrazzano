@@ -6,6 +6,7 @@ package ocnedriver
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -288,4 +289,45 @@ func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, cr
 	roc.WindowsPreferedCluster = windowsPreferedCluster
 	roc.Type = "cluster"
 	roc.Labels = struct{}{}
+}
+
+type ProvisioningCluster struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		Annotations struct {
+			FieldCattleIoCreatorID             string `json:"field.cattle.io/creatorId"`
+			ObjectsetRioCattleIoApplied        string `json:"objectset.rio.cattle.io/applied"`
+			ObjectsetRioCattleIoID             string `json:"objectset.rio.cattle.io/id"`
+			ObjectsetRioCattleIoOwnerGvk       string `json:"objectset.rio.cattle.io/owner-gvk"`
+			ObjectsetRioCattleIoOwnerName      string `json:"objectset.rio.cattle.io/owner-name"`
+			ObjectsetRioCattleIoOwnerNamespace string `json:"objectset.rio.cattle.io/owner-namespace"`
+		} `json:"annotations"`
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Labels            struct {
+			ObjectsetRioCattleIoHash string `json:"objectset.rio.cattle.io/hash"`
+		} `json:"labels"`
+		Name            string `json:"name"`
+		Namespace       string `json:"namespace"`
+		ResourceVersion string `json:"resourceVersion"`
+		UID             string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		LocalClusterAuthEndpoint struct {
+		} `json:"localClusterAuthEndpoint"`
+	} `json:"spec"`
+	Status struct {
+		AgentDeployed    bool   `json:"agentDeployed"`
+		ClientSecretName string `json:"clientSecretName"`
+		ClusterName      string `json:"clusterName"`
+		Conditions       []struct {
+			Status         string    `json:"status"`
+			Type           string    `json:"type"`
+			LastUpdateTime time.Time `json:"lastUpdateTime,omitempty"`
+		} `json:"conditions"`
+		ObservedGeneration int  `json:"observedGeneration"`
+		Ready              bool `json:"ready"`
+	} `json:"status"`
 }
