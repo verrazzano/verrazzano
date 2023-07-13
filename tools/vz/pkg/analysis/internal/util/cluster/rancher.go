@@ -9,35 +9,31 @@ import (
 	"io"
 	"os"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Minimal definition of Rancher cluster object that only contains the fields that will be analyzed
 type rancherClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []rancherCluster `json:"items"`
 }
-
-// Minimal definition of cluster object that only contains the fields that will be analyzed
 type rancherCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              rancherClusterSpec   `json:"spec"`
 	Status            rancherClusterStatus `json:"status,omitempty"`
 }
-
 type rancherClusterSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 }
 type rancherClusterStatus struct {
 	Conditions []clusterCondition `json:"conditions,omitempty"`
 }
-
 type clusterCondition struct {
 	Status corev1.ConditionStatus `json:"status"`
 	Type   string                 `json:"type"`
@@ -52,11 +48,11 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
-	return analyzeClusters(log, clusterRoot, &issueReporter)
+	return analyzeRancherClusters(log, clusterRoot, &issueReporter)
 }
 
-// analyzeClusters - analyze the status of Rancher clusters
-func analyzeClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+// analyzeRancherClusters - analyze the status of Rancher clusters
+func analyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
 	clusterPath := files.FindFileInClusterRoot(clusterRoot, "default/cluster.json")
 
 	// Parse the json into local struct
@@ -80,7 +76,7 @@ func analyzeClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *
 	}
 
 	for _, cluster := range clusterList.Items {
-		err = reportClusterIssue(log, clusterRoot, cluster, issueReporter)
+		err = analyzeRancherCluster(log, clusterRoot, cluster, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -90,8 +86,8 @@ func analyzeClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *
 	return nil
 }
 
-// reportClusterIssue - analyze a single Rancher cluster and report any issues
-func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
+// analyzeRancherCluster - analyze a single Rancher cluster and report any issues
+func analyzeRancherCluster(log *zap.SugaredLogger, clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
@@ -137,15 +133,14 @@ func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster ranc
 			case "BackingNamespaceCreated":
 				subMessage = "backing namespace not created"
 			}
-			if condition.Status != corev1.ConditionTrue {
-				var message string
-				if len(condition.Reason) == 0 {
-					message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s", cluster.Name, cluster.Spec.DisplayName, subMessage)
-				} else {
-					message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s - reason is %s", cluster.Name, cluster.Spec.DisplayName, subMessage, condition.Reason)
-				}
-				messages = append([]string{message}, messages...)
+			// Add a message for the issue
+			var message string
+			if len(condition.Reason) == 0 {
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s", cluster.Name, cluster.Spec.DisplayName, subMessage)
+			} else {
+				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s - reason is %s", cluster.Name, cluster.Spec.DisplayName, subMessage, condition.Reason)
 			}
+			messages = append([]string{message}, messages...)
 		}
 	}
 
