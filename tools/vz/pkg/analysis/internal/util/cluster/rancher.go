@@ -149,7 +149,9 @@ func reportClusterIssue(log *zap.SugaredLogger, clusterRoot string, cluster ranc
 		}
 	}
 
-	issueReporter.AddKnownIssueMessagesFiles(report.RancherClusterNotReady, clusterRoot, messages, []string{})
+	if len(messages) > 0 {
+		issueReporter.AddKnownIssueMessagesFiles(report.RancherClusterNotReady, clusterRoot, messages, []string{})
+	}
 
 	return nil
 }
