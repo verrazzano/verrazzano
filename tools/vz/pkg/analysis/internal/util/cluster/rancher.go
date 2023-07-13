@@ -58,8 +58,9 @@ func analyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueRep
 	// Parse the json into local struct
 	file, err := os.Open(clusterPath)
 	if err != nil {
+		// The file may not exist if Rancher is not installed.
 		log.Debugf("file %s not found", clusterPath)
-		return err
+		return nil
 	}
 	defer file.Close()
 
