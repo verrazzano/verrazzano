@@ -247,8 +247,7 @@ func getInstallRelease(releaseTags []string) string {
 		minorAndPatchesVersionMap[version] = append(minorAndPatchesVersionMap[version], tag)
 	}
 
-	fmt.Println(minorAndPatchesVersionMap)
-	fmt.Println(uniqueMinorVersions)
+	// Handles edge cases such as having less than 2 minor releases.
 	var thirdLatestRelease string
 	if uniqueMinorReleaseCount == 1 {
 		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-1]
