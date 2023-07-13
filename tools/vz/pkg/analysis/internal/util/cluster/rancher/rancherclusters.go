@@ -6,10 +6,7 @@ package rancher
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -25,40 +22,24 @@ type rancherClusterList struct {
 type rancherCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              rancherClusterSpec   `json:"spec"`
-	Status            rancherClusterStatus `json:"status,omitempty"`
+	Spec              rancherClusterSpec `json:"spec"`
+	Status            cattleStatus       `json:"status,omitempty"`
 }
 type rancherClusterSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 }
-type rancherClusterStatus struct {
-	Conditions []clusterCondition `json:"conditions,omitempty"`
-}
-type clusterCondition struct {
-	Status  corev1.ConditionStatus `json:"status"`
-	Type    string                 `json:"type"`
-	Reason  string                 `json:"reason,omitempty"`
-	Message string                 `json:"message,omitempty"`
-}
 
 // AnalyzeRancherClusters - analyze the status of Rancher clusters
 func AnalyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
-	clusterPath := files.FindFileInClusterRoot(clusterRoot, "cluster.management.cattle.io.json")
-
-	// Parse the json into local struct
-	file, err := os.Open(clusterPath)
+	fileBytes, clusterPath, err := readFileFromClusterPath(log, clusterRoot, "cluster.management.cattle.io.json")
 	if err != nil {
-		// The file may not exist if Rancher is not installed.
-		log.Debugf("file %s not found", clusterPath)
-		return nil
-	}
-	defer file.Close()
-
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		log.Debugf("Failed reading Json file %s", clusterPath)
 		return err
 	}
+	if len(fileBytes) == 0 {
+		return nil
+	}
+
+	// Unmarshall file contents into local struct
 	clusterList := &rancherClusterList{}
 	err = json.Unmarshal(fileBytes, &clusterList)
 	if err != nil {
