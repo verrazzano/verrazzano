@@ -1,0 +1,44 @@
+{
+  "apiVersion": "cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "Cluster",
+      "metadata": {
+        "labels": {
+          "cluster.x-k8s.io/cluster-name": "c-nctzd"
+        },
+        "name": "c-nctzd",
+        "namespace": "c-nctzd"
+      },
+      "status": {
+        "conditions": [
+          {
+            "reason": "WaitingForOCNEInit",
+            "severity": "Info",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "message": "Waiting for control plane provider to indicate the control plane has been initialized",
+            "reason": "WaitingForControlPlaneProviderInitialized",
+            "severity": "Info",
+            "status": "False",
+            "type": "ControlPlaneInitialized"
+          },
+          {
+            "reason": "WaitingForOCNEInit",
+            "severity": "Info",
+            "status": "False",
+            "type": "ControlPlaneReady"
+          },
+          {
+            "status": "True",
+            "type": "InfrastructureReady"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "ClusterList"
+}
