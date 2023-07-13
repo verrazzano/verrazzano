@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -17,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 )
 
 const (
