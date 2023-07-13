@@ -53,7 +53,7 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 
 // analyzeRancherClusters - analyze the status of Rancher clusters
 func analyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
-	clusterPath := files.FindFileInClusterRoot(clusterRoot, "default/cluster.json")
+	clusterPath := files.FindFileInClusterRoot(clusterRoot, "cluster.management.cattle.io.json")
 
 	// Parse the json into local struct
 	file, err := os.Open(clusterPath)
