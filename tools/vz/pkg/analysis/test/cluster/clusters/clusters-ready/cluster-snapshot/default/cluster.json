@@ -1,0 +1,221 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Cluster",
+      "metadata": {
+        "name": "c-zhp55"
+      },
+      "spec": {
+        "displayName": "mgtest"
+      },
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Pending"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:31:49Z",
+            "status": "True",
+            "type": "Provisioned"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:39:04Z",
+            "status": "True",
+            "type": "Waiting"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "BackingNamespaceCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "DefaultProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "SystemProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:11Z",
+            "status": "True",
+            "type": "InitialRolesPopulated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:16Z",
+            "status": "True",
+            "type": "CreatorMadeOwner"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:26:41Z",
+            "status": "True",
+            "type": "Connected"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:56Z",
+            "status": "True",
+            "type": "NoDiskPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:10:56Z",
+            "status": "True",
+            "type": "NoMemoryPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:11:01Z",
+            "status": "True",
+            "type": "SecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:11:01Z",
+            "status": "True",
+            "type": "ServiceAccountSecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:11:01Z",
+            "status": "True",
+            "type": "RKESecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:31:54Z",
+            "status": "True",
+            "type": "SystemAccountCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:32:01Z",
+            "status": "True",
+            "type": "AgentDeployed"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:26:42Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-12T11:32:02Z",
+            "status": "True",
+            "type": "Updated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:33:42Z",
+            "status": "True",
+            "type": "ServiceAccountMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:33:53Z",
+            "status": "True",
+            "type": "GlobalAdminsSynced"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Cluster",
+      "metadata": {
+        "name": "local"
+      },
+      "spec": {
+        "displayName": "local"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-05T15:29:54Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:02Z",
+            "status": "True",
+            "type": "BackingNamespaceCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:06Z",
+            "status": "True",
+            "type": "DefaultProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:06Z",
+            "status": "True",
+            "type": "SystemProjectCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:03Z",
+            "status": "True",
+            "type": "CreatorMadeOwner"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "Pending"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:17Z",
+            "status": "True",
+            "type": "Provisioned"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:31Z",
+            "status": "True",
+            "type": "Waiting"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "NoDiskPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "NoMemoryPressure"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "SecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:04Z",
+            "status": "True",
+            "type": "ServiceAccountSecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:05Z",
+            "status": "True",
+            "type": "RKESecretsMigrated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:15Z",
+            "status": "True",
+            "type": "Connected"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:16Z",
+            "status": "True",
+            "type": "SystemAccountCreated"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:16Z",
+            "status": "True",
+            "type": "GlobalAdminsSynced"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:07:17Z",
+            "status": "True",
+            "type": "Updated"
+          }
+        ]
+     }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

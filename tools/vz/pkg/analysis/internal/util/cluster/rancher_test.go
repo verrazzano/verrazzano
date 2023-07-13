@@ -20,13 +20,13 @@ func TestAnalyzeRancher(t *testing.T) {
 
 	// Expect no errors and no reported issues.
 	report.ClearReports()
-	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/clusters/drivers-ready/cluster-snapshot", &issueReporter))
+	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Empty(t, reportedIssues)
 
 	// Expect no errors and one reported issue that a Kontainer Driver is not ready.
 	report.ClearReports()
-	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/clusters/drivers-not-ready/cluster-snapshot", &issueReporter))
+	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Len(t, reportedIssues, 1)
 	assert.Equal(t, "KontainerDriverNotReady", reportedIssues[0].Type)
