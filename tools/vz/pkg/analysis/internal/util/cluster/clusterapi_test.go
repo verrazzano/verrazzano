@@ -19,13 +19,13 @@ func TestAnalyzeClusterAPI(t *testing.T) {
 
 	// Expect no errors and no reported issues.
 	report.ClearReports()
-	assert.NoError(t, analyzeClusterAPICLusters(logger, "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot", &issueReporter))
+	assert.NoError(t, analyzeClusterAPICLusters(logger, "../../../test/cluster/cluster-api-clusters/clusters-ready/cluster-snapshot", &issueReporter))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Empty(t, reportedIssues)
 
 	// Expect no errors and one reported issue that a Cluster API resource is not ready.
 	report.ClearReports()
-	assert.NoError(t, analyzeClusterAPICLusters(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot", &issueReporter))
+	assert.NoError(t, analyzeClusterAPICLusters(logger, "../../../test/cluster/cluster-api-clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Len(t, reportedIssues, 1)
 	assert.Equal(t, "ClusterAPIClusterNotReady", reportedIssues[0].Type)
