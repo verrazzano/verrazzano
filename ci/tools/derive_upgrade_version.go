@@ -211,7 +211,6 @@ func getInterimRelease(releaseTags []string) string {
 
 func getInstallRelease(releaseTags []string) string {
 
-	releaseTags = releaseTags[:len(releaseTags)-1]
 	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
 
 	// Remove patch version
@@ -248,6 +247,8 @@ func getInstallRelease(releaseTags []string) string {
 		minorAndPatchesVersionMap[version] = append(minorAndPatchesVersionMap[version], tag)
 	}
 
+	fmt.Println(minorAndPatchesVersionMap)
+	fmt.Println(uniqueMinorVersions)
 	var thirdLatestRelease string
 	if uniqueMinorReleaseCount == 1 {
 		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-1]
