@@ -7,9 +7,11 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
+
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +42,9 @@ func createDestinationRuleFromWeblogicWorkload(trait *vzapi.IngressTrait, rule v
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
 func mutateDestinationRuleFromWeblogicWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, weblogicWorkload *vzapi.VerrazzanoWebLogicWorkload) error {
+
 	dest, err := destination.CreateDestinationFromRule(rule)
+
 	if err != nil {
 		print(err)
 		return err
@@ -102,3 +106,5 @@ func mutateDestinationRuleFromWeblogicWorkload(destinationRule *istioclient.Dest
 	}
 	return nil
 }
+
+

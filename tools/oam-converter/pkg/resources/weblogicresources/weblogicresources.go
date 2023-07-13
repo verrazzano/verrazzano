@@ -5,6 +5,7 @@ package weblogicresources
 
 import (
 	"fmt"
+
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
@@ -23,10 +24,12 @@ func CreateIngressChildResourcesFromWeblogic(conversionComponent *types.Conversi
 		// Find the services associated with the trait in the application configuration.
 
 		vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.ComponentName, conversionComponent.AppNamespace)
+
 		if err != nil {
 			print(err)
 			return err
 		}
+
 		vsName := fmt.Sprintf("%s-rule-%d-vs", conversionComponent.ComponentName, index)
 		drName := fmt.Sprintf("%s-rule-%d-dr", conversionComponent.ComponentName, index)
 		authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", conversionComponent.ComponentName, index)
@@ -41,6 +44,7 @@ func CreateIngressChildResourcesFromWeblogic(conversionComponent *types.Conversi
 		err = azp.CreateAuthorizationPolicies(conversionComponent.IngressTrait, rule, authzPolicyName, allHostsForTrait)
 		if err != nil {
 			return err
+
 		}
 	}
 	return nil

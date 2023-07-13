@@ -37,9 +37,18 @@ spec:
           podSelector:
             matchLabels:
               app: fluentd
+{{- if .Values.fluentOperator.enabled }}
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Values.namespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: fluent-bit
+{{- end }}
       ports:
         - protocol: TCP
           port: 8775
+
 {{- if .Values.jaegerOperator.enabled }}
     - from:
         - namespaceSelector:

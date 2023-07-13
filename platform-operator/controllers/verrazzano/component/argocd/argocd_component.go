@@ -5,7 +5,6 @@ package argocd
 
 import (
 	"fmt"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -14,6 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -158,6 +158,15 @@ func (c argoCDComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// PostUninstall runs the ArgoCD PostUninstall function
+// Remove the argo application resources
+func (c argoCDComponent) PostUninstall(ctx spi.ComponentContext) error {
+	if err := removeArgoResources(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostUninstall(ctx)
 }
 
 // ConfigureKeycloakOIDC

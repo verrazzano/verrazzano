@@ -9,10 +9,20 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
+	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -31,13 +41,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -87,6 +90,8 @@ const (
 	typeJSONPathSuffix       = "type"
 	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
 	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"
+	// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
+	fluentbitFilterAndParserTemplate = "istio-filter-parser.yaml"
 )
 
 var istioDeployments = []types.NamespacedName{
@@ -216,6 +221,10 @@ func (i istioComponent) Uninstall(context spi.ComponentContext) error {
 
 // PostUninstall processing for Istio
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
+
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, IstioNamespace, true); err != nil {
+		return err
+	}
 	// Delete ClusterRoleBindings and ClusterRoles not removed with istioctl uninstall
 	err := resource.Resource{
 		Name:   istioReaderIstioSystem,
@@ -444,7 +453,7 @@ func isIstioManifestNotInstalledError(err error) bool {
 
 // GetDependencies returns the dependencies of this component
 func (i istioComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName}
+	return []string{networkpolicies.ComponentName, fluentoperator.ComponentName}
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {

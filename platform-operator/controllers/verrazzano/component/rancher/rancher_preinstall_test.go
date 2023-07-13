@@ -4,12 +4,16 @@
 package rancher
 
 import (
+	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -49,6 +53,9 @@ func TestCreateCattleNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			assert.Nil(t, createCattleSystemNamespace(log, tt.c))
+			ns := v1.Namespace{}
+			tt.c.Get(context.TODO(), types.NamespacedName{Name: common.CattleSystem}, &ns)
+			assert.Equal(t, common.CattleSystem, ns.Labels[constants.VerrazzanoManagedKey])
 		})
 	}
 }

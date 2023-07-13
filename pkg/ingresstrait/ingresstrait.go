@@ -15,6 +15,7 @@ import (
 	"strings"
 )
 
+
 func CoallateAllHostsForTrait(trait *vzapi.IngressTrait, appName string, appNamespace string) ([]string, error) {
 	allHosts := []string{}
 	var err error
@@ -26,6 +27,7 @@ func CoallateAllHostsForTrait(trait *vzapi.IngressTrait, appName string, appName
 	}
 	return allHosts, nil
 }
+
 func CreateHostsFromIngressTraitRule(rule vzapi.IngressRule, trait *vzapi.IngressTrait, appName string, appNamespace string, toList ...string) ([]string, error) {
 	validHosts := toList
 	useDefaultHost := true
@@ -50,6 +52,7 @@ func CreateHostsFromIngressTraitRule(rule vzapi.IngressRule, trait *vzapi.Ingres
 	}
 
 	// Generate a default hostname
+
 	hostName, err := buildAppFullyQualifiedHostName(trait, appName, appNamespace)
 	if err != nil {
 		return nil, err
@@ -67,6 +70,7 @@ func CreateHostsFromIngressTraitRule(rule vzapi.IngressRule, trait *vzapi.Ingres
 //	app is the OAM application name
 //	namespace is the namespace of the OAM application
 //	dns-subdomain is The DNS subdomain name
+
 func buildAppFullyQualifiedHostName(trait *vzapi.IngressTrait, appName string, appNamespace string) (string, error) {
 
 	domainName, err := buildNamespacedDomainName(trait, appNamespace)
@@ -74,6 +78,7 @@ func buildAppFullyQualifiedHostName(trait *vzapi.IngressTrait, appName string, a
 		return "", err
 	}
 	return fmt.Sprintf("%s.%s", appName, domainName), nil
+
 }
 
 // buildNamespacedDomainName generates a domain name for the application using the following structure:
@@ -81,8 +86,8 @@ func buildAppFullyQualifiedHostName(trait *vzapi.IngressTrait, appName string, a
 //
 //	namespace is the namespace of the OAM application
 //	dns-subdomain is The DNS subdomain name
-func buildNamespacedDomainName(trait *vzapi.IngressTrait, appNamespace string) (string, error) {
 
+func buildNamespacedDomainName(trait *vzapi.IngressTrait, appNamespace string) (string, error) {
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 	cfg, _ := config.GetConfig()
@@ -116,7 +121,9 @@ func buildNamespacedDomainName(trait *vzapi.IngressTrait, appNamespace string) (
 			return "", err
 		}
 	}
+
 	return fmt.Sprintf("%s.%s", appNamespace, domain), nil
+
 }
 
 // findHost searches for a host in the provided list. If found it will

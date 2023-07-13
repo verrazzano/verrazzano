@@ -14,10 +14,12 @@ import (
 	"strings"
 )
 
+
 func ConfData() error {
 
 	//Read app File
 	appData, err := ioutil.ReadFile("/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/pkg/app/hello-helidon-app.yaml")
+
 	if err != nil {
 		fmt.Println("Failed to read YAML file:", err)
 		return err
@@ -25,6 +27,7 @@ func ConfData() error {
 
 	//Read Comp file
 	compData, err := ioutil.ReadFile("/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/pkg/app/hello-helidon-comp.yaml")
+
 	if err != nil {
 		fmt.Println("Failed to read YAML file:", err)
 		return err
@@ -53,6 +56,7 @@ func ConfData() error {
 		}
 		components = append(components, component)
 	}
+
 	conversionComponents, err := traits.ExtractTrait(appMap)
 	if err != nil {
 		return errors.New("failed extracting traits from app")
@@ -63,8 +67,10 @@ func ConfData() error {
 	}
 
 	err = resources.CreateResources(conversionComponents)
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
+

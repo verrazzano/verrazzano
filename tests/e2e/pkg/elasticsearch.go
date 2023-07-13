@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"html/template"
 	"net/http"
@@ -342,14 +343,35 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
+	// Return the os ingress host from the verrazzano-logging namespace if it exists
+	// Else return the vmi ingress as usual
+	useloggingNSIngress, _ := osIngressInLoggingNSExists()
 	ingressList, _ := clientset.NetworkingV1().Ingresses(VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest" {
+		if !useloggingNSIngress && (ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest") {
+			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
+			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+		} else if useloggingNSIngress && ingress.Name == "opensearch" {
 			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
 	}
 	return ""
+}
+
+// osIngressInLoggingNSExists return true if fluentd is configured to use operator based OS
+func osIngressInLoggingNSExists() (bool, error) {
+	cr, err := GetVerrazzano()
+
+	if err != nil {
+		return false, nil
+	}
+
+	if cr.Spec.Components.Fluentd != nil &&
+		cr.Spec.Components.Fluentd.ElasticsearchURL == constants.DefaultOperatorOSURLWithNS {
+		return true, nil
+	}
+	return false, nil
 }
 
 // getOpenSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
@@ -479,7 +501,7 @@ func listSystemOpenSearchIndices(kubeconfigPath string) []string {
 }
 
 // querySystemOpenSearch searches the Opensearch index with the fields in the given cluster
-func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPath string) map[string]interface{} {
+func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPath string, sortQuery bool) map[string]interface{} {
 	query := ""
 	for name, value := range fields {
 		fieldQuery := fmt.Sprintf("%s:%s", name, value)
@@ -489,6 +511,10 @@ func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPat
 			query = fmt.Sprintf("%s+AND+%s", query, fieldQuery)
 		}
 	}
+	if sortQuery {
+		query = query + "&sort=@timestamp:desc&size=10"
+	}
+
 	var result map[string]interface{}
 	url := fmt.Sprintf("%s/%s/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, query)
 	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
@@ -827,7 +853,7 @@ func LogRecordFound(indexName string, after time.Time, fields map[string]string)
 // LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found
 // in the given cluster
 func LogRecordFoundInCluster(indexName string, after time.Time, fields map[string]string, kubeconfigPath string) bool {
-	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath)
+	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath, true)
 	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false

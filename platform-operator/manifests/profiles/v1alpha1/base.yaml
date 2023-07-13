@@ -274,3 +274,7 @@ spec:
       enabled: true
     argoCD:
       enabled: false
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false

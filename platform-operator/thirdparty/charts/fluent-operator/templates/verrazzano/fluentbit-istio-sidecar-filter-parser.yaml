@@ -1,0 +1,30 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{- if .Values.fluentbit.enable }}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: vz-istio-sidecar
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: istio-sidecar
+  match: "kube.*istio-proxy*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+  name: istio-sidecar
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{1,9}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+{{- end }}

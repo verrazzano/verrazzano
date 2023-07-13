@@ -1,0 +1,75 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: thanos-fbc
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "thanos"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "thanos"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "thanos"
+  name: thanos-filter
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: rancher-parser1,rancher-parser2,rancher-parser3
+  match: "kube.*thanos*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "thanos"
+  name: rancher-parser1
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  regex:
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3,}Z)(.*?)msg="(?<message>.*?)"([\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "thanos"
+  name: rancher-parser2
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  regex:
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3,}Z)(.*?)err="(?<message>.*?)"$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "thanos"
+  name: rancher-parser3
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  regex:
+    regex: '/^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+{{ end -}}

@@ -1,13 +1,15 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1beta1
 
 import (
 	goerrors "errors"
+	"fmt"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"k8s.io/apimachinery/pkg/runtime"
-	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -19,14 +21,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// k8sVersionValidFunc returns no error when the K8S version of the "cluster" is validated during
+// unit tests
+var k8sVersionValidFunc = func() error { return nil }
+
 // TestCreateCallbackSuccessWithVersion Tests the create callback with valid spec version
 // GIVEN a ValidateCreate() request with a valid version
 // WHEN the version provided is a valid version
 // THEN no error is returned
 func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	validators.ValidateKubernetesVersionSupported = k8sVersionValidFunc
 	defer func() {
 		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
 	}()
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
@@ -49,8 +58,11 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 // THEN no error is returned
 func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	validators.ValidateKubernetesVersionSupported = k8sVersionValidFunc
 	defer func() {
 		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
 	}()
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
@@ -112,8 +124,11 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 // THEN no error is returned
 func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	validators.ValidateKubernetesVersionSupported = k8sVersionValidFunc
 	defer func() {
 		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -144,8 +159,11 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 // THEN no error is returned
 func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	validators.ValidateKubernetesVersionSupported = k8sVersionValidFunc
 	defer func() {
 		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -317,8 +335,11 @@ func runUpdateCallbackChangedProfileTest() error {
 // THEN no error is returned
 func TestDefaultProfileAgainstProd(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	validators.ValidateKubernetesVersionSupported = k8sVersionValidFunc
 	defer func() {
 		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{},
@@ -341,8 +362,11 @@ func TestDefaultProfileAgainstProd(t *testing.T) {
 // THEN no error is returned
 func TestProdProfileAgainstDefault(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	validators.ValidateKubernetesVersionSupported = k8sVersionValidFunc
 	defer func() {
 		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -507,4 +531,34 @@ func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
 		getControllerRuntimeClient = validators.GetClient
 	}()
 	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+}
+
+// TestInvalidClusterK8SVersion Tests the create and update callbacks when the cluster's K8S version is unsupported
+// GIVEN a ValidateCreate() or ValidateUpdate() request
+// WHEN the cluster K8S version is unsupported
+// THEN an error is returned
+func TestInvalidClusterK8SVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	k8sVersionCheckOrig := validators.ValidateKubernetesVersionSupported
+	errMsg := "fake validator invalid kubernetes version"
+	validators.ValidateKubernetesVersionSupported = func() error {
+		return fmt.Errorf(errMsg)
+	}
+	defer func() {
+		config.SetDefaultBomFilePath("")
+		validators.ValidateKubernetesVersionSupported = k8sVersionCheckOrig
+	}()
+
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
+	}
+	defer func() { getControllerRuntimeClient = validators.GetClient }()
+
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+	}
+	assert.ErrorContains(t, currentSpec.ValidateCreate(), errMsg)
+	assert.ErrorContains(t, currentSpec.ValidateUpdate(currentSpec), errMsg)
 }

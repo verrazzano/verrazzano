@@ -89,6 +89,10 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// When set to false, uninstall prompt can be suppressed
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, "Used to confirm uninstall and suppress prompt")
+
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
+
 	return cmd
 }
 
@@ -531,7 +535,7 @@ func continueUninstall(confirmUninstall bool) (bool, error) {
 	}
 	var response string
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("Are you sure you want to uninstall Verrazzano? [Y/n]: ")
+	fmt.Print("Are you sure you want to uninstall Verrazzano? [y/N]: ")
 	if scanner.Scan() {
 		response = scanner.Text()
 	}

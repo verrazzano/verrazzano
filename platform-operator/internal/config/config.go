@@ -4,11 +4,13 @@
 package config
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 const (
@@ -40,6 +42,9 @@ var TestHelmConfigDir string
 
 // TestProfilesDir is needed for unit tests
 var TestProfilesDir string
+
+// TestThirdPartyManifestDir is needed for unit tests
+var TestThirdPartyManifestDir string
 
 // OperatorConfig specifies the Verrazzano Platform Operator Config
 type OperatorConfig struct {
@@ -212,6 +217,9 @@ func GetThirdPartyDir() string {
 }
 
 func GetThirdPartyManifestsDir() string {
+	if TestThirdPartyManifestDir != "" {
+		return TestThirdPartyManifestDir
+	}
 	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyManifestsDirSuffix)
 }
 

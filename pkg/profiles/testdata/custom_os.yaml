@@ -1,0 +1,29 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+spec:
+  components:
+    opensearch:
+      nodes:
+        # Modify java-opts for default es-master nodePool
+        # Without explicitly specifying the replicas
+        - name: es-master
+          javaOpts: "-Xmx6g -Xms6g"
+        # Scale down the default es-data nodePool
+        - name: es-data
+          replicas: 0
+        # Modify the replicas count for default es-ingest nodePool
+        - name: es-ingest
+          replicas: 2
+        # Add custom nodePools
+        - name: my-opensearch-data
+          replicas: 4
+          storage:
+            size: 100Gi
+          roles:
+            - data
+        # No replicas specified for custom nodePool
+        - name: my-opensearch-ingest
+          roles:
+            - ingest
+

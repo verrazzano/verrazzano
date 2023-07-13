@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -6,6 +6,7 @@ package opensearch
 import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -57,14 +58,14 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.MasterRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole},
 				Resources: newResources(u.NodeMemory),
 				Storage:   newNodeStorage(u.NodeStorage),
 			},
 			vzapi.OpenSearchNode{
 				Name:     "es-master",
-				Replicas: 0,
+				Replicas: common.Int32Ptr(0),
 				Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 			},
 		)
@@ -79,7 +80,7 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.IngestRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.IngestRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
@@ -96,7 +97,7 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.DataRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
@@ -125,7 +126,7 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.MasterRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
 				Storage:   newNodeStorage("2Gi"),
 				Resources: newResources("512Mi"),

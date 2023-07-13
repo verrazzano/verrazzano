@@ -7,9 +7,9 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -25,6 +25,7 @@ import (
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -102,14 +103,21 @@ func TestGroupVersionResource(t *testing.T) {
 //	WHEN I call functions to capture k8s resource
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
 	k8sClient := k8sfake.NewSimpleClientset()
+	scheme := k8scheme.Scheme
+	AddCapiToScheme(scheme)
+	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).Build()
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CaptureK8SResources(k8sClient, constants.VerrazzanoInstall, captureDir, rc)
+	err = CaptureK8SResources(client, k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 }
 
@@ -235,7 +243,6 @@ func TestCaptureVZResource(t *testing.T) {
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
 	//  GIVEN a k8s cluster with a user provided Verrazzano CR,
 	//	WHEN I call functions to capture the Verrazzano CR,
@@ -256,7 +263,7 @@ func TestCaptureVZResource(t *testing.T) {
 	SetMultiWriterErr(errBuf, tempFile)
 	SetVerboseOutput(true)
 	SetIsLiveCluster()
-	err = CaptureVZResource(captureDir, vz, rc)
+	err = CaptureVZResource(captureDir, vz)
 	assert.NoError(t, err)
 	assert.NotNil(t, GetMultiWriterOut())
 	assert.NotNil(t, GetMultiWriterErr())
@@ -359,7 +366,7 @@ func cleanupFile(t *testing.T, file *os.File) {
 func TestGetPodListAll(t *testing.T) {
 	nsName := "test"
 	podLength := 5
-	var podList = []client.Object{}
+	var podList []client.Object
 	for i := 0; i < podLength; i++ {
 		podList = append(podList, &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -382,4 +389,28 @@ func TestGetPodListAll(t *testing.T) {
 	pods, err = GetPodListAll(fake.NewClientBuilder().WithObjects(podList...).Build(), nsName)
 	assert.NoError(t, err)
 	assert.Equal(t, podLength, len(pods))
+}
+
+//		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
+//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
+//		WHEN I call functions to create a list of certificates for the namespace,
+//		THEN expect it to write to the provided resource file and no error should be returned.
+func TestCreateCertificateFile(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	sampleCert := v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"}}
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureCertificates(client, "cattle-system", captureDir, rc)
+	assert.NoError(t, err)
 }

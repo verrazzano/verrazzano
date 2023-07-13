@@ -4,20 +4,19 @@
 package clusterapi
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 const (
 	testBomFilePath = "../../testdata/test_bom.json"
-	verrazzanoRepo  = "ghcr.io/verrazzano"
-	oracleRepo      = "ghcr.io/oracle"
 )
 
 // TestSetEnvVariables tests the setEnvVariables function
@@ -34,32 +33,6 @@ func TestSetEnvVariables(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestGetImageOverrides tests the getImageOverrides function
-// GIVEN a call to getImageOverrides
-//
-//	WHEN a test Verrazzano bom is supplied
-//	THEN the template inputs for generating a clusterctl.yaml file are returned
-func TestGetImageOverrides(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	templateInput, err := getImageOverrides(compContext)
-	assert.NoError(t, err)
-	assert.NotNil(t, templateInput)
-	assert.Equal(t, "v1.3.3", templateInput.APIVersion)
-	assert.Equal(t, verrazzanoRepo, templateInput.APIRepository)
-	assert.Equal(t, "v1.3.3-20230427222746-876fe3dc9", templateInput.APITag)
-	assert.Equal(t, "v0.8.1", templateInput.OCIVersion)
-	assert.Equal(t, oracleRepo, templateInput.OCIRepository)
-	assert.Equal(t, "v0.8.1", templateInput.OCITag)
-	assert.Equal(t, "v0.1.0", templateInput.OCNEBootstrapVersion)
-	assert.Equal(t, verrazzanoRepo, templateInput.OCNEBootstrapRepository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", templateInput.OCNEBootstrapTag)
-	assert.Equal(t, "v0.1.0", templateInput.OCNEControlPlaneVersion)
-	assert.Equal(t, verrazzanoRepo, templateInput.OCNEControlPlaneRepository)
-	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", templateInput.OCNEControlPlaneTag)
-}
-
 // TestApplyTemplate tests the applyTemplate function
 // GIVEN a call to applyTemplate
 //
@@ -69,10 +42,10 @@ func TestApplyTemplate(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	templateInput, err := getImageOverrides(compContext)
+	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
-	assert.NotNil(t, templateInput)
-	clusterctl, err := applyTemplate(clusterctlYamlTemplate, templateInput)
+	assert.NotNil(t, overrides)
+	clusterctl, err := applyTemplate(clusterctlYamlTemplate, overrides)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, clusterctl)
 	assert.NotContains(t, clusterctl.String(), "{{.")

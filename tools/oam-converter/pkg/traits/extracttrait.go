@@ -43,11 +43,13 @@ func ExtractTrait(appMap map[string]interface{}) ([]*types.ConversionComponents,
 	}
 
 	for _, component := range appComponents {
+
 		componentMap := component.(map[string]interface{})
 		componentTraits, ok := componentMap[consts.YamlTraits].([]interface{})
 		if ok && len(componentTraits) > 0 {
 			for _, trait := range componentTraits {
 				traitMap := trait.(map[string]interface{})
+
 				//traitSpec := traitMap[consts.TraitComponent].(map[string]interface{})
 				traitSpec, found, err := unstructured.NestedMap(traitMap, "trait")
 				if !found || err != nil {
@@ -58,11 +60,13 @@ func ExtractTrait(appMap map[string]interface{}) ([]*types.ConversionComponents,
 				if !found || err != nil {
 					return nil, errors.New("trait kind doesn't exist")
 				}
+
 				if traitKind == consts.IngressTrait {
 					ingressTrait := &vzapi.IngressTrait{}
 					traitJSON, err := json.Marshal(traitSpec)
 
 					if err != nil {
+
 						fmt.Printf("Failed to marshal trait: %v", err)
 					}
 
@@ -179,4 +183,5 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 		}
 	}
 	return conversionComponents, nil
+
 }
