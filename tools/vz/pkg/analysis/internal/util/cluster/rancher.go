@@ -35,9 +35,10 @@ type rancherClusterStatus struct {
 	Conditions []clusterCondition `json:"conditions,omitempty"`
 }
 type clusterCondition struct {
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
-	Reason string                 `json:"reason,omitempty"`
+	Status  corev1.ConditionStatus `json:"status"`
+	Type    string                 `json:"type"`
+	Reason  string                 `json:"reason,omitempty"`
+	Message string                 `json:"message,omitempty"`
 }
 
 // AnalyzeRancher handles the checking of the status of Rancher resources.
@@ -136,11 +137,15 @@ func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueRepo
 			}
 			// Add a message for the issue
 			var message string
-			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s", cluster.Name, cluster.Spec.DisplayName, subMessage)
-			} else {
-				message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s, %s - reason is %s", cluster.Name, cluster.Spec.DisplayName, subMessage, condition.Reason)
+			reason := ""
+			msg := ""
+			if len(condition.Reason) > 0 {
+				reason = fmt.Sprintf(", reason is %q", condition.Reason)
 			}
+			if len(condition.Message) > 0 {
+				msg = fmt.Sprintf(", message is %q", condition.Message)
+			}
+			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
