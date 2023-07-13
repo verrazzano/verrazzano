@@ -447,7 +447,7 @@ def getLastBackendRunCommit() {
     return lastBackendCommitProps['git-commit']
 }
 
-// Checks all the conditions gating test execution and coallates the result
+// Checks all the conditions gating test execution and collates the result
 def runTests() {
   return params.FORCE || ( ! backendTestsUpToDate && ! backendTestsUpToDateFailed && ! params.DRY_RUN )
 }

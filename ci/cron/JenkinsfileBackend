@@ -1,0 +1,24 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+
+For each branch (master + release-*) {
+    Check if there is anything in objectstore for each branch {
+        If yes, check state {
+            If state changed, kick off new jobs {
+                commit = get(https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/last-stable-commit.txt)
+                if state.lastBackend != commit {
+                    (run backend pipeline with new commit)
+                    state.lastBackend = commit
+                }
+            }
+            If no change, ignore/continue
+        }
+        If no, kick off new jobs (first time seeing new url/pipeline) {
+            (run periodics pipeline with new commit)
+            state.lastBackend = commit
+            (run backend pipeline with new commit)
+            state.lastBackend = commit
+        }
+    }
+}

@@ -769,7 +769,7 @@ def getLastPeriodicRunCommit() {
     return lastPeriodicsCommitProps['git-commit']
 }
 
-// Checks all the conditions gating test execution and coallates the result
+// Checks all the conditions gating test execution and collates the result
 def runTests() {
   return params.FORCE || ( ! periodicsUpToDate && ! periodicsUpToDateFailed && ! params.DRY_RUN )
 }
