@@ -26,7 +26,6 @@ const (
 	controlPlaneGroup   = "controlplane.cluster.x-k8s.io"
 	infrastructureGroup = "infrastructure.cluster.x-k8s.io"
 	ipamGroup           = "ipam.cluster.x-k8s.io"
-	managementGroup     = "management.cattle.io"
 	runtimeGroup        = "runtime.cluster.x-k8s.io"
 )
 
@@ -38,8 +37,6 @@ type capiResource struct {
 // capiResources - resources that are not namespaced
 var capiResources = []capiResource{
 	{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfig"},
-	{GVR: schema.GroupVersionResource{Group: managementGroup, Version: "v3", Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
-	{GVR: schema.GroupVersionResource{Group: managementGroup, Version: "v3", Resource: "clusters"}, Kind: "Cluster"},
 }
 
 // capiNamespacedResources - resources that are namespaced
