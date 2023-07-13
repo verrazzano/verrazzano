@@ -840,3 +840,35 @@ func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []st
 	}
 	return true, err
 }
+
+// Gets the number of nodes in the cluster specified by kubeconfigPath.
+// If an error occurs, returns 0 for the number of nodes.
+func GetNodeCountInCluster(kubeconfigPath string) (int, error) {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
+		return 0, fmt.Errorf(clientSetErrorFmt, err)
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("failed to list nodes: %v", err))
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return len(nodes.Items), nil
+}
+
+// DoesNamespaceHasVerrazzanoLabel checks whether the namespace has the verrazzano.io/namespace label
+func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
+	namespace, err := GetNamespace(ns)
+	if err != nil {
+		return false, err
+	}
+	if namespace.Labels[constants.LabelVerrazzanoNamespace] != ns {
+		return false, fmt.Errorf("Namespace %s has the incorrect value for for the label %s: %s", ns, constants.LabelVerrazzanoNamespace, namespace.Labels[constants.LabelVerrazzanoNamespace])
+	}
+	return true, nil
+}
