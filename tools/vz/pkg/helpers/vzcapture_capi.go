@@ -95,18 +95,17 @@ func captureCapiNamespacedResources(dynamicClient dynamic.Interface, namespace, 
 }
 
 func captureGlobalResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, captureDir string, vzHelper VZHelper) error {
-	namespace := "default"
 	list, err := dynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while listing %s in namespace %s: %s\n", kind, namespace, err.Error()))
+		LogError(fmt.Sprintf("An error occurred while listing cluster resource %s: %s\n", kind, err.Error()))
 		return nil
 	}
 	if len(list.Items) > 0 {
-		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
-		if err = createFile(list, namespace, fmt.Sprintf("%s.%s.json", strings.ToLower(kind), strings.ToLower(gvr.Group)), captureDir, vzHelper); err != nil {
+		LogMessage(fmt.Sprintf("%s in global namespace ...\n", kind))
+		if err = createFile(list, "", fmt.Sprintf("%s.%s.json", strings.ToLower(kind), strings.ToLower(gvr.Group)), captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
