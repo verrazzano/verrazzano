@@ -6,7 +6,6 @@ package common
 import (
 	"context"
 	"fmt"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -84,8 +83,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.RancherSystemNamespace, err)
 	}
 
-	if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client(), istioInject); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
+	if isAnyMonitoringComponentEnabled(ctx) {
+		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client(), istioInject); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
+		}
 	}
 
 	if vzcr.IsVeleroEnabled(ctx.EffectiveCR()) {
@@ -95,6 +96,15 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+func isAnyMonitoringComponentEnabled(ctx spi.ComponentContext) bool {
+	if vzcr.IsKubeStateMetricsEnabled(ctx.EffectiveCR()) || vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) ||
+		vzcr.IsPrometheusAdapterEnabled(ctx.EffectiveCR()) || vzcr.IsPrometheusPushgatewayEnabled(ctx.EffectiveCR()) ||
+		vzcr.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) || vzcr.IsPrometheusNodeExporterEnabled(ctx.EffectiveCR()) {
+		return true
+	}
+	return false
 }
 
 // LabelKubeSystemNamespace adds the label needed by network polices to kube-system
