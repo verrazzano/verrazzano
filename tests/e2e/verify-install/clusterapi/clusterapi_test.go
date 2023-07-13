@@ -47,7 +47,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected ClusterAPI Pods should be running")
 		})
 		capipkg.WhenClusterAPIInstalledIt(t, "namespace has the expected label", func() {
-			Eventually(func() bool {
+			Eventually(func() (bool, error) {
 				return pkg.DoesNamespaceHasVerrazzanoLabel(constants.VerrazzanoCAPINamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "ClusterAPI namespace should have expected label")
 		})
