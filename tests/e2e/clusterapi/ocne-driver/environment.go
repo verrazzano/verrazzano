@@ -4,10 +4,14 @@
 package ocnedriver
 
 import (
+	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
+	"go.uber.org/zap"
 )
 
 var (
@@ -31,7 +35,6 @@ var (
 	enableClusterMonitoring bool
 	enableNetworkPolicy     bool
 	windowsPreferedCluster  bool
-	calicoImagePath         string
 	clusterCidr             string
 	controlPlaneMemoryGbs   int
 	controlPlaneOcpus       int
@@ -67,7 +70,7 @@ var (
 )
 
 // Grabs info from environment variables required by this test suite
-func ensureOCNEDriverVarsInitialized() {
+func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	// mandatory environment variables
 	region = os.Getenv("OCI_REGION")
 	vcnID = os.Getenv("OCI_VCN_ID")
@@ -88,36 +91,94 @@ func ensureOCNEDriverVarsInitialized() {
 	enableClusterMonitoring = getEnvFallbackBool("ENABLE_CLUSTER_MONITORING", false)
 	enableNetworkPolicy = getEnvFallbackBool("ENABLE_NETWORK_POLICY", false)
 	windowsPreferedCluster = getEnvFallbackBool("WINDOWS_PREFERRED_CLUSTER", false)
-	calicoImagePath = getEnvFallback("CALICO_IMAGE_PATH", "olcne")
 	clusterCidr = getEnvFallback("CLUSTER_CIDR", "10.96.0.0/16")
 	controlPlaneMemoryGbs = getEnvFallbackInt("CONTROL_PLANE_MEMORY_GBS", 16)
 	controlPlaneOcpus = getEnvFallbackInt("CONTROL_PLANE_OCPUS", 2)
 	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", "VM.Standard.E4.Flex")
 	controlPlaneVolumeGbs = getEnvFallbackInt("CONTROL_PLANE_VOLUME_GBS", 100)
-	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", "v1.9.3")
-	etcdImageTag = getEnvFallback("ETCD_IMAGE_TAG", "3.5.6")
-	imageDisplayName = getEnvFallback("IMAGE_DISPLAY_NAME", "Oracle-Linux-8.7-2023.05.24-0")
 	imageID = getEnvFallback("IMAGE_ID", "")
 	installCalico = getEnvFallbackBool("INSTALL_CALICO", true)
 	installCcm = getEnvFallbackBool("INSTALL_CCM", true)
 	installVerrazzano = getEnvFallbackBool("INSTALL_VERRAZZANO", false)
-	kubernetesVersion = getEnvFallback("KUBERNETES_VERSION", "v1.25.7")
 	numControlPlaneNodes = getEnvFallbackInt("NUM_CONTROL_PLANE_NODES", 1)
-	ocneVersion = getEnvFallback("OCNE_VERSION", "1.6")
 	podCidr = getEnvFallback("POD_CIDR", "10.244.0.0/16")
 	privateRegistry = getEnvFallback("PRIVATE_REGISTRY", "")
 	proxyEndpoint = getEnvFallback("PROXY_ENDPOINT", "")
 	skipOcneInstall = getEnvFallbackBool("SKIP_OCNE_INSTALL", false)
-	tigeraImageTag = getEnvFallback("TIGERA_IMAGE_TAG", "v1.29.0")
 	useNodePvEncryption = getEnvFallbackBool("USE_NODE_PV_ENCRYPTION", true)
 	verrazzanoResource = getEnvFallback("VERRAZZANO_RESOURCE",
 		"apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster")
-	verrazzanoTag = getEnvFallback("VERRAZZANO_TAG", "v1.6.0-20230609132620-44e8f4d1")
-	verrazzanoVersion = getEnvFallback("VERRAZZANO_VERSION", "1.6.0-4574+44e8f4d1")
 	nodeShape = getEnvFallback("NODE_SHAPE", "VM.Standard.E4.Flex")
 	numWorkerNodes = getEnvFallbackInt("NUM_WORKER_NODES", 1)
 	applyYAMLs = getEnvFallback("APPLY_YAMLS", "")
+	if err := fillOCNEMetadata(); err != nil {
+		return err
+	}
+	if err := fillOCNEVersion(); err != nil {
+		return err
+	}
+	if err := fillNodeImage(); err != nil {
+		return err
+	}
+	if err := fillVerrazzanoVersions(log); err != nil {
+		return err
+	}
+	return nil
 }
+
+// Initializes variables from OCNE metadata ConfigMap. Values are optionally overridden.
+func fillOCNEMetadata() error {
+	// TODO: Use ocne-metadata configmap to get fallback values
+	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", "v1.9.3")
+	etcdImageTag = getEnvFallback("ETCD_IMAGE_TAG", "3.5.6")
+	tigeraImageTag = getEnvFallback("TIGERA_IMAGE_TAG", "v1.29.0")
+	kubernetesVersion = getEnvFallback("KUBERNETES_VERSION", "v1.25.7")
+	return nil
+}
+
+// Initializes OCNE Version, optionally overridden.
+func fillOCNEVersion() error {
+	// TODO: Use Rancher API call to get fallback value
+	ocneVersion = getEnvFallback("OCNE_VERSION", "1.6")
+	return nil
+}
+
+// Initializes the node image, optionally overridden
+func fillNodeImage() error {
+	// TODO: Use Rancher API call to get fallback value
+	imageDisplayName = getEnvFallback("IMAGE_DISPLAY_NAME", "Oracle-Linux-8.7-2023.05.24-0")
+	return nil
+}
+
+// Initializes the VZ version and tag for the created OCNE clusters. Values are optionally overridden.
+func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
+	var vzTagFallback, vzVersionFallback string
+
+	// Use Rancher API call to get fallback values
+	requestURL, adminToken := setupRequest(rancherURL, "/meta/ocne/verrazzanoVersions", log)
+	response, err := helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	if err != nil {
+		log.Errorf("error requesting Verrazzano versions from Rancher: %s", err)
+		return err
+	}
+	responseMap := response.ChildrenMap()
+	if len(responseMap) != 1 {
+		err = fmt.Errorf("response to GET call to /meta/ocne/verrazzanoVersions does not have expected length")
+		log.Error(err)
+		return err
+	}
+	for version, tag := range responseMap {
+		vzTagFallback = tag.Data().(string)
+		vzVersionFallback = version
+	}
+
+	// Initialize values
+	verrazzanoTag = getEnvFallback("VERRAZZANO_TAG", vzTagFallback)
+	verrazzanoVersion = getEnvFallback("VERRAZZANO_VERSION", vzVersionFallback)
+	return nil
+}
+
+// TODO: possibly get node shapes from Rancher API
 
 // Returns the value of the desired environment variable,
 // but returns a fallback value if the environment variable is not set

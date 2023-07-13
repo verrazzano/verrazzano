@@ -45,7 +45,6 @@ type RancherOCNECluster struct {
 	} `json:"labels"`
 }
 type RancherOCIOCNEEngine struct {
-	CalicoImagePath       string   `json:"calicoImagePath"`
 	CloudCredentialID     string   `json:"cloudCredentialId"`
 	ClusterCidr           string   `json:"clusterCidr"`
 	CompartmentID         string   `json:"compartmentId"`
@@ -91,7 +90,6 @@ type RancherOCIOCNEEngine struct {
 
 // Fills in all the values of this RancherOCNECluster object according to the values taken from environment variables
 func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, credentialID string, nodePools []string) {
-	roc.OciocneEngineConfig.CalicoImagePath = calicoImagePath
 	roc.OciocneEngineConfig.ClusterCidr = clusterCidr
 	roc.OciocneEngineConfig.ControlPlaneMemoryGbs = controlPlaneMemoryGbs
 	roc.OciocneEngineConfig.ControlPlaneOcpus = controlPlaneOcpus
