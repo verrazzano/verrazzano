@@ -43,6 +43,7 @@ require (
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.25.2
 	k8s.io/code-generator v0.25.2
+	k8s.io/kubectl v0.25.2
 	sigs.k8s.io/cluster-api v1.2.0
 	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/controller-tools v0.9.2
