@@ -37,7 +37,7 @@ const (
 	ocnecpmodulenabled           = "templates/ocnecontrolplanemoduleenabled.yaml"
 	moduleOperatorStatusType     = "ModuleOperatorDeployed"
 	moduleUninstalled            = "ModuleOperatorUninstalled"
-	vzOperatorStatusType         = "VerrazzanoPlatformOperatorDeployDeployed"
+	vzOperatorStatusType         = "VerrazzanoPlatformOperatorDeployed"
 	vzOperatorUninstalled        = "VerrazzanoPlatformOperatorUninstalled"
 )
 
