@@ -689,13 +689,10 @@ func TestInstallFromFilename(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
-	SetValidateCRFunc(FakeValidateCRFunc)
-	defer SetDefaultValidateCRFunc()
-
 	// Send stdout stderr to a byte bufferF
 	rc.SetClient(c)
 
-	os.Args = append(os.Args, testFilenamePath)
+	os.Args = append(os.Args, "../../test/testdata/v1beta1.yaml")
 	cmd.Execute()
 	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
 }
