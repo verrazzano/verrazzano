@@ -1,36 +1,7 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-nodeSelector: {}
-tolerations: []
 manager:
-  resources:
-    limits:
-      cpu: 200m
-      memory: 500Mi
-    requests:
-      cpu: 100m
-      memory: 350Mi
-
-  livenessProbe:
-    failureThreshold: 3
-    httpGet:
-      path: /healthz
-      port: 8081
-    periodSeconds: 15
-    successThreshold: 1
-    timeoutSeconds: 3
-    initialDelaySeconds: 10
-
-  readinessProbe:
-    failureThreshold: 3
-    httpGet:
-      path: /readyz
-      port: 8081
-    periodSeconds: 15
-    successThreshold: 1
-    timeoutSeconds: 3
-    initialDelaySeconds: 10
 
   image:
     repository: public.ecr.aws/opsterio/opensearch-operator
@@ -38,70 +9,26 @@ manager:
     tag: "2.3.0"
     pullPolicy: "IfNotPresent"
 
-  dnsBase: cluster.local
-
-  # If a watchNamespace is specified, the manager's cache will be restricted to
-  # watch objects in the desired namespace. Defaults is to watch all namespaces.
-  watchNamespace:
-
-kubeRbacProxy:
-  resources:
-    limits:
-      cpu: 50m
-      memory: 50Mi
-    requests:
-      cpu: 25m
-      memory: 25Mi
-
-  livenessProbe:
-    failureThreshold: 3
-    tcpSocket:
-      port: 8443
-    periodSeconds: 15
-    successThreshold: 1
-    timeoutSeconds: 3
-    initialDelaySeconds: 10
-
-  readinessProbe:
-    failureThreshold: 3
-    tcpSocket:
-      port: 8443
-    periodSeconds: 15
-    successThreshold: 1
-    timeoutSeconds: 3
-    initialDelaySeconds: 10
-
-  image:
-    repository: "gcr.io/kubebuilder/kube-rbac-proxy"
-    tag: "v0.8.0"
-
 ingress:
   openSearch:
     enable: true
     annotations: {}
     path: /()(.*)
     ingressClassName: verrazzano-nginx
-    host: chart-example.local
+    host: ""
     serviceName: verrazzano-authproxy
     portNumber: 8775
     tls: []
-      #  - secretName: chart-example-tls
-      #    hosts:
-    #      - chart-example.local
 
   openSearchDashboards:
     enable: true
     annotations: {}
     path: /()(.*)
     ingressClassName: verrazzano-nginx
-    host: chart-example.local
+    host: ""
     serviceName: verrazzano-authproxy
     portNumber: 8775
     tls: []
-      #  - secretName: chart-example-tls
-      #    hosts:
-    #      - chart-example.local
-
 
 openSearchCluster:
   enabled: true
@@ -132,6 +59,17 @@ openSearchCluster:
     version: 2.3.0
     drainDataNodes: true
     setVMMaxMapCount: true
+    podSecurityContext:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      privileged: false
+      runAsUser: 1000
   dashboards:
     image: "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
     opensearchCredentialsSecret:
@@ -151,3 +89,16 @@ openSearchCluster:
     version: 2.3.0
     enable: true
     replicas: 1
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      privileged: false
+    podSecurityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault

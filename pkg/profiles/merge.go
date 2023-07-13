@@ -296,6 +296,12 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	if actualVelero != nil && profileVelero != nil {
 		actualVelero.ValueOverrides = mergeOverrides(actualVelero.ValueOverrides, profileVelero.ValueOverrides)
 	}
+
+	actualOpenSearchOperator := actual.Spec.Components.OpenSearchOperator
+	profileOpenSearchOperator := profile.Spec.Components.OpenSearchOperator
+	if actualOpenSearchOperator != nil && profileOpenSearchOperator != nil {
+		actualOpenSearchOperator.ValueOverrides = mergeOverrides(actualOpenSearchOperator.ValueOverrides, profileOpenSearchOperator.ValueOverrides)
+	}
 }
 
 // setNilV1alpha1OSReplicasToZero sets the replicas count to 0 if it is nil in the merged v1alpha1 CR
@@ -461,6 +467,12 @@ func AppendComponentOverridesV1beta1(actual, profile *v1beta1.Verrazzano) {
 	profileVelero := profile.Spec.Components.Velero
 	if actualVelero != nil && profileVelero != nil {
 		actualVelero.ValueOverrides = mergeOverridesV1beta1(actualVelero.ValueOverrides, profileVelero.ValueOverrides)
+	}
+
+	actualOpenSearchOperator := actual.Spec.Components.OpenSearchOperator
+	profileOpenSearchOperator := profile.Spec.Components.OpenSearchOperator
+	if actualOpenSearchOperator != nil && profileOpenSearchOperator != nil {
+		actualOpenSearchOperator.ValueOverrides = mergeOverridesV1beta1(actualOpenSearchOperator.ValueOverrides, profileOpenSearchOperator.ValueOverrides)
 	}
 }
 
