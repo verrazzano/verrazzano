@@ -5,11 +5,12 @@ package cluster
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/json"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
-	"os"
 )
 
 // AnalyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
@@ -26,7 +27,7 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string) error {
 // analyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
 func analyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
 
-	kontainerDriverPath := files.FindFileInClusterRoot(clusterRoot, "default/kontainerdriver.json")
+	kontainerDriverPath := files.FindFileInClusterRoot(clusterRoot, "kontainerdriver.management.cattle.io.json")
 	_, err := os.Stat(kontainerDriverPath)
 	if os.IsNotExist(err) {
 		return nil
@@ -36,7 +37,7 @@ func analyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueRe
 		return err
 	}
 
-	// Get the JSON from the kontainerdriver.json file.
+	// Get the JSON from the kontainerdriver.management.cattle.io.json file.
 	jsonData, err := json.GetJSONDataFromFile(log, kontainerDriverPath)
 	if err != nil {
 		log.Errorf("failed to get JSON data from file %s: %s", kontainerDriverPath, err.Error())
