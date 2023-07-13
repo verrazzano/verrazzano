@@ -82,7 +82,7 @@ spec:
               name: data
       containers:
         - name: mysql
-          image: "ghcr.io/verrazzano/community-server:8.0.33"
+          image: "ghcr.io/verrazzano/mysql-server:8.0.32"
           imagePullPolicy: "IfNotPresent"
           resources:
             requests:
