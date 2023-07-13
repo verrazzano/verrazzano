@@ -320,88 +320,12 @@
       "apiVersion": "management.cattle.io/v3",
       "kind": "Cluster",
       "metadata": {
-        "annotations": {
-          "authz.management.cattle.io/creator-role-bindings": "{\"created\":[],\"required\":[\"cluster-owner\"]}",
-          "lifecycle.cattle.io/create.cluster-agent-controller-cleanup": "true",
-          "lifecycle.cattle.io/create.cluster-provisioner-controller": "true",
-          "lifecycle.cattle.io/create.cluster-scoped-gc": "true",
-          "lifecycle.cattle.io/create.mgmt-cluster-rbac-remove": "true",
-          "management.cattle.io/current-cluster-controllers-version": "v1.26.2",
-          "provisioner.cattle.io/encrypt-migrated": "true",
-          "provisioner.cattle.io/ke-driver-update": "updated"
-        },
-        "creationTimestamp": "2023-06-27T10:07:00Z",
-        "finalizers": [
-          "controller.cattle.io/cluster-agent-controller-cleanup",
-          "controller.cattle.io/cluster-scoped-gc",
-          "controller.cattle.io/cluster-provisioner-controller",
-          "controller.cattle.io/mgmt-cluster-rbac-remove",
-          "wrangler.cattle.io/mgmt-cluster-remove"
-        ],
-        "generation": 125,
-        "name": "local",
-        "resourceVersion": "50533589",
-        "uid": "550f9eec-b8e8-401e-adfb-9faa894f6f87"
+        "name": "local"
       },
       "spec": {
-        "agentImageOverride": "",
-        "answers": {},
-        "clusterSecrets": {},
-        "description": "",
-        "desiredAgentImage": "",
-        "desiredAuthImage": "",
-        "displayName": "local",
-        "dockerRootDir": "/var/lib/docker",
-        "enableClusterAlerting": false,
-        "enableClusterMonitoring": false,
-        "enableNetworkPolicy": null,
-        "fleetWorkspaceName": "fleet-local",
-        "internal": true,
-        "localClusterAuthEndpoint": {
-          "enabled": false
-        },
-        "windowsPreferedCluster": false
+        "displayName": "local"
       },
       "status": {
-        "agentImage": "",
-        "aksStatus": {
-          "privateRequiresTunnel": null,
-          "rbacEnabled": null,
-          "upstreamSpec": null
-        },
-        "allocatable": {
-          "cpu": "16",
-          "memory": "129862532Ki",
-          "pods": "440"
-        },
-        "appliedEnableNetworkPolicy": false,
-        "appliedPodSecurityPolicyTemplateId": "",
-        "appliedSpec": {
-          "agentImageOverride": "",
-          "answers": {},
-          "clusterSecrets": {},
-          "description": "",
-          "desiredAgentImage": "",
-          "desiredAuthImage": "",
-          "displayName": "",
-          "enableClusterAlerting": false,
-          "enableClusterMonitoring": false,
-          "enableNetworkPolicy": null,
-          "internal": false,
-          "localClusterAuthEndpoint": {
-            "enabled": false
-          },
-          "windowsPreferedCluster": false
-        },
-        "authImage": "",
-        "capabilities": {
-          "loadBalancerCapabilities": {}
-        },
-        "capacity": {
-          "cpu": "16",
-          "memory": "130272132Ki",
-          "pods": "440"
-        },
         "conditions": [
           {
             "lastUpdateTime": "2023-07-05T15:29:54Z",
@@ -488,46 +412,7 @@
             "status": "True",
             "type": "Updated"
           }
-        ],
-        "driver": "imported",
-        "eksStatus": {
-          "generatedNodeRole": "",
-          "managedLaunchTemplateID": "",
-          "managedLaunchTemplateVersions": null,
-          "privateRequiresTunnel": null,
-          "securityGroups": null,
-          "subnets": null,
-          "upstreamSpec": null,
-          "virtualNetwork": ""
-        },
-        "gkeStatus": {
-          "privateRequiresTunnel": null,
-          "upstreamSpec": null
-        },
-        "limits": {
-          "cpu": "62200m",
-          "memory": "33626Mi",
-          "pods": "0"
-        },
-        "linuxWorkerCount": 4,
-        "nodeCount": 4,
-        "provider": "",
-        "requested": {
-          "cpu": "5100m",
-          "memory": "31268955750400m",
-          "pods": "79"
-        },
-        "version": {
-          "buildDate": "2023-05-23T16:47:36Z",
-          "compiler": "gc",
-          "gitCommit": "434423f05465c7649ca038ad163f5d3b256e7ea6",
-          "gitTreeState": "clean",
-          "gitVersion": "v1.26.2",
-          "goVersion": "go1.19.6 A1727 X:boringcrypto",
-          "major": "1",
-          "minor": "26",
-          "platform": "linux/amd64"
-        }
+        ]
       }
     }
   ],
