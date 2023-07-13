@@ -1,0 +1,37 @@
+{
+  "apiVersion": "cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "Cluster",
+      "metadata": {
+        "labels": {
+          "cluster.x-k8s.io/cluster-name": "c-nctzd"
+        },
+        "name": "c-nctzd",
+        "namespace": "c-nctzd"
+      },
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "ControlPlaneInitialized"
+          },
+          {
+            "status": "True",
+            "type": "ControlPlaneReady"
+          },
+          {
+            "status": "True",
+            "type": "InfrastructureReady"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "ClusterList"
+}
