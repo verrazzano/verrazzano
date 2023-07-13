@@ -123,6 +123,7 @@ const (
 	VZClientHangingIssueDueToLongCertificateApproval = "VZClientHangingIssueDueToLongCertificateApproval"
 	CertificateExpired                               = "CertificateExpired"
 	CertificateExperiencingIssuesInCluster           = "CertificateExperiencingIssuesInCluster"
+	ClusterAPIClusterNotReady                        = "ClusterAPIClusterNotReady"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -157,6 +158,7 @@ var knownIssues = map[string]Issue{
 	VZClientHangingIssueDueToLongCertificateApproval: {Type: VZClientHangingIssueDueToLongCertificateApproval, Summary: " Verrazzano Client is hanging due to the long time that it takes to approve and provision certificates", Informational: true, Impact: 10, Confidence: 10},
 	CertificateExpired:                               {Type: CertificateExpired, Summary: "A certificate in the cluster is currently expired", Informational: true, Impact: 10, Confidence: 10},
 	CertificateExperiencingIssuesInCluster:           {Type: CertificateExperiencingIssuesInCluster, Summary: "A certificate in the cluster is experiencing issues, but it is not expired", Informational: true, Impact: 10, Confidence: 10},
+	ClusterAPIClusterNotReady:                        {Type: ClusterAPIClusterNotReady, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterNotReady]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

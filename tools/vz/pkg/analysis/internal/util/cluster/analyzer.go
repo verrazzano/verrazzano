@@ -38,6 +38,7 @@ var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory
 	"KontainerDriver Status": AnalyzeKontainerDrivers,
 	"Rancher Status":         AnalyzeRancher,
 	"Runtime Issues":         AnalyzeCertificateRelatedIssues,
+	"Cluster API Issues":     AnalyzeClusterAPIIssues,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches
