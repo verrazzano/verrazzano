@@ -860,3 +860,15 @@ func GetNodeCountInCluster(kubeconfigPath string) (int, error) {
 	}
 	return len(nodes.Items), nil
 }
+
+// DoesNamespaceHasVerrazzanoLabel checks whether the namespace has the verrazzano.io/namespace label
+func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
+	namespace, err := GetNamespace(ns)
+	if err != nil {
+		return false, err
+	}
+	if namespace.Labels[constants.LabelVerrazzanoNamespace] != ns {
+		return false, fmt.Errorf("Namespace %s has the incorrect value for for the label %s: %s", ns, constants.LabelVerrazzanoNamespace, namespace.Labels[constants.LabelVerrazzanoNamespace])
+	}
+	return true, nil
+}
