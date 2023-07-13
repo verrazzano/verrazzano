@@ -17,7 +17,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 70,
-  "iteration": 1689175803708,
+  "iteration": 1689258705130,
   "links": [],
   "panels": [
     {
@@ -41,7 +41,9 @@
       "dashes": false,
       "datasource": null,
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "unit": "short"
+        },
         "overrides": []
       },
       "fill": 1,
@@ -76,14 +78,14 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\", mode!=\"idle\"}[5m]))",
+          "expr": "sum(rate(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\", mode!=\"idle\"}[5m])) by (instance)",
           "interval": "",
-          "legendFormat": "cluster $cluster",
+          "legendFormat": "instance {{instance}}",
           "refId": "A"
         }
       ],
@@ -171,7 +173,7 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -191,7 +193,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "CPU Utilization Percentage",
+      "title": "Maximum Cluster CPU Utilization Percentage",
       "type": "bargauge"
     },
     {
@@ -228,7 +230,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -241,6 +243,7 @@
         {
           "exemplar": true,
           "expr": "sum(rate(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\", mode!=\"idle\"}[5m]))",
+          "instant": false,
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -248,7 +251,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "CPU Utilization",
+      "title": "Maximum Cluster CPU Utilization",
       "type": "stat"
     },
     {
@@ -277,15 +280,15 @@
         "x": 18,
         "y": 4
       },
-      "id": 5,
+      "id": 20,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -297,7 +300,8 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(max(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster, cpu)) by (verrazzano_cluster) ",
+          "expr": "max(sum(rate(node_cpu_seconds_total{verrazzano_cluster=\"$cluster\", mode!=\"idle\"}[5m])) by (instance, verrazzano_cluster)) by (verrazzano_cluster)",
+          "instant": false,
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -305,7 +309,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "CPU Max",
+      "title": "Maximum Per Node CPU Utilization",
       "type": "stat"
     },
     {
@@ -366,14 +370,14 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_Active_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
+          "expr": "sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_MemAvailable_bytes{verrazzano_cluster=\"$cluster\"}) by (instance)",
           "interval": "",
-          "legendFormat": "cluster $cluster",
+          "legendFormat": "instance {{instance}}",
           "refId": "A"
         }
       ],
@@ -461,7 +465,7 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -473,7 +477,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_Active_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster) / sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
+          "expr": "sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_MemAvailable_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster) / sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -481,7 +485,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Memory Utilization Percentage",
+      "title": "Maximum Memory Utilization Percentage",
       "type": "bargauge"
     },
     {
@@ -519,7 +523,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -531,7 +535,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_Active_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
+          "expr": "sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_MemAvailable_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
           "interval": "",
           "legendFormat": "cluster $cluster",
           "refId": "A"
@@ -539,7 +543,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Memory Utilization",
+      "title": "Maximum Cluster Memory Utilization",
       "type": "stat"
     },
     {
@@ -569,15 +573,15 @@
         "x": 18,
         "y": 15
       },
-      "id": 12,
+      "id": 21,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -589,15 +593,15 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
+          "expr": "max(sum(node_memory_MemTotal_bytes{verrazzano_cluster=\"$cluster\"} - node_memory_MemAvailable_bytes{verrazzano_cluster=\"$cluster\"}) by (instance, verrazzano_cluster)) by (verrazzano_cluster)",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "cluster $cluster",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Memory Max",
+      "title": "Maximum Per Node Memory Utilization",
       "type": "stat"
     },
     {
@@ -611,7 +615,7 @@
       },
       "id": 16,
       "panels": [],
-      "title": "Storage",
+      "title": "File Storage",
       "type": "row"
     },
     {
@@ -658,14 +662,14 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device)) by (verrazzano_cluster)",
+          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance)) by (instance)",
           "interval": "",
-          "legendFormat": "cluster $cluster",
+          "legendFormat": "instance {{instance}}",
           "refId": "A"
         }
       ],
@@ -753,7 +757,7 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -765,7 +769,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device)) by (verrazzano_cluster) / sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device)) by (verrazzano_cluster)",
+          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance)) by (verrazzano_cluster) / sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance))",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -773,7 +777,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Storage Utilization Percentage",
+      "title": "Maximum Storage Utilization Percentage",
       "type": "bargauge"
     },
     {
@@ -811,7 +815,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -823,7 +827,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device)) by (verrazzano_cluster)",
+          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance) - max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance)) by (verrazzano_cluster)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -831,7 +835,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Storage Utilization",
+      "title": "Maximum Cluster Storage Utilization",
       "type": "stat"
     },
     {
@@ -861,15 +865,15 @@
         "x": 18,
         "y": 26
       },
-      "id": 18,
+      "id": 22,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -881,7 +885,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device)) by (verrazzano_cluster)",
+          "expr": "max(sum(max(node_filesystem_size_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance, verrazzano_cluster)) by (instance, verrazzano_cluster)) by (verrazzano_cluster) - max(sum(max(node_filesystem_avail_bytes{verrazzano_cluster=\"$cluster\"}) by (device, instance, verrazzano_cluster)) by (instance, verrazzano_cluster)) by (verrazzano_cluster)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -889,10 +893,303 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Storage Max",
+      "title": "Maximum Per Node Storage Utilization",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 24,
+      "panels": [],
+      "title": "Persistent Storage",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "hiddenSeries": false,
+      "id": 25,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.17",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster, node) ",
+          "interval": "",
+          "legendFormat": "instance {{node}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Persistent Storage Utilization",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:48",
+          "format": "decbytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:49",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "id": 26,
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "text": {}
+      },
+      "pluginVersion": "7.5.17",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster) / sum(kubelet_volume_stats_capacity_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Maximum Persistent Storage Utilization Percentage",
+      "type": "bargauge"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 37
+      },
+      "id": 27,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.17",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Maximum Cluster Persistent Storage Utilization",
+      "type": "stat"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 37
+      },
+      "id": 28,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.17",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "max(sum(kubelet_volume_stats_used_bytes{verrazzano_cluster=\"$cluster\"}) by (verrazzano_cluster, node)) by (verrazzano_cluster)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Maximum Per Node Persistent Storage Utilization",
       "type": "stat"
     }
   ],
+  "refresh": "",
   "schemaVersion": 27,
   "style": "dark",
   "tags": [],
