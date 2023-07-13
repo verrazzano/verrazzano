@@ -8,7 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"os"
 	"os/exec"
-	"strconv"
+	"sort"
 	"strings"
 )
 
@@ -160,8 +160,9 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 
 func getInterimRelease(releaseTags []string) string {
 	// Get the latest release tag
-	//releaseTags = []string{"v1.4.0"}
+	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
 	latestReleaseTag := releaseTags[len(releaseTags)-1]
+	releaseTags = releaseTags[:len(releaseTags)-1]
 
 	builder := strings.Builder{}
 	var interimRelease *semver.SemVersion
@@ -171,7 +172,7 @@ func getInterimRelease(releaseTags []string) string {
 	if err != nil {
 		return ""
 	}
-	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
+
 	for _, tag := range releaseTags {
 		var t = tag
 		tagVersion, err := semver.NewSemVersion(t)
@@ -186,134 +187,78 @@ func getInterimRelease(releaseTags []string) string {
 			// Handles the case where only two or less minor releases are available for upgrade
 			// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x, then return 1.5.0
 			// as an interim release
-			if tagVersion.IsGreatherThan(o) {
+			if o.IsGreaterThanOrEqualTo(tagVersion) {
+				fmt.Println(tagVersion, " ", o)
 				tagVersion.Patch = 0
-				interimRelease = tagVersion
+				interimRelease = o
 			}
 		}
 	}
-	if len(releaseTags) == 1 {
+
+	if len(releaseTags) == 0 {
 		builder.WriteString(latestReleaseTag)
 	} else {
 		builder.WriteString(interimRelease.ToString())
 	}
 
-	//Split the string excluding prefix 'v' into major and minor version values
-	/*	latestReleaseTagSplit := strings.Split(strings.TrimPrefix(latestReleaseTag, "v"), ".")
-		majorVersionValue := parseInt(latestReleaseTagSplit[0])
-		minorInterimVersionValue := parseInt(latestReleaseTagSplit[1]) - 1
+	var interimVersion string
+	if !strings.HasPrefix(builder.String(), "v") {
+		interimVersion = "v" + builder.String()
+	}
 
-
-		firstReleaseTag := releaseTags[0]
-		//Split the string excluding prefix 'v' into major and minor version values
-		firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
-		firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
-		firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
-		if firstMajorVersionValue == majorVersionValue && minorInterimVersionValue == firstMinorVersionValue {
-			minorInterimVersionValue = parseInt(latestReleaseTagSplit[1])
-			return fmt.Sprintf("v%d.%d.0\n", majorVersionValue, minorInterimVersionValue)
-		}
-
-		// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
-		if minorInterimVersionValue < 0 {
-			minorInterimVersionValue = 0
-			majorVersionValue = parseInt(latestReleaseTagSplit[0]) - 1
-			for _, version := range releaseTags {
-				versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-				if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) > minorInterimVersionValue {
-					minorInterimVersionValue = parseInt(versionSplit[1])
-				}
-			}
-		}
-
-		// Iterate over all releases to configure the latest patch release
-		latestPatch := 0
-		var interimRelease string
-		for _, version := range releaseTags {
-			versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-			if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) == minorInterimVersionValue {
-				if parseInt(versionSplit[2]) > latestPatch {
-					latestPatch = parseInt(versionSplit[2])
-				}
-				interimRelease = fmt.Sprintf("%s.%d.%d", versionSplit[0], minorInterimVersionValue, latestPatch)
-			}
-		}*/
-
-	// Return the interim release tag
-	//return fmt.Sprintf("v%s\n", interimRelease)
-	return builder.String()
+	return interimVersion
 }
 
 func getInstallRelease(releaseTags []string) string {
-	// Get the latest release tag
-	latestReleaseTag := releaseTags[len(releaseTags)-1]
+
 	releaseTags = releaseTags[:len(releaseTags)-1]
+	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
 
-	//Split the string excluding prefix 'v' into major and minor version values
-	latestReleaseTagSplit := strings.Split(strings.TrimPrefix(latestReleaseTag, "v"), ".")
-	majorVersionValue := parseInt(latestReleaseTagSplit[0])
-	minorInstallVersionValue := parseInt(latestReleaseTagSplit[1]) - 2
-
-	// Handles the case where only two or less minor releases are available for upgrade
-	// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x
-	// Get the first supported release tag for upgrade
-	firstReleaseTag := releaseTags[0]
-	//Split the string excluding prefix 'v' into major and minor version values
-	firstReleaseTagSplit := strings.Split(strings.TrimPrefix(firstReleaseTag, "v"), ".")
-	firstMajorVersionValue := parseInt(firstReleaseTagSplit[0])
-	firstMinorVersionValue := parseInt(firstReleaseTagSplit[1])
-	if firstMajorVersionValue == majorVersionValue && minorInstallVersionValue < firstMinorVersionValue {
-		minorInstallVersionValue = firstMinorVersionValue
+	// Remove patch version
+	releaseVersions := make([]string, len(releaseTags))
+	for i, tag := range releaseTags {
+		releaseVersions[i] = removePatchVersion(tag)
 	}
-	// Handles the major release case, e.g. where the latest version is 2.0.0 and the previous version is 1.4.2
-	if minorInstallVersionValue < 0 {
-		majorVersionValue = parseInt(latestReleaseTagSplit[0]) - 1
-		majorReleaseDecrementCount := 0
 
-		//Handles the case where we have releases such as 2.0.0. 3.0.0, 4.0.0
-		totalMinorReleaseCounter := 0
-		for _, version := range releaseTags {
-			versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-			if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) != 0 {
-				totalMinorReleaseCounter++
-			}
-		}
+	// Sort based on the major and minor version
+	sort.SliceStable(releaseVersions, func(i, j int) bool {
+		return compareVersions(releaseVersions[i], releaseVersions[j])
+	})
 
-		if totalMinorReleaseCounter == 0 {
-			majorVersionValue = majorVersionValue - totalMinorReleaseCounter - 1
-			majorReleaseDecrementCount = parseInt(latestReleaseTagSplit[0]) - majorVersionValue
-		}
-
-		minorInstallVersionDiff := minorInstallVersionValue
-		minorInstallVersionValue = 0
-		for _, version := range releaseTags {
-			versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-			if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) > minorInstallVersionValue {
-				if majorReleaseDecrementCount < 2 && minorInstallVersionDiff < -2 {
-					minorInstallVersionValue = parseInt(versionSplit[1]) - 1
-					//fmt.Println(minorInstallVersionValue)
-				} else {
-					minorInstallVersionValue = parseInt(versionSplit[1])
-				}
-			}
+	// Remove duplicates
+	uniqueMinorVersions := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, version := range releaseVersions {
+		if !seen[version] {
+			seen[version] = true
+			uniqueMinorVersions = append(uniqueMinorVersions, version)
 		}
 	}
 
-	// Iterate over all releases to configure the latest patch release
-	latestPatch := 0
-	var installRelease string
-	for _, version := range releaseTags {
-		versionSplit := strings.Split(strings.TrimPrefix(version, "v"), ".")
-		if parseInt(versionSplit[0]) == majorVersionValue && parseInt(versionSplit[1]) == minorInstallVersionValue {
-			if parseInt(versionSplit[2]) > latestPatch {
-				latestPatch = parseInt(versionSplit[2])
-			}
-			installRelease = fmt.Sprintf("%s.%d.%d", versionSplit[0], minorInstallVersionValue, latestPatch)
+	// Create a map of unique releaseVersions and related patch versions
+	minorAndPatchesVersionMap := make(map[string][]string)
+	for _, version := range releaseVersions {
+		if _, ok := minorAndPatchesVersionMap[version]; !ok {
+			minorAndPatchesVersionMap[version] = make([]string, 0)
 		}
 	}
 
-	// Return the interim release tag
-	return fmt.Sprintf("v%s\n", installRelease)
+	for _, tag := range releaseTags {
+		version := removePatchVersion(tag)
+		minorAndPatchesVersionMap[version] = append(minorAndPatchesVersionMap[version], tag)
+	}
+
+	var thirdLatestRelease string
+	if uniqueMinorReleaseCount == 1 {
+		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-1]
+	} else if uniqueMinorReleaseCount == 2 {
+		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-2]
+	} else {
+		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-3]
+	}
+	installReleasePatchVersions := minorAndPatchesVersionMap[thirdLatestRelease]
+	return installReleasePatchVersions[len(installReleasePatchVersions)-1]
+
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
@@ -342,18 +287,31 @@ func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
 	return builder.String(), nil
 }
 
-func parseInt(s string) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		fmt.Printf("\nunable to convert the given string to int %s, %v", s, err.Error())
+func removePatchVersion(tag string) string {
+	split := strings.Split(tag, ".")
+	return strings.Join(split[:2], ".")
+}
+
+func compareVersions(v1, v2 string) bool {
+	v1Split := strings.Split(v1, ".")
+	v2Split := strings.Split(v2, ".")
+
+	for i := 0; i < len(v1Split) && i < len(v2Split); i++ {
+		var num int
+		v1Num, _ := fmt.Sscanf(v1Split[i], "%d", &num)
+		v2Num, _ := fmt.Sscanf(v2Split[i], "%d", &num)
+
+		if v1Num != v2Num {
+			return v1Num < v2Num
+		}
 	}
-	return n
+	return false
 }
 
 func getUniqueMinorVersionCount(releaseTags []string) int {
 	minorVersionsMap := make(map[string]bool)
 
-	// count the number of minor releases
+	// count the number of unique minor releases
 	for _, tag := range releaseTags {
 		tagVersion, err := semver.NewSemVersion(tag)
 		if err == nil {

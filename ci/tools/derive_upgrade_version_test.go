@@ -65,7 +65,7 @@ func TestGetInterimReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
 	pwd, _ := os.Getwd()
 	parseCliArgs([]string{pwd, "interim-version"})
 	releaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v1.5.1"}
-	assert.Equal(t, "v1.4.2", getInterimRelease(releaseTags))
+	assert.Equal(t, "v1.5.0", getInterimRelease(releaseTags))
 }
 
 // TestGetLatestReleaseForBranch tests the getLatestReleaseForCurrentBranch function
