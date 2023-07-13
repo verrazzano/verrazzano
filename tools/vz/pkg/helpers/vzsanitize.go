@@ -14,7 +14,7 @@ var regexToReplacementList = []string{}
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 const hostnameRegex = `([a-z0-9][a-z0-9\-]*\.)([a-z0-9\-]*\.)+([a-z0-9\-]+)`
 const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
-const sshAuthKeys = "\"ssh_authorized_keys\":\\s+\"[A-Za-z0-9=+ \\-\\/@]+\""
+const sshAuthKeys = "ssh-rsa\\s+[A-Za-z0-9=+ \\-\\/@]+"
 const ocid = "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"
 
 // InitRegexToReplacementMap Initialize the regex string to replacement string map

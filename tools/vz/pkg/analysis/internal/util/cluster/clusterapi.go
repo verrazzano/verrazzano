@@ -27,9 +27,9 @@ type clusterAPICluster struct {
 	Status            clusterAPIClusterStatus `json:"status,omitempty"`
 }
 type clusterAPIClusterStatus struct {
-	Conditions []clusterCondition `json:"conditions,omitempty"`
+	Conditions []clusterAPIClusterCondition `json:"conditions,omitempty"`
 }
-type clusterCondition struct {
+type clusterAPIClusterCondition struct {
 	Message  string                 `json:"message,omitempty"`
 	Reason   string                 `json:"reason,omitempty"`
 	Severity string                 `json:"severity"`
@@ -56,7 +56,7 @@ func analyzeClusterAPICLusters(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 
 	for _, namespace := range namespaces {
-		clusterFile := files.FindFileInNamespace(clusterRoot, namespace, "cluster.json")
+		clusterFile := files.FindFileInNamespace(clusterRoot, namespace, "cluster.cluster.x-k8s.io.json")
 		// Parse the json into local struct
 		file, err := os.Open(clusterFile)
 		// File may not exist so just continue if that is the case

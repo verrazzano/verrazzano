@@ -67,7 +67,7 @@ func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled
 
 // CreateVerrazzanoCapiNamespace - Create/Update and label the verrazzano-capi namespace
 func CreateVerrazzanoCapiNamespace(client client.Client) error {
-	return CreateAndLabelNamespace(client, globalconst.VerrazzanoCAPINamespace, false, false)
+	return CreateAndLabelNamespace(client, globalconst.VerrazzanoCAPINamespace, true, false)
 }
 
 // CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace
