@@ -235,11 +235,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.6.1-20230620181634-aebde3b"
+              "tag": "v1.6.1-20230713001831-abc04fb"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.6.1-20230620181634-aebde3b"
+              "tag": "v1.6.1-20230713001831-abc04fb"
             }
           ]
         }
