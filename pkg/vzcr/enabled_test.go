@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1911,6 +1913,176 @@ func TestIsVMOEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.enabled, IsVMOEnabled(tt.cr))
+		})
+	}
+}
+
+// TestIsAlertmanagerEnabled tests whether the Alertmanager is enabled or not
+// GIVEN a call to IsAlertmanagerEnabled
+// WHEN the Alertmanager is explicitly enabled or disabled
+// THEN return the value as expected in the enabled variable
+func TestIsAlertmanagerEnabled(t *testing.T) {
+	var tests = []struct {
+		name         string
+		cr           runtime.Object
+		enabled      bool
+		isErr        bool
+		isVZv1alpha1 bool
+	}{
+		{
+			"Alertmanager disabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			false,
+			false,
+			true,
+		},
+		{
+			"Alertmanager disabled when when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			false,
+			false,
+			false,
+		},
+		{
+			"Alertmanager disabled whe Prometheus Operator component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"Alertmanager disabled whe Prometheus Operator component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"Alertmanager disabled when overrides not specified on Prometheus Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"Alertmanager disabled when overrides not specified on Prometheus Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"Alertmanager disabled when disabled in overrides specified on Prometheus Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"alertmanager\":{\"enabled\":false}}"),
+							},
+						},
+					},
+				}}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"Alertmanager disabled when disabled in overrides specified on Prometheus Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"alertmanager\":{\"enabled\":false}}"),
+							},
+						},
+					},
+				},
+			}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"Alertmanager disabled when empty overrides specified on Prometheus Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte(""),
+							},
+						},
+					},
+				}}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"Alertmanager disabled when empty overrides specified on Prometheus Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte(""),
+							},
+						},
+					},
+				},
+			}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"Alertmanager enabled when enabled in overrides specified on Prometheus Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"alertmanager\":{\"enabled\":true}}"),
+							},
+						},
+					},
+				}}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"Alertmanager enabled when enabled in overrides specified on Prometheus Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"alertmanager\":{\"enabled\":true}}"),
+							},
+						},
+					},
+				},
+			}}}},
+			true,
+			false,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result bool
+			var err error
+			if tt.isVZv1alpha1 {
+				result, err = IsAlertmanagerEnabled(tt.cr, spi.NewFakeContext(nil, tt.cr.(*vzapi.Verrazzano), nil, false))
+			} else {
+				result, err = IsAlertmanagerEnabled(tt.cr, spi.NewFakeContext(nil, nil, tt.cr.(*installv1beta1.Verrazzano), false))
+			}
+
+			assert.Equal(t, tt.isErr, err != nil)
+			assert.Equal(t, tt.enabled, result)
 		})
 	}
 }

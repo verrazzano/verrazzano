@@ -105,7 +105,7 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsCompleted() {
-		ctx.Log().Progress("Cleaning up Rancher resources remaining after component clean up")
+		ctx.Log().Once("Cleaning up Rancher resources remaining after component clean up")
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
 			return err
@@ -115,16 +115,11 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	}
 
 	if monitor.IsRunning() {
-		if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
-			monitor.SetCompleted()
-			// return error to trigger the cleanup code
-			return ctrlerrors.RetryableError{Source: ComponentName}
-		}
 		// Check the result
 		succeeded, err := monitor.CheckResult()
 		if err != nil {
 			// Background goroutine is not finished yet, requeue
-			ctx.Log().Progress("Component Rancher waiting to finish post-uninstall in the background")
+			ctx.Log().Once("Component Rancher waiting to finish post-uninstall in the background")
 			return err
 		}
 		// If it's not finished running, requeue
@@ -143,52 +138,50 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 // cleanupRemainingResources cleans up some resources that remain after the Rancher cleanup job is completed.
 func cleanupRemainingResources(ctx spi.ComponentContext) error {
 
-	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
-		// Remove the Rancher webhooks
-		err := deleteWebhooks(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Delete the Rancher resources that need to be matched by a string
-		err = deleteMatchingResources(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Delete the remaining Rancher ConfigMaps
-		err = resource.Resource{
-			Name:      controllerCMName,
-			Namespace: constants.KubeSystem,
-			Client:    ctx.Client(),
-			Object:    &corev1.ConfigMap{},
-			Log:       ctx.Log(),
-		}.Delete()
-		if err != nil {
-			return err
-		}
-		err = resource.Resource{
-			Name:      lockCMName,
-			Namespace: constants.KubeSystem,
-			Client:    ctx.Client(),
-			Object:    &corev1.ConfigMap{},
-			Log:       ctx.Log(),
-		}.Delete()
-		if err != nil {
-			return err
-		}
-
-		crds := getCRDList(ctx)
-
-		// Remove any Rancher custom resources that remain
-		removeCRs(ctx, crds)
-
-		// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
-		removeCRDFinalizers(ctx, crds)
-
-		// Delete the rancher-cleanup job
-		deleteCleanupJob(ctx)
+	// Remove the Rancher webhooks
+	err := deleteWebhooks(ctx)
+	if err != nil {
+		return err
 	}
+
+	// Delete the Rancher resources that need to be matched by a string
+	err = deleteMatchingResources(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Delete the remaining Rancher ConfigMaps
+	err = resource.Resource{
+		Name:      controllerCMName,
+		Namespace: constants.KubeSystem,
+		Client:    ctx.Client(),
+		Object:    &corev1.ConfigMap{},
+		Log:       ctx.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:      lockCMName,
+		Namespace: constants.KubeSystem,
+		Client:    ctx.Client(),
+		Object:    &corev1.ConfigMap{},
+		Log:       ctx.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	crds := getCRDList(ctx)
+
+	// Remove any Rancher custom resources that remain
+	removeCRs(ctx, crds)
+
+	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
+	removeCRDFinalizers(ctx, crds)
+
+	// Delete the rancher-cleanup job
+	deleteCleanupJob(ctx)
 
 	return nil
 }
@@ -206,6 +199,11 @@ func rancherArtifactsExist(ctx spi.ComponentContext) bool {
 
 // forkPostUninstall - fork uninstall install of Rancher
 func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
+	if !vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
+		ctx.Log().Oncef("Rancher not enabled - no post uninstall cleanup performed")
+		return nil
+	}
+
 	monitor.Run(
 		func() error {
 			return postUninstallFunc(ctx, monitor)
@@ -218,7 +216,7 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProce
 // invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
 // This calls the rancher-cleanup tool.
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
-	ctx.Log().Progress("Component Rancher background post-uninstall goroutine is running")
+	ctx.Log().Once("Component Rancher background post-uninstall goroutine is running")
 
 	// Delete Rancher finalizers before running the rancher-cleanup job (to speed up the uninstall)
 	if !rancherFinalizersDeleted {
@@ -243,7 +241,7 @@ func runCleanupJob(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: rancherCleanupJobNamespace, Name: rancherCleanupJobName}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if vzcr.IsRancherEnabled(ctx.EffectiveCR()) && rancherArtifactsExist(ctx) {
+			if rancherArtifactsExist(ctx) {
 				ctx.Log().Infof("Component %s created cleanup job %s/%s", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 				return createCleanupJob(ctx)
 			}
@@ -265,7 +263,7 @@ func runCleanupJob(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 	}
 
 	if !jobComplete {
-		ctx.Log().Progressf("Component %s waiting for cleanup job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
+		ctx.Log().Oncef("Component %s waiting for cleanup job to complete: %s/%s", ComponentName, job.Namespace, job.Name)
 		return ctrlerrors.RetryableError{}
 	}
 	ctx.Log().Infof("Component %s job successfully completed: %s/%s", ComponentName, job.Namespace, job.Name)
@@ -294,7 +292,7 @@ func createCleanupJob(ctx spi.ComponentContext) error {
 	if err = k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyF(file.Name()); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed applying Yaml to create job %s/%s for component %s: %v", rancherCleanupJobNamespace, rancherCleanupJobName, ComponentName, err)
 	}
-	ctx.Log().Progressf("Component %s waiting for cleanup job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
+	ctx.Log().Oncef("Component %s waiting for cleanup job %s/%s to start", ComponentName, rancherCleanupJobNamespace, rancherCleanupJobName)
 	return ctrlerrors.RetryableError{}
 }
 
@@ -413,7 +411,7 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 
 // removeCRs deletes any remaining Rancher cattle.io custom resources
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
-	ctx.Log().Progress("Removing Rancher custom resources")
+	ctx.Log().Once("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
 		if strings.HasSuffix(crd.Name, finalizerSubString) {
 			for _, version := range crd.Spec.Versions {

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -7,12 +7,14 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
-	"go.uber.org/zap"
 	"io"
-	corev1 "k8s.io/api/core/v1"
 	"os"
 	"sync"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var eventListMap = make(map[string]*corev1.EventList)
@@ -54,7 +56,7 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 
 // GetEventsRelatedToPod gets events related to a pod
 func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev1.Pod, timeRange *files.TimeRange) (podEvents []corev1.Event, err error) {
-	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, pod.ObjectMeta.Namespace, "events.json"))
+	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, pod.ObjectMeta.Namespace, constants.EventsJSON))
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +77,7 @@ func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev
 // GetEventsRelatedToService gets events related to a service
 func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service corev1.Service, timeRange *files.TimeRange) (serviceEvents []corev1.Event, err error) {
 	log.Debugf("GetEventsRelatedToService called for %s in namespace %s", service.ObjectMeta.Name, service.ObjectMeta.Namespace)
-	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, "events.json"))
+	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, constants.EventsJSON))
 	if err != nil {
 		return nil, err
 	}

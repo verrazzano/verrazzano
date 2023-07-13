@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -91,8 +92,8 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
-// and services from the specified namespace, as JSON files
-func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+// services, and cert-manager certificates from the specified namespace, as JSON files
+func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -109,6 +110,9 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.
 		return err
 	}
 	if err := captureCapiNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
+	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil
@@ -282,6 +286,22 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	if len(statefulSets.Items) > 0 {
 		LogMessage(fmt.Sprintf("StatefulSets in namespace: %s ...\n", namespace))
 		if err = createFile(statefulSets, namespace, constants.StatefulSetsJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureCertificates finds the certificates from the client for the current namespace, returns an error, and outputs the objects to a certificates.json file, if certificates are present in that namespace.
+func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
+	certificateList := v1.CertificateList{}
+	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if len(certificateList.Items) > 0 {
+		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
+		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}

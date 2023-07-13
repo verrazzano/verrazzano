@@ -450,6 +450,8 @@ data:
                 check_host = 'opensearch.logging'..me.hostSuffix
             elseif backend == 'osd-logging' then
                 check_host = 'osd.logging'..me.hostSuffix
+            elseif backend == 'alertmanager' then
+                check_host =  backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
             end
@@ -564,6 +566,8 @@ data:
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'jaeger-operator-jaeger-query', '16686')
+        elseif backend == 'alertmanager' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'prometheus-operator-kube-p-alertmanager', '9093')
         else
             me.not_found("Invalid backend name '"..backend.."'")
         end
@@ -1260,6 +1264,8 @@ data:
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
         elseif backend == 'jaeger' then
             allowedOrigins = os.getenv("VZ_JAEGER_ALLOWED_ORIGINS")
+        elseif backend == 'alertmanager' then
+            allowedOrigins = os.getenv("VZ_ALERTMANAGER_ALLOWED_ORIGINS")
         end
         
         if not allowedOrigins or allowedOrigins == "" then
@@ -1304,6 +1310,7 @@ data:
     env VZ_JAEGER_ALLOWED_ORIGINS;
     env VZ_OS_LOGGING_ALLOWED_ORIGINS;
     env VZ_OSD_LOGGING_ALLOWED_ORIGINS;
+    env VZ_ALERTMANAGER_ALLOWED_ORIGINS;
 
     events {
         worker_connections  1024;
