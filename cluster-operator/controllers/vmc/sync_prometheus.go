@@ -114,7 +114,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *corev1
 		return nil, err
 	}
 	if len(cacrtSecret.Data["cacrt"]) > 0 {
-		newScrapeConfig.Set(prometheusConfigBasePath+getCAKey(vmc), "tls_config", "ca_file")
+		newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
 		newScrapeConfig.Set(false, "tls_config", "insecure_skip_verify")
 	}
 	return newScrapeConfig, nil
@@ -171,8 +171,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	if err != nil {
 		return err
 	}
-	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
-	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
 
 	editScrapeJobName := vmc.Name
 
