@@ -5,14 +5,18 @@ package clusterapi
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	v1 "k8s.io/api/core/v1"
 	"os"
+	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"text/template"
-	v1 "k8s.io/api/core/v1"
 )
 
 const clusterctlYamlTemplate = `
@@ -49,10 +53,17 @@ providers:
 `
 
 const (
-	clusterTopology         = "CLUSTER_TOPOLOGY"
-	expClusterResourceSet   = "EXP_CLUSTER_RESOURCE_SET"
-	expMachinePool          = "EXP_MACHINE_POOL"
-	initOCIClientsOnStartup = "INIT_OCI_CLIENTS_ON_STARTUP"
+	clusterTopology                           = "CLUSTER_TOPOLOGY"
+	expClusterResourceSet                     = "EXP_CLUSTER_RESOURCE_SET"
+	expMachinePool                            = "EXP_MACHINE_POOL"
+	initOCIClientsOnStartup                   = "INIT_OCI_CLIENTS_ON_STARTUP"
+	clusterAPIControllerImage                 = "cluster-api-controller"
+	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
+	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
+	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
+	clusterAPISubComponentName                = "capi-cluster-api"
+	clusterAPIOCISubcomponentName             = "capi-oci"
+	clusterAPIOCNESubComponentName            = "capi-ocne"
 )
 
 type ImageConfig struct {
@@ -189,48 +200,42 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	return buf, nil
 }
 
-func (c *clusterAPIPodMatcher) ReInit() error {
-	images, err := getImages(istioSubcomponent, proxyv2ImageName,
-		verrazzanoSubcomponent, fluentdImageName,
-		wkoSubcomponent, wkoExporterImageName)
+func getImage(subComponent, imageName string) (string, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	images, err := bomFile.GetImageNameList(subComponent)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get the images for subComponent")
+	}
+	for i, image := range images {
+		if strings.Contains(image, imageName) {
+			return images[i], nil
+		}
+	}
+	return "", fmt.Errorf("failed to find %s/%s image in the BOM", subComponent, imageName)
+}
+
+func (c *clusterAPIPodMatcher) initializeImageVersionsFromBOM(log vzlog.VerrazzanoLogger) error {
+	image, err := getImage(clusterAPISubComponentName, clusterAPIControllerImage)
 	if err != nil {
 		return err
 	}
-	c.istioProxyImage = images[proxyv2ImageName]
-	c.fluentdImage = images[fluentdImageName]
-	c.wkoExporterImage = images[wkoExporterImageName]
+	c.coreProvider = image
+	image, err = getImage(clusterAPIOCISubcomponentName, clusterAPIOCIControllerImage)
+	if err != nil {
+		return err
+	}
+	c.infrastructureProvider = image
+	image, err = getImage(clusterAPIOCNESubComponentName, clusterAPIOCNEBoostrapControllerImage)
+	if err != nil {
+		return err
+	}
+	c.bootstrapProvider = image
+	image, err = getImage(clusterAPIOCNESubComponentName, clusterAPIOCNEControlPLaneControllerImage)
+	if err != nil {
+		return err
+	}
+	c.controlPlaneProvider = image
 	return nil
-}
-
-func getImages(kvs ...string) (map[string]string, error) {
-	bt, err := newBomTool()
-	if err != nil {
-		return nil, err
-	}
-	if len(kvs)%2 != 0 {
-		return nil, errors.New("must have even key/value pairs")
-	}
-	images := map[string]string{}
-	for i := 0; i < len(kvs); i += 2 {
-		subComponent := kvs[i]
-		imageName := kvs[i+1]
-		image, err := bt.getImage(subComponent, imageName)
-		if err != nil {
-			return nil, err
-		}
-		images[imageName] = image
-	}
-	return images, nil
-}
-
-func newBomTool() (*bomTool, error) {
-	vzbom, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return nil, err
-	}
-	return &bomTool{
-		vzbom: vzbom,
-	}, nil
 }
 
 // isImageOutOfDate returns true if the container image is not as expected (out of date)
@@ -244,15 +249,31 @@ func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expect
 	return NotFound
 }
 
-// Matches when a pod has an outdated istiod/proxyv2 image, or an outdate fluentd image
-func (c *clusterAPIPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+// MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
+func (c *clusterAPIPodMatcher) MatchAndPrepareUpgradeOptions(ctx spi.ComponentContext, log vzlog.VerrazzanoLogger, overrides *capiOverrides) (clusterapi.ApplyUpgradeOptions, error) {
 
-	for i, pod := range podList.Items {
+	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
+	podList := &v1.PodList{}
+	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
+		return applyUpgradeOptions, err
+	}
+	log.Info("LIST OF PODS", podList.String())
+	const formatString = "%s/%s:%s"
+	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
-			if isImageOutOfDate(log, co.Image, c.bootstrapProvider, c.) == OutOfDate {
-				return true
+			if isImageOutOfDate(log, clusterAPIControllerImage, co.Image, c.coreProvider) == OutOfDate {
+				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overrides.GetClusterAPIVersion())
+			}
+			if isImageOutOfDate(log, clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider) == OutOfDate {
+				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEBootstrapVersion()))
+			}
+			if isImageOutOfDate(log, clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider) == OutOfDate {
+				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion()))
+			}
+			if isImageOutOfDate(log, clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider) == OutOfDate {
+				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIVersion()))
 			}
 		}
 	}
-	return false
+	return applyUpgradeOptions, nil
 }

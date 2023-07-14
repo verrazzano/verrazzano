@@ -217,7 +217,6 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	}
 
 	overridesContext := newOverridesContext(overrides)
-
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
 		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
