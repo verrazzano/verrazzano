@@ -12,7 +12,9 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -141,13 +143,43 @@ func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 
 // Initializes variables from OCNE metadata ConfigMap. Values are optionally overridden.
 func fillOCNEMetadata(log *zap.SugaredLogger) error {
-	// TODO: Use ocne-metadata configmap to get fallback values
+	var coreDNSFallback, etcdFallback, tigeraFallback, kubernetesFallback string
+
+	// Use ocne-metadata configmap to get fallback values
+	const ocneMetadataCMName = "ocne-metadata"
+	cm, err := pkg.GetConfigMap(ocneMetadataCMName, "verrazzano-capi")
+	if err != nil {
+		log.Errorf("error getting %s ConfigMap: %s", ocneMetadataCMName, err)
+		return err
+	}
+	if cm == nil {
+		err = fmt.Errorf("%s ConfigMap not found", ocneMetadataCMName)
+		log.Error(err)
+		return err
+	}
+	dataYaml := cm.Data["mapping"]
+	var mapToContents map[string]interface{}
+	if err = yaml.Unmarshal([]byte(dataYaml), &mapToContents); err != nil {
+		log.Errorf("yaml unmarshalling error: %s", err)
+		return err
+	}
+	if len(mapToContents) != 1 {
+		err = fmt.Errorf("data inside %s ConfigMap not formatted as expcted", ocneMetadataCMName)
+		log.Error(err)
+		return err
+	}
+	for k8sVersion, contents := range mapToContents {
+		kubernetesFallback = k8sVersion
+		coreDNSFallback = contents.(map[string]interface{})["container-images"].(map[string]interface{})["coredns"].(string)
+		etcdFallback = contents.(map[string]interface{})["container-images"].(map[string]interface{})["etcd"].(string)
+		tigeraFallback = contents.(map[string]interface{})["container-images"].(map[string]interface{})["tigera-operator"].(string)
+	}
 
 	// Initialize values
-	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", "v1.9.3")
-	etcdImageTag = getEnvFallback("ETCD_IMAGE_TAG", "3.5.6")
-	tigeraImageTag = getEnvFallback("TIGERA_IMAGE_TAG", "v1.29.0")
-	kubernetesVersion = getEnvFallback("KUBERNETES_VERSION", "v1.25.7")
+	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", coreDNSFallback)
+	etcdImageTag = getEnvFallback("ETCD_IMAGE_TAG", etcdFallback)
+	tigeraImageTag = getEnvFallback("TIGERA_IMAGE_TAG", tigeraFallback)
+	kubernetesVersion = getEnvFallback("KUBERNETES_VERSION", kubernetesFallback)
 	return nil
 }
 
@@ -164,7 +196,7 @@ func fillOCNEVersion(log *zap.SugaredLogger) error {
 	}
 	versionList := response.Children()
 	if len(versionList) != 1 {
-		err = fmt.Errorf("response to /meta/ocne/ocneVersions request does not have expected length")
+		err = fmt.Errorf("response to OCNE versions request does not have expected length")
 		log.Error(err)
 		return err
 	}
@@ -219,7 +251,7 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 	}
 	responseMap := response.ChildrenMap()
 	if len(responseMap) != 1 {
-		err = fmt.Errorf("response to /meta/ocne/verrazzanoVersions request does not have expected length")
+		err = fmt.Errorf("response to Verrazzano versions request does not have expected length")
 		log.Error(err)
 		return err
 	}

@@ -22,8 +22,6 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-const fleetDefaultNamespace = "fleet-default"
-
 // Acts as a cache, mapping the cluster names to cluster IDs
 var clusterIDMapping = map[string]string{}
 
@@ -233,7 +231,7 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 	log.Infof("All pods in workload cluster =  %s", (&response.StandardOut).String())
 
 	// Check if the cluster is active
-	return checkProvisioningClusterReady(fleetDefaultNamespace, clusterID, log)
+	return checkProvisioningClusterReady("fleet-default", clusterID, log)
 }
 
 // Returns true if the OCNE cluster is deleted/does not exist
