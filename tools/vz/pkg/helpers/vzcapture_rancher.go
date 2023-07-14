@@ -23,6 +23,7 @@ type rancherResource struct {
 // rancherResources - resources that are not namespaced
 var rancherResources = []rancherResource{
 	{GVR: schema.GroupVersionResource{Group: cattleCatalogGroup, Version: cattleV1, Resource: "clusterrepos"}, Kind: "ClusterRepo"},
+	{GVR: schema.GroupVersionResource{Group: cattleMgmtGroup, Version: cattleV3, Resource: "catalogs"}, Kind: "Catalog"},
 	{GVR: schema.GroupVersionResource{Group: cattleMgmtGroup, Version: cattleV3, Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
 	{GVR: schema.GroupVersionResource{Group: cattleMgmtGroup, Version: cattleV3, Resource: "clusters"}, Kind: "Cluster"},
 }
