@@ -14,6 +14,7 @@ def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
 def agentLabel = "1.4-small"
+@Field
 def VERSIONED_IMAGES_FILENAME = ""
 @Field
 def TESTS_FAILED = false
