@@ -18,8 +18,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	asserts "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"xwx
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -251,11 +250,11 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 			body, err := io.ReadAll(req.Body)
 			assert.NoError(t, err)
 			jsonString, err := gabs.ParseJSON(body)
-			asserts.NoError(t, err)
+			assert.NoError(t, err)
 			_, ok := jsonString.Path("clusterID").Data().(string)
-			asserts.True(t, ok)
+			assert.True(t, ok)
 			_, ok = jsonString.Path("ttl").Data().(float64)
-			asserts.True(t, ok)
+			assert.True(t, ok)
 			var resp *http.Response
 			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"testoken", "Created": "2023-08-13T15:32:38Z"}`)))
 			resp = &http.Response{
