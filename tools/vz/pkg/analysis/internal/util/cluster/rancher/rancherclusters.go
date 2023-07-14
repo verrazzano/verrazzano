@@ -6,6 +6,8 @@ package rancher
 import (
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +33,7 @@ type rancherClusterSpec struct {
 // AnalyzeRancherClusters - analyze the status of Rancher clusters
 func AnalyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &rancherClusterList{}
-	err := unmarshallFileFromClusterPath(log, clusterRoot, "cluster.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.management.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
