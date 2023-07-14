@@ -118,8 +118,8 @@ func UnmarshallFileInClusterRoot(clusterRoot string, filename string, object int
 }
 
 // UnmarshallFileInNamespace - unmarshall a file from a namespace into a struct
-func UnmarshallFileInNamespace(clusterRoot string, filename string, object interface{}) error {
-	clusterPath := FindFileInClusterRoot(clusterRoot, filename)
+func UnmarshallFileInNamespace(clusterRoot string, namespace string, filename string, object interface{}) error {
+	clusterPath := FindFileInNamespace(clusterRoot, namespace, filename)
 	return unmarshallFile(clusterPath, object)
 }
 
