@@ -9,7 +9,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
 	"net"
 	"net/http"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -280,12 +281,14 @@ type TokenGetResponse struct {
 	Created   string `json:"created"`
 	ClusterID string `json:"clusterId"`
 	ExpiresAt string `json:"expiresAt"`
+	UserID    string `json:"userID"`
 }
 
 // GetTokenWithFilter get created expiresAt attribute of a user token with filter
 func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (string, string, error) {
 	action := http.MethodGet
 	reqURL := rc.BaseURL + tokensPath + "?userId=" + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(clusterID)
+	print(reqURL)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
@@ -308,12 +311,30 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
-	for _, item := range items {
-		if item.ClusterID == clusterID {
-			return item.Created, item.ExpiresAt, nil
+	var tokenToReturn *TokenGetResponse
+	tokenToReturn = nil
+	for i, item := range items {
+		if item.ClusterID != clusterID || item.UserID != userID {
+			continue
 		}
+
+		if tokenToReturn == nil {
+			tokenToReturn = &(items[i])
+			continue
+		}
+		// Find the latest token based on creation timestamp
+		timeOfCurrentTokenToReturn, _ := time.Parse(time.RFC3339, tokenToReturn.Created)
+		timeOfTokenBeingExamined, _ := time.Parse(time.RFC3339, item.Created)
+
+		if timeOfCurrentTokenToReturn.Unix() < timeOfTokenBeingExamined.Unix() {
+			tokenToReturn = &(items[i])
+		}
+
 	}
-	return "", "", log.ErrorfNewErr("Failed to find the token in Rancher response")
+	if tokenToReturn == nil {
+		return "", "", log.ErrorfNewErr("Failed to find the token in Rancher response")
+	}
+	return tokenToReturn.Created, tokenToReturn.ExpiresAt, nil
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string

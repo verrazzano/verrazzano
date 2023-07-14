@@ -5,12 +5,15 @@ package rancherutil
 
 import (
 	"bytes"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +30,14 @@ import (
 )
 
 var (
-	loginURLParts = strings.Split(loginPath, "?")
-	loginURIPath  = loginURLParts[0]
-	testToken     = "test"
+	loginURLParts        = strings.Split(loginPath, "?")
+	loginURIPath         = loginURLParts[0]
+	testToken            = "test"
+	testBodyForTokens, _ = os.Open("bodyfortokentest.json")
+	arrayBytes, _        = ioutil.ReadAll(testBodyForTokens)
+	stringForTest        = string(arrayBytes)
+	userId               = "user"
+	clusterId            = "clusterone"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
@@ -73,6 +81,7 @@ func TestCreateRancherRequest(t *testing.T) {
 
 	// Test with the admin user
 	rc, err = NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
+	_, _, err = GetTokenWithFilter(rc, log, userId, clusterId)
 	assert.NoError(t, err)
 
 	response, body, err = SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)
@@ -167,5 +176,15 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 			}
 			return resp, nil
 		}).Times(2)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI("https://ingress-controller-ingress-nginx-controller.verrazzano-ingress-nginx/v3/tokens/")).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(stringForTest)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
+		}).Times(1)
 	return httpMock
 }
