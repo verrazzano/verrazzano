@@ -34,9 +34,8 @@ var (
 	testToken            = "test"
 	testBodyForTokens, _ = os.Open("bodyfortokentest.json")
 	arrayBytes, _        = io.ReadAll(testBodyForTokens)
-	stringForTest        = string(arrayBytes)
-	userId               = "user"
-	clusterId            = "clusterone"
+	userId               = "usertest"
+	clusterId            = "clustertest"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
@@ -80,8 +79,6 @@ func TestCreateRancherRequest(t *testing.T) {
 
 	// Test with the admin user
 	rc, err = NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
-	assert.NoError(t, err)
-	_, _, err = GetTokenWithFilter(rc, log, userId, clusterId)
 	assert.NoError(t, err)
 
 	response, body, err = SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)
@@ -176,15 +173,55 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 			}
 			return resp, nil
 		}).Times(2)
+	return httpMock
+}
+func TestGetTokenWithFilter(t *testing.T) {
+	cli := createTestObjects()
+	log := vzlog.DefaultLogger()
+	savedRancherHTTPClient := RancherHTTPClient
+	defer func() {
+		RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := DefaultRetry
+	defer func() {
+		DefaultRetry = savedRetry
+	}()
+
+	DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+"?")).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := io.NopCloser(bytes.NewReader([]byte(stringForTest)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		}).AnyTimes()
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(arrayBytes)))
+			resp = &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
 			}
 			return resp, nil
 		}).Times(1)
-	return httpMock
+	RancherHTTPClient = httpMock
+	rc, err := NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
+	assert.NoError(t, err)
+	_, _, err = GetTokenWithFilter(rc, log, userId, clusterId)
+	assert.NoError(t, err)
 }

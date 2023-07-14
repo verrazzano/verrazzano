@@ -319,7 +319,7 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 			continue
 		}
 
-		if tokenToReturn == nil {
+		if tokenToReturn == nil && len(item.Created) > 0 {
 			tokenToReturn = &(items[i])
 			continue
 		}
