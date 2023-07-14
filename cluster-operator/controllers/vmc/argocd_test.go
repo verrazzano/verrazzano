@@ -7,12 +7,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -229,7 +230,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"xxx", "name": "testToken"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token": "xxx", "name": "testToken"}`)))
 			resp = &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
