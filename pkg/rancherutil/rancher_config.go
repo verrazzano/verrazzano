@@ -288,15 +288,12 @@ type TokenGetResponse struct {
 func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, clusterID string) (string, string, error) {
 	action := http.MethodGet
 	reqURL := rc.BaseURL + tokensPath + "?userId=" + url.PathEscape(userID) + "&clusterId=" + url.PathEscape(clusterID)
-	print(reqURL)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := SendRequest(action, reqURL, headers, "", rc, log)
 	if err != nil {
 		return "", "", err
 	}
-	// In the test, the response code seems to be 201 instead of 200
-	// But the return also seems to be test body
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)

@@ -29,18 +29,15 @@ import (
 )
 
 var (
-	loginURLParts        = strings.Split(loginPath, "?")
-	loginURIPath         = loginURLParts[0]
-	testToken            = "test"
-	testBodyForTokens, _ = os.Open("bodyfortokentest.json")
-	arrayBytes, _        = io.ReadAll(testBodyForTokens)
-	userID               = "usertest"
-	clusterID            = "clustertest"
+	testToken = "test"
+	userID    = "usertest"
+	clusterID = "clustertest"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
 // HTTP requests are properly constructed and sent to Rancher
 func TestCreateRancherRequest(t *testing.T) {
+	DeleteStoredTokens()
 	cli := createTestObjects()
 	log := vzlog.DefaultLogger()
 
@@ -129,6 +126,8 @@ func createTestObjects() client.WithWatch {
 }
 
 func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody string) *mocks.MockRequestSender {
+	loginURLParts := strings.Split(loginPath, "?")
+	loginURIPath := loginURLParts[0]
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+testToken)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -176,8 +175,13 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 	return httpMock
 }
 func TestGetTokenWithFilter(t *testing.T) {
+	DeleteStoredTokens()
 	cli := createTestObjects()
 	log := vzlog.DefaultLogger()
+	loginURLParts := strings.Split(loginPath, "?")
+	loginURIPath := loginURLParts[0]
+	testBodyForTokens, _ := os.Open("bodyfortokentest.json")
+	arrayBytes, _ := io.ReadAll(testBodyForTokens)
 	savedRancherHTTPClient := RancherHTTPClient
 	defer func() {
 		RancherHTTPClient = savedRancherHTTPClient
@@ -207,7 +211,7 @@ func TestGetTokenWithFilter(t *testing.T) {
 				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
-		}).AnyTimes()
+		}).Times(1)
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
