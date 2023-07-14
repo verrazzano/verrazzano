@@ -295,7 +295,8 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 	if err != nil {
 		return "", "", err
 	}
-
+	// In the test, the response code seems to be 201 instead of 200
+	// But the return also seems to be test body
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)

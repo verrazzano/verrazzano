@@ -6,7 +6,6 @@ package rancherutil
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -34,7 +33,7 @@ var (
 	loginURIPath         = loginURLParts[0]
 	testToken            = "test"
 	testBodyForTokens, _ = os.Open("bodyfortokentest.json")
-	arrayBytes, _        = ioutil.ReadAll(testBodyForTokens)
+	arrayBytes, _        = io.ReadAll(testBodyForTokens)
 	stringForTest        = string(arrayBytes)
 	userId               = "user"
 	clusterId            = "clusterone"
@@ -81,6 +80,7 @@ func TestCreateRancherRequest(t *testing.T) {
 
 	// Test with the admin user
 	rc, err = NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
+	assert.NoError(t, err)
 	_, _, err = GetTokenWithFilter(rc, log, userId, clusterId)
 	assert.NoError(t, err)
 
@@ -177,7 +177,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 			return resp, nil
 		}).Times(2)
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI("https://ingress-controller-ingress-nginx-controller.verrazzano-ingress-nginx/v3/tokens/")).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+"?")).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := io.NopCloser(bytes.NewReader([]byte(stringForTest)))
 			resp := &http.Response{
