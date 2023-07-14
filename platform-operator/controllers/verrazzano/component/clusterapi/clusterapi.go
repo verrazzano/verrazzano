@@ -254,7 +254,6 @@ func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expect
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
 func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (clusterapi.ApplyUpgradeOptions, error) {
-
 	c.initializeImageVersionsFromBOM(ctx.Log())
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
 	podList := &v1.PodList{}
