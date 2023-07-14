@@ -158,107 +158,52 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 	return builder.String()
 }
 
+// Derives interim version which is the latest git release tag - 1 minor version.
+// If there are only two unique minor versions then latest patch is derived.
 func getInterimRelease(releaseTags []string) string {
-	// Get the latest release tag
 	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
-	latestReleaseTag := releaseTags[len(releaseTags)-1]
-	releaseTags = releaseTags[:len(releaseTags)-1]
-
-	builder := strings.Builder{}
-	var interimRelease *semver.SemVersion
-
-	o, err := semver.NewSemVersion(latestReleaseTag)
-	o.Patch = 0
-	if err != nil {
-		return ""
-	}
-
-	for _, tag := range releaseTags {
-		var t = tag
-		tagVersion, err := semver.NewSemVersion(t)
-		if err != nil {
-			return ""
-		}
-		if uniqueMinorReleaseCount > 2 {
-			if tagVersion.IsLessThan(o) {
-				interimRelease = tagVersion
-			}
-		} else {
-			// Handles the case where only two or less minor releases are available for upgrade
-			// E.g. where the latest version is 1.5.x and the first supported version for upgrade is 1.4.x, then return 1.5.0
-			// as an interim release
-			if o.IsGreaterThanOrEqualTo(tagVersion) {
-				fmt.Println(tagVersion, " ", o)
-				tagVersion.Patch = 0
-				interimRelease = o
-			}
-		}
-	}
-
-	if len(releaseTags) == 0 {
-		builder.WriteString(latestReleaseTag)
-	} else {
-		builder.WriteString(interimRelease.ToString())
-	}
-
-	var interimVersion string
-	if !strings.HasPrefix(builder.String(), "v") {
-		interimVersion = "v" + builder.String()
-	}
-
-	return interimVersion
-}
-
-func getInstallRelease(releaseTags []string) string {
-
-	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
-
-	// Remove patch version
-	releaseVersions := make([]string, len(releaseTags))
-	for i, tag := range releaseTags {
-		releaseVersions[i] = removePatchVersion(tag)
-	}
-
-	// Sort based on the major and minor version
-	sort.SliceStable(releaseVersions, func(i, j int) bool {
-		return compareVersions(releaseVersions[i], releaseVersions[j])
-	})
-
-	// Remove duplicates
-	uniqueMinorVersions := make([]string, 0)
-	seen := make(map[string]bool)
-	for _, version := range releaseVersions {
-		if !seen[version] {
-			seen[version] = true
-			uniqueMinorVersions = append(uniqueMinorVersions, version)
-		}
-	}
-
-	// Create a map of unique releaseVersions and related patch versions
-	minorAndPatchesVersionMap := make(map[string][]string)
-	for _, version := range releaseVersions {
-		if _, ok := minorAndPatchesVersionMap[version]; !ok {
-			minorAndPatchesVersionMap[version] = make([]string, 0)
-		}
-	}
-
-	for _, tag := range releaseTags {
-		version := removePatchVersion(tag)
-		minorAndPatchesVersionMap[version] = append(minorAndPatchesVersionMap[version], tag)
-	}
+	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(releaseTags)
 
 	// Handles edge cases such as having less than 2 minor releases.
-	var thirdLatestRelease string
+	var interimRelease string
+	var installReleasePatchVersions []string
 	if uniqueMinorReleaseCount == 1 {
-		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-1]
+		installReleasePatchVersions = minorAndPatchesVersionMap[uniqueMinorVersions[0]]
+		interimRelease = installReleasePatchVersions[len(releaseTags)-1]
 	} else if uniqueMinorReleaseCount == 2 {
-		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-2]
-	} else {
-		thirdLatestRelease = uniqueMinorVersions[len(uniqueMinorVersions)-3]
+		secondLatestRelease := uniqueMinorVersions[len(uniqueMinorVersions)-2]
+		installReleasePatchVersions = minorAndPatchesVersionMap[secondLatestRelease]
+		interimRelease = installReleasePatchVersions[len(installReleasePatchVersions)-1]
+	} else if uniqueMinorReleaseCount > 2 {
+		secondLatestRelease := uniqueMinorVersions[len(uniqueMinorVersions)-2]
+		installReleasePatchVersions = minorAndPatchesVersionMap[secondLatestRelease]
+		interimRelease = installReleasePatchVersions[len(installReleasePatchVersions)-1]
 	}
-	installReleasePatchVersions := minorAndPatchesVersionMap[thirdLatestRelease]
-	return installReleasePatchVersions[len(installReleasePatchVersions)-1]
+	return interimRelease
+}
 
+// Derives install version which is the latest git release tag - 2 minor version.
+// If there are only two unique minor versions then oldest patch is derived.
+func getInstallRelease(releaseTags []string) string {
+	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
+	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(releaseTags)
+
+	// Handles edge cases such as having less than 2 minor releases.
+	var installRelease string
+	var installReleasePatchVersions []string
+	if uniqueMinorReleaseCount == 1 {
+		installReleasePatchVersions = minorAndPatchesVersionMap[uniqueMinorVersions[0]]
+		installRelease = installReleasePatchVersions[0]
+	} else if uniqueMinorReleaseCount == 2 {
+		thirdLatestRelease := uniqueMinorVersions[len(uniqueMinorVersions)-2]
+		installReleasePatchVersions = minorAndPatchesVersionMap[thirdLatestRelease]
+		installRelease = installReleasePatchVersions[0]
+	} else if uniqueMinorReleaseCount > 2 {
+		thirdLatestRelease := uniqueMinorVersions[len(uniqueMinorVersions)-3]
+		installReleasePatchVersions = minorAndPatchesVersionMap[thirdLatestRelease]
+		installRelease = installReleasePatchVersions[len(installReleasePatchVersions)-1]
+	}
+	return installRelease
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
@@ -308,6 +253,44 @@ func compareVersions(v1, v2 string) bool {
 	return false
 }
 
+func getUniqueMajorMinorAndPatchVersionMap(releaseTags []string) (map[string][]string, []string) {
+	// Remove patch minorVersion
+	majorMinorVersions := make([]string, len(releaseTags))
+	for i, tag := range releaseTags {
+		majorMinorVersions[i] = removePatchVersion(tag)
+	}
+
+	// Sort based on the major and minor minorVersion
+	sort.SliceStable(majorMinorVersions, func(i, j int) bool {
+		return compareVersions(majorMinorVersions[i], majorMinorVersions[j])
+	})
+
+	// Remove duplicates
+	uniqueMinorVersions := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, minorVersion := range majorMinorVersions {
+		if !seen[minorVersion] {
+			seen[minorVersion] = true
+			uniqueMinorVersions = append(uniqueMinorVersions, minorVersion)
+		}
+	}
+
+	// Create a map of unique majorMinorVersions and related patch versions
+	minorAndPatchesVersionMap := make(map[string][]string)
+	for _, version := range majorMinorVersions {
+		if _, ok := minorAndPatchesVersionMap[version]; !ok {
+			minorAndPatchesVersionMap[version] = make([]string, 0)
+		}
+	}
+
+	for _, tag := range releaseTags {
+		version := removePatchVersion(tag)
+		minorAndPatchesVersionMap[version] = append(minorAndPatchesVersionMap[version], tag)
+	}
+
+	return minorAndPatchesVersionMap, uniqueMinorVersions
+}
+
 func getUniqueMinorVersionCount(releaseTags []string) int {
 	minorVersionsMap := make(map[string]bool)
 
@@ -315,7 +298,7 @@ func getUniqueMinorVersionCount(releaseTags []string) int {
 	for _, tag := range releaseTags {
 		tagVersion, err := semver.NewSemVersion(tag)
 		if err == nil {
-			minorVersion := fmt.Sprintf("%d", tagVersion.Minor)
+			minorVersion := fmt.Sprintf("%d.%d", tagVersion.Major, tagVersion.Minor)
 			minorVersionsMap[minorVersion] = true
 		}
 	}
