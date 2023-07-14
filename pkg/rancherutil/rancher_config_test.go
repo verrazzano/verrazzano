@@ -180,7 +180,7 @@ func TestGetTokenWithFilter(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	loginURLParts := strings.Split(loginPath, "?")
 	loginURIPath := loginURLParts[0]
-	testBodyForTokens, _ := os.Open("bodyfortokentest.json")
+	testBodyForTokens, _ := os.Open("testdata/bodyfortokentest.json")
 	arrayBytes, _ := io.ReadAll(testBodyForTokens)
 	savedRancherHTTPClient := RancherHTTPClient
 	defer func() {

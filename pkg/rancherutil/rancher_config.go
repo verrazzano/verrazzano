@@ -324,7 +324,7 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 		timeOfCurrentTokenToReturn, _ := time.Parse(time.RFC3339, tokenToReturn.Created)
 		timeOfTokenBeingExamined, _ := time.Parse(time.RFC3339, item.Created)
 
-		if timeOfCurrentTokenToReturn.Unix() < timeOfTokenBeingExamined.Unix() {
+		if timeOfTokenBeingExamined.After(timeOfCurrentTokenToReturn) {
 			tokenToReturn = &(items[i])
 		}
 
