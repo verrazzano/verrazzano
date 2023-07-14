@@ -34,8 +34,8 @@ var (
 	testToken            = "test"
 	testBodyForTokens, _ = os.Open("bodyfortokentest.json")
 	arrayBytes, _        = io.ReadAll(testBodyForTokens)
-	userId               = "usertest"
-	clusterId            = "clustertest"
+	userID               = "usertest"
+	clusterID            = "clustertest"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
@@ -222,6 +222,7 @@ func TestGetTokenWithFilter(t *testing.T) {
 	RancherHTTPClient = httpMock
 	rc, err := NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
 	assert.NoError(t, err)
-	_, _, err = GetTokenWithFilter(rc, log, userId, clusterId)
+	createdTimeAsString, _, err := GetTokenWithFilter(rc, log, userID, clusterID)
 	assert.NoError(t, err)
+	assert.Equal(t, createdTimeAsString, "2023-07-13T19:42:19Z")
 }
