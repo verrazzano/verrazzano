@@ -352,7 +352,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token": "testCreateToken", "name": "2023-07-19T19:42:19Z"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token": "xxx", "name": "testToken"`)))
 			resp = &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
