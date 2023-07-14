@@ -84,7 +84,7 @@
             "ttl": 14400000,
             "type": "token",
             "userId": "usertestone",
-            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:random-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
             "uuid": "13024ffe-f19f-4455-b126-78f7512c2675"
         },
         {
@@ -116,7 +116,7 @@
             "ttl": 14400000,
             "type": "token",
             "userId": "usertest",
-            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:random-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
             "uuid": "69263adb-fb83-4ff2-bae2-174c48c374c4"
         },
         {
@@ -148,7 +148,7 @@
             "ttl": 14400000,
             "type": "token",
             "userId": "usertest",
-            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:random-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
             "uuid": "dba03cf7-5bb4-45bd-8876-0b68dffa5e2d"
         },
          {
@@ -180,7 +180,7 @@
             "ttl": 14400000,
             "type": "token",
             "userId": "usertest",
-            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:random-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
             "uuid": "dba03cf7-5bb4-45bd-8876-0b68dffa5e2d"
         }
     ]

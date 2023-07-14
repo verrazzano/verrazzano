@@ -175,6 +175,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 	return httpMock
 }
 func TestGetTokenWithFilter(t *testing.T) {
+	clusterIDForTest := "clusteridfortest"
 	DeleteStoredTokens()
 	cli := createTestObjects()
 	log := vzlog.DefaultLogger()
@@ -226,7 +227,7 @@ func TestGetTokenWithFilter(t *testing.T) {
 	RancherHTTPClient = httpMock
 	rc, err := NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
 	assert.NoError(t, err)
-	createdTimeAsString, _, err := GetTokenWithFilter(rc, log, userID, clusterID)
+	createdTimeAsString, _, err := GetTokenWithFilter(rc, log, userID, clusterIDForTest)
 	assert.NoError(t, err)
 	assert.Equal(t, createdTimeAsString, "2023-07-13T19:32:38Z")
 }
