@@ -228,5 +228,5 @@ func TestGetTokenWithFilter(t *testing.T) {
 	assert.NoError(t, err)
 	createdTimeAsString, _, err := GetTokenWithFilter(rc, log, userID, clusterID)
 	assert.NoError(t, err)
-	assert.Equal(t, createdTimeAsString, "2023-07-13T19:42:19Z")
+	assert.Equal(t, createdTimeAsString, "2023-07-13T19:32:38Z")
 }

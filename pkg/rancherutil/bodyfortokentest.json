@@ -58,7 +58,7 @@
         {
             "authProvider": "local",
             "baseType": "token",
-            "clusterId": "clustertest",
+            "clusterId": "clustertestone",
             "created": "2023-07-13T19:42:19Z",
             "createdTS": 1689277339000,
             "creatorId": null,
@@ -83,7 +83,7 @@
             "name": "tokenid1",
             "ttl": 14400000,
             "type": "token",
-            "userId": "usertest",
+            "userId": "usertestone",
             "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
             "uuid": "13024ffe-f19f-4455-b126-78f7512c2675"
         },
