@@ -13,14 +13,15 @@ import (
 
 func CreateIngressChildResourcesFromCoherence(conversionComponent *types.ConversionComponents) error {
 	rules := conversionComponent.IngressTrait.Spec.Rules
+
 	// If there are no rules, create a single default rule
 	gateway, allHostsForTrait, err := gw.CreateCertificateAndSecret(conversionComponent)
 	if err != nil {
 		return err
 	}
 	for index, rule := range rules {
-		// Find the services associated with the trait in the application configuration.
 
+		// Find the services associated with the trait in the application configuration.
 		vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 		if err != nil {
 			print(err)

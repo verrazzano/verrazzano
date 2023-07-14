@@ -15,69 +15,70 @@ import (
 )
 
 // ExtractTrait - Extract traits from the app map
-func ExtractTrait(appMap map[string]interface{}) ([]*types.ConversionComponents, error) {
+func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponents, error) {
 	conversionComponents := []*types.ConversionComponents{}
+	for _, appMap := range appMaps {
+		appMetadata, found, err := unstructured.NestedMap(appMap, "metadata")
+		if !found || err != nil {
+			return nil, errors.New("app metadata doesn't exist")
+		}
+		appName, found, err := unstructured.NestedString(appMetadata, "name")
+		if !found || err != nil {
+			return nil, errors.New("app name key doesn't exist")
+		}
 
-	appMetadata, found, err := unstructured.NestedMap(appMap, "metadata")
-	if !found || err != nil {
-		return nil, errors.New("app metadata doesn't exist")
-	}
-	appName, found, err := unstructured.NestedString(appMetadata, "name")
-	if !found || err != nil {
-		return nil, errors.New("app name key doesn't exist")
-	}
+		appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
+		if !found || err != nil {
+			return nil, errors.New("namespace key doesn't exist")
+		}
 
-	appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
-	if !found || err != nil {
-		return nil, errors.New("namespace key doesn't exist")
-	}
+		appSpec, found, err := unstructured.NestedMap(appMap, "spec")
+		if !found || err != nil {
+			return nil, errors.New("app spec doesn't exist")
+		}
 
-	appSpec, found, err := unstructured.NestedMap(appMap, "spec")
-	if !found || err != nil {
-		return nil, errors.New("app spec doesn't exist")
-	}
+		appComponents, found, err := unstructured.NestedSlice(appSpec, "components")
+		if !found || err != nil {
+			return nil, errors.New("app components doesn't exist")
+		}
 
-	appComponents, found, err := unstructured.NestedSlice(appSpec, "components")
-	if !found || err != nil {
-		return nil, errors.New("app components doesn't exist")
-	}
-
-	for _, component := range appComponents {
-		componentMap := component.(map[string]interface{})
-		componentTraits, ok := componentMap[consts.YamlTraits].([]interface{})
-		if ok && len(componentTraits) > 0 {
-			for _, trait := range componentTraits {
-				traitMap := trait.(map[string]interface{})
-				//traitSpec := traitMap[consts.TraitComponent].(map[string]interface{})
-				traitSpec, found, err := unstructured.NestedMap(traitMap, "trait")
-				if !found || err != nil {
-					return nil, errors.New("trait spec doesn't exist")
-				}
-
-				traitKind, found, err := unstructured.NestedString(traitSpec, "kind")
-				if !found || err != nil {
-					return nil, errors.New("trait kind doesn't exist")
-				}
-				if traitKind == consts.IngressTrait {
-					ingressTrait := &vzapi.IngressTrait{}
-					traitJSON, err := json.Marshal(traitSpec)
-
-					if err != nil {
-						fmt.Printf("Failed to marshal trait: %v", err)
+		for _, component := range appComponents {
+			componentMap := component.(map[string]interface{})
+			componentTraits, ok := componentMap[consts.YamlTraits].([]interface{})
+			if ok && len(componentTraits) > 0 {
+				for _, trait := range componentTraits {
+					traitMap := trait.(map[string]interface{})
+					//traitSpec := traitMap[consts.TraitComponent].(map[string]interface{})
+					traitSpec, found, err := unstructured.NestedMap(traitMap, "trait")
+					if !found || err != nil {
+						return nil, errors.New("trait spec doesn't exist")
 					}
 
-					err = json.Unmarshal(traitJSON, ingressTrait)
-
-					if err != nil {
-						fmt.Printf("Failed to unmarshal trait: %v", err)
+					traitKind, found, err := unstructured.NestedString(traitSpec, "kind")
+					if !found || err != nil {
+						return nil, errors.New("trait kind doesn't exist")
 					}
+					if traitKind == consts.IngressTrait {
+						ingressTrait := &vzapi.IngressTrait{}
+						traitJSON, err := json.Marshal(traitSpec)
 
-					conversionComponents = append(conversionComponents, &types.ConversionComponents{
-						AppNamespace:  appNamespace,
-						AppName:       appName,
-						ComponentName: componentMap["componentName"].(string),
-						IngressTrait:  ingressTrait,
-					})
+						if err != nil {
+							fmt.Printf("Failed to marshal trait: %v", err)
+						}
+
+						err = json.Unmarshal(traitJSON, ingressTrait)
+
+						if err != nil {
+							fmt.Printf("Failed to unmarshal trait: %v", err)
+						}
+
+						conversionComponents = append(conversionComponents, &types.ConversionComponents{
+							AppNamespace:  appNamespace,
+							AppName:       appName,
+							ComponentName: componentMap["componentName"].(string),
+							IngressTrait:  ingressTrait,
+						})
+					}
 				}
 			}
 		}
@@ -103,7 +104,7 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 		if !found || err != nil {
 			return nil, errors.New("workload kind in a component doesn't exist")
 		}
-
+		//name = comp["metadata"].(map[string]interface{})["name"].(string)
 		compMetadata, found, err := unstructured.NestedMap(comp, "metadata")
 		if !found || err != nil {
 			return nil, errors.New("component metadata doesn't exist")

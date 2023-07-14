@@ -9,51 +9,60 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"log"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
 
 func ConfData() error {
 
-	//Read app File
-	appData, err := ioutil.ReadFile("/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/pkg/app/hello-helidon-app.yaml")
-	if err != nil {
-		fmt.Println("Failed to read YAML file:", err)
-		return err
+	var inputDirectory string
+	if len(os.Args) != 3 {
+		fmt.Println("Not enough args to run tool")
+		return nil
+	} else {
+		inputDirectory = os.Args[1]
 	}
-
-	//Read Comp file
-	compData, err := ioutil.ReadFile("/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/pkg/app/hello-helidon-comp.yaml")
-	if err != nil {
-		fmt.Println("Failed to read YAML file:", err)
-		return err
-	}
-	//A map for app file
-	appMap := make(map[string]interface{})
-
-	// Unmarshal the OAM YAML input data into the map
-	err = yaml.Unmarshal(appData, &appMap)
-	if err != nil {
-		log.Fatalf("Failed to unmarshal YAML: %v", err)
-	}
-
-	//Splitting up the comp file with "---" delimiter into multiple objects
-	compStr := string(compData)
-	compObjects := strings.Split(compStr, "---")
-
-	//Array of components in comp file
+	var appData []map[string]interface{}
 	var components []map[string]interface{}
 
-	for _, obj := range compObjects {
-		var component map[string]interface{}
-		err := yaml.Unmarshal([]byte(obj), &component)
-		if err != nil {
-			log.Fatalf("Failed to unmarshal YAML: %v", err)
+	//iterate through user inputted directory
+	files := iterateDirectory(inputDirectory)
+	var data []byte
+	//Loop through all app files and store into appDataArr
+	for _, input := range files {
+		data, _ = ioutil.ReadFile(input)
+		datastr := string(data)
+		objects := strings.Split(datastr, "---")
+
+		for _, obj := range objects {
+			var component map[string]interface{}
+			err := yaml.Unmarshal([]byte(obj), &component)
+			if err != nil {
+				log.Fatalf("Failed to unmarshal YAML: %v", err)
+			}
+			compKind, found, err := unstructured.NestedString(component, "kind")
+			if !found || err != nil {
+				return err
+			}
+			compApiVersion, found, err := unstructured.NestedString(component, "apiVersion")
+			if !found || err != nil {
+				return err
+			}
+			if compKind == "Component" && compApiVersion == "core.oam.dev/v1alpha2" {
+				components = append(components, component)
+			}
+			if compKind == "ApplicationConfiguration" && compApiVersion == "core.oam.dev/v1alpha2" {
+				appData = append(appData, component)
+			}
+
 		}
-		components = append(components, component)
 	}
-	conversionComponents, err := traits.ExtractTrait(appMap)
+
+	conversionComponents, err := traits.ExtractTrait(appData)
 	if err != nil {
 		return errors.New("failed extracting traits from app")
 	}
@@ -67,4 +76,18 @@ func ConfData() error {
 		return err
 	}
 	return nil
+}
+func iterateDirectory(path string) []string {
+	var files []string
+
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		if strings.Contains(info.Name(), "yaml") || strings.Contains(info.Name(), "yml") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files
 }
