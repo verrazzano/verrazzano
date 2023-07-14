@@ -329,7 +329,7 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 
 	}
 	if tokenToReturn == nil {
-		return "", "", log.ErrorfNewErr("Failed to find the token in Rancher response")
+		return "", "", nil
 	}
 	return tokenToReturn.Created, tokenToReturn.ExpiresAt, nil
 }
