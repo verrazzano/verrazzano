@@ -5,10 +5,14 @@ package clusterapi
 
 import (
 	"bytes"
-	"os"
-	"text/template"
-
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"os"
+	"strings"
+	"text/template"
+	v1 "k8s.io/api/core/v1"
 )
 
 const clusterctlYamlTemplate = `
@@ -56,6 +60,22 @@ type ImageConfig struct {
 	Repository string
 	Tag        string
 }
+
+// clusterAPIPodMatcher matches pods with an out of date CoreProvider, BootstrapProvider, ControlPlaneProvider, or InfrastructureProvider.
+type clusterAPIPodMatcher struct {
+	coreProvider           string
+	bootstrapProvider      string
+	controlPlaneProvider   string
+	infrastructureProvider string
+}
+
+type ImageCheckResult int
+
+const (
+	OutOfDate ImageCheckResult = iota
+	UpToDate
+	NotFound
+)
 
 const (
 	defaultClusterAPIDir = "/verrazzano/.cluster-api"
@@ -167,4 +187,72 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 
 	// Return the result containing the processed template
 	return buf, nil
+}
+
+func (c *clusterAPIPodMatcher) ReInit() error {
+	images, err := getImages(istioSubcomponent, proxyv2ImageName,
+		verrazzanoSubcomponent, fluentdImageName,
+		wkoSubcomponent, wkoExporterImageName)
+	if err != nil {
+		return err
+	}
+	c.istioProxyImage = images[proxyv2ImageName]
+	c.fluentdImage = images[fluentdImageName]
+	c.wkoExporterImage = images[wkoExporterImageName]
+	return nil
+}
+
+func getImages(kvs ...string) (map[string]string, error) {
+	bt, err := newBomTool()
+	if err != nil {
+		return nil, err
+	}
+	if len(kvs)%2 != 0 {
+		return nil, errors.New("must have even key/value pairs")
+	}
+	images := map[string]string{}
+	for i := 0; i < len(kvs); i += 2 {
+		subComponent := kvs[i]
+		imageName := kvs[i+1]
+		image, err := bt.getImage(subComponent, imageName)
+		if err != nil {
+			return nil, err
+		}
+		images[imageName] = image
+	}
+	return images, nil
+}
+
+func newBomTool() (*bomTool, error) {
+	vzbom, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, err
+	}
+	return &bomTool{
+		vzbom: vzbom,
+	}, nil
+}
+
+// isImageOutOfDate returns true if the container image is not as expected (out of date)
+func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expectedImage string) ImageCheckResult {
+	if strings.Contains(actualImage, imageName) {
+		if 0 != strings.Compare(actualImage, expectedImage) {
+			return OutOfDate
+		}
+		return UpToDate
+	}
+	return NotFound
+}
+
+// Matches when a pod has an outdated istiod/proxyv2 image, or an outdate fluentd image
+func (c *clusterAPIPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+
+	for i, pod := range podList.Items {
+		for _, co := range pod.Spec.Containers {
+			if isImageOutOfDate(log, co.Image, c.bootstrapProvider, c.) == OutOfDate {
+				return true
+			}
+		}
+	}
+	return false
 }
