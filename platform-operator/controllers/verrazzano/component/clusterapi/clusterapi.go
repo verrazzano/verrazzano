@@ -72,8 +72,8 @@ type ImageConfig struct {
 	Tag        string
 }
 
-// clusterAPIPodMatcher matches pods with an out of date CoreProvider, BootstrapProvider, ControlPlaneProvider, or InfrastructureProvider.
-type clusterAPIPodMatcher struct {
+// PodMatcherClusterAPI matches pods with an out of date CoreProvider, BootstrapProvider, ControlPlaneProvider, or InfrastructureProvider.
+type PodMatcherClusterAPI struct {
 	coreProvider           string
 	bootstrapProvider      string
 	controlPlaneProvider   string
@@ -214,7 +214,7 @@ func getImage(subComponent, imageName string) (string, error) {
 	return "", fmt.Errorf("failed to find %s/%s image in the BOM", subComponent, imageName)
 }
 
-func (c *clusterAPIPodMatcher) initializeImageVersionsFromBOM(log vzlog.VerrazzanoLogger) error {
+func (c *PodMatcherClusterAPI) initializeImageVersionsFromBOM(log vzlog.VerrazzanoLogger) error {
 	image, err := getImage(clusterAPISubComponentName, clusterAPIControllerImage)
 	if err != nil {
 		return err
@@ -250,27 +250,29 @@ func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expect
 }
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
-func (c *clusterAPIPodMatcher) MatchAndPrepareUpgradeOptions(ctx spi.ComponentContext, log vzlog.VerrazzanoLogger, overrides *capiOverrides) (clusterapi.ApplyUpgradeOptions, error) {
+func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (clusterapi.ApplyUpgradeOptions, error) {
 
+	c.initializeImageVersionsFromBOM(ctx.Log())
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
 	podList := &v1.PodList{}
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
 	}
-	log.Info("LIST OF PODS", podList.String())
+
+	ctx.Log().Info("LIST OF PODS", podList.String())
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
-			if isImageOutOfDate(log, clusterAPIControllerImage, co.Image, c.coreProvider) == OutOfDate {
+			if isImageOutOfDate(ctx.Log(), clusterAPIControllerImage, co.Image, c.coreProvider) == OutOfDate {
 				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overrides.GetClusterAPIVersion())
 			}
-			if isImageOutOfDate(log, clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider) == OutOfDate {
+			if isImageOutOfDate(ctx.Log(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider) == OutOfDate {
 				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEBootstrapVersion()))
 			}
-			if isImageOutOfDate(log, clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider) == OutOfDate {
+			if isImageOutOfDate(ctx.Log(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider) == OutOfDate {
 				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion()))
 			}
-			if isImageOutOfDate(log, clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider) == OutOfDate {
+			if isImageOutOfDate(ctx.Log(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider) == OutOfDate {
 				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIVersion()))
 			}
 		}
