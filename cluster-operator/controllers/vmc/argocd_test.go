@@ -16,8 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -215,8 +217,6 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 	testBodyForTokens, _ := os.Open("testdata/bodyfortokentest.json")
 	arrayBytes, _ := io.ReadAll(testBodyForTokens)
 	clusterIDForTest := "clusteridfortest"
-	postBodyForTokens, _ := os.Open("testdata/bodyfortokenpost.json")
-	postArrayBytes, _ := io.ReadAll(postBodyForTokens)
 
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
@@ -231,6 +231,8 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 			}
 			return resp, nil
 		}).Times(1)
+
+	// This is the request to get tokens for the cluster and the user
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -242,11 +244,20 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 			}
 			return resp, nil
 		}).Times(1)
+	// This is the request to create a new token
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			body, err := io.ReadAll(req.Body)
+			assert.NoError(t, err)
+			jsonString, err := gabs.ParseJSON(body)
+			asserts.NoError(t, err)
+			_, ok := jsonString.Path("clusterID").Data().(string)
+			asserts.True(t, ok)
+			_, ok = jsonString.Path("ttl").Data().(float64)
+			asserts.True(t, ok)
 			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(postArrayBytes)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"testoken", "Created": "2023-08-13T15:32:38Z"}`)))
 			resp = &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -342,7 +353,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
-			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"xxx", "name": "testToken"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token": "testCreateToken", "name": "2023-07-19T19:42:19Z"}`)))
 			resp = &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
