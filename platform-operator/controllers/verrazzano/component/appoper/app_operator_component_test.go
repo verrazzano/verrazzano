@@ -6,6 +6,8 @@ package appoper
 import (
 	"context"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"helm.sh/helm/v3/pkg/action"
@@ -13,6 +15,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	"testing"
 
@@ -121,6 +124,21 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 			},
 		}).Build()
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, nil, false))
+	assert.NoError(t, err)
+}
+
+// TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding tests the PostUpgrade function
+// GIVEN a call to PostUpgrade
+// WHEN the VMC CRD does not exist
+// THEN no error is returned
+func TestAppOperatorVMCMissing(t *testing.T) {
+	vz := &v1alpha1.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+
+	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(&meta.NoKindMatchError{})
+
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(mockClient, vz, nil, false))
 	assert.NoError(t, err)
 }
 

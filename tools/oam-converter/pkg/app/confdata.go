@@ -27,6 +27,7 @@ func ConfData() error {
 		inputDirectory = os.Args[1]
 	}
 	var appData []map[string]interface{}
+
 	var components []map[string]interface{}
 
 	//iterate through user inputted directory
@@ -63,6 +64,7 @@ func ConfData() error {
 	}
 
 	conversionComponents, err := traits.ExtractTrait(appData)
+
 	if err != nil {
 		return errors.New("failed extracting traits from app")
 	}
@@ -72,11 +74,13 @@ func ConfData() error {
 	}
 
 	err = resources.CreateResources(conversionComponents)
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
 func iterateDirectory(path string) []string {
 	var files []string
 

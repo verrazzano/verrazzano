@@ -1,0 +1,75 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBitConfig
+metadata:
+  labels:
+    fluentbit.verrazzano.io/namespace-config: "verrazzano"
+  name: nodeexporter-fbc
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  filterSelector:
+    matchLabels:
+      verrazzano.io/component: "nodeexporter"
+  parserSelector:
+    matchLabels:
+      verrazzano.io/component: "nodeexporter"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Filter
+metadata:
+  labels:
+    verrazzano.io/component: "nodeexporter"
+  name: nodeexporter-filter
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  filters:
+    - parser:
+        keyName: log
+        reserveData: true
+        preserveKey: true
+        parser: nodeexporter-parser1,nodeexporter-parser2,nodeexporter-parser3
+  match: "kube.*node-exporter*_node-exporter*"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "nodeexporter"
+  name: nodeexporter-parser1
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*?)msg="(?<message>.*?)"([\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "nodeexporter"
+  name: nodeexporter-parser2
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) (?<message>[\s\S]*?)$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: Parser
+metadata:
+  labels:
+    verrazzano.io/component: "nodeexporter"
+  name: nodeexporter-parser3
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+spec:
+  regex:
+    regex: '/^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)(.*?)level=(?<level>[^ ]+)(?:.*msg="(?<message>[^"]+)")?[\s\S]*?$/'
+    timeKey: logtime
+    timeKeep: true
+    timeFormat: "%Y-%m-%dT%H:%M:%S.%LZ"
+{{ end -}}

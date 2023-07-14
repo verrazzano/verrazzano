@@ -9,27 +9,46 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io"
-
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	kblabels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/yaml"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -37,27 +56,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
-	"go.uber.org/zap"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // Reconciler reconciles a Verrazzano object
@@ -74,6 +78,12 @@ type Reconciler struct {
 
 // Name of finalizer
 const finalizerName = "install.verrazzano.io"
+
+// Name of Effective Configmap Data Key
+const effConfigKey = "effective-config.yaml"
+
+// Suffix of the Name of the Configmap containing effective CR
+const effConfigSuffix = "-effective-config"
 
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
@@ -95,6 +105,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if ctx == nil {
 		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
+
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
@@ -139,6 +150,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		errorCounterMetricObject.Inc()
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+	}
+
+	// CreateOrUpdateEffectiveConfigCM will store our Effective CR in the configmap
+	err = r.createOrUpdateEffectiveConfigCM(ctx, vz, log)
+	if err != nil {
+		errorCounterMetricObject.Inc()
+		log.Errorf("Failed to Create/Update the effective-config ConfigMap: %v", err)
+
+		// Not returning an error since it has already been logged and we don't want the
+		// controller runtime to log again.  Just re-queue if there is an error.
+		return newRequeueWithDelay(), nil
 	}
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
@@ -188,7 +210,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
 	}
-
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
@@ -936,7 +957,7 @@ func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
 		return false
 	}
-	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName, authproxy.ComponentJSONName)
+	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName, authproxy.ComponentJSONName, fluentoperator.ComponentJSONName, fluentbitosoutput.ComponentJSONName)
 	return true
 }
 
@@ -1069,4 +1090,49 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	r.WatchMutex.RLock()
 	defer r.WatchMutex.RUnlock()
 	return r.WatchedComponents[compName]
+}
+
+// CreateOrUpdateEffectiveConfigCM takes in the Actual CR, retrieves the Effective CR,
+// converts it into YAML and stores it in a configmap If no configmap exists,
+// it will create one, otherwise it updates the configmap with the effective CR
+func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+
+	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
+	v1beta1ActualCR := &v1beta1.Verrazzano{}
+	err := vz.ConvertTo(v1beta1ActualCR)
+	if err != nil {
+		return fmt.Errorf("failed Converting v1alpha1 Verrazzano to v1beta1: %v", err)
+	}
+
+	effCR, err := transform.GetEffectiveV1beta1CR(v1beta1ActualCR)
+	if err != nil {
+		return fmt.Errorf("failed retrieving the Effective CR: %v", err)
+	}
+
+	// Marshal Indent it to format the Effective CR Specs into YAML
+	effCRSpecs, err := yaml.Marshal(effCR.Spec)
+	if err != nil {
+		return fmt.Errorf("failed to convert effective CR into YAML: %v", err)
+	}
+
+	// Create a Configmap Object that stores the Effective CR Specs
+	effCRConfigmap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      (vz.ObjectMeta.Name + effConfigSuffix),
+			Namespace: (vz.ObjectMeta.Namespace),
+		},
+	}
+
+	// Update the configMap if a ConfigMap already exists
+	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, effCRConfigmap, func() error {
+
+		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to Create or Update the configmap: %v", err)
+	}
+
+	return nil
 }

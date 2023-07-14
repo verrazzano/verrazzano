@@ -29,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -304,10 +305,10 @@ func TestPostInstallUpgrade(t *testing.T) {
 	time := metav1.Now()
 
 	var tests = []struct {
-		name    string
-		vz      vzapi.Verrazzano
-		ingress netv1.Ingress
-		cert    certapiv1.Certificate
+		name      string
+		vz        vzapi.Verrazzano
+		ingresses netv1.IngressList
+		cert      certapiv1.Certificate
 	}{
 		{
 			name: "TestPostInstallUpgrade When everything is disabled",
@@ -322,9 +323,9 @@ func TestPostInstallUpgrade(t *testing.T) {
 					},
 				},
 			}}},
-			ingress: netv1.Ingress{
+			ingresses: netv1.IngressList{Items: []netv1.Ingress{{
 				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
-			},
+			}}},
 			cert: certapiv1.Certificate{
 				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
 				Status: certapiv1.CertificateStatus{
@@ -347,9 +348,9 @@ func TestPostInstallUpgrade(t *testing.T) {
 					},
 				},
 			}}},
-			ingress: netv1.Ingress{
+			ingresses: netv1.IngressList{Items: []netv1.Ingress{{
 				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
-			},
+			}}},
 			cert: certapiv1.Certificate{
 				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
 				Status: certapiv1.CertificateStatus{
@@ -372,9 +373,9 @@ func TestPostInstallUpgrade(t *testing.T) {
 					},
 				},
 			}}},
-			ingress: netv1.Ingress{
+			ingresses: netv1.IngressList{Items: []netv1.Ingress{{
 				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: vzconst.PrometheusOperatorNamespace},
-			},
+			}}},
 			cert: certapiv1.Certificate{
 				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: vzconst.PrometheusOperatorNamespace},
 				Status: certapiv1.CertificateStatus{
@@ -406,11 +407,45 @@ func TestPostInstallUpgrade(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "TestPostInstallUpgrade When authproxy, nginx, prometheus, prometheus operator and alertmanager are enabled",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:  &vzapi.AuthProxyComponent{Enabled: &enabled},
+				Ingress:    &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus: &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled, InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{Raw: []byte("{\"alertmanager\":{\"enabled\":true}}")},
+						},
+					},
+				}},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingresses: netv1.IngressList{Items: []netv1.Ingress{{
+				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+			},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.AlertmanagerIngress, Namespace: authproxy.ComponentNamespace},
+				}}},
+			cert: certapiv1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+				Status: certapiv1.CertificateStatus{
+					Conditions: []certapiv1.CertificateCondition{
+						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&test.ingress, &test.cert).Build()
+			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&test.cert).WithLists(&test.ingresses).Build()
 			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
 			err := postInstallUpgrade(ctx)
 			assert.NoError(t, err)
@@ -925,6 +960,36 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	assertions.NoError(err)
 
 	authPolicy := &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
+	assertions.NoError(err)
+
+	assertions.Len(authPolicy.Spec.Rules, 2)
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
+	assertions.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+
+	// GIVEN Prometheus Operator is being installed or upgraded
+	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function with additional components enabled
+	// THEN  the expected Istio authorization policy is created with rules for those components as well
+	additionalComponentsCR := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+				Thanos: &vzapi.ThanosComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(client, &additionalComponentsCR, nil, false)
+
+	err = createOrUpdatePrometheusAuthPolicy(ctx)
+	assertions.NoError(err)
+
+	authPolicy = &istioclisec.AuthorizationPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assertions.NoError(err)
 

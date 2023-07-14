@@ -24,14 +24,22 @@ spec:
       to:
         - operation:
             ports: ["{{ .Values.api.port }}", "{{ .Values.api.grpcPort }}"]
-    # verrazzano-authproxy:8775 <- fluentd
+{{- if or .Values.fluentd.enabled (and .Values.fluentOperator.enabled .Values.fluentbitOpensearchOutput.enabled) }}
+    # verrazzano-authproxy:8775 <- fluentd, fluentBit
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
+            {{- if and .Values.fluentd.enabled (and .Values.fluentOperator.enabled .Values.fluentbitOpensearchOutput.enabled) }}
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.name }}", "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.fluentBitSA }}"]
+            {{- else if .Values.fluentd.enabled }}
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.name }}"]
+            {{- else }}
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.logging.fluentBitSA }}"]
+            {{- end }}
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]
+{{- end }}
 {{- if .Values.jaegerOperator.enabled }}
     # verrazzano-authproxy:8775 <- jaeger
     - from:
@@ -42,6 +50,7 @@ spec:
         - operation:
             ports: ["{{ .Values.api.port }}"]
 {{- end }}
+{{- if .Values.prometheus.enabled }}
     # verrazzano-authproxy:9113,15090 <- prometheus
     - from:
         - source:
@@ -50,6 +59,7 @@ spec:
       to:
         - operation:
             ports: ["9113","15090"]
+{{- end }}
 ---
 {{- if .Values.elasticSearch.enabled }}
 #

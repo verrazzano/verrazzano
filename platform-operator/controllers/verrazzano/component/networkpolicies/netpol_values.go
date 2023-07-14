@@ -28,6 +28,7 @@ type chartValues struct {
 	Rancher             *rancherValues           `json:"rancher,omitempty"`
 	Velero              *veleroValues            `json:"velero,omitempty"`
 	ArgoCD              *argoCDValues            `json:"argoCd,omitempty"`
+	FluentOperator      *fluentOperatorValues    `json:"fluentOperator,omitempty"`
 	ClusterAPI          *clusterAPIValues        `json:"clusterAPI,omitempty"`
 }
 
@@ -110,5 +111,9 @@ type argoCDValues struct {
 }
 
 type clusterAPIValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type fluentOperatorValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

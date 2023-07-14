@@ -5,6 +5,7 @@ package helidonresources
 
 import (
 	"fmt"
+
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
@@ -21,10 +22,12 @@ func CreateIngressChildResourcesFromHelidon(conversionComponent *types.Conversio
 	for index, rule := range rules {
 
 		vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+
 		if err != nil {
 			print(err)
 			return err
 		}
+
 		vsName := fmt.Sprintf("%s-rule-%d-vs", conversionComponent.ComponentName, index)
 		drName := fmt.Sprintf("%s-rule-%d-dr", conversionComponent.ComponentName, index)
 		authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", conversionComponent.ComponentName, index)
@@ -40,6 +43,7 @@ func CreateIngressChildResourcesFromHelidon(conversionComponent *types.Conversio
 		if err != nil {
 			return err
 		}
+
 	}
 	return nil
 }

@@ -7,7 +7,9 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	istio "istio.io/api/networking/v1beta1"
@@ -108,11 +110,13 @@ func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.Desti
 // If the rule contains destination information that is used.
 func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) (*istio.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
+
 		dest, err := destination.CreateDestinationFromRule(rule)
 		if err != nil {
 			return nil, err
 		}
 		return dest, err
+
 	}
 
 	return createDestinationFromHelidonWorkload(rule.Destination.Port, helidonWorkload)

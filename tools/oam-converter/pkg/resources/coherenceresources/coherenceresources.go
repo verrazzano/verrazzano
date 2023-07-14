@@ -5,6 +5,7 @@ package coherenceresources
 
 import (
 	"fmt"
+
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
@@ -23,6 +24,7 @@ func CreateIngressChildResourcesFromCoherence(conversionComponent *types.Convers
 
 		// Find the services associated with the trait in the application configuration.
 		vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+
 		if err != nil {
 			print(err)
 			return err
@@ -45,3 +47,4 @@ func CreateIngressChildResourcesFromCoherence(conversionComponent *types.Convers
 	}
 	return nil
 }
+

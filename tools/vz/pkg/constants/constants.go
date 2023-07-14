@@ -161,6 +161,7 @@ const (
 	DeploymentsJSON  = "deployments.json"
 	EventsJSON       = "events.json"
 	PodsJSON         = "pods.json"
+	CertificatesJSON = "certificates.json"
 	ServicesJSON     = "services.json"
 	ReplicaSetsJSON  = "replicasets.json"
 	DaemonSetsJSON   = "daemonsets.json"

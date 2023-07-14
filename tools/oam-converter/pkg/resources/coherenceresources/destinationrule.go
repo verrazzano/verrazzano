@@ -40,7 +40,9 @@ func createDestinationRuleFromCoherenceWorkload(trait *vzapi.IngressTrait, rule 
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
 func mutateDestinationRuleFromCoherenceWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, coherenceWorkload *vzapi.VerrazzanoCoherenceWorkload) error {
+
 	dest, err := destination.CreateDestinationFromRule(rule)
+
 	if err != nil {
 		print(err)
 		return err

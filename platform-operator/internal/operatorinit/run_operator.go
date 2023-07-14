@@ -43,6 +43,10 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	}
 	nginxutil.SetIngressNGINXNamespace(ingressNGINXNamespace)
 
+	if err := CreateVerrazzanoVersionsConfigMap(context.Background()); err != nil {
+		return err
+	}
+
 	registry.InitRegistry()
 	metricsexporter.Init()
 

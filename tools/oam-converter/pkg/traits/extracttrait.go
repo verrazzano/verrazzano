@@ -52,6 +52,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 					traitSpec, found, err := unstructured.NestedMap(traitMap, "trait")
 					if !found || err != nil {
 						return nil, errors.New("trait spec doesn't exist")
+
 					}
 
 					traitKind, found, err := unstructured.NestedString(traitSpec, "kind")
@@ -180,4 +181,5 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 		}
 	}
 	return conversionComponents, nil
+
 }

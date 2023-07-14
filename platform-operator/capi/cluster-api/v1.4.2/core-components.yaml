@@ -11142,7 +11142,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        image: registry.k8s.io/cluster-api/cluster-api-controller:v1.4.2
+        image: registry.k8s.io/cluster-api/cluster-api-controller:v1.4.2-20230601170413-d75d4df4d
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
