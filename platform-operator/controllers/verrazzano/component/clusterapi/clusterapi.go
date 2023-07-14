@@ -202,6 +202,9 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 
 func getImage(subComponent, imageName string) (string, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return "", err
+	}
 	images, err := bomFile.GetImageNameList(subComponent)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get the images for subComponent")
