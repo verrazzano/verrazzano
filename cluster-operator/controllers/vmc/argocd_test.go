@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
@@ -359,7 +358,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 
 func generateClientObject(objs ...runtime.Object) client.WithWatch {
 	user := unstructured.Unstructured{}
-	user.SetUnstructuredContent(map[string]interface{}{UserUsernameAttribute: vzconst.ArgoCDClusterRancherUsername})
+	user.SetUnstructuredContent(map[string]interface{}{UserUsernameAttribute: constants.ArgoCDClusterRancherUsername})
 	user.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
 		Version: APIGroupVersionRancherManagement,

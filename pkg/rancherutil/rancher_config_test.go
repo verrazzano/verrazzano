@@ -31,7 +31,6 @@ import (
 var (
 	testToken = "test"
 	userID    = "usertest"
-	clusterID = "clustertest"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
