@@ -262,7 +262,6 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 		return applyUpgradeOptions, err
 	}
 
-	ctx.Log().Info("LIST OF PODS", podList.String())
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
@@ -280,10 +279,17 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 			}
 			ctx.Log().Info(clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider)
 			if isImageOutOfDate(ctx.Log(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider) == OutOfDate {
-				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIVersion()))
+				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIVersion()))
 			}
 		}
 	}
 	ctx.Log().Info("upgrade options", applyUpgradeOptions.CoreProvider, "=>", applyUpgradeOptions.BootstrapProviders, "=>", applyUpgradeOptions.InfrastructureProviders, "==>", applyUpgradeOptions.ControlPlaneProviders)
 	return applyUpgradeOptions, nil
+}
+
+func isUpgradeOptionsEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
+	return len(upgradeOptions.CoreProvider) == 0 ||
+		len(upgradeOptions.BootstrapProviders) == 0 ||
+		len(upgradeOptions.ControlPlaneProviders) == 0 ||
+		len(upgradeOptions.InfrastructureProviders) == 0
 }
