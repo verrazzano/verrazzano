@@ -213,9 +213,11 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 	}
 
 	loginURIPath := loginURLParts[0]
-	testBodyForTokens, _ := os.Open("testdata/bodyfortokentest.json")
+	testBodyForTokens, _ := os.Open("test_data/bodyfortokentest.json")
 	arrayBytes, _ := io.ReadAll(testBodyForTokens)
 	clusterIDForTest := "clusteridfortest"
+	postBodyForTokens, _ := os.Open("test_data/bodyfortokenpost.json")
+	postArrayBytes, _ := io.ReadAll(postBodyForTokens)
 
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
@@ -231,12 +233,23 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 			return resp, nil
 		}).Times(1)
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, tokensPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
 			r := io.NopCloser(bytes.NewReader([]byte(arrayBytes)))
 			resp = &http.Response{
 				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
+		}).Times(1)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, tokensPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(postArrayBytes)))
+			resp = &http.Response{
+				StatusCode: http.StatusCreated,
 				Body:       r,
 			}
 			return resp, nil
@@ -280,8 +293,7 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 	newTimestamp := secret.Annotations[createTimestamp]
 	assert.NoError(t, err)
 	assert.NotEqual(t, newTimestamp, initalTimestamp)
-	_, expiresAtTimestampExists := secret.Annotations[expiresAtTimestamp]
-	assert.Equal(t, expiresAtTimestampExists, true)
+	assert.Empty(t, secret.Annotations[expiresAtTimestamp])
 }
 
 func expectHTTPLoginRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
@@ -347,12 +359,12 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender) *mocks.MockRequestSen
 
 func generateClientObject(objs ...runtime.Object) client.WithWatch {
 	user := unstructured.Unstructured{}
+	user.SetUnstructuredContent(map[string]interface{}{UserUsernameAttribute: vzconst.ArgoCDClusterRancherUsername})
 	user.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
 		Version: APIGroupVersionRancherManagement,
 		Kind:    UserKind,
 	})
-	user.SetUnstructuredContent(map[string]interface{}{UserUsernameAttribute: vzconst.ArgoCDClusterRancherUsername})
 
 	totalObjects := []runtime.Object{
 		&corev1.Secret{
