@@ -59,6 +59,39 @@ pipeline {
         cron(branchSpecificSchedule)
     }
 
+    parameters {
+            booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
+        }
+
+    environment {
+        OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
+        OCIR_SCAN_TARGET = credentials('ocir-scan-target')
+        OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+        OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
+        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
+        CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
+
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+        CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
+
+        OCI_OS_REGION="us-phoenix-1"
+
+        PIPELINE_OWNERS = credentials('periodictests-owners')
+    }
+
     stages {
         stage('Get last commit ran') {
             steps {
@@ -75,18 +108,19 @@ pipeline {
         }
 
         stage ('Run Periodic Test Suite') {
-                    when {
-                        allOf {
-                            expression { return runPipeline() }
-                        }
-                    }
-
-                    steps {
-                        script {
-                            build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
-                        }
-                    }
+            when {
+                allOf {
+                    expression { return runPipeline() }
                 }
+            }
+
+            steps {
+                script {
+                    LAST_RUN_COMMIT = env.GIT_COMMIT
+                    build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
+                }
+            }
+        }
 
         stage('Store last commit ran') {
             steps {
@@ -100,6 +134,17 @@ pipeline {
             }
         }
     }
+}
+
+def cleanWorkspaceAndCheckout() {
+    scmCheckout()
+    dockerLogins()
+    def props = readProperties file: '.verrazzano-development-version'
+    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+    // update the description with some meaningful info
+    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
 }
 
 def scmCheckout() {
@@ -119,29 +164,42 @@ def scmCheckout() {
     if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
         error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
     }
-
-    if (LAST_CLEAN_BACKEND_COMMIT != null) {
-        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_BACKEND_COMMIT}...${GIT_COMMIT_TO_USE}"
-        def lastClean = "${LAST_CLEAN_BACKEND_COMMIT}"
-        def currentStable = "${GIT_COMMIT_TO_USE}"
-        def commitList = getCommitListFromGitLog(lastClean, currentStable)
-        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-            SUSPECT_LIST = getSuspectList(commitList, userMappings)
-            echo "Suspect list: ${SUSPECT_LIST}"
-        }
-    }
-    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
 }
 
-def cleanWorkspaceAndCheckout() {
-    scmCheckout()
-    dockerLogins()
-    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-    // update the description with some meaningful info
-    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-    storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+def dockerLogins() {
+    try {
+        sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+        """
+    } catch(error) {
+        echo "docker login failed, retrying after sleep"
+        retry(4) {
+            sleep(30)
+            sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+            """
+        }
+    }
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+        try {
+            sh """
+                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+            """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
+}
+
+// Checks if the commit has changed since last run
+def runPipeline() {
+  return LAST_RUN_COMMIT != env.GIT_COMMIT && ! params.DRY_RUN
 }
 
 def getCronSchedule() {
@@ -152,11 +210,6 @@ def getCronSchedule() {
         return "0 */6 * * *"
     }
     return ""
-}
-
-// Checks all the conditions gating test execution and collates the result
-def runPipeline() {
-  return LAST_RUN_COMMIT != env.GIT_COMMIT
 }
 
 For each branch (master + release-*) {

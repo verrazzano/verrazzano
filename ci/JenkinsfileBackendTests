@@ -330,7 +330,7 @@ def dockerLogins() {
             """
         }
     }
-    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         try {
             sh """
                 echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
@@ -454,7 +454,7 @@ def runTests() {
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_BACKEND_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (NOTIFY_BACKEND_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         echo "Alert notifications enabled for ${env.BRANCH_NAME}"
         return true
     }
@@ -473,7 +473,7 @@ def isPagerDutyEnabled() {
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
         return "@weekly"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
+    } else if (env.BRANCH_NAME.startsWith("release-")) {
         return "@weekly"
     }
     return ""
