@@ -49,9 +49,7 @@ func sbsProcess1Func() []byte {
 	}
 
 	// Create the cloud credential to be used for all tests
-	err = ensureOCNEDriverVarsInitialized(t.Logs)
-	Expect(err).ShouldNot(HaveOccurred())
-
+	ensureVarsInitializedForCredential()
 	cloudCredentialName := fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 	var credentialID string
 	Eventually(func() error {

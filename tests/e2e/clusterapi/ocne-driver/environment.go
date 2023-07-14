@@ -70,7 +70,18 @@ var (
 	cloudCredentialID string
 )
 
-// Grabs info from environment variables required by this test suite
+// Initializes the variables required to create a cloud credential
+func ensureVarsInitializedForCredential() {
+	region = os.Getenv("OCI_REGION")
+	userID = os.Getenv("OCI_USER_ID")
+	tenancyID = os.Getenv("OCI_TENANCY_ID")
+	fingerprint = os.Getenv("OCI_CREDENTIALS_FINGERPRINT")
+	privateKeyPath = os.Getenv("OCI_PRIVATE_KEY_PATH")
+	ocneClusterNameSuffix = os.Getenv("OCNE_CLUSTER_NAME_SUFFIX")
+}
+
+// Grabs info from environment variables required by this test suite.
+// Requires an existing cloud credential.
 func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	// mandatory environment variables
 	region = os.Getenv("OCI_REGION")
