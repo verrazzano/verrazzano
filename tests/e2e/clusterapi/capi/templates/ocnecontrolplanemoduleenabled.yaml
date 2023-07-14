@@ -1,0 +1,56 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: OCNEControlPlane
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  moduleOperator:
+    enabled: true
+  verrazzanoPlatformOperator:
+    enabled: true
+    imagePullSecrets:
+      - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+    image:
+      repository: ${VPO_IMAGE}
+      tag: ${VPO_TAG}
+  controlPlaneConfig:
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+          - localhost
+          - 127.0.0.1
+      dns:
+        imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+        imageTag: ${DNS_TAG=v1.9.3}
+      etcd:
+        local:
+          imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+          imageTag: ${ETCD_TAG=3.5.6}
+      networking: {}
+      scheduler: {}
+      imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+          provider-id: oci://{{ ds["id"] }}
+    joinConfiguration:
+      discovery: {}
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+          provider-id: oci://{{ ds["id"] }}
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: OCIMachineTemplate
+      name: ${CLUSTER_NAME}-control-plane
+      namespace: ${CLUSTER_NAMESPACE}
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
+  version: ${KUBERNETES_VERSION=v1.25.7}

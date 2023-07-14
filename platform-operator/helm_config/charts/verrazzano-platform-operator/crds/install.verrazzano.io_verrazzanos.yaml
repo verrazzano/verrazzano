@@ -4417,6 +4417,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  alertmanagerUrl:
+                    type: string
                   argoCDUrl:
                     type: string
                   consoleUrl:
@@ -7596,6 +7598,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  alertmanagerUrl:
+                    type: string
                   argoCDUrl:
                     type: string
                   consoleUrl:

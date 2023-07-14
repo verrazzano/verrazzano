@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -30,9 +30,15 @@ import (
 //	So we may break this into 2 lists in the future: serial analysis functions, parallel analysis functions
 //	Analyzers that may fall into this category should be annotated, with a comment, there currently is only
 //	one that may require that.
+
+// These are the high level analysis functions that are called. The "Runtime Issues" maps to only certificate functions currently.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
-	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
-	"Pod Related Issues": AnalyzePodIssues,
+	"Verrazzano Status":      AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
+	"Pod Related Issues":     AnalyzePodIssues,
+	"KontainerDriver Status": AnalyzeKontainerDrivers,
+	"Rancher Status":         AnalyzeRancher,
+	"Runtime Issues":         AnalyzeCertificateRelatedIssues,
+	"Cluster API Issues":     AnalyzeClusterAPIIssues,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches
