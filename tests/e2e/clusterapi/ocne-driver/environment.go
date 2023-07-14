@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
@@ -94,7 +95,6 @@ func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	clusterCidr = getEnvFallback("CLUSTER_CIDR", "10.96.0.0/16")
 	controlPlaneMemoryGbs = getEnvFallbackInt("CONTROL_PLANE_MEMORY_GBS", 16)
 	controlPlaneOcpus = getEnvFallbackInt("CONTROL_PLANE_OCPUS", 2)
-	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", "VM.Standard.E4.Flex")
 	controlPlaneVolumeGbs = getEnvFallbackInt("CONTROL_PLANE_VOLUME_GBS", 100)
 	imageID = getEnvFallback("IMAGE_ID", "")
 	installCalico = getEnvFallbackBool("INSTALL_CALICO", true)
@@ -108,27 +108,31 @@ func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	useNodePvEncryption = getEnvFallbackBool("USE_NODE_PV_ENCRYPTION", true)
 	verrazzanoResource = getEnvFallback("VERRAZZANO_RESOURCE",
 		"apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster")
-	nodeShape = getEnvFallback("NODE_SHAPE", "VM.Standard.E4.Flex")
 	numWorkerNodes = getEnvFallbackInt("NUM_WORKER_NODES", 1)
 	applyYAMLs = getEnvFallback("APPLY_YAMLS", "")
-	if err := fillOCNEMetadata(); err != nil {
+	if err := fillOCNEMetadata(log); err != nil {
 		return err
 	}
-	if err := fillOCNEVersion(); err != nil {
+	if err := fillOCNEVersion(log); err != nil {
 		return err
 	}
-	if err := fillNodeImage(); err != nil {
+	if err := fillNodeImage(log); err != nil {
 		return err
 	}
 	if err := fillVerrazzanoVersions(log); err != nil {
+		return err
+	}
+	if err := fillNodeShapes(log); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Initializes variables from OCNE metadata ConfigMap. Values are optionally overridden.
-func fillOCNEMetadata() error {
+func fillOCNEMetadata(log *zap.SugaredLogger) error {
 	// TODO: Use ocne-metadata configmap to get fallback values
+
+	// Initialize values
 	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", "v1.9.3")
 	etcdImageTag = getEnvFallback("ETCD_IMAGE_TAG", "3.5.6")
 	tigeraImageTag = getEnvFallback("TIGERA_IMAGE_TAG", "v1.29.0")
@@ -137,20 +141,61 @@ func fillOCNEMetadata() error {
 }
 
 // Initializes OCNE Version, optionally overridden.
-func fillOCNEVersion() error {
-	// TODO: Use Rancher API call to get fallback value
-	ocneVersion = getEnvFallback("OCNE_VERSION", "1.6")
+func fillOCNEVersion(log *zap.SugaredLogger) error {
+	var ocneVersionFallback string
+
+	// Use Rancher API call to get fallback value
+	requestURL, adminToken := setupRequest(rancherURL, "/meta/ocne/ocneVersions", log)
+	response, err := helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	if err != nil {
+		log.Errorf("error requesting OCNE version from Rancher: %s", err)
+		return err
+	}
+	versionList := response.Children()
+	if len(versionList) != 1 {
+		err = fmt.Errorf("response to /meta/ocne/ocneVersions request does not have expected length")
+		log.Error(err)
+		return err
+	}
+	ocneVersionFallback = versionList[0].Data().(string)
+
+	// Initialize value
+	ocneVersion = getEnvFallback("OCNE_VERSION", ocneVersionFallback)
 	return nil
 }
 
 // Initializes the node image, optionally overridden
-func fillNodeImage() error {
-	// TODO: Use Rancher API call to get fallback value
-	imageDisplayName = getEnvFallback("IMAGE_DISPLAY_NAME", "Oracle-Linux-8.7-2023.05.24-0")
+func fillNodeImage(log *zap.SugaredLogger) error {
+	var linuxImageFallback string
+
+	// Use Rancher API call to get fallback value
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("/meta/oci/nodeImages?cloudCredentialId=%s", cloudCredentialID), log)
+	response, err := helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	if err != nil {
+		log.Errorf("error requesting node images from Rancher: %s", err)
+		return err
+	}
+	imageList := response.Children()
+	for _, image := range imageList {
+		imageString := image.Data().(string)
+		// filter a suitable OL 8 image, same as what the rancher UI does
+		if strings.HasPrefix(imageString, "Oracle-Linux-8") && !strings.Contains(imageString, "aarch64") {
+			linuxImageFallback = imageString
+			break
+		}
+	}
+	if linuxImageFallback == "" {
+		err = fmt.Errorf("could not find a suitable node image")
+		log.Error(err)
+		return err
+	}
+
+	// Initialize value
+	imageDisplayName = getEnvFallback("IMAGE_DISPLAY_NAME", linuxImageFallback)
 	return nil
 }
 
-// Initializes the VZ version and tag for the created OCNE clusters. Values are optionally overridden.
+// Initializes the VZ version and tag for the created OCNE clusters, optionally overridden.
 func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 	var vzTagFallback, vzVersionFallback string
 
@@ -163,7 +208,7 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 	}
 	responseMap := response.ChildrenMap()
 	if len(responseMap) != 1 {
-		err = fmt.Errorf("response to GET call to /meta/ocne/verrazzanoVersions does not have expected length")
+		err = fmt.Errorf("response to /meta/ocne/verrazzanoVersions request does not have expected length")
 		log.Error(err)
 		return err
 	}
@@ -178,7 +223,26 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 	return nil
 }
 
-// TODO: possibly get node shapes from Rancher API
+// Initializes the control plane and worker node shapes, optionally overridden.
+func fillNodeShapes(log *zap.SugaredLogger) error {
+	// var cpShapeFallback, nodeShapeFallback string
+
+	// // Use Rancher API call to get fallback values
+	// requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("/meta/oci/nodeShapes?cloudCredentialId=%s", cloudCredentialID), log)
+	// response, err := helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	// if err != nil {
+	// 	log.Errorf("error requesting node shapes from Rancher: %s", err)
+	// 	return err
+	// }
+	// // TODO: process `response` for the node shapes
+
+	// // Initialize values
+	// controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", cpShapeFallback)
+	// nodeShape = getEnvFallback("NODE_SHAPE", nodeShapeFallback)
+	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", "VM.Standard.E4.Flex")
+	nodeShape = getEnvFallback("NODE_SHAPE", "VM.Standard.E4.Flex")
+	return nil
+}
 
 // Returns the value of the desired environment variable,
 // but returns a fallback value if the environment variable is not set

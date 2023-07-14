@@ -71,6 +71,8 @@ func sbsProcess1Func() []byte {
 // Part of SynchronizedBeforeSuite, run by all processes
 func sbsAllProcessesFunc(credentialIDBytes []byte) {
 	// Define global variables for all processes
+	cloudCredentialID = string(credentialIDBytes)
+
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 
@@ -87,7 +89,6 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 	err = ensureOCNEDriverVarsInitialized(t.Logs)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	cloudCredentialID = string(credentialIDBytes)
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 }

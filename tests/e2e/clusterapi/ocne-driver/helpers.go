@@ -135,8 +135,8 @@ func createNodePoolCluster(clusterName, nodePoolName string, log *zap.SugaredLog
 	var rancherOCNEClusterConfig RancherOCNECluster
 	nodePools := []string{
 		fmt.Sprintf(
-			"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"VM.Standard.E4.Flex\"}",
-			nodePoolName),
+			"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"%s\"}",
+			nodePoolName, nodeShape),
 	}
 	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
 
