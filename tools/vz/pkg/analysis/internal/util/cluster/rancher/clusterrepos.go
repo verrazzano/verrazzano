@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
-
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -79,7 +78,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 	}
 
 	if len(messages) > 0 {
-		issueReporter.AddKnownIssueMessagesFiles(report.RancherClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
 	return nil

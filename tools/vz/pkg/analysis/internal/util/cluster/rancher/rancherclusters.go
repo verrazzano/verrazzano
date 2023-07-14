@@ -112,7 +112,7 @@ func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueRepo
 	}
 
 	if len(messages) > 0 {
-		issueReporter.AddKnownIssueMessagesFiles(report.RancherClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
 	return nil

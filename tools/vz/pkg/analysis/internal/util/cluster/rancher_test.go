@@ -30,5 +30,5 @@ func TestAnalyzeRancher(t *testing.T) {
 	assert.NoError(t, rancher.AnalyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Len(t, reportedIssues, 1)
-	assert.Equal(t, "RancherClusterNotReady", reportedIssues[0].Type)
+	assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
 }
