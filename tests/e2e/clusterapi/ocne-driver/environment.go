@@ -157,6 +157,8 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		log.Error(err)
 		return err
 	}
+	// Unmarshal dataYaml into a map,
+	// since the first and only top-level field's key is an unknown Kubernetes version
 	dataYaml := cm.Data["mapping"]
 	var mapToContents map[string]interface{}
 	if err = yaml.Unmarshal([]byte(dataYaml), &mapToContents); err != nil {
@@ -169,10 +171,23 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		return err
 	}
 	for k8sVersion, contents := range mapToContents {
+		// Retrieve the Kubernetes version
 		kubernetesFallback = k8sVersion
-		coreDNSFallback = contents.(map[string]interface{})["container-images"].(map[string]interface{})["coredns"].(string)
-		etcdFallback = contents.(map[string]interface{})["container-images"].(map[string]interface{})["etcd"].(string)
-		tigeraFallback = contents.(map[string]interface{})["container-images"].(map[string]interface{})["tigera-operator"].(string)
+
+		// Convert the inner contents to a Golang struct for easier access
+		var contentStruct OCNEMetadataContents
+		contentBytes, err := yaml.Marshal(contents)
+		if err != nil {
+			log.Errorf("yaml marshalling error: %s", err)
+			return err
+		}
+		if err = yaml.Unmarshal(contentBytes, &contentStruct); err != nil {
+			log.Errorf("yaml unmarshalling error: %s", err)
+			return err
+		}
+		coreDNSFallback = contentStruct.ContainerImages.Coredns
+		etcdFallback = contentStruct.ContainerImages.Etcd
+		tigeraFallback = contentStruct.ContainerImages.TigeraOperator
 	}
 
 	// Initialize values

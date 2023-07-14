@@ -188,3 +188,25 @@ type ProvisioningCluster struct {
 		Ready              bool `json:"ready"`
 	} `json:"status"`
 }
+
+type OCNEMetadataContents struct {
+	Release         string `yaml:"Release"`
+	ContainerImages struct {
+		Calico                string `yaml:"calico"`
+		Coredns               string `yaml:"coredns"`
+		Etcd                  string `yaml:"etcd"`
+		KubeApiserver         string `yaml:"kube-apiserver"`
+		KubeControllerManager string `yaml:"kube-controller-manager"`
+		KubeProxy             string `yaml:"kube-proxy"`
+		KubeScheduler         string `yaml:"kube-scheduler"`
+		ModuleOperator        string `yaml:"module-operator"`
+		Pause                 string `yaml:"pause"`
+		TigeraOperator        string `yaml:"tigera-operator"`
+	} `yaml:"container-images"`
+	Packages struct {
+		Helm    string `yaml:"helm"`
+		Kubeadm string `yaml:"kubeadm"`
+		Kubectl string `yaml:"kubectl"`
+		Kubelet string `yaml:"kubelet"`
+	} `yaml:"packages"`
+}
