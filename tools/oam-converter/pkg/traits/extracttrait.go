@@ -78,7 +78,26 @@ func extractTraitFromMap(yamlMap map[string]interface{}) (map[string]*vzapi.Ingr
 
 				fmt.Println("check map", ingressMap[" robert-helidon"])
 				if traitKind == consts.MetricsTrait {
-					//	Add metricstrait code
+					metricsTrait := &vzapi.MetricsTrait{}
+					traitJSON, err := json.Marshal(traitSpec)
+
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+					}
+
+					err = json.Unmarshal(traitJSON, metricsTrait)
+					metricsTrait.Name = yamlMap[consts.YamlMetadata].(map[string]interface{})[consts.YamlName].(string)
+					metricsTrait.Namespace = yamlMap[consts.YamlMetadata].(map[string]interface{})[consts.YamlNamespace].(string)
+					if err != nil {
+						log.Fatalf("Failed to unmarshal trait: %v", err)
+					}
+					fmt.Println(componentMap["componentName"].(string))
+
+					//Assigning metricsTrait to a map with the key as component name
+					//metricsMap[componentMap["componentName"].(string)] = metricsTrait
+
+					componentNames = append(componentNames, componentMap["componentName"].(string))
+					metricsTraits = append(metricsTraits, metricsTrait)
 
 				}
 			}

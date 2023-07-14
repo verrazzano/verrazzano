@@ -13,6 +13,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"os"
+	"path/filepath"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
 )
@@ -71,7 +74,7 @@ func CreateServiceMonitor(trait *vzapi.MetricsTrait) (monitor promoperapi.Servic
 		BasicAuthSecret:    secret,
 		IstioEnabled:       &useHTTPS,
 		VZPrometheusLabels: &vzPromLabels,
-		//sClusterName:        clusters.GetClusterName(ctx, r.Client),
+		ClusterName:        "default",
 	}
 
 	// Fill in the scrape info if it is populated in the trait
@@ -88,6 +91,7 @@ func CreateServiceMonitor(trait *vzapi.MetricsTrait) (monitor promoperapi.Servic
 	serviceMonitor.SetName(pmName)
 	serviceMonitor.SetNamespace(workload.GetNamespace())
 	PopulateServiceMonitor(scrapeInfo, &serviceMonitor)
+	PrintServiceMonitor(&serviceMonitor)
 	return serviceMonitor, nil
 
 }
@@ -172,6 +176,39 @@ func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.Service
 			print(err)
 		}
 		serviceMonitor.Spec.Endpoints = append(serviceMonitor.Spec.Endpoints, endpoint)
+	}
+	return nil
+}
+
+func PrintServiceMonitor(serviceMonitor *promoperapi.ServiceMonitor)(error){
+	fmt.Println("virtual-service", serviceMonitor)
+	directoryPath := "/Users/adalua/GolandProjects/verrazzano/tools/oam-converter/"
+	fileName := "sm.yaml"
+	filePath := filepath.Join(directoryPath, fileName)
+
+	virtualServiceYaml, err := yaml.Marshal(serviceMonitor)
+	if err != nil {
+		fmt.Printf("Failed to marshal: %v\n", err)
+		return err
+	}
+	// Write the YAML content to the file
+	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Failed to open file: %v\n", err)
+		return err
+	}
+	defer file.Close()
+
+	// Append the YAML content to the file
+	_, err = file.Write(virtualServiceYaml)
+	if err != nil {
+		fmt.Printf("Failed to write to file: %v\n", err)
+		return err
+	}
+	_, err = file.WriteString("---\n")
+	if err != nil {
+		fmt.Printf("Failed to write to file: %v\n", err)
+		return err
 	}
 	return nil
 }

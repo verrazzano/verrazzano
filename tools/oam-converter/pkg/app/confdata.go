@@ -14,9 +14,12 @@ import (
 	extract "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
+
 
 // contains function checks if the specifies string is present in array of strings
 func contains(arr []string, target string) bool {
@@ -30,35 +33,71 @@ func contains(arr []string, target string) bool {
 
 func ConfData() error {
 
+	var inputDirectory string
+	//var outputDirectory string
 	helidonWorkloads := []*vzapi.VerrazzanoHelidonWorkload{}
 	coherenceWorkloads := []*vzapi.VerrazzanoCoherenceWorkload{}
-	//Read app File
-	appData, err := ioutil.ReadFile("../../examples/bobs-books/bobs-books-app.yaml")
-	if err != nil {
-		fmt.Println("Failed to read YAML file:", err)
-		return err
+
+	//check if CLI has 2 vars
+	if len(os.Args) != 3 {
+		fmt.Println("Not enough args to run tool")
+		return nil
+	} else {
+		inputDirectory = os.Args[1]
+		//outputDirectory = os.Args[2]
 	}
 
-	//Read Comp file
-	compData, err := ioutil.ReadFile("../../examples/bobs-books/bobs-books-comp.yaml")
-	if err != nil {
-		fmt.Println("Failed to read YAML file:", err)
-		return err
-	}
-	//A map for app file
-	appMap := make(map[string]interface{})
+	var appDataArr[](map[string]interface{})
+	var compDataArr [](map[string]interface{})
 
-	// Unmarshal the OAM YAML input data into the map
-	err = yaml.Unmarshal(appData, &appMap)
-	if err != nil {
+	//iterate through user inputted directory
+	appFiles, compFiles := iterateDirectory(inputDirectory)
+
+	//Loop through all app files and store into appDataArr
+	for _, input := range appFiles {
+		appData, err := ioutil.ReadFile(input)
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return err
+		}
+		appMap := make(map[string]interface{})
+		err = yaml.Unmarshal(appData, &appMap)
+		if err != nil {
+			log.Fatalf("Failed to unmarshal YAML: %v", err)
+		}
+		if value, ok := appMap["kind"]; ok {
+			if value == "ApplicationConfiguration"{
+				appDataArr = append(appDataArr, appMap)
+			}
+		}
+	}
+
+	//Loop through all comp files and store into compdataArr
+	for _, input := range compFiles {
+		compData, err := ioutil.ReadFile(input)
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return err
+		}
+		compMap := make(map[string]interface{})
+		err = yaml.Unmarshal(compData, &compMap)
+		if err != nil {
 		log.Fatalf("Failed to unmarshal YAML: %v", err)
+		}
+		if value, ok := compMap["kind"]; ok {
+			if value == "Component"{
+				compDataArr = append(compDataArr, compMap)
+			}
+		}
 	}
 
-	workloadTraitMap, componentNames, ingressTraits, metricsTraits := extract.HandleYAMLStructurePanic(appMap)
+
+	workloadTraitMap, componentNames, ingressTraits, metricsTraits := extract.HandleYAMLStructurePanic(appDataArr[1])
 	fmt.Print(ingressTraits)
+	fmt.Print(metricsTraits)
 
 	//Splitting up the comp file with "---" delimiter into multiple objects
-	compStr := string(compData)
+	compStr := string("")
 	compObjects := strings.Split(compStr, "---")
 
 	//Array of components in comp file
@@ -73,7 +112,7 @@ func ConfData() error {
 		components = append(components, component)
 	}
 	weblogicMap := make(map[string]*vzapi.VerrazzanoWebLogicWorkload)
-	coherenceWorkloads, helidonWorkloads, weblogicMap, err = segregateWorkloads(weblogicMap, components, componentNames, helidonWorkloads, coherenceWorkloads)
+	coherenceWorkloads, helidonWorkloads, weblogicMap, err := segregateWorkloads(weblogicMap, components, componentNames, helidonWorkloads, coherenceWorkloads)
 	if err != nil {
 		fmt.Printf("Failed to segregate: %v\n", err)
 		return err
@@ -93,7 +132,25 @@ func ConfData() error {
 	}
 	return nil
 }
-
+func iterateDirectory(path string) ([]string, []string) {
+	var appFiles []string
+	var compFiles []string
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		if strings.Contains(info.Name(), "yaml"){
+			if strings.Contains(info.Name(), "app"){
+				appFiles = append(appFiles, path)
+			}
+			if strings.Contains(info.Name(), "comp"){
+				compFiles = append(compFiles, path)
+			}
+		}
+		return nil
+	})
+	return appFiles, compFiles
+}
 func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload, components []map[string]interface{}, componentNames []string, helidonWorkloads []*vzapi.VerrazzanoHelidonWorkload, coherenceWorkloads []*vzapi.VerrazzanoCoherenceWorkload) ([]*vzapi.VerrazzanoCoherenceWorkload, []*vzapi.VerrazzanoHelidonWorkload, map[string]*vzapi.VerrazzanoWebLogicWorkload, error) {
 	//A weblogic map with the key as component name and value as a VerrazzanoWeblogicWorkload struct
 

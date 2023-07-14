@@ -13,7 +13,7 @@ const (
 	YamlName                  = "name"
 	YamlNamespace             = "namespace"
 	IngressTrait              = "IngressTrait"
-	MetricsTrait              = "metricsTrait"
+	MetricsTrait              = "MetricsTrait"
 	GatewayAPIVersion         = "networking.istio.io/v1alpha3"
 	VirtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
 	DestinationRuleAPIVersion = "networking.istio.io/v1alpha3"
