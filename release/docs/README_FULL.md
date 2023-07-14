@@ -17,7 +17,7 @@ Select [Quick Start](https://verrazzano.io/latest/docs/setup/quickstart/) to get
 Verrazzano [release versions](https://github.com/verrazzano/verrazzano/releases/) and source code are available at [https://github.com/verrazzano/verrazzano](https://github.com/verrazzano/verrazzano).
 This repository contains a Kubernetes operator for installing Verrazzano and example applications for use with Verrazzano.
 
-For documentation from all releases, see the [Documentation Archive](https://verrazzano.io/archive/docs/).
+For documentation from all releases, use the version menu on the [Documentation](https://verrazzano.io/latest/docs/) home page.
 
 ## Distribution layout
 
@@ -44,7 +44,7 @@ The Verrazzano distribution includes the following artifacts:
       * `none.yaml`: The standard `none` profile to install Verrazzano
   * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install.
 
-## Install Verrazzano 
+## Install Verrazzano
 
 Install Verrazzano using the instructions in the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
 
