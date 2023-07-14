@@ -225,22 +225,37 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 
 // Initializes the control plane and worker node shapes, optionally overridden.
 func fillNodeShapes(log *zap.SugaredLogger) error {
-	// var cpShapeFallback, nodeShapeFallback string
+	var cpShapeFallback, nodeShapeFallback string
 
-	// // Use Rancher API call to get fallback values
-	// requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("/meta/oci/nodeShapes?cloudCredentialId=%s", cloudCredentialID), log)
-	// response, err := helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
-	// if err != nil {
-	// 	log.Errorf("error requesting node shapes from Rancher: %s", err)
-	// 	return err
-	// }
-	// // TODO: process `response` for the node shapes
+	// Use Rancher API call to get fallback values
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("/meta/oci/nodeShapes?cloudCredentialId=%s", cloudCredentialID), log)
+	response, err := helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	if err != nil {
+		log.Errorf("error requesting node shapes from Rancher: %s", err)
+		return err
+	}
+	shapeList := response.Children()
+	if len(shapeList) == 0 {
+		err = fmt.Errorf("request for node shapes to Rancher API returned an empty list")
+		log.Error(err)
+		return err
+	}
+	// If the list contains "VZ.Standard.E4.Flex", default to that, similar to the Rancher UI.
+	// Otherwise, use the first image in the list.
+	cpShapeFallback = shapeList[0].Data().(string)
+	nodeShapeFallback = shapeList[0].Data().(string)
+	for _, shape := range shapeList {
+		shapeString := shape.Data().(string)
+		if shapeString == "VM.Standard.E4.Flex" {
+			cpShapeFallback = shapeString
+			nodeShapeFallback = shapeString
+			break
+		}
+	}
 
-	// // Initialize values
-	// controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", cpShapeFallback)
-	// nodeShape = getEnvFallback("NODE_SHAPE", nodeShapeFallback)
-	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", "VM.Standard.E4.Flex")
-	nodeShape = getEnvFallback("NODE_SHAPE", "VM.Standard.E4.Flex")
+	// Initialize values
+	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", cpShapeFallback)
+	nodeShape = getEnvFallback("NODE_SHAPE", nodeShapeFallback)
 	return nil
 }
 
