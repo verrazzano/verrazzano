@@ -26,6 +26,6 @@
     "ttl": 14400000,
     "type": "token",
     "userId": "usertestone",
-    "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+    "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:normal-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
     "uuid": "13024ffe-f19f-4455-b126-78f7512c2675"
 }
