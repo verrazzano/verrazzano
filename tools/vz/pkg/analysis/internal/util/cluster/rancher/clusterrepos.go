@@ -58,7 +58,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
 			case "Downloaded":
-				subMessage = fmt.Sprintf("%s on branch %s not downloaded", clusterRepo.Spec.GitRepo, clusterRepo.Spec.GitBranch)
+				subMessage = fmt.Sprintf("in repo %s on branch %s not downloaded", clusterRepo.Spec.GitRepo, clusterRepo.Spec.GitBranch)
 			case "FollowerDownloaded":
 				subMessage = "follower not downloaded"
 			}
