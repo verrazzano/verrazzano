@@ -44,8 +44,6 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueRe
 		reportKontainerDriverIssue(log, clusterRoot, kontainerDriver, issueReporter)
 	}
 
-	issueReporter.Contribute(log, clusterRoot)
-
 	return nil
 }
 
@@ -65,7 +63,7 @@ func reportKontainerDriverIssue(log *zap.SugaredLogger, clusterRoot string, driv
 
 		if len(messages) != 0 {
 			messages = append([]string{fmt.Sprintf("KontainerDriver resource \"%s\" is not ready per it's resource status", driver.Name)}, messages...)
-			issueReporter.AddKnownIssueMessagesFiles(report.KontainerDriverNotReady, clusterRoot, messages, []string{})
+			issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 		}
 	}
 

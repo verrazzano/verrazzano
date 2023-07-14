@@ -25,5 +25,12 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 	if err != nil {
 		return err
 	}
-	return rancher.AnalyzeRancherClusters(log, clusterRoot, &issueReporter)
+	err = rancher.AnalyzeRancherClusters(log, clusterRoot, &issueReporter)
+	if err != nil {
+		return err
+	}
+
+	issueReporter.Contribute(log, clusterRoot)
+
+	return nil
 }
