@@ -161,8 +161,8 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 // Derives interim version which is the latest git release tag - 1 minor version.
 // If there are only two unique minor versions then latest patch is derived.
 func getInterimRelease(releaseTags []string) string {
-	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
 	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(releaseTags)
+	uniqueMinorReleaseCount := len(uniqueMinorVersions)
 
 	// Handles edge cases such as having less than 2 minor releases.
 	var interimRelease string
@@ -185,8 +185,8 @@ func getInterimRelease(releaseTags []string) string {
 // Derives install version which is the latest git release tag - 2 minor version.
 // If there are only two unique minor versions then oldest patch is derived.
 func getInstallRelease(releaseTags []string) string {
-	uniqueMinorReleaseCount := getUniqueMinorVersionCount(releaseTags)
 	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(releaseTags)
+	uniqueMinorReleaseCount := len(uniqueMinorVersions)
 
 	// Handles edge cases such as having less than 2 minor releases.
 	var installRelease string
@@ -289,21 +289,6 @@ func getUniqueMajorMinorAndPatchVersionMap(releaseTags []string) (map[string][]s
 	}
 
 	return minorAndPatchesVersionMap, uniqueMinorVersions
-}
-
-func getUniqueMinorVersionCount(releaseTags []string) int {
-	minorVersionsMap := make(map[string]bool)
-
-	// count the number of unique minor releases
-	for _, tag := range releaseTags {
-		tagVersion, err := semver.NewSemVersion(tag)
-		if err == nil {
-			minorVersion := fmt.Sprintf("%d.%d", tagVersion.Major, tagVersion.Minor)
-			minorVersionsMap[minorVersion] = true
-		}
-	}
-	uniqueMinorReleasesCount := len(minorVersionsMap)
-	return uniqueMinorReleasesCount
 }
 
 // printUsage Prints the help for this program
