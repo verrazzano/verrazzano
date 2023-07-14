@@ -131,9 +131,9 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface,
 	serverCertBytes []byte, serverPrivKey *rsa.PrivateKey, podsClient corev1.PodInterface) ([]byte, []byte, error) {
 	// PEM encode Server cert
-	pods, err := getPodList(log, podsClient)
-	if err != nil {
-		return nil, nil, err
+	pods, poderr := getPodList(log, podsClient)
+	if poderr != nil {
+		return nil, nil, poderr
 	}
 	serverPEM := new(bytes.Buffer)
 	_ = pem.Encode(serverPEM, &pem.Block{
@@ -235,9 +235,9 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 
 func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface, ca *x509.Certificate,
 	caPrivKey *rsa.PrivateKey, caBytes []byte, podClient corev1.PodInterface) (*x509.Certificate, *rsa.PrivateKey, error) {
-	pods, err := getPodList(log, podClient)
-	if err != nil {
-		return nil, nil, err
+	pods, poderr := getPodList(log, podClient)
+	if poderr != nil {
+		return nil, nil, poderr
 	}
 	caPEMBytes, caKeyPEMBytes := encodeCABytes(caBytes, caPrivKey)
 	webhookCA := v1.Secret{}
