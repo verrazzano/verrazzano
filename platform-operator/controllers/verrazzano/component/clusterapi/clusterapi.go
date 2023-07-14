@@ -243,6 +243,7 @@ func (c *PodMatcherClusterAPI) initializeImageVersionsFromBOM(log vzlog.Verrazza
 
 // isImageOutOfDate returns true if the container image is not as expected (out of date)
 func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expectedImage string) ImageCheckResult {
+	log.Infof("Checking if the image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
 	if strings.Contains(actualImage, imageName) {
 		if 0 != strings.Compare(actualImage, expectedImage) {
 			return OutOfDate
@@ -264,28 +265,24 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
-			ctx.Log().Info(clusterAPIControllerImage, co.Image, c.coreProvider)
 			if isImageOutOfDate(ctx.Log(), clusterAPIControllerImage, co.Image, c.coreProvider) == OutOfDate {
 				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overrides.GetClusterAPIVersion())
 			}
-			ctx.Log().Info(clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider)
 			if isImageOutOfDate(ctx.Log(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider) == OutOfDate {
 				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEBootstrapVersion()))
 			}
-			ctx.Log().Info(clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider)
 			if isImageOutOfDate(ctx.Log(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider) == OutOfDate {
 				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion()))
 			}
-			ctx.Log().Info(clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider)
 			if isImageOutOfDate(ctx.Log(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider) == OutOfDate {
 				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIVersion()))
 			}
 		}
 	}
-	ctx.Log().Info("upgrade options", applyUpgradeOptions.CoreProvider, "=>", applyUpgradeOptions.BootstrapProviders, "=>", applyUpgradeOptions.InfrastructureProviders, "==>", applyUpgradeOptions.ControlPlaneProviders)
 	return applyUpgradeOptions, nil
 }
 
+// isUpgradeOptionsEmpty returns true if any of the options is not empty
 func isUpgradeOptionsEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
 	return len(upgradeOptions.CoreProvider) == 0 ||
 		len(upgradeOptions.BootstrapProviders) == 0 ||

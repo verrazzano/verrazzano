@@ -284,20 +284,14 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	overridesContext := newOverridesContext(overrides)
 
-	// Set up the upgrade options for the CAPI apply upgrade.
-	/*	const formatString = "%s/%s:%s"
-		applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
-			CoreProvider:            fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-			BootstrapProviders:      []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-			ControlPlaneProviders:   []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-			InfrastructureProviders: []string{fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
-		}*/
+	overridesContext := newOverridesContext(overrides)
 	podMatcher := &PodMatcherClusterAPI{}
 	if err = podMatcher.initializeImageVersionsFromBOM(ctx.Log()); err != nil {
 		return err
 	}
+
+	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(ctx, overridesContext)
 	if err != nil {
 		return err
