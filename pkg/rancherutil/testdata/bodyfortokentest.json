@@ -150,6 +150,38 @@
             "userId": "usertest",
             "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
             "uuid": "dba03cf7-5bb4-45bd-8876-0b68dffa5e2d"
+        },
+         {
+            "authProvider": "local",
+            "baseType": "token",
+            "clusterId": "clustertest",
+            "created": "2023-07-13T15:32:38Z",
+            "createdTS": 1689276758000,
+            "creatorId": null,
+            "current": false,
+            "description": "",
+            "enabled": true,
+            "expired": false,
+            "expiresAt": "2023-07-13T23:32:38Z",
+            "groupPrincipals": null,
+            "id": "tokenid3",
+            "isDerived": true,
+            "labels": {
+                "authn.management.cattle.io/token-userId": "usertest",
+                "cattle.io/creator": "creatorvalue"
+            },
+            "lastUpdateTime": "",
+            "links": {
+                "remove": "…/v3/tokens/tokenid3",
+                "self": "…/v3/tokens/tokenid3",
+                "update": "…/v3/tokens/tokenid3"
+            },
+            "name": "tokenid3",
+            "ttl": 14400000,
+            "type": "token",
+            "userId": "usertest",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:vz-argoCD-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "uuid": "dba03cf7-5bb4-45bd-8876-0b68dffa5e2d"
         }
     ]
 }
