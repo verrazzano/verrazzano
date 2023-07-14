@@ -310,7 +310,6 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
 	var tokenToReturn *TokenGetResponse
-	tokenToReturn = nil
 	for i, item := range items {
 		if item.ClusterID != clusterID || item.UserID != userID {
 			continue
