@@ -159,14 +159,7 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[CertKey] = serverPEMBytes
 	webhookCrt.Data[PrivKey] = serverKeyPEMBytes
-	webhookCrt.OwnerReferences = []metav1.OwnerReference{
-		{
-			Kind:       "Pod",
-			APIVersion: "v1",
-			Name:       pods.Items[0].GetName(),
-			UID:        pods.Items[0].GetUID(),
-		},
-	}
+	webhookCrt.OwnerReferences = getOwenerRefList(pods)
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
@@ -254,15 +247,7 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[CertKey] = caPEMBytes
 	webhookCA.Data[PrivKey] = caKeyPEMBytes
-	webhookCA.OwnerReferences = []metav1.OwnerReference{
-		{
-			Kind:       "Pod",
-			APIVersion: "v1",
-			Name:       pods.Items[0].GetName(),
-			UID:        pods.Items[0].GetUID(),
-		},
-	}
-
+	webhookCA.OwnerReferences = getOwenerRefList(pods)
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
@@ -385,20 +370,26 @@ func updateSecretOwnerReference(log *zap.SugaredLogger, secretsClient corev1.Sec
 	if err != nil {
 		return err
 	}
-	owenRef := []metav1.OwnerReference{
-		{
-			Kind:       "Pod",
-			APIVersion: "v1",
-			Name:       pods.Items[0].GetName(),
-			UID:        pods.Items[0].GetUID(),
-		},
-	}
 	if secret.OwnerReferences == nil {
-		secret.OwnerReferences = owenRef
+		secret.OwnerReferences = getOwenerRefList(pods)
 		_, err = secretsClient.Update(context.TODO(), secret, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func getOwenerRefList(pods *v1.PodList) []metav1.OwnerReference {
+	ownerList := []metav1.OwnerReference{}
+	for _, pod := range pods.Items {
+		owner := metav1.OwnerReference{
+			Kind:       "Pod",
+			APIVersion: "v1",
+			Name:       pod.GetName(),
+			UID:        pod.GetUID(),
+		}
+		ownerList = append(ownerList, owner)
+	}
+	return ownerList
 }
