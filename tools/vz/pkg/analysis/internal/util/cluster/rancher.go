@@ -17,5 +17,6 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
+	_ = rancher.AnalyzeClusterRepos(log, clusterRoot, &issueReporter)
 	return rancher.AnalyzeRancherClusters(log, clusterRoot, &issueReporter)
 }

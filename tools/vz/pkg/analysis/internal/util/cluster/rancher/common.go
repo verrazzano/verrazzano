@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 
@@ -23,7 +24,7 @@ type cattleCondition struct {
 	Message string                 `json:"message,omitempty"`
 }
 
-func readFileFromClusterPath(log *zap.SugaredLogger, clusterRoot string, filename string) ([]byte, string, error) {
+func unmarshallFileFromClusterPath(log *zap.SugaredLogger, clusterRoot string, filename string, object interface{}) error {
 	clusterPath := files.FindFileInClusterRoot(clusterRoot, filename)
 
 	// Parse the json into local struct
@@ -31,14 +32,22 @@ func readFileFromClusterPath(log *zap.SugaredLogger, clusterRoot string, filenam
 	if err != nil {
 		// The file may not exist if Rancher is not installed.
 		log.Debugf("file %s not found", clusterPath)
-		return []byte{}, "", nil
+		return nil
 	}
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Debugf("Failed reading Json file %s", clusterPath)
-		return []byte{}, "", err
+		return err
 	}
-	return fileBytes, clusterPath, nil
+
+	// Unmarshall file contents into a struct
+	err = json.Unmarshal(fileBytes, object)
+	if err != nil {
+		log.Debugf("Failed to unmarshal %s", clusterPath)
+		return err
+	}
+
+	return nil
 }

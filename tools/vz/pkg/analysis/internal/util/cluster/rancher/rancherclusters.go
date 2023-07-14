@@ -4,7 +4,6 @@
 package rancher
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,23 +30,13 @@ type rancherClusterSpec struct {
 
 // AnalyzeRancherClusters - analyze the status of Rancher clusters
 func AnalyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
-	fileBytes, clusterPath, err := readFileFromClusterPath(log, clusterRoot, "cluster.management.cattle.io.json")
+	list := &rancherClusterList{}
+	err := unmarshallFileFromClusterPath(log, clusterRoot, "cluster.management.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
-	if len(fileBytes) == 0 {
-		return nil
-	}
 
-	// Unmarshall file contents into local struct
-	clusterList := &rancherClusterList{}
-	err = json.Unmarshal(fileBytes, &clusterList)
-	if err != nil {
-		log.Debugf("Failed to unmarshal Rancher Cluster list at %s", clusterPath)
-		return err
-	}
-
-	for _, cluster := range clusterList.Items {
+	for _, cluster := range list.Items {
 		err = analyzeRancherCluster(clusterRoot, cluster, issueReporter)
 		if err != nil {
 			return err
@@ -115,7 +104,7 @@ func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueRepo
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher cluster resource %q, displayed as %s %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
+			message = fmt.Sprintf("Rancher cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
