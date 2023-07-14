@@ -212,10 +212,10 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 	}
 
 	loginURIPath := loginURLParts[0]
-	testBodyForTokens, _ := os.Open("test_data/bodyfortokentest.json")
+	testBodyForTokens, _ := os.Open("testdata/bodyfortokentest.json")
 	arrayBytes, _ := io.ReadAll(testBodyForTokens)
 	clusterIDForTest := "clusteridfortest"
-	postBodyForTokens, _ := os.Open("test_data/bodyfortokenpost.json")
+	postBodyForTokens, _ := os.Open("testdata/bodyfortokenpost.json")
 	postArrayBytes, _ := io.ReadAll(postBodyForTokens)
 
 	mocker := gomock.NewController(t)
