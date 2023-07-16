@@ -61,6 +61,8 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 				subMessage = fmt.Sprintf("in repo %s on branch %s not downloaded", clusterRepo.Spec.GitRepo, clusterRepo.Spec.GitBranch)
 			case "FollowerDownloaded":
 				subMessage = "follower not downloaded"
+			default:
+				continue
 			}
 			// Add a message for the issue
 			var message string

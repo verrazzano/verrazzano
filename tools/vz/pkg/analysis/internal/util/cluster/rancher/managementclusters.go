@@ -94,6 +94,8 @@ func analyzeManagementCluster(clusterRoot string, cluster managementCluster, iss
 				subMessage = "initial roles not populated"
 			case "BackingNamespaceCreated":
 				subMessage = "backing namespace not created"
+			default:
+				continue
 			}
 			// Add a message for the issue
 			var message string

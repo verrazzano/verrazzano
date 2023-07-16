@@ -94,6 +94,8 @@ func analyzeProvisioningCluster(clusterRoot string, cluster provisioningCluster,
 				subMessage = "service account not migrated"
 			case "GlobalAdminsSynced":
 				subMessage = "global admins not synced"
+			default:
+				continue
 			}
 			// Add a message for the issue
 			var message string

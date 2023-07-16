@@ -61,6 +61,8 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 				subMessage = "secrets not migrated"
 			case "Refreshed":
 				subMessage = "not refreshed"
+			default:
+				continue
 			}
 			// Add a message for the issue
 			var message string
