@@ -105,7 +105,7 @@ func analyzeManagementCluster(clusterRoot string, cluster managementCluster, iss
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
+			message = fmt.Sprintf("Rancher management cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
