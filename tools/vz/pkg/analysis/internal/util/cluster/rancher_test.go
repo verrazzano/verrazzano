@@ -18,45 +18,50 @@ type testCase struct {
 	ExpectedIssues int
 }
 
+const (
+	clustersReadySnapshot    = "../../../test/cluster/clusters/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot"
+)
+
 var testCases = []testCase{
 	{
 		Function:       rancher.AnalyzeManagementClusters,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeManagementClusters,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeClusterRepos,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeClusterRepos,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeCatalogs,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeCatalogs,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeProvisioningClusters,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeProvisioningClusters,
-		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 }
