@@ -38,6 +38,16 @@ func TestAnalyzeRancher(t *testing.T) {
 	report.ClearReports()
 	assert.NoError(t, rancher.AnalyzeClusterRepos(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
 	verify(t, logger, 1)
+
+	// Expect no errors and no reported issues.
+	report.ClearReports()
+	assert.NoError(t, rancher.AnalyzeCatalogs(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
+	verify(t, logger, 0)
+
+	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
+	report.ClearReports()
+	assert.NoError(t, rancher.AnalyzeCatalogs(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
+	verify(t, logger, 1)
 }
 
 func verify(t *testing.T, logger *zap.SugaredLogger, expectedIssues int) {
