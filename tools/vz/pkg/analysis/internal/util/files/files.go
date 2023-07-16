@@ -5,13 +5,16 @@
 package files
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // GetMatchingFiles returns the filenames for files that match a regular expression.
@@ -106,4 +109,42 @@ func FindFileInNamespace(clusterRoot string, namespace string, filename string) 
 // FindPodLogFileName will find the name of the log file given a pod
 func FindPodLogFileName(clusterRoot string, pod corev1.Pod) string {
 	return fmt.Sprintf("%s/%s/%s/logs.txt", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+}
+
+// UnmarshallFileInClusterRoot - unmarshall a file into a struct
+func UnmarshallFileInClusterRoot(clusterRoot string, filename string, object interface{}) error {
+	clusterPath := FindFileInClusterRoot(clusterRoot, filename)
+	return unmarshallFile(clusterPath, object)
+}
+
+// UnmarshallFileInNamespace - unmarshall a file from a namespace into a struct
+func UnmarshallFileInNamespace(clusterRoot string, namespace string, filename string, object interface{}) error {
+	clusterPath := FindFileInNamespace(clusterRoot, namespace, filename)
+	return unmarshallFile(clusterPath, object)
+}
+
+func unmarshallFile(clusterPath string, object interface{}) error {
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+
+	// Unmarshall file contents into a struct
+	err = json.Unmarshal(fileBytes, object)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal %s: %s", clusterPath, err.Error())
+	}
+
+	return nil
 }

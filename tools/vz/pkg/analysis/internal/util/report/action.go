@@ -64,7 +64,7 @@ var RunbookLinks = map[string][]string{
 	KeycloakDataMigrationFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/keycloakdatamigrationfailure"},
 	KontainerDriverNotReady:      {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/kontainerdrivernotready"},
 	ClusterAPIClusterNotReady:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/clusterapiclusternotready"},
-	RancherClusterNotReady:       {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/rancherclusternotready"},
+	RancherIssues:                {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/rancherissues"},
 }
 
 // KnownActions are Standard Action types
@@ -91,7 +91,7 @@ var KnownActions = map[string]Action{
 	KeycloakDataMigrationFailure: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[KeycloakDataMigrationFailure][0])},
 	KontainerDriverNotReady:      {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[KontainerDriverNotReady][0])},
 	ClusterAPIClusterNotReady:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ClusterAPIClusterNotReady][0])},
-	RancherClusterNotReady:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[RancherClusterNotReady][0])},
+	RancherIssues:                {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[RancherIssues][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {
