@@ -12,6 +12,55 @@ import (
 	"go.uber.org/zap"
 )
 
+type testCase struct {
+	Function       func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error
+	ClusterRoot    string
+	ExpectedIssues int
+}
+
+var testCases = []testCase{
+	{
+		Function:       rancher.AnalyzeManagementClusters,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeManagementClusters,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRepos,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRepos,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogs,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogs,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeProvisioningClusters,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-ready/cluster-snapshot",
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeProvisioningClusters,
+		ClusterRoot:    "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot",
+		ExpectedIssues: 1,
+	},
+}
+
 // Test analyze Rancher resources with different cluster snapshots.
 func TestAnalyzeRancher(t *testing.T) {
 	var issueReporter = report.IssueReporter{
@@ -19,53 +68,15 @@ func TestAnalyzeRancher(t *testing.T) {
 	}
 	logger := zap.S()
 
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeManagementClusters(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 0)
-
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeManagementClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 1)
-
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeClusterRepos(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 0)
-
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeClusterRepos(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 1)
-
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeCatalogs(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 0)
-
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeCatalogs(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 1)
-
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeProvisioningClusters(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 0)
-
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeProvisioningClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	verify(t, logger, 1)
-}
-
-func verify(t *testing.T, logger *zap.SugaredLogger, expectedIssues int) {
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	if expectedIssues == 0 {
-		assert.Empty(t, reportedIssues)
-	} else {
-		assert.Len(t, reportedIssues, expectedIssues)
-		assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	for _, test := range testCases {
+		report.ClearReports()
+		assert.NoError(t, test.Function(logger, test.ClusterRoot, &issueReporter))
+		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+		if test.ExpectedIssues == 0 {
+			assert.Empty(t, reportedIssues)
+		} else {
+			assert.Len(t, reportedIssues, test.ExpectedIssues)
+			assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+		}
 	}
 }
