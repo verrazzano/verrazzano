@@ -22,13 +22,30 @@ func TestAnalyzeRancher(t *testing.T) {
 	// Expect no errors and no reported issues.
 	report.ClearReports()
 	assert.NoError(t, rancher.AnalyzeManagementClusters(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Empty(t, reportedIssues)
+	verify(t, logger, 0)
 
 	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
 	report.ClearReports()
 	assert.NoError(t, rancher.AnalyzeManagementClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Len(t, reportedIssues, 1)
-	assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	verify(t, logger, 1)
+
+	// Expect no errors and no reported issues.
+	report.ClearReports()
+	assert.NoError(t, rancher.AnalyzeClusterRepos(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
+	verify(t, logger, 0)
+
+	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
+	report.ClearReports()
+	assert.NoError(t, rancher.AnalyzeClusterRepos(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
+	verify(t, logger, 1)
+}
+
+func verify(t *testing.T, logger *zap.SugaredLogger, expectedIssues int) {
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	if expectedIssues == 0 {
+		assert.Empty(t, reportedIssues)
+	} else {
+		assert.Len(t, reportedIssues, expectedIssues)
+		assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	}
 }
