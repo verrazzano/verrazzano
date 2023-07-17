@@ -5,15 +5,12 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"time"
 )
 
 var t = framework.NewTestFramework("none-profile")
 
 var _ = t.BeforeSuiteFunc(beforesuite)
-
-var clientset *kubernetes.Clientset
 
 const (
 	waitTimeout     = 5 * time.Minute
