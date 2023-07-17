@@ -1382,7 +1382,7 @@ func TestGetIstioDeploymentsFromIstioOperator(t *testing.T) {
 	//	WHEN the Istio Operator is not deployed
 	//	THEN no error is returned
 	compContext = spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false)
-	deployList, err = getIstioDeploymentsFromIstioOperator(compContext)
+	_, err = getIstioDeploymentsFromIstioOperator(compContext)
 	assert.NoError(t, err)
 }
 
