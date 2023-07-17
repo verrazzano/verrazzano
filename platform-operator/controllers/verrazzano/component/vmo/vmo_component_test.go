@@ -5,7 +5,11 @@ package vmo
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -23,12 +27,13 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
@@ -43,6 +48,7 @@ func init() {
 	_ = netv1.AddToScheme(testScheme)
 	_ = appsv1.AddToScheme(testScheme)
 	_ = apiextensionsv1.AddToScheme(testScheme)
+	_ = vmov1.AddToScheme(testScheme)
 }
 
 // TestIsEnabled tests the VMO IsEnabled call
@@ -194,12 +200,12 @@ func TestPostUpgrade(t *testing.T) {
 
 func TestPreInstall(t *testing.T) {
 	config.TestHelmConfigDir = testHelmConfigDir
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, nil, nil, false)
+	k8sclient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(k8sclient, nil, nil, false)
 	assert.NoError(t, NewComponent().PreInstall(ctx))
 	vmoCRD := &apiextensionsv1.CustomResourceDefinition{}
 	// The VMO CRD should exist after PreInstall
-	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: "verrazzanomonitoringinstances.verrazzano.io"}, vmoCRD))
+	assert.NoError(t, k8sclient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanomonitoringinstances.verrazzano.io"}, vmoCRD))
 }
 
 // TestPreUpgrade tests the VMO PreUpgrade call
@@ -231,6 +237,127 @@ func TestPreUpgrade(t *testing.T) {
 	config.TestHelmConfigDir = testHelmConfigDir
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, nil, false))
 	assert.NoError(t, err)
+}
+
+// TestPreUninstall tests the PreUninstall for VMO Component
+// GIVEN  a VMO component, existing system VMI resource and NO VMO labeled deployments/statefulsets/ingresses
+// WHEN I call PreUninstall
+// THEN the VMI is deleted, and no error is returned
+// GIVEN a VMO component, existing system VMI resource and VMO labeled deployments/statefulsets/ingresses
+// WHEN I call PreUninstall
+// THEN the VMI is deleted, and an error is returned
+func TestPreUninstall(t *testing.T) {
+	testVMI := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: common.VMIName, Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	vmoLabels := map[string]string{vmoconst.VMOLabel: common.VMIName}
+	vmoDeploy := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "test-vmo-deploy",
+			Labels:    vmoLabels,
+		},
+	}
+	vmoIngress := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "test-vmo-ing",
+			Labels:    vmoLabels,
+		},
+	}
+	vmoStatefulSet := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "test-vmo-sts",
+			Labels:    vmoLabels,
+		},
+	}
+	nonVMODeploy := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "test-deploy",
+		},
+	}
+	nonVMOIngress := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "test-ing",
+		},
+	}
+	tests := []struct {
+		name      string
+		vmi       *vmov1.VerrazzanoMonitoringInstance
+		otherObjs []client.Object
+		expectErr bool
+	}{
+		{
+			name:      "Test PreUninstall when no VMI and no VMO objects exist",
+			vmi:       nil,
+			otherObjs: nil,
+			expectErr: false,
+		},
+		{
+			name:      "Test PreUninstall when only VMI exists",
+			vmi:       &testVMI,
+			otherObjs: nil,
+			expectErr: false,
+		},
+		{
+			name:      "Test PreUninstall when VMI and a VMO deployment exist",
+			vmi:       &testVMI,
+			otherObjs: []client.Object{&vmoDeploy},
+			expectErr: true,
+		},
+		{
+			name:      "Test PreUninstall when VMI and a VMO ingress exist",
+			vmi:       &testVMI,
+			otherObjs: []client.Object{&vmoIngress},
+			expectErr: true,
+		},
+		{
+			name:      "Test PreUninstall when VMI and a VMO statefulset exist",
+			vmi:       &testVMI,
+			otherObjs: []client.Object{&vmoStatefulSet},
+			expectErr: true,
+		},
+		{
+			name:      "Test PreUninstall when VMI and multiple VMO-labeled resources exist",
+			vmi:       &testVMI,
+			otherObjs: []client.Object{&vmoDeploy, &vmoIngress, &vmoStatefulSet},
+			expectErr: true,
+		},
+		{
+			name:      "Test PreUninstall when VMI and a non-VMO labeled deployment/ingress exist",
+			vmi:       &testVMI,
+			otherObjs: []client.Object{&nonVMODeploy, &nonVMOIngress},
+			expectErr: false,
+		},
+	}
+	config.TestHelmConfigDir = testHelmConfigDir
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clientBldr := fake.NewClientBuilder().WithScheme(testScheme)
+			if tt.vmi != nil {
+				clientBldr = clientBldr.WithObjects(tt.vmi)
+			}
+			if tt.otherObjs != nil {
+				clientBldr = clientBldr.WithObjects(tt.otherObjs...)
+			}
+			k8sclient := clientBldr.Build()
+			ctx := spi.NewFakeContext(k8sclient, nil, nil, false)
+			err := NewComponent().PreUninstall(ctx)
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			// The system VMI should have been deleted after PreUninstall
+			vmi := vmov1.VerrazzanoMonitoringInstance{}
+			assert.True(t, errors.IsNotFound(k8sclient.Get(context.TODO(),
+				types.NamespacedName{Name: common.VMIName, Namespace: constants.VerrazzanoSystemNamespace},
+				&vmi)))
+		})
+	}
 }
 
 func createRelease(name string, status release.Status) *release.Release {

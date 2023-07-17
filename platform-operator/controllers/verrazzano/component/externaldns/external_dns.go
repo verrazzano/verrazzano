@@ -46,7 +46,6 @@ const (
 	clusterRoleName                 = ComponentName
 	clusterRoleBindingName          = ComponentName
 	externalDNSIngressAnnotationKey = "external-dns.alpha.kubernetes.io/target"
-	externalDNSSvcAnnotationKey     = "external-dns.alpha.kubernetes.io/hostname"
 )
 
 type isInstalledFuncType func(releaseName string, namespace string) (found bool, err error)
