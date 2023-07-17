@@ -4,6 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
+  creationTimestamp: null
   name: fluentbits.fluentbit.fluent.io
 spec:
   group: fluentbit.fluent.io
@@ -4460,6 +4461,10 @@ spec:
                 type: object
               runtimeClassName:
                 description: RuntimeClassName represents the container runtime configuration.
+                type: string
+              schedulerName:
+                description: SchedulerName represents the desired scheduler for fluent-bit
+                  pods.
                 type: string
               secrets:
                 description: The Secrets are mounted into /fluent-bit/secrets/<secret-name>.
