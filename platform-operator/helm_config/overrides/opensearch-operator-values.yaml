@@ -59,17 +59,17 @@ openSearchCluster:
     version: 2.3.0
     drainDataNodes: true
     setVMMaxMapCount: true
-    podSecurityContext:
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      privileged: false
-      runAsUser: 1000
+#    podSecurityContext:
+#      securityContext:
+#        seccompProfile:
+#          type: RuntimeDefault
+#    securityContext:
+#      allowPrivilegeEscalation: false
+#      capabilities:
+#        drop:
+#          - ALL
+#      privileged: false
+#      runAsUser: 1000
   dashboards:
     image: "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
     opensearchCredentialsSecret:
@@ -89,16 +89,16 @@ openSearchCluster:
     version: 2.3.0
     enable: true
     replicas: 1
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      privileged: false
-    podSecurityContext:
-      fsGroup: 1000
-      runAsGroup: 1000
-      runAsNonRoot: true
-      runAsUser: 1000
-      seccompProfile:
-        type: RuntimeDefault
+#    securityContext:
+#      allowPrivilegeEscalation: false
+#      capabilities:
+#        drop:
+#          - ALL
+#      privileged: false
+#    podSecurityContext:
+#      fsGroup: 1000
+#      runAsGroup: 1000
+#      runAsNonRoot: true
+#      runAsUser: 1000
+#      seccompProfile:
+#        type: RuntimeDefault

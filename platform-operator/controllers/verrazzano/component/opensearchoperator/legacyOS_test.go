@@ -152,7 +152,10 @@ func getVZ() *vzapi.Verrazzano {
 			Components: vzapi.ComponentSpec{
 				Ingress: &vzapi.IngressNginxComponent{Enabled: &falseValue},
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Nodes: []vzapi.OpenSearchNode{{Name: "es-master"}, {Name: "es-data"}, {Name: "data-ingest"}},
+					Nodes: []vzapi.OpenSearchNode{
+						{Name: "es-master"},
+						{Name: "es-data"},
+						{Name: "data-ingest"}},
 				},
 			},
 		},

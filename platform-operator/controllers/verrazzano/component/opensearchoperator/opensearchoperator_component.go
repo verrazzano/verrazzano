@@ -103,19 +103,15 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//func (o opensearchOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
-//	if err := createSecurityconfigSecret(ctx); err != nil {
-//		return err
-//	}
-//	return nil
-//}
-
 func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
+	if err := resetReclaimPolicy(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (c opensearchOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (o opensearchOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.OpenSearchOperator != nil {
 		if ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges
