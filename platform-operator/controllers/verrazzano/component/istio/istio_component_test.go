@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -14,6 +15,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"os/exec"
 	"strings"
@@ -60,6 +62,8 @@ const (
 	profilesRelativePath = "../../../../manifests/profiles"
 
 	testBomFilePath = "../../testdata/test_bom.json"
+
+	testIstioOperatorJSON = "testdata/istio-operator.json"
 
 	externalIPOverrideJSONTemplate = `
 {
@@ -417,6 +421,12 @@ func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
 //	WHEN the deployment object has enough replicas available and istioctl ran successfully
 //	THEN true is returned
 func TestIsReady(t *testing.T) {
+	istioOpByte, err := os.ReadFile(testIstioOperatorJSON)
+	assert.NoError(t, err)
+
+	var istioOperatorInterface unstructured.Unstructured
+	err = json.Unmarshal(istioOpByte, &istioOperatorInterface)
+	assert.NoError(t, err)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -487,23 +497,6 @@ func TestIsReady(t *testing.T) {
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: IstioNamespace,
-				Name:      IstioEgressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioEgressgatewayDeployment},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": IstioEgressgatewayDeployment},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
 		&v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
@@ -536,6 +529,7 @@ func TestIsReady(t *testing.T) {
 				},
 			},
 		},
+		&istioOperatorInterface,
 	).Build()
 
 	isInstalledFunc = func(log vzlog.VerrazzanoLogger) (bool, error) {
@@ -1361,6 +1355,59 @@ func TestValidateInstallWithExistingIstio(t *testing.T) {
 		},
 	}
 	common.RunValidateInstallTest(t, NewComponent, tests...)
+}
+
+// TestGetIstioDeploymentsFromIstioOperator tests the Istio Operator check to get the enabled deployments
+func TestGetIstioDeploymentsFromIstioOperator(t *testing.T) {
+	istioOpByte, err := os.ReadFile(testIstioOperatorJSON)
+	assert.NoError(t, err)
+
+	var istioOperatorInterface unstructured.Unstructured
+	err = json.Unmarshal(istioOpByte, &istioOperatorInterface)
+	assert.NoError(t, err)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&istioOperatorInterface).Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+
+	//  GIVEN a call to getIstioDeploymentsFromIstioOperator
+	//	WHEN the Istio Operator is deployed
+	//	THEN the enabled deployments are returned correctly
+	deployList, err := getIstioDeploymentsFromIstioOperator(compContext)
+	assert.NoError(t, err)
+	assert.Len(t, deployList, 2)
+	assert.Equal(t, deployList[0].Name, IstioIngressgatewayDeployment)
+	assert.Equal(t, deployList[1].Name, IstiodDeployment)
+
+	//  GIVEN a call to getIstioDeploymentsFromIstioOperator
+	//	WHEN the Istio Operator is not deployed
+	//	THEN an error is returned
+	compContext = spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false)
+	deployList, err = getIstioDeploymentsFromIstioOperator(compContext)
+	assert.Error(t, err)
+}
+
+func TestParseIstioOperatorJSONAsBool(t *testing.T) {
+	istioOpByte, err := os.ReadFile(testIstioOperatorJSON)
+	assert.NoError(t, err)
+
+	var istioOperatorInterface interface{}
+	err = json.Unmarshal(istioOpByte, &istioOperatorInterface)
+	assert.NoError(t, err)
+
+	//  GIVEN a call to parseIstioOperatorJSONAsBool
+	//	WHEN a field is enabled
+	//	THEN true is returned
+	assert.True(t, parseIstioOperatorJSONAsBool(istioOperatorInterface, "spec", "components", "base", "enabled"))
+
+	//  GIVEN a call to parseIstioOperatorJSONAsBool
+	//	WHEN a field is disabled
+	//	THEN false is returned
+	assert.False(t, parseIstioOperatorJSONAsBool(istioOperatorInterface, "spec", "components", "cni", "enabled"))
+
+	//  GIVEN a call to parseIstioOperatorJSONAsBool
+	//	WHEN a bad field is given
+	//	THEN false is returned
+	assert.False(t, parseIstioOperatorJSONAsBool(istioOperatorInterface, "bad", "path"))
 }
 
 func newScheme() *runtime.Scheme {

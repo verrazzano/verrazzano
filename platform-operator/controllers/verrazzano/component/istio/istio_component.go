@@ -6,6 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
 	"strings"
 
@@ -81,6 +83,8 @@ const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
+const istioOperatorName = "installed-state"
+
 const (
 	// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
 	// Put external IPs into the IstioOperator YAML, which does support it
@@ -93,6 +97,10 @@ const (
 	// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
 	fluentbitFilterAndParserTemplate = "istio-filter-parser.yaml"
 )
+
+type IstioOperatorJSONFields interface {
+	string | int
+}
 
 var istioDeployments = []types.NamespacedName{
 	{
@@ -416,7 +424,7 @@ func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, av
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	if !areIstioDeploymentsReady(context, prefix) {
+	if deployReady, err := areIstioDeploymentsReady(context, prefix); err != nil || !deployReady {
 		return false
 	}
 
@@ -443,8 +451,63 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	return true
 }
 
-func areIstioDeploymentsReady(context spi.ComponentContext, prefix string) bool {
-	return ready.DeploymentsAreReady(context.Log(), context.Client(), istioDeployments, 1, prefix)
+func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) (bool, error) {
+	istioDeploy, err := getIstioDeploymentsFromIstioOperator(ctx)
+	if err != nil {
+		return false, err
+	}
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), istioDeploy, 1, prefix), nil
+}
+
+func getIstioDeploymentsFromIstioOperator(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
+	var istioDeploy []types.NamespacedName
+	istioOp := unstructured.Unstructured{}
+	istioOp.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "install.istio.io",
+		Version: "v1alpha1",
+		Kind:    "IstioOperator",
+	})
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: istioOperatorName, Namespace: IstioNamespace}, &istioOp)
+	if err != nil {
+		return istioDeploy, ctx.Log().ErrorfNewErr("Failed to get the Istio Operator object from the cluster, %v", err)
+	}
+
+	if parseIstioOperatorJSONAsBool(istioOp.Object, "spec", "components", "egressGateways", 0, "enabled") {
+		istioDeploy = append(istioDeploy, types.NamespacedName{Name: IstioEgressgatewayDeployment, Namespace: IstioNamespace})
+	}
+	if parseIstioOperatorJSONAsBool(istioOp.Object, "spec", "components", "ingressGateways", 0, "enabled") {
+		istioDeploy = append(istioDeploy, types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace})
+	}
+	if parseIstioOperatorJSONAsBool(istioOp.Object, "spec", "components", "pilot", "enabled") {
+		istioDeploy = append(istioDeploy, types.NamespacedName{Name: IstiodDeployment, Namespace: IstioNamespace})
+	}
+	return istioDeploy, nil
+}
+
+func parseIstioOperatorJSONAsBool(object interface{}, fields ...interface{}) bool {
+	if len(fields) == 0 || object == nil {
+		if s, ok := object.(bool); ok {
+			return s
+		}
+		return false
+	}
+
+	if v, ok := fields[0].(string); ok {
+		objMap, ok := object.(map[string]interface{})
+		if !ok {
+			return false
+		}
+		return parseIstioOperatorJSONAsBool(objMap[v], fields[1:]...)
+	}
+	if v, ok := fields[0].(int); ok {
+		objList, ok := object.([]interface{})
+		if !ok {
+			return false
+		}
+		return parseIstioOperatorJSONAsBool(objList[v], fields[1:]...)
+	}
+
+	return false
 }
 
 func isIstioManifestNotInstalledError(err error) bool {
