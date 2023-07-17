@@ -877,6 +877,21 @@ func TestLoginKeycloak(t *testing.T) {
 	cfg, restclient, _ := fakeRESTConfig()
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
 	var tests = []struct {
 		name  string
 		c     client.Client
@@ -894,7 +909,7 @@ func TestLoginKeycloak(t *testing.T) {
 		},
 		{
 			"should log into keycloak when the password is present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(httpSecret).Build(),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(httpSecret, keycloakPod).Build(),
 			false,
 		},
 	}
