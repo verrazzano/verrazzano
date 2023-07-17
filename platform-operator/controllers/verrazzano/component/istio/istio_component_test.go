@@ -1383,7 +1383,7 @@ func TestGetIstioDeploymentsFromIstioOperator(t *testing.T) {
 	//	THEN no error is returned
 	compContext = spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false)
 	deployList, err = getIstioDeploymentsFromIstioOperator(compContext)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 // TestParseIstioOperatorJSONAsBool tests that the JSON object can be parsed for boolean fields
