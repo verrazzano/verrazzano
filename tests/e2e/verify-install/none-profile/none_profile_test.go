@@ -1,4 +1,4 @@
-package none_profile
+package noneprofile
 
 import (
 	. "github.com/onsi/gomega"
