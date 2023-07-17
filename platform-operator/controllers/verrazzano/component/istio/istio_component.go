@@ -6,9 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"path/filepath"
 	"strings"
 
@@ -18,14 +16,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
-	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -44,6 +34,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -98,10 +98,6 @@ const (
 	// fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
 	fluentbitFilterAndParserTemplate = "istio-filter-parser.yaml"
 )
-
-type IstioOperatorJSONFields interface {
-	string | int
-}
 
 var istioDeployments = []types.NamespacedName{
 	{
@@ -430,6 +426,9 @@ func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, av
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	if deployReady, err := areIstioDeploymentsReady(context, prefix); err != nil || !deployReady {
+		if err != nil {
+			context.Log().ErrorfThrottled("Unexpected error verifying Istio deployments are ready: %s", err.Error())
+		}
 		return false
 	}
 
@@ -456,6 +455,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	return true
 }
 
+// areIstioDeploymentsReady verifies that the enabled deployments in the Istio Operator are ready
 func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) (bool, error) {
 	istioDeploy, err := getIstioDeploymentsFromIstioOperator(ctx)
 	if err != nil {
@@ -464,6 +464,7 @@ func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) (bool, er
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), istioDeploy, 1, prefix), nil
 }
 
+// getIstioDeploymentsFromIstioOperator returns the enabled deployments from the Istio Operator
 func getIstioDeploymentsFromIstioOperator(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
 	var istioDeploy []types.NamespacedName
 	istioOp := unstructured.Unstructured{}
@@ -492,6 +493,8 @@ func getIstioDeploymentsFromIstioOperator(ctx spi.ComponentContext) ([]types.Nam
 	return istioDeploy, nil
 }
 
+// parseIstioOperatorJSONAsBool parses an object JSON and returns a boolean field if it exists at the given path
+// this function can handle field names as strings and list indexes as integers
 func parseIstioOperatorJSONAsBool(object interface{}, fields ...interface{}) bool {
 	if len(fields) == 0 || object == nil {
 		if s, ok := object.(bool); ok {
