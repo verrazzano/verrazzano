@@ -33,7 +33,7 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext) error {
 	ctx.Log().Once("Performing pre-upgrade steps required for legacy OpenSearch")
 	// Retain PVs
 	if err := setPVsToRetain(ctx); err != nil {
-		return fmt.Errorf("failed to set PVs to retain")
+		return err
 	}
 
 	// Remove legacy OS and OSD
@@ -55,10 +55,6 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext) error {
 
 	if !arePVCsAndPVsBound(ctx) {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("waiting for PVCs to bind to PVs")}
-	}
-
-	if err := resetReclaimPolicy(ctx); err != nil {
-		return err
 	}
 
 	return nil

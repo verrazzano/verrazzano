@@ -52,6 +52,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
+// VerrazzanoLoggingNamespace is the namespace for logging components
+const VerrazzanoLoggingNamespace = "verrazzano-logging"
+
 // VerrazzanoCAPINamespace is the system namespace for Cluster API resources
 const VerrazzanoCAPINamespace = "verrazzano-capi"
 

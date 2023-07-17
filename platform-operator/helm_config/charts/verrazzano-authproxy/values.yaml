@@ -36,6 +36,11 @@ config:
   dnsSuffix:
   prometheusOperatorEnabled:
   ingressClassName:
+  opensearch:
+    protocol:
+    namespace:
+    service:
+    osdService:
 
 dns:
   wildcard:

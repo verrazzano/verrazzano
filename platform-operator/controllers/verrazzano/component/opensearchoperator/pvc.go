@@ -100,7 +100,7 @@ func setPVsToRetain(ctx spi.ComponentContext) error {
 
 		ctx.Log().Debugf("Setting %s to retain", pv.Name)
 		if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to retain PV %s: %v", pv.Name, err)
+			return ctx.Log().ErrorfNewErr("Failed to retain PV %s, will retry: %v", pv.Name, err)
 		}
 	}
 	return nil
@@ -113,10 +113,12 @@ func createNewPVCs(ctx spi.ComponentContext) error {
 
 	for _, node := range nodes {
 		nodePool := node.Name
+		// Get older PVs for this node pool
 		pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, nodePool)
 		if err != nil {
 			return err
 		}
+		// Get newly created PVCs for this node pool
 		pvcList, err := getPVCsBasedOnLabel(ctx, nodePoolLabel, nodePool)
 		if err != nil {
 			return err
@@ -124,7 +126,7 @@ func createNewPVCs(ctx spi.ComponentContext) error {
 
 		// If there are old PVs and all new PVCs are yet to be created, create the remaining PVCs
 		// If all new PVCs are already created, do not update as PVCs are immutable after creation
-		if len(pvList) > 0 && len(pvcList) != len(pvList) {
+		if len(pvList) > 0 && len(pvcList) < len(pvList) {
 			// replicaCount denotes the replica number for which the PVC will be created
 			// Initially starts at 0, since the number of newly created PVC will be 0 initially
 			replicaCount := len(pvcList)

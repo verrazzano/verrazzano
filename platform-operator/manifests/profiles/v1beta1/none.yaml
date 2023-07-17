@@ -71,7 +71,6 @@ spec:
               nodePools:
                 - component: es-master
                   additionalConfig:
-                    discovery.seed_hosts: opensearch-es-master
                     cluster.initial_master_nodes: opensearch-es-master-0
                   replicas: 1
                   resources:
