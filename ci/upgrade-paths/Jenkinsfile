@@ -1126,46 +1126,54 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
 
             def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
             def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
-            sh """
-                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
 
-                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
+            executeUpgrade(kubeClusterConfig, upgradeOperatorFile, v8oInstallFile, v8oUpgradeFile)
 
-                # Get the install job in verrazzano-install namespace
-                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
-
-                if [ "${params.INSTALLATION_METHOD_UPGRADE}" == "kubectl" ]; then
-                    echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
-                    cd ${GO_REPO_PATH}/verrazzano
-                    cp ${v8oInstallFile} ${v8oUpgradeFile}
-                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
-
-                    # Do the upgrade
-                    echo "Following is the verrazzano CR file with the new version:"
-                    cat ${v8oUpgradeFile}
-                    kubectl --kubeconfig=${kubeClusterConfig} patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
-                    # wait for the upgrade to complete
-                    kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-                elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
-                    echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                    ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
-                fi
-
-                # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
-
-                echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
-
-                # ideally we don't need to wait here
-                sleep 15
-                echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                helm --kubeconfig=${kubeClusterConfig} list -A
-            """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version Upgrade : ${RUNNING_OPERATOR_VERSION}"
         }
+    }
+}
+
+def executeUpgrade(kubeClusterConfig, upgradeOperatorFile, v8oInstallFile, v8oUpgradeFile) {
+    script {
+        sh """
+            cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
+
+            mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
+
+            # Get the install job in verrazzano-install namespace
+            kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
+
+            if [ "${params.INSTALLATION_METHOD_UPGRADE}" == "kubectl" ]; then
+                echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
+                # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
+                cd ${GO_REPO_PATH}/verrazzano
+                cp ${v8oInstallFile} ${v8oUpgradeFile}
+                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
+
+                # Do the upgrade
+                echo "Following is the verrazzano CR file with the new version:"
+                cat ${v8oUpgradeFile}
+                kubectl --kubeconfig=${kubeClusterConfig} patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
+                # wait for the upgrade to complete
+                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+            elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
+                echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
+                ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
+            fi
+
+            # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
+            kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
+
+            echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
+            cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
+
+            # ideally we don't need to wait here
+            sleep 15
+            echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+            helm --kubeconfig=${kubeClusterConfig} list -A
+        """
     }
 }
 
