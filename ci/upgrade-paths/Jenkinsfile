@@ -371,62 +371,7 @@ pipeline {
                     }
                 }
                 stage ('Pre-upgrade Acceptance Tests') {
-                    parallel {
-                        stage('pre-upgrade verify keycloak') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
-                            }
-                        }
-                        stage('opensearch pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
-                            }
-                        }
-                        stage('opensearch-dashboards pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards', "${TEST_DUMP_ROOT}/opensearch-dashboards")
-                            }
-                        }
-                        stage('Grafana pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
-                            }
-                        }
-                        stage('Metricsbinding pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
-                            }
-                        }
-                        stage ('Deploy Helidon example application - single cluster') {
-                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
-                            steps {
-                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
-                            }
-                        }
-                        stage ('Deploy Helidon example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
-                            }
-                        }
-                        stage ('Deploy Coherence example application - single cluster') {
-                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
-                            steps {
-                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
-                            }
-                        }
-                        stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
-                            }
-                        }
-                        stage('Prometheus pre-upgrade') {
-                            steps {
-                                runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
-                            }
-                        }
-                    }
+                    parallel preUpgradeAcceptanceTestsToRun()
                 }
                 stage('upgrade-platform-operator using kubectl') {
                     when { expression { return params.INSTALLATION_METHOD_UPGRADE == "kubectl" } }
@@ -1324,6 +1269,15 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
     }
 }
 
+def runGinkgoVerifyManagedWrapped(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify) {
+   // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify)
+        }
+    }
+}
+
 // Run a test suite against all clusters in serial
 def runGinkgoRandomizeSerial(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -1421,6 +1375,15 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
     }
 }
 
+def runGinkgoRandomizeSerialAdminWrapped(testSuitePath, clusterDumpDirectory) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory)
+        }
+    }
+}
+
 def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
@@ -1432,6 +1395,15 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             ginkgo build ${testSuitePath}/
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
         """
+    }
+}
+
+def runGinkgoVerifyWrapped(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+   // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
+        }
     }
 }
 
@@ -2180,5 +2152,31 @@ def performDescribeVerrazzanoResource() {
                 kubectl get vz -o yaml
             """
         }
+    }
+}
+
+def preUpgradeAcceptanceTestsToRun() {
+    script {
+        def preUpgradeAcceptanceStages = createClusterExecutionsMap()
+        preUpgradeAcceptanceStages["pre-upgrade verify keycloak"] = runGinkgoRandomizeSerialAdminWrapped('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+        preUpgradeAcceptanceStages["opensearch pre-upgrade"] = runGinkgoRandomizeSerialAdminWrapped('upgrade/pre-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
+        preUpgradeAcceptanceStages["opensearch-dashboards pre-upgrade"] = runGinkgoRandomizeSerialAdminWrapped('upgrade/pre-upgrade/opensearch-dashboards', "${TEST_DUMP_ROOT}/opensearch-dashboards")
+        preUpgradeAcceptanceStages["Grafana pre-upgrade"] = runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
+        preUpgradeAcceptanceStages["Metricsbinding pre-upgrade"] = runGinkgoRandomizeSerialAdminWrapped('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+        if isVZOperatorMinimumCompatibleVersion("v1.1.0") {
+            preUpgradeAcceptanceStages["Deploy Helidon example application - single cluster"] = runGinkgoVerifyWrapped('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
+        }
+        if isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") {
+            preUpgradeAcceptanceStages["Deploy Helidon example application - multi cluster"] = runGinkgoVerifyManagedWrapped("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
+        }
+        if isVZOperatorMinimumCompatibleVersion("v1.1.0") {
+            preUpgradeAcceptanceStages["Deploy Coherence example application - single cluster"] = runGinkgoVerifyWrapped('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
+        }
+        if isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") {
+            preUpgradeAcceptanceStages["Deploy Coherence example application - multi cluster"] = runGinkgoVerifyManagedWrapped("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
+        }
+        preUpgradeAcceptanceStages["Prometheus pre-upgrade"] = runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
+
+        return preUpgradeAcceptanceStages
     }
 }
