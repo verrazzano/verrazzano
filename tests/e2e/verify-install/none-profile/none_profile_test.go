@@ -21,11 +21,10 @@ const (
 )
 
 var allowedNamespaces = []string{
-	"cattle-system", "default", "kube-node-lease",
-	"kube-public", "kube-system", "monitoring", "local-path-storage",
-	"verrazzano-ingress-nginx", "verrazzano-install", "verrazzano-mc",
-	"verrazzano-monitoring", "verrazzano-system",
-	"metallb-system"}
+	"default", "kube-system", "kube-node-lease", "kube-public",
+	"monitoring", "local-path-storage", "metallb-system",
+	"cattle-system", "verrazzano-install", "verrazzano-mc", "verrazzano-system"
+}
 
 var beforesuite = t.BeforeSuiteFunc(func() {
 })
