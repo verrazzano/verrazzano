@@ -371,7 +371,9 @@ pipeline {
                     }
                 }
                 stage ('Pre-upgrade Acceptance Tests') {
-                    parallel preUpgradeAcceptanceTestsToRun()
+                    script {
+                        parallel preUpgradeAcceptanceTestsToRun()
+                    }
                 }
                 stage('upgrade-platform-operator using kubectl') {
                     when { expression { return params.INSTALLATION_METHOD_UPGRADE == "kubectl" } }
