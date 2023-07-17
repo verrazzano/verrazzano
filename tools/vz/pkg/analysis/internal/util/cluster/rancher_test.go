@@ -21,6 +21,8 @@ type testCase struct {
 const (
 	clustersReadySnapshot    = "../../../test/cluster/clusters/clusters-ready/cluster-snapshot"
 	clustersNotReadySnapshot = "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot"
+	driversReadySnapshot     = "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot"
+	driversNotReadySnapshot  = "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot"
 )
 
 var testCases = []testCase{
@@ -64,6 +66,16 @@ var testCases = []testCase{
 		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
+	{
+		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    driversReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    driversNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
 }
 
 // Test analyze Rancher resources with different cluster snapshots.
@@ -76,6 +88,7 @@ func TestAnalyzeRancher(t *testing.T) {
 	for _, test := range testCases {
 		report.ClearReports()
 		assert.NoError(t, test.Function(logger, test.ClusterRoot, &issueReporter))
+		issueReporter.Contribute(logger, test.ClusterRoot)
 		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 		if test.ExpectedIssues == 0 {
 			assert.Empty(t, reportedIssues)

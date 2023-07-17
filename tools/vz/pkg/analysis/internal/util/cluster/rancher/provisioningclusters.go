@@ -44,7 +44,6 @@ func AnalyzeProvisioningClusters(log *zap.SugaredLogger, clusterRoot string, iss
 		}
 	}
 
-	issueReporter.Contribute(log, clusterRoot)
 	return nil
 }
 

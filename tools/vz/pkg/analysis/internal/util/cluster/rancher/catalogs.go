@@ -45,7 +45,6 @@ func AnalyzeCatalogs(log *zap.SugaredLogger, clusterRoot string, issueReporter *
 		}
 	}
 
-	issueReporter.Contribute(log, clusterRoot)
 	return nil
 }
 
