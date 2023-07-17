@@ -4,11 +4,18 @@
 package metrics
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	_ "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	monitor "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/servicemonitor"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
+
 )
 
-func CreateMetricsChildResources(metricstrait *vzapi.MetricsTrait) {
-	//createService()
-	monitor.CreateServiceMonitor(metricstrait)
+func CreateMetricsChildResources(conversionComponent *types.ConversionComponents) error {
+
+	err := monitor.CreateServiceMonitor(conversionComponent)
+	if err != nil {
+		return err
+
+	}
+	return nil
 }

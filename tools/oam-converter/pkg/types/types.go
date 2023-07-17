@@ -10,6 +10,7 @@ type ConversionComponents struct {
 	ComponentName       string
 	AppNamespace        string
 	IngressTrait        *vzapi.IngressTrait
+	MetricsTrait        *vzapi.MetricsTrait
 	Helidonworkload     *vzapi.VerrazzanoHelidonWorkload
 	Coherenceworkload   *vzapi.VerrazzanoCoherenceWorkload
 	WeblogicworkloadMap map[string]*vzapi.VerrazzanoWebLogicWorkload

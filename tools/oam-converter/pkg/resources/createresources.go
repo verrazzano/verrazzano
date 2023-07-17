@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/coherenceresources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/helidonresources"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/metrics"
 	weblogic "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/weblogicresources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 )
@@ -32,6 +33,13 @@ func CreateResources(conversionComponents []*types.ConversionComponents) error {
 			err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent)
 			if err != nil {
 				return errors.New("failed to create Child resources from Helidon workload")
+
+			}
+		}
+		if conversionComponent.MetricsTrait != nil {
+			err := metrics.CreateMetricsChildResources(conversionComponent)
+			if err != nil {
+				return errors.New("failed to create Child resources from Metrics Trait")
 
 			}
 		}

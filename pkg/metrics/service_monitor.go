@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metrics
@@ -9,6 +9,7 @@ import (
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -37,7 +38,7 @@ type ScrapeInfo struct {
 
 // PopulateServiceMonitor populates the Service Monitor to prepare for a create or update
 // the Service Monitor reflects the specifications defined in the ScrapeInfo object
-func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.ServiceMonitor) error {
+func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.ServiceMonitor, log vzlog.VerrazzanoLogger) error {
 	// Create the Service Monitor selector from the info label if it exists
 	if serviceMonitor.ObjectMeta.Labels == nil {
 		serviceMonitor.ObjectMeta.Labels = make(map[string]string)
@@ -54,7 +55,7 @@ func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.Service
 	for i := 0; i < info.Ports; i++ {
 		endpoint, err := createServiceMonitorEndpoint(info, i)
 		if err != nil {
-			print(err)
+			return log.ErrorfNewErr("Failed to create an endpoint for the Service Monitor: %v", err)
 		}
 		serviceMonitor.Spec.Endpoints = append(serviceMonitor.Spec.Endpoints, endpoint)
 	}
