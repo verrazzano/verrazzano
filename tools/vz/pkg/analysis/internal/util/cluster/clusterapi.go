@@ -85,8 +85,6 @@ func analyzeClusterAPICluster(clusterRoot string, cluster clusterAPICluster, iss
 				subMessage = "control plane is not ready"
 			case "InfrastructureReady":
 				subMessage = "infrastructure is not ready"
-			default:
-				continue
 			}
 			// Add a message for the issue
 			var message string

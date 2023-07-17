@@ -45,6 +45,7 @@ func AnalyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueRep
 		}
 	}
 
+	issueReporter.Contribute(log, clusterRoot)
 	return nil
 }
 
@@ -94,8 +95,6 @@ func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueRepo
 				subMessage = "initial roles not populated"
 			case "BackingNamespaceCreated":
 				subMessage = "backing namespace not created"
-			default:
-				continue
 			}
 			// Add a message for the issue
 			var message string

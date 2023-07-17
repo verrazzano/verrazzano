@@ -45,6 +45,7 @@ func AnalyzeClusterRepos(log *zap.SugaredLogger, clusterRoot string, issueReport
 		}
 	}
 
+	issueReporter.Contribute(log, clusterRoot)
 	return nil
 }
 

@@ -4,16 +4,14 @@
 package cluster
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster/rancher"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
+	"testing"
 )
 
-// Test analyze Rancher resources with different cluster snapshots.
-func TestAnalyzeRancher(t *testing.T) {
+// Test analyze KontainerDriver resources with different cluster snapshots.
+func TestAnalyzeKontainerDrivers(t *testing.T) {
 	var issueReporter = report.IssueReporter{
 		PendingIssues: make(map[string]report.Issue),
 	}
@@ -21,14 +19,14 @@ func TestAnalyzeRancher(t *testing.T) {
 
 	// Expect no errors and no reported issues.
 	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
+	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot", &issueReporter))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Empty(t, reportedIssues)
 
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
+	// Expect no errors and one reported issue that a Kontainer Driver is not ready.
 	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
+	assert.NoError(t, analyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot", &issueReporter))
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Len(t, reportedIssues, 1)
-	assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	assert.Equal(t, "KontainerDriverNotReady", reportedIssues[0].Type)
 }
