@@ -99,7 +99,7 @@ const jaegerAllInOneTemplate = `jaeger:
   create: true
   spec:
     strategy: allInOne
-    storage: {}
+    storage: in-memory
 `
 
 // A template to define Jaeger override for creating default Jaeger instance
