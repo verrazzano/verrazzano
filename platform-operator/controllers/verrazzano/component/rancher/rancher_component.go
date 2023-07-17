@@ -73,6 +73,24 @@ const cattleShellImageName = "rancher-shell"
 // cattleUIEnvName is the environment variable name to set for the Rancher dashboard
 const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
+// cattleAuthMaxAgeSecondsEnvName is the environment variable name used to set auth token refresh age
+const cattleAuthMaxAgeSecondsEnvName = "CATTLE_AUTH_USER_INFO_MAX_AGE_SECONDS"
+
+// cattleAuthMaxAgeSecondsEnvValue is the value to be set for CATTLE_AUTH_USER_INFO_MAX_AGE_SECONDS env
+const cattleAuthMaxAgeSecondsEnvVal = "600"
+
+// cattleAuthMaxAgeSecondsEnvName is the environment variable name used to set refresh auth token cron interval
+const cattleAuthResyncCronEnvName = "CATTLE_AUTH_USER_INFO_RESYNC_CRON"
+
+// cattleAuthMaxAgeSecondsEnvValue is the value to be set for CATTLE_AUTH_USER_INFO_RESYNC_CRON env
+const cattleAuthResyncCronEnvVal = "*/15 0 * * *"
+
+// cattleAuthSessionTTLEnvName is the environment variable name used to set auth token TTL
+const cattleAuthSessionTTLEnvName = "CATTLE_AUTH_USER_SESSION_TTL_MINUTES"
+
+// cattleAuthSessionTTLEnvVal is the value to be set for CATTLE_AUTH_USER_SESSION_TTL_MINUTES env
+const cattleAuthSessionTTLEnvVal = "540"
+
 // fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
 const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
 
@@ -196,7 +214,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   useBundledSystemChartKey,
 		Value: useBundledSystemChartValue,
 	})
-	kvs, err = appendImageOverrides(ctx, kvs)
+	kvs, err = appendEnvOverrides(ctx, kvs)
 	if err != nil {
 		return kvs, err
 	}
@@ -276,17 +294,51 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	return kvs, nil
 }
 
-// appendImageOverrides creates overrides to set the pod environment variables for the image overrides
-func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+// appendEnvOverrides creates overrides to set the pod environment variables
+func appendEnvOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	envList, err := getImageOverrides(ctx)
+	if err != nil {
+		return kvs, err
+	}
+
+	// For the Rancher UI, we need to update this final env var
+	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
+
+	// For the Rancher Keycloak auth integration, set "auth-user-info-resync-cron" to run the resync cron once in
+	// 15 minutes, which is less than the Keycloak default SSO idle timeout (30 minutes)
+	if isKeycloakAuthEnabled(ctx.EffectiveCR()) {
+		envList = append(envList, envVar{Name: cattleAuthResyncCronEnvName, Value: cattleAuthResyncCronEnvVal,
+			SetString: true})
+	}
+
+	// For the Rancher Keycloak auth integration, set "auth-user-info-max-age-seconds" to "600", less than the
+	// Keycloak default SSO idle timeout (1800 seconds) and less than the interval set for auth resync cron
+	if isKeycloakAuthEnabled(ctx.EffectiveCR()) {
+		envList = append(envList, envVar{Name: cattleAuthMaxAgeSecondsEnvName, Value: cattleAuthMaxAgeSecondsEnvVal,
+			SetString: true})
+	}
+
+	// For the Rancher Keycloak auth integration, set "auth-user-session-ttl-minutes" to "540", less than
+	// the Keycloak default SSO session max (600 minutes)
+	if isKeycloakAuthEnabled(ctx.EffectiveCR()) {
+		envList = append(envList, envVar{Name: cattleAuthSessionTTLEnvName, Value: cattleAuthSessionTTLEnvVal,
+			SetString: true})
+	}
+
+	return createEnvVars(kvs, envList), nil
+}
+
+// getImageOverrides creates overrides to set the pod environment variables for the image overrides
+func getImageOverrides(ctx spi.ComponentContext) ([]envVar, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
+		return nil, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
 	}
 
 	registryOverride := os.Getenv(constants.RegistryOverrideEnvVar)
 	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
 	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+		return nil, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
 	}
 	images := subcomponent.Images
 
@@ -316,10 +368,7 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		envList = append(envList, envVar{Name: tagEnvVar, Value: image.ImageTag, SetString: false})
 	}
 
-	// For the Rancher UI, we need to update this final env var
-	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
-
-	return createEnvVars(kvs, envList), nil
+	return envList, nil
 }
 
 // appendPSPEnabledOverrides appends overrides to disable PSP if the K8S version is 1.25 or above
