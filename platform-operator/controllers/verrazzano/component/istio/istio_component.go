@@ -420,7 +420,11 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return (&ready.AvailabilityObjects{DeploymentNames: istioDeployments}).IsAvailable(ctx.Log(), ctx.Client())
+	istioDeploy, err := getIstioDeploymentsFromIstioOperator(ctx)
+	if err != nil {
+		return err.Error(), vzapi.ComponentUnavailable
+	}
+	return (&ready.AvailabilityObjects{DeploymentNames: istioDeploy}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
