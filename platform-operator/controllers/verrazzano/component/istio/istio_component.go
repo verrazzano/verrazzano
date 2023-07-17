@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"path/filepath"
 	"strings"
@@ -37,11 +38,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -84,7 +82,7 @@ const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
-const istioOperatorName = "installed-state"
+var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
 const (
 	// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
@@ -416,11 +414,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	istioDeploy, err := getIstioDeploymentsFromIstioOperator(ctx)
-	if err != nil {
-		return err.Error(), vzapi.ComponentUnavailable
-	}
-	return (&ready.AvailabilityObjects{DeploymentNames: istioDeploy}).IsAvailable(ctx.Log(), ctx.Client())
+	return (&ready.AvailabilityObjects{DeploymentSelectors: []clipkg.ListOption{&istioLabelSelector}}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
@@ -457,68 +451,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 
 // areIstioDeploymentsReady verifies that the enabled deployments in the Istio Operator are ready
 func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) (bool, error) {
-	istioDeploy, err := getIstioDeploymentsFromIstioOperator(ctx)
-	if err != nil {
-		return false, err
-	}
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), istioDeploy, 1, prefix), nil
-}
-
-// getIstioDeploymentsFromIstioOperator returns the enabled deployments from the Istio Operator
-func getIstioDeploymentsFromIstioOperator(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
-	var istioDeploy []types.NamespacedName
-	istioOp := unstructured.Unstructured{}
-	istioOp.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "install.istio.io",
-		Version: "v1alpha1",
-		Kind:    "IstioOperator",
-	})
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: istioOperatorName, Namespace: IstioNamespace}, &istioOp)
-	if kerrs.IsNotFound(err) || meta.IsNoMatchError(err) {
-		return istioDeployments, nil
-	}
-	if err != nil {
-		return istioDeploy, ctx.Log().ErrorfNewErr("Failed to get the Istio Operator object from the cluster, %v", err)
-	}
-
-	if parseIstioOperatorJSONAsBool(istioOp.Object, "spec", "components", "egressGateways", 0, "enabled") {
-		istioDeploy = append(istioDeploy, types.NamespacedName{Name: IstioEgressgatewayDeployment, Namespace: IstioNamespace})
-	}
-	if parseIstioOperatorJSONAsBool(istioOp.Object, "spec", "components", "ingressGateways", 0, "enabled") {
-		istioDeploy = append(istioDeploy, types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace})
-	}
-	if parseIstioOperatorJSONAsBool(istioOp.Object, "spec", "components", "pilot", "enabled") {
-		istioDeploy = append(istioDeploy, types.NamespacedName{Name: IstiodDeployment, Namespace: IstioNamespace})
-	}
-	return istioDeploy, nil
-}
-
-// parseIstioOperatorJSONAsBool parses an object JSON and returns a boolean field if it exists at the given path
-// this function can handle field names as strings and list indexes as integers
-func parseIstioOperatorJSONAsBool(object interface{}, fields ...interface{}) bool {
-	if len(fields) == 0 || object == nil {
-		if s, ok := object.(bool); ok {
-			return s
-		}
-		return false
-	}
-
-	if v, ok := fields[0].(string); ok {
-		objMap, ok := object.(map[string]interface{})
-		if !ok {
-			return false
-		}
-		return parseIstioOperatorJSONAsBool(objMap[v], fields[1:]...)
-	}
-	if v, ok := fields[0].(int); ok {
-		objList, ok := object.([]interface{})
-		if !ok {
-			return false
-		}
-		return parseIstioOperatorJSONAsBool(objList[v], fields[1:]...)
-	}
-
-	return false
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &istioLabelSelector), nil
 }
 
 func isIstioManifestNotInstalledError(err error) bool {
