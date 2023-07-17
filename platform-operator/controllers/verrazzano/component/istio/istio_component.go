@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
@@ -468,7 +469,7 @@ func getIstioDeploymentsFromIstioOperator(ctx spi.ComponentContext) ([]types.Nam
 		Kind:    "IstioOperator",
 	})
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: istioOperatorName, Namespace: IstioNamespace}, &istioOp)
-	if kerrs.IsNotFound(err) {
+	if kerrs.IsNotFound(err) || meta.IsNoMatchError(err) {
 		return istioDeployments, nil
 	}
 	if err != nil {
