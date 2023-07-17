@@ -371,7 +371,7 @@ pipeline {
                     }
                 }
                 stage ('Pre-upgrade Acceptance Tests') {
-                    script {
+                    steps {
                         parallel preUpgradeAcceptanceTestsToRun()
                     }
                 }
