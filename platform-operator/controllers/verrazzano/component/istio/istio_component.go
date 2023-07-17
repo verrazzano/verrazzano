@@ -6,17 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-
 	"path/filepath"
 	"strings"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
-
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -27,10 +18,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
@@ -39,6 +35,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -419,10 +416,7 @@ func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, av
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	if deployReady, err := areIstioDeploymentsReady(context, prefix); err != nil || !deployReady {
-		if err != nil {
-			context.Log().ErrorfThrottled("Unexpected error verifying Istio deployments are ready: %s", err.Error())
-		}
+	if !areIstioDeploymentsReady(context, prefix) {
 		return false
 	}
 
@@ -450,8 +444,8 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // areIstioDeploymentsReady verifies that the enabled deployments in the Istio Operator are ready
-func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) (bool, error) {
-	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &istioLabelSelector), nil
+func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) bool {
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &istioLabelSelector)
 }
 
 func isIstioManifestNotInstalledError(err error) bool {
