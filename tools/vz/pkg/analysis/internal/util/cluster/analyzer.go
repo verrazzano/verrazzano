@@ -32,11 +32,10 @@ import (
 //	one that may require that.
 
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
-	"Verrazzano Status":      AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
-	"Pod Related Issues":     AnalyzePodIssues,
-	"KontainerDriver Status": AnalyzeKontainerDrivers,
-	"Rancher Status":         AnalyzeRancher,
-	"Cluster API Issues":     AnalyzeClusterAPIIssues,
+	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
+	"Pod Related Issues": AnalyzePodIssues,
+	"Rancher Status":     AnalyzeRancher,
+	"Cluster API Issues": AnalyzeClusterAPIIssues,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches

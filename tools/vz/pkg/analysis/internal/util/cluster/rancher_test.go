@@ -28,7 +28,26 @@ func TestAnalyzeRancher(t *testing.T) {
 	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
 	report.ClearReports()
 	assert.NoError(t, rancher.AnalyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
+	issueReporter.Contribute(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot")
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Len(t, reportedIssues, 1)
-	assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	if len(reportedIssues) != 0 {
+		assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	}
+
+	// Expect no errors and no reported issues.
+	report.ClearReports()
+	assert.NoError(t, rancher.AnalyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot", &issueReporter))
+	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.Empty(t, reportedIssues)
+
+	// Expect no errors and one reported issue that a Kontainer Driver is not ready.
+	report.ClearReports()
+	assert.NoError(t, rancher.AnalyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot", &issueReporter))
+	issueReporter.Contribute(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot")
+	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.Len(t, reportedIssues, 1)
+	if len(reportedIssues) != 0 {
+		assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	}
 }
