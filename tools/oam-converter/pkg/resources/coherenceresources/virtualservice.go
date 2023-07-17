@@ -7,6 +7,9 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+
 	vs "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/virtualservice"
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -42,7 +45,9 @@ func mutateVirtualServiceFromCoherenceWorkload(virtualService *vsapi.VirtualServ
 		matches = append(matches, &istio.HTTPMatchRequest{
 			Uri: vs.CreateVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest, err := createDestinationFromRuleOrCoherenceWorkload(rule, coherenceWorkload)
+
+	dest, err := destination.CreateDestinationFromRule(rule)
+
 	if err != nil {
 		print(err)
 		return err

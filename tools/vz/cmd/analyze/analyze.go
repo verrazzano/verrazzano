@@ -43,6 +43,10 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.SummaryReport, constants.ReportFormatFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
+
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
+
 	return cmd
 }
 
@@ -95,7 +99,7 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
 	}
 	reportFormat := getReportFormat(cmd)
 

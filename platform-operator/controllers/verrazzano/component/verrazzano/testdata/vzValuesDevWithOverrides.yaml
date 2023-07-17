@@ -28,3 +28,9 @@ istio:
   enabled: true
 ingressNGINX:
   namespace: "verrazzano-ingress-nginx"
+fluentd:
+  enabled: true
+fluentOperator:
+  enabled: true
+fluentbitOpensearchOutput:
+  enabled: true
