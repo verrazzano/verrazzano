@@ -11,8 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
