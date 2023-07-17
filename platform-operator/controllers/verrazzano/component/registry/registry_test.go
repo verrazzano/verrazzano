@@ -211,7 +211,7 @@ func TestGetComponentsForUninstall(t *testing.T) {
 	uninstallComps := GetComponentsForUninstall()
 	a.Equal(len(comps), len(uninstallComps))
 	j := len(comps) - 1
-	for i, _ := range uninstallComps {
+	for i := range uninstallComps {
 		a.Equal(comps[j].Name(), uninstallComps[i].Name())
 		a.Equal(comps[j].Namespace(), uninstallComps[i].Namespace())
 		a.Equal(reflect.TypeOf(comps[j]).Name(), reflect.TypeOf(uninstallComps[i]).Name())
