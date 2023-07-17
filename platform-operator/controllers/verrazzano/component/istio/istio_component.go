@@ -94,21 +94,6 @@ const (
 	fluentbitFilterAndParserTemplate = "istio-filter-parser.yaml"
 )
 
-var istioDeployments = []types.NamespacedName{
-	{
-		Name:      IstiodDeployment,
-		Namespace: IstioNamespace,
-	},
-	{
-		Name:      IstioIngressgatewayDeployment,
-		Namespace: IstioNamespace,
-	},
-	{
-		Name:      IstioEgressgatewayDeployment,
-		Namespace: IstioNamespace,
-	},
-}
-
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
