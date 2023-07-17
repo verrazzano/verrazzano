@@ -468,6 +468,9 @@ func getIstioDeploymentsFromIstioOperator(ctx spi.ComponentContext) ([]types.Nam
 		Kind:    "IstioOperator",
 	})
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: istioOperatorName, Namespace: IstioNamespace}, &istioOp)
+	if kerrs.IsNotFound(err) {
+		return istioDeployments, nil
+	}
 	if err != nil {
 		return istioDeploy, ctx.Log().ErrorfNewErr("Failed to get the Istio Operator object from the cluster, %v", err)
 	}

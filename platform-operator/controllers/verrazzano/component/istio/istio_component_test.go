@@ -1380,12 +1380,13 @@ func TestGetIstioDeploymentsFromIstioOperator(t *testing.T) {
 
 	//  GIVEN a call to getIstioDeploymentsFromIstioOperator
 	//	WHEN the Istio Operator is not deployed
-	//	THEN an error is returned
+	//	THEN no error is returned
 	compContext = spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false)
 	deployList, err = getIstioDeploymentsFromIstioOperator(compContext)
 	assert.Error(t, err)
 }
 
+// TestParseIstioOperatorJSONAsBool tests that the JSON object can be parsed for boolean fields
 func TestParseIstioOperatorJSONAsBool(t *testing.T) {
 	istioOpByte, err := os.ReadFile(testIstioOperatorJSON)
 	assert.NoError(t, err)
