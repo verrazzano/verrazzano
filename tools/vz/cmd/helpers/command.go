@@ -6,12 +6,15 @@ package helpers
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // NewCommand - utility method to create cobra commands
@@ -69,11 +72,36 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// If the user has provided an operator YAML, attempt to get the version from the VPO deployment
+	if ManifestsFlagChanged(cmd) {
+		manifestsVersion, err := getVersionFromOperatorYAML(cmd, vzHelper)
+		if err != nil {
+			return "", err
+		}
+
+		if manifestsVersion != "" {
+			// If the user has explicitly passed a version, make sure it matches the version in the manifests
+			if cmd.PersistentFlags().Changed(constants.VersionFlag) {
+				match, err := versionsMatch(manifestsVersion, version)
+				if err != nil {
+					return "", err
+				}
+				if match {
+					return manifestsVersion, nil
+				}
+				return "", fmt.Errorf("Requested version '%s' does not match manifests version '%s'", version, manifestsVersion)
+			}
+
+			return manifestsVersion, nil
+		}
+	}
+
 	if version == constants.VersionFlagDefault {
 		// Find the latest release version of Verrazzano
 		version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
 		if err != nil {
-			return version, err
+			return "", err
 		}
 	} else {
 		// Validate the version string
@@ -84,6 +112,54 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 		version = fmt.Sprintf("v%s", installVersion.ToString())
 	}
 	return version, nil
+}
+
+// getVersionFromOperatorYAML attempts to parse the user-provided operator YAML and returns the
+// Verrazzano version from a label on the verrazzano-platform-operator deployment.
+func getVersionFromOperatorYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
+	localOperatorFilename, userVisibleFilename, isTempFile, err := getOrDownloadOperatorYAML(cmd, "", vzHelper)
+	if err != nil {
+		return "", err
+	}
+	if isTempFile {
+		// the operator YAML is a temporary file that must be deleted after applying it
+		defer os.Remove(localOperatorFilename)
+	}
+
+	fileObj, err := os.Open(localOperatorFilename)
+	defer func() { fileObj.Close() }()
+	if err != nil {
+		return "", err
+	}
+	objectsInYAML, err := k8sutil.Unmarshall(bufio.NewReader(fileObj))
+	if err != nil {
+		return "", err
+	}
+	vpoDeployIdx, _ := findVPODeploymentIndices(objectsInYAML)
+	if vpoDeployIdx == -1 {
+		return "", fmt.Errorf("Unable to find verrazzano-platform-operator deployment in operator file: %s", userVisibleFilename)
+	}
+
+	vpoDeploy := &objectsInYAML[vpoDeployIdx]
+	version, found, err := unstructured.NestedString(vpoDeploy.Object, "metadata", "labels", "app.kubernetes.io/version")
+	if err != nil || !found {
+		return "", err
+	}
+
+	return version, err
+}
+
+// versionsMatch returns true if the versions are semantically equivalent
+func versionsMatch(left, right string) (bool, error) {
+	leftVersion, err := semver.NewSemVersion(left)
+	if err != nil {
+		return false, err
+	}
+	rightVersion, err := semver.NewSemVersion(right)
+	if err != nil {
+		return false, err
+	}
+	return leftVersion.IsEqualTo(rightVersion), nil
 }
 
 // ConfirmWithUser asks the user a yes/no question and returns true if the user answered yes, false
