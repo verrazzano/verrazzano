@@ -5,8 +5,14 @@ package externaldns
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	"testing"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	appsv1 "k8s.io/api/apps/v1"
+	netv1 "k8s.io/api/networking/v1"
+	k8scli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -27,6 +33,132 @@ import (
 )
 
 const fooDomainSuffix = "foo.com"
+
+// TestExternalDNSPreUninstall tests the PreUninstall fn
+// GIVEN a call to PreUninstall
+// WHEN ExternalDNS is installed
+// THEN errors are returned if any of the resources that need to be cleaned up prior to uninstall
+// still exist, no error if no such resources exist
+func TestExternalDNSPreUninstall(t *testing.T) {
+	vmoDeploy := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      common.VMOComponentName,
+			Namespace: common.VMOComponentNamespace,
+		},
+	}
+	ingressNginxNamespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.IngressNginxNamespace}}
+	extDNSAnnotations := map[string]string{externalDNSIngressAnnotationKey: constants.VzIngress}
+	extDNSIngVZSys := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-ing-extdns-vz",
+			Namespace:   constants.VerrazzanoSystemNamespace,
+			Annotations: extDNSAnnotations,
+		},
+	}
+	ingVZSys := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ing-vz",
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+
+	extDNSIngKeycloakNS := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-ing-extdns-kc",
+			Namespace:   constants.KeycloakNamespace,
+			Annotations: extDNSAnnotations,
+		},
+	}
+	ingKeycloakNS := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ing-kc",
+			Namespace: constants.KeycloakNamespace,
+		},
+	}
+
+	extDNSIngRancherNS := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-ing-extdns-rancher",
+			Namespace:   vzconst.RancherSystemNamespace,
+			Annotations: extDNSAnnotations,
+		},
+	}
+	ingRancherNS := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ing-rancher",
+			Namespace: vzconst.RancherSystemNamespace,
+		},
+	}
+
+	extDNSIngOtherNS := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-ing-extdns-other-ns",
+			Namespace:   "some-other-namespace",
+			Annotations: extDNSAnnotations,
+		},
+	}
+
+	var tests = []struct {
+		name      string
+		resources []k8scli.Object
+		wantErr   bool
+	}{
+		{
+			name:      "VMO deployment exists",
+			resources: []k8scli.Object{&vmoDeploy},
+			wantErr:   true,
+		},
+		{
+			name:      "VZ Ingress NGINX namespace exists",
+			resources: []k8scli.Object{&ingressNginxNamespace},
+			wantErr:   true,
+		},
+		{
+			name:      "External DNS annotated ingress exists in VZ system namespace",
+			resources: []k8scli.Object{&extDNSIngVZSys},
+			wantErr:   true,
+		},
+		{
+			name:      "External DNS annotated ingress exists in Keycloak namespace",
+			resources: []k8scli.Object{&extDNSIngKeycloakNS},
+			wantErr:   true,
+		},
+		{
+			name:      "External DNS annotated ingress exists in Rancher namespace",
+			resources: []k8scli.Object{&extDNSIngRancherNS},
+			wantErr:   true,
+		},
+		{
+			name:      "VMO deployment, nginx namespace and some external DNS annotated ingresses exist",
+			resources: []k8scli.Object{&vmoDeploy, &ingressNginxNamespace, &extDNSIngRancherNS},
+			wantErr:   true,
+		},
+		{
+			name:      "External DNS annotated ingress exists in some other namespace",
+			resources: []k8scli.Object{&extDNSIngOtherNS},
+			wantErr:   false,
+		},
+		{
+			name:      "Non-external DNS annotated ingresses exist in VZ system, keycloak and rancher namespaces",
+			resources: []k8scli.Object{&ingVZSys, &ingKeycloakNS, &ingRancherNS},
+			wantErr:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+				WithObjects(tt.resources...).
+				Build()
+			ednsComp := NewComponent()
+			err := ednsComp.PreUninstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 // TestExternalDNSPostUninstall tests the PostUninstall fn
 // GIVEN a call to PostUninstall
