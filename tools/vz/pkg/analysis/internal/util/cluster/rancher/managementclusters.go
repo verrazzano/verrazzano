@@ -7,39 +7,38 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
-
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Minimal definition of Rancher cluster object that only contains the fields that will be analyzed
-type rancherClusterList struct {
+// Minimal definition that only contains the fields that will be analyzed
+type managementClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []rancherCluster `json:"items"`
+	Items           []managementCluster `json:"items"`
 }
-type rancherCluster struct {
+type managementCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              rancherClusterSpec `json:"spec"`
-	Status            cattleStatus       `json:"status,omitempty"`
+	Spec              managementClusterSpec `json:"spec"`
+	Status            cattleStatus          `json:"status,omitempty"`
 }
-type rancherClusterSpec struct {
+type managementClusterSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 }
 
-// AnalyzeRancherClusters - analyze the status of Rancher clusters
-func AnalyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &rancherClusterList{}
+// AnalyzeManagementClusters - analyze the status of Rancher management clusters resources
+func AnalyzeManagementClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+	list := &managementClusterList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.management.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
 
 	for _, cluster := range list.Items {
-		err = analyzeRancherCluster(clusterRoot, cluster, issueReporter)
+		err = analyzeManagementCluster(clusterRoot, cluster, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -48,8 +47,8 @@ func AnalyzeRancherClusters(log *zap.SugaredLogger, clusterRoot string, issueRep
 	return nil
 }
 
-// analyzeRancherCluster - analyze a single Rancher cluster and report any issues
-func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueReporter *report.IssueReporter) error {
+// analyzeManagementCluster - analyze a single Rancher management cluster and report any issues
+func analyzeManagementCluster(clusterRoot string, cluster managementCluster, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
@@ -107,7 +106,7 @@ func analyzeRancherCluster(clusterRoot string, cluster rancherCluster, issueRepo
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
+			message = fmt.Sprintf("Rancher management cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

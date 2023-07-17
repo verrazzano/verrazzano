@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	cattleV1           = "v1"
-	cattleV3           = "v3"
-	cattleMgmtGroup    = "management.cattle.io"
-	cattleCatalogGroup = "catalog.cattle.io"
+	cattleV1          = "v1"
+	cattleV3          = "v3"
+	mgmtGroup         = "management.cattle.io"
+	catalogGroup      = "catalog.cattle.io"
+	provisioningGroup = "provisioning.cattle.io"
 )
 
 type rancherResource struct {
@@ -22,13 +23,16 @@ type rancherResource struct {
 
 // rancherResources - resources that are not namespaced
 var rancherResources = []rancherResource{
-	{GVR: schema.GroupVersionResource{Group: cattleCatalogGroup, Version: cattleV1, Resource: "clusterrepos"}, Kind: "ClusterRepo"},
-	{GVR: schema.GroupVersionResource{Group: cattleMgmtGroup, Version: cattleV3, Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
-	{GVR: schema.GroupVersionResource{Group: cattleMgmtGroup, Version: cattleV3, Resource: "clusters"}, Kind: "Cluster"},
+	{GVR: schema.GroupVersionResource{Group: catalogGroup, Version: cattleV1, Resource: "clusterrepos"}, Kind: "ClusterRepo"},
+	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "catalogs"}, Kind: "Catalog"},
+	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
+	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "clusters"}, Kind: "Cluster"},
 }
 
 // rancherNamespacedResources - resources that are namespaced
-var rancherNamespacedResources = []rancherResource{}
+var rancherNamespacedResources = []rancherResource{
+	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
+}
 
 // CaptureGlobalRancherResources captures global resources related to ClusterAPI
 func CaptureGlobalRancherResources(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {

@@ -13,6 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const capiClusterResource = "clusters.cluster.x-k8s.io"
+
 // Minimal definition of cluster.x-k8s.io object that only contains the fields that will be analyzed
 type clusterAPIClusterList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -91,9 +93,9 @@ func analyzeClusterAPICluster(clusterRoot string, cluster clusterAPICluster, iss
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("Cluster API cluster resource %q in namespace %q, %s", cluster.Name, cluster.Namespace, subMessage)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage)
 			} else {
-				message = fmt.Sprintf("Cluster API cluster resource %q in namespace %q, %s - reason is %s", cluster.Name, cluster.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 

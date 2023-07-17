@@ -12,6 +12,72 @@ import (
 	"go.uber.org/zap"
 )
 
+type testCase struct {
+	Function       func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error
+	ClusterRoot    string
+	ExpectedIssues int
+}
+
+const (
+	clustersReadySnapshot    = "../../../test/cluster/clusters/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot"
+	driversReadySnapshot     = "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot"
+	driversNotReadySnapshot  = "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot"
+)
+
+var testCases = []testCase{
+	{
+		Function:       rancher.AnalyzeManagementClusters,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeManagementClusters,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRepos,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRepos,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogs,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogs,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeProvisioningClusters,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeProvisioningClusters,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    driversReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    driversNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+}
+
 // Test analyze Rancher resources with different cluster snapshots.
 func TestAnalyzeRancher(t *testing.T) {
 	var issueReporter = report.IssueReporter{
@@ -19,35 +85,16 @@ func TestAnalyzeRancher(t *testing.T) {
 	}
 	logger := zap.S()
 
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Empty(t, reportedIssues)
-
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	issueReporter.Contribute(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot")
-	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Len(t, reportedIssues, 1)
-	if len(reportedIssues) != 0 {
-		assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
-	}
-
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot", &issueReporter))
-	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Empty(t, reportedIssues)
-
-	// Expect no errors and one reported issue that a Kontainer Driver is not ready.
-	report.ClearReports()
-	assert.NoError(t, rancher.AnalyzeKontainerDrivers(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot", &issueReporter))
-	issueReporter.Contribute(logger, "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot")
-	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Len(t, reportedIssues, 1)
-	if len(reportedIssues) != 0 {
-		assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+	for _, test := range testCases {
+		report.ClearReports()
+		assert.NoError(t, test.Function(logger, test.ClusterRoot, &issueReporter))
+		issueReporter.Contribute(logger, test.ClusterRoot)
+		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+		if test.ExpectedIssues == 0 {
+			assert.Empty(t, reportedIssues)
+		} else {
+			assert.Len(t, reportedIssues, test.ExpectedIssues)
+			assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+		}
 	}
 }
