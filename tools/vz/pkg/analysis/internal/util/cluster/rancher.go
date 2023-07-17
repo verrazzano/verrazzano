@@ -17,6 +17,20 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
-	_ = rancher.AnalyzeClusterRepos(log, clusterRoot, &issueReporter)
-	return rancher.AnalyzeRancherClusters(log, clusterRoot, &issueReporter)
+	err := rancher.AnalyzeClusterRepos(log, clusterRoot, &issueReporter)
+	if err != nil {
+		return err
+	}
+	err = rancher.AnalyzeKontainerDrivers(log, clusterRoot, &issueReporter)
+	if err != nil {
+		return err
+	}
+	err = rancher.AnalyzeRancherClusters(log, clusterRoot, &issueReporter)
+	if err != nil {
+		return err
+	}
+
+	issueReporter.Contribute(log, clusterRoot)
+
+	return nil
 }
