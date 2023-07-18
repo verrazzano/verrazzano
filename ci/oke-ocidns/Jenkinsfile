@@ -187,6 +187,9 @@ pipeline {
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
     }
 
     stages {
@@ -684,6 +687,15 @@ pipeline {
            deleteDir()
        }
     }
+}
+
+def runSocksVariant(variant) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            sh """
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
+            """
+        }
 }
 
 def getTestClusterType(testEnv) {
