@@ -21,10 +21,7 @@ type nodeList struct {
 type node struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            nodeStatus `json:"status,omitempty"`
-}
-type nodeStatus struct {
-	Conditions []cattleCondition `json:"conditions,omitempty"`
+	Status            cattleStatus `json:"status,omitempty"`
 }
 
 // AnalyzeNodes - analyze the status of Node objects
