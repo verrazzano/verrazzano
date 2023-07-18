@@ -92,7 +92,9 @@ func TestAnalyzeRancher(t *testing.T) {
 			assert.Empty(t, reportedIssues)
 		} else {
 			assert.Len(t, reportedIssues, test.ExpectedIssues)
-			assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+			if len(reportedIssues) != 0 {
+				assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+			}
 		}
 	}
 }
