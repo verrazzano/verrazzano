@@ -48,9 +48,10 @@ func sbsProcess1Func() []byte {
 		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
-	// Create the cloud credential to be used for all tests
-	ensureVarsInitializedForCredential()
+	verifyRequiredEnvironmentVariables()
+
 	cloudCredentialName := fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
+	// Create the cloud credential to be used for all tests
 	var credentialID string
 	Eventually(func() error {
 		var err error

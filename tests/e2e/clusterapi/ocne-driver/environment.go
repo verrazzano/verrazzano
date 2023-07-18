@@ -6,7 +6,6 @@ package ocnedriver
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -71,33 +70,25 @@ var (
 	cloudCredentialID string
 )
 
-// Initializes the variables required to create a cloud credential
-func ensureVarsInitializedForCredential() {
-	region = os.Getenv("OCI_REGION")
-	userID = os.Getenv("OCI_USER_ID")
-	tenancyID = os.Getenv("OCI_TENANCY_ID")
-	fingerprint = os.Getenv("OCI_CREDENTIALS_FINGERPRINT")
-	privateKeyPath = os.Getenv("OCI_PRIVATE_KEY_PATH")
-	ocneClusterNameSuffix = os.Getenv("OCNE_CLUSTER_NAME_SUFFIX")
+// Verify required Environment Variables are set
+func verifyRequiredEnvironmentVariables() {
+	region = pkg.GetRequiredEnvVarOrFail("OCI_REGION")
+	userID = pkg.GetRequiredEnvVarOrFail("OCI_USER_ID")
+	tenancyID = pkg.GetRequiredEnvVarOrFail("OCI_TENANCY_ID")
+	fingerprint = pkg.GetRequiredEnvVarOrFail("OCI_CREDENTIALS_FINGERPRINT")
+	privateKeyPath = pkg.GetRequiredEnvVarOrFail("OCI_PRIVATE_KEY_PATH")
+	ocneClusterNameSuffix = pkg.GetRequiredEnvVarOrFail("OCNE_CLUSTER_NAME_SUFFIX")
+	vcnID = pkg.GetRequiredEnvVarOrFail("OCI_VCN_ID")
+	nodePublicKeyPath = pkg.GetRequiredEnvVarOrFail("NODE_PUBLIC_KEY_PATH")
+	compartmentID = pkg.GetRequiredEnvVarOrFail("OCI_COMPARTMENT_ID")
+	workerNodeSubnet = pkg.GetRequiredEnvVarOrFail("WORKER_NODE_SUBNET")
+	controlPlaneSubnet = pkg.GetRequiredEnvVarOrFail("CONTROL_PLANE_SUBNET")
+	loadBalancerSubnet = pkg.GetRequiredEnvVarOrFail("LOAD_BALANCER_SUBNET")
 }
 
 // Grabs info from environment variables required by this test suite.
 // Requires an existing cloud credential.
 func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
-	// mandatory environment variables
-	region = os.Getenv("OCI_REGION")
-	vcnID = os.Getenv("OCI_VCN_ID")
-	userID = os.Getenv("OCI_USER_ID")
-	tenancyID = os.Getenv("OCI_TENANCY_ID")
-	fingerprint = os.Getenv("OCI_CREDENTIALS_FINGERPRINT")
-	privateKeyPath = os.Getenv("OCI_PRIVATE_KEY_PATH")
-	nodePublicKeyPath = os.Getenv("NODE_PUBLIC_KEY_PATH")
-	compartmentID = os.Getenv("OCI_COMPARTMENT_ID")
-	workerNodeSubnet = os.Getenv("WORKER_NODE_SUBNET")
-	controlPlaneSubnet = os.Getenv("CONTROL_PLANE_SUBNET")
-	loadBalancerSubnet = os.Getenv("LOAD_BALANCER_SUBNET")
-	ocneClusterNameSuffix = os.Getenv("OCNE_CLUSTER_NAME_SUFFIX")
-
 	// optional overrides
 	dockerRootDir = pkg.GetEnvFallback("DOCKER_ROOT_DIR", "/var/lib/docker")
 	enableClusterAlerting = pkg.GetEnvFallbackBool("ENABLE_CLUSTER_ALERTING", false)
