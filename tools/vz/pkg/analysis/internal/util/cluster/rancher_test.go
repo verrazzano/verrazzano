@@ -19,10 +19,8 @@ type testCase struct {
 }
 
 const (
-	clustersReadySnapshot    = "../../../test/cluster/clusters/clusters-ready/cluster-snapshot"
-	clustersNotReadySnapshot = "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot"
-	driversReadySnapshot     = "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot"
-	driversNotReadySnapshot  = "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot"
+	clustersReadySnapshot    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
 )
 
 var testCases = []testCase{
@@ -68,12 +66,12 @@ var testCases = []testCase{
 	},
 	{
 		Function:       rancher.AnalyzeKontainerDrivers,
-		ClusterRoot:    driversReadySnapshot,
+		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeKontainerDrivers,
-		ClusterRoot:    driversNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 }
