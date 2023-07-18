@@ -70,6 +70,7 @@ func filterHostname(line string) string {
 		}
 	}
 
+	fmt.Print(foundHostnames)
 	// Now that the hostnames have been collected, go back and filter them out
 	for i, l := range splitNewlines {
 		for _, host := range foundHostnames {
