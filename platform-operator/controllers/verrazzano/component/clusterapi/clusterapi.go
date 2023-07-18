@@ -7,10 +7,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
 	"os"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -61,9 +59,6 @@ const (
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
 	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
-	clusterAPISubComponentName                = "capi-cluster-api"
-	clusterAPIOCISubcomponentName             = "capi-oci"
-	clusterAPIOCNESubComponentName            = "capi-ocne"
 )
 
 type ImageConfig struct {
@@ -200,44 +195,11 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	return buf, nil
 }
 
-func getImage(subComponent, imageName string) (string, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return "", err
-	}
-	images, err := bomFile.GetImageNameList(subComponent)
-	if err != nil {
-		return "", fmt.Errorf("Failed to get the images for subComponent")
-	}
-	for i, image := range images {
-		if strings.Contains(image, imageName) {
-			return images[i], nil
-		}
-	}
-	return "", fmt.Errorf("failed to find %s/%s image in the BOM", subComponent, imageName)
-}
-
-func (c *PodMatcherClusterAPI) initializeImageVersionsFromBOM(log vzlog.VerrazzanoLogger) error {
-	image, err := getImage(clusterAPISubComponentName, clusterAPIControllerImage)
-	if err != nil {
-		return err
-	}
-	c.coreProvider = image
-	image, err = getImage(clusterAPIOCISubcomponentName, clusterAPIOCIControllerImage)
-	if err != nil {
-		return err
-	}
-	c.infrastructureProvider = image
-	image, err = getImage(clusterAPIOCNESubComponentName, clusterAPIOCNEBoostrapControllerImage)
-	if err != nil {
-		return err
-	}
-	c.bootstrapProvider = image
-	image, err = getImage(clusterAPIOCNESubComponentName, clusterAPIOCNEControlPLaneControllerImage)
-	if err != nil {
-		return err
-	}
-	c.controlPlaneProvider = image
+func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.VerrazzanoLogger, overrides OverridesInterface) error {
+	c.coreProvider = overrides.GetClusterAPIControllerFullImagePath()
+	c.infrastructureProvider = overrides.GetOCIControllerFullImagePath()
+	c.bootstrapProvider = overrides.GetOCNEBootstrapControllerFullImagePath()
+	c.controlPlaneProvider = overrides.GetOCNEControlPlaneControllerFullImagePath()
 	return nil
 }
 
@@ -255,7 +217,7 @@ func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expect
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
 func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (clusterapi.ApplyUpgradeOptions, error) {
-	c.initializeImageVersionsFromBOM(ctx.Log())
+	c.initializeImageVersionsOverrides(ctx.Log(), overrides)
 	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
 	podList := &v1.PodList{}
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {

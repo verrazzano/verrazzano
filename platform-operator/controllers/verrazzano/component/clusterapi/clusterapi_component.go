@@ -287,9 +287,6 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 
 	overridesContext := newOverridesContext(overrides)
 	podMatcher := &PodMatcherClusterAPI{}
-	if err = podMatcher.initializeImageVersionsFromBOM(ctx.Log()); err != nil {
-		return err
-	}
 
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(ctx, overridesContext)

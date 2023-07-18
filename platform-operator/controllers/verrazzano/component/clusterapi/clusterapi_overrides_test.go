@@ -322,6 +322,7 @@ func TestOverridesInterface(t *testing.T) {
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetClusterAPIRepository())
 	assert.Equal(t, CoreImageTag, tc.GetClusterAPITag())
 	assert.Equal(t, capiRoot+"/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
+	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIControllerImage+"/v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPIControllerFullImagePath())
 
 	assert.Equal(t, "myreg2.io/oci-repo", tc.GetOCIRepository())
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
