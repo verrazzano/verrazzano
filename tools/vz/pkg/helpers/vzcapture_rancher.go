@@ -35,6 +35,7 @@ var rancherResources = []rancherResource{
 var rancherNamespacedResources = []rancherResource{
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundles"}, Kind: "Bundle"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundledeployments"}, Kind: "BundleDeployment"},
+	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clusters"}, Kind: "Cluster"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clustergroups"}, Kind: "ClusterGroup"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clusterregistrations"}, Kind: "ClusterRegistration"},
 	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
