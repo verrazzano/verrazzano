@@ -25,6 +25,7 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 	analyzers := []func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error{
 		rancher.AnalyzeClusterRepos, rancher.AnalyzeCatalogs, rancher.AnalyzeProvisioningClusters,
 		rancher.AnalyzeKontainerDrivers, rancher.AnalyzeBundleDeployments, rancher.AnalyzeManagementClusters,
+		rancher.AnalyzeBundles,
 	}
 
 	for _, analyze := range analyzers {

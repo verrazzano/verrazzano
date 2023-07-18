@@ -97,7 +97,6 @@ func analyzeProvisioningCluster(clusterRoot string, cluster provisioningCluster,
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -106,7 +105,7 @@ func analyzeProvisioningCluster(clusterRoot string, cluster provisioningCluster,
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher provisioning cluster resource %q in namespace %s %s%s%s", cluster.Name, cluster.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher provisioning cluster resource %q in namespace %s %s%s%s", cluster.Name, cluster.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

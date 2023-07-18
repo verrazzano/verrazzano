@@ -65,7 +65,6 @@ func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployme
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -74,7 +73,7 @@ func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployme
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher BundledDeployment resource %q %s %s%s", bundleDeployment.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher BundledDeployment resource %q %s %s%s", bundleDeployment.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
