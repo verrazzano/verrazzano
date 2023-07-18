@@ -249,10 +249,7 @@ func resetReclaimPolicy(ctx spi.ComponentContext) error {
 func arePVCsAndPVsBound(ctx spi.ComponentContext) bool {
 	pvcList := &v1.PersistentVolumeClaimList{}
 	if err := ctx.Client().List(context.TODO(), pvcList, c.MatchingLabels{clusterLabel: clusterName}); err != nil {
-		if errors.IsNotFound(err) {
-			return true
-		}
-		return false
+		return errors.IsNotFound(err)
 	}
 	for _, pvc := range pvcList.Items {
 		if pvc.Status.Phase != v1.ClaimBound {
@@ -262,10 +259,7 @@ func arePVCsAndPVsBound(ctx spi.ComponentContext) bool {
 	}
 	pvList, err := common.GetPersistentVolumes(ctx, clusterName)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return true
-		}
-		return false
+		return errors.IsNotFound(err)
 	}
 	for _, pv := range pvList.Items {
 		if pv.Status.Phase != v1.VolumeBound {

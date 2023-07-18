@@ -358,7 +358,7 @@ func GetMergedNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 	}
 
 	err = json.Unmarshal(jsonValue, &nodePools)
-	return nodePools, nil
+	return nodePools, err
 }
 
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -436,8 +436,8 @@ func buildIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.
 			ingressAnnotations[`external-dns\.alpha\.kubernetes\.io/ttl`] = "60"
 		}
 
-		kvs, err = appendOSIngressOverrides(ingressAnnotations, dnsSubDomain, ingressClassName, kvs)
-		kvs, err = appendOSDIngressOverrides(ingressAnnotations, dnsSubDomain, ingressClassName, kvs)
+		kvs, _ = appendOSIngressOverrides(ingressAnnotations, dnsSubDomain, ingressClassName, kvs)
+		kvs, _ = appendOSDIngressOverrides(ingressAnnotations, dnsSubDomain, ingressClassName, kvs)
 
 	} else {
 		kvs = append(kvs, bom.KeyValue{

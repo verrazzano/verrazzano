@@ -55,6 +55,10 @@ func TestGetNodeNameFromClaimName(t *testing.T) {
 	}
 }
 
+// TestHandleLegacyOpenSearch tests the handleLegacyOpenSearch function
+// GIVEN a list of OpenSearch nodes and pvcs
+// WHEN handleLegacyOpenSearch is called
+// THEN expected operations are carried out without any error
 func TestHandleLegacyOpenSearch(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)

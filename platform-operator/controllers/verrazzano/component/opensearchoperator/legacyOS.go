@@ -45,7 +45,7 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext, nodes []NodePool) error {
 	}
 
 	if !arePVsReleased(ctx, nodes) {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("waiting for exisitng PVs to be released")}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("waiting for existing PVs to be released")}
 	}
 
 	if err := createNewPVCs(ctx, nodes); err != nil {
