@@ -6,6 +6,7 @@ package helpers
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"regexp"
 )
 
@@ -24,7 +25,6 @@ func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)
-	regexToReplacementList = append(regexToReplacementList, hostnames)
 }
 
 // SanitizeString sanitizes each line in a given file,
@@ -36,7 +36,8 @@ func SanitizeString(l string) string {
 	for _, eachRegex := range regexToReplacementList {
 		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))
 	}
-	return l
+
+	return filterHostname(l)
 }
 
 // getSha256Hash generates the one way hash for the input string
@@ -45,4 +46,32 @@ func getSha256Hash(line string) string {
 	hashedVal := sha256.Sum256(data)
 	hexString := hex.EncodeToString(hashedVal[:])
 	return hexString
+}
+
+func filterHostname(line string) string {
+	includeRegex := []string{
+		fmt.Sprintf(`("host":|"hostname":)(.*)"%s"`, hostnames),
+		fmt.Sprintf(`\S+"%s"$`, hostnames),
+	}
+
+	excludeRegex := []string{
+		fmt.Sprintf(`%s(.*):`, hostnames),
+		fmt.Sprintf(`apiVersion(.*)%s`, hostnames),
+		fmt.Sprintf(`f:(.*)%s`, hostnames),
+		fmt.Sprintf(`"%s/(.*)`, hostnames),
+	}
+
+	if matchesRegexListItem(line, includeRegex) && !matchesRegexListItem(line, excludeRegex) {
+		return regexp.MustCompile(hostnames).ReplaceAllString(line, getSha256Hash(line))
+	}
+	return line
+}
+
+func matchesRegexListItem(line string, list []string) bool {
+	for _, r := range list {
+		if regexp.MustCompile(r).Match([]byte(line)) {
+			return true
+		}
+	}
+	return false
 }
