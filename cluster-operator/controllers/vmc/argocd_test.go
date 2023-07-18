@@ -294,7 +294,7 @@ func TestMutateArgoCDClusterSecretNoTokenMatch(t *testing.T) {
 
 	caData := []byte("ca")
 
-	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", log)
 	assert.NoError(t, err)
 	initalTimestamp := secret.Annotations[createTimestamp]
 
