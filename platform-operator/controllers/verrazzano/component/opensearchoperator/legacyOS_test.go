@@ -26,22 +26,22 @@ import (
 // THEN expected node name is returned for each claim name
 func TestGetNodeNameFromClaimName(t *testing.T) {
 	var tests = []struct {
-		nodes            []vzapi.OpenSearchNode
+		nodes            []NodePool
 		claimNames       []string
 		expectedNodeName []string
 	}{
 		{
-			[]vzapi.OpenSearchNode{{Name: "es-data"}, {Name: "es-data1"}},
+			[]NodePool{{Component: "es-data"}, {Component: "es-data1"}},
 			[]string{"vmi-system-es-data", "vmi-system-es-data1-1", "vmi-system-es-data-tqxkq", "vmi-system-es-data1-1-8m66v"},
 			[]string{"es-data", "es-data1", "es-data", "es-data1"},
 		},
 		{
-			[]vzapi.OpenSearchNode{{Name: "es-data"}, {Name: "es-data1"}},
+			[]NodePool{{Component: "es-data"}, {Component: "es-data1"}},
 			[]string{"vmi-system-es-data1", "vmi-system-es-data-1", "vmi-system-es-data1-tqxkq", "vmi-system-es-data-1-8m66v"},
 			[]string{"es-data1", "es-data", "es-data1", "es-data"},
 		},
 		{
-			[]vzapi.OpenSearchNode{{Name: "es-master"}},
+			[]NodePool{{Component: "es-master"}},
 			[]string{"elasticsearch-master-vmi-system-es-master-0"},
 			[]string{"es-master"},
 		},
@@ -135,13 +135,8 @@ func TestHandleLegacyOpenSearch(t *testing.T) {
 		List(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil).Times(2)
 
-	// reset reclaim policy
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(nil).Times(3)
-
 	fakeCtx := spi.NewFakeContext(mock, getVZ(), nil, false)
-	err := handleLegacyOpenSearch(fakeCtx)
+	err := handleLegacyOpenSearch(fakeCtx, createFakeNodePool())
 	assert.NoError(t, err)
 }
 

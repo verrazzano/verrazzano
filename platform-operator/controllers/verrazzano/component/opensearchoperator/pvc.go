@@ -22,19 +22,18 @@ import (
 )
 
 // getOSPersistentVolumes returns the list of older PersistentVolumes used by VMO OpenSearch
-func getOSPersistentVolumes(ctx spi.ComponentContext) ([]v1.PersistentVolume, error) {
+func getOSPersistentVolumes(ctx spi.ComponentContext, nodes []NodePool) ([]v1.PersistentVolume, error) {
 	pvList := &v1.PersistentVolumeList{}
 	if err := ctx.Client().List(context.TODO(), pvList); err != nil {
 		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
 	}
 
-	nodes := ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes
 	var openSearchPVList []v1.PersistentVolume
 	for _, node := range nodes {
 		for i := range pvList.Items {
 			pv := pvList.Items[i]
 			if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == constants.VerrazzanoSystemNamespace &&
-				getNodeNameFromClaimName(pv.Spec.ClaimRef.Name, nodes) == node.Name {
+				getNodeNameFromClaimName(pv.Spec.ClaimRef.Name, nodes) == node.Component {
 				openSearchPVList = append(openSearchPVList, pv)
 			}
 		}
@@ -68,8 +67,8 @@ func getPVCsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) 
 
 // setPVsToRetain sets the ReclaimPolicy for older PersistentVolumes to Retain
 // Adds a few extra labels used in later steps
-func setPVsToRetain(ctx spi.ComponentContext) error {
-	pvList, err := getOSPersistentVolumes(ctx)
+func setPVsToRetain(ctx spi.ComponentContext, nodes []NodePool) error {
+	pvList, err := getOSPersistentVolumes(ctx, nodes)
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func setPVsToRetain(ctx spi.ComponentContext) error {
 		ctx.Log().Once("PVs already set to Retain or no old PVs found to retain")
 		return nil
 	}
-	nodes := ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes
+
 	for i := range pvList {
 		pv := pvList[i]
 		oldReclaimPolicy := pv.Spec.PersistentVolumeReclaimPolicy
@@ -108,11 +107,9 @@ func setPVsToRetain(ctx spi.ComponentContext) error {
 
 // createNewPVCs creates new PersistentVolumeClaims for older PersistentVolumes
 // based on the opensearch-operator naming convention
-func createNewPVCs(ctx spi.ComponentContext) error {
-	nodes := ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes
-
+func createNewPVCs(ctx spi.ComponentContext, nodes []NodePool) error {
 	for _, node := range nodes {
-		nodePool := node.Name
+		nodePool := node.Component
 		// Get older PVs for this node pool
 		pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, nodePool)
 		if err != nil {
@@ -160,7 +157,7 @@ func createNewPVCs(ctx spi.ComponentContext) error {
 				replicaCount++
 			}
 		} else {
-			ctx.Log().Oncef("New PVCs already created or no existing PVs for node pool %s", node.Name)
+			ctx.Log().Oncef("New PVCs already created or no existing PVs for node pool %s", node.Component)
 		}
 	}
 
@@ -221,8 +218,8 @@ func deleteMasterNodePVC(ctx spi.ComponentContext) error {
 
 // arePVsReleased return true if all PersistentVolumes are in Released Phase
 // so that new PersistentVolumeClaims can claim them
-func arePVsReleased(ctx spi.ComponentContext) bool {
-	pvList, err := getOSPersistentVolumes(ctx)
+func arePVsReleased(ctx spi.ComponentContext, nodes []NodePool) bool {
+	pvList, err := getOSPersistentVolumes(ctx, nodes)
 	if err != nil {
 		ctx.Log().Errorf("Failed to list PVs: %v", err)
 		return false

@@ -51,6 +51,8 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AppendOverridesFunc:       AppendOverrides,
+			IngressNames:              getIngressList(),
+			Certificates:              certificates,
 		},
 	}
 }
@@ -62,7 +64,10 @@ func (o opensearchOperatorComponent) IsEnabled(effectiveCr runtime.Object) bool 
 
 // IsReady - component specific ready-check
 func (o opensearchOperatorComponent) IsReady(context spi.ComponentContext) bool {
-	return o.HelmComponent.IsReady(context)
+	if o.isReady(context) {
+		return o.HelmComponent.IsReady(context)
+	}
+	return false
 }
 
 // PreInstall runs before components are installed
@@ -88,7 +93,8 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 		return err
 	}
 
-	if err := handleLegacyOpenSearch(ctx); err != nil {
+	nodes := GetMergedNodePools(ctx)
+	if err := handleLegacyOpenSearch(ctx, nodes); err != nil {
 		return err
 	}
 

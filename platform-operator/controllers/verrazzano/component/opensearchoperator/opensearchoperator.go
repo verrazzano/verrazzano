@@ -32,15 +32,17 @@ const (
 	osdIngressName                   = "opensearch-dashboards"
 	nodePoolKey                      = "openSearchCluster.nodePools.*"
 	additionalConfigKey              = "additionalConfig"
-
-	opsterOSService = "opensearch"
-
-	opsterOSDService = "opensearch-dashboards"
-
-	securityconfigSecretName = "securityconfig-secret"
 )
 
 var (
+	certificates = []types.NamespacedName{
+		{Name: "system-tls-osd", Namespace: constants.VerrazzanoSystemNamespace},
+		{Name: "system-tls-os-ingest", Namespace: constants.VerrazzanoSystemNamespace},
+		{Name: fmt.Sprintf("%s-admin-cert", clusterName), Namespace: ComponentNamespace},
+		{Name: fmt.Sprintf("%s-dashboards-cert", clusterName), Namespace: ComponentNamespace},
+		{Name: fmt.Sprintf("%s-master-cert", clusterName), Namespace: ComponentNamespace},
+		{Name: fmt.Sprintf("%s-node-cert", clusterName), Namespace: ComponentNamespace}}
+
 	getControllerRuntimeClient = getClient
 )
 
@@ -160,9 +162,20 @@ func ConvertOSNodeToInterface(nodes []vzapi.OpenSearchNode) interface{} {
 		}
 		if node.Storage != nil {
 			nodeMap["diskSize"] = node.Storage.Size
+		} else {
+			nodeMap["persistence"] = map[string]interface{}{
+				"emptyDir": map[string]interface{}{}, // denotes '{}'
+			}
 		}
 		if node.Resources != nil {
 			nodeMap["resources"] = node.Resources
+		}
+		if len(node.Roles) > 0 {
+			var roles []interface{}
+			for _, role := range node.Roles {
+				roles = append(roles, string(role))
+			}
+			nodeMap["roles"] = roles
 		}
 		ret = append(ret, nodeMap)
 	}
@@ -174,15 +187,28 @@ func ConvertOSNodeToInterfacev1beta1(nodes []installv1beta1.OpenSearchNode) inte
 	for _, node := range nodes {
 		nodeMap := make(map[string]interface{})
 		nodeMap["component"] = node.Name
-		nodeMap["jvm"] = node.JavaOpts
+		if node.JavaOpts != "" {
+			nodeMap["jvm"] = node.JavaOpts
+		}
 		if node.Replicas != nil {
 			nodeMap["replicas"] = *node.Replicas
 		}
 		if node.Storage != nil {
 			nodeMap["diskSize"] = node.Storage.Size
+		} else {
+			nodeMap["persistence"] = map[string]interface{}{
+				"emptyDir": map[string]interface{}{}, // denotes '{}'
+			}
 		}
 		if node.Resources != nil {
 			nodeMap["resources"] = node.Resources
+		}
+		if len(node.Roles) > 0 {
+			var roles []interface{}
+			for _, role := range node.Roles {
+				roles = append(roles, string(role))
+			}
+			nodeMap["roles"] = roles
 		}
 		ret = append(ret, nodeMap)
 	}
@@ -277,7 +303,8 @@ func mergeAdditionalConfig(newnp map[string]interface{}, oldnp map[string]interf
 	}
 }
 
-func GetNodePools(ctx spi.ComponentContext) []NodePool {
+// GetMergedNodePools returns the list of nodes after merging all the overrides
+func GetMergedNodePools(ctx spi.ComponentContext) []NodePool {
 	cr := ctx.EffectiveCR()
 	overrides := BuildNodePoolOverrides(*cr, ctx.Client())
 	overridev1beta1 := vzapi.ConvertValueOverridesToV1Beta1(overrides)
@@ -297,11 +324,12 @@ func GetNodePools(ctx spi.ComponentContext) []NodePool {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// TODO: Image overrides once the BFS images are done
 
+	nodePools := GetMergedNodePools(ctx)
 	// Bootstrap pod overrides
-	if IsUpgrade(ctx) || IsSingleMasterNodeCluster(ctx) {
+	if IsUpgrade(ctx, nodePools) || IsSingleMasterNodeCluster(nodePools) {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   `openSearchCluster.bootstrap.additionalConfig.cluster\.initial_master_nodes`,
-			Value: fmt.Sprintf("%s-%s-0", clusterName, getMasterNode(ctx)),
+			Value: fmt.Sprintf("%s-%s-0", clusterName, getMasterNode(nodePools)),
 		})
 	}
 
@@ -313,24 +341,22 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-func IsSingleMasterNodeCluster(ctx spi.ComponentContext) bool {
-	nodePools := GetNodePools(ctx)
-
+// IsSingleMasterNodeCluster returns true if the cluster has a single mater node
+func IsSingleMasterNodeCluster(nodePools []NodePool) bool {
 	replicas := int32(0)
+
 	for _, node := range nodePools {
-		// If PVs with this label exists for any node pool, then it's an upgrade
 		if vzstring.SliceContainsString(node.Roles, "master") {
 			replicas += node.Replicas
 		} else if vzstring.SliceContainsString(node.Roles, "cluster_manager") {
 			replicas += node.Replicas
 		}
 	}
-	return replicas == 1
+	return replicas <= 1
 }
 
-func IsUpgrade(ctx spi.ComponentContext) bool {
-	nodePools := GetNodePools(ctx)
-
+// IsUpgrade returns true if we are upgrading from <=1.6.x to 2.x
+func IsUpgrade(ctx spi.ComponentContext, nodePools []NodePool) bool {
 	for _, node := range nodePools {
 		// If PVs with this label exists for any node pool, then it's an upgrade
 		pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, node.Component)
@@ -471,25 +497,18 @@ func newScheme() *runtime.Scheme {
 	return scheme
 }
 
-func getMasterNode(ctx spi.ComponentContext) string {
-	nodes := ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes
-
+func getMasterNode(nodes []NodePool) string {
 	for _, node := range nodes {
 		for _, role := range node.Roles {
-			if node.Replicas != nil && *node.Replicas <= 0 {
+			if node.Replicas <= 0 {
 				continue
 			}
 			if role == "master" || role == "cluster_manager" {
-				return node.Name
+				return node.Component
 			}
 		}
 	}
 	return ""
-}
-
-func GetMergedNodes(ctx spi.ComponentContext) {
-	//legacyNodes := getNodePoolFromNodes(ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes)
-	//currentNodes := getNodesFromOverrides(ctx.EffectiveCR().Spec.Components.OpenSearchOperator)
 }
 
 func getDeploymentList() []types.NamespacedName {
@@ -505,11 +524,11 @@ func getIngressList() []types.NamespacedName {
 	return []types.NamespacedName{
 		{
 			Name:      osIngressName,
-			Namespace: ComponentNamespace,
+			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 		{
 			Name:      osdIngressName,
-			Namespace: ComponentNamespace,
+			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
 }
