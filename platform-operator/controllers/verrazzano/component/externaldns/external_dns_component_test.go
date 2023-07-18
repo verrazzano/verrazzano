@@ -46,55 +46,38 @@ func TestExternalDNSPreUninstall(t *testing.T) {
 			Namespace: common.VMOComponentNamespace,
 		},
 	}
+	vzNamespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "vz-namespace",
+			Labels: map[string]string{vzconst.LabelVerrazzanoNamespace: "vz-namespace"}}}
+	nonVZNS := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "other-namespace"}}
 	ingressNginxNamespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.IngressNginxNamespace}}
 	extDNSAnnotations := map[string]string{externalDNSIngressAnnotationKey: constants.VzIngress}
-	extDNSIngVZSys := netv1.Ingress{
+	extDNSIngVZNS := netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-ing-extdns-vz",
-			Namespace:   constants.VerrazzanoSystemNamespace,
+			Namespace:   vzNamespace.Name,
 			Annotations: extDNSAnnotations,
 		},
 	}
-	ingVZSys := netv1.Ingress{
+	ingVZNS := netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-ing-vz",
-			Namespace: constants.VerrazzanoSystemNamespace,
-		},
-	}
-
-	extDNSIngKeycloakNS := netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-ing-extdns-kc",
-			Namespace:   constants.KeycloakNamespace,
-			Annotations: extDNSAnnotations,
-		},
-	}
-	ingKeycloakNS := netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-ing-kc",
-			Namespace: constants.KeycloakNamespace,
-		},
-	}
-
-	extDNSIngRancherNS := netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-ing-extdns-rancher",
-			Namespace:   vzconst.RancherSystemNamespace,
-			Annotations: extDNSAnnotations,
-		},
-	}
-	ingRancherNS := netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-ing-rancher",
-			Namespace: vzconst.RancherSystemNamespace,
+			Namespace: vzNamespace.Name,
 		},
 	}
 
 	extDNSIngOtherNS := netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-ing-extdns-other-ns",
-			Namespace:   "some-other-namespace",
+			Namespace:   nonVZNS.Name,
 			Annotations: extDNSAnnotations,
+		},
+	}
+	ingOtherNS := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ing-vz",
+			Namespace: nonVZNS.Name,
 		},
 	}
 
@@ -114,39 +97,35 @@ func TestExternalDNSPreUninstall(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name:      "External DNS annotated ingress exists in VZ system namespace",
-			resources: []k8scli.Object{&extDNSIngVZSys},
-			wantErr:   true,
-		},
-		{
-			name:      "External DNS annotated ingress exists in Keycloak namespace",
-			resources: []k8scli.Object{&extDNSIngKeycloakNS},
-			wantErr:   true,
-		},
-		{
-			name:      "External DNS annotated ingress exists in Rancher namespace",
-			resources: []k8scli.Object{&extDNSIngRancherNS},
+			name:      "External DNS annotated ingress exists in a VZ namespace",
+			resources: []k8scli.Object{&extDNSIngVZNS},
 			wantErr:   true,
 		},
 		{
 			name:      "VMO deployment, nginx namespace and some external DNS annotated ingresses exist",
-			resources: []k8scli.Object{&vmoDeploy, &ingressNginxNamespace, &extDNSIngRancherNS},
+			resources: []k8scli.Object{&vmoDeploy, &ingressNginxNamespace, &extDNSIngVZNS},
 			wantErr:   true,
 		},
 		{
-			name:      "External DNS annotated ingress exists in some other namespace",
+			name:      "External DNS annotated ingress exists in a non VZ namespace",
 			resources: []k8scli.Object{&extDNSIngOtherNS},
 			wantErr:   false,
 		},
 		{
-			name:      "Non-external DNS annotated ingresses exist in VZ system, keycloak and rancher namespaces",
-			resources: []k8scli.Object{&ingVZSys, &ingKeycloakNS, &ingRancherNS},
+			name:      "Non-external DNS annotated ingress exists in a non VZ namespace",
+			resources: []k8scli.Object{&ingOtherNS},
+			wantErr:   false,
+		},
+		{
+			name:      "Non-external DNS annotated ingresses exist in VZ namespace",
+			resources: []k8scli.Object{&ingVZNS},
 			wantErr:   false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+				WithObjects(&vzNamespace, &nonVZNS).
 				WithObjects(tt.resources...).
 				Build()
 			ednsComp := NewComponent()
