@@ -110,16 +110,20 @@ func ResolveExernalDNSNamespace() string {
 // DNS records, so we cannot start external-dns uninstall yet.
 func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	log.Progressf("Checking for leftover ingresses in Verrazzano component namespaces before uninstalling %s", ComponentName)
-	namespaceList := []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace, vzconst.RancherSystemNamespace, vzconst.VerrazzanoMonitoringNamespace}
-	for _, ns := range namespaceList {
+
+	namespaceList, err := listVerrazzanoNamespaces(log, cli)
+	if err != nil {
+		return err
+	}
+	for _, ns := range namespaceList.Items {
 		ingressList := netv1.IngressList{}
-		if err := cli.List(context.TODO(), &ingressList, client.InNamespace(ns)); err != nil {
-			log.Errorf("Failed to list ingresses in namespace %s: %v", ns, err)
+		if err := cli.List(context.TODO(), &ingressList, client.InNamespace(ns.Name)); err != nil {
+			log.Errorf("Failed to list ingresses in namespace %s: %v", ns.Name, err)
 			return err
 		}
 		for _, ing := range ingressList.Items {
 			if strings.Contains(ing.Annotations[externalDNSIngressAnnotationKey], constants.VzIngress) {
-				log.Progressf("Component %s pre-uninstall is waiting for ingress %s in namespace %s to be uninstalled", ComponentName, ing.Name, ns)
+				log.Progressf("Component %s pre-uninstall is waiting for ingress %s in namespace %s to be uninstalled", ComponentName, ing.Name, ns.Name)
 				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
 		}
@@ -136,6 +140,16 @@ func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 		return ctrlerrors.RetryableError{Source: ComponentName}
 	}
 	return nil
+}
+
+// listVerrazzanoNamespaces lists all Verrazzano labeled namespaces
+func listVerrazzanoNamespaces(log vzlog.VerrazzanoLogger, cli client.Client) (*corev1.NamespaceList, error) {
+	// []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace, vzconst.RancherSystemNamespace, vzconst.VerrazzanoMonitoringNamespace}
+	nsList := corev1.NamespaceList{}
+	if err := cli.List(context.TODO(), &nsList, client.HasLabels{vzconst.LabelVerrazzanoNamespace}); client.IgnoreNotFound(err) != nil {
+		return nil, err
+	}
+	return &nsList, nil
 }
 
 func verifyIngressNginxUninstalled(log vzlog.VerrazzanoLogger, cli client.Client) bool {
