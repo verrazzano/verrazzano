@@ -5,7 +5,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"io/ioutil"
@@ -20,12 +19,9 @@ import (
 func ConfData() error {
 
 	var inputDirectory string
-	if len(os.Args) != 3 {
-		fmt.Println("Not enough args to run tool")
-		return nil
-	} else {
-		inputDirectory = os.Args[1]
-	}
+	//var outputDirectory string
+	inputDirectory = os.Args[1]
+	//outputDirectory = os.Args[2]
 	var appData []map[string]interface{}
 
 	var components []map[string]interface{}

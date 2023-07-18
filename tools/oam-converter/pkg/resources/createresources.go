@@ -14,6 +14,12 @@ import (
 
 func CreateResources(conversionComponents []*types.ConversionComponents) error {
 	for _, conversionComponent := range conversionComponents {
+		if conversionComponent.MetricsTrait != nil {
+			err := metrics.CreateMetricsChildResources(conversionComponent)
+			if err != nil {
+				return errors.New("failed to create Child resources from Metrics Trait")
+			}
+		}
 		if conversionComponent.WeblogicworkloadMap != nil {
 			//conversionComponent.AppNamespace, conversionComponent.AppName, conversionComponent.ComponentName, conversionComponent.IngressTrait, conversionComponent.WeblogicworkloadMap[conversionComponent.ComponentName]
 			err := weblogic.CreateIngressChildResourcesFromWeblogic(conversionComponent)
@@ -33,13 +39,6 @@ func CreateResources(conversionComponents []*types.ConversionComponents) error {
 			err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent)
 			if err != nil {
 				return errors.New("failed to create Child resources from Helidon workload")
-
-			}
-		}
-		if conversionComponent.MetricsTrait != nil {
-			err := metrics.CreateMetricsChildResources(conversionComponent)
-			if err != nil {
-				return errors.New("failed to create Child resources from Metrics Trait")
 
 			}
 		}

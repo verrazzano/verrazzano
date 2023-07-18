@@ -31,7 +31,7 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (err 
 	serviceMonitor := promoperapi.ServiceMonitor{}
 
 	// Creating a service monitor with name and namespace
-	pmName, err := createServiceMonitorName(trait, 0)
+	pmName, err := createServiceMonitorName(trait, conversionComponent.AppName, conversionComponent.ComponentName, 0)
 	if err != nil {
 		return err
 	}
@@ -98,32 +98,24 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (err 
 	return nil
 
 }
-func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
-	sname, err := createJobOrServiceMonitorName(trait, portNum)
+func createServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, portNum int) (string, error) {
+	sname, err := createJobOrServiceMonitorName(trait, appName, compName, portNum)
 	if err != nil {
 		return "", err
 	}
 	return strings.Replace(sname, "_", "-", -1), nil
 }
-func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
+func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait,appName string, compName string, portNum int) (string, error) {
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
-	app, found := trait.Labels[oam.LabelAppName]
-	if !found {
-		return "", fmt.Errorf("metrics trait missing application name label")
-	}
-	comp, found := trait.Labels[oam.LabelAppComponent]
-	if !found {
-		return "", fmt.Errorf("metrics trait missing component name label")
-	}
 	portStr := ""
 	if portNum > 0 {
 		portStr = fmt.Sprintf("_%d", portNum)
 	}
 
-	finalName := fmt.Sprintf("%s_%s_%s%s", app, namespace, comp, portStr)
+	finalName := fmt.Sprintf("%s_%s_%s%s", appName, namespace, compName, portStr)
 	// Check for Kubernetes name length requirement
 	if len(finalName) > 63 {
-		finalName = fmt.Sprintf("%s_%s%s", app, namespace, portStr)
+		finalName = fmt.Sprintf("%s_%s%s", appName, namespace, portStr)
 		if len(finalName) > 63 {
 			return finalName[:63], nil
 		}
