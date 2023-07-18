@@ -15,7 +15,7 @@ const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:d
 const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
 const sshAuthKeys = "ssh-rsa\\s+[A-Za-z0-9=+ \\-\\/@]+"
 const ocid = "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"
-const hostnames = "([[:alnum:]][a-zA-Z0-9\\-]{0,62})(\\.[a-zA-Z0-9\\-]{1,63})*"
+const hostnames = "([[:alnum:]][a-zA-Z0-9\\-]{0,62})(\\.[a-zA-Z0-9\\-]{1,63})+"
 
 // InitRegexToReplacementMap Initialize the regex string to replacement string map
 // Append to this map for any future additions
