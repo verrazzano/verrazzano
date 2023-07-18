@@ -1132,7 +1132,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                     kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                 elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
                     echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                    ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --manifests ${upgradeOperatorFile} --timeout 35m
+                    ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --manifests ${upgradeOperatorFile} --timeout 35m
                 fi
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
