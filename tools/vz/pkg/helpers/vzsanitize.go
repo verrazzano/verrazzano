@@ -52,7 +52,6 @@ func getSha256Hash(line string) string {
 func filterHostname(line string) string {
 	includeRegex := []string{
 		fmt.Sprintf(`("host"|"hostname"):(.*)"%s"$`, hostnames),
-		fmt.Sprintf(`\s+"%s"$`, hostnames),
 	}
 
 	excludeRegex := []string{
@@ -70,7 +69,7 @@ func filterHostname(line string) string {
 		}
 	}
 
-	fmt.Print(foundHostnames)
+	fmt.Printf("%v\n", foundHostnames)
 	// Now that the hostnames have been collected, go back and filter them out
 	for i, l := range splitNewlines {
 		for _, host := range foundHostnames {
