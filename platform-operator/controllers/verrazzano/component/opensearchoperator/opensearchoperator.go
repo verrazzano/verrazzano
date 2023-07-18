@@ -91,62 +91,89 @@ func GetOverrides(object runtime.Object) interface{} {
 // 3. Default configuration from the base profiles
 func BuildNodePoolOverrides(cr vzapi.Verrazzano, client clipkg.Client) []vzapi.Overrides {
 
+	var mergedOverrides []vzapi.Overrides
 	operatorOverrides := vzapi.ConvertValueOverridesToV1Beta1(cr.Spec.Components.OpenSearchOperator.ValueOverrides)
-	overrideYaml, _ := override.GetInstallOverridesYAMLUsingClient(client, operatorOverrides, cr.Namespace)
+	overrideYaml, err := override.GetInstallOverridesYAMLUsingClient(client, operatorOverrides, cr.Namespace)
 
-	if len(overrideYaml) <= 0 {
-		return []vzapi.Overrides{}
+	if err != nil || len(overrideYaml) <= 0 {
+		return mergedOverrides
 	}
 
 	// The default overrides are the last in the list
 	defaultOverrides := overrideYaml[len(overrideYaml)-1]
-	value, _ := override.ExtractValueFromOverrideString(defaultOverrides, nodePoolKey)
-
-	existingOSConfig := ConvertOSNodeToInterface(cr.Spec.Components.Elasticsearch.Nodes)
-	value, _ = MergeNodePools(existingOSConfig, value)
-
-	for i := len(overrideYaml) - 2; i >= 0; i-- {
-		newValue, _ := override.ExtractValueFromOverrideString(overrideYaml[i], nodePoolKey)
-		value, _ = MergeNodePools(newValue, value)
+	value, err := override.ExtractValueFromOverrideString(defaultOverrides, nodePoolKey)
+	if err != nil {
+		return mergedOverrides
 	}
 
-	nodePoolOverrides := []vzapi.Overrides{
+	existingOSConfig := ConvertOSNodeToInterface(cr.Spec.Components.Elasticsearch.Nodes)
+	value, err = MergeNodePools(existingOSConfig, value)
+	if err != nil {
+		return mergedOverrides
+	}
+
+	for i := len(overrideYaml) - 2; i >= 0; i-- {
+		newValue, err := override.ExtractValueFromOverrideString(overrideYaml[i], nodePoolKey)
+		if err != nil {
+			return mergedOverrides
+		}
+		value, err = MergeNodePools(newValue, value)
+		if err != nil {
+			return mergedOverrides
+		}
+	}
+
+	mergedOverrides = []vzapi.Overrides{
 		{
 			Values: &apiextensionsv1.JSON{
 				Raw: CreateOverridesAsJSON(value),
 			},
 		}}
-	return nodePoolOverrides
+	return mergedOverrides
 }
 
 // BuildNodePoolOverridesv1beta1 builds the opensearchCLuster.nodePools v1beta1 overrides for the operator
 func BuildNodePoolOverridesv1beta1(cr installv1beta1.Verrazzano, client clipkg.Client) []installv1beta1.Overrides {
-	operatorOverrides := cr.Spec.Components.OpenSearchOperator.ValueOverrides
-	overrideYaml, _ := override.GetInstallOverridesYAMLUsingClient(client, operatorOverrides, cr.Namespace)
 
-	if len(overrideYaml) <= 0 {
-		return []installv1beta1.Overrides{}
+	var mergedOverrides []installv1beta1.Overrides
+	operatorOverrides := cr.Spec.Components.OpenSearchOperator.ValueOverrides
+	overrideYaml, err := override.GetInstallOverridesYAMLUsingClient(client, operatorOverrides, cr.Namespace)
+
+	if err != nil || len(overrideYaml) <= 0 {
+		return mergedOverrides
 	}
 
 	// The default overrides are the last in the list
 	defaultOverrides := overrideYaml[len(overrideYaml)-1]
-	value, _ := override.ExtractValueFromOverrideString(defaultOverrides, nodePoolKey)
-
-	existingOSConfig := ConvertOSNodeToInterfacev1beta1(cr.Spec.Components.OpenSearch.Nodes)
-	value, _ = MergeNodePools(existingOSConfig, value)
-
-	for i := len(overrideYaml) - 2; i >= 0; i-- {
-		newValue, _ := override.ExtractValueFromOverrideString(overrideYaml[i], nodePoolKey)
-		value, _ = MergeNodePools(newValue, value)
+	value, err := override.ExtractValueFromOverrideString(defaultOverrides, nodePoolKey)
+	if err != nil {
+		return mergedOverrides
 	}
 
-	nodePoolOverrides := []installv1beta1.Overrides{
+	existingOSConfig := ConvertOSNodeToInterfacev1beta1(cr.Spec.Components.OpenSearch.Nodes)
+	value, err = MergeNodePools(existingOSConfig, value)
+	if err != nil {
+		return mergedOverrides
+	}
+
+	for i := len(overrideYaml) - 2; i >= 0; i-- {
+		newValue, err := override.ExtractValueFromOverrideString(overrideYaml[i], nodePoolKey)
+		if err != nil {
+			return mergedOverrides
+		}
+		value, err = MergeNodePools(newValue, value)
+		if err != nil {
+			return mergedOverrides
+		}
+	}
+
+	mergedOverrides = []installv1beta1.Overrides{
 		{
 			Values: &apiextensionsv1.JSON{
 				Raw: CreateOverridesAsJSON(value),
 			},
 		}}
-	return nodePoolOverrides
+	return mergedOverrides
 }
 
 func ConvertOSNodeToInterface(nodes []vzapi.OpenSearchNode) interface{} {
@@ -226,8 +253,10 @@ func CreateOverridesAsJSON(value interface{}) []byte {
 	nestedMap["openSearchCluster"] = map[string]interface{}{
 		"nodePools": value.([]interface{}),
 	}
-	mergedOverrides, _ := json.Marshal(nestedMap)
-
+	mergedOverrides, err := json.Marshal(nestedMap)
+	if err != nil {
+		return []byte{}
+	}
 	return mergedOverrides
 }
 
@@ -304,27 +333,41 @@ func mergeAdditionalConfig(newnp map[string]interface{}, oldnp map[string]interf
 }
 
 // GetMergedNodePools returns the list of nodes after merging all the overrides
-func GetMergedNodePools(ctx spi.ComponentContext) []NodePool {
+func GetMergedNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 	cr := ctx.EffectiveCR()
-	overrides := BuildNodePoolOverrides(*cr, ctx.Client())
-	overridev1beta1 := vzapi.ConvertValueOverridesToV1Beta1(overrides)
-	overrideYaml, _ := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), overridev1beta1, cr.Namespace)
-
-	if len(overrideYaml) <= 0 {
-		return []NodePool{}
-	}
-	value, _ := override.ExtractValueFromOverrideString(overrideYaml[0], nodePoolKey)
-	jsonValue, _ := json.Marshal(value)
 	var nodePools []NodePool
 
-	_ = json.Unmarshal(jsonValue, &nodePools)
-	return nodePools
+	overrides := BuildNodePoolOverrides(*cr, ctx.Client())
+	overridev1beta1 := vzapi.ConvertValueOverridesToV1Beta1(overrides)
+	overrideYaml, err := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), overridev1beta1, cr.Namespace)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert overrides to yaml: %v", err)
+	}
+
+	if len(overrideYaml) <= 0 {
+		return nodePools, nil
+	}
+	value, err := override.ExtractValueFromOverrideString(overrideYaml[0], nodePoolKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract value from nodepool: %v", err)
+	}
+	jsonValue, err := json.Marshal(value)
+	if err != nil {
+		return nodePools, err
+	}
+
+	err = json.Unmarshal(jsonValue, &nodePools)
+	return nodePools, nil
 }
 
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// TODO: Image overrides once the BFS images are done
 
-	nodePools := GetMergedNodePools(ctx)
+	nodePools, err := GetMergedNodePools(ctx)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the list of merged nodepools: %v", err)
+	}
 	// Bootstrap pod overrides
 	if IsUpgrade(ctx, nodePools) || IsSingleMasterNodeCluster(nodePools) {
 		kvs = append(kvs, bom.KeyValue{
@@ -333,7 +376,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		})
 	}
 
-	kvs, err := buildIngressOverrides(ctx, kvs)
+	kvs, err = buildIngressOverrides(ctx, kvs)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build ingress overrides: %v", err)
 	}
