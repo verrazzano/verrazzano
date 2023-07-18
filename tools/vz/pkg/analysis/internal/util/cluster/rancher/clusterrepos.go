@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,7 +30,7 @@ type clusterRepoSpec struct {
 }
 
 // AnalyzeClusterRepos - analyze the status of ClusterRepo objects
-func AnalyzeClusterRepos(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterRepos(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &clusterRepoList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterrepo.catalog.cattle.io.json", list)
 	if err != nil {
