@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -39,24 +38,28 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-	// Get effective CR
-	vzcr, err := transform.GetEffectiveCR(actualCR)
+
+	// Get effective CR and set the effective CR status with the actual status
+	// Note that the reconciler code only udpdate the status, which is why the effective
+	// CR is passed.  If was ever to update the spec, then the actual CR would need to be used.
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+	effectiveCR.Status = actualCR.Status
 
 	log := vzlog.DefaultLogger()
-	res := r.initReconcile(log, vzcr)
+	res := r.initStatus(log, effectiveCR)
 	if res.ShouldRequeue() {
 		return res
 	}
 
-	err = r.createOrUpdateModules(vzcr)
+	err = r.createOrUpdateModules(effectiveCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	ready, err := r.updateStatusForComponents(log, vzcr)
+	ready, err := r.updateStatusForComponents(log, effectiveCR)
 	if err != nil || !ready {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -66,7 +69,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 // createOrUpdateModules creates or updates all the modules
-func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
+func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
 	semver, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return err
@@ -76,7 +79,7 @@ func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
 
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
-		createOrUpdate, err := r.shouldCreateOrUpdateModule(vzcr, comp)
+		createOrUpdate, err := r.shouldCreateOrUpdateModule(effectiveCR, comp)
 		if err != nil {
 			return err
 		}
@@ -91,7 +94,7 @@ func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
 			},
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return mutateModule(vzcr, &module, comp, version)
+			return mutateModule(effectiveCR, &module, comp, version)
 		})
 		if err != nil {
 			return err
@@ -101,13 +104,13 @@ func (r Reconciler) createOrUpdateModules(vzcr *vzapi.Verrazzano) error {
 }
 
 // mutateModule mutates the module for the create or update callback
-func mutateModule(vzcr *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, version string) error {
+func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, version string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
-	module.Annotations[constants.VerrazzanoCRNameAnnotation] = vzcr.Name
-	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = vzcr.Namespace
-	module.Annotations[constants.VerrazzanoObservedGeneration] = strconv.FormatInt(vzcr.Generation, 10)
+	module.Annotations[constants.VerrazzanoCRNameAnnotation] = effectiveCR.Name
+	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
+	module.Annotations[constants.VerrazzanoObservedGeneration] = strconv.FormatInt(effectiveCR.Generation, 10)
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
@@ -118,8 +121,8 @@ func mutateModule(vzcr *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Com
 }
 
 // shouldCreateOrUpdateModule returns true if the Module should be created or updated
-func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.Component) (bool, error) {
-	if !comp.IsEnabled(vzcr) {
+func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, comp spi.Component) (bool, error) {
+	if !comp.IsEnabled(effectiveCR) {
 		return false, nil
 	}
 
@@ -136,20 +139,47 @@ func (r Reconciler) shouldCreateOrUpdateModule(vzcr *vzapi.Verrazzano, comp spi.
 	// if module doesn't have the current VZ generation then return true
 	if module.Annotations != nil {
 		gen := module.Annotations[constants.VerrazzanoObservedGeneration]
-		return gen != strconv.FormatInt(vzcr.Generation, 10), nil
+		return gen != strconv.FormatInt(effectiveCR.Generation, 10), nil
 	}
 
 	return true, nil
 }
 
+// Init status fields
+func (r Reconciler) initStatus(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+	// Init the state to Ready if this CR has never been processed
+	// Always requeue to update cache, ignore error since requeue anyway
+	if len(effectiveCR.Status.State) == 0 {
+		effectiveCR.Status.State = vzapi.VzStateReconciling
+		r.updateStatus(log, effectiveCR)
+		return result.NewResultShortRequeueDelay()
+	}
+
+	// Check if init done for this resource
+	_, ok := initializedSet[effectiveCR.Name]
+	if ok {
+		return result.NewResult()
+	}
+
+	// Pre-populate the component status fields
+	res := r.initializeComponentStatus(log, effectiveCR)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the map indicating the resource has been initialized
+	initializedSet[effectiveCR.Name] = true
+	return result.NewResult()
+}
+
 // updateStatusForComponents updates the vz CR status for the components based on the module status
 // return true if all components are ready
-func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *vzapi.Verrazzano) (bool, error) {
+func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) (bool, error) {
 	var readyCount int
 	var moduleCount int
 
 	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(vzcr) {
+		if !comp.IsEnabled(effectiveCR) {
 			continue
 		}
 		moduleCount++
@@ -163,8 +193,8 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
 			continue
 		}
-		// Set the vzcr status
-		compStatus := r.loadModuleStatusIntoComponentStatus(vzcr, comp.Name(), module)
+		// Set the effectiveCR status from the module status
+		compStatus := r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
 		if compStatus.State == vzapi.CompStateReady {
 			readyCount++
 		}
@@ -172,66 +202,15 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, vzcr *
 
 	vzReady := moduleCount == readyCount
 	if vzReady {
-		vzcr.Status.State = vzapi.VzStateReady
+		effectiveCR.Status.State = vzapi.VzStateReady
 	}
 
 	// Update the status.  If it didn't change then the Kubernetes API server will not be called
-	err := r.Client.Status().Update(context.TODO(), vzcr)
+	err := r.Client.Status().Update(context.TODO(), effectiveCR)
 	if err != nil {
 		return false, err
 	}
 
 	// return true if all modules are ready
 	return vzReady, nil
-}
-
-// initForVzResource will do initialization for the given Verrazzano resource.
-// Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
-// Add a watch for each Verrazzano resource
-func (r *Reconciler) initForVzResource(vz *vzapi.Verrazzano, log vzlog.VerrazzanoLogger) result.Result {
-	// Add our finalizer if not already added
-	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
-		log.Debugf("Adding finalizer %s", finalizerName)
-		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
-		if err := r.Client.Update(context.TODO(), vz); err != nil {
-			return result.NewResultShortRequeueDelay()
-		}
-	}
-
-	if unitTesting {
-		return result.NewResult()
-	}
-
-	// Check if init done for this resource
-	_, ok := initializedSet[vz.Name]
-	if ok {
-		return result.NewResult()
-	}
-
-	// Update the map indicating the resource is being watched
-	initializedSet[vz.Name] = true
-	return result.NewResultShortRequeueDelay()
-}
-
-func (r Reconciler) initReconcile(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano) result.Result {
-	// Init the state to Ready if this CR has never been processed
-	// Always requeue to update cache, ignore error since requeue anyway
-	if len(actualCR.Status.State) == 0 {
-		actualCR.Status.State = vzapi.VzStateReconciling
-		r.updateStatus(log, actualCR)
-		return result.NewResultShortRequeueDelay()
-	}
-
-	// Initialize once for this Verrazzano resource when the operator starts
-	res := r.initForVzResource(actualCR, log)
-	if res.ShouldRequeue() {
-		return res
-	}
-
-	// Pre-populate the component status fields
-	res = r.initializeComponentStatus(log, actualCR)
-	if res.ShouldRequeue() {
-		return res
-	}
-	return result.NewResult()
 }

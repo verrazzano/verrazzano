@@ -45,8 +45,6 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 		return nil, err
 	}
 
-	effectiveCR.Status = actualCR.Status
-
 	return effectiveCR, nil
 }
 
