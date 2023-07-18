@@ -59,19 +59,14 @@ func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
 // GetOverrides gets the install overrides
 func GetOverrides(object runtime.Object) interface{} {
 
-	client, err := getControllerRuntimeClient()
-	if err != nil {
-		return []vzapi.Overrides{}
-	}
-
 	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
-		mergeNodePoolOverride := BuildNodePoolOverrides(*effectiveCR, client)
+		mergeNodePoolOverride := BuildNodePoolOverrides(*effectiveCR)
 		if effectiveCR.Spec.Components.OpenSearchOperator != nil {
 			mergeNodePoolOverride = append(mergeNodePoolOverride, effectiveCR.Spec.Components.OpenSearchOperator.ValueOverrides...)
 		}
 		return mergeNodePoolOverride
 	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
-		mergeNodePoolOverridev1beta1 := BuildNodePoolOverridesv1beta1(*effectiveCR, client)
+		mergeNodePoolOverridev1beta1 := BuildNodePoolOverridesv1beta1(*effectiveCR)
 		if effectiveCR.Spec.Components.OpenSearchOperator != nil {
 			mergeNodePoolOverridev1beta1 = append(mergeNodePoolOverridev1beta1, effectiveCR.Spec.Components.OpenSearchOperator.ValueOverrides...)
 		}
@@ -89,9 +84,15 @@ func GetOverrides(object runtime.Object) interface{} {
 // 2. Configuration from current OpenSearch and OpenSearchDashboards components -> This will later be moved to CR conversion
 // once new CR version is ready
 // 3. Default configuration from the base profiles
-func BuildNodePoolOverrides(cr vzapi.Verrazzano, client clipkg.Client) []vzapi.Overrides {
+func BuildNodePoolOverrides(cr vzapi.Verrazzano) []vzapi.Overrides {
 
 	var mergedOverrides []vzapi.Overrides
+
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return mergedOverrides
+	}
+
 	operatorOverrides := vzapi.ConvertValueOverridesToV1Beta1(cr.Spec.Components.OpenSearchOperator.ValueOverrides)
 	overrideYaml, err := override.GetInstallOverridesYAMLUsingClient(client, operatorOverrides, cr.Namespace)
 
@@ -133,9 +134,15 @@ func BuildNodePoolOverrides(cr vzapi.Verrazzano, client clipkg.Client) []vzapi.O
 }
 
 // BuildNodePoolOverridesv1beta1 builds the opensearchCLuster.nodePools v1beta1 overrides for the operator
-func BuildNodePoolOverridesv1beta1(cr installv1beta1.Verrazzano, client clipkg.Client) []installv1beta1.Overrides {
+func BuildNodePoolOverridesv1beta1(cr installv1beta1.Verrazzano) []installv1beta1.Overrides {
 
 	var mergedOverrides []installv1beta1.Overrides
+
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return mergedOverrides
+	}
+
 	operatorOverrides := cr.Spec.Components.OpenSearchOperator.ValueOverrides
 	overrideYaml, err := override.GetInstallOverridesYAMLUsingClient(client, operatorOverrides, cr.Namespace)
 
@@ -337,7 +344,7 @@ func GetMergedNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 	cr := ctx.EffectiveCR()
 	var nodePools []NodePool
 
-	overrides := BuildNodePoolOverrides(*cr, ctx.Client())
+	overrides := BuildNodePoolOverrides(*cr)
 	overridev1beta1 := vzapi.ConvertValueOverridesToV1Beta1(overrides)
 	overrideYaml, err := override.GetInstallOverridesYAMLUsingClient(ctx.Client(), overridev1beta1, cr.Namespace)
 

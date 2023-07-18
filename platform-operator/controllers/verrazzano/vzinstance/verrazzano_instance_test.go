@@ -35,10 +35,10 @@ func TestGetInstanceInfo(t *testing.T) {
 	const dnsDomain = "myenv.testverrazzano.com"
 
 	const keycloakURL = "keycloak." + dnsDomain
-	const esURL = "elasticsearch." + dnsDomain
+	const esURL = "opensearch.vmi.system." + dnsDomain
 	const promURL = "prometheus." + dnsDomain
 	const grafanaURL = "grafana." + dnsDomain
-	const kibanaURL = "kibana." + dnsDomain
+	const kibanaURL = "osd.vmi.system." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
 	const thanosRulerURL = "thanos-ruler." + dnsDomain
@@ -65,7 +65,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "opensearch"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: esURL},
@@ -89,7 +89,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "opensearch-dashboards"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: kibanaURL},
