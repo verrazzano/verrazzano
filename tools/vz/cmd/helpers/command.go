@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -146,6 +147,10 @@ func getVersionFromOperatorYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (
 		return "", err
 	}
 
+	// versions we return are expected to start with "v"
+	if !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
 	return version, err
 }
 
