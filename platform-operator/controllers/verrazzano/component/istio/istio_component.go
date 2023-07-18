@@ -428,7 +428,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	return true
 }
 
-// areIstioDeploymentsReady verifies that the enabled deployments in the Istio Operator are ready
+// areIstioDeploymentsReady verifies that the enabled deployments in the Istio Operator CR are ready
 func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) bool {
 	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &istioLabelSelector)
 }
