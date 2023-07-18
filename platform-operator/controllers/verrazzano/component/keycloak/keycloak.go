@@ -62,6 +62,8 @@ const (
 	dbHostKey               = "database.hostname"
 	headlessService         = "keycloak-headless"
 	kcAdminScript           = "/opt/keycloak/bin/kcadm.sh"
+	keycloakSecretName      = "keycloak-http"
+	keycloakIngressName     = "keycloak"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -809,7 +811,7 @@ func getEnvironmentName(envName string) string {
 // updateKeycloakIngress updates the Ingress
 func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	ingress := networkv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
+		ObjectMeta: metav1.ObjectMeta{Name: keycloakIngressName, Namespace: constants.KeycloakNamespace},
 	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
@@ -1113,8 +1115,8 @@ func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
 	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: "keycloak",
-		Name:      "keycloak-http",
+		Namespace: constants.KeycloakNamespace,
+		Name:      keycloakSecretName,
 	}, secret)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Keycloak password: %s", err)

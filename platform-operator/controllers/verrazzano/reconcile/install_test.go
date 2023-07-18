@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -51,7 +52,6 @@ const fakeCompReleaseName = "verrazzano-authproxy"
 // auth config for Argo CD
 const (
 	KeyCloakOIDCConfig = "clientID: argocd\nclientSecret: $oidc.keycloak.clientSecret\nissuer: https://keycloak/auth/realms/verrazzano-system\nname: Keycloak\nrequestedScopes:\n- openid\n- profile\n- email\n- groups\nrootCA: test-ca-argocd\n"
-	keycloakPodName    = "keycloak-0"
 )
 
 var (
@@ -416,7 +416,7 @@ func testUpdate(t *testing.T,
 	crb := rbac.NewClusterRoleBinding(vz, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(name))
 	authConfig := createKeycloakAuthConfig()
 	localAuthConfig := createLocalAuthConfig()
-	kcSecret := createKeycloakSecret()
+	kcSecret := keycloakutil.CreateTestKeycloakLoginSecret()
 	argoCASecret := createCASecret()
 	argoCDConfigMap := createArgoCDCM()
 	argoCDRbacConfigMap := createArgoCDRbacCM()
@@ -428,11 +428,12 @@ func testUpdate(t *testing.T,
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
+	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 	jobList := createJobsList()
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
-		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, getKeycloakPod()).
+		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, keycloakPod).
 		WithLists(&ingressList, &jobList).Build()
 
 	ctx := spi.NewFakeContext(c, vz, nil, false)
@@ -520,18 +521,6 @@ func createLocalAuthConfig() unstructured.Unstructured {
 	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
 	authConfig.SetName(rancher.AuthConfigLocal)
 	return authConfig
-}
-
-func createKeycloakSecret() corev1.Secret {
-	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "keycloak",
-			Name:      "keycloak-http",
-		},
-		Data: map[string][]byte{
-			"password": []byte("blahblah"),
-		},
-	}
 }
 
 func createCASecret() corev1.Secret {
@@ -699,23 +688,5 @@ func TestCheckGenerationUpdated(t *testing.T) {
 				t.Errorf("checkGenerationUpdated() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-// getKeycloakPod constructs and returns Keycloak pod
-func getKeycloakPod() *corev1.Pod {
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      keycloakPodName,
-			Namespace: constants.KeycloakNamespace,
-		},
-		Status: corev1.PodStatus{
-			Conditions: []corev1.PodCondition{
-				{
-					Type:   corev1.PodReady,
-					Status: corev1.ConditionTrue,
-				},
-			},
-		},
 	}
 }
