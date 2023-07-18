@@ -93,7 +93,10 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 		return err
 	}
 
-	nodes := GetMergedNodePools(ctx)
+	nodes, err := GetMergedNodePools(ctx)
+	if err != nil {
+		return err
+	}
 	if err := handleLegacyOpenSearch(ctx, nodes); err != nil {
 		return err
 	}
