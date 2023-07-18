@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -100,29 +99,29 @@ func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	ocneClusterNameSuffix = os.Getenv("OCNE_CLUSTER_NAME_SUFFIX")
 
 	// optional overrides
-	dockerRootDir = getEnvFallback("DOCKER_ROOT_DIR", "/var/lib/docker")
-	enableClusterAlerting = getEnvFallbackBool("ENABLE_CLUSTER_ALERTING", false)
-	enableClusterMonitoring = getEnvFallbackBool("ENABLE_CLUSTER_MONITORING", false)
-	enableNetworkPolicy = getEnvFallbackBool("ENABLE_NETWORK_POLICY", false)
-	windowsPreferedCluster = getEnvFallbackBool("WINDOWS_PREFERRED_CLUSTER", false)
-	clusterCidr = getEnvFallback("CLUSTER_CIDR", "10.96.0.0/16")
-	controlPlaneMemoryGbs = getEnvFallbackInt("CONTROL_PLANE_MEMORY_GBS", 16)
-	controlPlaneOcpus = getEnvFallbackInt("CONTROL_PLANE_OCPUS", 2)
-	controlPlaneVolumeGbs = getEnvFallbackInt("CONTROL_PLANE_VOLUME_GBS", 100)
-	imageID = getEnvFallback("IMAGE_ID", "")
-	installCalico = getEnvFallbackBool("INSTALL_CALICO", true)
-	installCcm = getEnvFallbackBool("INSTALL_CCM", true)
-	installVerrazzano = getEnvFallbackBool("INSTALL_VERRAZZANO", false)
-	numControlPlaneNodes = getEnvFallbackInt("NUM_CONTROL_PLANE_NODES", 1)
-	podCidr = getEnvFallback("POD_CIDR", "10.244.0.0/16")
-	privateRegistry = getEnvFallback("PRIVATE_REGISTRY", "")
-	proxyEndpoint = getEnvFallback("PROXY_ENDPOINT", "")
-	skipOcneInstall = getEnvFallbackBool("SKIP_OCNE_INSTALL", false)
-	useNodePvEncryption = getEnvFallbackBool("USE_NODE_PV_ENCRYPTION", true)
-	verrazzanoResource = getEnvFallback("VERRAZZANO_RESOURCE",
+	dockerRootDir = pkg.GetEnvFallback("DOCKER_ROOT_DIR", "/var/lib/docker")
+	enableClusterAlerting = pkg.GetEnvFallbackBool("ENABLE_CLUSTER_ALERTING", false)
+	enableClusterMonitoring = pkg.GetEnvFallbackBool("ENABLE_CLUSTER_MONITORING", false)
+	enableNetworkPolicy = pkg.GetEnvFallbackBool("ENABLE_NETWORK_POLICY", false)
+	windowsPreferedCluster = pkg.GetEnvFallbackBool("WINDOWS_PREFERRED_CLUSTER", false)
+	clusterCidr = pkg.GetEnvFallback("CLUSTER_CIDR", "10.96.0.0/16")
+	controlPlaneMemoryGbs = pkg.GetEnvFallbackInt("CONTROL_PLANE_MEMORY_GBS", 16)
+	controlPlaneOcpus = pkg.GetEnvFallbackInt("CONTROL_PLANE_OCPUS", 2)
+	controlPlaneVolumeGbs = pkg.GetEnvFallbackInt("CONTROL_PLANE_VOLUME_GBS", 100)
+	imageID = pkg.GetEnvFallback("IMAGE_ID", "")
+	installCalico = pkg.GetEnvFallbackBool("INSTALL_CALICO", true)
+	installCcm = pkg.GetEnvFallbackBool("INSTALL_CCM", true)
+	installVerrazzano = pkg.GetEnvFallbackBool("INSTALL_VERRAZZANO", false)
+	numControlPlaneNodes = pkg.GetEnvFallbackInt("NUM_CONTROL_PLANE_NODES", 1)
+	podCidr = pkg.GetEnvFallback("POD_CIDR", "10.244.0.0/16")
+	privateRegistry = pkg.GetEnvFallback("PRIVATE_REGISTRY", "")
+	proxyEndpoint = pkg.GetEnvFallback("PROXY_ENDPOINT", "")
+	skipOcneInstall = pkg.GetEnvFallbackBool("SKIP_OCNE_INSTALL", false)
+	useNodePvEncryption = pkg.GetEnvFallbackBool("USE_NODE_PV_ENCRYPTION", true)
+	verrazzanoResource = pkg.GetEnvFallback("VERRAZZANO_RESOURCE",
 		"apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster")
-	numWorkerNodes = getEnvFallbackInt("NUM_WORKER_NODES", 1)
-	applyYAMLs = getEnvFallback("APPLY_YAMLS", "")
+	numWorkerNodes = pkg.GetEnvFallbackInt("NUM_WORKER_NODES", 1)
+	applyYAMLs = pkg.GetEnvFallback("APPLY_YAMLS", "")
 	if err := fillOCNEMetadata(log); err != nil {
 		return err
 	}
@@ -191,10 +190,10 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 	}
 
 	// Initialize values
-	corednsImageTag = getEnvFallback("CORE_DNS_IMAGE_TAG", coreDNSFallback)
-	etcdImageTag = getEnvFallback("ETCD_IMAGE_TAG", etcdFallback)
-	tigeraImageTag = getEnvFallback("TIGERA_IMAGE_TAG", tigeraFallback)
-	kubernetesVersion = getEnvFallback("KUBERNETES_VERSION", kubernetesFallback)
+	corednsImageTag = pkg.GetEnvFallback("CORE_DNS_IMAGE_TAG", coreDNSFallback)
+	etcdImageTag = pkg.GetEnvFallback("ETCD_IMAGE_TAG", etcdFallback)
+	tigeraImageTag = pkg.GetEnvFallback("TIGERA_IMAGE_TAG", tigeraFallback)
+	kubernetesVersion = pkg.GetEnvFallback("KUBERNETES_VERSION", kubernetesFallback)
 	return nil
 }
 
@@ -218,7 +217,7 @@ func fillOCNEVersion(log *zap.SugaredLogger) error {
 	ocneVersionFallback = versionList[0].Data().(string)
 
 	// Initialize value
-	ocneVersion = getEnvFallback("OCNE_VERSION", ocneVersionFallback)
+	ocneVersion = pkg.GetEnvFallback("OCNE_VERSION", ocneVersionFallback)
 	return nil
 }
 
@@ -249,7 +248,7 @@ func fillNodeImage(log *zap.SugaredLogger) error {
 	}
 
 	// Initialize value
-	imageDisplayName = getEnvFallback("IMAGE_DISPLAY_NAME", linuxImageFallback)
+	imageDisplayName = pkg.GetEnvFallback("IMAGE_DISPLAY_NAME", linuxImageFallback)
 	return nil
 }
 
@@ -276,8 +275,8 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 	}
 
 	// Initialize values
-	verrazzanoTag = getEnvFallback("VERRAZZANO_TAG", vzTagFallback)
-	verrazzanoVersion = getEnvFallback("VERRAZZANO_VERSION", vzVersionFallback)
+	verrazzanoTag = pkg.GetEnvFallback("VERRAZZANO_TAG", vzTagFallback)
+	verrazzanoVersion = pkg.GetEnvFallback("VERRAZZANO_VERSION", vzVersionFallback)
 	return nil
 }
 
@@ -312,35 +311,7 @@ func fillNodeShapes(log *zap.SugaredLogger) error {
 	}
 
 	// Initialize values
-	controlPlaneShape = getEnvFallback("CONTROL_PLANE_SHAPE", cpShapeFallback)
-	nodeShape = getEnvFallback("NODE_SHAPE", nodeShapeFallback)
+	controlPlaneShape = pkg.GetEnvFallback("CONTROL_PLANE_SHAPE", cpShapeFallback)
+	nodeShape = pkg.GetEnvFallback("NODE_SHAPE", nodeShapeFallback)
 	return nil
-}
-
-// Returns the value of the desired environment variable,
-// but returns a fallback value if the environment variable is not set
-func getEnvFallback(envVar, fallback string) string {
-	value := os.Getenv(envVar)
-	if value == "" {
-		return fallback
-	}
-	return value
-}
-
-func getEnvFallbackBool(envVar string, fallback bool) bool {
-	value := os.Getenv(envVar)
-	boolValue, err := strconv.ParseBool(value)
-	if err != nil {
-		return fallback
-	}
-	return boolValue
-}
-
-func getEnvFallbackInt(envVar string, fallback int) int {
-	value := os.Getenv(envVar)
-	intValue, err := strconv.Atoi(value)
-	if err != nil {
-		return fallback
-	}
-	return intValue
 }
