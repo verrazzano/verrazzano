@@ -9,7 +9,6 @@ import (
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
@@ -28,11 +27,11 @@ const (
 // 3. Delete master node's PVCs. Since they are created by the STS they are not cleaned up by VMO
 // 4. Create new PVCs for operator
 // 5. Wait for new PVCs to bind to PVs
-func handleLegacyOpenSearch(ctx spi.ComponentContext) error {
+func handleLegacyOpenSearch(ctx spi.ComponentContext, nodes []NodePool) error {
 
-	ctx.Log().Once("Performing pre-upgrade steps required for legacy OpenSearch")
-	// Retain PVs
-	if err := setPVsToRetain(ctx); err != nil {
+	ctx.Log().Once("Performing migration steps required for legacy OpenSearch")
+
+	if err := setPVsToRetain(ctx, nodes); err != nil {
 		return err
 	}
 
@@ -45,11 +44,11 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext) error {
 		return fmt.Errorf("failed to delete existing master node pvc: %v", err)
 	}
 
-	if !arePVsReleased(ctx) {
+	if !arePVsReleased(ctx, nodes) {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("waiting for exisitng PVs to be released")}
 	}
 
-	if err := createNewPVCs(ctx); err != nil {
+	if err := createNewPVCs(ctx, nodes); err != nil {
 		return fmt.Errorf("falied creating new pvc: %v", err)
 	}
 
@@ -68,7 +67,7 @@ func updateFuncForUninstall(ctx spi.ComponentContext, storage *common.ResourceRe
 }
 
 // getNodeNameFromClaimName returns the corresponding node name for a pvc name
-func getNodeNameFromClaimName(claimName string, nodes []vzapi.OpenSearchNode) string {
+func getNodeNameFromClaimName(claimName string, nodes []NodePool) string {
 	claimName = strings.TrimPrefix(claimName, "elasticsearch-master-")
 	claimName = strings.TrimPrefix(claimName, "vmi-system-")
 
@@ -83,8 +82,8 @@ func getNodeNameFromClaimName(claimName string, nodes []vzapi.OpenSearchNode) st
 	lastIndex := strings.LastIndex(claimName, "-")
 	if lastIndex != -1 {
 		for _, node := range nodes {
-			if claimName[:lastIndex] == node.Name {
-				return node.Name
+			if claimName[:lastIndex] == node.Component {
+				return node.Component
 			}
 		}
 		// Remove 2 suffix
@@ -92,8 +91,8 @@ func getNodeNameFromClaimName(claimName string, nodes []vzapi.OpenSearchNode) st
 		secondLastIndex := strings.LastIndex(claimName[:lastIndex], "-")
 		if secondLastIndex != -1 {
 			for _, node := range nodes {
-				if claimName[:secondLastIndex] == node.Name {
-					return node.Name
+				if claimName[:secondLastIndex] == node.Component {
+					return node.Component
 				}
 			}
 		}
@@ -102,8 +101,8 @@ func getNodeNameFromClaimName(claimName string, nodes []vzapi.OpenSearchNode) st
 	// Compare without removing suffix
 	// For case 1
 	for _, node := range nodes {
-		if claimName == node.Name {
-			return node.Name
+		if claimName == node.Component {
+			return node.Component
 		}
 	}
 	return ""

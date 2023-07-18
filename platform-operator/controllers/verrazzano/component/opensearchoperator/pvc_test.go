@@ -24,7 +24,8 @@ import (
 // THEN only PVs corresponding to OS nodes are returned
 func TestGetOSPersistentVolumes(t *testing.T) {
 	fakeCtx := newFakeContext()
-	pvList, err := getOSPersistentVolumes(fakeCtx)
+	nodePools := createFakeNodePool()
+	pvList, err := getOSPersistentVolumes(fakeCtx, nodePools)
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(pvList))
 }
@@ -35,7 +36,8 @@ func TestGetOSPersistentVolumes(t *testing.T) {
 // THEN only PVs corresponding to OS nodes are set to Retain
 func TestSetPVsToRetain(t *testing.T) {
 	fakeCtx := newFakeContext()
-	err := setPVsToRetain(fakeCtx)
+	nodePools := createFakeNodePool()
+	err := setPVsToRetain(fakeCtx, nodePools)
 	assert.NoError(t, err)
 	// When retaining the PVs, the old reclaim policy label is set
 	pvList, err := getPVsBasedOnLabel(fakeCtx, constants.OldReclaimPolicyLabel, "Delete")
@@ -52,7 +54,8 @@ func TestSetPVsToRetain(t *testing.T) {
 // THEN new PVCs corresponding to PVs are created
 func TestCreateNewPVCs(t *testing.T) {
 	fakeCtx := newFakeContext()
-	err := createNewPVCs(fakeCtx)
+	nodePools := createFakeNodePool()
+	err := createNewPVCs(fakeCtx, nodePools)
 	assert.NoError(t, err)
 
 	pvcList, err := getPVCsBasedOnLabel(fakeCtx, clusterLabel, clusterName)
@@ -73,6 +76,20 @@ func newFakeContext() spi.ComponentContext {
 
 	fakeCtx := spi.NewFakeContext(fakeClient, getVZ(), nil, false)
 	return fakeCtx
+}
+
+func createFakeNodePool() []NodePool {
+	return []NodePool{
+		{
+			Component: "es-data",
+		},
+		{
+			Component: "es-master",
+		},
+		{
+			Component: "data-ingest",
+		},
+	}
 }
 
 // getFakePersistentVolumeList returns a PVList for testing
