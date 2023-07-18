@@ -111,6 +111,11 @@ func analyzeProvisioningCluster(clusterRoot string, cluster provisioningCluster,
 		}
 	}
 
+	if !cluster.Status.Ready {
+		message := fmt.Sprintf("Rancher provisioning cluster resource %q in namespace %s is not ready", cluster.Name, cluster.Namespace)
+		messages = append([]string{message}, messages...)
+	}
+
 	if len(messages) > 0 {
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}

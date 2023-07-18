@@ -11,9 +11,11 @@ import (
 const (
 	cattleV1          = "v1"
 	cattleV3          = "v3"
+	cattleV1Alpha1    = "v1alpha1"
 	mgmtGroup         = "management.cattle.io"
 	catalogGroup      = "catalog.cattle.io"
 	provisioningGroup = "provisioning.cattle.io"
+	fleetGroup        = "fleet.cattle.io"
 )
 
 type rancherResource struct {
@@ -31,6 +33,7 @@ var rancherResources = []rancherResource{
 
 // rancherNamespacedResources - resources that are namespaced
 var rancherNamespacedResources = []rancherResource{
+	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundledeployments"}, Kind: "BundleDeployment"},
 	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
 }
 
