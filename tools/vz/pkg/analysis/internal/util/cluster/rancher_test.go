@@ -13,7 +13,7 @@ import (
 )
 
 type testCase struct {
-	Function       func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error
+	Function       func(clusterRoot string, issueReporter *report.IssueReporter) error
 	ClusterRoot    string
 	ExpectedIssues int
 }
@@ -124,6 +124,16 @@ var testCases = []testCase{
 		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
+	{
+		Function:       rancher.AnalyzeNodes,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeNodes,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
 }
 
 // Test analyze Rancher resources with different cluster snapshots.
@@ -135,7 +145,7 @@ func TestAnalyzeRancher(t *testing.T) {
 
 	for _, test := range testCases {
 		report.ClearReports()
-		assert.NoError(t, test.Function(logger, test.ClusterRoot, &issueReporter))
+		assert.NoError(t, test.Function(test.ClusterRoot, &issueReporter))
 		issueReporter.Contribute(logger, test.ClusterRoot)
 		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 		if test.ExpectedIssues == 0 {

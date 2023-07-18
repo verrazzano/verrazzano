@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,7 +31,7 @@ type fleetClusterStatus struct {
 }
 
 // AnalyzeFleetClusters - analyze the status of Rancher fleet clusters resources
-func AnalyzeFleetClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeFleetClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &fleetClusterList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.fleet.cattle.io.json", list)
 	if err != nil {
