@@ -11,7 +11,7 @@ import (
 
 const (
 	keycloakPodName    = "keycloak-0"
-	keycloakSecretName = "keycloak-http"
+	keycloakSecretName = "keycloak-http" //nolint:gosec //#gosec G101
 )
 
 // CreateTestKeycloakPod constructs and returns Keycloak pod

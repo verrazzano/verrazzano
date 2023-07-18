@@ -62,7 +62,7 @@ const (
 	dbHostKey               = "database.hostname"
 	headlessService         = "keycloak-headless"
 	kcAdminScript           = "/opt/keycloak/bin/kcadm.sh"
-	keycloakSecretName      = "keycloak-http"
+	keycloakSecretName      = "keycloak-http" //nolint:gosec //#gosec G101
 	keycloakIngressName     = "keycloak"
 )
 
