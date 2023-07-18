@@ -346,3 +346,7 @@ func TestGetSubcomponentImageCount(t *testing.T) {
 	assert.Equal(t, imageNum, 2)
 
 }
+
+func TestGetBOMDoc(t *testing.T) {
+
+}

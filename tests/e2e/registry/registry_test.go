@@ -5,6 +5,8 @@ package registry
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"os"
@@ -172,7 +174,15 @@ func getRegistryURL(containerImage string) (string, error) {
 // Populate image registry map from BOM
 func populateImageRegistryMap() error {
 	// Get the BOM from installed Platform Operator
-	bomDoc, err := pkg.GetBOMDoc()
+	kubeClient, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil
+	}
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil
+	}
+	bomDoc, err := bom.GetBOMDoc(kubeClient, config)
 	if err != nil {
 		return err
 	}

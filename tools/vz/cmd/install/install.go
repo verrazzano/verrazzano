@@ -10,11 +10,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	vzVersion "github.com/verrazzano/verrazzano/tools/vz/pkg/version"
 	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -247,6 +248,10 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
 	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 	if err != nil {
+		return err
+	}
+
+	if err = vzVersion.ValidateCompatibleKubernetesVersion(cmd, vzHelper); err != nil {
 		return err
 	}
 

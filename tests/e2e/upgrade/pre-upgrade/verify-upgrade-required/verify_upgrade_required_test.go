@@ -115,15 +115,19 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 })
 
 func minSupportedVersion() (bool, error) {
-	bomData, err := k8sutil.GetInstalledBOMData("")
+	kubeClient, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		return false, err
+		return false, nil
 	}
-	installedBOM, err := bom.NewBOMFromJSON(bomData)
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
-		return false, err
+		return false, nil
 	}
-	vpoVersion, err := semver.NewSemVersion(installedBOM.GetVersion())
+	bomDoc, err := bom.GetBOMDoc(kubeClient, config)
+	if err != nil {
+		return false, fmt.Errorf("error getting bomDoc, %s", err.Error())
+	}
+	vpoVersion, err := semver.NewSemVersion(bomDoc.Version)
 	if err != nil {
 		return false, err
 	}

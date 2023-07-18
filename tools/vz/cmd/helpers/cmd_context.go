@@ -70,26 +70,6 @@ func (rc *RootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interfac
 	return dynamic.NewForConfig(config)
 }
 
-func getKubeConfigGivenCommand(cmd *cobra.Command) (*rest.Config, error) {
-	// Get command line value of --kubeconfig
-	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get command line value of --context
-	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
-	if err != nil {
-		return nil, err
-	}
-	return config, err
-}
-
 // GetHTTPClient - return an HTTP client
 func (rc *RootCmdContext) GetHTTPClient() *http.Client {
 	return &http.Client{}
@@ -109,4 +89,28 @@ func (rc *RootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.Disc
 		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
 	}
 	return discoveryClient, nil
+}
+
+func (rc *RootCmdContext) GetConfig(cmd *cobra.Command) (*rest.Config, error) {
+	return getKubeConfigGivenCommand(cmd)
+}
+
+func getKubeConfigGivenCommand(cmd *cobra.Command) (*rest.Config, error) {
+	// Get command line value of --kubeconfig
+	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get command line value of --context
+	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
+	if err != nil {
+		return nil, err
+	}
+	return config, err
 }

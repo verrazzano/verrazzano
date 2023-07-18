@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/client-go/rest"
 
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
@@ -56,6 +57,11 @@ func (rc *FakeRootCmdContext) GetClient(cmd *cobra.Command) (client.Client, erro
 // GetKubeClient - return a Kubernetes clientset for use with the fake go-client
 func (rc *FakeRootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error) {
 	return rc.kubeClient, nil
+}
+
+// GetConfig - return a controller runtime client that supports the schemes used by the CLI
+func (rc *FakeRootCmdContext) GetConfig(cmd *cobra.Command) (*rest.Config, error) {
+	return &rest.Config{}, nil
 }
 
 // SetClient - set the client

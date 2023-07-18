@@ -379,24 +379,7 @@ func validateKubernetesVersionSupportedInCluster() error {
 		return err
 	}
 
-	kubernetesVersion, err := semver.NewSemVersion(version)
-	if err != nil {
-		return fmt.Errorf("invalid kubernetes version %s, error %v", version, err.Error())
-	}
-
-	for _, supportedVersion := range supportedKubernetesVersions {
-		version, err := semver.NewSemVersion(supportedVersion)
-		if err != nil {
-			log.Errorf("invalid supported kubernetes version %s, error %v", supportedVersion, err.Error())
-			continue
-		}
-
-		if kubernetesVersion.IsEqualToOrPatchVersionOf(version) {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedKubernetesVersions)
+	return bom.ValidateKubernetesVersionSupported(version, supportedKubernetesVersions)
 }
 
 // getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed

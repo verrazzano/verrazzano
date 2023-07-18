@@ -150,7 +150,8 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	// Get the components from the BOM to pick up their current versions
-	bomDoc, ociComp, ocneComp, coreComp := getComponentsFromBom()
+	err, bomDoc, ociComp, ocneComp, coreComp := getComponentsFromBom()
+	Expect(err).To(BeNil())
 	Expect(bomDoc).ToNot(BeNil())
 	Expect(ociComp).ToNot(BeNil())
 	Expect(ocneComp).ToNot(BeNil())
@@ -314,11 +315,19 @@ func updateClusterAPIOverrides(overrides string) error {
 }
 
 // getComponentsFromBom - return some components from the BOM file
-func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
+func getComponentsFromBom() (error, *bom.BomDoc, *bom.BomComponent, *bom.BomComponent, *bom.BomComponent) {
 	// Get the BOM from the installed Platform Operator
-	bomDoc, err := pkg.GetBOMDoc()
+	kubeClient, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		return nil, nil, nil, nil
+		return err, nil, nil, nil, nil
+	}
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return err, nil, nil, nil, nil
+	}
+	bomDoc, err := bom.GetBOMDoc(kubeClient, config)
+	if err != nil {
+		return err, nil, nil, nil, nil
 	}
 
 	// Find the Rancher and CAPI components
@@ -335,5 +344,5 @@ func getComponentsFromBom() (*bom.BomDoc, *bom.BomComponent, *bom.BomComponent, 
 			coreComp = &bomDoc.Components[i]
 		}
 	}
-	return bomDoc, ociComp, capiComp, coreComp
+	return nil, bomDoc, ociComp, capiComp, coreComp
 }

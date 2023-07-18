@@ -4,9 +4,16 @@
 package bom
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"os"
 	"strings"
 
@@ -16,6 +23,11 @@ import (
 const defaultImageKey = "image"
 const slash = "/"
 const tagSep = ":"
+
+const (
+	// Pod Substring for finding the platform operator pod
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator"
+)
 
 // Bom contains information related to the bill of materials along with structures to process it.
 // The bom file is verrazzano-bom.json and it mainly has image information.
@@ -133,11 +145,11 @@ func NewBom(bomPath string) (Bom, error) {
 	if err != nil {
 		return Bom{}, err
 	}
-	return NewBOMFromJSON(jsonBom)
+	return newBOMFromJSON(jsonBom)
 }
 
-// NewBOMFromJSON Create a new BOM instance from a JSON payload
-func NewBOMFromJSON(jsonBom []byte) (Bom, error) {
+// newBOMFromJSON Create a new BOM instance from a JSON payload
+func newBOMFromJSON(jsonBom []byte) (Bom, error) {
 	bom := Bom{
 		subComponentMap: make(map[string]*BomSubComponent),
 	}
@@ -389,4 +401,54 @@ func FindKV(kvs []KeyValue, key string) string {
 // GetSupportedKubernetesVersion gets supported Kubernetes versions
 func (b *Bom) GetSupportedKubernetesVersion() []string {
 	return b.bomDoc.SupportedKubernetesVersions
+}
+
+// GetBOMDoc gets the BOM from the platform operator in the cluster and build the BOM structure from it
+func GetBOMDoc(kubeClient kubernetes.Interface, config *rest.Config) (*BomDoc, error) {
+
+	pods, err := kubeClient.CoreV1().Pods(constants.VerrazzanoInstallNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var pod *corev1.Pod
+	for i := range pods.Items {
+		if pods.Items[i].Labels["app"] == "verrazzano-platform-operator" && pods.Items[i].Status.Phase == corev1.PodRunning {
+			pod = &pods.Items[i]
+			break
+		}
+	}
+	if pod == nil {
+		return nil, fmt.Errorf("failed to find a running verrazzano-platform-operator pod in the verrazzano-install namespace")
+	}
+
+	catCommand := []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
+	stdout, stderr, err := k8sutil.ExecPod(kubeClient, config, pod, "verrazzano-platform-operator", catCommand)
+	if err != nil || stderr != "" || len(stdout) == 0 {
+		return nil, fmt.Errorf("error retrieving compatible kubernetes versions from the verrazzano-platform-operator pod, stdout: %s, stderr: %s, err: %v",
+			stdout, stderr, err)
+	}
+
+	var bomDoc BomDoc
+	err = json.Unmarshal([]byte(stdout), &bomDoc)
+	return &bomDoc, err
+}
+
+func ValidateKubernetesVersionSupported(kubernetesVersionString string, supportedVersionsString []string) error {
+	kubernetesVersion, err := semver.NewSemVersion(kubernetesVersionString)
+	if err != nil {
+		return fmt.Errorf("invalid kubernetes version %s, error %v", kubernetesVersionString, err.Error())
+	}
+
+	for _, supportedVersionString := range supportedVersionsString {
+		supportedVersion, err := semver.NewSemVersion(supportedVersionString)
+		if err != nil {
+			return fmt.Errorf("invalid supported kubernetes version %s, error %v", supportedVersion.ToString(), err.Error())
+		}
+
+		if kubernetesVersion.IsEqualToOrPatchVersionOf(supportedVersion) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedVersionsString)
 }

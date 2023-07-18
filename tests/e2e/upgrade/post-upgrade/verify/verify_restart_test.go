@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"strings"
 	"time"
@@ -350,14 +351,22 @@ func isDisabled(componentName string) bool {
 
 // getEnvoyProxyImageRef gets the envoy proxy image and its tag from bom in verrazzano-platform-operator pod running in cluster
 func getEnvoyProxyImageRef() (string, error) {
-	bom, err := pkg.GetBOMDoc()
+	kubeClient, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		return "", fmt.Errorf("error getting bom, %s", err.Error())
+		return "", nil
+	}
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return "", nil
+	}
+	bomDoc, err := bom.GetBOMDoc(kubeClient, config)
+	if err != nil {
+		return "", fmt.Errorf("error getting bomDoc, %s", err.Error())
 	}
 
 	istiodSubComponent := "istiod"
 	envoyProxyImageName := "proxyv2"
-	for _, component := range bom.Components {
+	for _, component := range bomDoc.Components {
 		for _, subcomponent := range component.SubComponents {
 			if subcomponent.Name == istiodSubComponent {
 				for _, image := range subcomponent.Images {

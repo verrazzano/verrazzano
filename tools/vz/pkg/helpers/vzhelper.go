@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s.io/client-go/rest"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -52,6 +53,7 @@ type VZHelper interface {
 	GetHTTPClient() *http.Client
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 	GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error)
+	GetConfig(cmd *cobra.Command) (*rest.Config, error)
 }
 
 type ReportCtx struct {
