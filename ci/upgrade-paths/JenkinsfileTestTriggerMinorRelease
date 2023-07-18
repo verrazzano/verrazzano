@@ -450,7 +450,7 @@ def getStageOfUpgradeJob(job) {
             }
         }
     }
-}
+}``
 
 def getTipOfBranchToMasterJob(String release, String commitSHA) {
     return {
