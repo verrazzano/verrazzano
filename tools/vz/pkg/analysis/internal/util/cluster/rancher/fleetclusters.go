@@ -81,15 +81,15 @@ func analyzeFleetCluster(clusterRoot string, cluster fleetCluster, issueReporter
 	}
 
 	if !cluster.Status.AgentMigrated {
-		message := fmt.Sprintf("Rancher provisioning cluster resource %q in namespace %s agent not migrated", cluster.Name, cluster.Namespace)
+		message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s agent not migrated", cluster.Name, cluster.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 	if !cluster.Status.AgentNamespaceMigrated {
-		message := fmt.Sprintf("Rancher provisioning cluster resource %q in namespace %s agent namespace not migrated", cluster.Name, cluster.Namespace)
+		message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s agent namespace not migrated", cluster.Name, cluster.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 	if !cluster.Status.CattleNamespaceMigrated {
-		message := fmt.Sprintf("Rancher provisioning cluster resource %q in namespace %s cattle namespace not migrated", cluster.Name, cluster.Namespace)
+		message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s cattle namespace not migrated", cluster.Name, cluster.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 
