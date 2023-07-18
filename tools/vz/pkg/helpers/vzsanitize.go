@@ -70,7 +70,7 @@ func filterHostname(line string) string {
 func matchesRegexListItem(line string, list []string) bool {
 	for _, r := range list {
 		if regexp.MustCompile(r).Match([]byte(line)) {
-			fmt.Printf("Matches: %s", r)
+			fmt.Printf("line %s\nMatches: %s\n\n", line, r)
 			return true
 		}
 	}
