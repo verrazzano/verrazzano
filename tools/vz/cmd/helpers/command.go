@@ -89,7 +89,12 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 					return "", err
 				}
 				if match {
-					return manifestsVersion, nil
+					// Return version and not manifestsVersion because version may have prerelease and build values that are
+					// not present in the manifests version, and make sure it has a "v" prefix
+					if !strings.HasPrefix(version, "v") {
+						version = "v" + version
+					}
+					return version, nil
 				}
 				return "", fmt.Errorf("Requested version '%s' does not match manifests version '%s'", version, manifestsVersion)
 			}
@@ -154,7 +159,7 @@ func getVersionFromOperatorYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (
 	return version, err
 }
 
-// versionsMatch returns true if the versions are semantically equivalent
+// versionsMatch returns true if the versions are semantically equivalent. Only the major, minor, and patch fields are considered.
 func versionsMatch(left, right string) (bool, error) {
 	leftVersion, err := semver.NewSemVersion(left)
 	if err != nil {
@@ -164,6 +169,14 @@ func versionsMatch(left, right string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	// When comparing the versions, ignore the prerelease and build versions. This is needed to support development scenarios
+	// where the version to upgrade to looks like x.y.z-nnnn+hash but the VPO version label is x.y.z.
+	leftVersion.Prerelease = ""
+	leftVersion.Build = ""
+	rightVersion.Prerelease = ""
+	rightVersion.Build = ""
+
 	return leftVersion.IsEqualTo(rightVersion), nil
 }
 

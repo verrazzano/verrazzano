@@ -178,7 +178,7 @@ func TestGetVersionWithManifests(t *testing.T) {
 
 	// GIVEN a command with a specific version and a manifests file with a version that matches,
 	// WHEN we get the version value,
-	// THEN no error is returned and the returned version is the version from the VPO deployment in the manifests.
+	// THEN no error is returned and the returned version is the version specified in the version flag (prefixed with a "v").
 	cmd = getCommandWithoutFlags()
 	cmd.PersistentFlags().String(constants.VersionFlag, "", "")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "1.5.2")
@@ -187,6 +187,18 @@ func TestGetVersionWithManifests(t *testing.T) {
 	version, err := GetVersion(cmd, rc)
 	assert.NoError(t, err)
 	assert.Equal(t, "v1.5.2", version)
+
+	// GIVEN a command with a specific version that includes a suffix and a manifests file with a major/minor/patch version that matches,
+	// WHEN we get the version value,
+	// THEN no error is returned and the returned version is the version specified in the version flag (prefixed with a "v").
+	cmd = getCommandWithoutFlags()
+	cmd.PersistentFlags().String(constants.VersionFlag, "", "")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "1.5.2-1234+xyz")
+	cmd.PersistentFlags().String(constants.ManifestsFlag, "", "")
+	cmd.PersistentFlags().Set(constants.ManifestsFlag, "../../test/testdata/operator-file-fake.yaml")
+	version, err = GetVersion(cmd, rc)
+	assert.NoError(t, err)
+	assert.Equal(t, "v1.5.2-1234+xyz", version)
 
 	// GIVEN the manifests flag has a value and the version flag is not provided,
 	// WHEN we get the version value,
