@@ -106,7 +106,7 @@ func getCredential(credID string, log *zap.SugaredLogger) (*gabs.Container, erro
 }
 
 // Creates a single node OCNE Cluster through CAPI
-func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
+func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger, invalidKubernetesVersion bool) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
 	if err != nil {
 		log.Errorf("error reading node public key file: %v", err)
@@ -117,6 +117,10 @@ func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
 	var rancherOCNEClusterConfig RancherOCNECluster
 	nodePools := []string{}
 	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
+
+	if invalidKubernetesVersion {
+		rancherOCNEClusterConfig.OciocneEngineConfig.KubernetesVersion = "v1.22.7"
+	}
 
 	return createCluster(clusterName, rancherOCNEClusterConfig, log)
 }
