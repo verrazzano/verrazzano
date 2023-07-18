@@ -260,7 +260,8 @@ pipeline {
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                                 string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
+                                                booleanParam(name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', value: true)
                                         ], wait: true
                             }
                         }
@@ -277,7 +278,8 @@ pipeline {
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                                 string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
+                                                booleanParam(name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', value: true)
                                         ], wait: true
                             }
                         }
@@ -508,6 +510,28 @@ pipeline {
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                     string(name: 'RUN_TESTS', value: env.IS_PERIODIC_PIPELINE),
                                 ], wait: true
+                        }
+                    }
+                }
+                stage('ClusterAPI cluster creation tests using KIND as admin') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-clusterAPI-kind-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                     }
                 }

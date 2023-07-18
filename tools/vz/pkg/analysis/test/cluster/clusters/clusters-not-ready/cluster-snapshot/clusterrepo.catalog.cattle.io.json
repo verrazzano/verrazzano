@@ -1,0 +1,38 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "catalog.cattle.io/v1",
+      "kind": "ClusterRepo",
+      "metadata": {
+        "name": "rancher-charts"
+      },
+      "spec": {
+        "gitBranch": "release-v2.7",
+        "gitRepo": "https://git.rancher.io/charts2"
+      },
+      "status": {
+        "branch": "release-v2.7",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-14T13:56:21Z",
+            "status": "True",
+            "type": "FollowerDownloaded"
+          },
+          {
+            "lastUpdateTime": "2023-07-14T14:02:47Z",
+            "message": "lstat management-state/git-repo/rancher-charts/0fda43e761934d42e6f046253070bd4b6b8687a31891be78275ce92f193e9c7f: no such file or directory",
+            "reason": "Error",
+            "status": "False",
+            "type": "Downloaded"
+          }
+        ],
+        "url": "https://git.rancher.io/charts"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

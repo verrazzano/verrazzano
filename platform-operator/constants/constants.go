@@ -270,6 +270,14 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 // VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
 
+// VerrazzanoCRNameAnnotation is the annotation for the verrazzano CR name
 const VerrazzanoCRNameAnnotation = "verrazzano.io/vz-cr-name"
+
+// VerrazzanoCRNamespaceAnnotation is the annotation for the verrazzano CR namespace
 const VerrazzanoCRNamespaceAnnotation = "verrazzano.io/vz-cr-namespace"
+
+// VerrazzanoObservedGeneration is the annotation for the verrazzano CR observed generation
 const VerrazzanoObservedGeneration = "verrazzano.io/vz-cr-observed-generation"
+
+// AlertmanagerIngress is the name of the ingress for Alertmanager
+const AlertmanagerIngress = "alertmanager"

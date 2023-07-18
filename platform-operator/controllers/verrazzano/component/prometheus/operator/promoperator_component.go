@@ -6,6 +6,8 @@ package operator
 import (
 	"context"
 
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -26,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -46,6 +47,9 @@ const (
 	prometheusCertificateName = "system-tls-prometheus"
 
 	istioPrometheus = "prometheus-server"
+
+	alertmanagerHostName        = "alertmanager"
+	alertmanagerCertificateName = "system-tls-alertmanager"
 )
 
 type prometheusComponent struct {
@@ -196,10 +200,24 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 		ns = authproxy.ComponentNamespace
 	}
-	return append(ingressNames, types.NamespacedName{
+	ingressNames = append(ingressNames, types.NamespacedName{
 		Namespace: ns,
 		Name:      constants.PrometheusIngress,
 	})
+
+	alertmanagerEnabled, err := vzcr.IsAlertmanagerEnabled(ctx.EffectiveCR(), ctx)
+	if err != nil {
+		ctx.Log().Errorf("error checking if alertmanager is enabled , %v", err)
+	}
+
+	if alertmanagerEnabled {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      constants.AlertmanagerIngress,
+		})
+	}
+
+	return ingressNames
 }
 
 // getCertificateNames - gets the names of the TLS ingress certificates associated with this component
@@ -236,16 +254,29 @@ func checkExistingCNEPrometheus(vz runtime.Object) error {
 
 // PostUninstall is the Prometheus Operator PostInstall SPI function
 func (c prometheusComponent) PostUninstall(ctx spi.ComponentContext) error {
-	// delete the legacy prometheus ingress
+	return deletePrometheusStackIngresses(ctx)
+}
+
+// deletePrometheusStackIngresses deletes Prometheus and Alertmanager ingresses
+func deletePrometheusStackIngresses(ctx spi.ComponentContext) error {
+	err := deleteIngress(constants.PrometheusIngress, ctx)
+	if err != nil {
+		return err
+	}
+
+	return deleteIngress(constants.AlertmanagerIngress, ctx)
+}
+
+func deleteIngress(ingressName string, ctx spi.ComponentContext) error {
 	ingress := &networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.PrometheusIngress,
+			Name:      ingressName,
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
 	err := ctx.Client().Delete(context.TODO(), ingress)
 	if err != nil && !errors.IsNotFound(err) {
-		ctx.Log().Errorf("Error deleting legacy Prometheus ingress %s, %v", constants.PrometheusIngress, err)
+		ctx.Log().Errorf("Error deleting ingress %s, %v", ingressName, err)
 		return err
 	}
 	return nil

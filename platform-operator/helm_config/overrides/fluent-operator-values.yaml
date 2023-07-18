@@ -36,11 +36,15 @@ fluentbit:
   input:
     tail:
       readFromHead: true
+      storageType: filesystem
+      pauseOnChunksOverlimit: "on"
     systemd:
       path: "/run/log/journal"
       stripUnderscores: "on"
       systemdFilter:
         enable: false
+      storageType: filesystem
+      pauseOnChunksOverlimit: "on"
   filter:
     systemd:
       enable: false
@@ -60,6 +64,13 @@ fluentbit:
     capabilities:
       drop:
       - ALL
+  service:
+    storage:
+      path: "/fluent-bit/tail/"
+      backlogMemLimit: "5M"
+      checksum: "off"
+      metrics: "off"
+      sync: normal
 
 operator:
   # Pod security context for Fluent Operator pod. Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/

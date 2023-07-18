@@ -563,7 +563,9 @@ const pkceClientUrisTemplate = `
 	  "https://osd.logging.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
+	  "https://jaeger.{{.DNSSubDomain}}/*",
+	  "https://alertmanager.{{.DNSSubDomain}}/*",
+	  "https://alertmanager.{{.DNSSubDomain}}/_authentication_callback"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
       "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
@@ -580,7 +582,8 @@ const pkceClientUrisTemplate = `
 	  "https://osd.logging.{{.DNSSubDomain}}",
 	  "https://opensearch.logging.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
+	  "https://jaeger.{{.DNSSubDomain}}",
+	  "https://alertmanager.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
       "https://kibana.vmi.system.{{.DNSSubDomain}}"
  {{end}} 
@@ -1125,7 +1128,7 @@ func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("LoginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
+		ctx.Log().Progressf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")

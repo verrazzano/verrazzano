@@ -1,0 +1,275 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-ccm-secret
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: Secret
+      name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+  strategy: Reconcile
+---
+apiVersion: v1
+stringData:
+  cloud-controller-manager.yaml: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: oci-cloud-controller-manager
+      namespace: kube-system
+    stringData:
+      cloud-provider.yaml: |-
+        auth:
+          region: ${OCI_REGION}
+          tenancy: ${OCI_TENANCY_ID}
+          compartment: ${OCI_COMPARTMENT_ID}
+          user: ${OCI_USER_ID}
+          key: "${OCI_CREDENTIALS_KEY}"
+          fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
+          key_passphrase:
+        vcn: ${OCI_VCN_ID}
+        loadBalancer:
+          subnet1: ${OCI_SUBNET_ID}
+          securityListManagementMode: All
+          disableSecurityListManagement: false
+        useInstancePrincipals: false
+        # compartment configures Compartment within which the cluster resides.
+        compartment: ${OCI_COMPARTMENT_ID}
+        # Optional rate limit controls for accessing OCI API
+        rateLimiter:
+          rateLimitQPSRead: 20.0
+          rateLimitBucketRead: 5
+          rateLimitQPSWrite: 20.0
+          rateLimitBucketWrite: 5
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-csi-secret
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: Secret
+      name: ${CLUSTER_NAME}-oci-csi
+  strategy: Reconcile
+---
+apiVersion: v1
+stringData:
+  csi.yaml: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: oci-volume-provisioner
+      namespace: kube-system
+    stringData:
+      config.yaml: |-
+        auth:
+          region: ${OCI_REGION}
+          tenancy: ${OCI_TENANCY_ID}
+          compartment: ${OCI_COMPARTMENT_ID}
+          user: ${OCI_USER_ID}
+          key: "${OCI_CREDENTIALS_KEY}"
+          fingerprint: ${OCI_CREDENTIALS_FINGERPRINT}
+          key_passphrase:
+        vcn: ${OCI_VCN_ID}
+        loadBalancer:
+          subnet1: ${OCI_SUBNET_ID}
+          securityListManagementMode: All
+          disableSecurityListManagement: false
+        useInstancePrincipals: false
+        # compartment configures Compartment within which the cluster resides.
+        compartment: ${OCI_COMPARTMENT_ID}
+        # Optional rate limit controls for accessing OCI API
+        rateLimiter:
+          rateLimitQPSRead: 20.0
+          rateLimitBucketRead: 5
+          rateLimitQPSWrite: 20.0
+          rateLimitBucketWrite: 5
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-oci-csi
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-ccm-module-resource
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-ccm-module-cr
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  ccm-module.yaml: |
+    apiVersion: platform.verrazzano.io/v1alpha1
+    kind: Module
+    metadata:
+      name: oci-ccm
+      namespace: default
+    spec:
+      moduleName: oci-ccm
+      targetNamespace: kube-system
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-ccm-module-cr
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-calico-module-resource
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-calico-module-cr
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  calico.yaml: |
+    apiVersion: platform.verrazzano.io/v1alpha1
+    kind: Module
+    metadata:
+      name: calico
+      namespace: default
+    spec:
+      moduleName: calico
+      targetNamespace: default
+      values:
+        tigeraOperator:
+          version: ${TIGERA_TAG=v1.29.0}
+        installation:
+          cni:
+            type: Calico
+          calicoNetwork:
+            bgp: Disabled
+            ipPools:
+              - cidr: ${POD_CIDR}
+                encapsulation: VXLAN
+          registry: ${OCNE_IMAGE_REPOSITORY}
+          imagePath: ${OCNE_IMAGE_PATH}
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-calico-module-cr
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+  strategy: Reconcile
+---
+apiVersion: v1
+data:
+  test-overrides-configmap.yaml: |
+    apiVersion: v1
+    data:
+      test-overrides-configmap.yaml: |-
+        # Copyright (c) 2022, Oracle and/or its affiliates.
+        # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+        prometheusOperator:
+          podLabels:
+            override: "true"
+    kind: ConfigMap
+    metadata:
+      name: test-overrides
+      namespace: default
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  resources:
+    - kind: Secret
+      name: ${CLUSTER_NAME}-vpo-secret-test-overrides
+  strategy: Reconcile
+---
+apiVersion: v1
+stringData:
+  test-overrides-secret.yaml: |
+    apiVersion: v1
+    stringData:
+      test-overrides-secret.yaml: |-
+        # Copyright (c) 2022, Oracle and/or its affiliates.
+        # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+        prometheusOperator:
+          podAnnotations:
+            override: "true"
+    kind: Secret
+    metadata:
+      name: test-overrides
+      namespace: default
+    type: Opaque
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
+  namespace: ${CLUSTER_NAMESPACE}
