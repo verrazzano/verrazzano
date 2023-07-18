@@ -1,0 +1,33 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "ClusterRegistration",
+      "metadata": {
+        "name": "request-bbnzm",
+        "namespace": "fleet-default"
+      },
+      "status": {
+        "clusterName": "c-dz2mv",
+        "granted": false
+      }
+    },
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "ClusterRegistration",
+      "metadata": {
+        "name": "request-t87n9",
+        "namespace": "fleet-local"
+      },
+      "status": {
+        "clusterName": "local",
+        "granted": true
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
