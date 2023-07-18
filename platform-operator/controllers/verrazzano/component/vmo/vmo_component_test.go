@@ -272,6 +272,13 @@ func TestPreUninstall(t *testing.T) {
 			Labels:    vmoLabels,
 		},
 	}
+	vmoSvc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "test-vmo-svc",
+			Labels:    vmoLabels,
+		},
+	}
 	nonVMODeploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -321,9 +328,15 @@ func TestPreUninstall(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name:      "Test PreUninstall when VMI and a VMO service exist",
+			vmi:       &testVMI,
+			otherObjs: []client.Object{&vmoSvc},
+			expectErr: true,
+		},
+		{
 			name:      "Test PreUninstall when VMI and multiple VMO-labeled resources exist",
 			vmi:       &testVMI,
-			otherObjs: []client.Object{&vmoDeploy, &vmoIngress, &vmoStatefulSet},
+			otherObjs: []client.Object{&vmoDeploy, &vmoIngress, &vmoStatefulSet, &vmoSvc},
 			expectErr: true,
 		},
 		{

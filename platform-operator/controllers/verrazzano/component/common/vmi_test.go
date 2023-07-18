@@ -12,7 +12,9 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -473,4 +475,125 @@ func Test_SetStorageSize(t *testing.T) {
 	storageRequest := &ResourceRequestValues{Storage: storageSize}
 	SetStorageSize(storageRequest, storageObject)
 	assert.Equal(t, storageSize, storageObject.Size)
+}
+
+// TestGetVMOManagedDeployments tests GetVMOManagedDeployments
+// GIVEN both VMO managed and non-VMO managed deployments exist
+// WHEN GetVMOManagedDeployments is called
+// THEN only the VMO managed deployment(s) are returned
+func TestGetVMOManagedDeployments(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+
+	vmoMgd := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nonVMOMgd", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedDeployments(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, vmoMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestGetVMOManagedIngresses tests GetVMOManagedIngresses
+// GIVEN both VMO managed and non-VMO managed ingresses exist
+// WHEN GetVMOManagedIngresses is called
+// THEN only the VMO managed ingress(es) are returned
+func TestGetVMOManagedIngresses(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = netv1.AddToScheme(scheme)
+
+	vmoMgd := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "otherobj", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedIngresses(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestGetVMOManagedServices tests GetVMOManagedServices
+// GIVEN both VMO managed and non-VMO managed services exist
+// WHEN GetVMOManagedServices is called
+// THEN only the VMO managed service(s) are returned
+func TestGetVMOManagedServices(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+
+	vmoMgd := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "otherobj", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedServices(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestGetVMOManagedStatefulsets tests GetVMOManagedStatefulsets
+// GIVEN both VMO managed and non-VMO managed statefulsets exist
+// WHEN GetVMOManagedStatefulsets is called
+// THEN only the VMO managed statefulset(s) are returned
+func TestGetVMOManagedStatefulsets(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+
+	vmoMgd := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "otherobj", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedStatefulsets(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
 }

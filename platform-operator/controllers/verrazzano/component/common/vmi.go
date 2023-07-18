@@ -42,7 +42,8 @@ const (
 	defaultStorageSize    = "50Gi"
 )
 
-var vmoLabelSelector = labels.SelectorFromSet(labels.Set{vmoconst.VMOLabel: VMIName})
+var vmoManagedLabels = labels.Set{vmoconst.VMOLabel: VMIName}
+var vmoLabelSelector = labels.SelectorFromSet(vmoManagedLabels)
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
 type ResourceRequestValues struct {
