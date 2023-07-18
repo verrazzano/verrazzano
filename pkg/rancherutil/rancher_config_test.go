@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -224,7 +222,7 @@ func TestGetTokenWithFilter(t *testing.T) {
 			return resp, nil
 		}).Times(1)
 	RancherHTTPClient = httpMock
-	rc, err := NewAdminRancherConfig(cli, DefaultRancherIngressHostPrefix+nginxutil.IngressNGINXNamespace(), log)
+	rc, err := NewAdminRancherConfig(cli, log)
 	assert.NoError(t, err)
 	createdTimeAsString, _, err := GetTokenWithFilter(rc, log, userID, clusterIDForTest)
 	assert.NoError(t, err)

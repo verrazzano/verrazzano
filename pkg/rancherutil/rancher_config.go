@@ -19,8 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
