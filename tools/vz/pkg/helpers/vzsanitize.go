@@ -53,8 +53,9 @@ func filterHostname(line string) string {
 	includeRegex := []string{
 		fmt.Sprintf(`("host"|"hostname"):(.*)"%s"`, hostnames),
 		fmt.Sprintf(`\s+"%s"$`, hostnames),
-		fmt.Sprintf(`(\"host\"|\"hostname\")\"%s\"$`, hostnames),
-		`([[:alnum:]][a-zA-Z0-9\\-]*).vmi.system(\\.[a-zA-Z0-9\\-]+)+`,
+		fmt.Sprintf(`(\\"host\\"|\\"hostname\\")\\"%s\\"$`, hostnames),
+		`([[:alnum:]][a-zA-Z0-9\-]*)\.vmi\.system(\.[a-zA-Z0-9\-]+)+`,
+		`([[:alnum:]][a-zA-Z0-9\-]*)(\.[a-zA-Z0-9\-]+)*(\.nip\.io|\.xip\.io)`,
 	}
 
 	excludeRegex := []string{
