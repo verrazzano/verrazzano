@@ -14,32 +14,32 @@ import (
 )
 
 // Minimal definition of object that only contains the fields that will be analyzed
-type clusterRepoList struct {
+type catalogsList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []clusterRepo `json:"items"`
+	Items           []catalog `json:"items"`
 }
-type clusterRepo struct {
+type catalog struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              clusterRepoSpec `json:"spec,omitempty"`
-	Status            cattleStatus    `json:"status,omitempty"`
+	Spec              catalogSpec  `json:"spec,omitempty"`
+	Status            cattleStatus `json:"status,omitempty"`
 }
-type clusterRepoSpec struct {
-	GitBranch string `json:"gitBranch,omitempty"`
-	GitRepo   string `json:"gitRepo,omitempty"`
+type catalogSpec struct {
+	Branch string `json:"branch,omitempty"`
+	URL    string `json:"url,omitempty"`
 }
 
-// AnalyzeClusterRepos - analyze the status of ClusterRepo objects
-func AnalyzeClusterRepos(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &clusterRepoList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterrepo.catalog.cattle.io.json", list)
+// AnalyzeCatalogs - analyze the status of Catalog objects
+func AnalyzeCatalogs(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+	list := &catalogsList{}
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, "catalog.management.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
 
-	for _, cluster := range list.Items {
-		err = analyzeClusterRepo(clusterRoot, cluster, issueReporter)
+	for _, catalog := range list.Items {
+		err = analyzeCatalog(clusterRoot, catalog, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -48,18 +48,18 @@ func AnalyzeClusterRepos(log *zap.SugaredLogger, clusterRoot string, issueReport
 	return nil
 }
 
-// analyzeClusterRepo - analyze a single ClusterRepo and report any issues
-func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReporter *report.IssueReporter) error {
+// analyzeCatalog - analyze a single Catalog and report any issues
+func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
-	for _, condition := range clusterRepo.Status.Conditions {
+	for _, condition := range catalog.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Downloaded":
-				subMessage = fmt.Sprintf("in repo %s on branch %s not downloaded", clusterRepo.Spec.GitRepo, clusterRepo.Spec.GitBranch)
-			case "FollowerDownloaded":
-				subMessage = "follower not downloaded"
+			case "SecretsMigrated":
+				subMessage = "secrets not migrated"
+			case "Refreshed":
+				subMessage = "not refreshed"
 			default:
 				continue
 			}
@@ -73,7 +73,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher ClusterRepo resource %q %s %s%s", clusterRepo.Name, subMessage, reason, msg)
+			message = fmt.Sprintf("Catalog resource %q on branch %s with URL %s: %s %s%s", catalog.Name, catalog.Spec.Branch, catalog.Spec.URL, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

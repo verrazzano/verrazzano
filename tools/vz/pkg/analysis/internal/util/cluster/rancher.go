@@ -18,5 +18,12 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 	}
 
 	_ = rancher.AnalyzeClusterRepos(log, clusterRoot, &issueReporter)
-	return rancher.AnalyzeRancherClusters(log, clusterRoot, &issueReporter)
+	_ = rancher.AnalyzeCatalogs(log, clusterRoot, &issueReporter)
+	_ = rancher.AnalyzeProvisioningClusters(log, clusterRoot, &issueReporter)
+	_ = rancher.AnalyzeKontainerDrivers(log, clusterRoot, &issueReporter)
+	err := rancher.AnalyzeManagementClusters(log, clusterRoot, &issueReporter)
+
+	issueReporter.Contribute(log, clusterRoot)
+
+	return err
 }
