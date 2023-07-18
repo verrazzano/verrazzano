@@ -118,8 +118,37 @@ func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	proxyEndpoint = pkg.GetEnvFallback("PROXY_ENDPOINT", "")
 	skipOcneInstall = pkg.GetEnvFallbackBool("SKIP_OCNE_INSTALL", false)
 	useNodePvEncryption = pkg.GetEnvFallbackBool("USE_NODE_PV_ENCRYPTION", true)
-	verrazzanoResource = pkg.GetEnvFallback("VERRAZZANO_RESOURCE",
-		"apiVersion: install.verrazzano.io/v1beta1\nkind: Verrazzano\nmetadata:\n  name: managed\n  namespace: default\nspec:\n  profile: managed-cluster")
+	verrazzanoResource = pkg.GetEnvFallback("VERRAZZANO_RESOURCE", `apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: managed
+  namespace: default
+spec:
+  profile: managed-cluster
+  components:
+	ingressNGINX:
+	  overrides:
+		- values:
+			controller:
+			  service:
+				annotations:
+				  service.beta.kubernetes.io/oci-load-balancer-shape : "flexible"
+				  service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+				  service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+	  type: LoadBalancer
+	istio:
+	  overrides:
+		- values:
+			apiVersion: install.istio.io/v1alpha1
+			kind: IstioOperator
+			spec:
+			  values:
+				gateways:
+				  istio-ingressgateway:
+					serviceAnnotations:
+					  service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+					  service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+					  service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"`)
 	numWorkerNodes = pkg.GetEnvFallbackInt("NUM_WORKER_NODES", 1)
 	applyYAMLs = pkg.GetEnvFallback("APPLY_YAMLS", "")
 	if err := fillOCNEMetadata(log); err != nil {
