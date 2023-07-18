@@ -51,11 +51,8 @@ func getSha256Hash(line string) string {
 
 func filterHostname(line string) string {
 	includeRegex := []string{
-		fmt.Sprintf(`("host"|"hostname"):(.*)"%s"`, hostnames),
+		fmt.Sprintf(`("host"|"hostname"):(.*)"%s"$`, hostnames),
 		fmt.Sprintf(`\s+"%s"$`, hostnames),
-		fmt.Sprintf(`(\\"host\\"|\\"hostname\\"):\\"%s\\"$`, hostnames),
-		`([[:alnum:]][a-zA-Z0-9\-]*)\.vmi\.system(\.[a-zA-Z0-9\-]+)+`,
-		`([[:alnum:]][a-zA-Z0-9\-]*)(\.[a-zA-Z0-9\-]+)*(\.nip\.io|\.xip\.io)`,
 	}
 
 	excludeRegex := []string{
@@ -64,12 +61,22 @@ func filterHostname(line string) string {
 		fmt.Sprintf(`"%s/(.*)`, hostnames),
 	}
 
+	var foundHostnames []string
 	splitNewlines := strings.Split(line, "\n")
 	for i, l := range splitNewlines {
 		if matchesRegexListItem(l, includeRegex) && !matchesRegexListItem(l, excludeRegex) {
 			splitNewlines[i] = regexp.MustCompile(hostnames).ReplaceAllString(l, getSha256Hash(l))
+			foundHostnames = append(foundHostnames, regexp.MustCompile(hostnames).FindString(l))
 		}
 	}
+
+	// Now that the hostnames have been collected, go back and filter them out
+	for i, l := range splitNewlines {
+		for _, host := range foundHostnames {
+			splitNewlines[i] = regexp.MustCompile(host).ReplaceAllString(l, getSha256Hash(l))
+		}
+	}
+
 	return strings.Join(splitNewlines, "\n")
 }
 
