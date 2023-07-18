@@ -908,60 +908,54 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
-            executeInstallVerrazzano(count, verrazzanoConfig)
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                cd ${GO_REPO_PATH}/verrazzano
+
+                # Display the kubectl and cluster versions
+                kubectl version
+
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
+
+                if { [ 'false' == '${params.EXTERNAL_ELASTICSEARCH}' ]; } || { [ '${count}' != 1 ] && [ 'true' == '${params.EXTERNAL_ELASTICSEARCH}' ]; }; then
+                    echo "Create the verrazzano-install namespace"
+                    kubectl create namespace verrazzano-install
+                fi
+
+                echo "Create Image Pull Secrets"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                echo "Following is the verrazzano CR file for the installation:"
+                cat ${verrazzanoConfig}
+
+                if [ "${params.INSTALLATION_METHOD_PREUPGRADE}" == "kubectl" ]; then
+                    echo "Installing the Verrazzano Platform Operator"
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                    # create secret in verrazzano-install ns
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                    echo "Wait for Operator to be ready"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                    echo "Applying \$verrazzanoConfig"
+                    # validate is set to false since we are using newer Verrazzano CR yaml when installing an older pre-upgrade version
+                    kubectl apply --validate=false -f ${verrazzanoConfig}
+
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                elif [ "${params.INSTALLATION_METHOD_PREUPGRADE}" == "vz cli" ]; then
+                    # Install Verrazzano
+                    ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+                fi
+            """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
         }
-    }
-}
-
-def executeInstallVerrazzano(count, verrazzanoConfig) {
-    script {
-        sh """
-            export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-            cd ${GO_REPO_PATH}/verrazzano
-
-            # Display the kubectl and cluster versions
-            kubectl version
-
-            ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
-
-            if { [ 'false' == '${params.EXTERNAL_ELASTICSEARCH}' ]; } || { [ '${count}' != 1 ] && [ 'true' == '${params.EXTERNAL_ELASTICSEARCH}' ]; }; then
-                echo "Create the verrazzano-install namespace"
-                kubectl create namespace verrazzano-install
-            fi
-
-            echo "Create Image Pull Secrets"
-            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-            echo "Following is the verrazzano CR file for the installation:"
-            cat ${verrazzanoConfig}
-
-            if [ "${params.INSTALLATION_METHOD_PREUPGRADE}" == "kubectl" ]; then
-                echo "Installing the Verrazzano Platform Operator"
-                kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-
-                # create secret in verrazzano-install ns
-                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-                echo "Wait for Operator to be ready"
-                cd ${GO_REPO_PATH}/verrazzano
-                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
-                echo "Applying \$verrazzanoConfig"
-                # validate is set to false since we are using newer Verrazzano CR yaml when installing an older pre-upgrade version
-                kubectl apply --validate=false -f ${verrazzanoConfig}
-
-                # wait for Verrazzano install to complete
-                ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-            elif [ "${params.INSTALLATION_METHOD_PREUPGRADE}" == "vz cli" ]; then
-                # Install Verrazzano
-                ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
-            fi
-        """
     }
 }
 
@@ -1082,53 +1076,47 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
             def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
             def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
 
-            executeUpgrade(kubeClusterConfig, upgradeOperatorFile, v8oInstallFile, v8oUpgradeFile)
+            sh """
+                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
+
+                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
+
+                # Get the install job in verrazzano-install namespace
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
+
+                if [ "${params.INSTALLATION_METHOD_UPGRADE}" == "kubectl" ]; then
+                    echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
+                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
+                    cd ${GO_REPO_PATH}/verrazzano
+                    cp ${v8oInstallFile} ${v8oUpgradeFile}
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
+
+                    # Do the upgrade
+                    echo "Following is the verrazzano CR file with the new version:"
+                    cat ${v8oUpgradeFile}
+                    kubectl --kubeconfig=${kubeClusterConfig} patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
+                    # wait for the upgrade to complete
+                    kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
+                    echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
+                    ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
+                fi
+
+                # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
+
+                echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
+                cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
+
+                # ideally we don't need to wait here
+                sleep 15
+                echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                helm --kubeconfig=${kubeClusterConfig} list -A
+            """
 
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version Upgrade : ${RUNNING_OPERATOR_VERSION}"
         }
-    }
-}
-
-def executeUpgrade(kubeClusterConfig, upgradeOperatorFile, v8oInstallFile, v8oUpgradeFile) {
-    script {
-        sh """
-            cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
-
-            mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
-
-            # Get the install job in verrazzano-install namespace
-            kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
-
-            if [ "${params.INSTALLATION_METHOD_UPGRADE}" == "kubectl" ]; then
-                echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
-                cd ${GO_REPO_PATH}/verrazzano
-                cp ${v8oInstallFile} ${v8oUpgradeFile}
-                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
-
-                # Do the upgrade
-                echo "Following is the verrazzano CR file with the new version:"
-                cat ${v8oUpgradeFile}
-                kubectl --kubeconfig=${kubeClusterConfig} patch verrazzano my-verrazzano -p '{"spec":{"version":"'${verrazzanoDevVersion}'"}}' --type=merge
-                # wait for the upgrade to complete
-                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-            elif [ "${params.INSTALLATION_METHOD_UPGRADE}" == "vz cli" ]; then
-                echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
-            fi
-
-            # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-            kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
-
-            echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-            cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
-
-            # ideally we don't need to wait here
-            sleep 15
-            echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-            helm --kubeconfig=${kubeClusterConfig} list -A
-        """
     }
 }
 
