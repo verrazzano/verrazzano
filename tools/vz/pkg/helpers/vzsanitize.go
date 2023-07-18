@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var regexToReplacementList = []string{}
@@ -61,10 +62,13 @@ func filterHostname(line string) string {
 		fmt.Sprintf(`"%s/(.*)`, hostnames),
 	}
 
-	if matchesRegexListItem(line, includeRegex) && !matchesRegexListItem(line, excludeRegex) {
-		return regexp.MustCompile(hostnames).ReplaceAllString(line, getSha256Hash(line))
+	splitNewlines := strings.Split(line, "\n")
+	for i, l := range splitNewlines {
+		if matchesRegexListItem(l, includeRegex) && !matchesRegexListItem(l, excludeRegex) {
+			splitNewlines[i] = regexp.MustCompile(hostnames).ReplaceAllString(l, getSha256Hash(l))
+		}
 	}
-	return line
+	return strings.Join(splitNewlines, "\n")
 }
 
 func matchesRegexListItem(line string, list []string) bool {
