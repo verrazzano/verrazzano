@@ -7,9 +7,94 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster/rancher"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 )
+
+type testCase struct {
+	Function       func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error
+	ClusterRoot    string
+	ExpectedIssues int
+}
+
+const (
+	clustersReadySnapshot    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
+)
+
+var testCases = []testCase{
+	{
+		Function:       rancher.AnalyzeManagementClusters,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeManagementClusters,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRepos,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRepos,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogs,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogs,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeProvisioningClusters,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeProvisioningClusters,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeBundleDeployments,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeBundleDeployments,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeBundles,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeBundles,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+}
 
 // Test analyze Rancher resources with different cluster snapshots.
 func TestAnalyzeRancher(t *testing.T) {
@@ -18,16 +103,18 @@ func TestAnalyzeRancher(t *testing.T) {
 	}
 	logger := zap.S()
 
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, analyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Empty(t, reportedIssues)
-
-	// Expect no errors and one reported issue that a Rancher Cluster is not ready.
-	report.ClearReports()
-	assert.NoError(t, analyzeRancherClusters(logger, "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Len(t, reportedIssues, 1)
-	assert.Equal(t, "RancherClusterNotReady", reportedIssues[0].Type)
+	for _, test := range testCases {
+		report.ClearReports()
+		assert.NoError(t, test.Function(logger, test.ClusterRoot, &issueReporter))
+		issueReporter.Contribute(logger, test.ClusterRoot)
+		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+		if test.ExpectedIssues == 0 {
+			assert.Empty(t, reportedIssues)
+		} else {
+			assert.Len(t, reportedIssues, test.ExpectedIssues)
+			if len(reportedIssues) != 0 {
+				assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+			}
+		}
+	}
 }

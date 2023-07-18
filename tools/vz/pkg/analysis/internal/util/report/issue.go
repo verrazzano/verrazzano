@@ -118,8 +118,7 @@ const (
 	NginxIngressPrivateSubnet    = "NginxIngressPrivateSubnet"
 	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
 	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
-	KontainerDriverNotReady      = "KontainerDriverNotReady"
-	RancherClusterNotReady       = "RancherClusterNotReady"
+	RancherIssues                = "RancherIssues"
 	ClusterAPIClusterNotReady    = "ClusterAPIClusterNotReady"
 )
 
@@ -150,8 +149,7 @@ var knownIssues = map[string]Issue{
 	NginxIngressPrivateSubnet:    {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
-	KontainerDriverNotReady:      {Type: KontainerDriverNotReady, Summary: "Rancher KontainerDriver resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KontainerDriverNotReady]}},
-	RancherClusterNotReady:       {Type: RancherClusterNotReady, Summary: "Rancher cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherClusterNotReady]}},
+	RancherIssues:                {Type: RancherIssues, Summary: "Rancher resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherIssues]}},
 	ClusterAPIClusterNotReady:    {Type: ClusterAPIClusterNotReady, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterNotReady]}},
 }
 
