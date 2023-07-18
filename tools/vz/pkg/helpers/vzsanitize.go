@@ -69,7 +69,10 @@ func filterHostname(line string) string {
 		}
 	}
 
-	fmt.Printf("%v\n", foundHostnames)
+	if len(foundHostnames) > 0 {
+		fmt.Printf("%v\n", foundHostnames)
+	}
+
 	// Now that the hostnames have been collected, go back and filter them out
 	for i, l := range splitNewlines {
 		for _, host := range foundHostnames {
