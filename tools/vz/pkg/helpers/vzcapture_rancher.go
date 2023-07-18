@@ -33,6 +33,7 @@ var rancherResources = []rancherResource{
 
 // rancherNamespacedResources - resources that are namespaced
 var rancherNamespacedResources = []rancherResource{
+	{GVR: schema.GroupVersionResource{Group: catalogGroup, Version: cattleV1, Resource: "apps"}, Kind: "App"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundles"}, Kind: "Bundle"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundledeployments"}, Kind: "BundleDeployment"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clusters"}, Kind: "Cluster"},
