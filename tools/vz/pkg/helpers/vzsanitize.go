@@ -66,13 +66,9 @@ func filterHostname(line string) string {
 
 	splitNewlines := strings.Split(line, "\n")
 	for i, l := range splitNewlines {
-		// split at JSON field
-		splitField := regexp.MustCompile(`":`).Split(l, 1)
-		lineItem := splitField[len(splitField)-1]
-		if matchesRegexListItem(lineItem, includeRegex) && !matchesRegexListItem(lineItem, excludeRegex) {
-			splitField[len(splitField)-1] = regexp.MustCompile(hostnames).ReplaceAllString(lineItem, getSha256Hash(lineItem))
+		if matchesRegexListItem(l, includeRegex) && !matchesRegexListItem(l, excludeRegex) {
+			splitNewlines[i] = regexp.MustCompile(hostnames).ReplaceAllString(l, getSha256Hash(l))
 		}
-		splitNewlines[i] = strings.Join(splitField, `":`)
 	}
 	return strings.Join(splitNewlines, "\n")
 }
@@ -80,7 +76,6 @@ func filterHostname(line string) string {
 func matchesRegexListItem(line string, list []string) bool {
 	for _, r := range list {
 		if regexp.MustCompile(r).Match([]byte(line)) {
-			fmt.Printf("LINE: %s\n MATCH: %S\n\n", line, r)
 			return true
 		}
 	}
