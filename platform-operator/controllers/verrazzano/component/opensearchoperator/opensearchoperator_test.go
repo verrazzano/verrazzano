@@ -8,100 +8,100 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
-const (
-	userNodePoolOverrideJson = `
-{
-  "openSearchCluster": {
-    "nodePools": [
-      {
-        "component": "es-master",
-        "diskSize": "100Gi"
-      }
-    ]
-  }
-}
-`
-	defaultNodePoolOverrideJson = `
-{
-  "openSearchCluster": {
-    "nodePools": [
-      {
-        "component": "es-master",
-        "replicas": 3,
-        "diskSize": "50Gi",
-        "resources": {
-          "requests": {
-            "memory": "1.4Gi"
-          }
-        },
-        "roles": ["master"]
-      },
-      {
-        "component": "es-data",
-        "replicas": 3,
-        "diskSize": "50Gi",
-        "resources": {
-          "requests": {
-            "memory": "4.8Gi"
-          }
-        },
-        "roles": ["data"]
-      },
-      {
-        "component": "es-ingest",
-        "replicas": 1,
-        "resources": {
-          "requests": {
-            "memory": "2.5Gi"
-          }
-        },
-        "roles": ["ingest"],
-        "persistence": {
-          "emptyDir": {}
-        }
-      }
-    ]
-  }
-}
-`
-	mergedOverrides = `values:
-  openSearchCluster:
-    nodePools:
-    - component: es-master
-      diskSize: 100Gi
-      jvm: null
-      replicas: 3
-      resources:
-        requests:
-          memory: 1.4Gi
-      roles:
-      - master
-    - component: data-ingest
-      diskSize: 10Gi
-      jvm: Xvm512
-      replicas: 5
-      resources:
-        requests:
-          memory: 1Gi
-    - component: es-data
-      diskSize: 50Gi
-      replicas: 3
-      resources:
-        requests:
-          memory: 4.8Gi
-      roles:
-      - data
-    - component: es-ingest
-      persistence:
-        emptyDir: {}
-      replicas: 1
-      resources:
-        requests:
-          memory: 2.5Gi
-      roles:
-      - ingest
-`
-)
+//const (
+//	userNodePoolOverrideJSON = `
+//{
+//  "openSearchCluster": {
+//    "nodePools": [
+//      {
+//        "component": "es-master",
+//        "diskSize": "100Gi"
+//      }
+//    ]
+//  }
+//}
+//`
+//	defaultNodePoolOverrideJSON = `
+//{
+//  "openSearchCluster": {
+//    "nodePools": [
+//      {
+//        "component": "es-master",
+//        "replicas": 3,
+//        "diskSize": "50Gi",
+//        "resources": {
+//          "requests": {
+//            "memory": "1.4Gi"
+//          }
+//        },
+//        "roles": ["master"]
+//      },
+//      {
+//        "component": "es-data",
+//        "replicas": 3,
+//        "diskSize": "50Gi",
+//        "resources": {
+//          "requests": {
+//            "memory": "4.8Gi"
+//          }
+//        },
+//        "roles": ["data"]
+//      },
+//      {
+//        "component": "es-ingest",
+//        "replicas": 1,
+//        "resources": {
+//          "requests": {
+//            "memory": "2.5Gi"
+//          }
+//        },
+//        "roles": ["ingest"],
+//        "persistence": {
+//          "emptyDir": {}
+//        }
+//      }
+//    ]
+//  }
+//}
+//`
+//	mergedOverrides = `values:
+//  openSearchCluster:
+//    nodePools:
+//    - component: es-master
+//      diskSize: 100Gi
+//      jvm: null
+//      replicas: 3
+//      resources:
+//        requests:
+//          memory: 1.4Gi
+//      roles:
+//      - master
+//    - component: data-ingest
+//      diskSize: 10Gi
+//      jvm: Xvm512
+//      replicas: 5
+//      resources:
+//        requests:
+//          memory: 1Gi
+//    - component: es-data
+//      diskSize: 50Gi
+//      replicas: 3
+//      resources:
+//        requests:
+//          memory: 4.8Gi
+//      roles:
+//      - data
+//    - component: es-ingest
+//      persistence:
+//        emptyDir: {}
+//      replicas: 1
+//      resources:
+//        requests:
+//          memory: 2.5Gi
+//      roles:
+//      - ingest
+//`
+//)
 
 //func TestBuildNodePoolOverride(t *testing.T) {
 //	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects().Build()
