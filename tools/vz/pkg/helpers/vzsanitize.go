@@ -59,7 +59,7 @@ func filterHostname(line string) string {
 	}
 
 	excludeRegex := []string{
-		fmt.Sprintf(`%s(.*):`, hostnames),
+		fmt.Sprintf(`%s("|):`, hostnames),
 		fmt.Sprintf(`apiVersion(.*)%s`, hostnames),
 		fmt.Sprintf(`"%s/(.*)`, hostnames),
 	}
