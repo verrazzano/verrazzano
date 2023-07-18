@@ -19,8 +19,10 @@ type testCase struct {
 }
 
 const (
-	clustersReadySnapshot    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
-	clustersNotReadySnapshot = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
+	clustersReadySnapshot    = "../../../test/cluster/clusters/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot"
+	driversReadySnapshot     = "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot"
+	driversNotReadySnapshot  = "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot"
 )
 
 var testCases = []testCase{
@@ -86,12 +88,12 @@ var testCases = []testCase{
 	},
 	{
 		Function:       rancher.AnalyzeKontainerDrivers,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    driversReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeKontainerDrivers,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    driversNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 }
@@ -112,9 +114,7 @@ func TestAnalyzeRancher(t *testing.T) {
 			assert.Empty(t, reportedIssues)
 		} else {
 			assert.Len(t, reportedIssues, test.ExpectedIssues)
-			if len(reportedIssues) != 0 {
-				assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
-			}
+			assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
 		}
 	}
 }
