@@ -41,6 +41,7 @@ spec:
           roles:
             - master
     opensearchOperator:
+      enabled: false
       overrides:
         - values:
             openSearchCluster:

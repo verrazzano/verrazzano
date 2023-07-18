@@ -18,6 +18,11 @@ config:
   envName: default
   prometheusOperatorEnabled: true
   ingressClassName: verrazzano-nginx
+  opensearch:
+    protocol: http
+    namespace: verrazzano-system
+    service: vmi-system-os-ingest
+    osdService: vmi-system-osd
 
 dns:
   wildcard:

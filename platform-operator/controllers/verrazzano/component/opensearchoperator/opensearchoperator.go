@@ -61,7 +61,7 @@ func GetOverrides(object runtime.Object) interface{} {
 
 	client, err := getControllerRuntimeClient()
 	if err != nil {
-		return vzapi.Overrides{}
+		return []vzapi.Overrides{}
 	}
 
 	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {

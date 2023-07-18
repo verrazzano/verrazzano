@@ -67,6 +67,7 @@ spec:
     opensearchDashboards:
       enabled: false
     opensearchOperator:
+      enabled: false
       overrides:
         - values:
             openSearchCluster:
