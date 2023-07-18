@@ -205,11 +205,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		if err != nil {
 			return err
 		}
+
 		secret.Annotations[createTimestamp] = created
 		if expiresAt != "" {
 			secret.Annotations[expiresAtTimestamp] = expiresAt
 		}
 		createNewToken = false
+
+		if created == "" {
+			createNewToken = true
+		}
 	}
 	if createNewToken {
 		// Obtain a new token with ttl set using bearer token obtained
