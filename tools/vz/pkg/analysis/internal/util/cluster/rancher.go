@@ -4,6 +4,9 @@
 package cluster
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster/rancher"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
@@ -17,13 +20,25 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
-	_ = rancher.AnalyzeClusterRepos(log, clusterRoot, &issueReporter)
-	_ = rancher.AnalyzeCatalogs(log, clusterRoot, &issueReporter)
-	_ = rancher.AnalyzeProvisioningClusters(log, clusterRoot, &issueReporter)
-	_ = rancher.AnalyzeKontainerDrivers(log, clusterRoot, &issueReporter)
-	err := rancher.AnalyzeManagementClusters(log, clusterRoot, &issueReporter)
+	var err error
+	var errors []string
+	analyzers := []func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error{
+		rancher.AnalyzeClusterRepos, rancher.AnalyzeCatalogs, rancher.AnalyzeProvisioningClusters,
+		rancher.AnalyzeKontainerDrivers, rancher.AnalyzeBundleDeployments, rancher.AnalyzeManagementClusters,
+		rancher.AnalyzeBundles,
+	}
+
+	for _, analyze := range analyzers {
+		if err = analyze(log, clusterRoot, &issueReporter); err != nil {
+			errors = append(errors, err.Error())
+		}
+	}
 
 	issueReporter.Contribute(log, clusterRoot)
 
-	return err
+	if len(errors) > 0 {
+		return fmt.Errorf("Errors analyzing Rancher: %s", fmt.Sprintf(strings.Join(errors[:], ",")))
+	}
+
+	return nil
 }

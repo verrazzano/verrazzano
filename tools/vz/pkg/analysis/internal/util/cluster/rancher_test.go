@@ -19,10 +19,8 @@ type testCase struct {
 }
 
 const (
-	clustersReadySnapshot    = "../../../test/cluster/clusters/clusters-ready/cluster-snapshot"
-	clustersNotReadySnapshot = "../../../test/cluster/clusters/clusters-not-ready/cluster-snapshot"
-	driversReadySnapshot     = "../../../test/cluster/kontainerdrivers/drivers-ready/cluster-snapshot"
-	driversNotReadySnapshot  = "../../../test/cluster/kontainerdrivers/drivers-not-ready/cluster-snapshot"
+	clustersReadySnapshot    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
 )
 
 var testCases = []testCase{
@@ -67,13 +65,33 @@ var testCases = []testCase{
 		ExpectedIssues: 1,
 	},
 	{
+		Function:       rancher.AnalyzeBundleDeployments,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeBundleDeployments,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeBundles,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeBundles,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
 		Function:       rancher.AnalyzeKontainerDrivers,
-		ClusterRoot:    driversReadySnapshot,
+		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeKontainerDrivers,
-		ClusterRoot:    driversNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
 }
@@ -94,7 +112,9 @@ func TestAnalyzeRancher(t *testing.T) {
 			assert.Empty(t, reportedIssues)
 		} else {
 			assert.Len(t, reportedIssues, test.ExpectedIssues)
-			assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+			if len(reportedIssues) != 0 {
+				assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+			}
 		}
 	}
 }
