@@ -576,7 +576,6 @@ func TestUpgradeCompleted(t *testing.T) {
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	addExec()
-
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -598,7 +597,7 @@ func TestUpgradeCompleted(t *testing.T) {
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
 		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
-		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
+		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, getKeycloakPod(),
 	).Build()
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -679,7 +678,6 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
-
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -703,7 +701,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
 		&authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
-		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole,
+		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, getKeycloakPod(),
 	).Build()
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -949,7 +947,7 @@ func TestUpgradeComponent(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
-		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC).
+		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC, getKeycloakPod()).
 		WithLists(&ingressList, &appConfigList).Build()
 
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
@@ -1161,7 +1159,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
-		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC).
+		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC, getKeycloakPod()).
 		WithLists(&ingressList, &appConfigList).Build()
 
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop

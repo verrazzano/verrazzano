@@ -51,6 +51,7 @@ const fakeCompReleaseName = "verrazzano-authproxy"
 // auth config for Argo CD
 const (
 	KeyCloakOIDCConfig = "clientID: argocd\nclientSecret: $oidc.keycloak.clientSecret\nissuer: https://keycloak/auth/realms/verrazzano-system\nname: Keycloak\nrequestedScopes:\n- openid\n- profile\n- email\n- groups\nrootCA: test-ca-argocd\n"
+	keycloakPodName    = "keycloak-0"
 )
 
 var (
@@ -431,7 +432,7 @@ func testUpdate(t *testing.T,
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
-		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole).
+		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, getKeycloakPod()).
 		WithLists(&ingressList, &jobList).Build()
 
 	ctx := spi.NewFakeContext(c, vz, nil, false)
@@ -698,5 +699,23 @@ func TestCheckGenerationUpdated(t *testing.T) {
 				t.Errorf("checkGenerationUpdated() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// getKeycloakPod constructs and returns Keycloak pod
+func getKeycloakPod() *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: constants.KeycloakNamespace,
+		},
+		Status: corev1.PodStatus{
+			Conditions: []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
 	}
 }
