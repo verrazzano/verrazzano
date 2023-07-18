@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,7 +33,7 @@ type catalogAppSummary struct {
 }
 
 // AnalyzeCatalogApps - analyze the status of CatalogApp objects
-func AnalyzeCatalogApps(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeCatalogApps(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &catalogAppList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "app.catalog.cattle.io.json", list)
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,7 +29,7 @@ type provisioningStatus struct {
 }
 
 // AnalyzeProvisioningClusters - analyze the status of Rancher provisioning clusters resources
-func AnalyzeProvisioningClusters(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeProvisioningClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &provisioningClusterList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.provisioning.cattle.io.json", list)
 	if err != nil {

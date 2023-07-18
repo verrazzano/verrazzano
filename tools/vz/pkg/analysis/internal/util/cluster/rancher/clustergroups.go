@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,7 +29,7 @@ type clusterGroupStatus struct {
 }
 
 // AnalyzeClusterGroups - analyze the status of ClusterGruop objects
-func AnalyzeClusterGroups(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterGroups(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &clusterGroupList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clustergroup.fleet.cattle.io.json", list)
 	if err != nil {
