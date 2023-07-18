@@ -2113,9 +2113,9 @@ func TestIsAlertmanagerEnabled(t *testing.T) {
 // THEN return the value as expected in the enabled variable
 func TestIsOpenSearchOperatorEnabled(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.False(IsOpenSearchOperatorEnabled(nil))
-	asserts.False(IsOpenSearchOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.False(IsOpenSearchOperatorEnabled(
+	asserts.True(IsOpenSearchOperatorEnabled(nil))
+	asserts.True(IsOpenSearchOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsOpenSearchOperatorEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{},
