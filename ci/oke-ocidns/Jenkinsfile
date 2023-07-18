@@ -17,6 +17,7 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def runExamples = env.JOB_NAME.contains('-examples')
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
@@ -468,6 +469,7 @@ pipeline {
         }
 
         stage('acceptance-tests') {
+            when { expression { return !runExamples } }
             parallel {
                 stage('system component metrics') {
                     steps {
@@ -555,6 +557,78 @@ pipeline {
                     }
                     steps {
                         runGinkgoFailFast('workloads/coherence')
+                    }
+                }
+            }
+        }
+
+        stage('Run Example Acceptance Tests') {
+            when { expression { return runExamples } }
+            parallel {
+                stage('examples todo') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                    }
+                    steps {
+                        runGinkgo('examples/todo')
+                    }
+                }
+                stage('examples socks') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                    }
+                    steps {
+                        runSocksVariant('helidon')
+                        runSocksVariant('micronaut')
+                        runSocksVariant('spring')
+                    }
+                }
+                stage('examples springboot') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                    }
+                    steps {
+                        runGinkgo('examples/springboot')
+                    }
+                }
+                stage('examples helidon 1') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-1"
+                    }
+                    steps {
+                        runGinkgo('examples/helidon')
+                    }
+                }
+                stage('examples helidon 2') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-2"
+                    }
+                    steps {
+                        runGinkgo('examples/helidon')
+                    }
+                }
+                stage('examples helidon-config') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                    }
+                    steps {
+                        runGinkgo('examples/helidonconfig')
+                    }
+                }
+                stage('examples bobs books') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                    }
+                    steps {
+                        runGinkgo('examples/bobsbooks')
+                    }
+                }
+                stage('examples weblogic cluster') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-cluster"
+                    }
+                    steps {
+                        runGinkgo('workloads/weblogic-cluster')
                     }
                 }
             }
