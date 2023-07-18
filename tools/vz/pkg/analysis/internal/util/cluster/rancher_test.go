@@ -87,6 +87,16 @@ var testCases = []testCase{
 		ExpectedIssues: 1,
 	},
 	{
+		Function:       rancher.AnalyzeClusterGroups,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeClusterGroups,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
 		Function:       rancher.AnalyzeKontainerDrivers,
 		ClusterRoot:    driversReadySnapshot,
 		ExpectedIssues: 0,
