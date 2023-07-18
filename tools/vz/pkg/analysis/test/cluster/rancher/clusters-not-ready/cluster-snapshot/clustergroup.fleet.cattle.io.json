@@ -1,0 +1,33 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "ClusterGroup",
+      "metadata": {
+        "name": "default",
+        "namespace": "fleet-local"
+      },
+      "status": {
+        "clusterCount": 1,
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-05T20:33:58Z",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-16T02:18:57Z",
+            "status": "True",
+            "type": "Processed"
+          }
+        ],
+        "nonReadyClusterCount": 1
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
