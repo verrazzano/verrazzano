@@ -1,0 +1,89 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "BundleDeployment",
+      "metadata": {
+        "name": "fleet-agent-c-zhp55",
+        "namespace": "cluster-fleet-default-c-zhp55-77ea7b3d6db1"
+      },
+      "status": {
+        "appliedDeploymentID": "s-3f92521a155ac030c1cf2a7000b8b6f3430a1db8247e2380bf4d4467d5530:01fd67cf824154b36ddb0866059a1a2177377764125dfe1b4509d8b5bcedb298",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-06-30T10:44:11Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:44:11Z",
+            "status": "True",
+            "type": "Deployed"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:44:16Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:44:16Z",
+            "status": "True",
+            "type": "Monitored"
+          }
+        ],
+        "display": {
+          "deployed": "True",
+          "monitored": "True",
+          "state": "Ready"
+        },
+        "nonModified": true,
+        "ready": true
+      }
+    },
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "BundleDeployment",
+      "metadata": {
+        "name": "fleet-agent-local",
+        "namespace": "cluster-fleet-local-local-1a3d67d0a899"
+      },
+      "status": {
+        "appliedDeploymentID": "s-bb13b38db0ab38e9b633bdbd465303394ffc7df37268d44a9f7f37da3b55f:8a42b4463e55a59ce2ccdf3c53c32455ce5fd0f601587bf57b5624b3cf8bb623",
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-06-27T10:09:09Z",
+            "status": "True",
+            "type": "Installed"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:09:09Z",
+            "status": "True",
+            "type": "Deployed"
+          },
+          {
+            "lastUpdateTime": "2023-07-05T20:33:58Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-05T20:33:58Z",
+            "status": "True",
+            "type": "Monitored"
+          }
+        ],
+        "display": {
+          "deployed": "True",
+          "monitored": "True",
+          "state": "Ready"
+        },
+        "nonModified": true,
+        "ready": true
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
