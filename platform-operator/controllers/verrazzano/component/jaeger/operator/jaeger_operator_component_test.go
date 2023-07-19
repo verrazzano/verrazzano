@@ -923,8 +923,16 @@ func TestGetIngressAndCertificateNames(t *testing.T) {
 						JaegerOperator: &vzapi.JaegerOperatorComponent{
 							Enabled: &trueValue,
 						},
-						Elasticsearch: &vzapi.ElasticsearchComponent{
-							Enabled: &falseValue,
+						OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+										},
+									},
+								},
+							},
 						},
 					},
 				},

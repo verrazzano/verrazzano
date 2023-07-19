@@ -236,12 +236,10 @@ func arePVsReleased(ctx spi.ComponentContext, nodes []NodePool) bool {
 
 // resetReclaimPolicy resets the ReclaimPolicy to its original value
 func resetReclaimPolicy(ctx spi.ComponentContext) error {
-	nodes := ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes
-	for _, node := range nodes {
-		if err := common.ResetVolumeReclaimPolicy(ctx, clusterName); err != nil {
-			return fmt.Errorf("failed to reset reclaim policy for pv of node %s: %v", node.Name, err)
-		}
+	if err := common.ResetVolumeReclaimPolicy(ctx, clusterName); err != nil {
+		return fmt.Errorf("failed to reset reclaim policy for PVs in post-install: %v", err)
 	}
+
 	return nil
 }
 

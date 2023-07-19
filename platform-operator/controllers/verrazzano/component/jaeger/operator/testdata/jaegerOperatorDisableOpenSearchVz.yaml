@@ -10,5 +10,8 @@ spec:
   components:
     jaegerOperator:
       enabled: true
-    elasticsearch:
-      enabled: false
+    opensearchOperator:
+      overrides:
+        - values:
+            openSearchCluster:
+              enabled: false

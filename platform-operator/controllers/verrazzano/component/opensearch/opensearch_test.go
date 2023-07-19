@@ -16,7 +16,6 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzclusters "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
@@ -28,9 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -422,59 +419,6 @@ func TestFindESReplicas(t *testing.T) {
 	ctx = spi.NewFakeContext(c, vz, nil, false)
 	val = findESReplicas(ctx, "master")
 	assert.Equal(t, val, int32(0))
-}
-
-// TestNodesToObjectKeys tests the OpenSearch NodesToObjectKeys call
-// GIVEN an OpenSearch component and a vzapi
-//
-//	WHEN I call NodesToObjectKeys
-//	THEN objects are returned
-func TestNodesToObjectKeys(t *testing.T) {
-	trueVal := true
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-				},
-			},
-		},
-	}
-	expected := nodesToObjectKeys(vz)
-	actual := &ready.AvailabilityObjects{}
-	assert.Equal(t, expected, actual)
-
-	vztwo := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{"ingest"}}},
-				},
-			},
-		},
-	}
-	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node1-0"}, {Namespace: vzsys, Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
-	expected = nodesToObjectKeys(vztwo)
-	assert.Equal(t, expected, actual)
-
-	// nil replicas should have no availability objects
-	vzthree := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes: []vzapi.OpenSearchNode{
-						{Name: "node1", Roles: []vmov1.NodeRole{"data"}},
-						{Name: "node2", Roles: []vmov1.NodeRole{"master"}},
-						{Name: "node3", Roles: []vmov1.NodeRole{"ingest"}}},
-				},
-			},
-		},
-	}
-	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName(nil), DeploymentNames: []types.NamespacedName(nil), DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
-	expected = nodesToObjectKeys(vzthree)
-	assert.Equal(t, expected, actual)
 }
 
 // TestIsSingleDataNodeCluster tests the OpenSearch IsSingleDataNodeCluster call

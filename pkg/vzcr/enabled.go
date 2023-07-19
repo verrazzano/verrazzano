@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -24,20 +25,6 @@ func IsPrometheusEnabled(cr runtime.Object) bool {
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
 		if vzv1beta1 != nil && vzv1beta1.Spec.Components.Prometheus != nil && vzv1beta1.Spec.Components.Prometheus.Enabled != nil {
 			return *vzv1beta1.Spec.Components.Prometheus.Enabled
-		}
-	}
-	return true
-}
-
-// IsOpenSearchDashboardsEnabled - Returns false only if explicitly disabled in the CR
-func IsOpenSearchDashboardsEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
-		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Kibana != nil && vzv1alpha1.Spec.Components.Kibana.Enabled != nil {
-			return *vzv1alpha1.Spec.Components.Kibana.Enabled
-		}
-	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
-		if vzv1beta1 != nil && vzv1beta1.Spec.Components.OpenSearchDashboards != nil && vzv1beta1.Spec.Components.OpenSearchDashboards.Enabled != nil {
-			return *vzv1beta1.Spec.Components.OpenSearchDashboards.Enabled
 		}
 	}
 	return true
@@ -222,20 +209,6 @@ func IsKialiEnabled(cr runtime.Object) bool {
 	return true
 }
 
-// IsOpenSearchEnabled - Returns false only if explicitly disabled in the CR
-func IsOpenSearchEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
-		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Elasticsearch != nil && vzv1alpha1.Spec.Components.Elasticsearch.Enabled != nil {
-			return *vzv1alpha1.Spec.Components.Elasticsearch.Enabled
-		}
-	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
-		if vzv1beta1 != nil && vzv1beta1.Spec.Components.OpenSearch != nil && vzv1beta1.Spec.Components.OpenSearch.Enabled != nil {
-			return *vzv1beta1.Spec.Components.OpenSearch.Enabled
-		}
-	}
-	return true
-}
-
 // IsOpenSearchOperatorEnabled returns false only if OpenSearchOperator is explicitly disabled in the CR
 func IsOpenSearchOperatorEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
@@ -370,7 +343,7 @@ func IsOCIDNSEnabled(cr runtime.Object) bool {
 
 // IsVMOEnabled - Returns false if all VMO components are disabled
 func IsVMOEnabled(vz runtime.Object) bool {
-	return IsOpenSearchDashboardsEnabled(vz) || IsOpenSearchEnabled(vz) || IsGrafanaEnabled(vz)
+	return IsGrafanaEnabled(vz)
 }
 
 // IsPrometheusOperatorEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
@@ -710,4 +683,84 @@ func IsAlertmanagerEnabled(cr runtime.Object, ctx spi.ComponentContext) (bool, e
 	}
 
 	return false, nil
+}
+
+// IsOpenSearchEnabled - Returns false only if explicitly disabled in the CR as part of OpenSearch Operator overrides
+func IsOpenSearchEnabled(cr runtime.Object, client client.Client) (bool, error) {
+	if !IsOpenSearchOperatorEnabled(cr) {
+		return false, nil
+	}
+	var overrideStrings []string
+	var err error
+
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 == nil || vzv1alpha1.Spec.Components.OpenSearchOperator == nil || (vzv1alpha1.Spec.Components.OpenSearchOperator != nil && vzv1alpha1.Spec.Components.OpenSearchOperator.ValueOverrides == nil) {
+			return true, nil
+		}
+		overrides := installv1alpha1.ConvertValueOverridesToV1Beta1(vzv1alpha1.Spec.Components.OpenSearchOperator.ValueOverrides)
+		overrideStrings, err = override.GetInstallOverridesYAMLUsingClient(client, overrides, vzv1alpha1.Namespace)
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 == nil || vzv1beta1.Spec.Components.OpenSearchOperator == nil || (vzv1beta1.Spec.Components.OpenSearchOperator != nil && vzv1beta1.Spec.Components.OpenSearchOperator.ValueOverrides == nil) {
+			return true, nil
+		}
+		overrideStrings, err = override.GetInstallOverridesYAMLUsingClient(client, vzv1beta1.Spec.Components.OpenSearchOperator.ValueOverrides, vzv1beta1.Namespace)
+	}
+
+	if err != nil {
+		return true, fmt.Errorf("error while reading install overrides, error: %v", err.Error())
+	}
+	if len(overrideStrings) == 0 {
+		return true, nil
+	}
+	for _, overrideYaml := range overrideStrings {
+		value, err := override.ExtractValueFromOverrideString(overrideYaml, "openSearchCluster.enabled")
+		if err != nil {
+			return true, fmt.Errorf("error while reading value for openSearchCluster.enabled from overrides")
+		}
+		if value != nil {
+			return value.(bool), nil
+		}
+	}
+	return true, nil
+}
+
+// IsOpenSearchDashboardsEnabled - Returns false only if explicitly disabled in the CR as part of OpenSearch Operator overrides
+func IsOpenSearchDashboardsEnabled(cr runtime.Object, client client.Client) (bool, error) {
+	if !IsOpenSearchOperatorEnabled(cr) {
+		return false, nil
+	}
+	var overrideStrings []string
+	var err error
+
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 == nil || vzv1alpha1.Spec.Components.OpenSearchOperator == nil || (vzv1alpha1.Spec.Components.OpenSearchOperator != nil && vzv1alpha1.Spec.Components.OpenSearchOperator.ValueOverrides == nil) {
+			return true, nil
+		}
+		overrides := installv1alpha1.ConvertValueOverridesToV1Beta1(vzv1alpha1.Spec.Components.OpenSearchOperator.ValueOverrides)
+		overrideStrings, err = override.GetInstallOverridesYAMLUsingClient(client, overrides, vzv1alpha1.Namespace)
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 == nil || vzv1beta1.Spec.Components.OpenSearchOperator == nil || (vzv1beta1.Spec.Components.OpenSearchOperator != nil && vzv1beta1.Spec.Components.OpenSearchOperator.ValueOverrides == nil) {
+			return true, nil
+		}
+		overrideStrings, err = override.GetInstallOverridesYAMLUsingClient(client, vzv1beta1.Spec.Components.OpenSearchOperator.ValueOverrides, vzv1beta1.Namespace)
+	}
+
+	if err != nil {
+		return true, fmt.Errorf("error while reading install overrides, error: %v", err.Error())
+	}
+	if len(overrideStrings) == 0 {
+		return true, nil
+	}
+	for _, overrideYaml := range overrideStrings {
+		if strings.Contains(overrideYaml, "dashboards:") {
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "openSearchCluster.dashboards.enable")
+			if err != nil {
+				return true, fmt.Errorf("error while reading value for openSearchCluster.dashboards.enabled from overrides")
+			}
+			if value != nil {
+				return value.(bool), nil
+			}
+		}
+	}
+	return true, nil
 }

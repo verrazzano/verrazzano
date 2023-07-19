@@ -4,10 +4,8 @@
 package opensearchdashboards
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -194,7 +192,7 @@ func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) err
 
 // IsEnabled OpenSearch-Dashboards specific enabled check for installation
 func (d opensearchDashboardsComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)
+	return true
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -239,10 +237,6 @@ func (d opensearchDashboardsComponent) Name() string {
 }
 
 func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old runtime.Object, new runtime.Object) error {
-	// Do not allow disabling of any component post-install for now
-	if vzcr.IsOpenSearchDashboardsEnabled(old) && !vzcr.IsOpenSearchDashboardsEnabled(new) {
-		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
-	}
 	return nil
 }
 

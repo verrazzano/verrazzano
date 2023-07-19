@@ -4,10 +4,8 @@
 package opensearch
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -163,7 +161,7 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 }
 
 func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
+	return nodesToObjectKeys(ctx.EffectiveCR(), ctx.Client()).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check
@@ -191,7 +189,7 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // IsEnabled opensearch-specific enabled check for installation
 func (o opensearchComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsOpenSearchEnabled(effectiveCR)
+	return true
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -243,9 +241,6 @@ func (o opensearchComponent) Name() string {
 
 func (o opensearchComponent) isOpenSearchEnabled(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
-	if vzcr.IsOpenSearchEnabled(old) && !vzcr.IsOpenSearchEnabled(new) {
-		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
-	}
 	return nil
 }
 

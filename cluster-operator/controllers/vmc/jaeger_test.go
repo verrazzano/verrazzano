@@ -41,8 +41,16 @@ var keycloakDisabledCR = &vzapi.Verrazzano{
 var openSearchDisabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
-			OpenSearch: &vzapi.OpenSearchComponent{
-				Enabled: &falseValue,
+			OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &apiextensionsv1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+							},
+						},
+					},
+				},
 			},
 			JaegerOperator: &vzapi.JaegerOperatorComponent{
 				Enabled: &trueValue,
@@ -281,7 +289,7 @@ func createVZWithOSDisabledAndJaegerOverride(json string) *vzapi.Verrazzano {
 func newIngress() *k8net.Ingress {
 	ingress := &k8net.Ingress{}
 	ingress.Namespace = constants.VerrazzanoSystemNamespace
-	ingress.Name = vmiIngest
+	ingress.Name = operatorOSIngress
 	rule := k8net.IngressRule{Host: "jaeger.unit-test.com"}
 	ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 	return ingress

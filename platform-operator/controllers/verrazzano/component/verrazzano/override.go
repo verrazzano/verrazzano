@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"io/fs"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -37,7 +38,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano values: %v", err)
 	}
 	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
-	vzkvs, err := appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, []bom.KeyValue{})
+	vzkvs, err := appendVMIOverrides(ctx.Client(), effectiveCR, &overrides, resourceRequestOverrides, []bom.KeyValue{})
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano OpenSearch values: %v", err)
 	}
@@ -175,11 +176,13 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 	return kvs
 }
 
-func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	overrides.Kibana = &kibanaValues{Enabled: vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)}
+func appendVMIOverrides(client client.Client, effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	osdEnabled, _ := vzcr.IsOpenSearchDashboardsEnabled(effectiveCR, client)
+	overrides.Kibana = &kibanaValues{Enabled: osdEnabled}
 
+	osEnabled, _ := vzcr.IsOpenSearchEnabled(effectiveCR, client)
 	overrides.ElasticSearch = &elasticsearchValues{
-		Enabled: vzcr.IsOpenSearchEnabled(effectiveCR),
+		Enabled: osEnabled,
 	}
 	multiNodeCluster, err := common.IsMultiNodeOpenSearch(effectiveCR)
 	if err != nil {
