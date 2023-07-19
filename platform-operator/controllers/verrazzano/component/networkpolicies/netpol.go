@@ -137,7 +137,8 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.ClusterOperator = &clusterOperatorValues{Enabled: vzcr.IsClusterOperatorEnabled(effectiveCR)}
 	overrides.CertManager = &certManagerValues{Enabled: vzcr.IsCertManagerEnabled(effectiveCR)}
 	overrides.NGINX = &nginxValues{Enabled: vzcr.IsNGINXEnabled(effectiveCR), Namespace: nginxutil.IngressNGINXNamespace()}
-	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzcr.IsOpenSearchEnabled(effectiveCR)}
+	ok, _ := vzcr.IsOpenSearchEnabled(effectiveCR, ctx.Client())
+	overrides.ElasticSearch = &elasticsearchValues{Enabled: ok}
 	overrides.Externaldns = &externalDNSValues{Enabled: vzcr.IsExternalDNSEnabled(effectiveCR), Namespace: externaldns.ResolveExernalDNSNamespace()}
 	overrides.Grafana = &grafanaValues{Enabled: vzcr.IsGrafanaEnabled(effectiveCR)}
 	overrides.Istio = &istioValues{Enabled: vzcr.IsIstioEnabled(effectiveCR)}

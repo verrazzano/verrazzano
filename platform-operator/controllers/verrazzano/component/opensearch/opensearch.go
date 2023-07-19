@@ -5,6 +5,7 @@ package opensearch
 
 import (
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -41,7 +42,7 @@ func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
 // isOSReady checks if the OpenSearch resources are ready
 func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+	if ok, _ := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR(), ctx.Client()); ok && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 			if !isOSNodeReady(ctx, node, prefix) {
 				return false
@@ -52,9 +53,9 @@ func isOSReady(ctx spi.ComponentContext) bool {
 	return common.IsVMISecretReady(ctx)
 }
 
-func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
+func nodesToObjectKeys(vz *vzapi.Verrazzano, client client.Client) *ready.AvailabilityObjects {
 	objects := &ready.AvailabilityObjects{}
-	if vzcr.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
+	if ok, _ := vzcr.IsOpenSearchEnabled(vz, client); ok && vz.Spec.Components.Elasticsearch != nil {
 		for _, node := range vz.Spec.Components.Elasticsearch.Nodes {
 			if node.Replicas == nil || *node.Replicas < 1 {
 				continue
@@ -138,7 +139,7 @@ func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 // findESReplicas searches the ES install args to find the correct resources to search for in isReady
 func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
 	var replicas int32
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+	if ok, _ := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR(), ctx.Client()); ok && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 			for _, role := range node.Roles {
 				if role == nodeType && node.Replicas != nil {

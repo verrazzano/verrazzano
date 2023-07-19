@@ -27,7 +27,7 @@ func getOSDDeployments() []types.NamespacedName {
 // isOSDReady checks if the OpenSearch-Dashboards resources are ready
 func isOSDReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
+	if ok, _ := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
 		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(), 1, prefix) {
 			return false
 		}

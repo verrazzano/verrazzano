@@ -28,6 +28,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -250,10 +251,19 @@ func Test_appendVMIValues(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Profile: "dev",
 					Components: vzapi.ComponentSpec{
-						Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
-						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-						Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
-						Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
+						Grafana:    &vzapi.GrafanaComponent{Enabled: &falseValue},
+						Prometheus: &vzapi.PrometheusComponent{Enabled: &falseValue},
+						OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &v1.JSON{
+											Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -348,7 +358,7 @@ func Test_appendVMIValues(t *testing.T) {
 			storageOverride, err := common.FindStorageOverride(fakeContext.EffectiveCR())
 			a.NoError(err)
 
-			keyValues, err := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
+			keyValues, err := appendVMIOverrides(fakeContext.Client(), fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
 			a.NoError(err)
 			a.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
 
@@ -416,9 +426,18 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Prometheus:                &vzapi.PrometheusComponent{Enabled: &falseValue},
-						Kibana:                    &vzapi.KibanaComponent{Enabled: &falseValue},
-						Elasticsearch:             &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+						Prometheus: &vzapi.PrometheusComponent{Enabled: &falseValue},
+						OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &v1.JSON{
+											Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
+										},
+									},
+								},
+							},
+						},
 						Grafana:                   &vzapi.GrafanaComponent{Enabled: &falseValue},
 						Keycloak:                  &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:                   &vzapi.RancherComponent{Enabled: &falseValue},

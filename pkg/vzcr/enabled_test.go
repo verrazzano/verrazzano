@@ -641,102 +641,6 @@ func TestIsGrafanaEnabled(t *testing.T) {
 		}}))
 }
 
-// TestIsElasticsearchEnabled tests the IsOpenSearchEnabled function
-// GIVEN a call to IsOpenSearchEnabled
-//
-//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
-func TestIsElasticsearchEnabled(t *testing.T) {
-	asserts := assert.New(t)
-	asserts.True(IsOpenSearchEnabled(nil))
-	asserts.True(IsOpenSearchEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsOpenSearchEnabled(
-		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{},
-			},
-		}}))
-	asserts.True(IsOpenSearchEnabled(
-		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &trueValue,
-				},
-			},
-		}}))
-	asserts.False(IsOpenSearchEnabled(
-		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &falseValue,
-				},
-			},
-		}}))
-	asserts.True(IsOpenSearchEnabled(
-		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
-			Components: installv1beta1.ComponentSpec{
-				OpenSearch: &installv1beta1.OpenSearchComponent{
-					Enabled: &trueValue,
-				},
-			},
-		}}))
-	asserts.False(IsOpenSearchEnabled(
-		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
-			Components: installv1beta1.ComponentSpec{
-				OpenSearch: &installv1beta1.OpenSearchComponent{
-					Enabled: &falseValue,
-				},
-			},
-		}}))
-}
-
-// TestIsKibanaEnabled tests the IsOpenSearchDashboardsEnabled function
-// GIVEN a call to IsOpenSearchDashboardsEnabled
-//
-//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
-func TestIsKibanaEnabled(t *testing.T) {
-	asserts := assert.New(t)
-	asserts.True(IsOpenSearchDashboardsEnabled(nil))
-	asserts.True(IsOpenSearchDashboardsEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsOpenSearchDashboardsEnabled(
-		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Kibana: &vzapi.KibanaComponent{},
-			},
-		}}))
-	asserts.True(IsOpenSearchDashboardsEnabled(
-		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Kibana: &vzapi.KibanaComponent{
-					Enabled: &trueValue,
-				},
-			},
-		}}))
-	asserts.False(IsOpenSearchDashboardsEnabled(
-		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Kibana: &vzapi.KibanaComponent{
-					Enabled: &falseValue,
-				},
-			},
-		}}))
-	asserts.True(IsOpenSearchDashboardsEnabled(
-		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
-			Components: installv1beta1.ComponentSpec{
-				OpenSearchDashboards: &installv1beta1.OpenSearchDashboardsComponent{
-					Enabled: &trueValue,
-				},
-			},
-		}}))
-	asserts.False(IsOpenSearchDashboardsEnabled(
-		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
-			Components: installv1beta1.ComponentSpec{
-				OpenSearchDashboards: &installv1beta1.OpenSearchDashboardsComponent{
-					Enabled: &falseValue,
-				},
-			},
-		}}))
-}
-
 // TestIsPrometheusEnabled tests the IsPrometheusEnabled function
 // GIVEN a call to IsPrometheusEnabled
 //
@@ -2117,4 +2021,344 @@ func TestIsOpenSearchOperatorEnabled(t *testing.T) {
 				},
 			},
 		}}))
+}
+
+// TestIsOpenSearchEnabled tests whether OpenSearch is enabled or not
+// GIVEN a call to IsOpenSearchEnabled
+// WHEN the OpenSearch is explicitly enabled or disabled
+// THEN return the value as expected in the enabled variable
+func TestIsOpenSearchEnabled(t *testing.T) {
+	var tests = []struct {
+		name         string
+		cr           runtime.Object
+		enabled      bool
+		isErr        bool
+		isVZv1alpha1 bool
+	}{
+		{
+			"OpenSearch enabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearch enabled when when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			true,
+			false,
+			false,
+		},
+		{
+			"OpenSearch disabled whe OpenSearch Operator component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"OpenSearch disabled whe OpenSearch Operator component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"OpenSearch enabled when overrides not specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearch enabled when overrides not specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{}}}},
+			true,
+			false,
+			false,
+		},
+		{
+			"OpenSearch disabled when disabled in overrides specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+							},
+						},
+					},
+				}}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"OpenSearch disabled when disabled in overrides specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+							},
+						},
+					},
+				},
+			}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"OpenSearch enabled when empty overrides specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte(""),
+							},
+						},
+					},
+				}}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearch enabled when empty overrides specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte(""),
+							},
+						},
+					},
+				},
+			}}}},
+			true,
+			false,
+			false,
+		},
+		{
+			"OpenSearch enabled when enabled in overrides specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+							},
+						},
+					},
+				}}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearch enabled when enabled in overrides specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+							},
+						},
+					},
+				},
+			}}}},
+			true,
+			false,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result bool
+			var err error
+			if tt.isVZv1alpha1 {
+				result, err = IsOpenSearchEnabled(tt.cr, spi.NewFakeContext(nil, tt.cr.(*vzapi.Verrazzano), nil, false).Client())
+			} else {
+				result, err = IsOpenSearchEnabled(tt.cr, spi.NewFakeContext(nil, nil, tt.cr.(*installv1beta1.Verrazzano), false).Client())
+			}
+
+			assert.Equal(t, tt.isErr, err != nil)
+			assert.Equal(t, tt.enabled, result)
+		})
+	}
+}
+
+// TestIsOpenSearchDashboardsEnabledEnabled tests whether OpenSearchDashboards is enabled or not
+// GIVEN a call to IsOpenSearchDashboardsEnabled
+// WHEN the OpenSearchDashboards is explicitly enabled or disabled
+// THEN return the value as expected in the enabled variable
+func TestIsOpenSearchDashboardsEnabledEnabled(t *testing.T) {
+	var tests = []struct {
+		name         string
+		cr           runtime.Object
+		enabled      bool
+		isErr        bool
+		isVZv1alpha1 bool
+	}{
+		{
+			"OpenSearchDashboards enabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearchDashboards enabled when when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			true,
+			false,
+			false,
+		},
+		{
+			"OpenSearchDashboards disabled whe OpenSearch Operator component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"OpenSearchDashboards disabled whe OpenSearch Operator component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"OpenSearchDashboards enabled when overrides not specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearchDashboards enabled when overrides not specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{}}}},
+			true,
+			false,
+			false,
+		},
+		{
+			"OpenSearchDashboards disabled when disabled in overrides specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
+							},
+						},
+					},
+				}}}}},
+			false,
+			false,
+			true,
+		},
+		{
+			"OpenSearchDashboards disabled when disabled in overrides specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
+							},
+						},
+					},
+				},
+			}}}},
+			false,
+			false,
+			false,
+		},
+		{
+			"OpenSearchDashboards enabled when empty overrides specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte(""),
+							},
+						},
+					},
+				}}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearchDashboards enabled when empty overrides specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte(""),
+							},
+						},
+					},
+				},
+			}}}},
+			true,
+			false,
+			false,
+		},
+		{
+			"OpenSearchDashboards enabled when enabled in overrides specified on OpenSearch Operator component, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
+				InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+							},
+						},
+					},
+				}}}}},
+			true,
+			false,
+			true,
+		},
+		{
+			"OpenSearchDashboards enabled when enabled in overrides specified on OpenSearch Operator component, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{OpenSearchOperator: &installv1beta1.OpenSearchOperatorComponent{
+				InstallOverrides: installv1beta1.InstallOverrides{
+					ValueOverrides: []installv1beta1.Overrides{
+						{
+							Values: &v1.JSON{
+								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+							},
+						},
+					},
+				},
+			}}}},
+			true,
+			false,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result bool
+			var err error
+			if tt.isVZv1alpha1 {
+				result, err = IsOpenSearchDashboardsEnabled(tt.cr, spi.NewFakeContext(nil, tt.cr.(*vzapi.Verrazzano), nil, false).Client())
+			} else {
+				result, err = IsOpenSearchDashboardsEnabled(tt.cr, spi.NewFakeContext(nil, nil, tt.cr.(*installv1beta1.Verrazzano), false).Client())
+			}
+
+			assert.Equal(t, tt.isErr, err != nil)
+			assert.Equal(t, tt.enabled, result)
+		})
+	}
 }
