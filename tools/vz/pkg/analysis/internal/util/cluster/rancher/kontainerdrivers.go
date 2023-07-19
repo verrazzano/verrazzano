@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,7 +31,7 @@ type KontainerDriverCondition struct {
 }
 
 // AnalyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
-func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeKontainerDrivers(clusterRoot string, issueReporter *report.IssueReporter) error {
 	kontainerDriverList := &KontainerDriverList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "kontainerdriver.management.cattle.io.json", kontainerDriverList)
 	if err != nil {
@@ -41,7 +40,7 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueRe
 
 	// Analyze each KontainerDriver resource.
 	for _, kontainerDriver := range kontainerDriverList.Items {
-		reportKontainerDriverIssue(log, clusterRoot, kontainerDriver, issueReporter)
+		reportKontainerDriverIssue(clusterRoot, kontainerDriver, issueReporter)
 	}
 
 	return nil
@@ -49,7 +48,7 @@ func AnalyzeKontainerDrivers(log *zap.SugaredLogger, clusterRoot string, issueRe
 
 // reportKontainerDriverIssue will check the ociocneengine and oraclecontainerengine KontainerDriver resources and
 // report any issues that are found with them.
-func reportKontainerDriverIssue(log *zap.SugaredLogger, clusterRoot string, driver KontainerDriver, issueReporter *report.IssueReporter) error {
+func reportKontainerDriverIssue(clusterRoot string, driver KontainerDriver, issueReporter *report.IssueReporter) error {
 	var messages []string
 	if driver.Name == "ociocneengine" || driver.Name == "oraclecontainerengine" {
 		for _, condition := range driver.Status.Conditions {
