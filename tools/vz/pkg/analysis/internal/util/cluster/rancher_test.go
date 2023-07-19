@@ -166,6 +166,16 @@ var testCases = []testCase{
 		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
+	{
+		Function:       rancher.AnalyzeManagedCharts,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeManagedCharts,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
+		ExpectedIssues: 1,
+	},
 }
 
 // Test analyze Rancher resources with different cluster snapshots.
