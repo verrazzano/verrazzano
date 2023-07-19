@@ -32,6 +32,7 @@ pipeline {
 
     parameters {
             booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
+            string(description: 'Last commit run of the periodics', name: 'LAST_RUN_COMMIT', defaultValue: "")
         }
 
     environment {
