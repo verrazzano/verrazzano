@@ -847,6 +847,7 @@ func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
 func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
 	if !r.isRancherReady(ctx) {
 		// The rancher pods are already in the process of being updated
+		ctx.Log().Debugf("Rancher deployment update already in progress, skipping restart check")
 		return nil
 	}
 	privateCABundleInSync, err := r.isPrivateCABundleInSync(ctx)
@@ -859,32 +860,41 @@ func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
 	}
 	// The Rancher pods' "cacerts" Settings value is out of sync with tls-ca, do a rolling restart of the Rancher pods
 	// to pick up the new bundle
-	ctx.Log().Progressf("Restarting Rancher deployment")
-	if err := restartRancherDeployment(ctx.Log(), ctx.Client()); err != nil {
-		return err
-	}
-	return nil
+	ctx.Log().Progressf("Rancher private CA bundle drift detected, performing a rolling restart of the Rancher deployment")
+	return restartRancherDeployment(ctx.Log(), ctx.Client())
 }
 
 // isPrivateCABundleInSync If the tls-ca private CA bundle secret is present, verify that the bundle in the secret is
 // in sync with the "cacerts" Settings object being used by pods; if they are not in sync it is an indicator that we
 // need to roll the Rancher deployment
 func (r rancherComponent) isPrivateCABundleInSync(ctx spi.ComponentContext) (bool, error) {
-	tlsCASecret, err := getSecret(ComponentNamespace, rancherTLSSecretName)
+	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+	if err != nil {
+		return false, err
+	}
+	if !found {
+		return true, nil
+	}
+	cacertsSettingsValue := getSettingValue(ctx.Client(), SettingCACerts)
+	return cacertsSettingsValue == currentCABundleInSecret, nil
+}
+
+// getCurrentCABundleSecretsValue Returns the current CA bundle stored in the Rancher tls-ca secret as a trimmed string
+func (r rancherComponent) getCurrentCABundleSecretsValue(ctx spi.ComponentContext, secretName string, key string) (string, bool, error) {
+	tlsCASecret, err := getSecret(ComponentNamespace, secretName)
 	if err != nil {
 		if clipkg.IgnoreNotFound(err) != nil {
-			return false, err
+			return "", false, err
 		}
-		ctx.Log().Debugf("%s secret not defined, skipping restart", rancherTLSSecretName)
-		return false, nil
+		ctx.Log().Debugf("%s secret not defined, skipping restart", secretName)
+		return "", false, nil
 	}
-	currentCACerts, found := tlsCASecret.Data[caCertsPem]
+	currentCACerts, found := tlsCASecret.Data[key]
 	if !found {
-		return false, ctx.Log().ErrorfThrottledNewErr("Did not find %s key in % secret", caCertsPem,
+		return "", false, ctx.Log().ErrorfThrottledNewErr("Did not find %s key in % secret", key,
 			clipkg.ObjectKeyFromObject(tlsCASecret))
 	}
-	cacertsValue := getSettingValue(ctx.Client(), SettingCACerts)
-	return cacertsValue == string(currentCACerts), nil
+	return strings.TrimSpace(string(currentCACerts)), true, nil
 }
 
 func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error {
@@ -911,7 +921,7 @@ func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error
 		return logcmn.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name),
 			err, log.GetRootZapLogger())
 	}
-	log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+	log.Debugf("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
 		deployment.Namespace, deployment.Name)
 	return nil
 }

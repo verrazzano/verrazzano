@@ -521,7 +521,7 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 	return nil
 }
 
-// getSettingValue Returns a Rancher Settings objecgt value
+// getSettingValue Returns a Rancher Settings object value with the leading and trailing whitespace trimmed
 func getSettingValue(c client.Client, settingName string) string {
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(common.GVKSetting)
