@@ -11,15 +11,18 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	scheme2 "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -596,4 +599,63 @@ func TestGetVMOManagedStatefulsets(t *testing.T) {
 	assert.Len(t, list.Items, 1)
 	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
 	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestDeleteVMI tests DeleteVMI
+// GIVEN a system VMI exists in the cluster
+//
+//	WHEN DeleteVMI is called
+//	THEN the VMI is deleted
+//
+// GIVEN a system VMI does NOT in the cluster
+//
+//	WHEN DeleteVMI is called
+//	THEN no error is returned
+func TestDeleteVMI(t *testing.T) {
+	systemVMI := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: VMIName, Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	otherVMISystemNS := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: "otherVMI", Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	otherVMIOtherNS := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: "otherVMI", Namespace: "otherNS"},
+	}
+
+	type args struct {
+		ctx spi.ComponentContext
+	}
+	tests := []struct {
+		name          string
+		vmis          []client.Object
+		expectDeleted []vmov1.VerrazzanoMonitoringInstance
+	}{
+		{"Only System VMI exists",
+			[]client.Object{&systemVMI},
+			[]vmov1.VerrazzanoMonitoringInstance{systemVMI}},
+		{"Only non-system VMIs exist",
+			[]client.Object{&otherVMISystemNS, &otherVMIOtherNS},
+			[]vmov1.VerrazzanoMonitoringInstance{}},
+		{"System VMI and non-system VMIs exist",
+			[]client.Object{&systemVMI, &otherVMISystemNS, &otherVMIOtherNS},
+			[]vmov1.VerrazzanoMonitoringInstance{systemVMI}},
+		{"No VMIs exist", []client.Object{}, []vmov1.VerrazzanoMonitoringInstance{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+			// for the Component interface hook
+			scheme := runtime.NewScheme()
+			_ = vmov1.AddToScheme(scheme)
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.vmis...).Build()
+			err := DeleteVMI(spi.NewFakeContext(fakeClient, nil, nil, false))
+			for _, expectDeleted := range tt.expectDeleted {
+				obj := vmov1.VerrazzanoMonitoringInstance{}
+				err := fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: expectDeleted.GetNamespace(), Name: expectDeleted.GetName()}, &obj)
+				assert.True(t, errors.IsNotFound(err))
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
