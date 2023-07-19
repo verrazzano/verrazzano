@@ -129,6 +129,7 @@ pipeline {
                 script {
                     LAST_RUN_COMMIT = env.GIT_COMMIT
                     echo("Storing last run commit as ${LAST_RUN_COMMIT}")
+                    echo("env.GIT_COMMIT: ${env.GIT_COMMIT}")
 //                     properties:([
 //                         parameters:([
 //                             string(defaultValue: "${LAST_RUN_COMMIT}", description: 'Variable description', name: 'LAST_RUN_COMMIT', trim: true)
