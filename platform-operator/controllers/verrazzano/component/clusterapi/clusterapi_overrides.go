@@ -157,7 +157,7 @@ func (c capiOverrides) GetOCIControllerFullImagePath() string {
 }
 
 func (c capiOverrides) GetOCNEBootstrapControllerFullImagePath() string {
-	return fmt.Sprintf("%s/%s/%s", c.GetOCNEBootstrapRepository(), clusterAPIOCNEBoostrapControllerImage, c.GetOCNEBootstrapControllerFullImagePath())
+	return fmt.Sprintf("%s/%s/%s", c.GetOCNEBootstrapRepository(), clusterAPIOCNEBoostrapControllerImage, c.GetOCNEBootstrapTag())
 }
 
 func (c capiOverrides) GetOCNEControlPlaneControllerFullImagePath() string {
