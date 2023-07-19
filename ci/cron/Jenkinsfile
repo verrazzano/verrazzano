@@ -111,6 +111,7 @@ pipeline {
             when {
                 allOf {
                     expression { return runPipeline() }
+                    expression { !params.DRY_RUN }
                 }
             }
 
@@ -199,7 +200,7 @@ def dockerLogins() {
 
 // Checks if the commit has changed since last run
 def runPipeline() {
-  return LAST_RUN_COMMIT != env.GIT_COMMIT && ! params.DRY_RUN
+  return LAST_RUN_COMMIT != env.GIT_COMMIT
 }
 
 def getCronSchedule() {
@@ -210,25 +211,4 @@ def getCronSchedule() {
         return "0 */6 * * *"
     }
     return ""
-}
-
-For each branch (master + release-*) {
-    Check if there is anything in objectstore for each branch {
-        If yes, check state {
-            If state changed, kick off new jobs {
-                commit = get(https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/last-stable-commit.txt)
-                if state.lastBackend != commit {
-                    (run backend pipeline with new commit)
-                    state.lastBackend = commit
-                }
-            }
-            If no change, ignore/continue
-        }
-        If no, kick off new jobs (first time seeing new url/pipeline) {
-            (run periodics pipeline with new commit)
-            state.lastPeriodics = commit
-            (run backend pipeline with new commit)
-            state.lastPeriodics = commit
-        }
-    }
 }
