@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,19 +32,26 @@ type bundleStatus struct {
 
 // AnalyzeBundles - analyze the status of Bundle objects
 func AnalyzeBundles(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &bundleList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "bundle.fleet.cattle.io.json", list)
+	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
 		return err
 	}
+	for _, f := range snapshotFiles {
+		if f.IsDir() {
+			list := &bundleList{}
+			err := files.UnmarshallFileInNamespace(clusterRoot, f.Name(), "bundle.fleet.cattle.io.json", list)
+			if err != nil {
+				return err
+			}
 
-	for _, bundle := range list.Items {
-		err = analyzeBundle(clusterRoot, bundle, issueReporter)
-		if err != nil {
-			return err
+			for _, bundle := range list.Items {
+				err = analyzeBundle(clusterRoot, bundle, issueReporter)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
-
 	return nil
 }
 

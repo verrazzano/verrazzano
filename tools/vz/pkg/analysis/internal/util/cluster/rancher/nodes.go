@@ -5,11 +5,11 @@ package rancher
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 // Minimal definition of object that only contains the fields that will be analyzed
@@ -26,16 +26,23 @@ type node struct {
 
 // AnalyzeNodes - analyze the status of Node objects
 func AnalyzeNodes(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &nodeList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "node.management.cattle.io.json", list)
+	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
 		return err
 	}
-
-	for _, node := range list.Items {
-		err = analyzeNode(clusterRoot, node, issueReporter)
-		if err != nil {
-			return err
+	for _, f := range snapshotFiles {
+		if f.IsDir() {
+			list := &nodeList{}
+			err = files.UnmarshallFileInNamespace(clusterRoot, f.Name(), "node.management.cattle.io.json", list)
+			if err != nil {
+				return err
+			}
+			for _, node := range list.Items {
+				err = analyzeNode(clusterRoot, node, issueReporter)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 

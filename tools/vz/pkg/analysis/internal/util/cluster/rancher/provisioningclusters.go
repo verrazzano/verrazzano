@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -30,19 +31,26 @@ type provisioningStatus struct {
 
 // AnalyzeProvisioningClusters - analyze the status of Rancher provisioning clusters resources
 func AnalyzeProvisioningClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &provisioningClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.provisioning.cattle.io.json", list)
+	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
 		return err
 	}
+	for _, f := range snapshotFiles {
+		if f.IsDir() {
+			list := &provisioningClusterList{}
+			err := files.UnmarshallFileInNamespace(clusterRoot, f.Name(), "cluster.provisioning.cattle.io.json", list)
+			if err != nil {
+				return err
+			}
 
-	for _, cluster := range list.Items {
-		err = analyzeProvisioningCluster(clusterRoot, cluster, issueReporter)
-		if err != nil {
-			return err
+			for _, cluster := range list.Items {
+				err = analyzeProvisioningCluster(clusterRoot, cluster, issueReporter)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
-
 	return nil
 }
 
