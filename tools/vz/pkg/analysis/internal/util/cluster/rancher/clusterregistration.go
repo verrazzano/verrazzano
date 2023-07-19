@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,7 +28,7 @@ type clusterRegistrationStatus struct {
 }
 
 // AnalyzeClusterRegistrations - analyze the status of ClusterRegistration objects
-func AnalyzeClusterRegistrations(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterRegistrations(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &clusterRegistrationList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterregistration.fleet.cattle.io.json", list)
 	if err != nil {

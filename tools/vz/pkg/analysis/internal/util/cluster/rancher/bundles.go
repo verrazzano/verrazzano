@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,7 +30,7 @@ type bundleStatus struct {
 }
 
 // AnalyzeBundles - analyze the status of Bundle objects
-func AnalyzeBundles(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeBundles(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &bundleList{}
 	err := files.UnmarshallFileInClusterRoot(clusterRoot, "bundle.fleet.cattle.io.json", list)
 	if err != nil {

@@ -39,6 +39,7 @@ var rancherNamespacedResources = []rancherResource{
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clustergroups"}, Kind: "ClusterGroup"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clusterregistrations"}, Kind: "ClusterRegistration"},
 	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
+	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "nodes"}, Kind: "Node"},
 }
 
 // CaptureGlobalRancherResources captures global resources related to ClusterAPI
