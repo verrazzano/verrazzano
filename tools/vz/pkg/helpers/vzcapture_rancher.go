@@ -43,6 +43,7 @@ var rancherNamespacedResources = []rancherResource{
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "gitrepos"}, Kind: "GitRepo"},
 	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
 	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "nodes"}, Kind: "Node"},
+	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "managedcharts"}, Kind: "ManagedChart"},
 	{GVR: schema.GroupVersionResource{Group: gitJobGroup, Version: cattleV1, Resource: "gitjobs"}, Kind: "GitJob"},
 }
 

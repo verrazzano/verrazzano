@@ -13,27 +13,27 @@ import (
 )
 
 // Minimal definition of object that only contains the fields that will be analyzed
-type nodeList struct {
+type managedChartsList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []node `json:"items"`
+	Items           []managedChart `json:"items"`
 }
-type node struct {
+type managedChart struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Status            cattleStatus `json:"status,omitempty"`
 }
 
-// AnalyzeNodes - analyze the status of Node objects
-func AnalyzeNodes(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &nodeList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "node.management.cattle.io.json", list)
+// AnalyzeManagedCharts - analyze the status of ManagedCharts objects
+func AnalyzeManagedCharts(clusterRoot string, issueReporter *report.IssueReporter) error {
+	list := &managedChartsList{}
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, "managedchart.management.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
 
-	for _, node := range list.Items {
-		err = analyzeNode(clusterRoot, node, issueReporter)
+	for _, managedChart := range list.Items {
+		err = analyzeManagedChart(clusterRoot, managedChart, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -42,32 +42,20 @@ func AnalyzeNodes(clusterRoot string, issueReporter *report.IssueReporter) error
 	return nil
 }
 
-// analyzeNode - analyze a single Node object and report any issues
-func analyzeNode(clusterRoot string, node node, issueReporter *report.IssueReporter) error {
+// analyzeManagedChart - analyze a single ManagedChart object and report any issues
+func analyzeManagedChart(clusterRoot string, managedChart managedChart, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
-	for _, condition := range node.Status.Conditions {
+	for _, condition := range managedChart.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Initialized":
-				subMessage = "is not initialized"
-			case "Provisioned":
-				subMessage = "is not provisioned"
-			case "Updated":
-				subMessage = "is not updated"
-			case "Registered":
-				subMessage = "is not registered with Kubernetes"
-			case "Removed":
-				subMessage = "is not removed"
-			case "Saved":
-				subMessage = "is not saved"
 			case "Ready":
 				subMessage = "is not ready"
-			case "Drained":
-				subMessage = "is not drained"
-			case "Upgraded":
-				subMessage = "is not upgraded"
+			case "Processed":
+				subMessage = "is not processed"
+			case "Defined":
+				subMessage = "is not defined"
 			default:
 				continue
 			}
@@ -80,7 +68,7 @@ func analyzeNode(clusterRoot string, node node, issueReporter *report.IssueRepor
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher node resource %q in namespace %q %s %s%s", node.Name, node.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher managedChart resource %q in namespace %q %s %s%s", managedChart.Name, managedChart.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
