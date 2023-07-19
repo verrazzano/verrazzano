@@ -5,34 +5,10 @@ import groovy.transform.Field
 
 @Field
 def LAST_RUN_COMMIT = ""
-@Field
-def GIT_COMMIT_TO_USE = ""
-@Field
-def TESTS_FAILED = false
-@Field
-def storeLocation=""
-@Field
-def verrazzanoPrefix="verrazzano-"
-@Field
-def fullBundle=""
-@Field
-def liteBundle=""
-@Field
-def SUSPECT_LIST = ""
-@Field
-def COMPARISON_URL_ON_FAILURE = ""
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
-
-// File containing the links to download the Verrazzano distributions
-@Field
-def verrazzanoDistributionsFile = "verrazzano_distributions.html"
-
-def ociOsRegion = "us-phoenix-1"
-def ociOsBucket = "verrazzano-builds"
-def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
-def lastStableCommitFile = "last-stable-commit.txt"
 
 pipeline {
     options {
@@ -168,37 +144,6 @@ def scmCheckout() {
     env.GIT_COMMIT = scmInfo.GIT_COMMIT
     env.GIT_BRANCH = scmInfo.GIT_BRANCH
     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-}
-
-def dockerLogins() {
-    try {
-        sh """
-            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-        """
-    } catch(error) {
-        echo "docker login failed, retrying after sleep"
-        retry(4) {
-            sleep(30)
-            sh """
-            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-            """
-        }
-    }
-    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
-        try {
-            sh """
-                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-            """
-        } catch(error) {
-            echo "docker login failed, retrying after sleep"
-            retry(4) {
-                sleep(30)
-                sh """
-                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                """
-            }
-        }
-    }
 }
 
 // Checks if the commit has changed since last run
