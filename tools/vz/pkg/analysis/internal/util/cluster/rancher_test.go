@@ -147,6 +147,16 @@ var testCases = []testCase{
 		ExpectedIssues: 1,
 	},
 	{
+		Function:       rancher.AnalyzeGitJobs,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeGitJobs,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
+		ExpectedIssues: 1,
+	},
+	{
 		Function:       rancher.AnalyzeNodes,
 		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
