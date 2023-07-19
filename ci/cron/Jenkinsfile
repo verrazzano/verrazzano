@@ -3,8 +3,6 @@
 
 import groovy.transform.Field
 
-@Field
-def LAST_RUN_COMMIT = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 // Non Fields
