@@ -50,6 +50,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			UseModule:                 true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName},

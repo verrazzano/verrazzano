@@ -29,6 +29,9 @@ const (
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
 
+	// vzStateWaitModulesReady wait for components installed using Modules to be ready
+	vzStateWaitModulesReady reconcileState = "vzWaitModulesReady"
+
 	// vzStatePostInstall is the global PostInstall state
 	vzStatePostInstall reconcileState = "vzPostInstall"
 
@@ -143,6 +146,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err != nil || res.Requeue {
 				return res, err
 			}
+			tracker.vzState = vzStateWaitModulesReady
+
+		case vzStateWaitModulesReady:
+			res, err := r.waitForModulesReady(spiCtx)
+			if err != nil || res.Requeue {
+				return res, err
+			}
 			tracker.vzState = vzStatePostInstall
 
 		case vzStatePostInstall:
@@ -200,4 +210,21 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
+}
+func (r *Reconciler) waitForModulesReady(compContext spi.ComponentContext) (ctrl.Result, error) {
+	// Loop through all the Verrazzano components and install each one
+	for _, comp := range registry.GetComponents() {
+		if !comp.ShouldUseModule() {
+			// Ignore if this component is not being handled by a Module
+			continue
+		}
+		if !comp.IsEnabled(compContext.EffectiveCR()) {
+			continue
+		}
+		if !comp.IsReady(compContext) {
+			compContext.Log().Progressf("Waiting for the module %s to be ready", comp.Name())
+			return newRequeueWithDelay(), nil
+		}
+	}
+	return ctrl.Result{}, nil
 }

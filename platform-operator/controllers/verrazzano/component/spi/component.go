@@ -48,6 +48,8 @@ type ComponentInfo interface {
 	Namespace() string
 	// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done, default false
 	ShouldInstallBeforeUpgrade() bool
+	// ShouldUseModule returns true if component is implemented using a Module, default false
+	ShouldUseModule() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether a component is Ready for dependency components

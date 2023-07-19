@@ -49,10 +49,12 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	effectiveCR.Status = actualCR.Status
 
 	log := vzlog.DefaultLogger()
-	res := r.initStatus(log, effectiveCR)
-	if res.ShouldRequeue() {
-		return res
-	}
+
+	// Temp disable, this is done by the legacy Verrazzano controller
+	//res := r.initStatus(log, effectiveCR)
+	//if res.ShouldRequeue() {
+	//	return res
+	//}
 
 	err = r.createOrUpdateModules(effectiveCR)
 	if err != nil {
@@ -79,6 +81,10 @@ func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
 
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
+		if !comp.ShouldUseModule() {
+			continue
+		}
+
 		createOrUpdate, err := r.shouldCreateOrUpdateModule(effectiveCR, comp)
 		if err != nil {
 			return err
@@ -122,6 +128,9 @@ func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp 
 
 // shouldCreateOrUpdateModule returns true if the Module should be created or updated
 func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, comp spi.Component) (bool, error) {
+	if !comp.ShouldUseModule() {
+		return false, nil
+	}
 	if !comp.IsEnabled(effectiveCR) {
 		return false, nil
 	}
@@ -145,32 +154,33 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 	return true, nil
 }
 
-// Init status fields
-func (r Reconciler) initStatus(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
-	// Init the state to Ready if this CR has never been processed
-	// Always requeue to update cache, ignore error since requeue anyway
-	if len(effectiveCR.Status.State) == 0 {
-		effectiveCR.Status.State = vzapi.VzStateReconciling
-		r.updateStatus(log, effectiveCR)
-		return result.NewResultShortRequeueDelay()
-	}
-
-	// Check if init done for this resource
-	_, ok := initializedSet[effectiveCR.Name]
-	if ok {
-		return result.NewResult()
-	}
-
-	// Pre-populate the component status fields
-	res := r.initializeComponentStatus(log, effectiveCR)
-	if res.ShouldRequeue() {
-		return res
-	}
-
-	// Update the map indicating the resource has been initialized
-	initializedSet[effectiveCR.Name] = true
-	return result.NewResult()
-}
+// Temp disable since legacy Verrazzano controller does this
+//// Init status fields
+//func (r Reconciler) initStatus(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+//	// Init the state to Ready if this CR has never been processed
+//	// Always requeue to update cache, ignore error since requeue anyway
+//	if len(effectiveCR.Status.State) == 0 {
+//		effectiveCR.Status.State = vzapi.VzStateReconciling
+//		r.updateStatus(log, effectiveCR)
+//		return result.NewResultShortRequeueDelay()
+//	}
+//
+//	// Check if init done for this resource
+//	_, ok := initializedSet[effectiveCR.Name]
+//	if ok {
+//		return result.NewResult()
+//	}
+//
+//	// Pre-populate the component status fields
+//	res := r.initializeComponentStatus(log, effectiveCR)
+//	if res.ShouldRequeue() {
+//		return res
+//	}
+//
+//	// Update the map indicating the resource has been initialized
+//	initializedSet[effectiveCR.Name] = true
+//	return result.NewResult()
+//}
 
 // updateStatusForComponents updates the vz CR status for the components based on the module status
 // return true if all components are ready
