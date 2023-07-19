@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20230530095547-31c1f6101",
+              "tag": "v1.1.1-20230718102933-3832c6b8c",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.1.1-20230530095547-31c1f6101",
+              "tag": "v1.1.1-20230718102933-3832c6b8c",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -200,7 +200,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20230530095547-31c1f6101",
+              "tag": "v1.1.1-20230718102933-3832c6b8c",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -250,7 +250,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20230530095547-31c1f6101",
+              "tag": "v1.1.1-20230718102933-3832c6b8c",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -288,7 +288,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20221214204807-58eac96",
+              "tag": "v0.3.0-20230713042232-58eac96",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -444,7 +444,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.1.1-20230530095547-31c1f6101",
+              "tag": "v1.1.1-20230718102933-3832c6b8c",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
