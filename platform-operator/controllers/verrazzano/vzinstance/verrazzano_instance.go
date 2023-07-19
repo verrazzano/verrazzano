@@ -46,7 +46,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 
 	var consoleURL *string
 	if vzcr.IsConsoleEnabled(ctx.EffectiveCR()) {
-		consoleURL = getComponentIngressURL(ingressList.Items, ctx, authproxy.ComponentName, constants.VzConsoleIngress)
+		consoleURL = getComponentIngressURL(ingressList.Items, ctx, authproxy.ComponentName, constants.VzIngress)
 	} else {
 		consoleURL = nil
 	}
