@@ -126,11 +126,11 @@ pipeline {
         stage('Store last commit ran') {
             steps {
                 script {
-                    properties: [
-                        parameters: [
+                    properties:([
+                        parameters:([
                             string(defaultValue: "${LAST_RUN_COMMIT}", description: 'Variable description', name: 'LAST_RUN_COMMIT', trim: true)
-                        ]
-                    ]
+                        ])
+                    ])
                 }
             }
         }
