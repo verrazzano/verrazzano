@@ -23,7 +23,7 @@ type catalogApp struct {
 	Status            catalogAppStatus `json:"status,omitempty"`
 }
 type catalogAppStatus struct {
-	Summary catalogAppSummary `json:"summary,omitempty"`
+	Summary *catalogAppSummary `json:"summary,omitempty"`
 }
 
 type catalogAppSummary struct {
@@ -55,7 +55,8 @@ func analyzeCatalogApp(clusterRoot string, catalogApp catalogApp, issueReporter 
 
 	var messages []string
 
-	if catalogApp.Status.Summary.Error {
+	summary := catalogApp.Status.Summary
+	if summary != nil && summary.Error {
 		message := fmt.Sprintf("Rancher CatalogApp resource %q in namespace %s is in state %s", catalogApp.Name, catalogApp.Namespace, catalogApp.Status.Summary.State)
 		messages = append([]string{message}, messages...)
 	}

@@ -1,0 +1,65 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "GitRepo",
+      "metadata": {
+        "name": "verrazzano",
+        "namespace": "fleet-default"
+      },
+      "spec": {
+        "branch": "master",
+        "insecureSkipTLSVerify": false,
+        "paths": [],
+        "repo": "https://github.com/verrazzano/verrazzano",
+        "targets": []
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-19T12:54:22Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T12:55:55Z",
+            "status": "True",
+            "type": "Accepted"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T12:54:22Z",
+            "status": "True",
+            "type": "ImageSynced"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T12:54:23Z",
+            "status": "False",
+            "type": "Reconciling"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T12:54:23Z",
+            "status": "False",
+            "type": "Stalled"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T12:55:55Z",
+            "status": "True",
+            "type": "Synced"
+          }
+        ],
+        "desiredReadyClusters": 0,
+        "gitJobStatus": "Current",
+        "readyClusters": 0,
+        "summary": {
+          "desiredReady": 0,
+          "ready": 0
+        }
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

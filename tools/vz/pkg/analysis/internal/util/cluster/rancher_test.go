@@ -135,6 +135,16 @@ var testCases = []testCase{
 		ExpectedIssues: 1,
 	},
 	{
+		Function:       rancher.AnalyzeGitRepos,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeGitRepos,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
 		Function:       rancher.AnalyzeNodes,
 		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,

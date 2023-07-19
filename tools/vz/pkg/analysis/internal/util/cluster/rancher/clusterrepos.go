@@ -63,7 +63,6 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -72,7 +71,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher ClusterRepo resource %q %s %s%s", clusterRepo.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher ClusterRepo resource %q %s %s%s", clusterRepo.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
