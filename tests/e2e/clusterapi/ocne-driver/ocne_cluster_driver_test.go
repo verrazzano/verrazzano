@@ -49,7 +49,7 @@ func sbsProcess1Func() []byte {
 	}
 
 	// Create the cloud credential to be used for all tests
-	ensureOCNEDriverVarsInitialized()
+	ensureVarsInitializedForCredential()
 	cloudCredentialName := fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
 	var credentialID string
 	Eventually(func() error {
@@ -69,7 +69,7 @@ func sbsProcess1Func() []byte {
 // Part of SynchronizedBeforeSuite, run by all processes
 func sbsAllProcessesFunc(credentialIDBytes []byte) {
 	// Define global variables for all processes
-	ensureOCNEDriverVarsInitialized()
+	cloudCredentialID = string(credentialIDBytes)
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
@@ -84,7 +84,9 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
-	cloudCredentialID = string(credentialIDBytes)
+	err = ensureOCNEDriverVarsInitialized(t.Logs)
+	Expect(err).ShouldNot(HaveOccurred())
+
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 }
