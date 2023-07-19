@@ -24,11 +24,6 @@ const defaultImageKey = "image"
 const slash = "/"
 const tagSep = ":"
 
-const (
-	// Pod Substring for finding the platform operator pod
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"
-)
-
 // Bom contains information related to the bill of materials along with structures to process it.
 // The bom file is verrazzano-bom.json and it mainly has image information.
 type Bom struct {

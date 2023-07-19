@@ -605,10 +605,10 @@ func ValidateKubernetesVersionSupported(kubernetesVersionString string, supporte
 		return fmt.Errorf("invalid kubernetes version %s, error %v", kubernetesVersionString, err.Error())
 	}
 
-	for i, supportedVersionString := range supportedVersionsString {
+	for _, supportedVersionString := range supportedVersionsString {
 		supportedVersion, err := semver.NewSemVersion(supportedVersionString)
 		if err != nil {
-			return fmt.Errorf("invalid supported kubernetes version %s, error %v", supportedVersionString[i], err.Error())
+			return fmt.Errorf("invalid supported kubernetes version %s, error %v", supportedVersionString, err.Error())
 		}
 
 		if kubernetesVersion.IsEqualToOrPatchVersionOf(supportedVersion) {

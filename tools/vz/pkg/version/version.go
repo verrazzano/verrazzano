@@ -31,6 +31,9 @@ func ValidateCompatibleKubernetesVersion(cmd *cobra.Command, vzHelper helpers.VZ
 		return err
 	}
 	kubernetesVersion, err := discoveryClient.ServerVersion()
+	if err != nil {
+		return err
+	}
 
 	return k8sutil.ValidateKubernetesVersionSupported(kubernetesVersion.String(), bomDoc.SupportedKubernetesVersions)
 }
