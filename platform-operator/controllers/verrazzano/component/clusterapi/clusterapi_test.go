@@ -259,8 +259,7 @@ func TestToSetUpgradeOptions(t *testing.T) {
 	assert.True(t, isUpgradeOptionsNotEmpty(applyUpgradeOptions))
 	// Checking for specific upgrade option that contains component namespace, OCNE provider, and it's version.
 	// Upgrade option is not empty only if there is a change in the image.
-	var expectedUpgradeOption []string
-	expectedUpgradeOption = []string{"verrazzano-capi/ocne:v0.1.0"}
+	expectedUpgradeOption := []string{"verrazzano-capi/ocne:v0.1.0"}
 	assert.Equal(t, expectedUpgradeOption, applyUpgradeOptions.ControlPlaneProviders)
 	assert.NoError(t, err)
 }
