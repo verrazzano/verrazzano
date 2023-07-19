@@ -127,7 +127,8 @@ pipeline {
             steps {
                 script {
                     LAST_RUN_COMMIT = SHORT_COMMIT_HASH
-                    build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
+                    echo("Running periodics with commit ${LAST_RUN_COMMIT}")
+                    //build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
                 }
             }
         }
@@ -135,7 +136,6 @@ pipeline {
         stage('Store last commit ran') {
             steps {
                 script {
-                    LAST_RUN_COMMIT = SHORT_COMMIT_HASH
                     echo("Storing last run commit as ${LAST_RUN_COMMIT}")
 //                     properties:([
 //                         parameters:([
@@ -150,7 +150,6 @@ pipeline {
 
 def cleanWorkspaceAndCheckout() {
     scmCheckout()
-    dockerLogins()
     def props = readProperties file: '.verrazzano-development-version'
     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -188,7 +187,7 @@ def dockerLogins() {
             """
         }
     }
-    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         try {
             sh """
                 echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
