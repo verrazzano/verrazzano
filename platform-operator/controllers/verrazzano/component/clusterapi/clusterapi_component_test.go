@@ -457,6 +457,19 @@ func TestUpgrade(t *testing.T) {
 	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	err := comp.Upgrade(compContext)
+	t.Log("ERROR:", err)
+	assert.NoError(t, err)
+}
+
+func TestUpgradeWithOutdatedImage(t *testing.T) {
+	SetCAPIInitFunc(fakeClusterAPINew)
+	defer ResetCAPIInitFunc()
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	var comp clusterAPIComponent
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	err := comp.Upgrade(compContext)
 	assert.NoError(t, err)
 }
 

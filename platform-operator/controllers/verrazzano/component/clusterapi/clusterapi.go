@@ -223,7 +223,7 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
 	}
-
+	fmt.Println("Inside Prepare Options")
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
