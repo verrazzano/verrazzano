@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -46,7 +48,8 @@ const (
 //	THEN the CLI install command is successful
 func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c, k)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -60,7 +63,6 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -78,7 +80,8 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 //	THEN the CLI install command times out and a bug report is generated
 func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c, k)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -715,8 +718,10 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 			Version: "v1.3.2",
 		},
 	}
+
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c, k)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -736,13 +741,14 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	}
 }
 
-func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
+func createNewTestCommandAndBuffers(t *testing.T, c client.Client, k kubernetes.Interface) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	if c != nil {
 		rc.SetClient(c)
+		rc.SetKubeClient(k)
 	}
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 

@@ -6,6 +6,12 @@ package bom
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/url"
+	"os"
 	"testing"
 )
 
@@ -347,6 +353,51 @@ func TestGetSubcomponentImageCount(t *testing.T) {
 
 }
 
+// TestGetBOMDoc tests the GetBOMDoc method
+// GIVEN a call to GetBOMDoc with a valid pod
+// WHEN the bomDoc is returned
+// THEN ensure that all of the bomDoc fields have been populated
 func TestGetBOMDoc(t *testing.T) {
+	testBOMData, err := os.ReadFile(testBomFilePath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = fake.NewPodExecutor
+	fake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "verrazzano-install",
+			Labels:    map[string]string{"app": "verrazzano-platform-operator"},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+		},
+	}
+	cfg, client := fake.NewClientsetConfig(pod)
+	bomDoc, err := GetBOMDoc(client, cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, bomDoc)
+	assert.NotEmpty(t, bomDoc.Version)
+	assert.NotEmpty(t, bomDoc.Registry)
+	assert.NotEmpty(t, bomDoc.Components)
+	assert.NotEmpty(t, bomDoc.SupportedKubernetesVersions)
+}
 
+// TestGetBOTestGetBOMDocNoRunningVPOMDoc tests the GetBOMDoc method
+// GIVEN a call to GetBOMDoc with an invalid pod
+// WHEN the bomDoc and an error is returned
+// THEN ensure that the error is not nil
+func TestGetBOMDocNoRunningVPO(t *testing.T) {
+	k8sutil.NewPodExecutor = fake.NewPodExecutor
+	fake.PodExecResult = func(url *url.URL) (string, string, error) { return "", "", nil }
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "verrazzano-install",
+			Labels:    map[string]string{"app": "verrazzano-platform-operator"},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodPending,
+		},
+	}
+	cfg, client := fake.NewClientsetConfig(pod)
+	_, err := GetBOMDoc(client, cfg)
+	assert.Error(t, err)
 }

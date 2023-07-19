@@ -651,3 +651,73 @@ func TestGetConfigOrDieFromController(t *testing.T) {
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
+
+// TestValidateKubernetesVersionSupported tests the ValidateKubernetesVersionSupported function
+//
+// GIVEN a version of a set of valid versions
+// WHEN they are passed in to ValidateKubernetesVersionSupported
+// THEN determine if the version is valid
+func TestValidateKubernetesVersionSupported(t *testing.T) {
+	tests := []struct {
+		version           string
+		supportedVersions []string
+		expectSuccess     bool
+	}{
+		{
+			version:           "v1.2.3",
+			supportedVersions: []string{"v1.1.0", "v1.2.0", "v1.3.0"},
+			expectSuccess:     true,
+		},
+		{
+			version:           "v1.4.0",
+			supportedVersions: []string{"v1.1.0", "v1.2.0", "v1.3.0"},
+			expectSuccess:     false,
+		},
+		{
+			version:           "v1.1.0",
+			supportedVersions: []string{"v1.1.0", "v1.2.0", "v1.3.0"},
+			expectSuccess:     true,
+		},
+		{
+			version:           "1.1.0",
+			supportedVersions: []string{"v1.1.0", "v1.2.0", "v1.3.0"},
+			expectSuccess:     true,
+		},
+		{
+			version:           "v1.2.3",
+			supportedVersions: []string{"v1.1.0", "v1.2.0", "v1.3.0"},
+			expectSuccess:     true,
+		},
+		{
+			version:           "v1.2.3",
+			supportedVersions: []string{"v1.5.0", "v1.6.0", "v1.7.0"},
+			expectSuccess:     false,
+		},
+		{
+			version:           "v2.0.0",
+			supportedVersions: []string{"v1.1.0", "v1.2.0", "v1.3.0"},
+			expectSuccess:     false,
+		},
+		{
+			version:           "v2.0.0",
+			supportedVersions: []string{},
+			expectSuccess:     false,
+		},
+		{
+			version:           "v2.0.00",
+			supportedVersions: []string{"2.0.0"},
+			expectSuccess:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			if tt.expectSuccess {
+				assert.NoError(t, k8sutil.ValidateKubernetesVersionSupported(tt.version, tt.supportedVersions))
+			} else {
+				assert.Error(t, k8sutil.ValidateKubernetesVersionSupported(tt.version, tt.supportedVersions))
+			}
+
+		})
+	}
+}

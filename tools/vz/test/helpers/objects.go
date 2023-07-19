@@ -5,7 +5,6 @@ package helpers
 
 import (
 	"fmt"
-
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -54,6 +53,9 @@ func CreateVPOPod(name string) client.Object {
 				"app":               constants.VerrazzanoPlatformOperator,
 				"pod-template-hash": "56f78ffcfd",
 			},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodPending,
 		},
 	}
 }

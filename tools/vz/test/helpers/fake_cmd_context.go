@@ -69,6 +69,11 @@ func (rc *FakeRootCmdContext) SetClient(client client.Client) {
 	rc.client = client
 }
 
+// SetKubeClient - set the client
+func (rc *FakeRootCmdContext) SetKubeClient(kubeClient kubernetes.Interface) {
+	rc.kubeClient = kubeClient
+}
+
 // RoundTripFunc - define the type for the Transport function
 type RoundTripFunc func(req *http.Request) *http.Response
 

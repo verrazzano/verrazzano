@@ -6,9 +6,12 @@ package version
 import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
+// ValidateCompatibleKubernetesVersion gets the bomDoc from the VPO pod
+// it then compares the supported versions in the bom with the server version to determine if it is valid
 func ValidateCompatibleKubernetesVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
@@ -29,5 +32,5 @@ func ValidateCompatibleKubernetesVersion(cmd *cobra.Command, vzHelper helpers.VZ
 	}
 	kubernetesVersion, err := discoveryClient.ServerVersion()
 
-	return bom.ValidateKubernetesVersionSupported(kubernetesVersion.String(), bomDoc.SupportedKubernetesVersions)
+	return k8sutil.ValidateKubernetesVersionSupported(kubernetesVersion.String(), bomDoc.SupportedKubernetesVersions)
 }

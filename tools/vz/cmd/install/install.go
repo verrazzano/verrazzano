@@ -230,7 +230,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj)
 		if err != nil {
-			return bugreport.AutoBugReport(cmd, vzHelper, err)
+			return err
 		}
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()

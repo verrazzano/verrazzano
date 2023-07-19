@@ -379,7 +379,7 @@ func validateKubernetesVersionSupportedInCluster() error {
 		return err
 	}
 
-	return bom.ValidateKubernetesVersionSupported(version, supportedKubernetesVersions)
+	return k8sutil.ValidateKubernetesVersionSupported(version, supportedKubernetesVersions)
 }
 
 // getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed

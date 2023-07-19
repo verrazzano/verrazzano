@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"os"
 	"path/filepath"
 	"strings"
@@ -594,4 +595,26 @@ func IsMinimumk8sVersion(expectedK8sVersion string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// ValidateKubernetesVersionSupported takes a kubernetes versions and a list of supported versions
+// and returns an error if the kubernetes version isn't supported
+func ValidateKubernetesVersionSupported(kubernetesVersionString string, supportedVersionsString []string) error {
+	kubernetesVersion, err := semver.NewSemVersion(kubernetesVersionString)
+	if err != nil {
+		return fmt.Errorf("invalid kubernetes version %s, error %v", kubernetesVersionString, err.Error())
+	}
+
+	for _, supportedVersionString := range supportedVersionsString {
+		supportedVersion, err := semver.NewSemVersion(supportedVersionString)
+		if err != nil {
+			return fmt.Errorf("invalid supported kubernetes version %s, error %v", supportedVersion.ToString(), err.Error())
+		}
+
+		if kubernetesVersion.IsEqualToOrPatchVersionOf(supportedVersion) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedVersionsString)
 }

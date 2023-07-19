@@ -432,5 +432,10 @@
         }
       ]
     }
+  ],
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0"
   ]
 }

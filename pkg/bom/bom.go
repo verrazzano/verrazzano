@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -18,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	pkgconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 )
 
 const defaultImageKey = "image"
@@ -403,16 +403,15 @@ func (b *Bom) GetSupportedKubernetesVersion() []string {
 	return b.bomDoc.SupportedKubernetesVersions
 }
 
-// GetBOMDoc gets the BOM from the platform operator in the cluster and build the BOM structure from it
+// GetBOMDoc gets the BOM from the platform operator pod in the cluster and build the BOM structure from it
 func GetBOMDoc(kubeClient kubernetes.Interface, config *rest.Config) (*BomDoc, error) {
-
 	pods, err := kubeClient.CoreV1().Pods(constants.VerrazzanoInstallNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	var pod *corev1.Pod
 	for i := range pods.Items {
-		if pods.Items[i].Labels["app"] == "verrazzano-platform-operator" && pods.Items[i].Status.Phase == corev1.PodRunning {
+		if pods.Items[i].Labels["app"] == pkgconstants.VerrazzanoPlatformOperator && pods.Items[i].Status.Phase == corev1.PodRunning {
 			pod = &pods.Items[i]
 			break
 		}
@@ -422,7 +421,7 @@ func GetBOMDoc(kubeClient kubernetes.Interface, config *rest.Config) (*BomDoc, e
 	}
 
 	catCommand := []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
-	stdout, stderr, err := k8sutil.ExecPod(kubeClient, config, pod, "verrazzano-platform-operator", catCommand)
+	stdout, stderr, err := k8sutil.ExecPod(kubeClient, config, pod, pkgconstants.VerrazzanoPlatformOperator, catCommand)
 	if err != nil || stderr != "" || len(stdout) == 0 {
 		return nil, fmt.Errorf("error retrieving compatible kubernetes versions from the verrazzano-platform-operator pod, stdout: %s, stderr: %s, err: %v",
 			stdout, stderr, err)
@@ -431,24 +430,4 @@ func GetBOMDoc(kubeClient kubernetes.Interface, config *rest.Config) (*BomDoc, e
 	var bomDoc BomDoc
 	err = json.Unmarshal([]byte(stdout), &bomDoc)
 	return &bomDoc, err
-}
-
-func ValidateKubernetesVersionSupported(kubernetesVersionString string, supportedVersionsString []string) error {
-	kubernetesVersion, err := semver.NewSemVersion(kubernetesVersionString)
-	if err != nil {
-		return fmt.Errorf("invalid kubernetes version %s, error %v", kubernetesVersionString, err.Error())
-	}
-
-	for _, supportedVersionString := range supportedVersionsString {
-		supportedVersion, err := semver.NewSemVersion(supportedVersionString)
-		if err != nil {
-			return fmt.Errorf("invalid supported kubernetes version %s, error %v", supportedVersion.ToString(), err.Error())
-		}
-
-		if kubernetesVersion.IsEqualToOrPatchVersionOf(supportedVersion) {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedVersionsString)
 }
