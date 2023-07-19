@@ -622,9 +622,6 @@ func TestDeleteVMI(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "otherVMI", Namespace: "otherNS"},
 	}
 
-	type args struct {
-		ctx spi.ComponentContext
-	}
 	tests := []struct {
 		name          string
 		vmis          []client.Object
