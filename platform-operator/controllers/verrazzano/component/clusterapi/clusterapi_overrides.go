@@ -352,8 +352,10 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 	var tag string
 	for _, image := range images {
 		if len(imageName) == 0 || strings.Contains(image, imageName) {
-			imageSplit := strings.Split(image, ":")
-			tag = imageSplit[1]
+			tag = image[strings.LastIndex(image, ":")+1:]
+			imageSplit := strings.Split(image, ":"+tag)
+			// imageSplit := strings.Split(image, ":")
+			// tag = imageSplit[1]
 			index := strings.LastIndex(imageSplit[0], "/")
 			repository = imageSplit[0][:index]
 			repoSplit := strings.Split(repository, "/")
