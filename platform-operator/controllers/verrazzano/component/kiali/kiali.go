@@ -6,6 +6,7 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -155,32 +156,10 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
 			Rules: []*securityv1beta1.Rule{
-				{
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace)},
-							Namespaces: []string{constants.VerrazzanoSystemNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{kialiServicePort},
-						},
-					}},
-				},
-				{
-					From: []*securityv1beta1.Rule_From{{
-						Source: &securityv1beta1.Source{
-							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace)},
-							Namespaces: []string{constants.VerrazzanoSystemNamespace},
-						},
-					}},
-					To: []*securityv1beta1.Rule_To{{
-						Operation: &securityv1beta1.Operation{
-							Ports: []string{kialiMetricsPort},
-						},
-					}},
-				},
+				common.ConstructAuthPolicyRule([]string{constants.VerrazzanoSystemNamespace},
+					[]string{common.GetAuthProxyPrincipal()}, []string{kialiServicePort}),
+				common.ConstructAuthPolicyRule([]string{constants.VerrazzanoSystemNamespace},
+					[]string{common.GetVMOPrincipal()}, []string{kialiMetricsPort}),
 			},
 		}
 		return nil

@@ -6,12 +6,12 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/dynamic"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const (
@@ -26,7 +26,6 @@ const (
 	controlPlaneGroup   = "controlplane.cluster.x-k8s.io"
 	infrastructureGroup = "infrastructure.cluster.x-k8s.io"
 	ipamGroup           = "ipam.cluster.x-k8s.io"
-	managementGroup     = "management.cattle.io"
 	runtimeGroup        = "runtime.cluster.x-k8s.io"
 )
 
@@ -38,7 +37,6 @@ type capiResource struct {
 // capiResources - resources that are not namespaced
 var capiResources = []capiResource{
 	{GVR: schema.GroupVersionResource{Group: runtimeGroup, Version: v1Alpha1, Resource: "extensionconfigs"}, Kind: "ExtensionConfig"},
-	{GVR: schema.GroupVersionResource{Group: managementGroup, Version: "v3", Resource: "kontainerdrivers"}, Kind: "KontainerDriver"},
 }
 
 // capiNamespacedResources - resources that are namespaced
@@ -94,18 +92,17 @@ func captureCapiNamespacedResources(dynamicClient dynamic.Interface, namespace, 
 }
 
 func captureGlobalResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, kind string, captureDir string, vzHelper VZHelper) error {
-	namespace := "default"
 	list, err := dynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while listing %s in namespace %s: %s\n", kind, namespace, err.Error()))
+		LogError(fmt.Sprintf("An error occurred while listing cluster resource %s: %s\n", kind, err.Error()))
 		return nil
 	}
 	if len(list.Items) > 0 {
-		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
-		if err = createFile(list, namespace, fmt.Sprintf("%s.json", strings.ToLower(kind)), captureDir, vzHelper); err != nil {
+		LogMessage(fmt.Sprintf("%s in global namespace ...\n", kind))
+		if err = createFile(list, "", fmt.Sprintf("%s.%s.json", strings.ToLower(kind), strings.ToLower(gvr.Group)), captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
@@ -123,7 +120,7 @@ func captureNamespacedResource(dynamicClient dynamic.Interface, gvr schema.Group
 	}
 	if len(list.Items) > 0 {
 		LogMessage(fmt.Sprintf("%s in namespace: %s ...\n", kind, namespace))
-		if err = createFile(list, namespace, fmt.Sprintf("%s.json", strings.ToLower(kind)), captureDir, vzHelper); err != nil {
+		if err = createFile(list, namespace, fmt.Sprintf("%s.%s.json", strings.ToLower(kind), strings.ToLower(gvr.Group)), captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
