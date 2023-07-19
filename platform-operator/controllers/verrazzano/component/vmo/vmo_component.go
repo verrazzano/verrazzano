@@ -7,6 +7,7 @@ import (
 	"context"
 	"path/filepath"
 
+	ctrlerr "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -31,6 +32,9 @@ const ComponentName = "verrazzano-monitoring-operator"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.VerrazzanoSystemNamespace
+
+// DeploymentName is the name of the VMO deployment
+const DeploymentName = ComponentName
 
 // ComponentJSONName is the JSON name of the verrazzano-monitoring-operator component
 const ComponentJSONName = "verrazzano-monitoring-operator"
@@ -60,7 +64,7 @@ func NewComponent() spi.Component {
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
-						Name:      ComponentName,
+						Name:      DeploymentName,
 						Namespace: ComponentNamespace,
 					},
 				},
@@ -118,6 +122,60 @@ func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
 // Upgrade VMO processing
 func (c vmoComponent) Upgrade(context spi.ComponentContext) error {
 	return c.HelmComponent.Install(context)
+}
+
+// PreUninstall - delete the VMI if present and ensure that the cleanup of resources that VMO does
+// is completed, before uninstalling VMO
+func (c vmoComponent) PreUninstall(ctx spi.ComponentContext) error {
+	err := common.DeleteVMI(ctx)
+	if err != nil {
+		ctx.Log().Errorf("Failed to delete VMI: %v", err)
+		return ctrlerr.RetryableError{Source: ComponentName}
+	}
+	// Check if the VMO related deployments, statefulsets, services and ingresses are deleted. We
+	// need to wait till all the cleanup that the VMO does is completed, before we can uninstall VMO.
+
+	// Deployments
+	deployList, err := common.GetVMOManagedDeployments(ctx)
+	if err != nil {
+		return err
+	}
+	if len(deployList.Items) != 0 {
+		ctx.Log().Progressf("Component %s pre-uninstall is waiting for VMO managed deployments to be deleted", ComponentName)
+		return ctrlerr.RetryableError{Source: ComponentName}
+	}
+
+	// Statefulsets
+	stsList, err := common.GetVMOManagedStatefulsets(ctx)
+	if err != nil {
+		return err
+	}
+	if len(stsList.Items) != 0 {
+		ctx.Log().Progressf("Component %s pre-uninstall is waiting for VMO managed statefulsets to be deleted", ComponentName)
+		return ctrlerr.RetryableError{Source: ComponentName}
+	}
+
+	// Services
+	svcList, err := common.GetVMOManagedServices(ctx)
+	if err != nil {
+		return err
+	}
+	if len(svcList.Items) != 0 {
+		ctx.Log().Progressf("Component %s pre-uninstall is waiting for VMO managed services to be deleted", ComponentName)
+		return ctrlerr.RetryableError{Source: ComponentName}
+	}
+
+	// Ingresses
+	ingList, err := common.GetVMOManagedIngresses(ctx)
+	if err != nil {
+		return err
+	}
+	if len(ingList.Items) != 0 {
+		ctx.Log().Progressf("Component %s pre-uninstall is waiting for VMO managed ingresses to be deleted", ComponentName)
+		return ctrlerr.RetryableError{Source: ComponentName}
+	}
+
+	return c.HelmComponent.PreUninstall(ctx)
 }
 
 // Uninstall VMO processing
