@@ -85,11 +85,11 @@ pipeline {
             steps {
                 script {
                     echo("Storing last run commit as ${LAST_RUN_COMMIT}")
-//                     properties:([
-//                         parameters:([
-//                             string(defaultValue: "${LAST_RUN_COMMIT}", description: 'Variable description', name: 'LAST_RUN_COMMIT', trim: true)
-//                         ])
-//                     ])
+                    properties:([
+                        parameters:([
+                            string(defaultValue: "${LAST_RUN_COMMIT}", description: 'Variable description', name: 'LAST_RUN_COMMIT', trim: true)
+                        ])
+                    ])
                 }
             }
         }
