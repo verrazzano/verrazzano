@@ -1,0 +1,187 @@
+{
+
+    "type": "collection",
+    "links": {
+        "self": "…/v3/tokens"
+    },
+    "createTypes": {
+        "token": "…/v3/tokens"
+    },
+    "actions": { },
+    "pagination": {
+        "limit": 1000
+    },
+    "sort": {
+        "order": "asc",
+        "reverse": "…/v3/tokens?clusterId=clustertest&order=desc&userId=usertest",
+        "links": {
+            "authProvider": "…/v3/tokens?clusterId=clustertest&sort=authProvider&userId=usertest",
+            "description": "…/v3/tokens?clusterId=clustertest&sort=description&userId=usertest",
+            "expiresAt": "…/v3/tokens?clusterId=clustertest&sort=expiresAt&userId=usertest",
+            "lastUpdateTime": "…/v3/tokens?clusterId=clustertest&sort=lastUpdateTime&userId=usertest",
+            "token": "…/v3/tokens?clusterId=clustertest&sort=token&userId=usertest",
+            "uuid": "…/v3/tokens?clusterId=clustertest&sort=uuid&userId=usertest"
+        }
+    },
+    "filters": {
+        "authProvider": null,
+        "clusterId": [
+            {
+                "modifier": "modifiervalue",
+                "value": "clustertest"
+            }
+        ],
+        "created": null,
+        "creatorId": null,
+        "current": null,
+        "description": null,
+        "enabled": null,
+        "expired": null,
+        "expiresAt": null,
+        "isDerived": null,
+        "lastUpdateTime": null,
+        "name": null,
+        "removed": null,
+        "token": null,
+        "ttl": null,
+        "userId": [
+            {
+                "modifier": "modifiervalue",
+                "value": "usertest"
+            }
+        ],
+        "userPrincipal": null,
+        "uuid": null
+    },
+    "resourceType": "token",
+    "data": [  
+        {
+            "authProvider": "local",
+            "baseType": "token",
+            "clusterId": "clusteridfortest",
+            "created": "2023-07-13T19:42:19Z",
+            "createdTS": 1689277339000,
+            "creatorId": null,
+            "current": false,
+            "description": "",
+            "enabled": true,
+            "expired": false,
+            "expiresAt": "2023-07-13T23:42:19Z",
+            "groupPrincipals": null,
+            "id": "tokenid1",
+            "isDerived": true,
+            "labels": {
+                "authn.management.cattle.io/token-userId": "usertest",
+                "cattle.io/creator": "creatorvalue"
+            },
+            "lastUpdateTime": "",
+            "links": {
+                "remove": "…/v3/tokens/tokenid1",
+                "self": "…/v3/tokens/tokenid1",
+                "update": "…/v3/tokens/tokenid1"
+            },
+            "name": "tokenid1",
+            "ttl": 14400000,
+            "type": "token",
+            "userId": "usertestone",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:normal-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "uuid": "13024ffe-f19f-4455-b126-78f7512c2675"
+        },
+        {
+            "authProvider": "local",
+            "baseType": "token",
+            "clusterId": "clusteridfortest",
+            "created": "2023-07-13T16:32:35Z",
+            "createdTS": 1689265955000,
+            "creatorId": null,
+            "current": false,
+            "description": "",
+            "enabled": true,
+            "expired": false,
+            "expiresAt": "2023-07-13T20:32:35Z",
+            "groupPrincipals": null,
+            "id": "tokenid2",
+            "isDerived": true,
+            "labels": {
+                "authn.management.cattle.io/token-userId": "usertest",
+                "cattle.io/creator": "creatorvalue"
+            },
+            "lastUpdateTime": "",
+            "links": {
+                "remove": "…/v3/tokens/tokenid2",
+                "self": "…/v3/tokens/tokenid2",
+                "update": "…/v3/tokens/tokenid2"
+            },
+            "name": "tokenid2",
+            "ttl": 14400000,
+            "type": "token",
+            "userId": "usertest",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:normal-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "uuid": "69263adb-fb83-4ff2-bae2-174c48c374c4"
+        },
+        {
+            "authProvider": "local",
+            "baseType": "token",
+            "clusterId": "clusteridfortest",
+            "created": "2023-07-13T19:32:38Z",
+            "createdTS": 1689276758000,
+            "creatorId": null,
+            "current": false,
+            "description": "",
+            "enabled": true,
+            "expired": false,
+            "expiresAt": "2023-07-13T23:32:38Z",
+            "groupPrincipals": null,
+            "id": "tokenid3",
+            "isDerived": true,
+            "labels": {
+                "authn.management.cattle.io/token-userId": "usertest",
+                "cattle.io/creator": "creatorvalue"
+            },
+            "lastUpdateTime": "",
+            "links": {
+                "remove": "…/v3/tokens/tokenid3",
+                "self": "…/v3/tokens/tokenid3",
+                "update": "…/v3/tokens/tokenid3"
+            },
+            "name": "tokenid3",
+            "ttl": 14400000,
+            "type": "token",
+            "userId": "usertest",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:normal-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "uuid": "dba03cf7-5bb4-45bd-8876-0b68dffa5e2d"
+        },
+         {
+            "authProvider": "local",
+            "baseType": "token",
+            "clusterId": "clusteridfortest",
+            "created": "2023-07-13T15:32:38Z",
+            "createdTS": 1689276758000,
+            "creatorId": null,
+            "current": false,
+            "description": "",
+            "enabled": true,
+            "expired": false,
+            "expiresAt": "2023-07-13T23:32:38Z",
+            "groupPrincipals": null,
+            "id": "tokenid3",
+            "isDerived": true,
+            "labels": {
+                "authn.management.cattle.io/token-userId": "usertest",
+                "cattle.io/creator": "creatorvalue"
+            },
+            "lastUpdateTime": "",
+            "links": {
+                "remove": "…/v3/tokens/tokenid3",
+                "self": "…/v3/tokens/tokenid3",
+                "update": "…/v3/tokens/tokenid3"
+            },
+            "name": "tokenid3",
+            "ttl": 14400000,
+            "type": "token",
+            "userId": "usertest",
+            "userPrincipal": "map[displayName:ArgoCD Cluster Registrar loginName:normal-reg me:true metadata:map[creationTimestamp:<nil> name:local://usertest] principalType:user provider:local]",
+            "uuid": "dba03cf7-5bb4-45bd-8876-0b68dffa5e2d"
+        }
+    ]
+}

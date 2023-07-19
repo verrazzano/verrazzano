@@ -6,9 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"path/filepath"
 	"sync"
@@ -18,6 +15,9 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,6 +109,11 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Capture global CAPI resources
 	if err = pkghelpers.CaptureGlobalCapiResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
+		return err
+	}
+
+	// Capture global Rancher resources
+	if err = pkghelpers.CaptureGlobalRancherResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
 		return err
 	}
 	return nil
@@ -259,6 +264,13 @@ func collectNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	}
 	nsList = append(nsList, capiNSList...)
 
+	// Add Rancher namespaces
+	rancherNSList, err := getRancherNamespaces(kubeClient, dynamicClient)
+	if err != nil {
+		return nil, nil, err
+	}
+	nsList = append(nsList, rancherNSList...)
+
 	// Include the namespaces specified by flag --include-namespaces
 	var additionalNS []string
 	if len(includedNS) > 0 {
@@ -298,6 +310,23 @@ func getCAPIClusterNamespaces(kubeClient kubernetes.Interface, dynamicClient dyn
 			return nil, err
 		}
 		if len(list.Items) > 0 {
+			nsList = append(nsList, namespace.Name)
+		}
+	}
+	return nsList, nil
+}
+
+// This function returns a list of namespaces that have a Rancher annotation.
+// We want to always capture these resources.
+func getRancherNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]string, error) {
+	namespaces, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	nsList := []string{}
+	for _, namespace := range namespaces.Items {
+		if namespace.Annotations["lifecycle.cattle.io/create.namespace-auth"] == "true" {
 			nsList = append(nsList, namespace.Name)
 		}
 	}

@@ -4,16 +4,16 @@
 package cluster
 
 import (
-	"encoding/json"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
+
+const capiClusterResource = "clusters.cluster.x-k8s.io"
 
 // Minimal definition of cluster.x-k8s.io object that only contains the fields that will be analyzed
 type clusterAPIClusterList struct {
@@ -54,24 +54,8 @@ func analyzeClusterAPICLusters(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 
 	for _, namespace := range namespaces {
-		clusterFile := files.FindFileInNamespace(clusterRoot, namespace, "cluster.cluster.x-k8s.io.json")
-		// Parse the json into local struct
-		file, err := os.Open(clusterFile)
-		// File may not exist so just continue if that is the case
-		if os.IsNotExist(err) {
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterFile, err.Error())
-		}
-		defer file.Close()
-
-		fileBytes, err := io.ReadAll(file)
-		if err != nil {
-			return fmt.Errorf("failed reading JSON file %s from cluster snapshot: %s", clusterFile, err)
-		}
 		clusterList := &clusterAPIClusterList{}
-		err = json.Unmarshal(fileBytes, &clusterList)
+		err = files.UnmarshallFileInNamespace(clusterRoot, namespace, "cluster.cluster.x-k8s.io.json", clusterList)
 		if err != nil {
 			return fmt.Errorf("failed to unmarshal Cluster API Cluster list from cluster snapshot: %s", err)
 		}
@@ -103,13 +87,15 @@ func analyzeClusterAPICluster(clusterRoot string, cluster clusterAPICluster, iss
 				subMessage = "control plane is not ready"
 			case "InfrastructureReady":
 				subMessage = "infrastructure is not ready"
+			default:
+				continue
 			}
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("Cluster API cluster resource %q in namespace %q, %s", cluster.Name, cluster.Namespace, subMessage)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage)
 			} else {
-				message = fmt.Sprintf("Cluster API cluster resource %q in namespace %q, %s - reason is %s", cluster.Name, cluster.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 

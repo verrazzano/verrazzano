@@ -1,0 +1,37 @@
+{
+  "apiVersion": "management.cattle.io/v3",
+  "items": [
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "Node",
+      "metadata": {
+        "name": "machine-4w27k",
+        "namespace": "local"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-07-07 11:44:17 +0000 UTC",
+            "lastUpdateTime": "2023-07-18 18:04:09 +0000 UTC",
+            "message": "kubelet is posting ready status",
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-02-09T18:47:57Z",
+            "message": "registered with kubernetes",
+            "status": "True",
+            "type": "Registered"
+          },
+          {
+            "lastUpdateTime": "2023-02-09T18:47:57Z",
+            "status": "False",
+            "type": "Provisioned"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "NodeList"
+}
