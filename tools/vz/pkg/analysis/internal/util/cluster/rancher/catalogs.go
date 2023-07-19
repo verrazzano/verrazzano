@@ -63,7 +63,6 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -72,7 +71,7 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Catalog resource %q on branch %s with URL %s: %s %s%s", catalog.Name, catalog.Spec.Branch, catalog.Spec.URL, subMessage, reason, msg)
+			message := fmt.Sprintf("Catalog resource %q on branch %s with URL %s: %s %s%s", catalog.Name, catalog.Spec.Branch, catalog.Spec.URL, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
