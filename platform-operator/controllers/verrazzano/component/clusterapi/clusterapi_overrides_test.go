@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	OciImageVersion   = "v0.8.1"
-	CoreImageTag      = "v1.3.3-20230427222746-876fe3dc9"
-	TestHelmConfigDir = "../../../../helm_config"
-	TestBomFilePath   = "../../testdata/test_bom_host_port.json"
+	OciImageVersion         = "v0.8.1"
+	CoreImageTag            = "v1.3.3-20230427222746-876fe3dc9"
+	TestHelmConfigDir       = "../../../../helm_config"
+	TestBomHostPortFilePath = "../../testdata/test_bom_host_port.json"
 )
 
 // TestBomOverrides tests getting the override values for the Cluster API component from the BOM
@@ -367,7 +367,7 @@ func TestOverridesPrivateRegistry(t *testing.T) {
 //	WHEN no user overrides have been specified
 //	THEN check expected values returned from the BOM
 func TestBomOverridesWithPortInHost(t *testing.T) {
-	config.SetDefaultBomFilePath(TestBomFilePath)
+	config.SetDefaultBomFilePath(TestBomHostPortFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)

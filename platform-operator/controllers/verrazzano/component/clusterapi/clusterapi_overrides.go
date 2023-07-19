@@ -355,7 +355,5 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 	if len(repository) == 0 || len(img.ImageTag) == 0 {
 		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
 	}
-	// TODO: Remove this
-	ctx.Log().Infof(fmt.Sprintf("getImageOverride image: %s, version: %s, repository: %s, tag: %s\n", imageName, version, repository, img.ImageTag))
 	return &ImageConfig{Version: version, Repository: repository, Tag: img.ImageTag}, nil
 }
