@@ -6,6 +6,11 @@ package upgrade
 import (
 	"bytes"
 	"context"
+	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"k8s.io/client-go/kubernetes"
+	"net/url"
 	"os"
 	"testing"
 
@@ -33,6 +38,7 @@ const (
 	testImagePrefix    = "testrepo"
 	testVZMajorRelease = "v1.5.0"
 	testVZPatchRelease = "v1.5.2"
+	testbomPath        = "../../../../pkg/bom/testdata/test_bom.json"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -44,13 +50,22 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdUpgrade(rc)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
+
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
+
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	assert.NotNil(t, cmd)
+
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -60,7 +75,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
@@ -79,17 +94,20 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
-	cmd := NewCmdUpgrade(rc)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
+
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
+
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -100,7 +118,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
@@ -117,18 +135,20 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdUpgrade(rc)
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -139,7 +159,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
@@ -157,13 +177,14 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
-	cmd := NewCmdUpgrade(rc)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
+
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -172,7 +193,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 
 	// Run upgrade command
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
@@ -190,13 +211,14 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	vpo2 := testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator + "-2")
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz, vpo2)...).Build()
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
-	cmd := NewCmdUpgrade(rc)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
+
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -210,7 +232,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 
 	// Run upgrade command
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
@@ -228,12 +250,14 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdUpgrade(rc)
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
+
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -245,7 +269,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 }
@@ -267,13 +291,14 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 		t.Run(tt.testName, func(t *testing.T) {
 			vz := testhelpers.CreateVerrazzanoObjectWithVersion().(*v1beta1.Verrazzano)
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+			_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+			cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
 
-			// Send stdout stderr to a byte buffer
-			buf := new(bytes.Buffer)
-			errBuf := new(bytes.Buffer)
-			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-			rc.SetClient(c)
-			cmd := NewCmdUpgrade(rc)
+			testBOMData, err := os.ReadFile(testbomPath)
+			assert.NoError(t, err)
+			k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+			k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 			assert.NotNil(t, cmd)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -285,7 +310,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 			// Run upgrade command
-			err := cmd.Execute()
+			err = cmd.Execute()
 			assert.NoError(t, err)
 			assert.Equal(t, "", errBuf.String())
 			assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
@@ -478,9 +503,16 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetKubeClient(k)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
@@ -496,7 +528,7 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
@@ -543,14 +575,27 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 	const proceedQuestionText = "Proceed to upgrade with new settings? [y/N]"
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetKubeClient(k)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := install.NewCmdInstall(rc)
+
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, testImageRegistry)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, testImagePrefix)
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -561,7 +606,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
@@ -590,12 +635,15 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	errBuf = new(bytes.Buffer)
 	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: inBuf, Out: outBuf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	// Run upgrade command - expect that the CLI asks us if we want to continue with the existing registry settings
 	// and we reply with "n"
@@ -633,12 +681,16 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	errBuf = new(bytes.Buffer)
 	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: inBuf, Out: outBuf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetKubeClient(k)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefixForUpgrade)
+	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
+	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
 	// Run upgrade command - expect that the CLI asks us if we want to continue with the existing registry settings
 	// and we reply with "y"
@@ -675,9 +727,18 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// First install using a private registry
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetKubeClient(k)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
+
+	testBOMData, err := os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
@@ -693,7 +754,7 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
@@ -710,12 +771,14 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	const imageRegistryForUpgrade = "newreg.io"
 	const imagePrefixForUpgrade = "newrepo"
 
-	outBuf := new(bytes.Buffer)
-	errBuf = new(bytes.Buffer)
-	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: outBuf, ErrOut: errBuf})
-	rc.SetClient(c)
+	_, k = k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
+	cmd, outBuf, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
 
-	cmd = NewCmdUpgrade(rc)
+	testBOMData, err = os.ReadFile(testbomPath)
+	assert.NoError(t, err)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return string(testBOMData), "", nil }
+
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZPatchRelease)
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistryForUpgrade)
@@ -745,4 +808,20 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistryForUpgrade, imagePrefixForUpgrade)
+}
+
+func createNewTestCommandAndBuffers(t *testing.T, c client.Client, k kubernetes.Interface) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	if c != nil {
+		rc.SetClient(c)
+		rc.SetKubeClient(k)
+	}
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
+
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	return cmd, buf, errBuf, rc
 }

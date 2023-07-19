@@ -94,6 +94,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c, k)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
@@ -134,6 +135,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmd.PersistentFlags().Set(constants.AutoBugReportFlag, "false")
@@ -184,6 +186,7 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	err = cmd.Execute()
@@ -220,6 +223,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	err = cmd.Execute()
@@ -280,6 +284,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 
@@ -544,6 +549,7 @@ func TestInstallValidations(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.ManifestsFlag, "test")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	err := cmd.Execute()
@@ -741,6 +747,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c, k)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -781,6 +788,7 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c, k)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -821,16 +829,17 @@ func installVZ(t *testing.T, c client.WithWatch) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	rc.SetClient(c)
+
 	_, k := k8sutilfake.NewClientsetConfig(testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator))
 
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c, k)
 	assert.NotNil(t, cmd)
 
+	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
+	defer func() { os.Remove(tempKubeConfigPath.Name()) }()
+
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 

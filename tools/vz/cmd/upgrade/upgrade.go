@@ -5,6 +5,7 @@ package upgrade
 
 import (
 	"fmt"
+	vzVersion "github.com/verrazzano/verrazzano/tools/vz/pkg/version"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
@@ -184,7 +185,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			return err
 		}
 
-		err = upgradeVerrazzano(vzHelper, vz, client, version, vpoTimeout)
+		err = upgradeVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
@@ -211,10 +212,14 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
-func upgradeVerrazzano(vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client clipkg.Client, version string, vpoTimeout time.Duration) error {
+func upgradeVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client clipkg.Client, version string, vpoTimeout time.Duration) error {
 	// Wait for the platform operator to be ready before we update the verrazzano install resource
 	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
 	if err != nil {
+		return err
+	}
+
+	if err = vzVersion.ValidateCompatibleKubernetesVersion(cmd, vzHelper); err != nil {
 		return err
 	}
 
