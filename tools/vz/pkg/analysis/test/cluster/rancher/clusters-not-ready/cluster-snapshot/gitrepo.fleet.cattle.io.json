@@ -8,13 +8,6 @@
         "name": "verrazzano",
         "namespace": "fleet-default"
       },
-      "spec": {
-        "branch": "master",
-        "insecureSkipTLSVerify": false,
-        "paths": [],
-        "repo": "https://github.com/verrazzano/verrazzano",
-        "targets": []
-      },
       "status": {
         "conditions": [
           {
