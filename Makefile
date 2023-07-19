@@ -101,7 +101,7 @@ precommit-check: check-tidy check check-tests copyright-check ## run precommit c
 precommit-build:  ## go build the project
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm|platform-operator/experimental
 .PHONY: unit-test-coverage
 unit-test-coverage:  ## run unit tests with coverage
 	${SCRIPT_DIR}/coverage.sh html
