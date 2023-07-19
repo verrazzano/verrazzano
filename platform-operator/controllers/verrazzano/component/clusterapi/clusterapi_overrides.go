@@ -5,17 +5,15 @@ package clusterapi
 
 import (
 	"fmt"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"os"
+	"path"
+	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
 
@@ -260,7 +258,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 
 	// Populate core provider values
 	core := &overrides.DefaultProviders.Core.Image
-	imageConfig, err := getImageOverride(ctx, bomFile, "capi-cluster-api", "")
+	imageConfig, err := getImageOverride(ctx, bomFile, "capi-cluster-api", "capi-cluster-api", "cluster-api-controller")
 	if err != nil {
 		return err
 	}
@@ -268,7 +266,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 
 	// Populate OCI provider values
 	oci := &overrides.DefaultProviders.OCI.Image
-	imageConfig, err = getImageOverride(ctx, bomFile, "capi-oci", "")
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-oci", "capi-oci", "cluster-api-oci-controller")
 	if err != nil {
 		return err
 	}
@@ -276,7 +274,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 
 	// Populate bootstrap provider values
 	bootstrap := &overrides.DefaultProviders.OCNEBootstrap.Image
-	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-bootstrap-controller")
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "capi-ocne", "cluster-api-ocne-bootstrap-controller")
 	if err != nil {
 		return err
 	}
@@ -284,7 +282,7 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 
 	// Populate controlPlane provider values
 	controlPlane := &overrides.DefaultProviders.OCNEControlPlane.Image
-	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "cluster-api-ocne-control-plane-controller")
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-ocne", "capi-ocne", "cluster-api-ocne-control-plane-controller")
 	if err != nil {
 		return err
 	}
@@ -337,37 +335,27 @@ func mergeUserOverrides(ctx spi.ComponentContext, overrides *capiOverrides) erro
 }
 
 // getImageOverride returns the image override and version for a given CAPI provider.
-func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component string, imageName string) (image *ImageConfig, err error) {
+func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component string, subcomponent string, imageName string) (image *ImageConfig, err error) {
 	version, err := bomFile.GetComponentVersion(component)
 	if err != nil {
 		return nil, err
 	}
 
-	images, err := bomFile.GetImageNameList(component)
+	subComp, err := bomFile.GetSubcomponent(subcomponent)
 	if err != nil {
 		return nil, err
 	}
 
-	var repository string
-	var tag string
-	for _, image := range images {
-		if len(imageName) == 0 || strings.Contains(image, imageName) {
-			tag = image[strings.LastIndex(image, ":")+1:]
-			imageSplit := strings.Split(image, ":"+tag)
-			// imageSplit := strings.Split(image, ":")
-			// tag = imageSplit[1]
-			index := strings.LastIndex(imageSplit[0], "/")
-			repository = imageSplit[0][:index]
-			repoSplit := strings.Split(repository, "/")
-			repository = strings.TrimPrefix(repository, repoSplit[0])
-			repository = strings.TrimPrefix(repository, "/")
-			break
-		}
+	img, err := bomFile.FindImage(subComp, imageName)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(repository) == 0 || len(tag) == 0 {
+	repository := bomFile.ResolveRepo(subComp, img)
+	if len(repository) == 0 || len(img.ImageTag) == 0 {
 		return nil, ctx.Log().ErrorNewErr("Failed to find image override for %s/%s", component, imageName)
 	}
-
-	return &ImageConfig{Version: version, Repository: repository, Tag: tag}, nil
+	// TODO: Remove this
+	ctx.Log().Infof(fmt.Sprintf("getImageOverride image: %s, version: %s, repository: %s, tag: %s\n", imageName, version, repository, img.ImageTag))
+	return &ImageConfig{Version: version, Repository: repository, Tag: img.ImageTag}, nil
 }
