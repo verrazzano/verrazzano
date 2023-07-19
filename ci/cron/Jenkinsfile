@@ -93,6 +93,14 @@ pipeline {
     }
 
     stages {
+    stage('Clean workspace and checkout') {
+                steps {
+                    script {
+                        cleanWorkspaceAndCheckout()
+                    }
+                }
+            }
+
         stage('Get last commit ran') {
             steps {
                 script {
