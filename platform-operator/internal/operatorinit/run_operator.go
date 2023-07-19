@@ -246,7 +246,7 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 
 		// init controller
 		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
-			log.Errorf("Failed to start the Calico controller", err)
+			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
 			return err
 		}
 	}
