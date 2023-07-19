@@ -74,25 +74,12 @@ func TestCreateClusterctlYaml(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestMatchAndPrepareUpgradeOptionsWithoutOverrides(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	config.TestHelmConfigDir = TestHelmConfigDir
-	overrides, _ := createOverrides(compContext)
-	overridesContext := newOverridesContext(overrides)
-	podMatcher := &PodMatcherClusterAPI{}
-	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(compContext, overridesContext)
-	assert.False(t, isUpgradeOptionsNotEmpty(applyUpgradeOptions))
-	assert.NoError(t, err)
-}
-
-// TestMatchAndPrepareUpgradeOptionsWithOverrides tests the matchAndPrepareUpgradeOptionsWithOverrides function
-// GIVEN a call to matchAndPrepareUpgradeOptionsWithOverrides
+// TestToSkipSettingUpgradeOptions tests the matchAndPrepareUpgradeOptions function
+// GIVEN a call to matchAndPrepareUpgradeOptions
 //
-//	WHEN images are initialized from BOM with overrides considered.
-//	THEN upgrade options are set only for the outdated cluster API images.
-func TestMatchAndPrepareUpgradeOptionsWithOverrides(t *testing.T) {
+//	WHEN images are initialized from BOM with overrides and same images as in the Running Pods.
+//	THEN upgrade options are not set since there is no change in the image
+func TestToSkipSettingUpgradeOptions(t *testing.T) {
 	const capiOverrides = `
 {
   "global": {
@@ -108,7 +95,9 @@ func TestMatchAndPrepareUpgradeOptionsWithOverrides(t *testing.T) {
     },
     "ocneControlPlane": {
       "image": {
-        "tag": "v1.1"
+        "repository": "verrazzano",
+        "registry": "ghcr.io",
+        "tag": "1.0.0-1-20211215184123-0a1b633"
       }
     },
     "oci": {
@@ -119,6 +108,101 @@ func TestMatchAndPrepareUpgradeOptionsWithOverrides(t *testing.T) {
         "tag": "v0.8.2"
       }
     },
+    "core": {
+    }
+  }
+}`
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      controlPlaneOcneProvider + "-95d8c5d97-m6mbr",
+			Labels: map[string]string{
+				providerLabel: clusterAPIProvider,
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  clusterAPIOCNEControlPLaneControllerImage,
+					Image: "ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:1.0.0-1-20211215184123-0a1b633",
+				},
+			},
+		},
+	}).Build()
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
+	overrides, err := createOverrides(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, overrides)
+	overridesContext := newOverridesContext(overrides)
+	podMatcher := &PodMatcherClusterAPI{}
+	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(compContext, overridesContext)
+	assert.NoError(t, err)
+	assert.False(t, isUpgradeOptionsNotEmpty(applyUpgradeOptions))
+	assert.NoError(t, err)
+}
+
+// TestToSetUpgradeOptions tests the matchAndPrepareUpgradeOptions function
+// GIVEN a call to matchAndPrepareUpgradeOptions
+//
+//	WHEN images are initialized from BOM with overrides
+//	THEN upgrade options are set only for the outdated cluster API images.
+//
+// Ex: In this test cluster-api-ocne-control-plane-controller image is outdated
+// Therefore, upgrade options is set with the updated cluster-api-ocne-control-plane-controller image.
+func TestToSetUpgradeOptions(t *testing.T) {
+	const capiOverrides = `
+{
+  "global": {
+    "registry": "ghcr.io"
+  },
+  "defaultProviders": {
+    "ocneBootstrap": {
+      "url": "/test/bootstrap.yaml",
+      "image": {
+        "registry": "myreg.io",
+        "tag": "v1.0"
+      }
+    },
+    "ocneControlPlane": {
+      "image": {
+        "repository": "verrazzano",
+        "registry": "ghcr.io",
+        "tag": "0.0.1-1-20211215184123-0a1b633"
+      }
+    },
+    "oci": {
+      "version": "v0.8.2",
+      "image": {
+        "repository": "oci-repo",
+        "registry": "myreg2.io",
+        "tag": "v0.8.2"
+      }
+    },
+    "core": {
+    }
   }
 }`
 
@@ -156,7 +240,7 @@ func TestMatchAndPrepareUpgradeOptionsWithOverrides(t *testing.T) {
 				Containers: []corev1.Container{
 					{
 						Name:  clusterAPIOCNEControlPLaneControllerImage,
-						Image: "ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:1.0.0-1-20211215184123-0a1b633",
+						Image: "ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:0.0.1-20211215184123-older",
 					},
 				},
 			},
@@ -165,10 +249,18 @@ func TestMatchAndPrepareUpgradeOptionsWithOverrides(t *testing.T) {
 	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	config.TestHelmConfigDir = TestHelmConfigDir
-	overrides, _ := createOverrides(compContext)
+	overrides, err := createOverrides(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, overrides)
 	overridesContext := newOverridesContext(overrides)
 	podMatcher := &PodMatcherClusterAPI{}
 	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(compContext, overridesContext)
+	assert.NoError(t, err)
 	assert.True(t, isUpgradeOptionsNotEmpty(applyUpgradeOptions))
+	// Checking for specific upgrade option that contains component namespace, OCNE provider, and it's version.
+	// Upgrade option is not empty only if there is a change in the image.
+	var expectedUpgradeOption []string
+	expectedUpgradeOption = []string{"verrazzano-capi/ocne:v0.1.0"}
+	assert.Equal(t, expectedUpgradeOption, applyUpgradeOptions.ControlPlaneProviders)
 	assert.NoError(t, err)
 }

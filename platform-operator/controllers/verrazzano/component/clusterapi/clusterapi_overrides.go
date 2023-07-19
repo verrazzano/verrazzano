@@ -149,19 +149,19 @@ func (c capiOverrides) GetOCNEControlPlaneVersion() string {
 }
 
 func (c capiOverrides) GetClusterAPIControllerFullImagePath() string {
-	return fmt.Sprintf("%s/%s/%s", c.GetClusterAPIRepository(), clusterAPIControllerImage, c.GetClusterAPITag())
+	return fmt.Sprintf("%s/%s:%s", c.GetClusterAPIRepository(), clusterAPIControllerImage, c.GetClusterAPITag())
 }
 
 func (c capiOverrides) GetOCIControllerFullImagePath() string {
-	return fmt.Sprintf("%s/%s/%s", c.GetOCIRepository(), clusterAPIOCIControllerImage, c.GetOCITag())
+	return fmt.Sprintf("%s/%s:%s", c.GetOCIRepository(), clusterAPIOCIControllerImage, c.GetOCITag())
 }
 
 func (c capiOverrides) GetOCNEBootstrapControllerFullImagePath() string {
-	return fmt.Sprintf("%s/%s/%s", c.GetOCNEBootstrapRepository(), clusterAPIOCNEBoostrapControllerImage, c.GetOCNEBootstrapTag())
+	return fmt.Sprintf("%s/%s:%s", c.GetOCNEBootstrapRepository(), clusterAPIOCNEBoostrapControllerImage, c.GetOCNEBootstrapTag())
 }
 
 func (c capiOverrides) GetOCNEControlPlaneControllerFullImagePath() string {
-	return fmt.Sprintf("%s/%s/%s", c.GetOCNEControlPlaneRepository(), clusterAPIOCNEControlPLaneControllerImage, c.GetOCNEControlPlaneTag())
+	return fmt.Sprintf("%s/%s:%s", c.GetOCNEControlPlaneRepository(), clusterAPIOCNEControlPLaneControllerImage, c.GetOCNEControlPlaneTag())
 }
 
 // getRepositoryForProvider - return the repository in the format that clusterctl

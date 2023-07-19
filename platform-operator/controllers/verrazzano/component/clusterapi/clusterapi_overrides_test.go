@@ -314,22 +314,22 @@ func TestOverridesInterface(t *testing.T) {
 	assert.Equal(t, "myreg.io/verrazzano", tc.GetOCNEBootstrapRepository())
 	assert.Equal(t, "v1.0", tc.GetOCNEBootstrapTag())
 	assert.Equal(t, "/test/bootstrap.yaml", tc.GetOCNEBootstrapURL())
-	assert.Equal(t, "myreg.io/verrazzano/"+clusterAPIOCNEBoostrapControllerImage+"/v1.0", tc.GetOCNEBootstrapControllerFullImagePath())
+	assert.Equal(t, "myreg.io/verrazzano/"+clusterAPIOCNEBoostrapControllerImage+":v1.0", tc.GetOCNEBootstrapControllerFullImagePath())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetOCNEControlPlaneRepository())
 	assert.Equal(t, "v1.1", tc.GetOCNEControlPlaneTag())
 	assert.Equal(t, capiRoot+"/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
-	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIOCNEControlPLaneControllerImage+"/v1.1", tc.GetOCNEControlPlaneControllerFullImagePath())
+	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIOCNEControlPLaneControllerImage+":v1.1", tc.GetOCNEControlPlaneControllerFullImagePath())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetClusterAPIRepository())
 	assert.Equal(t, CoreImageTag, tc.GetClusterAPITag())
 	assert.Equal(t, capiRoot+"/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
-	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIControllerImage+"/v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPIControllerFullImagePath())
+	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIControllerImage+":v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPIControllerFullImagePath())
 
 	assert.Equal(t, "myreg2.io/oci-repo", tc.GetOCIRepository())
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
 	assert.Equal(t, "https://github.com/oci-repo/cluster-api-provider-oci/releases/v0.8.2/infrastructure-components.yaml", tc.GetOCIURL())
-	assert.Equal(t, "myreg2.io/oci-repo/"+clusterAPIOCIControllerImage+"/v0.8.2", tc.GetOCIControllerFullImagePath())
+	assert.Equal(t, "myreg2.io/oci-repo/"+clusterAPIOCIControllerImage+":v0.8.2", tc.GetOCIControllerFullImagePath())
 
 }
 
