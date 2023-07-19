@@ -62,6 +62,11 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
 }
 
+// ShouldUseModule returns true if component is implemented using a Module
+func (g grafanaComponent)  ShouldUseModule() bool {
+	return false
+}
+
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
 	return []string{networkpolicies.ComponentName, vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName}

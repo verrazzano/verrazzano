@@ -205,7 +205,7 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effect
 		}
 		// Set the effectiveCR status from the module status
 		compStatus := r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
-		if compStatus.State == vzapi.CompStateReady {
+		if compStatus != nil && compStatus.State == vzapi.CompStateReady {
 			readyCount++
 		}
 	}

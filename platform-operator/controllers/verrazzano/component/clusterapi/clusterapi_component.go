@@ -96,6 +96,11 @@ func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
 }
 
+// ShouldUseModule returns true if component is implemented using a Module
+func (c clusterAPIComponent) ShouldUseModule() bool {
+	return false
+}
+
 // GetDependencies returns the dependencies of this component.
 func (c clusterAPIComponent) GetDependencies() []string {
 	return []string{cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName}

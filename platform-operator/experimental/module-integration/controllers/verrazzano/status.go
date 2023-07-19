@@ -85,6 +85,11 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *v
 // Update the component status in place for VZ CR
 func (r *Reconciler) loadModuleStatusIntoComponentStatus(vzcr *vzapi.Verrazzano, compName string, module *moduleapi.Module) *vzapi.ComponentStatusDetails {
 	compStatus := vzcr.Status.Components[compName]
+	if compStatus == nil {
+		// legacy verrazzano controller has not initialized the component status yet.
+		return nil
+	}
+
 	cond := modulestatus.GetReadyCondition(module)
 	if cond == nil {
 		return compStatus

@@ -485,6 +485,11 @@ func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
 }
 
+// ShouldUseModule returns true if component is implemented using a Module
+func (i istioComponent) ShouldUseModule() bool {
+	return false
+}
+
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
