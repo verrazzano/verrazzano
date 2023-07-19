@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230718063143-2e2de655",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230718063143-2e2de655",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230718063143-2e2de655",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230524125601-3a732e40",
+              "tag": "v1.9.1-20230718063143-2e2de655",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -779,10 +779,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.21.0",
-    "v1.22.0",
-    "v1.23.0",
-    "v1.24.0"
-  ]
+  "supportedKubernetesVersions": ["v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0"]
 }
