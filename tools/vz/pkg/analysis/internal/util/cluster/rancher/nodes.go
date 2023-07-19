@@ -13,32 +13,27 @@ import (
 )
 
 // Minimal definition of object that only contains the fields that will be analyzed
-type clusterRepoList struct {
+type nodeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []clusterRepo `json:"items"`
+	Items           []node `json:"items"`
 }
-type clusterRepo struct {
+type node struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              clusterRepoSpec `json:"spec,omitempty"`
-	Status            cattleStatus    `json:"status,omitempty"`
-}
-type clusterRepoSpec struct {
-	GitBranch string `json:"gitBranch,omitempty"`
-	GitRepo   string `json:"gitRepo,omitempty"`
+	Status            cattleStatus `json:"status,omitempty"`
 }
 
-// AnalyzeClusterRepos - analyze the status of ClusterRepo objects
-func AnalyzeClusterRepos(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &clusterRepoList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterrepo.catalog.cattle.io.json", list)
+// AnalyzeNodes - analyze the status of Node objects
+func AnalyzeNodes(clusterRoot string, issueReporter *report.IssueReporter) error {
+	list := &nodeList{}
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, "node.management.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
 
-	for _, cluster := range list.Items {
-		err = analyzeClusterRepo(clusterRoot, cluster, issueReporter)
+	for _, node := range list.Items {
+		err = analyzeNode(clusterRoot, node, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -47,23 +42,36 @@ func AnalyzeClusterRepos(clusterRoot string, issueReporter *report.IssueReporter
 	return nil
 }
 
-// analyzeClusterRepo - analyze a single ClusterRepo and report any issues
-func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReporter *report.IssueReporter) error {
+// analyzeNode - analyze a single Node object and report any issues
+func analyzeNode(clusterRoot string, node node, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
-	for _, condition := range clusterRepo.Status.Conditions {
+	for _, condition := range node.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Downloaded":
-				subMessage = fmt.Sprintf("in repo %s on branch %s not downloaded", clusterRepo.Spec.GitRepo, clusterRepo.Spec.GitBranch)
-			case "FollowerDownloaded":
-				subMessage = "follower not downloaded"
+			case "Initialized":
+				subMessage = "is not initialized"
+			case "Provisioned":
+				subMessage = "is not provisioned"
+			case "Updated":
+				subMessage = "is not updated"
+			case "Registered":
+				subMessage = "is not registered with Kubernetes"
+			case "Removed":
+				subMessage = "is not removed"
+			case "Saved":
+				subMessage = "is not saved"
+			case "Ready":
+				subMessage = "is not ready"
+			case "Drained":
+				subMessage = "is not drained"
+			case "Upgraded":
+				subMessage = "is not upgraded"
 			default:
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -72,7 +80,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher ClusterRepo resource %q %s %s%s", clusterRepo.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher Node resource %q %s %s%s", node.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

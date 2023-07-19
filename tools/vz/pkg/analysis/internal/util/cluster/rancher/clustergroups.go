@@ -13,31 +13,31 @@ import (
 )
 
 // Minimal definition of object that only contains the fields that will be analyzed
-type bundleDeploymentsList struct {
+type clusterGroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []bundleDeployment `json:"items"`
+	Items           []clusterGroup `json:"items"`
 }
-type bundleDeployment struct {
+type clusterGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            bundleDeploymentStatus `json:"status,omitempty"`
+	Status            clusterGroupStatus `json:"status,omitempty"`
 }
-type bundleDeploymentStatus struct {
-	Ready      bool              `json:"ready,omitempty"`
-	Conditions []cattleCondition `json:"conditions,omitempty"`
+type clusterGroupStatus struct {
+	NonReadyClusterCount int               `json:"nonReadyClusterCount,omitempty"`
+	Conditions           []cattleCondition `json:"conditions,omitempty"`
 }
 
-// AnalyzeBundleDeployments - analyze the status of BundleDeployment objects
-func AnalyzeBundleDeployments(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &bundleDeploymentsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "bundledeployment.fleet.cattle.io.json", list)
+// AnalyzeClusterGroups - analyze the status of ClusterGruop objects
+func AnalyzeClusterGroups(clusterRoot string, issueReporter *report.IssueReporter) error {
+	list := &clusterGroupList{}
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clustergroup.fleet.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
 
-	for _, deployment := range list.Items {
-		err = analyzeBundleDeployment(clusterRoot, deployment, issueReporter)
+	for _, clusterGroup := range list.Items {
+		err = analyzeClusterGroup(clusterRoot, clusterGroup, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -46,18 +46,16 @@ func AnalyzeBundleDeployments(clusterRoot string, issueReporter *report.IssueRep
 	return nil
 }
 
-// analyzeBundleDeployment - analyze a single BundleDeployment and report any issues
-func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployment, issueReporter *report.IssueReporter) error {
+// analyzeClusterGroup - analyze a single ClusterGroup and report any issues
+func analyzeClusterGroup(clusterRoot string, clusterGroup clusterGroup, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
-	for _, condition := range bundleDeployment.Status.Conditions {
+	for _, condition := range clusterGroup.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Installed":
-				subMessage = "is not installed"
-			case "Deployed":
-				subMessage = "is not deployed"
+			case "Processed":
+				subMessage = "is not processed"
 			case "Ready":
 				subMessage = "is not ready"
 			default:
@@ -72,16 +70,15 @@ func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployme
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher BundledDeployment resource %q %s %s%s", bundleDeployment.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher ClusterGroup resource %q %s %s%s", clusterGroup.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
-	if !bundleDeployment.Status.Ready {
-		message := fmt.Sprintf("Rancher BundledDeployment resource %q in namespace %s is not ready", bundleDeployment.Name, bundleDeployment.Namespace)
+	if clusterGroup.Status.NonReadyClusterCount > 0 {
+		message := fmt.Sprintf("Rancher Bundle resource %q in namespace %s has %d clusters not ready", clusterGroup.Name, clusterGroup.Namespace, clusterGroup.Status.NonReadyClusterCount)
 		messages = append([]string{message}, messages...)
 	}
-
 	if len(messages) > 0 {
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}

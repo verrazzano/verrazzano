@@ -13,7 +13,7 @@ import (
 )
 
 type testCase struct {
-	Function       func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) error
+	Function       func(clusterRoot string, issueReporter *report.IssueReporter) error
 	ClusterRoot    string
 	ExpectedIssues int
 }
@@ -85,12 +85,52 @@ var testCases = []testCase{
 		ExpectedIssues: 1,
 	},
 	{
+		Function:       rancher.AnalyzeClusterGroups,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeClusterGroups,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRegistrations,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeClusterRegistrations,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeFleetClusters,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeFleetClusters,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
 		Function:       rancher.AnalyzeKontainerDrivers,
 		ClusterRoot:    clustersReadySnapshot,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeKontainerDrivers,
+		ClusterRoot:    clustersNotReadySnapshot,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeNodes,
+		ClusterRoot:    clustersReadySnapshot,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeNodes,
 		ClusterRoot:    clustersNotReadySnapshot,
 		ExpectedIssues: 1,
 	},
@@ -105,7 +145,7 @@ func TestAnalyzeRancher(t *testing.T) {
 
 	for _, test := range testCases {
 		report.ClearReports()
-		assert.NoError(t, test.Function(logger, test.ClusterRoot, &issueReporter))
+		assert.NoError(t, test.Function(test.ClusterRoot, &issueReporter))
 		issueReporter.Contribute(logger, test.ClusterRoot)
 		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 		if test.ExpectedIssues == 0 {
