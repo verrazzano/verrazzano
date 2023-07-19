@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,19 +32,26 @@ type gitRepoStatus struct {
 
 // AnalyzeGitRepos - analyze the status of GitRepo objects
 func AnalyzeGitRepos(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &gitRepoList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "gitrepo.fleet.cattle.io.json", list)
+	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
 		return err
 	}
+	for _, f := range snapshotFiles {
+		if f.IsDir() {
+			list := &gitRepoList{}
+			err := files.UnmarshallFileInNamespace(clusterRoot, f.Name(), "gitrepo.fleet.cattle.io.json", list)
+			if err != nil {
+				return err
+			}
 
-	for _, gitRepo := range list.Items {
-		err = analyzeGitRepo(clusterRoot, gitRepo, issueReporter)
-		if err != nil {
-			return err
+			for _, gitRepo := range list.Items {
+				err = analyzeGitRepo(clusterRoot, gitRepo, issueReporter)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
-
 	return nil
 }
 

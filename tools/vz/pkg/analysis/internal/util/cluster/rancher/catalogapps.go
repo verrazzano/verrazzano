@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -34,19 +35,26 @@ type catalogAppSummary struct {
 
 // AnalyzeCatalogApps - analyze the status of CatalogApp objects
 func AnalyzeCatalogApps(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &catalogAppList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "app.catalog.cattle.io.json", list)
+	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
 		return err
 	}
+	for _, f := range snapshotFiles {
+		if f.IsDir() {
+			list := &catalogAppList{}
+			err := files.UnmarshallFileInNamespace(clusterRoot, f.Name(), "app.catalog.cattle.io.json", list)
+			if err != nil {
+				return err
+			}
 
-	for _, catalogApp := range list.Items {
-		err = analyzeCatalogApp(clusterRoot, catalogApp, issueReporter)
-		if err != nil {
-			return err
+			for _, catalogApp := range list.Items {
+				err = analyzeCatalogApp(clusterRoot, catalogApp, issueReporter)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
-
 	return nil
 }
 
