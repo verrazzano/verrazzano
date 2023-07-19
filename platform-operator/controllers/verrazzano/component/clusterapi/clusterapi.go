@@ -195,6 +195,7 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	return buf, nil
 }
 
+// Initializes Cluster API controller image versions considering overrides from VZ CR
 func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.VerrazzanoLogger, overrides OverridesInterface) error {
 	c.coreProvider = overrides.GetClusterAPIControllerFullImagePath()
 	c.infrastructureProvider = overrides.GetOCIControllerFullImagePath()
@@ -223,7 +224,6 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
 	}
-	fmt.Println("Inside Prepare Options")
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
@@ -244,10 +244,10 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	return applyUpgradeOptions, nil
 }
 
-// isUpgradeOptionsEmpty returns true if any of the options is not empty
-func isUpgradeOptionsEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
-	return len(upgradeOptions.CoreProvider) == 0 ||
-		len(upgradeOptions.BootstrapProviders) == 0 ||
-		len(upgradeOptions.ControlPlaneProviders) == 0 ||
-		len(upgradeOptions.InfrastructureProviders) == 0
+// isUpgradeOptionsNotEmpty returns true if any of the options is not empty
+func isUpgradeOptionsNotEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
+	return len(upgradeOptions.CoreProvider) != 0 ||
+		len(upgradeOptions.BootstrapProviders) != 0 ||
+		len(upgradeOptions.ControlPlaneProviders) != 0 ||
+		len(upgradeOptions.InfrastructureProviders) != 0
 }

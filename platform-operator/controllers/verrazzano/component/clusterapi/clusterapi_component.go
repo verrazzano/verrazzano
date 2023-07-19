@@ -279,7 +279,6 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	ctx.Log().Infof("CAPI CLIENT:", err)
 
 	overrides, err := createOverrides(ctx)
 	if err != nil {
@@ -294,7 +293,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	if !isUpgradeOptionsEmpty(applyUpgradeOptions) {
+	if !isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
 		return capiClient.ApplyUpgrade(applyUpgradeOptions)
 	}
 	return nil

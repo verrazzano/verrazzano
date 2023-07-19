@@ -4,6 +4,10 @@
 package clusterapi
 
 import (
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"testing"
 	"time"
@@ -67,5 +71,104 @@ func TestCreateClusterctlYaml(t *testing.T) {
 	err := createClusterctlYaml(compContext)
 	assert.NoError(t, err)
 	_, err = os.Stat(dir + "/clusterctl.yaml")
+	assert.NoError(t, err)
+}
+
+func TestMatchAndPrepareUpgradeOptionsWithoutOverrides(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
+	overrides, _ := createOverrides(compContext)
+	overridesContext := newOverridesContext(overrides)
+	podMatcher := &PodMatcherClusterAPI{}
+	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(compContext, overridesContext)
+	assert.False(t, isUpgradeOptionsNotEmpty(applyUpgradeOptions))
+	assert.NoError(t, err)
+}
+
+// TestMatchAndPrepareUpgradeOptionsWithOverrides tests the matchAndPrepareUpgradeOptionsWithOverrides function
+// GIVEN a call to matchAndPrepareUpgradeOptionsWithOverrides
+//
+//	WHEN images are initialized from BOM with overrides considered.
+//	THEN upgrade options are set only for the outdated cluster API images.
+func TestMatchAndPrepareUpgradeOptionsWithOverrides(t *testing.T) {
+	const capiOverrides = `
+{
+  "global": {
+    "registry": "ghcr.io"
+  },
+  "defaultProviders": {
+    "ocneBootstrap": {
+      "url": "/test/bootstrap.yaml",
+      "image": {
+        "registry": "myreg.io",
+        "tag": "v1.0"
+      }
+    },
+    "ocneControlPlane": {
+      "image": {
+        "tag": "v1.1"
+      }
+    },
+    "oci": {
+      "version": "v0.8.2",
+      "image": {
+        "repository": "oci-repo",
+        "registry": "myreg2.io",
+        "tag": "v0.8.2"
+      }
+    },
+  }
+}`
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      controlPlaneOcneProvider + "-95d8c5d97-m6mbr",
+				Labels: map[string]string{
+					providerLabel: clusterAPIProvider,
+				},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  clusterAPIOCNEControlPLaneControllerImage,
+						Image: "ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:1.0.0-1-20211215184123-0a1b633",
+					},
+				},
+			},
+		}).Build()
+
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
+	overrides, _ := createOverrides(compContext)
+	overridesContext := newOverridesContext(overrides)
+	podMatcher := &PodMatcherClusterAPI{}
+	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(compContext, overridesContext)
+	assert.True(t, isUpgradeOptionsNotEmpty(applyUpgradeOptions))
 	assert.NoError(t, err)
 }
