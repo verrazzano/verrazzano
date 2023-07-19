@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -30,26 +29,19 @@ type clusterRegistrationStatus struct {
 
 // AnalyzeClusterRegistrations - analyze the status of ClusterRegistration objects
 func AnalyzeClusterRegistrations(clusterRoot string, issueReporter *report.IssueReporter) error {
-	snapshotFiles, err := os.ReadDir(clusterRoot)
+	list := &clusterRegistrationList{}
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterregistration.fleet.cattle.io.json", list)
 	if err != nil {
 		return err
 	}
-	for _, f := range snapshotFiles {
-		if f.IsDir() {
-			list := &clusterRegistrationList{}
-			err := files.UnmarshallFileInNamespace(clusterRoot, f.Name(), "clusterregistration.fleet.cattle.io.json", list)
-			if err != nil {
-				return err
-			}
 
-			for _, clusterRegistration := range list.Items {
-				err = analyzeClusterRegistration(clusterRoot, clusterRegistration, issueReporter)
-				if err != nil {
-					return err
-				}
-			}
+	for _, clusterRegistration := range list.Items {
+		err = analyzeClusterRegistration(clusterRoot, clusterRegistration, issueReporter)
+		if err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
