@@ -10,9 +10,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	vzVersion "github.com/verrazzano/verrazzano/tools/vz/pkg/version"
@@ -230,7 +230,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj)
 		if err != nil {
-			return err
+			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()

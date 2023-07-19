@@ -55,7 +55,7 @@ func CreateVPOPod(name string) client.Object {
 			},
 		},
 		Status: corev1.PodStatus{
-			Phase: corev1.PodPending,
+			Phase: corev1.PodRunning,
 		},
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
 
 	"k8s.io/client-go/discovery"
@@ -142,8 +143,13 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 }
 
 func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
-	client := rc.kubeClient
-	discoveryClient, ok := client.Discovery().(*discoveryFake.FakeDiscovery)
+	kubeClient := rc.kubeClient
+	discoveryClient, ok := kubeClient.Discovery().(*discoveryFake.FakeDiscovery)
+	discoveryClient.FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "24",
+		GitVersion: "v1.24.1",
+	}
 	if !ok {
 		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
 	}
