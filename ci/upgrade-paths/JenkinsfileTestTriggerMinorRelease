@@ -352,11 +352,11 @@ def getSuspectList(commitList, userMappings) {
 }
 
 def List<List> addTargetUpgradeVersion(releases){
-
     upgradeJobsList = []
-    releases.each {
-        upgradeJobsList.add(["$it", TARGET_UPGRADE_VERSION])
+    for (release in releases){
+        upgradeJobsList.add([release, TARGET_UPGRADE_VERSION])
     }
+    println("UPGRADE JOB LIST DEBUG" + upgradeJobsList)
     return upgradeJobsList
 }
 
