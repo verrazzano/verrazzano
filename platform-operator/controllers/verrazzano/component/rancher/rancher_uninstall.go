@@ -125,7 +125,7 @@ func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMo
 		// If it's not finished running, requeue
 		if succeeded {
 			// Mark the monitor as completed.  Reconcile loop may call this function again
-			// and do not restartExpected to call forkPostUninstallFunc more than once.  Generate retryable error to
+			// and do not want to call forkPostUninstallFunc more than once.  Generate retryable error to
 			// run post job clenaup and reset monitor.
 			monitor.SetCompleted()
 			return ctrlerrors.RetryableError{Source: ComponentName}
