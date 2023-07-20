@@ -133,8 +133,18 @@ func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 // DoesTagExistsInExcludeList returns true if the tag exists in excludeReleasetag
 func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) bool {
 	majorMinorReleaseTag := removePatchVersion(releaseTag)
+	builder := strings.Builder{}
+	if !strings.HasPrefix(majorMinorReleaseTag, strings.ToLower("v")) {
+		builder.WriteString("v" + majorMinorReleaseTag)
+		majorMinorReleaseTag = builder.String()
+	}
 	for _, excludeTag := range excludeReleaseTags {
+		builder.Reset()
 		majorMinorExcludeTag := removePatchVersion(excludeTag)
+		if !strings.HasPrefix(majorMinorExcludeTag, strings.ToLower("v")) {
+			builder.WriteString("v" + majorMinorExcludeTag)
+			majorMinorExcludeTag = builder.String()
+		}
 		if majorMinorExcludeTag == majorMinorReleaseTag {
 			return true
 		}
@@ -215,12 +225,12 @@ func getInstallRelease(releaseTags []string) string {
 	return installRelease
 }
 
-func getTagsLT(tags []string, oldestAllowedVersion string) (string, error) {
-	builder := strings.Builder{}
-
+func getTagsLT(tags []string, oldestAllowedVersion string) ([]string, error) {
+	//builder := strings.Builder{}
+	var finalReleaseList []string
 	o, err := semver.NewSemVersion(oldestAllowedVersion)
 	if err != nil {
-		return "", err
+		return []string{""}, err
 	}
 
 	for _, tag := range tags {
@@ -230,15 +240,17 @@ func getTagsLT(tags []string, oldestAllowedVersion string) (string, error) {
 		}
 		tagVersion, err := semver.NewSemVersion(t)
 		if err != nil {
-			return "", err
+			return []string{""}, err
 		}
 		if tagVersion.IsLessThan(o) {
-			builder.WriteString(tag)
-			builder.WriteString("\n")
+			//builder.WriteString(tag)
+			//builder.WriteString("\n")
+			finalReleaseList = append(finalReleaseList, tag)
 		}
 	}
 
-	return builder.String(), nil
+	//return builder.String(), nil
+	return finalReleaseList, nil
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
