@@ -373,7 +373,7 @@ func TestGetUserNameForPrincipal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := getUserNameForPrincipal(tt.principal); got != tt.want {
-				t.Errorf("getUserNameForPrincipal() = %v, want %v", got, tt.want)
+				t.Errorf("getUserNameForPrincipal() = %v, exepectedResult %v", got, tt.want)
 			}
 		})
 	}
@@ -441,7 +441,7 @@ func TestGetRancherUsername(t *testing.T) {
 				return
 			}
 			if got != tt.want {
-				t.Errorf("getRancherUsername() got = %v, want %v", got, tt.want)
+				t.Errorf("getRancherUsername() got = %v, exepectedResult %v", got, tt.want)
 			}
 		})
 	}

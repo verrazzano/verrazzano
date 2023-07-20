@@ -1658,35 +1658,112 @@ func Test_rancherComponent_getCurrentCABundleSecretsValue(t *testing.T) {
 }
 
 func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
-	type fields struct {
-		HelmComponent helm.HelmComponent
-		monitor       monitor.BackgroundProcessMonitor
-	}
-	type args struct {
-		ctx spi.ComponentContext
-	}
+	bundleData1 := "cabundledata"
+	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    bool
-		wantErr assert.ErrorAssertionFunc
+		name             string
+		corev1ClientFunc func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+		crtClientFunc    func() client.Client
+		//secretBundle     []byte
+		//cacertsData      string
+		exepectedResult bool
+		wantErr         assert.ErrorAssertionFunc
 	}{
-		// TODO: Add test cases.
+		{
+			name: "SecretAndSettingsInSync",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting(bundleData1)).Build()
+			},
+			exepectedResult: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "SecretAndSettingsInSyncWithWhiteSpace",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting(bundleData1)).Build()
+			},
+			exepectedResult: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "SecretAndSettingsNotInSync",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting("old bundle data")).Build()
+			},
+			exepectedResult: false,
+			wantErr:         assert.NoError,
+		},
+		{
+			name:             "SecretDoesNotExist",
+			corev1ClientFunc: common.MockGetCoreV1(),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting(bundleData1)).Build()
+			},
+			exepectedResult: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "SettingDoesNotExist",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).WithRuntimeObjects().Build()
+			},
+			exepectedResult: false,
+			wantErr:         assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := rancherComponent{
-				HelmComponent: tt.fields.HelmComponent,
-				monitor:       tt.fields.monitor,
-			}
-			got, err := r.isPrivateCABundleInSync(tt.args.ctx)
-			if !tt.wantErr(t, err, fmt.Sprintf("isPrivateCABundleInSync(%v)", tt.args.ctx)) {
+			r := NewComponent().(rancherComponent)
+			ctx := spi.NewFakeContext(tt.crtClientFunc(), &vzapi.Verrazzano{}, nil, false)
+			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
+			defer k8sutil.ResetCoreV1Client()
+
+			inSync, err := r.isPrivateCABundleInSync(ctx)
+			if !tt.wantErr(t, err) {
 				return
 			}
-			assert.Equalf(t, tt.want, got, "isPrivateCABundleInSync(%v)", tt.args.ctx)
+			assert.Equal(t, tt.exepectedResult, inSync)
 		})
 	}
+}
+
+func newCASetting(bundleData1 string) *unstructured.Unstructured {
+	expectedSetting := &unstructured.Unstructured{}
+
+	expectedSetting.SetGroupVersionKind(common.GVKSetting)
+	expectedSetting.SetName(SettingCACerts)
+	unstructuredContent := expectedSetting.UnstructuredContent()
+
+	unstructuredContent["value"] = bundleData1
+	return expectedSetting
 }
 
 func Test_rancherComponent_checkRestartRequired(t *testing.T) {
