@@ -6,9 +6,10 @@ package rancher
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -55,35 +56,31 @@ func analyzeGitJob(clusterRoot string, job gitJob, issueReporter *report.IssueRe
 	var subMessage string
 	status := job.Status
 	for _, condition := range status.Conditions {
-		if condition.Status != corev1.ConditionTrue {
-			switch condition.Type {
-			case "Ready":
-				subMessage = "is not ready"
-			case "Accepted":
-				subMessage = "is not accepted"
-			case "ImageSynced":
-				subMessage = "image not synced"
-			case "Synced":
-				subMessage = "is not synced"
-			default:
-				continue
+		switch condition.Type {
+		case "Stalled":
+			if condition.Status == corev1.ConditionTrue {
+				subMessage = "is stalled"
 			}
-			// Add a message for the issue
-			reason := ""
-			msg := ""
-			if len(condition.Reason) > 0 {
-				reason = fmt.Sprintf(", reason is %q", condition.Reason)
-			}
-			if len(condition.Message) > 0 {
-				msg = fmt.Sprintf(", message is %q", condition.Message)
-			}
-			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s %s%s", gitJobResource, job.Name, job.Namespace, subMessage, reason, msg)
-			messages = append([]string{message}, messages...)
+		default:
+			continue
 		}
+		// Add a message for the issue
+		reason := ""
+		msg := ""
+		if len(condition.Reason) > 0 {
+			reason = fmt.Sprintf(", reason is %q", condition.Reason)
+		}
+		if len(condition.Message) > 0 {
+			msg = fmt.Sprintf(", message is %q", condition.Message)
+		}
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s %s%s", gitJobResource, job.Name, job.Namespace, subMessage, reason, msg)
+		messages = append([]string{message}, messages...)
 	}
 
 	if len(messages) > 0 {
-		messages = append([]string{fmt.Sprintf("The Rancher GitJob status is %s", status.JobStatus)}, messages...)
+		if len(status.JobStatus) > 0 {
+			messages = append([]string{fmt.Sprintf("The Rancher GitJob status is %s", status.JobStatus)}, messages...)
+		}
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

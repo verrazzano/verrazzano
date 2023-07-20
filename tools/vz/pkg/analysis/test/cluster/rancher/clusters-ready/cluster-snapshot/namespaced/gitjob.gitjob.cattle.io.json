@@ -5,42 +5,23 @@
       "apiVersion": "gitjob.cattle.io/v1",
       "kind": "GitJob",
       "metadata": {
-        "name": "verrazzano",
-        "namespace": "fleet-default"
+        "name": "example",
+        "namespace": "default"
       },
       "status": {
         "conditions": [
           {
-            "lastUpdateTime": "2023-07-19T12:54:22Z",
-            "status": "True",
-            "type": "Ready"
-          },
-          {
-            "lastUpdateTime": "2023-07-19T12:55:55Z",
-            "status": "True",
-            "type": "Accepted"
-          },
-          {
-            "lastUpdateTime": "2023-07-19T12:54:22Z",
-            "status": "True",
-            "type": "ImageSynced"
-          },
-          {
-            "lastUpdateTime": "2023-07-19T12:54:23Z",
+            "lastUpdateTime": "2023-07-19T23:40:55Z",
             "status": "False",
             "type": "Reconciling"
           },
           {
-            "lastUpdateTime": "2023-07-19T12:54:23Z",
-            "status": "False",
-            "type": "Stalled"
-          },
-          {
-            "lastUpdateTime": "2023-07-19T12:55:55Z",
+            "lastUpdateTime": "2023-07-19T23:40:55Z",
             "status": "True",
             "type": "Synced"
           }
-        ]
+        ],
+        "jobStatus": "InProgress"
       }
     }
   ],
