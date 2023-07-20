@@ -181,7 +181,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding Jaeger create",
 			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideJaegerCreateVz.yaml",
-			numKeyValues: 2,
+			numKeyValues: 1,
 			expectedErr:  nil,
 		},
 		{

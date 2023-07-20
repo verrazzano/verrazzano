@@ -99,7 +99,7 @@ const jaegerAllInOneTemplate = `jaeger:
   create: true
   spec:
     strategy: allInOne
-    storage: in-memory
+    storage: memory
 `
 
 // A template to define Jaeger override for creating default Jaeger instance
@@ -252,16 +252,6 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
-	if canUseVZOpenSearchStorage(compContext) {
-		defaultJaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
-		// Append defaultJaegerImage values file
-		kvs = append(kvs, bom.KeyValue{Value: defaultJaegerValuesFile, IsFile: true})
-	} else {
-		allInOneImageValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
-		// Append allInOneImage values file
-		kvs = append(kvs, bom.KeyValue{Value: allInOneImageValuesFile, IsFile: true})
-	}
-
 	registrationSecret, err := common.GetManagedClusterRegistrationSecret(compContext.Client())
 	if err != nil {
 		return nil, err
@@ -273,6 +263,10 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			return nil, err
 		}
 		if createInstance {
+			jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
+			// Append defaultJaegerImage values file
+			kvs = append(kvs, bom.KeyValue{Value: jaegerValuesFile, IsFile: true})
+
 			// use jaegerCRTemplate to populate Jaeger spec data
 			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
 			if err != nil {
@@ -293,11 +287,15 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 				return nil, err
 			}
 			if createInstance {
+				jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
+				// Append defaultJaegerImage values file
+				kvs = append(kvs, bom.KeyValue{Value: jaegerValuesFile, IsFile: true})
+
 				jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
 				if err != nil {
 					return nil, err
 				}
-				data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: 0}
+				//data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: 0}
 				err = jaegerCRTemplate.Execute(&b, data)
 				if err != nil {
 					return nil, err
