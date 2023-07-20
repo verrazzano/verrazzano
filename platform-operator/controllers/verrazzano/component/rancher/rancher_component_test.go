@@ -30,10 +30,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -1657,6 +1655,10 @@ func Test_rancherComponent_getCurrentCABundleSecretsValue(t *testing.T) {
 	}
 }
 
+// Test_rancherComponent_isPrivateCABundleInSync tests the isPrivateCABundleInSync  func of the rancherComonent
+// GIVEN a call to rancherComponent.isPrivateCABundleInSync
+//
+//	THEN true is returned if the bundle data in tls-ca is out of sync with the cacerts settings value, or an error
 func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
 	bundleData1 := "cabundledata"
 	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
@@ -1664,10 +1666,8 @@ func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
 		name             string
 		corev1ClientFunc func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
 		crtClientFunc    func() client.Client
-		//secretBundle     []byte
-		//cacertsData      string
-		exepectedResult bool
-		wantErr         assert.ErrorAssertionFunc
+		exepectedResult  bool
+		wantErr          assert.ErrorAssertionFunc
 	}{
 		{
 			name: "SecretAndSettingsInSync",
@@ -1755,6 +1755,122 @@ func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
 	}
 }
 
+// Test_rancherComponent_checkRestartRequired tests the checkRestartRequired  func of the rancherComonent
+// GIVEN a call to rancherComponent.checkRestartRequired
+//
+//	THEN the Rancher deployment is restarted if the CA bundle is out of sync with the secret AND a Rancher deployment
+//	  	rolling update is NOT already in progress
+func Test_rancherComponent_checkRestartRequired(t *testing.T) {
+	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
+	bundleData1 := "cabundledata"
+	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
+	staleBundleData := "otherData"
+
+	tests := []struct {
+		name             string
+		description      string
+		corev1ClientFunc func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+		crtClientFunc    func() client.Client
+		restartExpected  bool
+		wantErr          assert.ErrorAssertionFunc
+	}{
+		{
+			name: "SecretAndSettingsInSyncRancherReady",
+			description: `Tests that the cattle-system/rancher deployment is NOT restarted when the
+				tls-ca bundle is in sync with the cacerts settings, and the deployment is in steady state.  This
+				means that there is no need to restart the Rancher pods`,
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(
+						newReadyDeployment(ComponentNamespace, ComponentName),
+						newPod(ComponentNamespace, ComponentName),
+						newReplicaSet(ComponentNamespace, ComponentName),
+						newCASetting(bundleData1)).
+					Build()
+			},
+			restartExpected: false,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "RestartRequiredNotInSync",
+			description: `Tests that the cattle-system/rancher deployment is restarted when the
+				tls-ca bundle is out of sync with the cacerts settings, and the deployment is in steady state.  This
+				means that the we need to restart the Rancher pods in order to pick up the new private CA bundle`,
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(
+						newReadyDeployment(ComponentNamespace, ComponentName),
+						newPod(ComponentNamespace, ComponentName),
+						newReplicaSet(ComponentNamespace, ComponentName),
+						newCASetting(staleBundleData)).
+					Build()
+			},
+			restartExpected: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "UpdateInProgressNoRestartRequired",
+			description: `Tests that the cattle-system/rancher deployment is NOT restarted when the
+				tls-ca bundle is out of sync with the cacerts settings, and the deployment is already in the middle of
+				a rolling restart.  The restart check is done immediately after applying the Rancher Helm chart, so
+				other updates to the Rancher configuration have already triggered the deployment to update`,
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(
+						&appsv1.Deployment{
+							ObjectMeta: metav1.ObjectMeta{
+								Namespace: ComponentNamespace,
+								Name:      ComponentName,
+							},
+							Status: appsv1.DeploymentStatus{
+								AvailableReplicas: 0,
+								Replicas:          1,
+							},
+						},
+						newCASetting(staleBundleData)).
+					Build()
+			},
+			restartExpected: false,
+			wantErr:         assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewComponent().(rancherComponent)
+			crtClient := tt.crtClientFunc()
+			ctx := spi.NewFakeContext(crtClient, &vzapi.Verrazzano{}, nil, false)
+			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
+			defer k8sutil.ResetCoreV1Client()
+			tt.wantErr(t, r.checkRestartRequired(ctx))
+
+			depObject := &appsv1.Deployment{}
+			if !assert.NoError(t, crtClient.Get(context.TODO(), deploymentName, depObject)) {
+				return
+			}
+			_, restarted := depObject.Spec.Template.ObjectMeta.Annotations[constants2.VerrazzanoRestartAnnotation]
+			assert.Equalf(t, tt.restartExpected, restarted, "Did not get expected restart value")
+		})
+	}
+}
+
 func newCASetting(bundleData1 string) *unstructured.Unstructured {
 	expectedSetting := &unstructured.Unstructured{}
 
@@ -1764,33 +1880,6 @@ func newCASetting(bundleData1 string) *unstructured.Unstructured {
 
 	unstructuredContent["value"] = bundleData1
 	return expectedSetting
-}
-
-func Test_rancherComponent_checkRestartRequired(t *testing.T) {
-	type fields struct {
-		HelmComponent helm.HelmComponent
-		monitor       monitor.BackgroundProcessMonitor
-	}
-	type args struct {
-		ctx spi.ComponentContext
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr assert.ErrorAssertionFunc
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := rancherComponent{
-				HelmComponent: tt.fields.HelmComponent,
-				monitor:       tt.fields.monitor,
-			}
-			tt.wantErr(t, r.checkRestartRequired(tt.args.ctx), fmt.Sprintf("checkRestartRequired(%v)", tt.args.ctx))
-		})
-	}
 }
 
 func getLocalNamespaceNotProvisioned() *corev1.Namespace {

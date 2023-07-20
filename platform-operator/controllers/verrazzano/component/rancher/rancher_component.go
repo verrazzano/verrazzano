@@ -845,7 +845,7 @@ func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
 // checkRestartRequired Restarts the Rancher deployment if necessary; at present this is required when the
 // private CA bundle/secret is configured and updated, but the Rancher deployment hasn't been rolled to pick it up
 func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
-	if !r.isRancherReady(ctx) {
+	if r.isRancherDeploymentUpdateInProgress(ctx) {
 		// The rancher pods are already in the process of being updated
 		ctx.Log().Debugf("Rancher deployment update already in progress, skipping restart check")
 		return nil
@@ -862,6 +862,16 @@ func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
 	// to pick up the new bundle
 	ctx.Log().Progressf("Rancher private CA bundle drift detected, performing a rolling restart of the Rancher deployment")
 	return restartRancherDeployment(ctx.Log(), ctx.Client())
+}
+
+func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentContext) bool {
+	rancherDeployment := []types.NamespacedName{
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	return !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), rancherDeployment, 1, "rancher")
 }
 
 // isPrivateCABundleInSync If the tls-ca private CA bundle secret is present, verify that the bundle in the secret is
