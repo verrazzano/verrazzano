@@ -12,35 +12,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const catalogResource = "catalog.management.cattle.io"
+const managedChartResource = "managedchart.management.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
-type catalogsList struct {
+type managedChartsList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []catalog `json:"items"`
+	Items           []managedChart `json:"items"`
 }
-type catalog struct {
+type managedChart struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              catalogSpec  `json:"spec,omitempty"`
 	Status            cattleStatus `json:"status,omitempty"`
 }
-type catalogSpec struct {
-	Branch string `json:"branch,omitempty"`
-	URL    string `json:"url,omitempty"`
-}
 
-// AnalyzeCatalogs - analyze the status of Catalog objects
-func AnalyzeCatalogs(clusterRoot string, issueReporter *report.IssueReporter) error {
-	list := &catalogsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", catalogResource), list)
+// AnalyzeManagedCharts - analyze the status of ManagedCharts objects
+func AnalyzeManagedCharts(clusterRoot string, issueReporter *report.IssueReporter) error {
+	list := &managedChartsList{}
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", managedChartResource), list)
 	if err != nil {
 		return err
 	}
 
-	for _, catalog := range list.Items {
-		err = analyzeCatalog(clusterRoot, catalog, issueReporter)
+	for _, managedChart := range list.Items {
+		err = analyzeManagedChart(clusterRoot, managedChart, issueReporter)
 		if err != nil {
 			return err
 		}
@@ -49,18 +44,20 @@ func AnalyzeCatalogs(clusterRoot string, issueReporter *report.IssueReporter) er
 	return nil
 }
 
-// analyzeCatalog - analyze a single Catalog and report any issues
-func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.IssueReporter) error {
+// analyzeManagedChart - analyze a single ManagedChart object and report any issues
+func analyzeManagedChart(clusterRoot string, managedChart managedChart, issueReporter *report.IssueReporter) error {
 
 	var messages []string
 	var subMessage string
-	for _, condition := range catalog.Status.Conditions {
+	for _, condition := range managedChart.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "SecretsMigrated":
-				subMessage = "secrets not migrated"
-			case "Refreshed":
-				subMessage = "not refreshed"
+			case "Ready":
+				subMessage = "is not ready"
+			case "Processed":
+				subMessage = "is not processed"
+			case "Defined":
+				subMessage = "is not defined"
 			default:
 				continue
 			}
@@ -73,7 +70,7 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q on branch %s with URL %s: %s %s%s", catalogResource, catalog.Name, catalog.Spec.Branch, catalog.Spec.URL, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q in namespace %q %s %s%s", managedChartResource, managedChart.Name, managedChart.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
