@@ -198,6 +198,7 @@
       "version": "v1.4.2",
       "subcomponents": [
         {
+          "registry": "ghcr.io:443",
           "repository": "verrazzano",
           "name": "capi-cluster-api",
           "images": [
@@ -230,6 +231,7 @@
       "version": "v1.6.1",
       "subcomponents": [
         {
+          "registry": "ghcr.io:443",
           "repository": "verrazzano",
           "name": "capi-ocne",
           "images": [
