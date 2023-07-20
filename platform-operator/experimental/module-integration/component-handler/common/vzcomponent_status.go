@@ -23,10 +23,21 @@ func UpdateComponentStatus(ctx handlerspi.HandlerContext, vznsn types.Namespaced
 		ctx.Log.Progress("Failed getting Verrazzano CR, retrying...")
 		return result.NewResultShortRequeueDelay()
 	}
+	if vzcr.Status.Components == nil {
+		vzcr.Status.Components = vzapi.ComponentStatusMap{}
+	}
 	compStatus, _ := vzcr.Status.Components[compName]
+	if compStatus == nil {
+		compStatus = &vzapi.ComponentStatusDetails{
+			Available:                getAvailPtr(vzapi.ComponentUnavailable),
+			LastReconciledGeneration: 0,
+			Name:                     compName,
+			State:                    vzapi.CompStateUninstalled,
+		}
+		vzcr.Status.Components[compName] = compStatus
+	}
 	if ready {
-		var avail vzapi.ComponentAvailability = vzapi.ComponentAvailable
-		compStatus.Available = &avail
+		compStatus.Available = getAvailPtr(vzapi.ComponentAvailable)
 		compStatus.State = vzapi.CompStateReady
 		compStatus.LastReconciledGeneration = vzcr.Generation
 	}
@@ -55,11 +66,14 @@ func addOrReplaceCondition(compStatus *vzapi.ComponentStatusDetails, cond vzapi.
 
 	// Copy conditions that have a different type than the input condition into a new list
 	var newConditions []vzapi.Condition
-	for i, existing := range compStatus.Conditions {
-		if existing.Type != cond.Type {
-			newConditions = append(newConditions, compStatus.Conditions[i])
+	if compStatus.Conditions != nil {
+		for i, existing := range compStatus.Conditions {
+			if existing.Type != cond.Type {
+				newConditions = append(newConditions, compStatus.Conditions[i])
+			}
 		}
 	}
+
 	// Always put the new condition at the end of the list since the kubectl status display and
 	// some upgrade stuff depends on the most recent condition being the last one
 	compStatus.Conditions = append(newConditions, cond)
@@ -69,4 +83,8 @@ func getTransitionTime() string {
 	t := time.Now().UTC()
 	return fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
 		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+}
+
+func getAvailPtr(avail vzapi.ComponentAvailability) *vzapi.ComponentAvailability {
+	return &avail
 }
