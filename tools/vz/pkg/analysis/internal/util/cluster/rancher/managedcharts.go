@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const managedChartResource = "managedchart.management.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type managedChartsList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -27,7 +29,7 @@ type managedChart struct {
 // AnalyzeManagedCharts - analyze the status of ManagedCharts objects
 func AnalyzeManagedCharts(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &managedChartsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "managedchart.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", managedChartResource), list)
 	if err != nil {
 		return err
 	}
@@ -68,7 +70,7 @@ func analyzeManagedChart(clusterRoot string, managedChart managedChart, issueRep
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher managedChart resource %q in namespace %q %s %s%s", managedChart.Name, managedChart.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q in namespace %q %s %s%s", managedChartResource, managedChart.Name, managedChart.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

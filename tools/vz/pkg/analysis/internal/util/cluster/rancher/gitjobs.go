@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const gitJobResource = "gitjob.gitjob.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type gitJobList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -24,15 +26,14 @@ type gitJob struct {
 	Status            gitJobStatus `json:"status,omitempty"`
 }
 type gitJobStatus struct {
-	Conditions           []cattleCondition `json:"conditions,omitempty"`
-	DesiredReadyClusters int               `json:"desiredReadyClusters,omitempty"`
-	ReadyClusters        int               `json:"readyClusters,omitempty"`
+	Conditions []cattleCondition `json:"conditions,omitempty"`
+	JobStatus  string            `json:"jobStatus,omitempty"`
 }
 
 // AnalyzeGitJobs - analyze the status of GitJob objects
 func AnalyzeGitJobs(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &gitJobList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "gitjob.gitjob.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", gitJobResource), list)
 	if err != nil {
 		return err
 	}
@@ -76,17 +77,13 @@ func analyzeGitJob(clusterRoot string, job gitJob, issueReporter *report.IssueRe
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("GitRepo resource %q in namespace %s %s %s%s", job.Name, job.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s %s%s", gitJobResource, job.Name, job.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
-	if status.DesiredReadyClusters != status.ReadyClusters {
-		message := fmt.Sprintf("GitRepo resource %q in namespace %s expected %d to be ready, actual ready is %d", job.Name, job.Namespace, status.DesiredReadyClusters, status.ReadyClusters)
-		messages = append([]string{message}, messages...)
-	}
-
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("The Rancher GitJob status is %s", status.JobStatus)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

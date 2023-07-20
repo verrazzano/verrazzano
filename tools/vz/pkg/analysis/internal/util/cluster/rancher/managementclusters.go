@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const managementClusterResource = "cluster.management.cattle.io"
+
 // Minimal definition that only contains the fields that will be analyzed
 type managementClusterList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -31,7 +33,7 @@ type managementClusterSpec struct {
 // AnalyzeManagementClusters - analyze the status of Rancher management clusters resources
 func AnalyzeManagementClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &managementClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf(".json", managementClusterResource), list)
 	if err != nil {
 		return err
 	}
@@ -104,7 +106,7 @@ func analyzeManagementCluster(clusterRoot string, cluster managementCluster, iss
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher management cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q (displayed as %s) %s%s%s", managementClusterResource, cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

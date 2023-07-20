@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const gitRepoResource = "gitrepo.fleet.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type gitRepoList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -32,7 +34,7 @@ type gitRepoStatus struct {
 // AnalyzeGitRepos - analyze the status of GitRepo objects
 func AnalyzeGitRepos(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &gitRepoList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "gitrepo.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", gitRepoResource), list)
 	if err != nil {
 		return err
 	}
@@ -76,13 +78,13 @@ func analyzeGitRepo(clusterRoot string, gitRepo gitRepo, issueReporter *report.I
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("GitRepo resource %q in namespace %s %s %s%s", gitRepo.Name, gitRepo.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s %s%s", gitRepoResource, gitRepo.Name, gitRepo.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if status.DesiredReadyClusters != status.ReadyClusters {
-		message := fmt.Sprintf("GitRepo resource %q in namespace %s expected %d to be ready, actual ready is %d", gitRepo.Name, gitRepo.Namespace, status.DesiredReadyClusters, status.ReadyClusters)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s expected %d to be ready, actual ready is %d", gitRepoResource, gitRepo.Name, gitRepo.Namespace, status.DesiredReadyClusters, status.ReadyClusters)
 		messages = append([]string{message}, messages...)
 	}
 
