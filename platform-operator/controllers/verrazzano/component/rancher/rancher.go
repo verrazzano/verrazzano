@@ -522,19 +522,22 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 }
 
 // getSettingValue Returns a Rancher Settings object value with the leading and trailing whitespace trimmed
-func getSettingValue(c client.Client, settingName string) string {
+func getSettingValue(c client.Client, settingName string) (string, error) {
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(common.GVKSetting)
 	resource.SetName(settingName)
-	err := c.Get(context.Background(), types.NamespacedName{Name: resource.GetName()}, &resource)
-	if err != nil {
-		return ""
+
+	if err := c.Get(context.Background(), types.NamespacedName{Name: resource.GetName()}, &resource); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return "", err
+		}
+		return "", nil
 	}
 	settingsContent := resource.UnstructuredContent()
 	if value, found := settingsContent["value"]; found {
-		return strings.TrimSpace(value.(string))
+		return strings.TrimSpace(value.(string)), nil
 	}
-	return ""
+	return "", nil
 }
 
 // createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher

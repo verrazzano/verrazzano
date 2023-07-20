@@ -875,7 +875,10 @@ func (r rancherComponent) isPrivateCABundleInSync(ctx spi.ComponentContext) (boo
 	if !found {
 		return true, nil
 	}
-	cacertsSettingsValue := getSettingValue(ctx.Client(), SettingCACerts)
+	cacertsSettingsValue, err := getSettingValue(ctx.Client(), SettingCACerts)
+	if err != nil {
+		return false, err
+	}
 	return cacertsSettingsValue == currentCABundleInSecret, nil
 }
 

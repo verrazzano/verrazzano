@@ -685,3 +685,53 @@ func getFakeRancherUser(userName string, principal string) *unstructured.Unstruc
 	data[UserAttributePrincipalIDs] = []interface{}{principal, UserPrincipalLocalPrefix + userName}
 	return resource
 }
+
+func Test_getSettingValue(t *testing.T) {
+	tests := []struct {
+		name            string
+		settingName     string
+		expectedValue   string
+		objDoesNotExist bool
+		fieldNotPresent bool
+	}{
+		{
+			name:          "cacerts not empty",
+			settingName:   "cacerts",
+			expectedValue: "mycacert",
+		},
+		{
+			name:            "cacerts not present",
+			settingName:     "cacerts",
+			expectedValue:   "",
+			objDoesNotExist: true,
+		},
+		{
+			name:            "cacerts not present",
+			settingName:     "cacerts",
+			expectedValue:   "",
+			fieldNotPresent: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expectedSetting := &unstructured.Unstructured{}
+
+			expectedSetting.SetGroupVersionKind(common.GVKSetting)
+			expectedSetting.SetName(tt.settingName)
+			unstructuredContent := expectedSetting.UnstructuredContent()
+
+			clientBuilder := fake.NewClientBuilder().WithScheme(getScheme())
+			if !tt.fieldNotPresent {
+				unstructuredContent["value"] = tt.expectedValue
+			}
+			if !tt.objDoesNotExist {
+				clientBuilder.WithRuntimeObjects(expectedSetting)
+			}
+			cli := clientBuilder.Build()
+
+			value, err := getSettingValue(cli, tt.settingName)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedValue, value)
+		})
+	}
+}
