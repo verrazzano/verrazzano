@@ -344,7 +344,7 @@ listImageSizes() {
     echo "pulling ${image}"
     docker pull "${image}"
     # Append image size into the image-sizes.txt
-    size=$(docker image inspect "\$1" | jq -r '.[0].Size')
+    size=$(docker image inspect "${image}" | jq -r '.[0].Size')
     hsize=$(numfmt --to=si ${size})
     echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes.txt
   done
@@ -366,7 +366,7 @@ loadExampleTarFiles() {
     echo "pulling ${image}"
     docker pull "${image}"
     # Append image size into the image-sizes.txt
-    size=$(docker image inspect "\$1" | jq -r '.[0].Size')
+    size=$(docker image inspect "${image}" | jq -r '.[0].Size')
     hsize=$(numfmt --to=si ${size})
     echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes.txt
   done
