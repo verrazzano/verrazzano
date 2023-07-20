@@ -166,7 +166,7 @@ pipeline {
                         fileContent = readFile(file: "${workspace}/releaseBranches.txt")
                         List releaseBranches = extractReleaseTags(fileContent)
                         echo "Release Branches: ${releaseBranches}"
-                        def finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
+                        List finalReleaseBranchesList = removeExcludedReleaseBranches(releaseBranches)
 
                         echo "List of minor release: ${finalReleaseBranchesList}"
                         def listOfTipOfReleaseUpgradeJobs = []
@@ -351,7 +351,7 @@ def getSuspectList(commitList, userMappings) {
     return retValue
 }
 
-def List<List> addTargetUpgradeVersion(def releases){
+def List<List> addTargetUpgradeVersion(releases){
 
     upgradeJobsList = []
     releases.each {
@@ -388,9 +388,33 @@ def removeExcludedReleases(List releases){
     def excludeReleases = params.EXCLUDE_RELEASES
     def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
     println(excludeReleasesList)
-    def finalReleaseList  = []
-    finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt ${VERRAZZANO_DEV_VERSION} ${excludeReleasesList}").trim()
+    def finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt ${VERRAZZANO_DEV_VERSION} ${excludeReleasesList}").trim()
     echo "Final releases: ${finalReleaseList}"
+    return finalReleaseList
+}
+
+// Remove the excluded releases from jobs
+def removeExcludedReleaseBranches(List releases){
+    echo "List of release branches inside function: ${releases}"
+    def excludeReleases = params.EXCLUDE_RELEASES
+    def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+    println(excludeReleasesList)
+    def finalReleaseList  = []
+
+    for(releaseTag in releases){
+        def excluded = false
+        for(excludedRelease in excludeReleasesList){
+            String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
+            def releaseTagMinorVersion = splitReleaseTag[0] + "." + splitReleaseTag[1]
+            if (releaseTagMinorVersion == excludedRelease || "v"+releaseTagMinorVersion == excludedRelease) {
+                excluded = true
+            }
+        }
+        if(excluded == false){
+            finalReleaseList.add(releaseTag)
+        }
+    }
+     echo "Final releases: ${finalReleaseList}"
     return finalReleaseList
 }
 
