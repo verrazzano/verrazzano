@@ -51,31 +51,31 @@
           "name": "cert-manager",
           "images": [
             {
-              "image": "cert-manager-controller-jenkins",
-              "tag": "v1.9.1-20230718110603-54f62b79",
+              "image": "cert-manager-controller",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
-              "image": "cert-manager-acmesolver-jenkins",
-              "tag": "v1.9.1-20230718110603-54f62b79",
+              "image": "cert-manager-acmesolver",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
-              "image": "cert-manager-cainjector-jenkins",
-              "tag": "v1.9.1-20230718110603-54f62b79",
+              "image": "cert-manager-cainjector",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
-              "image": "cert-manager-webhook-jenkins",
-              "tag": "v1.9.1-20230718110603-54f62b79",
+              "image": "cert-manager-webhook",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             },
             {
-              "image": "cert-manager-ctl-jenkins",
-              "tag": "v1.9.1-20230718110603-54f62b79",
+              "image": "cert-manager-ctl",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "startupapicheck.image.repository",
               "helmTagKey": "startupapicheck.image.tag"
             }
