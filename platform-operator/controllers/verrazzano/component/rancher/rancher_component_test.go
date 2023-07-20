@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/url"
 	"os"
 	"regexp"
@@ -1582,38 +1583,76 @@ func Test_restartRancherDeployment(t *testing.T) {
 	}
 }
 
+// Test_rancherComponent_getCurrentCABundleSecretsValue tests the getCurrentCABundleSecretsValue  func of the rancherComonent
+// GIVEN a call to rancherComponent.getCurrentCABundleSecretsValue
+//
+//	THEN the bundle data is returned if the secret exists and the bundle is present, or an error is returned and the found bool is false otherwise
 func Test_rancherComponent_getCurrentCABundleSecretsValue(t *testing.T) {
-	type fields struct {
-		HelmComponent helm.HelmComponent
-		monitor       monitor.BackgroundProcessMonitor
-	}
-	type args struct {
-		ctx        spi.ComponentContext
-		secretName string
-		key        string
-	}
+	bundleData1 := "cabundledata"
+	emptyBundle := ""
+	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		want1   bool
-		wantErr assert.ErrorAssertionFunc
+		name                string
+		cli                 client.Client
+		corev1ClientFunc    func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+		bundleDataExpected  string
+		bundleFoundExpected bool
+		wantErr             assert.ErrorAssertionFunc
 	}{
-		// TODO: Add test cases.
+		{
+			name: "SecretAndBundleKeyExist",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			bundleDataExpected:  bundleData1,
+			bundleFoundExpected: true,
+			wantErr:             assert.NoError,
+		},
+		{
+			name:                "SecretDoesNotExist",
+			corev1ClientFunc:    common.MockGetCoreV1(),
+			bundleDataExpected:  emptyBundle,
+			bundleFoundExpected: false,
+			wantErr:             assert.NoError,
+		},
+		{
+			name: "BundleKeyDoesNotExist",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+			}),
+			bundleDataExpected:  emptyBundle,
+			bundleFoundExpected: false,
+			wantErr:             assert.Error,
+		},
+		{
+			name: "BundleWithLeadingAndTrailingWhitespace",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			bundleDataExpected:  bundleData1,
+			bundleFoundExpected: true,
+			wantErr:             assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := rancherComponent{
-				HelmComponent: tt.fields.HelmComponent,
-				monitor:       tt.fields.monitor,
-			}
-			got, got1, err := r.getCurrentCABundleSecretsValue(tt.args.ctx, tt.args.secretName, tt.args.key)
-			if !tt.wantErr(t, err, fmt.Sprintf("getCurrentCABundleSecretsValue(%v, %v, %v)", tt.args.ctx, tt.args.secretName, tt.args.key)) {
+			r := NewComponent().(rancherComponent)
+			ctx := spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false)
+			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
+			defer k8sutil.ResetCoreV1Client()
+
+			bundleData, bundleFound, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+			if !tt.wantErr(t, err) {
 				return
 			}
-			assert.Equalf(t, tt.want, got, "getCurrentCABundleSecretsValue(%v, %v, %v)", tt.args.ctx, tt.args.secretName, tt.args.key)
-			assert.Equalf(t, tt.want1, got1, "getCurrentCABundleSecretsValue(%v, %v, %v)", tt.args.ctx, tt.args.secretName, tt.args.key)
+			assert.Equal(t, tt.bundleFoundExpected, bundleFound)
+			assert.Equal(t, tt.bundleDataExpected, bundleData)
 		})
 	}
 }
