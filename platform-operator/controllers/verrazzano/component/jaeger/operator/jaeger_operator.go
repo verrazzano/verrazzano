@@ -295,7 +295,6 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 				if err != nil {
 					return nil, err
 				}
-				//data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: 0}
 				err = jaegerCRTemplate.Execute(&b, data)
 				if err != nil {
 					return nil, err
