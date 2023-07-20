@@ -85,6 +85,9 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
+	// Calling this method again so that all processes have the variables initialized
+	verifyRequiredEnvironmentVariables()
+
 	err = ensureOCNEDriverVarsInitialized(t.Logs)
 	Expect(err).ShouldNot(HaveOccurred())
 

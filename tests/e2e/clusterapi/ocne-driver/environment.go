@@ -86,7 +86,7 @@ func verifyRequiredEnvironmentVariables() {
 	loadBalancerSubnet = pkg.GetRequiredEnvVarOrFail("LOAD_BALANCER_SUBNET")
 }
 
-// Grabs info from environment variables required by this test suite.
+// Grabs info from optional environment variables.
 // Requires an existing cloud credential.
 func ensureOCNEDriverVarsInitialized(log *zap.SugaredLogger) error {
 	// optional overrides
