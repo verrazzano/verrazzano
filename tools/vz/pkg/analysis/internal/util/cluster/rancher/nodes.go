@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const nodeResource = "node.management.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type nodeList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -27,7 +29,7 @@ type node struct {
 // AnalyzeNodes - analyze the status of Node objects
 func AnalyzeNodes(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &nodeList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "node.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", nodeResource), list)
 	if err != nil {
 		return err
 	}
@@ -80,7 +82,7 @@ func analyzeNode(clusterRoot string, node node, issueReporter *report.IssueRepor
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher node resource %q in namespace %q %s %s%s", node.Name, node.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q in namespace %q %s %s%s", nodeResource, node.Name, node.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
