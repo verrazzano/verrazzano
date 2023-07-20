@@ -4,13 +4,14 @@ package kiali
 
 import (
 	"context"
+	"testing"
+
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"testing"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -296,6 +297,9 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(cert).Build()
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false))
+	ing := v1.Ingress{}
+	// Kiali ingress should be created
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: constants.KialiIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ing))
 	assert.Nil(t, err)
 }
 
@@ -324,6 +328,47 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol).Build()
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, nil, false))
+	assert.Nil(t, err)
+}
+
+// TestKialiPostUninstall tests the PostUninstall function
+// GIVEN a call to PostUninstall
+//
+//		WHEN the Kiali ingress exists
+//		  THEN it is deleted
+//	 WHEN no Kiali ingress is present
+//	   THEN no error is returned
+func TestKialiPostUninstall(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			},
+		},
+	}
+	ingress := &v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress).Build()
+	err := NewComponent().PostUninstall(spi.NewFakeContext(fakeClient, vz, nil, true))
+	assert.Nil(t, err)
+	ingAfterPostUninstall := v1.Ingress{}
+	// ingress should not exist after postuninstall
+	assert.True(t,
+		errors.IsNotFound(
+			fakeClient.Get(
+				context.TODO(),
+				types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace},
+				&ingAfterPostUninstall)))
+
+	// WHEN no Kiali ingress is present
+	// THEN no error is returned
+	fakeClientNoIngress := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	err = NewComponent().PostUninstall(spi.NewFakeContext(fakeClientNoIngress, vz, nil, true))
 	assert.Nil(t, err)
 }
 

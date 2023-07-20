@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
+	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"os"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
@@ -64,6 +65,10 @@ func init() {
 	// Add K8S api-extensions so that we can list CustomResourceDefinitions during uninstall of VZ
 	_ = v1.AddToScheme(scheme)
 	utilruntime.Must(installv1beta1.AddToScheme(scheme))
+
+	// Add module
+	_ = moduleapi.AddToScheme(scheme)
+
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -98,6 +103,7 @@ func main() {
 	flag.Int64Var(&config.MySQLRepairTimeoutSeconds, "mysql-repair-timeout", config.MySQLRepairTimeoutSeconds,
 		"MySQL repair timeout seconds")
 	flag.BoolVar(&config.ExperimentalModules, "experimental-modules", config.ExperimentalModules, "enable experimental modules")
+	flag.BoolVar(&config.ModuleIntegration, "module-integration", config.ModuleIntegration, "enable module integration")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
