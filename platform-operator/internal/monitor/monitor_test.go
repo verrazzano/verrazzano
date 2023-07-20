@@ -6,6 +6,7 @@ package monitor
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -78,45 +79,66 @@ func TestMonitorTypeCheckResult(t *testing.T) {
 
 	for _, tt := range tests {
 		m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
-		finished := make(chan int)
 		operation := func() error {
-			defer func() { finished <- 0 }()
 			if tt.success {
 				return nil
 			}
 			return fmt.Errorf(errMsg)
 		}
 
-		// Run the background goroutine, and block until it returns
+		// Run the background goroutine
 		m.Run(operation)
-		<-finished
 
-		res, err := m.CheckResult()
-		a.Equal(tt.expectedResult, res)
-		a.Equal(nil, err)
+		// CheckResult returns an error if the operation has not yet completed, so keep checking until complete
+		if res, ok := waitForResult(t, m); ok {
+			a.Equal(tt.expectedResult, res)
+		} else {
+			a.Fail("Expected a result from CheckResult but never received one")
+		}
 	}
+}
+
+// waitForResult waits for the background process result to be available. Returns the value of
+// the result and true if a result was received, or false if we timed out waiting.
+func waitForResult(t *testing.T, monitor *BackgroundProcessMonitorType) (bool, bool) {
+	var res, gotResult bool
+	for i := 0; i < 100; i++ {
+		var err error
+		// CheckResult returns an error if the operation is still running
+		res, err = monitor.CheckResult()
+		if err != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		gotResult = true
+		break
+	}
+	return res, gotResult
 }
 
 func TestMonitorTypeReset(t *testing.T) {
 	a := assert.New(t)
 
 	m := &BackgroundProcessMonitorType{ComponentName: fakeCompName}
-	finished := make(chan int)
 	operation := func() error {
-		defer func() { finished <- 0 }()
 		return nil
 	}
 
-	// Run the background goroutine, and block until it returns
+	// Run the background goroutine
 	m.Run(operation)
-	<-finished
 
-	res, _ := m.CheckResult()
-	a.True(res)
+	// Wait for the operation result to be available
+	if res, ok := waitForResult(t, m); ok {
+		a.True(res)
+	} else {
+		a.Fail("Expected a result from CheckResult but never received one")
+	}
+
 	a.True(m.IsRunning())
 
 	m.Reset()
-	res, _ = m.CheckResult()
+	res, _ := m.CheckResult()
 	a.False(res)
 	a.False(m.IsRunning())
 }
