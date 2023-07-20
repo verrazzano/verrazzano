@@ -400,7 +400,7 @@ def removeExcludedReleases(List releases){
     def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
     println(excludeReleasesList)
     def finalReleaseList  = []
-    finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt VERRAZZANO_DEV_VERSION ${excludeReleasesList}").trim()
+    finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt ${VERRAZZANO_DEV_VERSION} ${excludeReleasesList}").trim()
     echo "Final releases: ${finalReleaseList}"
     return finalReleaseList
 }
