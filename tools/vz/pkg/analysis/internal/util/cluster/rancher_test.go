@@ -19,8 +19,10 @@ type testCase struct {
 }
 
 const (
-	clustersReadySnapshot    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
-	clustersNotReadySnapshot = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
+	clustersReadySnapshot              = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot           = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
+	clustersReadySnapshotNamespaced    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot/namespaced"
+	clustersNotReadySnapshotNamespaced = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot/namespaced"
 )
 
 var testCases = []testCase{
@@ -56,62 +58,72 @@ var testCases = []testCase{
 	},
 	{
 		Function:       rancher.AnalyzeProvisioningClusters,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeProvisioningClusters,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeBundleDeployments,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeBundleDeployments,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeBundles,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeBundles,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeClusterGroups,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeClusterGroups,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeClusterRegistrations,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeClusterRegistrations,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 	{
 		Function:       rancher.AnalyzeFleetClusters,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeFleetClusters,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogApps,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeCatalogApps,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 	{
@@ -125,13 +137,23 @@ var testCases = []testCase{
 		ExpectedIssues: 1,
 	},
 	{
+		Function:       rancher.AnalyzeGitRepos,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       rancher.AnalyzeGitRepos,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
+		ExpectedIssues: 1,
+	},
+	{
 		Function:       rancher.AnalyzeNodes,
-		ClusterRoot:    clustersReadySnapshot,
+		ClusterRoot:    clustersReadySnapshotNamespaced,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       rancher.AnalyzeNodes,
-		ClusterRoot:    clustersNotReadySnapshot,
+		ClusterRoot:    clustersNotReadySnapshotNamespaced,
 		ExpectedIssues: 1,
 	},
 }

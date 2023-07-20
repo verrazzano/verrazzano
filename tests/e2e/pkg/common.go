@@ -528,6 +528,38 @@ func GetRequiredEnvVarOrFail(name string) string {
 	return value
 }
 
+// GetEnvFallback returns the value of the desired environment variable,
+// but returns a fallback value if the environment variable is not set
+func GetEnvFallback(envVar, fallback string) string {
+	value := os.Getenv(envVar)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+// GetEnvFallbackBool returns the value of the desired boolean environment variable,
+// but returns a fallback value if the environment variable is not set or isn't a bool value
+func GetEnvFallbackBool(envVar string, fallback bool) bool {
+	value := os.Getenv(envVar)
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return boolValue
+}
+
+// GetEnvFallbackInt returns the value of the desired integer environment variable,
+// but returns a fallback value if the environment variable is not set or isn't an int value
+func GetEnvFallbackInt(envVar string, fallback int) int {
+	value := os.Getenv(envVar)
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return intValue
+}
+
 // SlicesContainSameStrings compares two slices and returns true if they contain the same strings in any order
 func SlicesContainSameStrings(strings1, strings2 []string) bool {
 	if len(strings1) != len(strings2) {
