@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const bundleDeploymentResource = "bundledeployment.fleet.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type bundleDeploymentsList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -31,7 +33,7 @@ type bundleDeploymentStatus struct {
 // AnalyzeBundleDeployments - analyze the status of BundleDeployment objects
 func AnalyzeBundleDeployments(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &bundleDeploymentsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "bundledeployment.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", bundleDeploymentResource), list)
 	if err != nil {
 		return err
 	}
@@ -78,7 +80,7 @@ func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployme
 	}
 
 	if !bundleDeployment.Status.Ready {
-		message := fmt.Sprintf("Rancher BundledDeployment resource %q in namespace %s is not ready", bundleDeployment.Name, bundleDeployment.Namespace)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s is not ready", bundleDeploymentResource, bundleDeployment.Name, bundleDeployment.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 

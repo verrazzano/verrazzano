@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const clusterRepoResource = "clusterrepo.catalog.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type clusterRepoList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -32,7 +34,7 @@ type clusterRepoSpec struct {
 // AnalyzeClusterRepos - analyze the status of ClusterRepo objects
 func AnalyzeClusterRepos(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &clusterRepoList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterrepo.catalog.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", clusterRepoResource), list)
 	if err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher ClusterRepo resource %q %s %s%s", clusterRepo.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q %s %s%s", clusterRepoResource, clusterRepo.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

@@ -12,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const fleetClusterResource = "cluster.fleet.cattle.io"
+
 // Minimal definition that only contains the fields that will be analyzed
 type fleetClusterList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -33,7 +35,7 @@ type fleetClusterStatus struct {
 // AnalyzeFleetClusters - analyze the status of Rancher fleet clusters resources
 func AnalyzeFleetClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &fleetClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", fleetClusterResource), list)
 	if err != nil {
 		return err
 	}
@@ -74,21 +76,21 @@ func analyzeFleetCluster(clusterRoot string, cluster fleetCluster, issueReporter
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s %s%s%s", cluster.Name, cluster.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s%s%s", fleetClusterResource, cluster.Name, cluster.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if !cluster.Status.AgentMigrated {
-		message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s agent not migrated", cluster.Name, cluster.Namespace)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s agent not migrated", fleetClusterResource, cluster.Name, cluster.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 	if !cluster.Status.AgentNamespaceMigrated {
-		message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s agent namespace not migrated", cluster.Name, cluster.Namespace)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s agent namespace not migrated", fleetClusterResource, cluster.Name, cluster.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 	if !cluster.Status.CattleNamespaceMigrated {
-		message := fmt.Sprintf("Rancher fleet cluster resource %q in namespace %s cattle namespace not migrated", cluster.Name, cluster.Namespace)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s cattle namespace not migrated", fleetClusterResource, cluster.Name, cluster.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 
