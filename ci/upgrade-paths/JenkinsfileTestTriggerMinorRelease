@@ -158,7 +158,7 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        List finalReleaseList = removeExcludedReleases(gitTags)
+                        def finalReleaseList = removeExcludedReleases(gitTags)
                         echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
 
@@ -166,7 +166,7 @@ pipeline {
                         fileContent = readFile(file: "${workspace}/releaseBranches.txt")
                         List releaseBranches = extractReleaseTags(fileContent)
                         echo "Release Branches: ${releaseBranches}"
-                        List finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
+                        def finalReleaseBranchesList = removeExcludedReleases(releaseBranches)
 
                         //minorReleaseList = getCleanReleaseVersion(finalReleaseBranchesList)
                         echo "List of minor release: ${finalReleaseBranchesList}"
