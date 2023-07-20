@@ -1480,3 +1480,55 @@ func createFakeTestClient(extraObjs ...client.Object) client.Client {
 func getBoolPtr(b bool) *bool {
 	return &b
 }
+
+// Test_getSecret tests the getSecret func
+// GIVEN a all to getSecret
+//
+//	THEN the secret is returned, or an error is returned if the secret does not exist
+func Test_getSecret(t *testing.T) {
+	type args struct {
+		namespace string
+		name      string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *corev1.Secret
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "GetSecretFound",
+			args: args{name: "mysecret", namespace: "cattle-system"},
+			want: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysecret", Namespace: "cattle-system"},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "GetSecretNotFound",
+			args:    args{name: "mysecret", namespace: "cattle-system"},
+			want:    nil,
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.want == nil {
+				k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+			} else {
+				k8sutil.GetCoreV1Func = common.MockGetCoreV1(tt.want)
+			}
+			defer k8sutil.ResetCoreV1Client()
+
+			got, err := getSecret(tt.args.namespace, tt.args.name)
+			if !tt.wantErr(t, err, fmt.Sprintf("getSecret(%v, %v)", tt.args.namespace, tt.args.name)) {
+				return
+			}
+			if tt.want == nil {
+				assert.Nil(t, got)
+			} else {
+				assert.Equalf(t, tt.want, got, "getSecret(%v, %v)", tt.args.namespace, tt.args.name)
+			}
+		})
+	}
+}

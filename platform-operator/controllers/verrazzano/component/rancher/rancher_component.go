@@ -930,7 +930,7 @@ func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error
 }
 
 func getSecret(namespace string, name string) (*v1.Secret, error) {
-	v1Client, err := k8sutil.GetCoreV1Client()
+	v1Client, err := k8sutil.GetCoreV1Func()
 	if err != nil {
 		return nil, err
 	}
