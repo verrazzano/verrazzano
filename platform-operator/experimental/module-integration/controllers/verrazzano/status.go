@@ -114,3 +114,42 @@ func (r *Reconciler) loadModuleStatusIntoComponentStatus(vzcr *vzapi.Verrazzano,
 
 	return compStatus
 }
+
+//
+//// updateStatus updates the status in the Verrazzano CR
+//func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, version *string) error {
+//	t := time.Now().UTC()
+//	condition := installv1alpha1.Condition{
+//		Type:    conditionType,
+//		Status:  corev1.ConditionTrue,
+//		Message: message,
+//		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+//			t.Year(), t.Month(), t.Day(),
+//			t.Hour(), t.Minute(), t.Second()),
+//	}
+//	conditions := appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
+//
+//	// Set the state of resource
+//	state := conditionToVzState(conditionType)
+//	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, state)
+//
+//	event := &vzstatus.UpdateEvent{
+//		Verrazzano: cr,
+//		Version:    version,
+//		State:      state,
+//		Conditions: conditions,
+//	}
+//
+//	if conditionType == installv1alpha1.CondInstallComplete {
+//		spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+//		if err != nil {
+//			spiCtx.Log().Errorf("Failed to create component context: %v", err)
+//			return err
+//		}
+//		event.InstanceInfo = vzinstance.GetInstanceInfo(spiCtx)
+//	}
+//
+//	// Update the status
+//	r.StatusUpdater.Update(event)
+//	return nil
+//}

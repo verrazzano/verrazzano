@@ -5,9 +5,10 @@ package install
 
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
@@ -36,8 +37,19 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // PreWorkUpdateStatus does the pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+	// Update the module status
 	module := ctx.CR.(*moduleapi.Module)
-	return status.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonInstallStarted)
+	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonInstallStarted)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the Verrazzano component status
+	nsn, err := common.GetVerrazzanoNSN(ctx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	return common.UpdateComponentStatus(ctx, *nsn, module.Name, vzapi.CondInstallStarted, string(vzapi.CondInstallStarted), false)
 }
 
 // PreWork does the pre-work
@@ -109,5 +121,15 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 // WorkCompletedUpdateStatus updates the status to completed
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
-	return status.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonInstallSucceeded)
+	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonInstallSucceeded)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the Verrazzano component status
+	nsn, err := common.GetVerrazzanoNSN(ctx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	return common.UpdateComponentStatus(ctx, *nsn, module.Name, vzapi.CondInstallStarted, string(vzapi.CondInstallComplete), true)
 }
