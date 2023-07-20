@@ -99,4 +99,51 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
       app.kubernetes.io/component: query
+---
+{{ if .Values.ruler.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-ruler
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  rules:
+    # allow Ruler to talk with Alertmanager
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-alertmanager
+      to:
+        - operation:
+            ports:
+              - "10902"
+    # allow the authproxy requests to the HTTP endpoint
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy
+      to:
+        - operation:
+            ports:
+              - "10902"
+    # allow query to talk to the store API
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-query
+      to:
+        - operation:
+            ports:
+              - "10901"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: ruler
+{{end}}
 {{end}}
