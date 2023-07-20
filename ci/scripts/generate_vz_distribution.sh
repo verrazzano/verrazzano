@@ -336,7 +336,7 @@ includeImageTarFiles() {
 
 # Call this after the tar files are formed, the images will already have been pulled
 listImageSizes() {
-  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json -m ${WORKSPACE}/image-list.txt
+  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -t ghcr.io -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json -m ${WORKSPACE}/image-list.txt
   mapfile -t images < <(cat ${WORKSPACE}/image-list.txt)
   local size
   local hsize
