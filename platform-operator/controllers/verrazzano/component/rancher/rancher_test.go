@@ -687,7 +687,10 @@ func getFakeRancherUser(userName string, principal string) *unstructured.Unstruc
 	return resource
 }
 
-func Test_getSettingValue(t *testing.T) {
+// TestGetSettingValue tests the getSettingValue func
+// GIVEN func call to getSettingValue(
+// THEN the value is returned if the setting is present, or an error if the field is not found but the setting exists
+func TestGetSettingValue(t *testing.T) {
 	tests := []struct {
 		name            string
 		settingName     string

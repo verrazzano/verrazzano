@@ -1281,7 +1281,7 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	}
 	serverURLSetting := createServerURLSetting()
 	okeDriver := createOkeDriver()
-	rancherPod := newPod("cattle-system", "rancher")
+	rancherPod := newPod(ComponentNamespace, "rancher")
 	rancherPod.Status = corev1.PodStatus{
 		Phase: corev1.PodRunning,
 	}
@@ -1434,11 +1434,11 @@ func TestValidateInstall(t *testing.T) {
 
 }
 
-// Test_getSecret tests the getSecret func
+// TestGetSecret tests the getSecret func
 // GIVEN a all to getSecret
 //
 //	THEN the secret is returned, or an error is returned if the secret does not exist
-func Test_getSecret(t *testing.T) {
+func TestGetSecret(t *testing.T) {
 	type args struct {
 		namespace string
 		name      string
@@ -1451,15 +1451,15 @@ func Test_getSecret(t *testing.T) {
 	}{
 		{
 			name: "GetSecretFound",
-			args: args{name: "mysecret", namespace: "cattle-system"},
+			args: args{name: "mysecret", namespace: ComponentNamespace},
 			want: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "mysecret", Namespace: "cattle-system"},
+				ObjectMeta: metav1.ObjectMeta{Name: "mysecret", Namespace: ComponentNamespace},
 			},
 			wantErr: assert.NoError,
 		},
 		{
 			name:    "GetSecretNotFound",
-			args:    args{name: "mysecret", namespace: "cattle-system"},
+			args:    args{name: "mysecret", namespace: ComponentNamespace},
 			want:    nil,
 			wantErr: assert.Error,
 		},
@@ -1486,11 +1486,11 @@ func Test_getSecret(t *testing.T) {
 	}
 }
 
-// Test_restartRancherDeployment tests the getSecret func
+// TestRestartRancherDeployment tests the getSecret func
 // GIVEN a call to restartRancherDeployment
 //
 //	THEN the Rancher deployment is annotated for a rolling restart if present, or an error is returned for unexpected errors
-func Test_restartRancherDeployment(t *testing.T) {
+func TestRestartRancherDeployment(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
 
@@ -1581,11 +1581,11 @@ func Test_restartRancherDeployment(t *testing.T) {
 	}
 }
 
-// Test_rancherComponent_getCurrentCABundleSecretsValue tests the getCurrentCABundleSecretsValue  func of the rancherComonent
+// TestGetCurrentCABundleSecretsValue tests the getCurrentCABundleSecretsValue  func of the rancherComonent
 // GIVEN a call to rancherComponent.getCurrentCABundleSecretsValue
 //
 //	THEN the bundle data is returned if the secret exists and the bundle is present, or an error is returned and the found bool is false otherwise
-func Test_rancherComponent_getCurrentCABundleSecretsValue(t *testing.T) {
+func TestGetCurrentCABundleSecretsValue(t *testing.T) {
 	bundleData1 := "cabundledata"
 	emptyBundle := ""
 	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
@@ -1655,11 +1655,11 @@ func Test_rancherComponent_getCurrentCABundleSecretsValue(t *testing.T) {
 	}
 }
 
-// Test_rancherComponent_isPrivateCABundleInSync tests the isPrivateCABundleInSync  func of the rancherComonent
+// TestIsPrivateCABundleInSync tests the isPrivateCABundleInSync  func of the rancherComonent
 // GIVEN a call to rancherComponent.isPrivateCABundleInSync
 //
 //	THEN true is returned if the bundle data in tls-ca is out of sync with the cacerts settings value, or an error
-func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
+func TestIsPrivateCABundleInSync(t *testing.T) {
 	bundleData1 := "cabundledata"
 	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
 	tests := []struct {
@@ -1755,12 +1755,12 @@ func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
 	}
 }
 
-// Test_rancherComponent_checkRestartRequired tests the checkRestartRequired  func of the rancherComonent
+// TestCheckRestartRequired tests the checkRestartRequired  func of the rancherComonent
 // GIVEN a call to rancherComponent.checkRestartRequired
 //
 //	THEN the Rancher deployment is restarted if the CA bundle is out of sync with the secret AND a Rancher deployment
 //	  	rolling update is NOT already in progress
-func Test_rancherComponent_checkRestartRequired(t *testing.T) {
+func TestCheckRestartRequired(t *testing.T) {
 	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
 	bundleData1 := "cabundledata"
 	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
