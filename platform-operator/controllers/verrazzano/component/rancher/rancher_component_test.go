@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/url"
 	"os"
 	"regexp"
@@ -48,6 +47,7 @@ import (
 	dynfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1600,7 +1600,7 @@ func TestGetCurrentCABundleSecretsValue(t *testing.T) {
 		{
 			name: "SecretAndBundleKeyExist",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleData1),
 				},
@@ -1619,7 +1619,7 @@ func TestGetCurrentCABundleSecretsValue(t *testing.T) {
 		{
 			name: "BundleKeyDoesNotExist",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 			}),
 			bundleDataExpected:  emptyBundle,
 			bundleFoundExpected: false,
@@ -1628,7 +1628,7 @@ func TestGetCurrentCABundleSecretsValue(t *testing.T) {
 		{
 			name: "BundleWithLeadingAndTrailingWhitespace",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleDataWithWhitespace),
 				},
@@ -1645,7 +1645,7 @@ func TestGetCurrentCABundleSecretsValue(t *testing.T) {
 			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
 			defer k8sutil.ResetCoreV1Client()
 
-			bundleData, bundleFound, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+			bundleData, bundleFound, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSCASecretName, caCertsPem)
 			if !tt.wantErr(t, err) {
 				return
 			}
@@ -1672,7 +1672,7 @@ func TestIsPrivateCABundleInSync(t *testing.T) {
 		{
 			name: "SecretAndSettingsInSync",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleData1),
 				},
@@ -1687,7 +1687,7 @@ func TestIsPrivateCABundleInSync(t *testing.T) {
 		{
 			name: "SecretAndSettingsInSyncWithWhiteSpace",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleDataWithWhitespace),
 				},
@@ -1702,7 +1702,7 @@ func TestIsPrivateCABundleInSync(t *testing.T) {
 		{
 			name: "SecretAndSettingsNotInSync",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleDataWithWhitespace),
 				},
@@ -1727,7 +1727,7 @@ func TestIsPrivateCABundleInSync(t *testing.T) {
 		{
 			name: "SettingDoesNotExist",
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleData1),
 				},
@@ -1780,7 +1780,7 @@ func TestCheckRestartRequired(t *testing.T) {
 				tls-ca bundle is in sync with the cacerts settings, and the deployment is in steady state.  This
 				means that there is no need to restart the Rancher pods`,
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleData1),
 				},
@@ -1803,7 +1803,7 @@ func TestCheckRestartRequired(t *testing.T) {
 				tls-ca bundle is out of sync with the cacerts settings, and the deployment is in steady state.  This
 				means that the we need to restart the Rancher pods in order to pick up the new private CA bundle`,
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleDataWithWhitespace),
 				},
@@ -1827,7 +1827,7 @@ func TestCheckRestartRequired(t *testing.T) {
 				a rolling restart.  The restart check is done immediately after applying the Rancher Helm chart, so
 				other updates to the Rancher configuration have already triggered the deployment to update`,
 			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSCASecretName, Namespace: ComponentNamespace},
 				Data: map[string][]byte{
 					caCertsPem: []byte(bundleDataWithWhitespace),
 				},
