@@ -229,6 +229,9 @@ const (
 
 	// CondUpgradeComplete means the upgrade has completed successfully
 	CondUpgradeComplete ConditionType = "UpgradeComplete"
+
+	// CompStateReconciling is the state when a module is reconciling
+	CompStateReconciling CompStateType = "Reconciling"
 )
 
 // Condition describes the current state of an installation.

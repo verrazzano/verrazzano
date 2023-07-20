@@ -60,7 +60,7 @@ go-build: ## build the CLI for multiple architecture and platforms
 
 .PHONY: build-cli
 build-cli: ## build the CLI for current system and architecture
-	$(GO) build -ldflags "${CLI_GO_LDFLAGS}" -o out/$(shell go env GOOS)-$(shell go env GOARCH)/vz ${GOPATH}/src/${VZ_DIR}/main.go
+	$(GO) build -ldflags "${CLI_GO_LDFLAGS}" -o out/$(shell go env GOOS)_$(shell go env GOARCH)/vz ${GOPATH}/src/${VZ_DIR}/main.go
 
 .PHONY: cli
 cli: ## install the CLI

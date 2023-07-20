@@ -80,7 +80,7 @@ func analyzeNode(clusterRoot string, node node, issueReporter *report.IssueRepor
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher Node resource %q %s %s%s", node.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher node resource %q in namespace %q %s %s%s", node.Name, node.Namespace, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}

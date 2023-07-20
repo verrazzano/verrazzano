@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -309,6 +309,34 @@ func TestParseClusterErrorCases(t *testing.T) {
 	unstructured.SetNestedField(cluster.Object, true, "spec")
 	_, err = reconciler.getClusterDisplayName(cluster)
 	asserts.ErrorContains(err, ".spec.displayName accessor error")
+}
+
+// TestDeleteVMC tests the DeleteVMC function
+func TestDeleteVMC(t *testing.T) {
+	asserts := assert.New(t)
+	cluster := newCattleCluster(clusterName, displayName)
+	now := metav1.Now()
+	cluster.SetDeletionTimestamp(&now)
+	cluster.SetFinalizers([]string{finalizerName})
+	vmc := newVMC(displayName)
+	vmc.Status.RancherRegistration.ClusterID = clusterName
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, vmc).Build()
+	reconciler := newRancherClusterReconciler(fakeClient)
+
+	// GIVEN a VMC exists
+	// WHEN DeleteVMC is called
+	// THEN the VMC is deleted
+	err := reconciler.DeleteVMC(cluster)
+	asserts.NoError(err)
+
+	// expect that the VMC was deleted
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: displayName, Namespace: vzconst.VerrazzanoMultiClusterNamespace}, vmc)
+	asserts.True(errors.IsNotFound(err))
+	// GIVEN no VMC exists
+	// WHEN DeleteVMC is called
+	// THEN no error is returned
+	err = reconciler.DeleteVMC(cluster)
+	asserts.NoError(err)
 }
 
 func newRequest(name string) ctrl.Request {
