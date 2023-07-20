@@ -9,11 +9,11 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"reflect"
 	"strings"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"

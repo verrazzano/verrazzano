@@ -74,7 +74,6 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 			Object:    &v1.Secret{},
 			Log:       log,
 		}.Delete()
-		return nil
 	}
 
 	bundleData, found := privateCASecret.Data[vzconst.CABundleKey]

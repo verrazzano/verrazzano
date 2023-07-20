@@ -80,7 +80,7 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 			"should fail to copy the CA secret when it does not exist",
 			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			&vzDefaultCA,
-			true,
+			false,
 		},
 		{
 			"should copy the CA secret when using the CA secret",
