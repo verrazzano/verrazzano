@@ -67,7 +67,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
-    # allow thanos-query-frontend to forward requests to thanos-query and
+    # allow thanos-query-frontend and ruler to forward requests to thanos-query and
     # thanos-query to talk to thanos-storegateway
     - from:
         - namespaceSelector:
@@ -115,7 +115,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
-    # allow auth proxy to forward requests to thanos-query-frontend
+    # allow auth proxy to forward requests to thanos-ruler
     - from:
         - namespaceSelector:
             matchLabels:
@@ -127,7 +127,6 @@ spec:
                 values:
                   - verrazzano-authproxy
       ports:
-        # web ui port
         - port: 10902
           protocol: TCP
   podSelector:

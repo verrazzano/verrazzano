@@ -51,13 +51,14 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   rules:
-    # allow query-frontend to forward requests to query
+    # allow query-frontend and ruler to forward requests to query
     - from:
         - source:
             namespaces:
               - verrazzano-monitoring
             principals:
               - cluster.local/ns/verrazzano-monitoring/sa/thanos-query-frontend
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-ruler
       to:
         - operation:
             ports:
@@ -108,17 +109,6 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   rules:
-    # allow Ruler to talk with Alertmanager
-    - from:
-        - source:
-            namespaces:
-              - verrazzano-monitoring
-            principals:
-              - cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-alertmanager
-      to:
-        - operation:
-            ports:
-              - "10902"
     # allow the authproxy requests to the HTTP endpoint
     - from:
         - source:
@@ -130,17 +120,6 @@ spec:
         - operation:
             ports:
               - "10902"
-    # allow query to talk to the store API
-    - from:
-        - source:
-            namespaces:
-              - verrazzano-monitoring
-            principals:
-              - cluster.local/ns/verrazzano-monitoring/sa/thanos-query
-      to:
-        - operation:
-            ports:
-              - "10901"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
