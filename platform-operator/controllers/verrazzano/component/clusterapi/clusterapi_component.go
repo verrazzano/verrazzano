@@ -293,7 +293,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	if !isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
+	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
 		return capiClient.ApplyUpgrade(applyUpgradeOptions)
 	}
 	return nil
