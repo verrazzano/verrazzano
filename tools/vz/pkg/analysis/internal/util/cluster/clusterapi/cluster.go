@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"path/filepath"
 )
 
 const capiClusterResource = "clusters.cluster.x-k8s.io"
@@ -34,9 +35,13 @@ type clusterCondition struct {
 }
 
 // AnalyzeClusters handles the checking of the status of cluster-qpi cluster resources.
-func AnalyzeClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
 	list := &clusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.cluster.x-k8s.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, "cluster.cluster.x-k8s.io.json", list)
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -25,15 +24,15 @@ func AnalyzeClusterAPI(log *zap.SugaredLogger, clusterRoot string) error {
 	var errors []string
 
 	// First, process the cluster scoped resources.
-	analyzers := []func(clusterRoot string, issueReporter *report.IssueReporter) error{}
+	analyzers := []func(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error{}
 	for _, analyze := range analyzers {
-		if err = analyze(clusterRoot, &issueReporter); err != nil {
+		if err = analyze(clusterRoot, "", &issueReporter); err != nil {
 			errors = append(errors, err.Error())
 		}
 	}
 
 	// Second, process the namespaced resources.
-	namespaceAnalyzers := []func(clusterRoot string, issueReporter *report.IssueReporter) error{
+	namespaceAnalyzers := []func(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error{
 		capi.AnalyzeClusters,
 	}
 	snapshotFiles, err := os.ReadDir(clusterRoot)
@@ -43,7 +42,7 @@ func AnalyzeClusterAPI(log *zap.SugaredLogger, clusterRoot string) error {
 	for _, f := range snapshotFiles {
 		if f.IsDir() {
 			for _, analyze := range namespaceAnalyzers {
-				if err = analyze(filepath.Join(clusterRoot, f.Name()), &issueReporter); err != nil {
+				if err = analyze(clusterRoot, f.Name(), &issueReporter); err != nil {
 					errors = append(errors, err.Error())
 				}
 			}

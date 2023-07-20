@@ -12,25 +12,28 @@ import (
 )
 
 const (
-	clusterAPIReadySnapshotNamespaced     = "../../../test/cluster/cluster-api/clusters-ready/cluster-snapshot/namespaced"
-	clustersAPINotReadySnapshotNamespaced = "../../../test/cluster/cluster-api/clusters-not-ready/cluster-snapshot/namespaced"
+	clusterAPIReadySnapshot     = "../../../test/cluster/cluster-api/clusters-ready/cluster-snapshot"
+	clustersAPINotReadySnapshot = "../../../test/cluster/cluster-api/clusters-not-ready/cluster-snapshot"
 )
 
 type capiTestCase struct {
-	Function       func(clusterRoot string, issueReporter *report.IssueReporter) error
+	Function       func(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error
 	ClusterRoot    string
+	Namespaced     bool
 	ExpectedIssues int
 }
 
 var capiTestCases = []capiTestCase{
 	{
 		Function:       capi.AnalyzeClusters,
-		ClusterRoot:    clusterAPIReadySnapshotNamespaced,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
 		ExpectedIssues: 0,
 	},
 	{
 		Function:       capi.AnalyzeClusters,
-		ClusterRoot:    clustersAPINotReadySnapshotNamespaced,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
 		ExpectedIssues: 1,
 	},
 }
@@ -42,9 +45,13 @@ func TestAnalyzeClusterAPI(t *testing.T) {
 	}
 	logger := zap.S()
 
-	for _, test := range testCases {
+	for _, test := range capiTestCases {
 		report.ClearReports()
-		assert.NoError(t, test.Function(test.ClusterRoot, &issueReporter))
+		namespace := ""
+		if test.Namespaced {
+			namespace = "namespaced"
+		}
+		assert.NoError(t, test.Function(test.ClusterRoot, namespace, &issueReporter))
 		issueReporter.Contribute(logger, test.ClusterRoot)
 		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 		if test.ExpectedIssues == 0 {
@@ -52,7 +59,7 @@ func TestAnalyzeClusterAPI(t *testing.T) {
 		} else {
 			assert.Len(t, reportedIssues, test.ExpectedIssues)
 			if len(reportedIssues) != 0 {
-				assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+				assert.Equal(t, "ClusterAPIClusterNotReady", reportedIssues[0].Type)
 			}
 		}
 	}
