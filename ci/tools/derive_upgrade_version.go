@@ -132,8 +132,10 @@ func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 
 // DoesTagExistsInExcludeList returns true if the tag exists in excludeReleasetag
 func DoesTagExistsInExcludeList(releaseTag string, excludeReleaseTags []string) bool {
+	majorMinorReleaseTag := removePatchVersion(releaseTag)
 	for _, excludeTag := range excludeReleaseTags {
-		if excludeTag == releaseTag {
+		majorMinorExcludeTag := removePatchVersion(excludeTag)
+		if majorMinorExcludeTag == majorMinorReleaseTag {
 			return true
 		}
 	}
