@@ -5,9 +5,6 @@ package weblogicresources
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
@@ -50,32 +47,4 @@ func CreateIngressChildResourcesFromWeblogic(conversionComponent *types.Conversi
 		}
 	}
 	return nil
-}
-func NewTraitDefaultsForWLSDomainWorkload(workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
-	// Port precedence: trait, workload annotation, default
-	port := 7001
-	path := "/wls-exporter/metrics"
-	secret, err := fetchWLSDomainCredentialsSecretName(workload)
-	if err != nil {
-		return nil, err
-	}
-	return &vzapi.MetricsTraitSpec{
-		Ports: []vzapi.PortSpec{{
-			Port: &port,
-			Path: &path,
-		}},
-		Path:   &path,
-		Secret: secret,
-		//Scraper: &r.Scraper
-	}, nil
-}
-func fetchWLSDomainCredentialsSecretName(workload *unstructured.Unstructured) (*string, error) {
-	secretName, found, err := unstructured.NestedString(workload.Object, "spec", "webLogicCredentialsSecret", "name")
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, nil
-	}
-	return &secretName, nil
 }

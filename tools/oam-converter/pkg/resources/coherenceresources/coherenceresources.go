@@ -5,9 +5,6 @@ package coherenceresources
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
@@ -48,70 +45,4 @@ func CreateIngressChildResourcesFromCoherence(conversionComponent *types.Convers
 		}
 	}
 	return nil
-}
-func NewTraitDefaultsForCOHWorkload(workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
-	path := "/metrics"
-	port := 9612
-	var secret *string
-
-	enabled, p, s, err := fetchCoherenceMetricsSpec(workload)
-	if err != nil {
-		return nil, err
-	}
-	if enabled == nil || *enabled {
-		if p != nil {
-			port = *p
-		}
-		if s != nil {
-			secret = s
-		}
-	}
-	return &vzapi.MetricsTraitSpec{
-		Ports: []vzapi.PortSpec{{
-			Port: &port,
-			Path: &path,
-		}},
-		Path:   &path,
-		Secret: secret,
-		//Scraper: &r.Scraper
-	}, nil
-}
-func fetchCoherenceMetricsSpec(workload *unstructured.Unstructured) (*bool, *int, *string, error) {
-	// determine if metrics is enabled
-	enabled, found, err := unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "enabled")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	var e *bool
-	if found {
-		e = &enabled
-	}
-
-	// get the metrics port
-	port, found, err := unstructured.NestedInt64(workload.Object, "spec", "coherence", "metrics", "port")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	var p *int
-	if found {
-		p2 := int(port)
-		p = &p2
-	}
-
-	// get the secret if ssl is enabled
-	enabled, found, err = unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "ssl", "enabled")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	var s *string
-	if found && enabled {
-		secret, found, err := unstructured.NestedString(workload.Object, "spec", "coherence", "metrics", "ssl", "secrets")
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		if found {
-			s = &secret
-		}
-	}
-	return e, p, s, nil
 }

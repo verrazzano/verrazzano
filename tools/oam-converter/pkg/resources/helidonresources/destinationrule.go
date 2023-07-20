@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 
@@ -23,7 +24,7 @@ import (
 )
 
 // createOfUpdateDestinationRule creates or updates the DestinationRule.
-func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) error {
+func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, helidonWorkload *unstructured.Unstructured) error {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -42,7 +43,7 @@ func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vz
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) error {
+func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, helidonWorkload *unstructured.Unstructured) error {
 	dest, err := createDestinationFromRuleOrHelidonWorkload(rule, helidonWorkload)
 	if err != nil {
 		print(err)
@@ -108,7 +109,7 @@ func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.Desti
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
 // If the rule contains destination information that is used.
-func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) (*istio.HTTPRouteDestination, error) {
+func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonWorkload *unstructured.Unstructured) (*istio.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
 
 		dest, err := destination.CreateDestinationFromRule(rule)
@@ -123,14 +124,13 @@ func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonW
 
 }
 
-func createDestinationFromHelidonWorkload(rulePort uint32, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) (*istio.HTTPRouteDestination, error) {
-
-	if helidonWorkload.Spec.DeploymentTemplate.PodSpec.Containers[0].Ports[0].ContainerPort != 0 {
-		dest := istio.HTTPRouteDestination{
-			Destination: &istio.Destination{Host: helidonWorkload.Name}}
-		// Set the port to rule destination port
-		dest.Destination.Port = &istio.PortSelector{Number: uint32(helidonWorkload.Spec.DeploymentTemplate.PodSpec.Containers[0].Ports[0].ContainerPort)}
-		return &dest, nil
-	}
+func createDestinationFromHelidonWorkload(rulePort uint32, helidonWorkload *unstructured.Unstructured) (*istio.HTTPRouteDestination, error) {
+	//	Spec.DeploymentTemplate.PodSpec.Containers[0].Ports[0].ContainerPort != 0 {
+	//	dest := istio.HTTPRouteDestination{
+	//		Destination: &istio.Destination{Host: helidonWorkload.Name}}
+	//	// Set the port to rule destination port
+	//	dest.Destination.Port = &istio.PortSelector{Number: uint32(helidonWorkload.Spec.DeploymentTemplate.PodSpec.Containers[0].Ports[0].ContainerPort)}
+	//	return &dest, nil
+	//}
 	return nil, fmt.Errorf("unable to select service for specified destination port %d", rulePort)
 }

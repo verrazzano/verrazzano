@@ -4,9 +4,11 @@
 package app
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"log"
@@ -19,9 +21,10 @@ import (
 func ConfData() error {
 
 	var inputDirectory string
-	//var outputDirectory string
+	var outputDirectory string
 	inputDirectory = os.Args[1]
-	//outputDirectory = os.Args[2]
+	outputDirectory = os.Args[2]
+
 	var appData []map[string]interface{}
 
 	var components []map[string]interface{}
@@ -69,7 +72,9 @@ func ConfData() error {
 		return errors.New("error in extractingthe trait and workload - %s")
 	}
 
-	err = resources.CreateResources(conversionComponents)
+	outputResources, err := resources.CreateResources(conversionComponents)
+
+	printDirectory(outputDirectory, outputResources)
 
 	if err != nil {
 		return err
@@ -90,4 +95,53 @@ func iterateDirectory(path string) []string {
 		return nil
 	})
 	return files
+}
+func printDirectory(directoryPath string, outputResources *types.KubeRecources)(error){
+	fileName := "output.yaml"
+	filePath := filepath.Join(directoryPath, fileName)
+	f, err := os.Create(filePath)
+	var output string
+	if err != nil {
+		return err
+	}
+	if outputResources.VirtualServices != nil {
+		//for _, virtualservice := range outputResources.VirtualServices {
+		//
+		//}
+	}
+	if outputResources.Gateways != nil {
+		//for _, gateway := range outputResources.Gateways {
+		//
+		//}
+	}
+	if outputResources.DestinationRules != nil {
+		//for _, destinationRule := range outputResources.DestinationRules {
+
+		//}
+	}
+	if outputResources.AuthPolicies != nil {
+		//for _, authPolicy := range outputResources.AuthPolicies {
+
+		//}
+	}
+	if outputResources.ServiceMonitors != nil {
+		for _, servicemonitor := range outputResources.ServiceMonitors {
+			r, err := json.Marshal(servicemonitor)
+			if err != nil {
+				return err
+			}
+			out, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+			output = output + "---\n" + string(out)
+		}
+	}
+	defer f.Close()
+
+	_, err2 := f.WriteString(string(output))
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	return nil
 }

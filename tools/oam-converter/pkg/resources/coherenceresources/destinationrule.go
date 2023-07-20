@@ -13,6 +13,7 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
@@ -20,7 +21,7 @@ import (
 )
 
 // createOfUpdateDestinationRule creates or updates the DestinationRule.
-func createDestinationRuleFromCoherenceWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, coherenceWorkload *vzapi.VerrazzanoCoherenceWorkload) error {
+func createDestinationRuleFromCoherenceWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, coherenceWorkload *unstructured.Unstructured) error {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -39,7 +40,7 @@ func createDestinationRuleFromCoherenceWorkload(trait *vzapi.IngressTrait, rule 
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func mutateDestinationRuleFromCoherenceWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, coherenceWorkload *vzapi.VerrazzanoCoherenceWorkload) error {
+func mutateDestinationRuleFromCoherenceWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, coherenceWorkload *unstructured.Unstructured) error {
 
 	dest, err := destination.CreateDestinationFromRule(rule)
 

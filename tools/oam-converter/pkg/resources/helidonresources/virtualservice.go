@@ -11,13 +11,14 @@ import (
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
 
 func createVirtualServiceFromHelidonWorkload(ingresstrait *vzapi.IngressTrait, rule vzapi.IngressRule,
-	allHostsForTrait []string, name string, gateway *vsapi.Gateway, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) error {
+	allHostsForTrait []string, name string, gateway *vsapi.Gateway, helidonWorkload *unstructured.Unstructured) error {
 	virtualService := &vsapi.VirtualService{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: consts.VirtualServiceAPIVersion,
@@ -32,7 +33,7 @@ func createVirtualServiceFromHelidonWorkload(ingresstrait *vzapi.IngressTrait, r
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func mutateVirtualServiceFromHelidonWorkload(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, gateway *vsapi.Gateway, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) error {
+func mutateVirtualServiceFromHelidonWorkload(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, gateway *vsapi.Gateway, helidonWorkload *unstructured.Unstructured) error {
 	virtualService.Spec.Gateways = []string{gateway.Name}
 	virtualService.Spec.Hosts = allHostsForTrait
 	matches := []*istio.HTTPMatchRequest{}

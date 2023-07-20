@@ -12,36 +12,38 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 )
 
-func CreateResources(conversionComponents []*types.ConversionComponents) error {
+func CreateResources(conversionComponents []*types.ConversionComponents) (*types.KubeRecources, error) {
+	outputResources := types.KubeRecources{}
 	for _, conversionComponent := range conversionComponents {
 		if conversionComponent.MetricsTrait != nil {
-			err := metrics.CreateMetricsChildResources(conversionComponent)
+			serviceMonitor, err := metrics.CreateMetricsChildResources(conversionComponent)
 			if err != nil {
-				return errors.New("failed to create Child resources from Metrics Trait")
+				return &outputResources,errors.New("failed to create Child resources from Metrics Trait")
 			}
+			outputResources.ServiceMonitors = append(outputResources.ServiceMonitors, serviceMonitor)
 		}
 		if conversionComponent.WeblogicworkloadMap != nil {
 			//conversionComponent.AppNamespace, conversionComponent.AppName, conversionComponent.ComponentName, conversionComponent.IngressTrait, conversionComponent.WeblogicworkloadMap[conversionComponent.ComponentName]
 			err := weblogic.CreateIngressChildResourcesFromWeblogic(conversionComponent)
 			if err != nil {
-				return errors.New("failed to create Child resources from Weblogic workload")
+				return &outputResources,errors.New("failed to create Child resources from Weblogic workload")
 
 			}
 		}
 		if conversionComponent.Coherenceworkload != nil {
 			err := coherenceresources.CreateIngressChildResourcesFromCoherence(conversionComponent)
 			if err != nil {
-				return errors.New("failed to create Child resources from Coherence workload")
+				return &outputResources,errors.New("failed to create Child resources from Coherence workload")
 
 			}
 		}
 		if conversionComponent.Helidonworkload != nil {
 			err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent)
 			if err != nil {
-				return errors.New("failed to create Child resources from Helidon workload")
+				return &outputResources,errors.New("failed to create Child resources from Helidon workload")
 
 			}
 		}
 	}
-	return nil
+	return &outputResources,nil
 }

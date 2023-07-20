@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 
@@ -21,7 +22,7 @@ import (
 
 // creates the VirtualService child resource of the trait.
 func createVirtualServiceFromCoherenceWorkload(ingresstrait *vzapi.IngressTrait, rule vzapi.IngressRule,
-	allHostsForTrait []string, name string, gateway *vsapi.Gateway, coherenceWorkload *vzapi.VerrazzanoCoherenceWorkload) error {
+	allHostsForTrait []string, name string, gateway *vsapi.Gateway, coherenceWorkload *unstructured.Unstructured) error {
 	virtualService := &vsapi.VirtualService{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: consts.VirtualServiceAPIVersion,
@@ -36,7 +37,7 @@ func createVirtualServiceFromCoherenceWorkload(ingresstrait *vzapi.IngressTrait,
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func mutateVirtualServiceFromCoherenceWorkload(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, gateway *vsapi.Gateway, coherenceWorkload *vzapi.VerrazzanoCoherenceWorkload) error {
+func mutateVirtualServiceFromCoherenceWorkload(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, gateway *vsapi.Gateway, coherenceWorkload *unstructured.Unstructured) error {
 	virtualService.Spec.Gateways = []string{gateway.Name}
 	virtualService.Spec.Hosts = allHostsForTrait
 	matches := []*istio.HTTPMatchRequest{}

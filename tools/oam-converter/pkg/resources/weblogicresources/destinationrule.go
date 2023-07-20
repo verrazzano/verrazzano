@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -22,7 +23,7 @@ import (
 )
 
 // createOfUpdateDestinationRule creates or updates the DestinationRule.
-func createDestinationRuleFromWeblogicWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, weblogicWorkload *vzapi.VerrazzanoWebLogicWorkload) error {
+func createDestinationRuleFromWeblogicWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, weblogicWorkload *unstructured.Unstructured) error {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -41,7 +42,7 @@ func createDestinationRuleFromWeblogicWorkload(trait *vzapi.IngressTrait, rule v
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func mutateDestinationRuleFromWeblogicWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, weblogicWorkload *vzapi.VerrazzanoWebLogicWorkload) error {
+func mutateDestinationRuleFromWeblogicWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, weblogicWorkload *unstructured.Unstructured) error {
 
 	dest, err := destination.CreateDestinationFromRule(rule)
 

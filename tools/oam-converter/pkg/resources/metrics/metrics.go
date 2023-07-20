@@ -4,18 +4,19 @@
 package metrics
 
 import (
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	_ "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	monitor "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/servicemonitor"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 
 )
 
-func CreateMetricsChildResources(conversionComponent *types.ConversionComponents) error {
+func CreateMetricsChildResources(conversionComponent *types.ConversionComponents) (*promoperapi.ServiceMonitor, error) {
 
-	err := monitor.CreateServiceMonitor(conversionComponent)
+	serviceMonitor, err := monitor.CreateServiceMonitor(conversionComponent)
 	if err != nil {
-		return err
+		return serviceMonitor, err
 
 	}
-	return nil
+	return serviceMonitor, nil
 }
