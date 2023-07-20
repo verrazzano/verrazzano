@@ -33,7 +33,7 @@ type managementClusterSpec struct {
 // AnalyzeManagementClusters - analyze the status of Rancher management clusters resources
 func AnalyzeManagementClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &managementClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf(".json", managementClusterResource), list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", managementClusterResource), list)
 	if err != nil {
 		return err
 	}
