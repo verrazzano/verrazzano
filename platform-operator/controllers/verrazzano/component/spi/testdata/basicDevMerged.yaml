@@ -104,6 +104,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
@@ -295,3 +296,21 @@ spec:
       enabled: false
     clusterAPI:
       enabled: true
+    opensearchOperator:
+      enabled: true
+      overrides:
+        - values:
+            openSearchCluster:
+              nodePools:
+                - component: es-master
+                  additionalConfig:
+                    cluster.initial_master_nodes: opensearch-es-master-0
+                  replicas: 1
+                  resources:
+                    requests:
+                      memory: "1Gi"
+                  roles:
+                    - "data"
+                    - "master"
+                  persistence:
+                    emptyDir: { }

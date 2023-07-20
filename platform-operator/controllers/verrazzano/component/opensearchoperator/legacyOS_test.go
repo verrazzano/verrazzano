@@ -82,6 +82,9 @@ func TestHandleLegacyOpenSearch(t *testing.T) {
 
 	// set OS and OSD to disabled in VMI
 	mock.EXPECT().
+		List(gomock.Any(), gomock.Any()).
+		Return(nil)
+	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "system"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmi *vmov1.VerrazzanoMonitoringInstance, opts ...client.GetOption) error {
 			vmi.Name = name.Name

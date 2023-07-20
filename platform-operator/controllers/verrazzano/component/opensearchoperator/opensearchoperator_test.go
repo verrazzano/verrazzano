@@ -105,7 +105,7 @@ import (
 
 //func TestBuildNodePoolOverride(t *testing.T) {
 //	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects().Build()
-//	getControllerRuntimeClient = func() (client.Client, error) {
+//	GetControllerRuntimeClient = func() (client.Client, error) {
 //		return fakeClient, nil
 //	}
 //

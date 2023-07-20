@@ -115,6 +115,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
       plugins:
         enabled: false
     fluentOperator:
@@ -329,3 +330,21 @@ spec:
       enabled: false
     weblogicOperator:
       enabled: false
+    opensearchOperator:
+      enabled: false
+      overrides:
+        - values:
+            openSearchCluster:
+              nodePools:
+                - component: es-master
+                  additionalConfig:
+                    cluster.initial_master_nodes: opensearch-es-master-0
+                  replicas: 1
+                  resources:
+                    requests:
+                      memory: "1Gi"
+                  roles:
+                    - "data"
+                    - "master"
+                  persistence:
+                    emptyDir: { }
