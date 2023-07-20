@@ -30,8 +30,8 @@ const (
 	OldOperatorName      = "verrazzano-platform-operator"
 	OperatorCA           = "verrazzano-platform-operator-ca"
 	OperatorTLS          = "verrazzano-platform-operator-tls"
-	OperatorCertLabelKey = "install.verrazzano.io/vpo-webhook"
-	OperatorCertLabel    = "verrazzano"
+	OperatorCertLabelKey = "install.verrazzano.io/certificate"
+	OperatorCertLabel    = "verrazzano-platform-operator-webhook"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
