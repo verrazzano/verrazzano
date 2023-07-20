@@ -94,17 +94,6 @@ func IsWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
 	}
 	return false, nil
 }
-func isWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
-	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
-	if err != nil {
-		return false, err
-	}
-	// Match any version of APIVersion=weblogic.oracle and Kind=Domain
-	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
-		return true, nil
-	}
-	return false, nil
-}
 func GetPortSpecs(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) []vzapi.PortSpec {
 	ports := trait.Spec.Ports
 	if len(ports) == 0 {
