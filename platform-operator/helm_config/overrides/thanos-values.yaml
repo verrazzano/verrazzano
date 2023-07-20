@@ -107,6 +107,8 @@ ruler:
       nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
     # Turn off hostname to disable auto-generated backend
     hostname: ""
+  alertmanagers:
+    - https://prometheus-operator-kube-p-alertmanager:9093
 
 receive:
   podSecurityContext:
