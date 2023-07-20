@@ -15,8 +15,10 @@ import (
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -27,8 +29,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -1430,57 +1435,6 @@ func TestValidateInstall(t *testing.T) {
 
 }
 
-func getLocalNamespaceNotProvisioned() *corev1.Namespace {
-	return &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: ClusterLocal,
-			Labels: map[string]string{
-				constants.VerrazzanoManagedKey: ClusterLocal,
-			},
-		},
-	}
-}
-
-func getLocalNamespaceProvisioned() *corev1.Namespace {
-	return &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: ClusterLocal,
-			Labels: map[string]string{
-				ProviderCattleIoLabel: "rke2",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: common.APIGroupRancherManagement + "/" + "v3",
-					Kind:       ClusterKind,
-					Name:       ClusterLocal,
-				},
-			},
-		},
-	}
-}
-
-func getLocalClusterManagementCattleIo() *unstructured.Unstructured {
-	localClusterManagementCattleIo := &unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	localClusterManagementCattleIo.SetName(ClusterLocal)
-	localClusterManagementCattleIo.SetKind(ClusterKind)
-	localClusterManagementCattleIo.SetAPIVersion(common.APIGroupRancherManagement + "/" + "v3")
-	localClusterManagementCattleIo.SetLabels(map[string]string{ProviderCattleIoLabel: "rke2"})
-	return localClusterManagementCattleIo
-}
-
-func createFakeTestClient(extraObjs ...client.Object) client.Client {
-	objs := []client.Object{}
-	objs = append(objs, extraObjs...)
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(objs...).Build()
-	return c
-}
-
-func getBoolPtr(b bool) *bool {
-	return &b
-}
-
 // Test_getSecret tests the getSecret func
 // GIVEN a all to getSecret
 //
@@ -1531,4 +1485,245 @@ func Test_getSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_restartRancherDeployment tests the getSecret func
+// GIVEN a call to restartRancherDeployment
+//
+//	THEN the Rancher deployment is annotated for a rolling restart if present, or an error is returned for unexpected errors
+func Test_restartRancherDeployment(t *testing.T) {
+	log := vzlog.DefaultLogger()
+	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
+
+	tests := []struct {
+		name             string
+		deploymentExists bool
+		createClientFunc func() client.Client
+		wantErr          assert.ErrorAssertionFunc
+	}{
+		{
+			name: "RestartSuccessful",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment, opts ...client.GetOption) error {
+						deployment.Name = deploymentName.Name
+						deployment.Namespace = deploymentName.Namespace
+						return nil
+					}).Times(1)
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
+						assert.Equal(t, deploymentName, client.ObjectKeyFromObject(deployment))
+						_, restartAnnotationFound := deployment.Spec.Template.ObjectMeta.Annotations[constants2.VerrazzanoRestartAnnotation]
+						assert.Truef(t, restartAnnotationFound, "Restart annotation %s not found", constants2.RestartVersionAnnotation)
+						return nil
+					}).Times(1)
+				return mockClient
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "DeploymentNotFound",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					Return(errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"},
+						deploymentName.Name))
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).Times(0)
+				return mockClient
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "GetUnexpectedError",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					Return(fmt.Errorf("unexpected error"))
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).Times(0)
+				return mockClient
+			},
+			wantErr: assert.Error,
+		},
+		{
+			name: "UpdateFailed",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment, opts ...client.GetOption) error {
+						deployment.Name = deploymentName.Name
+						deployment.Namespace = deploymentName.Namespace
+						return nil
+					}).Times(1)
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					Return(fmt.Errorf("update failed")).
+					Times(1)
+				return mockClient
+			},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.wantErr(t, restartRancherDeployment(log, tt.createClientFunc()))
+		})
+	}
+}
+
+func Test_rancherComponent_getCurrentCABundleSecretsValue(t *testing.T) {
+	type fields struct {
+		HelmComponent helm.HelmComponent
+		monitor       monitor.BackgroundProcessMonitor
+	}
+	type args struct {
+		ctx        spi.ComponentContext
+		secretName string
+		key        string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    string
+		want1   bool
+		wantErr assert.ErrorAssertionFunc
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := rancherComponent{
+				HelmComponent: tt.fields.HelmComponent,
+				monitor:       tt.fields.monitor,
+			}
+			got, got1, err := r.getCurrentCABundleSecretsValue(tt.args.ctx, tt.args.secretName, tt.args.key)
+			if !tt.wantErr(t, err, fmt.Sprintf("getCurrentCABundleSecretsValue(%v, %v, %v)", tt.args.ctx, tt.args.secretName, tt.args.key)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "getCurrentCABundleSecretsValue(%v, %v, %v)", tt.args.ctx, tt.args.secretName, tt.args.key)
+			assert.Equalf(t, tt.want1, got1, "getCurrentCABundleSecretsValue(%v, %v, %v)", tt.args.ctx, tt.args.secretName, tt.args.key)
+		})
+	}
+}
+
+func Test_rancherComponent_isPrivateCABundleInSync(t *testing.T) {
+	type fields struct {
+		HelmComponent helm.HelmComponent
+		monitor       monitor.BackgroundProcessMonitor
+	}
+	type args struct {
+		ctx spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    bool
+		wantErr assert.ErrorAssertionFunc
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := rancherComponent{
+				HelmComponent: tt.fields.HelmComponent,
+				monitor:       tt.fields.monitor,
+			}
+			got, err := r.isPrivateCABundleInSync(tt.args.ctx)
+			if !tt.wantErr(t, err, fmt.Sprintf("isPrivateCABundleInSync(%v)", tt.args.ctx)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "isPrivateCABundleInSync(%v)", tt.args.ctx)
+		})
+	}
+}
+
+func Test_rancherComponent_checkRestartRequired(t *testing.T) {
+	type fields struct {
+		HelmComponent helm.HelmComponent
+		monitor       monitor.BackgroundProcessMonitor
+	}
+	type args struct {
+		ctx spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr assert.ErrorAssertionFunc
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := rancherComponent{
+				HelmComponent: tt.fields.HelmComponent,
+				monitor:       tt.fields.monitor,
+			}
+			tt.wantErr(t, r.checkRestartRequired(tt.args.ctx), fmt.Sprintf("checkRestartRequired(%v)", tt.args.ctx))
+		})
+	}
+}
+
+func getLocalNamespaceNotProvisioned() *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterLocal,
+			Labels: map[string]string{
+				constants.VerrazzanoManagedKey: ClusterLocal,
+			},
+		},
+	}
+}
+
+func getLocalNamespaceProvisioned() *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterLocal,
+			Labels: map[string]string{
+				ProviderCattleIoLabel: "rke2",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: common.APIGroupRancherManagement + "/" + "v3",
+					Kind:       ClusterKind,
+					Name:       ClusterLocal,
+				},
+			},
+		},
+	}
+}
+
+func getLocalClusterManagementCattleIo() *unstructured.Unstructured {
+	localClusterManagementCattleIo := &unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	localClusterManagementCattleIo.SetName(ClusterLocal)
+	localClusterManagementCattleIo.SetKind(ClusterKind)
+	localClusterManagementCattleIo.SetAPIVersion(common.APIGroupRancherManagement + "/" + "v3")
+	localClusterManagementCattleIo.SetLabels(map[string]string{ProviderCattleIoLabel: "rke2"})
+	return localClusterManagementCattleIo
+}
+
+func createFakeTestClient(extraObjs ...client.Object) client.Client {
+	objs := []client.Object{}
+	objs = append(objs, extraObjs...)
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(objs...).Build()
+	return c
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
