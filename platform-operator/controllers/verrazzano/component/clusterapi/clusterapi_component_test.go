@@ -452,6 +452,7 @@ func TestUpgrade(t *testing.T) {
 	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp clusterAPIComponent
