@@ -1087,6 +1087,21 @@ func TestIsReady(t *testing.T) {
 //	WHEN PostInstall is called
 //	THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
+	defer resetDynamicClientFunc()
+
+	component := NewComponent()
+	_, ctxWithIngress := prepareContexts()
+
+	err := component.PostInstall(ctxWithIngress)
+	assert.NoError(t, err)
+}
+
+// TestPostInstallNoIngress tests PostInstall()
+// GIVEN a call to PostInstall
+//
+//	WHEN the ingress is not present
+//	THEN PostInstall should return an error
+func TestPostInstallNoIngress(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, _ := prepareContexts()
 	err := component.PostInstall(ctxWithoutIngress)
@@ -1109,7 +1124,6 @@ func TestPostUpgrade(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, _ := prepareContexts()
 	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
-	//	assert.Nil(t, component.PostUpgrade(ctxWithIngress))
 }
 
 func TestValidateUpdate(t *testing.T) {
@@ -1279,6 +1293,13 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		&adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &okeDriver, &kcIngress, rancherPod).
 		Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false, profilesRelativePath)
+
+	// Setup OCI KontainerDriver with fake client and context
+	driverName := common.KontainerDriverOCIName
+	driverObj := createKontainerDriver(driverName)
+	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), driverObj)
+	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 
 	// mock the pod executor when resetting the Rancher admin password
 	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})

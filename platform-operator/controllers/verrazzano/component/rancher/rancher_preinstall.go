@@ -78,7 +78,7 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 				Name:      rancherTLSSecretName,
 			},
 		}
-		log.Infof("Updating Rancher private CA bundle")
+		log.Debugf("Copying default Verrazzano secret to Rancher namespace")
 		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
 			rancherCaSecret.Data = map[string][]byte{
 				caCertsPem: caSecret.Data[certKey],
