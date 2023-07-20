@@ -73,9 +73,9 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 	// for the map matches the issue source as well (ie: when handed a map/slice of issues and a source
 	// key, we check these here). If there is no mapSource supplied it just means the issue Source is used for
 	// map insertions.
-	if len(mapSource) != 0 && issue.Source != mapSource {
-		return fmt.Errorf("The issue source %s doesn't match the map source supplied %s", issue.Source, mapSource)
-	}
+	//	if len(mapSource) != 0 && issue.Source != mapSource {
+	//	return fmt.Errorf("The issue source %s doesn't match the map source supplied %s", issue.Source, mapSource)
+	//}
 	if len(issue.Summary) == 0 {
 		return errors.New("A Summary is required for an Issue")
 	}

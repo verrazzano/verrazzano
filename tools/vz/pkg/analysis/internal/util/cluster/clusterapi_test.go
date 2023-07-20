@@ -5,10 +5,35 @@ package cluster
 
 import (
 	"github.com/stretchr/testify/assert"
+	capi "github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster/clusterapi"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	"testing"
 )
+
+const (
+	clusterAPIReadySnapshotNamespaced     = "../../../test/cluster/cluster-api/clusters-ready/cluster-snapshot/namespaced"
+	clustersAPINotReadySnapshotNamespaced = "../../../test/cluster/cluster-api/clusters-not-ready/cluster-snapshot/namespaced"
+)
+
+type capiTestCase struct {
+	Function       func(clusterRoot string, issueReporter *report.IssueReporter) error
+	ClusterRoot    string
+	ExpectedIssues int
+}
+
+var capiTestCases = []capiTestCase{
+	{
+		Function:       capi.AnalyzeClusters,
+		ClusterRoot:    clusterAPIReadySnapshotNamespaced,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeClusters,
+		ClusterRoot:    clustersAPINotReadySnapshotNamespaced,
+		ExpectedIssues: 1,
+	},
+}
 
 // Test analyze Cluster API resources with different cluster snapshots.
 func TestAnalyzeClusterAPI(t *testing.T) {
@@ -17,16 +42,18 @@ func TestAnalyzeClusterAPI(t *testing.T) {
 	}
 	logger := zap.S()
 
-	// Expect no errors and no reported issues.
-	report.ClearReports()
-	assert.NoError(t, analyzeClusterAPICLusters(logger, "../../../test/cluster/cluster-api-clusters/clusters-ready/cluster-snapshot", &issueReporter))
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Empty(t, reportedIssues)
-
-	// Expect no errors and one reported issue that a Cluster API resource is not ready.
-	report.ClearReports()
-	assert.NoError(t, analyzeClusterAPICLusters(logger, "../../../test/cluster/cluster-api-clusters/clusters-not-ready/cluster-snapshot", &issueReporter))
-	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.Len(t, reportedIssues, 1)
-	assert.Equal(t, "ClusterAPIClusterNotReady", reportedIssues[0].Type)
+	for _, test := range testCases {
+		report.ClearReports()
+		assert.NoError(t, test.Function(test.ClusterRoot, &issueReporter))
+		issueReporter.Contribute(logger, test.ClusterRoot)
+		reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+		if test.ExpectedIssues == 0 {
+			assert.Empty(t, reportedIssues)
+		} else {
+			assert.Len(t, reportedIssues, test.ExpectedIssues)
+			if len(reportedIssues) != 0 {
+				assert.Equal(t, "RancherIssues", reportedIssues[0].Type)
+			}
+		}
+	}
 }
