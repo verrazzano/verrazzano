@@ -4,6 +4,7 @@
 package opensearchoperator
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"k8s.io/apimachinery/pkg/api/meta"
 )
 
 const (
@@ -36,8 +39,10 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext, nodes []NodePool) error {
 	}
 
 	// Remove legacy OS and OSD
-	if err := common.CreateOrUpdateVMI(ctx, updateFuncForUninstall); err != nil {
-		return fmt.Errorf("failed to disable legacy OS and OSD: %v", err)
+	if vmiExists(ctx) {
+		if err := common.CreateOrUpdateVMI(ctx, updateFuncForUninstall); err != nil {
+			return fmt.Errorf("failed to disable legacy OS and OSD: %v", err)
+		}
 	}
 
 	if err := deleteMasterNodePVC(ctx); err != nil {
@@ -57,6 +62,18 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext, nodes []NodePool) error {
 	}
 
 	return nil
+}
+
+// vmiExists returns true if the VMI kind exists
+func vmiExists(ctx spi.ComponentContext) bool {
+	vmiList := vmov1.VerrazzanoMonitoringInstanceList{}
+	err := ctx.Client().List(context.TODO(), &vmiList)
+
+	if _, ok := err.(*meta.NoKindMatchError); ok {
+		ctx.Log().Debugf("VerrazzanoMonitoring kind does not exist, skipping disabling legacy OS and OSD")
+		return false
+	}
+	return true
 }
 
 // updateFuncForUninstall updates the VMI to disable VMO based OS and OSD

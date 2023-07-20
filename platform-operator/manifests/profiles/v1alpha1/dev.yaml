@@ -15,6 +15,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
     opensearchOperator:
       overrides:
         - values:

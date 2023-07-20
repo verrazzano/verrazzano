@@ -342,3 +342,34 @@ spec:
       enabled: false
     clusterAPI:
       enabled: true
+    opensearchOperator:
+      enabled: true
+      overrides:
+        - values:
+            openSearchCluster:
+              nodePools:
+                - component: es-master
+                  replicas: 3
+                  diskSize: "50Gi"
+                  resources:
+                    requests:
+                      memory: "1.4Gi"
+                  roles:
+                    - "master"
+                - component: es-data
+                  replicas: 3
+                  diskSize: "50Gi"
+                  resources:
+                    requests:
+                      memory: "4.8Gi"
+                  roles:
+                    - "data"
+                - component: es-ingest
+                  replicas: 1
+                  resources:
+                    requests:
+                      memory: "2.5Gi"
+                  roles:
+                    - "ingest"
+                  persistence:
+                    emptyDir: { }

@@ -35,15 +35,13 @@ const (
 )
 
 var (
-	certificates = []types.NamespacedName{
-		{Name: "system-tls-osd", Namespace: constants.VerrazzanoSystemNamespace},
-		{Name: "system-tls-os-ingest", Namespace: constants.VerrazzanoSystemNamespace},
+	clusterCertificates = []types.NamespacedName{
 		{Name: fmt.Sprintf("%s-admin-cert", clusterName), Namespace: ComponentNamespace},
 		{Name: fmt.Sprintf("%s-dashboards-cert", clusterName), Namespace: ComponentNamespace},
 		{Name: fmt.Sprintf("%s-master-cert", clusterName), Namespace: ComponentNamespace},
 		{Name: fmt.Sprintf("%s-node-cert", clusterName), Namespace: ComponentNamespace}}
 
-	getControllerRuntimeClient = getClient
+	GetControllerRuntimeClient = GetClient
 )
 
 type NodePool struct {
@@ -52,8 +50,43 @@ type NodePool struct {
 	Roles     []string `json:"roles"`
 }
 
+// isReady checks if all the sts and deployments for OpenSearch are ready or not
 func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+	nodePools, err := GetMergedNodePools(ctx)
+	if err != nil {
+		return false
+	}
+
+	for _, node := range nodePools {
+		if node.Replicas <= 0 {
+			continue
+		}
+		sts := []types.NamespacedName{{
+			Namespace: ComponentNamespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, node.Component),
+		}}
+		if !ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), sts, node.Replicas, getPrefix(ctx)) {
+			return false
+		}
+	}
+	deployments := getEnabledDeployments(ctx)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, getPrefix(ctx))
+}
+
+func getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {
+	deployments := []types.NamespacedName{
+		{
+			Name:      opensearchOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	if ok, _ := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
+		deployments = append(deployments, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      fmt.Sprintf("%s-dashboards", clusterName),
+		})
+	}
+	return deployments
 }
 
 // GetOverrides gets the install overrides
@@ -88,7 +121,7 @@ func BuildNodePoolOverrides(cr vzapi.Verrazzano) []vzapi.Overrides {
 
 	var mergedOverrides []vzapi.Overrides
 
-	client, err := getControllerRuntimeClient()
+	client, err := GetControllerRuntimeClient()
 	if err != nil {
 		return mergedOverrides
 	}
@@ -107,12 +140,15 @@ func BuildNodePoolOverrides(cr vzapi.Verrazzano) []vzapi.Overrides {
 		return mergedOverrides
 	}
 
+	// Merge the node configuration from the OpenSearch component
+	// This will be part of CR conversion later
 	existingOSConfig := ConvertOSNodeToInterface(cr.Spec.Components.Elasticsearch.Nodes)
 	value, err = MergeNodePools(existingOSConfig, value)
 	if err != nil {
 		return mergedOverrides
 	}
 
+	// Merge the node configuration from rest of the user provided overrides
 	for i := len(overrideYaml) - 2; i >= 0; i-- {
 		newValue, err := override.ExtractValueFromOverrideString(overrideYaml[i], nodePoolKey)
 		if err != nil {
@@ -138,7 +174,7 @@ func BuildNodePoolOverridesv1beta1(cr installv1beta1.Verrazzano) []installv1beta
 
 	var mergedOverrides []installv1beta1.Overrides
 
-	client, err := getControllerRuntimeClient()
+	client, err := GetControllerRuntimeClient()
 	if err != nil {
 		return mergedOverrides
 	}
@@ -250,7 +286,7 @@ func ConvertOSNodeToInterfacev1beta1(nodes []installv1beta1.OpenSearchNode) inte
 }
 
 func CreateOverridesAsJSON(value interface{}) []byte {
-	// Create the nested structure for opensearchCLuster.nodePools.*
+	// Create the nested structure for openSearchCluster.nodePools.*
 	nestedMap := make(map[string]interface{})
 
 	_, ok := value.([]interface{})
@@ -272,9 +308,11 @@ func CreateOverridesAsJSON(value interface{}) []byte {
 func MergeNodePools(np1, np2 interface{}) (interface{}, error) {
 	_, ok1 := np1.([]interface{})
 	_, ok2 := np2.([]interface{})
+
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("Failed to merge nodes")
 	}
+
 	for _, oldNode := range np2.([]interface{}) {
 		oldnp, ok := oldNode.(map[string]interface{})
 		if !ok {
@@ -388,6 +426,39 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build ingress overrides: %v", err)
 	}
 
+	// Append OSD replica count from current OSD config
+	// This will later go as part CR conversion
+	osdReplica := ctx.EffectiveCR().Spec.Components.Kibana.Replicas
+	if osdReplica != nil {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "openSearchCluster.dashboards.replicas",
+			Value: fmt.Sprint(*osdReplica),
+		})
+	}
+
+	// Append plugins list
+	// This will later go as part of CR conversion
+	osPlugins := ctx.EffectiveCR().Spec.Components.Elasticsearch.Plugins
+	osdPlugins := ctx.EffectiveCR().Spec.Components.Kibana.Plugins
+
+	if osPlugins.Enabled && len(osPlugins.InstallList) > 0 {
+		for i, plugin := range osPlugins.InstallList {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   fmt.Sprintf("openSearchCluster.general.pluginsList[%d]", i),
+				Value: plugin,
+			})
+		}
+	}
+
+	if osdPlugins.Enabled && len(osdPlugins.InstallList) > 0 {
+		for i, plugin := range osdPlugins.InstallList {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   fmt.Sprintf("openSearchCluster.dashboards.pluginsList[%d]", i),
+				Value: plugin,
+			})
+		}
+	}
+
 	return kvs, nil
 }
 
@@ -399,6 +470,22 @@ func IsSingleMasterNodeCluster(nodePools []NodePool) bool {
 		if vzstring.SliceContainsString(node.Roles, "master") {
 			replicas += node.Replicas
 		} else if vzstring.SliceContainsString(node.Roles, "cluster_manager") {
+			replicas += node.Replicas
+		}
+	}
+	return replicas <= 1
+}
+
+func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
+	nodePools, err := GetMergedNodePools(ctx)
+	if err != nil {
+		ctx.Log().Errorf("failed to get the list of nodes for OpenSearch: %v", err)
+		return false
+	}
+	replicas := int32(0)
+
+	for _, node := range nodePools {
+		if vzstring.SliceContainsString(node.Roles, "data") {
 			replicas += node.Replicas
 		}
 	}
@@ -530,8 +617,8 @@ func appendOSIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain
 	return kvs, nil
 }
 
-// getClient returns a controller runtime client for the Verrazzano resource
-func getClient() (clipkg.Client, error) {
+// GetClient returns a controller runtime client for the Verrazzano resource
+func GetClient() (clipkg.Client, error) {
 	runtimeConfig, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return nil, err
@@ -559,28 +646,6 @@ func getMasterNode(nodes []NodePool) string {
 		}
 	}
 	return ""
-}
-
-func getDeploymentList() []types.NamespacedName {
-	return []types.NamespacedName{
-		{
-			Name:      opensearchOperatorDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-}
-
-func getIngressList() []types.NamespacedName {
-	return []types.NamespacedName{
-		{
-			Name:      osIngressName,
-			Namespace: constants.VerrazzanoSystemNamespace,
-		},
-		{
-			Name:      osdIngressName,
-			Namespace: constants.VerrazzanoSystemNamespace,
-		},
-	}
 }
 
 func buildOSHostnameForDomain(dnsDomain string) string {

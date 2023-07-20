@@ -12,6 +12,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -225,6 +226,12 @@ func TestAppendOverrides(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
 			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
+			opensearchoperator.GetControllerRuntimeClient = func() (client.Client, error) {
+				return fakeClient, nil
+			}
+			defer func() {
+				opensearchoperator.GetControllerRuntimeClient = opensearchoperator.GetClient
+			}()
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {

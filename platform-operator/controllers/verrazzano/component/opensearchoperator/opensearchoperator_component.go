@@ -5,6 +5,10 @@ package opensearchoperator
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -19,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -48,11 +53,9 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, nginx.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AppendOverridesFunc:       AppendOverrides,
-			IngressNames:              getIngressList(),
-			Certificates:              certificates,
 		},
 	}
 }
@@ -68,6 +71,66 @@ func (o opensearchOperatorComponent) IsReady(context spi.ComponentContext) bool 
 		return o.HelmComponent.IsReady(context)
 	}
 	return false
+}
+
+func (o opensearchOperatorComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
+	nodePools, err := GetMergedNodePools(context)
+	if err != nil {
+		return "", v1alpha1.ComponentUnavailable
+	}
+
+	var sts []types.NamespacedName
+	for _, node := range nodePools {
+		if node.Replicas <= 0 {
+			continue
+		}
+		sts = append(sts, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, node.Component),
+		})
+	}
+	deployments := getEnabledDeployments(context)
+	actualAvailabilityObjects := ready.AvailabilityObjects{
+		DeploymentNames:  deployments,
+		StatefulsetNames: sts,
+	}
+	return actualAvailabilityObjects.IsAvailable(context.Log(), context.Client())
+}
+
+// GetIngressNames returns the list of ingress for this component
+func (o opensearchOperatorComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var ingressNames []types.NamespacedName
+	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		return ingressNames
+	}
+	if ok, _ := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Name:      osIngressName,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		})
+	}
+
+	if ok, _ := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Name:      osdIngressName,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		})
+	}
+	return ingressNames
+}
+
+func (o opensearchOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certs []types.NamespacedName
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		if ok, _ := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
+			certs = append(certs, types.NamespacedName{Name: "system-tls-osd", Namespace: constants.VerrazzanoSystemNamespace})
+		}
+		if ok, _ := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
+			certs = append(certs, types.NamespacedName{Name: "system-tls-os-ingest", Namespace: constants.VerrazzanoSystemNamespace})
+		}
+	}
+	certs = append(certs, clusterCertificates...)
+	return certs
 }
 
 // PreInstall runs before components are installed
