@@ -17,6 +17,7 @@ const (
 	InterimVersionForUpgrade      = "interim-version"
 	LatestVersionForCurrentBranch = "latest-version-for-branch"
 	VersionsGTE                   = "versions-gte"
+	VersionsLT                    = "versions-lt"
 )
 
 var (
@@ -54,6 +55,12 @@ func main() {
 			panic(err)
 		}
 		fmt.Println(tagsAfter)
+	case VersionsLT:
+		tagsBefore, err := getTagsLT(releaseTags, excludeReleaseTags[0])
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(tagsBefore)
 	default:
 		fmt.Printf("invalid command line argument for derive version type \n")
 		os.Exit(1)
@@ -204,6 +211,32 @@ func getInstallRelease(releaseTags []string) string {
 		installRelease = installReleasePatchVersions[len(installReleasePatchVersions)-1]
 	}
 	return installRelease
+}
+
+func getTagsLT(tags []string, oldestAllowedVersion string) (string, error) {
+	builder := strings.Builder{}
+
+	o, err := semver.NewSemVersion(oldestAllowedVersion)
+	if err != nil {
+		return "", err
+	}
+
+	for _, tag := range tags {
+		var t = tag
+		if tag[0] == 'v' || tag[0] == 'V' {
+			t = tag[1:]
+		}
+		tagVersion, err := semver.NewSemVersion(t)
+		if err != nil {
+			return "", err
+		}
+		if tagVersion.IsLessThan(o) {
+			builder.WriteString(tag)
+			builder.WriteString("\n")
+		}
+	}
+
+	return builder.String(), nil
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {

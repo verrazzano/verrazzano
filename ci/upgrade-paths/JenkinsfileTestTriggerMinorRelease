@@ -400,22 +400,8 @@ def removeExcludedReleases(List releases){
     def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
     println(excludeReleasesList)
     def finalReleaseList  = []
-
-    for(releaseTag in releases){
-        def excluded = false
-        for(excludedRelease in excludeReleasesList){
-            String[] splitReleaseTag  = releaseTag.replace('v', '').split("\\.")
-            def releaseTagMinorVersion = splitReleaseTag[0] + "." + splitReleaseTag[1]
-            String[] splitDevVersion = VERRAZZANO_DEV_VERSION.split("\\.")
-            if (splitReleaseTag[0] > splitDevVersion[0] || splitReleaseTag[1] > splitDevVersion[1] || releaseTagMinorVersion == excludedRelease || "v"+releaseTagMinorVersion == excludedRelease) {
-                excluded = true
-            }
-        }
-        if(excluded == false){
-            finalReleaseList.add(releaseTag)
-        }
-    }
-     echo "Final releases: ${finalReleaseList}"
+    finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt ${excludeReleasesList}").trim()
+    echo "Final releases: ${finalReleaseList}"
     return finalReleaseList
 }
 
