@@ -16,6 +16,7 @@ const (
 	catalogGroup      = "catalog.cattle.io"
 	provisioningGroup = "provisioning.cattle.io"
 	fleetGroup        = "fleet.cattle.io"
+	gitJobGroup       = "gitjob.cattle.io"
 )
 
 type rancherResource struct {
@@ -43,6 +44,7 @@ var rancherNamespacedResources = []rancherResource{
 	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
 	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "nodes"}, Kind: "Node"},
 	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "managedcharts"}, Kind: "ManagedChart"},
+	{GVR: schema.GroupVersionResource{Group: gitJobGroup, Version: cattleV1, Resource: "gitjobs"}, Kind: "GitJob"},
 }
 
 // CaptureGlobalRancherResources captures global resources related to ClusterAPI

@@ -11,6 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const catalogAppResource = "app.catalog.cattle.io"
+
 // Minimal definition of object that only contains the fields that will be analyzed
 type catalogAppList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -35,7 +37,7 @@ type catalogAppSummary struct {
 // AnalyzeCatalogApps - analyze the status of CatalogApp objects
 func AnalyzeCatalogApps(clusterRoot string, issueReporter *report.IssueReporter) error {
 	list := &catalogAppList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "app.catalog.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", catalogAppResource), list)
 	if err != nil {
 		return err
 	}
@@ -57,7 +59,7 @@ func analyzeCatalogApp(clusterRoot string, catalogApp catalogApp, issueReporter 
 
 	summary := catalogApp.Status.Summary
 	if summary != nil && summary.Error {
-		message := fmt.Sprintf("Rancher CatalogApp resource %q in namespace %s is in state %s", catalogApp.Name, catalogApp.Namespace, catalogApp.Status.Summary.State)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s is in state %s", catalogAppResource, catalogApp.Name, catalogApp.Namespace, catalogApp.Status.Summary.State)
 		messages = append([]string{message}, messages...)
 	}
 

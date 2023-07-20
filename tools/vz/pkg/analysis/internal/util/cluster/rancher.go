@@ -41,7 +41,7 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 		rancher.AnalyzeProvisioningClusters, rancher.AnalyzeBundleDeployments,
 		rancher.AnalyzeBundles, rancher.AnalyzeClusterGroups, rancher.AnalyzeClusterRegistrations,
 		rancher.AnalyzeFleetClusters, rancher.AnalyzeCatalogApps, rancher.AnalyzeNodes,
-		rancher.AnalyzeGitRepos, rancher.AnalyzeManagedCharts,
+		rancher.AnalyzeGitRepos, rancher.AnalyzeGitJobs, rancher.AnalyzeManagedCharts,
 	}
 	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
