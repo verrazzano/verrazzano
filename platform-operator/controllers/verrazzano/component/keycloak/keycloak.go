@@ -872,7 +872,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			pod := keycloakPod()
 			err1 := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
 			if err1 != nil {
-				ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err1)
+				ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", pod.Name, err1)
 				return err1
 			}
 			err2 := ctx.Client().Delete(context.TODO(), pod)
@@ -1101,7 +1101,7 @@ func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	kcPod := keycloakPod()
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: kcPod.Namespace, Name: kcPod.Name}, kcPod)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", kcPod.Name, err)
+		ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", kcPod.Name, err)
 		return err
 	}
 	if !isPodReady(kcPod) {
