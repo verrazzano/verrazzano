@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/url"
 	"os"
 	"regexp"
@@ -15,8 +16,10 @@ import (
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -29,7 +32,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
@@ -1067,9 +1070,22 @@ func TestIsReady(t *testing.T) {
 //	THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
 	component := NewComponent()
-	ctxWithoutIngress, ctxWithIngress := prepareContexts()
-	assert.IsType(t, fmt.Errorf(""), component.PostInstall(ctxWithoutIngress))
-	assert.Nil(t, component.PostInstall(ctxWithIngress))
+	_, ctxWithIngress := prepareContexts()
+
+	err := component.PostInstall(ctxWithIngress)
+	assert.NoError(t, err)
+}
+
+// TestPostInstallNoIngress tests PostInstall()
+// GIVEN a call to PostInstall
+//
+//	WHEN the ingress is not present
+//	THEN PostInstall should return an error
+func TestPostInstallNoIngress(t *testing.T) {
+	component := NewComponent()
+	ctxWithoutIngress, _ := prepareContexts()
+	err := component.PostInstall(ctxWithoutIngress)
+	assert.Error(t, err)
 }
 
 // TestPostUpgrade tests a happy path post upgrade run
@@ -1236,7 +1252,7 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	serverURLSetting := createServerURLSetting()
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
-	rancherPod := newPod("cattle-system", "rancher")
+	rancherPod := newPod(ComponentNamespace, "rancher")
 	rancherPod.Status = corev1.PodStatus{
 		Phase: corev1.PodRunning,
 	}
@@ -1373,6 +1389,454 @@ func TestValidateInstall(t *testing.T) {
 			Vz:         vz,
 		})
 
+}
+
+// TestGetSecret tests the getSecret func
+// GIVEN a all to getSecret
+//
+//	THEN the secret is returned, or an error is returned if the secret does not exist
+func TestGetSecret(t *testing.T) {
+	type args struct {
+		namespace string
+		name      string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *corev1.Secret
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "GetSecretFound",
+			args: args{name: "mysecret", namespace: ComponentNamespace},
+			want: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysecret", Namespace: ComponentNamespace},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "GetSecretNotFound",
+			args:    args{name: "mysecret", namespace: ComponentNamespace},
+			want:    nil,
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.want == nil {
+				k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+			} else {
+				k8sutil.GetCoreV1Func = common.MockGetCoreV1(tt.want)
+			}
+			defer k8sutil.ResetCoreV1Client()
+
+			got, err := getSecret(tt.args.namespace, tt.args.name)
+			if !tt.wantErr(t, err, fmt.Sprintf("getSecret(%v, %v)", tt.args.namespace, tt.args.name)) {
+				return
+			}
+			if tt.want == nil {
+				assert.Nil(t, got)
+			} else {
+				assert.Equalf(t, tt.want, got, "getSecret(%v, %v)", tt.args.namespace, tt.args.name)
+			}
+		})
+	}
+}
+
+// TestRestartRancherDeployment tests the getSecret func
+// GIVEN a call to restartRancherDeployment
+//
+//	THEN the Rancher deployment is annotated for a rolling restart if present, or an error is returned for unexpected errors
+func TestRestartRancherDeployment(t *testing.T) {
+	log := vzlog.DefaultLogger()
+	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
+
+	tests := []struct {
+		name             string
+		deploymentExists bool
+		createClientFunc func() client.Client
+		wantErr          assert.ErrorAssertionFunc
+	}{
+		{
+			name: "RestartSuccessful",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment) error {
+						deployment.Name = deploymentName.Name
+						deployment.Namespace = deploymentName.Namespace
+						return nil
+					}).Times(1)
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
+						assert.Equal(t, deploymentName, client.ObjectKeyFromObject(deployment))
+						_, restartAnnotationFound := deployment.Spec.Template.ObjectMeta.Annotations[constants2.VerrazzanoRestartAnnotation]
+						assert.Truef(t, restartAnnotationFound, "Restart annotation %s not found", constants2.RestartVersionAnnotation)
+						return nil
+					}).Times(1)
+				return mockClient
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "DeploymentNotFound",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					Return(errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"},
+						deploymentName.Name))
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).Times(0)
+				return mockClient
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "GetUnexpectedError",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					Return(fmt.Errorf("unexpected error"))
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).Times(0)
+				return mockClient
+			},
+			wantErr: assert.Error,
+		},
+		{
+			name: "UpdateFailed",
+			createClientFunc: func() client.Client {
+				mocker := gomock.NewController(t)
+				mockClient := mocks.NewMockClient(mocker)
+				mockClient.EXPECT().Get(context.TODO(),
+					deploymentName,
+					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment) error {
+						deployment.Name = deploymentName.Name
+						deployment.Namespace = deploymentName.Namespace
+						return nil
+					}).Times(1)
+				mockClient.EXPECT().Update(context.TODO(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+					Return(fmt.Errorf("update failed")).
+					Times(1)
+				return mockClient
+			},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.wantErr(t, restartRancherDeployment(log, tt.createClientFunc()))
+		})
+	}
+}
+
+// TestGetCurrentCABundleSecretsValue tests the getCurrentCABundleSecretsValue  func of the rancherComonent
+// GIVEN a call to rancherComponent.getCurrentCABundleSecretsValue
+//
+//	THEN the bundle data is returned if the secret exists and the bundle is present, or an error is returned and the found bool is false otherwise
+func TestGetCurrentCABundleSecretsValue(t *testing.T) {
+	bundleData1 := "cabundledata"
+	emptyBundle := ""
+	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
+	tests := []struct {
+		name                string
+		cli                 client.Client
+		corev1ClientFunc    func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+		bundleDataExpected  string
+		bundleFoundExpected bool
+		wantErr             assert.ErrorAssertionFunc
+	}{
+		{
+			name: "SecretAndBundleKeyExist",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			bundleDataExpected:  bundleData1,
+			bundleFoundExpected: true,
+			wantErr:             assert.NoError,
+		},
+		{
+			name:                "SecretDoesNotExist",
+			corev1ClientFunc:    common.MockGetCoreV1(),
+			bundleDataExpected:  emptyBundle,
+			bundleFoundExpected: false,
+			wantErr:             assert.NoError,
+		},
+		{
+			name: "BundleKeyDoesNotExist",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+			}),
+			bundleDataExpected:  emptyBundle,
+			bundleFoundExpected: false,
+			wantErr:             assert.Error,
+		},
+		{
+			name: "BundleWithLeadingAndTrailingWhitespace",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			bundleDataExpected:  bundleData1,
+			bundleFoundExpected: true,
+			wantErr:             assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewComponent().(rancherComponent)
+			ctx := spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false)
+			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
+			defer k8sutil.ResetCoreV1Client()
+
+			bundleData, bundleFound, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+			if !tt.wantErr(t, err) {
+				return
+			}
+			assert.Equal(t, tt.bundleFoundExpected, bundleFound)
+			assert.Equal(t, tt.bundleDataExpected, bundleData)
+		})
+	}
+}
+
+// TestIsPrivateCABundleInSync tests the isPrivateCABundleInSync  func of the rancherComonent
+// GIVEN a call to rancherComponent.isPrivateCABundleInSync
+//
+//	THEN true is returned if the bundle data in tls-ca is out of sync with the cacerts settings value, or an error
+func TestIsPrivateCABundleInSync(t *testing.T) {
+	bundleData1 := "cabundledata"
+	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
+	tests := []struct {
+		name             string
+		corev1ClientFunc func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+		crtClientFunc    func() client.Client
+		exepectedResult  bool
+		wantErr          assert.ErrorAssertionFunc
+	}{
+		{
+			name: "SecretAndSettingsInSync",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting(bundleData1)).Build()
+			},
+			exepectedResult: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "SecretAndSettingsInSyncWithWhiteSpace",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting(bundleData1)).Build()
+			},
+			exepectedResult: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "SecretAndSettingsNotInSync",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting("old bundle data")).Build()
+			},
+			exepectedResult: false,
+			wantErr:         assert.NoError,
+		},
+		{
+			name:             "SecretDoesNotExist",
+			corev1ClientFunc: common.MockGetCoreV1(),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(newCASetting(bundleData1)).Build()
+			},
+			exepectedResult: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "SettingDoesNotExist",
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).WithRuntimeObjects().Build()
+			},
+			exepectedResult: false,
+			wantErr:         assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewComponent().(rancherComponent)
+			ctx := spi.NewFakeContext(tt.crtClientFunc(), &vzapi.Verrazzano{}, nil, false)
+			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
+			defer k8sutil.ResetCoreV1Client()
+
+			inSync, err := r.isPrivateCABundleInSync(ctx)
+			if !tt.wantErr(t, err) {
+				return
+			}
+			assert.Equal(t, tt.exepectedResult, inSync)
+		})
+	}
+}
+
+// TestCheckRestartRequired tests the checkRestartRequired  func of the rancherComonent
+// GIVEN a call to rancherComponent.checkRestartRequired
+//
+//	THEN the Rancher deployment is restarted if the CA bundle is out of sync with the secret AND a Rancher deployment
+//	  	rolling update is NOT already in progress
+func TestCheckRestartRequired(t *testing.T) {
+	deploymentName := types.NamespacedName{Namespace: constants2.RancherSystemNamespace, Name: ComponentName}
+	bundleData1 := "cabundledata"
+	bundleDataWithWhitespace := "  \t " + bundleData1 + "\n\t"
+	staleBundleData := "otherData"
+
+	tests := []struct {
+		name             string
+		description      string
+		corev1ClientFunc func(log ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error)
+		crtClientFunc    func() client.Client
+		restartExpected  bool
+		wantErr          assert.ErrorAssertionFunc
+	}{
+		{
+			name: "SecretAndSettingsInSyncRancherReady",
+			description: `Tests that the cattle-system/rancher deployment is NOT restarted when the
+				tls-ca bundle is in sync with the cacerts settings, and the deployment is in steady state.  This
+				means that there is no need to restart the Rancher pods`,
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleData1),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(
+						newReadyDeployment(ComponentNamespace, ComponentName),
+						newPod(ComponentNamespace, ComponentName),
+						newReplicaSet(ComponentNamespace, ComponentName),
+						newCASetting(bundleData1)).
+					Build()
+			},
+			restartExpected: false,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "RestartRequiredNotInSync",
+			description: `Tests that the cattle-system/rancher deployment is restarted when the
+				tls-ca bundle is out of sync with the cacerts settings, and the deployment is in steady state.  This
+				means that the we need to restart the Rancher pods in order to pick up the new private CA bundle`,
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(
+						newReadyDeployment(ComponentNamespace, ComponentName),
+						newPod(ComponentNamespace, ComponentName),
+						newReplicaSet(ComponentNamespace, ComponentName),
+						newCASetting(staleBundleData)).
+					Build()
+			},
+			restartExpected: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name: "UpdateInProgressNoRestartRequired",
+			description: `Tests that the cattle-system/rancher deployment is NOT restarted when the
+				tls-ca bundle is out of sync with the cacerts settings, and the deployment is already in the middle of
+				a rolling restart.  The restart check is done immediately after applying the Rancher Helm chart, so
+				other updates to the Rancher configuration have already triggered the deployment to update`,
+			corev1ClientFunc: common.MockGetCoreV1(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: rancherTLSSecretName, Namespace: ComponentNamespace},
+				Data: map[string][]byte{
+					caCertsPem: []byte(bundleDataWithWhitespace),
+				},
+			}),
+			crtClientFunc: func() client.Client {
+				return fake.NewClientBuilder().WithScheme(getScheme()).
+					WithRuntimeObjects(
+						&appsv1.Deployment{
+							ObjectMeta: metav1.ObjectMeta{
+								Namespace: ComponentNamespace,
+								Name:      ComponentName,
+							},
+							Status: appsv1.DeploymentStatus{
+								AvailableReplicas: 0,
+								Replicas:          1,
+							},
+						},
+						newCASetting(staleBundleData)).
+					Build()
+			},
+			restartExpected: false,
+			wantErr:         assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewComponent().(rancherComponent)
+			crtClient := tt.crtClientFunc()
+			ctx := spi.NewFakeContext(crtClient, &vzapi.Verrazzano{}, nil, false)
+			k8sutil.GetCoreV1Func = tt.corev1ClientFunc
+			defer k8sutil.ResetCoreV1Client()
+			tt.wantErr(t, r.checkRestartRequired(ctx))
+
+			depObject := &appsv1.Deployment{}
+			if !assert.NoError(t, crtClient.Get(context.TODO(), deploymentName, depObject)) {
+				return
+			}
+			_, restarted := depObject.Spec.Template.ObjectMeta.Annotations[constants2.VerrazzanoRestartAnnotation]
+			assert.Equalf(t, tt.restartExpected, restarted, "Did not get expected restart value")
+		})
+	}
+}
+
+func newCASetting(bundleData1 string) *unstructured.Unstructured {
+	expectedSetting := &unstructured.Unstructured{}
+
+	expectedSetting.SetGroupVersionKind(common.GVKSetting)
+	expectedSetting.SetName(SettingCACerts)
+	unstructuredContent := expectedSetting.UnstructuredContent()
+
+	unstructuredContent["value"] = bundleData1
+	return expectedSetting
 }
 
 func getLocalNamespaceNotProvisioned() *corev1.Namespace {
