@@ -239,6 +239,8 @@ func TestNoneProfileHaveEverythingDisabled(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &actualCR, nil, false)
 	a.NotNil(context, "Context was nil")
+	a.NoError(err)
+
 	if context == nil {
 		return
 	}
