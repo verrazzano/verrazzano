@@ -50,12 +50,30 @@ if [ -n "${CLUSTER_OPERATOR_IMAGE}" ] && [[ "${CLUSTER_OPERATOR_IMAGE}" == *:* ]
     CLUSTER_OPERATOR_IMAGE_ARG="--set global.clusterOperatorImage=${CLUSTER_OPERATOR_IMAGE}"
 fi
 
-helm template \
-    --include-crds \
-    ${IMAGE_PULL_SECRET_ARG} \
-    --set image=${DOCKER_IMAGE} \
-    ${APP_OPERATOR_IMAGE_ARG} \
-    ${CLUSTER_OPERATOR_IMAGE_ARG} \
-    $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
+if [[ "$MODULE_INTEGRATION" == "true" ]]; then
+  echo "generating operator.yamo with module integration configured"
+
+  wget https://raw.githubusercontent.com/verrazzano/verrazzano-modules/main/module-operator/manifests/charts/operators/verrazzano-module-operator/crds/platform.verrazzano.io_modules.yaml \
+  -O $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
+
+  helm template \
+      --include-crds \
+      ${IMAGE_PULL_SECRET_ARG} \
+      --set image=${DOCKER_IMAGE} \
+      ${APP_OPERATOR_IMAGE_ARG} \
+      ${CLUSTER_OPERATOR_IMAGE_ARG} \
+      $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator \
+      --set experimentalFeatures.moduleIntegration.enabled=true
+
+  rm $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
+else
+  helm template \
+      --include-crds \
+      ${IMAGE_PULL_SECRET_ARG} \
+      --set image=${DOCKER_IMAGE} \
+      ${APP_OPERATOR_IMAGE_ARG} \
+      ${CLUSTER_OPERATOR_IMAGE_ARG} \
+      $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
+fi
 
 exit $?

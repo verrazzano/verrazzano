@@ -50,6 +50,9 @@ spec:
             {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
             - --experimental-modules=true
             {{ end }}
+            {{ if .Values.experimentalFeatures.moduleIntegration.enabled }}
+            - --module-integration=true
+            {{ end }}
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
@@ -126,6 +129,9 @@ spec:
             {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
             - --experimental-modules=true
             {{ end }}
+            {{ if .Values.experimentalFeatures.moduleIntegration.enabled }}
+            - --module-integration=true
+            {{ end }}
           resources:
             requests:
               memory: 72Mi
@@ -148,6 +154,9 @@ spec:
             - --resource-validation={{ .Values.webhooks.resourceValidation }}
             {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
             - --experimental-modules=true
+            {{ end }}
+            {{ if .Values.experimentalFeatures.moduleIntegration.enabled }}
+            - --module-integration=true
             {{ end }}
           volumeMounts:
             - name: webhook-certs
