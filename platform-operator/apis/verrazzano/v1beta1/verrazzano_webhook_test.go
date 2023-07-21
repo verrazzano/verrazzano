@@ -436,6 +436,36 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 	assert.Error(t, vz.verifyPlatformOperatorSingleton())
 }
 
+// Test_verifyPlatformOperatorSingletonNoFailedPods Tests the verifyPlatformOperatorSingleton check
+// GIVEN a verifyPlatformOperatorSingleton call
+// WHEN there are FAILED pods
+// THEN an error is returned
+func Test_verifyPlatformOperatorSingletonNoFailedPods(t *testing.T) {
+	tests := []struct {
+		name        string
+		isSingleton string
+	}{
+		{name: "Single VPO instance", isSingleton: "true"},
+		{name: "Multiple VPO instances", isSingleton: "false"},
+		{name: "Failed pods present", isSingleton: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vz := &Verrazzano{}
+
+			if tt.isSingleton == "true" {
+				getTestPodList("appName")
+				defer func() { getControllerRuntimeClient = validators.GetClient }()
+				assert.NoError(t, vz.verifyPlatformOperatorSingleton())
+			} else if tt.isSingleton == "false" {
+				getTestPodList("verrazzano-platform-operator")
+				defer func() { getControllerRuntimeClient = validators.GetClient }()
+				assert.Error(t, vz.verifyPlatformOperatorSingleton())
+			}
+		})
+	}
+}
+
 // Test_verifyPlatformOperatorSingletonNoMatchingLabels Tests the verifyPlatformOperatorSingleton check
 // GIVEN a verifyPlatformOperatorSingleton call
 // WHEN no Pods match the selection criteria
@@ -561,4 +591,18 @@ func TestInvalidClusterK8SVersion(t *testing.T) {
 	}
 	assert.ErrorContains(t, currentSpec.ValidateCreate(), errMsg)
 	assert.ErrorContains(t, currentSpec.ValidateUpdate(currentSpec), errMsg)
+}
+
+func getTestPodList(appName string) {
+	labels := map[string]string{
+		"app": appName,
+	}
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
+			TypeMeta: metav1.TypeMeta{},
+			Items: []v1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
+			},
+		}).Build(), nil
+	}
 }

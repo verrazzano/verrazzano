@@ -189,9 +189,12 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 		return err
 	}
 	var podList v1.PodList
-	runtimeClient.List(context.TODO(), &podList,
+	err = runtimeClient.List(context.TODO(), &podList,
 		client.InNamespace(constants.VerrazzanoInstallNamespace),
 		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	if err != nil {
+		return err
+	}
 	if len(podList.Items) > 1 {
 		return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
 	}
