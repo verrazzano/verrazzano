@@ -401,7 +401,6 @@ func newClusterRepoResources() []runtime.Object {
 	return []runtime.Object{cattleSettings, rancherClusterRepo, rancherPartnerClusterRepo, rancherRke2ClusterRepo, appClusterRepo}
 }
 
-
 // TestGetSettingValue tests the getSettingValue func
 // GIVEN func call to getSettingValue(
 // THEN the value is returned if the setting is present, or an error if the field is not found but the setting exists

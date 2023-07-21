@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	logcmn "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -34,8 +35,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -505,7 +506,7 @@ func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentC
 			Namespace: ComponentNamespace,
 		},
 	}
-	return !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), rancherDeployment, 1, "rancher")
+	return !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), rancherDeployment, 1, "rancher")
 }
 
 // isPrivateCABundleInSync If the tls-ca private CA bundle secret is present, verify that the bundle in the secret is

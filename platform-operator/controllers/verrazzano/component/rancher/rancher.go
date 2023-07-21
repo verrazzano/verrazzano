@@ -102,7 +102,7 @@ const (
 	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
 	SettingUIBrand                 = "ui-brand"
 	SettingUIBrandValue            = "verrazzano"
-	SettingCACerts                    = "cacerts"
+	SettingCACerts                 = "cacerts"
 )
 
 // auth config
