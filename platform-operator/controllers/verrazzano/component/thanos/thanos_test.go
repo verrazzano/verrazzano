@@ -124,6 +124,7 @@ func TestAppendOverrides(t *testing.T) {
 	}
 
 	ingressKVs := map[string]string{
+		// Query frontend expected values
 		"queryFrontend.ingress.namespace":                                                      constants.VerrazzanoSystemNamespace,
 		"queryFrontend.ingress.ingressClassName":                                               "verrazzano-nginx",
 		"queryFrontend.ingress.extraRules[0].host":                                             "thanos-query.default.11.22.33.44.nip.io",
@@ -136,17 +137,30 @@ func TestAppendOverrides(t *testing.T) {
 		`queryFrontend.ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name`: queryHostName,
 		`queryFrontend.ingress.annotations.cert-manager\.io/cluster-issuer`:                    constants2.VerrazzanoClusterIssuerName,
 		`queryFrontend.ingress.annotations.cert-manager\.io/common-name`:                       "thanos-query.default.11.22.33.44.nip.io",
-		"query.ingress.grpc.namespace":                                                         constants.VerrazzanoSystemNamespace,
-		"query.ingress.grpc.ingressClassName":                                                  "verrazzano-nginx",
-		"query.ingress.grpc.extraRules[0].host":                                                "thanos-query-store.default.11.22.33.44.nip.io",
-		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":                  constants.VerrazzanoAuthProxyServiceName,
-		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number":           strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
-		"query.ingress.grpc.extraRules[0].http.paths[0].path":                                  "/",
-		"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                              string(netv1.PathTypeImplementationSpecific),
-		"query.ingress.grpc.extraTls[0].hosts[0]":                                              "thanos-query-store.default.11.22.33.44.nip.io",
-		"query.ingress.grpc.extraTls[0].secretName":                                            queryStoreCertificateName,
-		`query.ingress.grpc.annotations.cert-manager\.io/cluster-issuer`:                       constants2.VerrazzanoClusterIssuerName,
-		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                          "thanos-query-store.default.11.22.33.44.nip.io",
+		// Query expected values
+		"query.ingress.grpc.namespace":                                               constants.VerrazzanoSystemNamespace,
+		"query.ingress.grpc.ingressClassName":                                        "verrazzano-nginx",
+		"query.ingress.grpc.extraRules[0].host":                                      "thanos-query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.name":        constants.VerrazzanoAuthProxyServiceName,
+		"query.ingress.grpc.extraRules[0].http.paths[0].backend.service.port.number": strconv.Itoa(constants.VerrazzanoAuthProxyGRPCServicePort),
+		"query.ingress.grpc.extraRules[0].http.paths[0].path":                        "/",
+		"query.ingress.grpc.extraRules[0].http.paths[0].pathType":                    string(netv1.PathTypeImplementationSpecific),
+		"query.ingress.grpc.extraTls[0].hosts[0]":                                    "thanos-query-store.default.11.22.33.44.nip.io",
+		"query.ingress.grpc.extraTls[0].secretName":                                  queryStoreCertificateName,
+		`query.ingress.grpc.annotations.cert-manager\.io/cluster-issuer`:             constants2.VerrazzanoClusterIssuerName,
+		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                "thanos-query-store.default.11.22.33.44.nip.io",
+		// Ruler expected values
+		"ruler.ingress.namespace":                                               constants.VerrazzanoSystemNamespace,
+		"ruler.ingress.ingressClassName":                                        "verrazzano-nginx",
+		"ruler.ingress.extraRules[0].host":                                      "thanos-ruler.default.11.22.33.44.nip.io",
+		"ruler.ingress.extraRules[0].http.paths[0].backend.service.name":        constants.VerrazzanoAuthProxyServiceName,
+		"ruler.ingress.extraRules[0].http.paths[0].backend.service.port.number": strconv.Itoa(constants.VerrazzanoAuthProxyServicePort),
+		"ruler.ingress.extraRules[0].http.paths[0].path":                        "/",
+		"ruler.ingress.extraRules[0].http.paths[0].pathType":                    string(netv1.PathTypeImplementationSpecific),
+		"ruler.ingress.extraTls[0].hosts[0]":                                    "thanos-ruler.default.11.22.33.44.nip.io",
+		"ruler.ingress.extraTls[0].secretName":                                  rulerCertificateName,
+		`ruler.ingress.annotations.cert-manager\.io/cluster-issuer`:             constants2.VerrazzanoClusterIssuerName,
+		`ruler.ingress.annotations.cert-manager\.io/common-name`:                "thanos-ruler.default.11.22.33.44.nip.io",
 	}
 	sslipioKVs := map[string]string{
 		"queryFrontend.ingress.extraRules[0].host":                       "thanos-query.default.11.22.33.44.sslip.io",
@@ -155,6 +169,9 @@ func TestAppendOverrides(t *testing.T) {
 		"query.ingress.grpc.extraRules[0].host":                          "thanos-query-store.default.11.22.33.44.sslip.io",
 		"query.ingress.grpc.extraTls[0].hosts[0]":                        "thanos-query-store.default.11.22.33.44.sslip.io",
 		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:    "thanos-query-store.default.11.22.33.44.sslip.io",
+		"ruler.ingress.extraRules[0].host":                               "thanos-ruler.default.11.22.33.44.sslip.io",
+		"ruler.ingress.extraTls[0].hosts[0]":                             "thanos-ruler.default.11.22.33.44.sslip.io",
+		`ruler.ingress.annotations.cert-manager\.io/common-name`:         "thanos-ruler.default.11.22.33.44.sslip.io",
 	}
 	istioEnabledKV := map[string]string{
 		"verrazzano.isIstioEnabled": "true",
@@ -175,6 +192,11 @@ func TestAppendOverrides(t *testing.T) {
 		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/target`:    "verrazzano-ingress.default.mydomain.com",
 		`query.ingress.grpc.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:       "60",
 		`query.ingress.grpc.annotations.cert-manager\.io/common-name`:                  "thanos-query-store.default.mydomain.com",
+		"ruler.ingress.extraRules[0].host":                                             "thanos-ruler.default.mydomain.com",
+		"ruler.ingress.extraTls[0].hosts[0]":                                           "thanos-ruler.default.mydomain.com",
+		`ruler.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`:         "verrazzano-ingress.default.mydomain.com",
+		`ruler.ingress.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:            "60",
+		`ruler.ingress.annotations.cert-manager\.io/common-name`:                       "thanos-ruler.default.mydomain.com",
 	}
 	externalDNSZone := "mydomain.com"
 
