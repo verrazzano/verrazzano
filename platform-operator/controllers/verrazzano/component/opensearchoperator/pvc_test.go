@@ -18,6 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var (
+	testScheme = runtime.NewScheme()
+	_          = k8scheme.AddToScheme(testScheme)
+	_          = vmov1.AddToScheme(testScheme)
+)
+
 // TestGetOSPersistentVolumes tests the getOSPersistentVolumes function
 // GIVEN a list of PVs created by VMO and OS nodes
 // WHEN getOSPersistentVolumes is called
@@ -68,11 +74,8 @@ func TestCreateNewPVCs(t *testing.T) {
 
 // newFakeContext returns a fake context with fake client built with list of PVs and VZ object
 func newFakeContext() spi.ComponentContext {
-	scheme := runtime.NewScheme()
-	_ = k8scheme.AddToScheme(scheme)
-	_ = vmov1.AddToScheme(scheme)
 	fakePVList := getFakePersistentVolumeList()
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithLists(fakePVList).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithLists(fakePVList).Build()
 
 	fakeCtx := spi.NewFakeContext(fakeClient, getVZ(), nil, false)
 	return fakeCtx

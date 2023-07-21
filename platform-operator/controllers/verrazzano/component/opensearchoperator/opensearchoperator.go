@@ -41,6 +41,7 @@ var (
 		{Name: fmt.Sprintf("%s-master-cert", clusterName), Namespace: ComponentNamespace},
 		{Name: fmt.Sprintf("%s-node-cert", clusterName), Namespace: ComponentNamespace}}
 
+	dashboardDeployment        = fmt.Sprintf("%s-dashboards", clusterName)
 	GetControllerRuntimeClient = GetClient
 )
 
@@ -83,7 +84,7 @@ func getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {
 	if ok, _ := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
 		deployments = append(deployments, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      fmt.Sprintf("%s-dashboards", clusterName),
+			Name:      dashboardDeployment,
 		})
 	}
 	return deployments
