@@ -4,161 +4,108 @@
 package opensearchoperator
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-//const (
-//	userNodePoolOverrideJSON = `
-//{
-//  "openSearchCluster": {
-//    "nodePools": [
-//      {
-//        "component": "es-master",
-//        "diskSize": "100Gi"
-//      }
-//    ]
-//  }
-//}
-//`
-//	defaultNodePoolOverrideJSON = `
-//{
-//  "openSearchCluster": {
-//    "nodePools": [
-//      {
-//        "component": "es-master",
-//        "replicas": 3,
-//        "diskSize": "50Gi",
-//        "resources": {
-//          "requests": {
-//            "memory": "1.4Gi"
-//          }
-//        },
-//        "roles": ["master"]
-//      },
-//      {
-//        "component": "es-data",
-//        "replicas": 3,
-//        "diskSize": "50Gi",
-//        "resources": {
-//          "requests": {
-//            "memory": "4.8Gi"
-//          }
-//        },
-//        "roles": ["data"]
-//      },
-//      {
-//        "component": "es-ingest",
-//        "replicas": 1,
-//        "resources": {
-//          "requests": {
-//            "memory": "2.5Gi"
-//          }
-//        },
-//        "roles": ["ingest"],
-//        "persistence": {
-//          "emptyDir": {}
-//        }
-//      }
-//    ]
-//  }
-//}
-//`
-//	mergedOverrides = `values:
-//  openSearchCluster:
-//    nodePools:
-//    - component: es-master
-//      diskSize: 100Gi
-//      jvm: null
-//      replicas: 3
-//      resources:
-//        requests:
-//          memory: 1.4Gi
-//      roles:
-//      - master
-//    - component: data-ingest
-//      diskSize: 10Gi
-//      jvm: Xvm512
-//      replicas: 5
-//      resources:
-//        requests:
-//          memory: 1Gi
-//    - component: es-data
-//      diskSize: 50Gi
-//      replicas: 3
-//      resources:
-//        requests:
-//          memory: 4.8Gi
-//      roles:
-//      - data
-//    - component: es-ingest
-//      persistence:
-//        emptyDir: {}
-//      replicas: 1
-//      resources:
-//        requests:
-//          memory: 2.5Gi
-//      roles:
-//      - ingest
-//`
-//)
+// TestIsSingleDataNodeCluster tests the IsSingleDataNodeCluster function
+// GIVEN a VZ CR
+// WHEN IsSingleDataNodeCluster is called
+// THEN expected boolean is returned
+func TestIsSingleDataNodeCluster(t *testing.T) {
+	defer func() {
+		GetControllerRuntimeClient = GetClient
+	}()
 
-//func TestBuildNodePoolOverride(t *testing.T) {
-//	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects().Build()
-//	GetControllerRuntimeClient = func() (client.Client, error) {
-//		return fakeClient, nil
-//	}
-//
-//	vz := &vzapi.Verrazzano{
-//		Spec: vzapi.VerrazzanoSpec{
-//			Components: vzapi.ComponentSpec{
-//				Elasticsearch: &vzapi.ElasticsearchComponent{
-//					Nodes: []vzapi.OpenSearchNode{
-//						{
-//							Name:     "es-master",
-//							Replicas: common.Int32Ptr(3),
-//							Roles:    []vmov1.NodeRole{"master"},
-//							Storage:  &vzapi.OpenSearchNodeStorage{Size: "50Gi"},
-//						},
-//						{
-//							Name:     "data-ingest",
-//							Replicas: common.Int32Ptr(5),
-//							Resources: &v1.ResourceRequirements{Requests: map[v1.ResourceName]resource.Quantity{
-//								"memory": resource.MustParse("1Gi"),
-//							}},
-//							Roles:    []vmov1.NodeRole{"ingest", "data"},
-//							JavaOpts: "Xvm512",
-//							Storage:  &vzapi.OpenSearchNodeStorage{Size: "10Gi"},
-//						}},
-//				},
-//				OpenSearchOperator: &vzapi.OpenSearchOperatorComponent{
-//					InstallOverrides: vzapi.InstallOverrides{
-//						ValueOverrides: []vzapi.Overrides{
-//							{
-//								Values: &apiextensionsv1.JSON{
-//									Raw: []byte(userNodePoolOverrideJson),
-//								},
-//							},
-//							{
-//								Values: &apiextensionsv1.JSON{
-//									Raw: []byte(defaultNodePoolOverrideJson),
-//								},
-//							},
-//						},
-//					},
-//				},
-//			},
-//		},
-//	}
-//
-//
-//}
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	GetControllerRuntimeClient = func() (client.Client, error) {
+		return fakeClient, nil
+	}
 
-func CreateValueOverride(rawJSON []byte) ([]v1beta1.Overrides, error) {
-	return []v1beta1.Overrides{
+	fakeCtx := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{Spec: v1alpha1.VerrazzanoSpec{Profile: "dev"}}, nil, false, profilesRelativePath)
+	assert.True(t, IsSingleDataNodeCluster(fakeCtx))
+
+	fakeCtx = spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.False(t, IsSingleDataNodeCluster(fakeCtx))
+}
+
+// TestIsUpgrade tests the IsUpgrade function
+// GIVEN a call to IsUpgrade
+// WHEN there are older PVs is called
+// THEN expected boolean is returned
+func TestIsUpgrade(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	nodePools := []NodePool{
 		{
-			Values: &apiextensionsv1.JSON{
-				Raw: rawJSON,
-			}},
-	}, nil
+			Component: "es-data",
+			Roles:     []string{"data"},
+			Replicas:  1,
+		},
+	}
+	fakeCtx := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.False(t, IsUpgrade(fakeCtx, nodePools))
+
+	fakeClient = fake.NewClientBuilder().WithScheme(testScheme).WithLists(
+		&v1.PersistentVolumeList{Items: []v1.PersistentVolume{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pv-1",
+					Labels: map[string]string{
+						opensearchNodeLabel: "es-data",
+						clusterLabel:        clusterName,
+					},
+				},
+				Spec: v1.PersistentVolumeSpec{
+					ClaimRef: &v1.ObjectReference{
+						Namespace: constants.VerrazzanoSystemNamespace,
+						Name:      "vmi-system-es-data-1",
+					},
+					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
+				},
+			},
+		}}).Build()
+	fakeCtx = spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.True(t, IsUpgrade(fakeCtx, nodePools))
+}
+
+// TestIsSingleMasterNodeCluster tests the IsSingleMasterNodeCluster function
+// GIVEN a VZ CR
+// WHEN IsSingleMasterNodeCluster is called
+// THEN expected boolean is returned
+func TestIsSingleMasterNodeCluster(t *testing.T) {
+	nodePools := []NodePool{
+		{
+			Component: "es-master",
+			Roles:     []string{"master"},
+			Replicas:  1,
+		},
+	}
+	assert.True(t, IsSingleMasterNodeCluster(nodePools))
+
+	nodePools = []NodePool{
+		{
+			Component: "es-master",
+			Roles:     []string{"master"},
+			Replicas:  3,
+		},
+	}
+	assert.False(t, IsSingleMasterNodeCluster(nodePools))
+
+	nodePools = []NodePool{
+		{
+			Component: "es-master",
+			Roles:     []string{"cluster_manager"},
+			Replicas:  1,
+		},
+	}
+	assert.True(t, IsSingleMasterNodeCluster(nodePools))
 }

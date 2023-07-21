@@ -1,0 +1,41 @@
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+openSearchCluster:
+  nodePools:
+    - component: master
+      replicas: 3
+      roles:
+        - master
+      diskSize: 75G
+    - component: data-ingest
+      replicas: 3
+      diskSize: 75G
+      roles:
+        - ingest
+        - data
+    - component: es-master
+      replicas: 0
+      diskSize: 50Gi
+      resources:
+        requests:
+          memory: "1.4Gi"
+      roles:
+        - "master"
+    - component: es-data
+      replicas: 0
+      diskSize: 50Gi
+      resources:
+        requests:
+          memory: "4.8Gi"
+      roles:
+        - "data"
+    - component: es-ingest
+      replicas: 0
+      resources:
+        requests:
+          memory: "2.5Gi"
+      roles:
+        - "ingest"
+      persistence:
+        emptyDir: { }

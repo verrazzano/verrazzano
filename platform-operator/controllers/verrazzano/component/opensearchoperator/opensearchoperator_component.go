@@ -6,17 +6,17 @@ package opensearchoperator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -116,6 +116,7 @@ func (o opensearchOperatorComponent) GetIngressNames(ctx spi.ComponentContext) [
 	return ingressNames
 }
 
+// GetCertificateNames returns the list of certificates for this component
 func (o opensearchOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certs []types.NamespacedName
 	if !vzcr.IsOpenSearchOperatorEnabled(ctx.EffectiveCR()) {
@@ -133,7 +134,7 @@ func (o opensearchOperatorComponent) GetCertificateNames(ctx spi.ComponentContex
 	return certs
 }
 
-// PreInstall runs before components are installed
+// PreInstall runs before component is installed
 func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
@@ -167,6 +168,7 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	return o.HelmComponent.PreInstall(ctx)
 }
 
+// PostInstall runs after component is installed
 func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := resetReclaimPolicy(ctx); err != nil {
 		return err

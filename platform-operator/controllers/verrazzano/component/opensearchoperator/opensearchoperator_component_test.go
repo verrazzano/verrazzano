@@ -5,7 +5,8 @@ package opensearchoperator
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -15,6 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -23,7 +26,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -521,7 +523,17 @@ func TestPreInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../..",
 	})
 
-	err := NewComponent().PreInstall(newFakeContext())
+	defer func() {
+		GetControllerRuntimeClient = GetClient
+	}()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	fakeCtx := spi.NewFakeContext(fakeClient, getVZ(), nil, false, profilesRelativePath)
+	GetControllerRuntimeClient = func() (client.Client, error) {
+		return fakeClient, nil
+	}
+
+	err := NewComponent().PreInstall(fakeCtx)
 	assert.NoError(t, err)
 }
 

@@ -66,7 +66,7 @@ func getPVCsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) 
 }
 
 // setPVsToRetain sets the ReclaimPolicy for older PersistentVolumes to Retain
-// Adds a few extra labels used in later steps
+// Adds a few extra labels used to identify these PVs in later steps
 func setPVsToRetain(ctx spi.ComponentContext, nodes []NodePool) error {
 	pvList, err := getOSPersistentVolumes(ctx, nodes)
 	if err != nil {

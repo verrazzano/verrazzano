@@ -12,7 +12,12 @@ manager:
 ingress:
   openSearch:
     enable: true
-    annotations: {}
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "65M"
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
     path: /()(.*)
     ingressClassName: verrazzano-nginx
     host: ""
@@ -22,7 +27,12 @@ ingress:
 
   openSearchDashboards:
     enable: true
-    annotations: {}
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "65M"
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
     path: /()(.*)
     ingressClassName: verrazzano-nginx
     host: ""
