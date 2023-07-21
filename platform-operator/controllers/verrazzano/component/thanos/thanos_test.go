@@ -161,6 +161,7 @@ func TestAppendOverrides(t *testing.T) {
 		"ruler.ingress.extraTls[0].secretName":                                  rulerCertificateName,
 		`ruler.ingress.annotations.cert-manager\.io/cluster-issuer`:             constants2.VerrazzanoClusterIssuerName,
 		`ruler.ingress.annotations.cert-manager\.io/common-name`:                "thanos-ruler.default.11.22.33.44.nip.io",
+		`ruler.extraFlags.alert\.query-url`:                                     "thanos-query.default.11.22.33.44.nip.io",
 	}
 	sslipioKVs := map[string]string{
 		"queryFrontend.ingress.extraRules[0].host":                       "thanos-query.default.11.22.33.44.sslip.io",
@@ -172,6 +173,7 @@ func TestAppendOverrides(t *testing.T) {
 		"ruler.ingress.extraRules[0].host":                               "thanos-ruler.default.11.22.33.44.sslip.io",
 		"ruler.ingress.extraTls[0].hosts[0]":                             "thanos-ruler.default.11.22.33.44.sslip.io",
 		`ruler.ingress.annotations.cert-manager\.io/common-name`:         "thanos-ruler.default.11.22.33.44.sslip.io",
+		`ruler.extraFlags.alert\.query-url`:                              "thanos-query.default.11.22.33.44.sslip.io",
 	}
 	istioEnabledKV := map[string]string{
 		"verrazzano.isIstioEnabled": "true",
@@ -197,6 +199,7 @@ func TestAppendOverrides(t *testing.T) {
 		`ruler.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target`:         "verrazzano-ingress.default.mydomain.com",
 		`ruler.ingress.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:            "60",
 		`ruler.ingress.annotations.cert-manager\.io/common-name`:                       "thanos-ruler.default.mydomain.com",
+		`ruler.extraFlags.alert\.query-url`:                                            "thanos-query.default.mydomain.com",
 	}
 	externalDNSZone := "mydomain.com"
 

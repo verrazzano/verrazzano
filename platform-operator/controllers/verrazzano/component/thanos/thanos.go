@@ -146,6 +146,7 @@ func appendIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom
 		PathType:         netv1.PathTypeImplementationSpecific,
 		ServicePort:      constants.VerrazzanoAuthProxyServicePort,
 	}
+	kvs = append(kvs, bom.KeyValue{Key: `ruler.extraFlags.alert\.query-url`, Value: frontendHostName})
 	return formatIngressOverrides(ctx, rulerProps, kvs), nil
 
 }
