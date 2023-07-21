@@ -35,6 +35,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,9 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -527,7 +526,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
-func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
+func activateDrivers(log vzlog.VerrazzanoLogger, c clipkg.Client) error {
 	err := activateOCIDriver(log, c)
 	if err != nil {
 		return err
