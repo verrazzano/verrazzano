@@ -87,7 +87,6 @@ func getScheme() *runtime.Scheme {
 	_ = rbacv1.AddToScheme(scheme)
 	_ = v12.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
-	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind), &unstructured.Unstructured{})
 	return scheme
 }
 

@@ -1465,7 +1465,7 @@ func TestRestartRancherDeployment(t *testing.T) {
 				mockClient.EXPECT().Get(context.TODO(),
 					deploymentName,
 					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment, opts ...client.GetOption) error {
+					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment) error {
 						deployment.Name = deploymentName.Name
 						deployment.Namespace = deploymentName.Namespace
 						return nil
@@ -1518,7 +1518,7 @@ func TestRestartRancherDeployment(t *testing.T) {
 				mockClient.EXPECT().Get(context.TODO(),
 					deploymentName,
 					gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment, opts ...client.GetOption) error {
+					DoAndReturn(func(ctx context.Context, key types.NamespacedName, deployment *appsv1.Deployment) error {
 						deployment.Name = deploymentName.Name
 						deployment.Namespace = deploymentName.Namespace
 						return nil

@@ -204,23 +204,6 @@ func ResetCoreV1Client() {
 	GetCoreV1Func = GetCoreV1Client
 }
 
-// GetAPIExtV1ClientFunc is the function to return the ApiextensionsV1Interface
-var GetAPIExtV1ClientFunc = GetAPIExtV1Client
-
-// ResetGetAPIExtV1ClientFunc for unit testing, to reset any overrides to GetAPIExtV1ClientFunc
-func ResetGetAPIExtV1ClientFunc() {
-	GetAPIExtV1ClientFunc = GetAPIExtV1Client
-}
-
-// GetAPIExtV1Client returns the ApiextensionsV1Interface
-func GetAPIExtV1Client() (apiextv1.ApiextensionsV1Interface, error) {
-	goClient, err := GetAPIExtGoClient()
-	if err != nil {
-		return nil, err
-	}
-	return goClient.ApiextensionsV1(), nil
-}
-
 // GetAppsV1Func is the function the AppsV1Interface
 var GetAppsV1Func = GetAppsV1Client
 
