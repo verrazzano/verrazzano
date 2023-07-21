@@ -45,6 +45,17 @@ fluentbit:
         enable: false
       storageType: filesystem
       pauseOnChunksOverlimit: "on"
+    fluentBitMetrics:
+      scrapeInterval: "2"
+      scrapeOnStart: true
+      tag: fb.metrics
+  output:
+    prometheusMetricsExporter:
+      match: "fb.metrics"
+      metricsExporter:
+        host: "0.0.0.0"
+        labels:
+          app: "fluentbit"
   filter:
     systemd:
       enable: false
