@@ -40,7 +40,8 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 	namespaceAnalyzers := []func(clusterRoot string, issueReporter *report.IssueReporter) error{
 		rancher.AnalyzeProvisioningClusters, rancher.AnalyzeBundleDeployments,
 		rancher.AnalyzeBundles, rancher.AnalyzeClusterGroups, rancher.AnalyzeClusterRegistrations,
-		rancher.AnalyzeFleetClusters, rancher.AnalyzeCatalogApps, rancher.AnalyzeNodes, rancher.AnalyzeGitRepos,
+		rancher.AnalyzeFleetClusters, rancher.AnalyzeCatalogApps, rancher.AnalyzeNodes,
+		rancher.AnalyzeGitRepos, rancher.AnalyzeGitJobs, rancher.AnalyzeManagedCharts,
 	}
 	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {

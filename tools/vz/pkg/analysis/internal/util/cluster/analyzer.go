@@ -35,7 +35,7 @@ var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory
 	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
 	"Pod Related Issues": AnalyzePodIssues,
 	"Rancher Status":     AnalyzeRancher,
-	"Cluster API Issues": AnalyzeClusterAPIIssues,
+	"Cluster API Issues": AnalyzeClusterAPI,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches
