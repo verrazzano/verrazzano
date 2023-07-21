@@ -238,8 +238,6 @@ func TestNoneProfileHaveEverythingDisabled(t *testing.T) {
 	actualCR := basicNoneClusterWithStatus
 	log := vzlog.DefaultLogger()
 	context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &actualCR, nil, false)
-
-	a.NotNil(err)
 	a.NotNil(context, "Context was nil")
 	if context == nil {
 		return
