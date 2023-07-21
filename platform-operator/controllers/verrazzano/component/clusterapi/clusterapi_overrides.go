@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -54,18 +55,22 @@ type capiImage struct {
 type OverridesInterface interface {
 	GetGlobalRegistry() string
 	GetClusterAPIRepository() string
+	GetClusterAPIControllerFullImagePath() string
 	GetClusterAPITag() string
 	GetClusterAPIURL() string
 	GetClusterAPIVersion() string
 	GetOCIRepository() string
+	GetOCIControllerFullImagePath() string
 	GetOCITag() string
 	GetOCIURL() string
 	GetOCIVersion() string
 	GetOCNEBootstrapRepository() string
+	GetOCNEBootstrapControllerFullImagePath() string
 	GetOCNEBootstrapTag() string
 	GetOCNEBootstrapURL() string
 	GetOCNEBootstrapVersion() string
 	GetOCNEControlPlaneRepository() string
+	GetOCNEControlPlaneControllerFullImagePath() string
 	GetOCNEControlPlaneTag() string
 	GetOCNEControlPlaneURL() string
 	GetOCNEControlPlaneVersion() string
@@ -143,6 +148,22 @@ func (c capiOverrides) GetOCNEControlPlaneVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCNEControlPlane)
 }
 
+func (c capiOverrides) GetClusterAPIControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetClusterAPIRepository(), clusterAPIControllerImage, c.GetClusterAPITag())
+}
+
+func (c capiOverrides) GetOCIControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetOCIRepository(), clusterAPIOCIControllerImage, c.GetOCITag())
+}
+
+func (c capiOverrides) GetOCNEBootstrapControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetOCNEBootstrapRepository(), clusterAPIOCNEBoostrapControllerImage, c.GetOCNEBootstrapTag())
+}
+
+func (c capiOverrides) GetOCNEControlPlaneControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetOCNEControlPlaneRepository(), clusterAPIOCNEControlPLaneControllerImage, c.GetOCNEControlPlaneTag())
+}
+
 // getRepositoryForProvider - return the repository in the format that clusterctl
 // expects (registry/owner)
 func getRepositoryForProvider(overrides capiOverrides, provider capiProvider) string {
@@ -188,7 +209,12 @@ func formatProviderURL(remote bool, owner string, repo string, version string, m
 	if remote {
 		return fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, metadataFile)
 	}
-	return fmt.Sprintf("/verrazzano/capi/%s/%s/%s", repo, version, metadataFile)
+
+	var capiRoot = "/verrazzano/capi"
+	if _, err := os.Stat(capiRoot); err != nil {
+		capiRoot = path.Join(config.GetPlatformDir(), "capi")
+	}
+	return fmt.Sprintf("%s/%s/%s/%s", capiRoot, repo, version, metadataFile)
 }
 
 // createOverrides - create the overrides input for install/upgrade of the
