@@ -148,11 +148,15 @@ func TestHandleLegacyOpenSearch(t *testing.T) {
 }
 
 func getVZ() *vzapi.Verrazzano {
-	falseValue := false
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				Ingress: &vzapi.IngressNginxComponent{Enabled: &falseValue},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+				Kibana: &vzapi.KibanaComponent{},
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Nodes: []vzapi.OpenSearchNode{
 						{Name: "es-master"},

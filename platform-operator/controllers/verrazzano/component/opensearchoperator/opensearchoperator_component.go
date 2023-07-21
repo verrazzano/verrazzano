@@ -67,10 +67,7 @@ func (o opensearchOperatorComponent) IsEnabled(effectiveCr runtime.Object) bool 
 
 // IsReady - component specific ready-check
 func (o opensearchOperatorComponent) IsReady(context spi.ComponentContext) bool {
-	if o.isReady(context) {
-		return o.HelmComponent.IsReady(context)
-	}
-	return false
+	return o.isReady(context)
 }
 
 func (o opensearchOperatorComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
@@ -121,6 +118,9 @@ func (o opensearchOperatorComponent) GetIngressNames(ctx spi.ComponentContext) [
 
 func (o opensearchOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certs []types.NamespacedName
+	if !vzcr.IsOpenSearchOperatorEnabled(ctx.EffectiveCR()) {
+		return certs
+	}
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		if ok, _ := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR(), ctx.Client()); ok {
 			certs = append(certs, types.NamespacedName{Name: "system-tls-osd", Namespace: constants.VerrazzanoSystemNamespace})
@@ -165,14 +165,6 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	}
 
 	return o.HelmComponent.PreInstall(ctx)
-}
-
-// Install OpenSearchOperator install processing
-func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
-	if err := o.HelmComponent.Install(ctx); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
