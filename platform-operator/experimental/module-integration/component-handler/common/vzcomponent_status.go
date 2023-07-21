@@ -15,38 +15,49 @@ import (
 	"time"
 )
 
+// StatusData contains the data for the component status field
+type StatusData struct {
+	Vznsn       types.NamespacedName
+	CondType    vzapi.ConditionType
+	CompName    string
+	CompVersion string
+	Msg         string
+	Ready       bool
+}
+
 // UpdateComponentStatus updates the component status
-func UpdateComponentStatus(ctx handlerspi.HandlerContext, vznsn types.NamespacedName, compName string, condType vzapi.ConditionType, msg string, ready bool) result.Result {
+func UpdateComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.Result {
 	// Always get the latest module from the controller-runtime cache to try and avoid conflict error
 	vzcr := &vzapi.Verrazzano{}
-	if err := ctx.Client.Get(context.TODO(), vznsn, vzcr); err != nil {
+	if err := ctx.Client.Get(context.TODO(), sd.Vznsn, vzcr); err != nil {
 		ctx.Log.Progress("Failed getting Verrazzano CR, retrying...")
 		return result.NewResultShortRequeueDelay()
 	}
 	if vzcr.Status.Components == nil {
 		vzcr.Status.Components = vzapi.ComponentStatusMap{}
 	}
-	compStatus, _ := vzcr.Status.Components[compName]
+	compStatus, _ := vzcr.Status.Components[sd.CompName]
 	if compStatus == nil {
 		compStatus = &vzapi.ComponentStatusDetails{
 			Available:                getAvailPtr(vzapi.ComponentUnavailable),
 			LastReconciledGeneration: 0,
-			Name:                     compName,
+			Name:                     sd.CompName,
 			State:                    vzapi.CompStateUninstalled,
 		}
-		vzcr.Status.Components[compName] = compStatus
+		vzcr.Status.Components[sd.CompName] = compStatus
 	}
-	if ready {
+	if sd.Ready {
 		compStatus.Available = getAvailPtr(vzapi.ComponentAvailable)
 		compStatus.State = vzapi.CompStateReady
 		compStatus.LastReconciledGeneration = vzcr.Generation
+		compStatus.Version = sd.CompVersion
 	}
 
 	// Append or replace the condition
 	cond := vzapi.Condition{
-		Type:    condType,
+		Type:    sd.CondType,
 		Status:  corev1.ConditionTrue,
-		Message: msg,
+		Message: sd.Msg,
 	}
 	addOrReplaceCondition(compStatus, cond)
 

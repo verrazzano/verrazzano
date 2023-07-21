@@ -100,7 +100,8 @@ func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
 			},
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return mutateModule(effectiveCR, &module, comp, version)
+			// TODO For now have the module version match the VZ version
+			return mutateModule(effectiveCR, &module, comp, version, version)
 		})
 		if err != nil {
 			return err
@@ -110,19 +111,19 @@ func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
 }
 
 // mutateModule mutates the module for the create or update callback
-func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, version string) error {
+func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, vzVersion string, moduleVersion string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
 	module.Annotations[constants.VerrazzanoCRNameAnnotation] = effectiveCR.Name
 	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
-	module.Annotations[constants.VerrazzanoObservedGeneration] = strconv.FormatInt(effectiveCR.Generation, 10)
+	module.Annotations[constants.VerrazzanoObservedGenerationAnnotation] = strconv.FormatInt(effectiveCR.Generation, 10)
+	module.Annotations[constants.VerrazzanoVersionAnnotation] = vzVersion
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
 
-	// TODO For now have the module version match the VZ version
-	module.Spec.Version = version
+	module.Spec.Version = moduleVersion
 	return nil
 }
 
@@ -147,7 +148,7 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 
 	// if module doesn't have the current VZ generation then return true
 	if module.Annotations != nil {
-		gen := module.Annotations[constants.VerrazzanoObservedGeneration]
+		gen := module.Annotations[constants.VerrazzanoObservedGenerationAnnotation]
 		return gen != strconv.FormatInt(effectiveCR.Generation, 10), nil
 	}
 

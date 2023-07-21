@@ -49,7 +49,14 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	return common.UpdateComponentStatus(ctx, *nsn, module.Name, vzapi.CondInstallStarted, string(vzapi.CondInstallStarted), false)
+	sd := common.StatusData{
+		Vznsn:    *nsn,
+		CondType: vzapi.CondInstallStarted,
+		CompName: module.Spec.ModuleName,
+		Msg:      string(vzapi.CondInstallStarted),
+		Ready:    true,
+	}
+	return common.UpdateComponentStatus(ctx, sd)
 }
 
 // PreWork does the pre-work
@@ -131,5 +138,13 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	return common.UpdateComponentStatus(ctx, *nsn, module.Name, vzapi.CondInstallStarted, string(vzapi.CondInstallComplete), true)
+	sd := common.StatusData{
+		Vznsn:       *nsn,
+		CondType:    vzapi.CondInstallComplete,
+		CompName:    module.Spec.ModuleName,
+		CompVersion: module.Spec.Version,
+		Msg:         string(vzapi.CondInstallComplete),
+		Ready:       true,
+	}
+	return common.UpdateComponentStatus(ctx, sd)
 }
