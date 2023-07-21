@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"go.uber.org/zap"
 )
 
 const (
@@ -23,7 +24,13 @@ const (
 var t = framework.NewTestFramework("cluster_sync_test")
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
-var sugarredLogger := 
+var sugarredLoggerForTest = &zap.SugaredLogger{}
+var passwordForToken = //
+// To do , get username of argocd user (see if hard-coded or how else I can find) // get password (test that) 
+// test that a config can be created 
+// test that that config can then add tokens 
+// test that an update can be triggred
+//test that it leads to the right reulst 
 
 var _ = t.Describe("ArgoCD Token Sync Testing", Label("f:platform-lcm.install"), func() {
 	t.It("has the expected secrets", func() {
@@ -49,7 +56,12 @@ var _ = t.Describe("ArgoCD Token Sync Testing", Label("f:platform-lcm.install"),
 		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find both Created and Expired At Annotations "+secretName)
 	})
 	t.It("A new ArgoCD token is able to be created through the Rancher API", func() {
-		pkg.CreateNewRancherConfigForUser(log)
+		usernameForRancherConfig := "vz-argoCD-reg"
+		Eventually(func () error  {
+
+			
+		})
+		pkg.CreateNewRancherConfigForUser(sugarredLoggerForTest,adminKubeconfig,"vz-argoCD-reg",)
 	})
 
 })
