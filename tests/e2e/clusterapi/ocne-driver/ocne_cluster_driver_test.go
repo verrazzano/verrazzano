@@ -169,7 +169,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNodeInvalid, 1, t.Logs)
+				return verifyCluster(clusterNameSingleNodeInvalid, 0, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
 		})
 	})
