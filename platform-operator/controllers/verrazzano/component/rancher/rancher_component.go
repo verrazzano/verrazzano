@@ -8,8 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	logcmn "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -22,8 +28,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -243,7 +254,15 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	}
 	log.Debugf("Patched Rancher ingress")
 
-	return nil
+	return r.checkRestartRequired(ctx)
+}
+
+func (r rancherComponent) Upgrade(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	if err := r.HelmComponent.Upgrade(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
+	}
+	return r.checkRestartRequired(ctx)
 }
 
 // IsReady component check
@@ -298,7 +317,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
+		return err
 	}
 	return nil
 }
@@ -455,4 +474,109 @@ func configureUISettings(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+// checkRestartRequired Restarts the Rancher deployment if necessary; at present this is required when the
+// private CA bundle/secret is configured and updated, but the Rancher deployment hasn't been rolled to pick it up
+func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
+	if r.isRancherDeploymentUpdateInProgress(ctx) {
+		// The rancher pods are already in the process of being updated
+		ctx.Log().Debugf("Rancher deployment update already in progress, skipping restart check")
+		return nil
+	}
+	privateCABundleInSync, err := r.isPrivateCABundleInSync(ctx)
+	if err != nil {
+		return err
+	}
+	if privateCABundleInSync {
+		// Rancher pods have the latest tls-ca bundle reflected in the Settings object, nothing to do
+		return nil
+	}
+	// The Rancher pods' "cacerts" Settings value is out of sync with tls-ca, do a rolling restart of the Rancher pods
+	// to pick up the new bundle
+	ctx.Log().Progressf("Rancher private CA bundle drift detected, performing a rolling restart of the Rancher deployment")
+	return restartRancherDeployment(ctx.Log(), ctx.Client())
+}
+
+func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentContext) bool {
+	rancherDeployment := []types.NamespacedName{
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	return !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), rancherDeployment, 1, "rancher")
+}
+
+// isPrivateCABundleInSync If the tls-ca private CA bundle secret is present, verify that the bundle in the secret is
+// in sync with the "cacerts" Settings object being used by pods; if they are not in sync it is an indicator that we
+// need to roll the Rancher deployment
+func (r rancherComponent) isPrivateCABundleInSync(ctx spi.ComponentContext) (bool, error) {
+	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+	if err != nil {
+		return false, err
+	}
+	if !found {
+		return true, nil
+	}
+	cacertsSettingsValue, err := getSettingValue(ctx.Client(), SettingCACerts)
+	if err != nil {
+		return false, err
+	}
+	return cacertsSettingsValue == currentCABundleInSecret, nil
+}
+
+// getCurrentCABundleSecretsValue Returns the current CA bundle stored in the Rancher tls-ca secret as a trimmed string
+func (r rancherComponent) getCurrentCABundleSecretsValue(ctx spi.ComponentContext, secretName string, key string) (string, bool, error) {
+	tlsCASecret, err := getSecret(ComponentNamespace, secretName)
+	if err != nil {
+		if clipkg.IgnoreNotFound(err) != nil {
+			return "", false, err
+		}
+		ctx.Log().Debugf("%s secret not defined, skipping restart", secretName)
+		return "", false, nil
+	}
+	currentCACerts, found := tlsCASecret.Data[key]
+	if !found {
+		return "", false, ctx.Log().ErrorfThrottledNewErr("Did not find %s key in % secret", key,
+			clipkg.ObjectKeyFromObject(tlsCASecret))
+	}
+	return strings.TrimSpace(string(currentCACerts)), true, nil
+}
+
+func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error {
+	deployment := appsv1.Deployment{}
+	if err := c.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
+		Name: ComponentName}, &deployment); err != nil {
+		if kerrs.IsNotFound(err) {
+			log.Debugf("Rancher deployment %s/%s not found, nothing to do",
+				vzconst.RancherSystemNamespace, ComponentName)
+			return nil
+		}
+		log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
+			vzconst.RancherSystemNamespace, ComponentName, err)
+		return err
+	}
+
+	// annotate the deployment to do a restart of the pod
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
+
+	if err := c.Update(context.TODO(), &deployment); err != nil {
+		return logcmn.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name),
+			err, log.GetRootZapLogger())
+	}
+	log.Debugf("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+		deployment.Namespace, deployment.Name)
+	return nil
+}
+
+func getSecret(namespace string, name string) (*v1.Secret, error) {
+	v1Client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return nil, err
+	}
+	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
