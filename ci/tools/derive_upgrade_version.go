@@ -225,12 +225,11 @@ func getInstallRelease(releaseTags []string) string {
 	return installRelease
 }
 
-func getTagsLT(tags []string, oldestAllowedVersion string) ([]string, error) {
-	//builder := strings.Builder{}
-	var finalReleaseList []string
+func getTagsLT(tags []string, oldestAllowedVersion string) (string, error) {
+	builder := strings.Builder{}
 	o, err := semver.NewSemVersion(oldestAllowedVersion)
 	if err != nil {
-		return []string{""}, err
+		return "", err
 	}
 
 	for _, tag := range tags {
@@ -240,17 +239,15 @@ func getTagsLT(tags []string, oldestAllowedVersion string) ([]string, error) {
 		}
 		tagVersion, err := semver.NewSemVersion(t)
 		if err != nil {
-			return []string{""}, err
+			return "", err
 		}
 		if tagVersion.IsLessThan(o) {
-			//builder.WriteString(tag)
-			//builder.WriteString("\n")
-			finalReleaseList = append(finalReleaseList, tag)
+			builder.WriteString(tag)
+			builder.WriteString(" ")
 		}
 	}
 
-	//return builder.String(), nil
-	return finalReleaseList, nil
+	return builder.String(), nil
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {

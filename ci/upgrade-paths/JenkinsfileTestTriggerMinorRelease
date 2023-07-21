@@ -388,7 +388,8 @@ def removeExcludedReleases(List releases){
     def excludeReleases = params.EXCLUDE_RELEASES
     def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
     println(excludeReleasesList)
-    def finalReleaseList = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt ${VERRAZZANO_DEV_VERSION} ${excludeReleasesList}").trim()
+    def finalReleaseString = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versions-lt ${VERRAZZANO_DEV_VERSION} ${excludeReleasesList}").trim()
+    def finalReleaseList = finalReleaseString.split()
     echo "Final releases: ${finalReleaseList}"
     return finalReleaseList
 }
