@@ -1,0 +1,18 @@
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+metadata:
+  name: "verrazzano"
+spec:
+  profile: prod
+  components:
+    opensearchOperator:
+      overrides:
+        - values:
+            openSearchCluster:
+              nodePools:
+                - component: es-master
+                  diskSize: 100Gi
+                - component: es-data
+                  diskSize: 100Gi
+                  replicas: 5
