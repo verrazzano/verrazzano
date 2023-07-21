@@ -248,7 +248,6 @@ func TestNoneProfileHaveEverythingDisabled(t *testing.T) {
 	// As the ComponentSpec is not a list, we need to use the reflect library to manipulate objects with arbitrary types
 	val := reflect.ValueOf(context.EffectiveCR().Spec.Components)
 	t.Logf("Verifying 'enabled' field for all %d components in the ComponentSpec list", val.NumField())
-	a.NotNil(val.NumField())
 	a.NotZero(val.NumField()) // Should not be 0 components
 
 	for i := 0; i < val.NumField(); i++ {
