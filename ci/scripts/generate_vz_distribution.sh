@@ -334,6 +334,22 @@ includeImageTarFiles() {
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
 
+# Call this after the tar files are formed, the images will already have been pulled
+listImageSizes() {
+  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -t ghcr.io -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json -m ${WORKSPACE}/image-list.txt
+  mapfile -t images < <(cat ${WORKSPACE}/image-list.txt)
+  local size
+  local hsize
+  for image in "${images[@]}"; do
+    echo "pulling ${image}"
+    docker pull "${image}"
+    # Append image size into the image-sizes.txt
+    size=$(docker image inspect "${image}" | jq -r '.[0].Size')
+    hsize=$(numfmt --to=si ${size})
+    echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes.txt
+  done
+}
+
 loadExampleTarFiles() {
   echo "Generating example image bundle....."
   local rootDir="$1"
@@ -344,9 +360,15 @@ loadExampleTarFiles() {
   example_dirs=("${VZ_REPO_ROOT}/examples/hello-helidon" "${VZ_REPO_ROOT}/examples/todo-list")
   mapfile -t images < <(grep -r 'image:' "${example_dirs[@]}" | grep -Eo '(ghcr\.io|container\-registry\.oracle\.com)(/.+)+:[^"]+' | uniq)
 
+  local size
+  local hsize
   for image in "${images[@]}"; do
     echo "pulling ${image}"
     docker pull "${image}"
+    # Append image size into the image-sizes.txt
+    size=$(docker image inspect "${image}" | jq -r '.[0].Size')
+    hsize=$(numfmt --to=si ${size})
+    echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes.txt
   done
 
   docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${images[@]}"
@@ -474,6 +496,9 @@ createDistributionLayout "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 includeImageTarFiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 includeProfiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZFullDistribution "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_FULL_GENERATED}"
+
+# List the image tar files
+listImageSizes
 
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
