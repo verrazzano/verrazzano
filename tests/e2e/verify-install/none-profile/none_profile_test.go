@@ -24,6 +24,7 @@ var allowedNamespaces = []string{
 	"default", "kube-system", "kube-node-lease", "kube-public",
 	"monitoring", "local-path-storage", "metallb-system",
 	"cattle-system", "verrazzano-install", "verrazzano-mc", "verrazzano-system",
+	"verrazzano-monitoring", "verrazzano-ingress-nginx",
 }
 
 var beforesuite = t.BeforeSuiteFunc(func() {
@@ -51,7 +52,7 @@ var _ = t.Describe("Verify Namespaces", func() {
 		for _, item := range ns.Items {
 			_, isAllowed := allowedNamespacesMap[item.Name]
 			if !isAllowed {
-				t.Logs.Errorf("Namespace %s is not allowed with none profile installation", item.Namespace)
+				t.Logs.Errorf("Namespace %s is not allowed with none profile installation, Allowed namespaces are %v\n", item.Name, allowedNamespacesMap)
 			}
 			Expect(isAllowed).To(BeTrue())
 		}
