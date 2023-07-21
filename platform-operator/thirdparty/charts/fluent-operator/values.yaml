@@ -166,7 +166,7 @@ fluentbit:
 #    fluentBitMetrics:
 #      scrapeInterval: "2"
 #      scrapeOnStart: true
-#      tag: fb.Metrics
+#      tag: "fb.metrics"
 
   # Configure the output plugin parameter in FluentBit.
   # You can set enable to true to output logs to the specified location.
@@ -210,7 +210,8 @@ fluentbit:
 #      match: "fb.metrics"
 #      metricsExporter:
 #        host: "0.0.0.0"
-#        labels:
+#        port: 2020
+#        addLabels:
 #          app: "fluentbit"
   service:
     storage: {}
