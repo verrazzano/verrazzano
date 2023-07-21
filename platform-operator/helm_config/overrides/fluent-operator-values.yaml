@@ -55,7 +55,7 @@ fluentbit:
       metricsExporter:
         host: "0.0.0.0"
         port: 2020
-        labels:
+        addLabels:
           app: "fluentbit"
   filter:
     systemd:
