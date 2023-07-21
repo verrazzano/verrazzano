@@ -203,6 +203,10 @@ func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, err
 	return goClient.CoreV1(), nil
 }
 
+func ResetCoreV1Client() {
+	GetCoreV1Func = GetCoreV1Client
+}
+
 // GetAPIExtV1ClientFunc is the function to return the ApiextensionsV1Interface
 var GetAPIExtV1ClientFunc = GetAPIExtV1Client
 
