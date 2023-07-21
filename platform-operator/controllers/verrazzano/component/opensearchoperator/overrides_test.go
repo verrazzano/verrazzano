@@ -6,23 +6,22 @@ package opensearchoperator
 import (
 	"encoding/json"
 	"fmt"
-	asserts "github.com/stretchr/testify/assert"
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	v1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"testing"
 
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
@@ -89,8 +88,8 @@ func TestGetOverrides(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			asserts.Equal(t, tt.expA1Overrides, NewComponent().GetOverrides(tt.verrazzanoA1))
-			asserts.Equal(t, tt.expB1Overrides, NewComponent().GetOverrides(tt.verrazzanoB1))
+			assert.Equal(t, tt.expA1Overrides, NewComponent().GetOverrides(tt.verrazzanoA1))
+			assert.Equal(t, tt.expB1Overrides, NewComponent().GetOverrides(tt.verrazzanoB1))
 		})
 	}
 }
@@ -138,6 +137,7 @@ func TestMergeNodePoolOverrides(t *testing.T) {
 			mergedYaml, err := MergeNodePoolOverrides(fakeCtx.EffectiveCR(), fakeClient, []NodePool{})
 			a.NoError(err)
 			bYaml, err := os.ReadFile(filepath.Join(test.expectedYAML))
+			a.NoError(err)
 			a.YAMLEq(string(bYaml), mergedYaml)
 		})
 	}
@@ -180,15 +180,15 @@ func TestBuildNodePoolOverrides(t *testing.T) {
 			}
 
 			mergedOverrides := BuildNodePoolOverrides(fakeCtx.EffectiveCR())
-			actualJson, err := json.Marshal(mergedOverrides)
+			actualJSON, err := json.Marshal(mergedOverrides)
 			a.NoError(err)
 
 			bYaml, err := os.ReadFile(filepath.Join(test.expectedYAML))
 			a.NoError(err)
-			expectedJson, err := yaml.YAMLToJSON(bYaml)
+			expectedJSON, err := yaml.YAMLToJSON(bYaml)
 			a.NoError(err)
 
-			a.JSONEq(string(expectedJson), string(actualJson))
+			a.JSONEq(string(expectedJSON), string(actualJSON))
 
 		})
 	}
@@ -231,15 +231,15 @@ func TestBuildv1beta1NodePoolOverrides(t *testing.T) {
 			}
 
 			mergedOverrides := Buildv1beta1NodePoolOverrides(fakeCtx.EffectiveCRV1Beta1())
-			actualJson, err := json.Marshal(mergedOverrides)
+			actualJSON, err := json.Marshal(mergedOverrides)
 			a.NoError(err)
 
 			bYaml, err := os.ReadFile(filepath.Join(test.expectedYAML))
 			a.NoError(err)
-			expectedJson, err := yaml.YAMLToJSON(bYaml)
+			expectedJSON, err := yaml.YAMLToJSON(bYaml)
 			a.NoError(err)
 
-			a.JSONEq(string(expectedJson), string(actualJson))
+			a.JSONEq(string(expectedJSON), string(actualJSON))
 
 		})
 	}
@@ -458,13 +458,13 @@ func TestAppendOverrides(t *testing.T) {
 			}
 			ctx := spi.NewFakeContext(fakeClient, tt.vz, nil, false)
 			kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-			asserts.NoError(t, err)
+			assert.NoError(t, err)
 
-			asserts.Equal(t, len(tt.expectedKVS), len(kvs))
+			assert.Equal(t, len(tt.expectedKVS), len(kvs))
 			for _, kv := range kvs {
 				val, ok := tt.expectedKVS[kv.Key]
-				asserts.Truef(t, ok, "Key %s not located in the Key Value pairs", kv.Key)
-				asserts.Regexp(t, val, kv.Value)
+				assert.Truef(t, ok, "Key %s not located in the Key Value pairs", kv.Key)
+				assert.Regexp(t, val, kv.Value)
 			}
 		})
 	}
