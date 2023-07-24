@@ -76,7 +76,7 @@ func NewComponent() spi.Component {
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
-					Name:      constants.VzConsoleIngress,
+					Name:      constants.VzIngress,
 				},
 			},
 		},

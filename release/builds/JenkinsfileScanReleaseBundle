@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -18,20 +18,14 @@ pipeline {
     }
 
     parameters {
-        string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
-        string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
-        string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
-        choice (name: 'DISTRIBUTION_VARIANT',
-                description: 'Verrazzano Distribution Variant to use for scanning',
-                choices: ["Lite", "Full"])
+        string (description: 'The verrazzano development version (major.minor.patch format, e.g. 1.0.1)', name: 'VERRAZZANO_DEV_VERSION', defaultValue: 'NONE', trim: true)
+        string (description: 'The git commit used to build the distributions being scanned', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
+        booleanParam (description: 'Enable scanning for test run. Scanning is always done if not a test run, it is disabled for test runs unless this is enabled', name: 'ENABLE_TEST_SCAN', defaultValue: false)
     }
 
     environment {
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
-        DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_REPO = 'ghcr.io'
-        IS_PATCH_RELEASE = 'false'
 
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
@@ -46,7 +40,7 @@ pipeline {
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
 
-        RELEASE_VERSION = "${params.RELEASE_VERSION}"
+        RELEASE_VERSION = "${params.VERRAZZANO_DEV_VERSION}"
         VERRAZZANO_RELEASE_PREFIX = "verrazzano-${RELEASE_VERSION}"
         VERRAZZANO_LITE_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}-lite.zip"
         VERRAZZANO_FULL_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}.zip"
@@ -79,50 +73,84 @@ pipeline {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${params.RELEASE_COMMIT}").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${params.GIT_COMMIT_TO_USE}").trim()
                 }
             }
         }
 
-        stage('Download Release Binaries') {
+        stage('Download Distributions') {
             steps {
                 script {
                     sh """
                         mkdir -p ${RELEASE_BINARIES_DIR}
                         cd ${WORKSPACE}/release/scripts
-                        if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
-                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
-                        else
-                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
-                        fi
+                        ./get_release_artifacts.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
+                        ./get_release_artifacts.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
                     """
                 }
             }
         }
 
-        stage('Scan Release Binaries') {
+        stage('Scan Distribution Binaries') {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
                 VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
-           steps {
+            when {
+               allOf {
+                   not { buildingTag() }
+                   expression {return params.TEST_RUN == false || params.ENABLE_TEST_SCAN == true }
+               }
+            }
+            steps {
                 script {
                     // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
                     timeout(time: 300, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
-                                ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} ${params.DISTRIBUTION_VARIANT}
-                            else
-                                ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} ${params.DISTRIBUTION_VARIANT}
-                            fi
+
+                            # Scan Verrazzano lite distribution
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
+
+                            # Scan Verrazzano full distribution
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} "Full" "true"
                         """
                    }
                 }
             }
         }
+
+        stage('Copy Results to Object Stores') {
+            steps {
+                script {
+                    sh """
+                        if [ $params.TEST_RUN == true ] ; then
+                          if [ $params.ENABLE_TEST_SCAN == true ] ; then
+                            echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
+                            echo ""
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
+                          else
+                            echo "TEST_RUN is set to true, ENABLE_TEST_SCAN is set to false. NOT pushing anything to object storage, and didn't scan anything"
+                          fi
+                        else
+                          # We only store in the per commit ephemeral location, the release process will get the scan results from the ephemeral location only since these are asynchronously updated separately.
+                          # This avoid complexity here trying to detect the last periodic state, and trying to copy the results into there (and avoids race conditions)
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${params.VERRAZZANO_DEV_VERSION}-scan_report_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${params.VERRAZZANO_DEV_VERSION}-scan_summary_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${params.VERRAZZANO_DEV_VERSION}-scan_report_vz_full.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/verrazzano_${params.VERRAZZANO_DEV_VERSION}-scan_summary_vz_full.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
+                        fi
+                    """
+                }
+            }
+        }
+
+
     }
     post {
         always {
@@ -133,4 +161,3 @@ pipeline {
         }
     }
 }
-
