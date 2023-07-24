@@ -46,7 +46,7 @@ func TestIsUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	nodePools := []NodePool{
 		{
-			Component: "es-data",
+			Component: esData,
 			Roles:     []string{"data"},
 			Replicas:  1,
 		},
@@ -60,7 +60,7 @@ func TestIsUpgrade(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-pv-1",
 					Labels: map[string]string{
-						opensearchNodeLabel: "es-data",
+						opensearchNodeLabel: esData,
 						clusterLabel:        clusterName,
 					},
 				},
@@ -84,7 +84,7 @@ func TestIsUpgrade(t *testing.T) {
 func TestIsSingleMasterNodeCluster(t *testing.T) {
 	nodePools := []NodePool{
 		{
-			Component: "es-master",
+			Component: esMaster,
 			Roles:     []string{"master"},
 			Replicas:  1,
 		},
@@ -93,7 +93,7 @@ func TestIsSingleMasterNodeCluster(t *testing.T) {
 
 	nodePools = []NodePool{
 		{
-			Component: "es-master",
+			Component: esMaster,
 			Roles:     []string{"master"},
 			Replicas:  3,
 		},
@@ -102,7 +102,7 @@ func TestIsSingleMasterNodeCluster(t *testing.T) {
 
 	nodePools = []NodePool{
 		{
-			Component: "es-master",
+			Component: esMaster,
 			Roles:     []string{"cluster_manager"},
 			Replicas:  1,
 		},

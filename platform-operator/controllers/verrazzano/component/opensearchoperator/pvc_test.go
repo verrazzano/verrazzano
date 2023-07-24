@@ -84,13 +84,13 @@ func newFakeContext() spi.ComponentContext {
 func createFakeNodePool() []NodePool {
 	return []NodePool{
 		{
-			Component: "es-data",
+			Component: esData,
 		},
 		{
-			Component: "es-master",
+			Component: esMaster,
 		},
 		{
-			Component: "data-ingest",
+			Component: dataIngest,
 		},
 	}
 }
@@ -102,7 +102,7 @@ func getFakePersistentVolumeList() *v1.PersistentVolumeList {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-pv-1",
 				Labels: map[string]string{
-					opensearchNodeLabel: "es-data",
+					opensearchNodeLabel: esData,
 				},
 			},
 			Spec: v1.PersistentVolumeSpec{
@@ -117,7 +117,7 @@ func getFakePersistentVolumeList() *v1.PersistentVolumeList {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-pv-2",
 				Labels: map[string]string{
-					opensearchNodeLabel: "es-data",
+					opensearchNodeLabel: esData,
 				},
 			},
 			Spec: v1.PersistentVolumeSpec{
@@ -131,7 +131,7 @@ func getFakePersistentVolumeList() *v1.PersistentVolumeList {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-pv-3",
 				Labels: map[string]string{
-					opensearchNodeLabel: "data-ingest",
+					opensearchNodeLabel: dataIngest,
 				},
 			},
 			Spec: v1.PersistentVolumeSpec{
@@ -145,7 +145,7 @@ func getFakePersistentVolumeList() *v1.PersistentVolumeList {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-pv-4",
 				Labels: map[string]string{
-					opensearchNodeLabel: "es-master",
+					opensearchNodeLabel: esMaster,
 				},
 			},
 			Spec: v1.PersistentVolumeSpec{

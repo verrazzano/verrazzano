@@ -33,19 +33,19 @@ func TestGetNodeNameFromClaimName(t *testing.T) {
 		expectedNodeName []string
 	}{
 		{
-			[]NodePool{{Component: "es-data"}, {Component: "es-data1"}},
+			[]NodePool{{Component: esData}, {Component: esData1}},
 			[]string{"vmi-system-es-data", "vmi-system-es-data1-1", "vmi-system-es-data-tqxkq", "vmi-system-es-data1-1-8m66v"},
-			[]string{"es-data", "es-data1", "es-data", "es-data1"},
+			[]string{esData, esData1, esData, esData1},
 		},
 		{
-			[]NodePool{{Component: "es-data"}, {Component: "es-data1"}},
+			[]NodePool{{Component: esData}, {Component: esData1}},
 			[]string{"vmi-system-es-data1", "vmi-system-es-data-1", "vmi-system-es-data1-tqxkq", "vmi-system-es-data-1-8m66v"},
-			[]string{"es-data1", "es-data", "es-data1", "es-data"},
+			[]string{esData1, esData, esData1, esData},
 		},
 		{
-			[]NodePool{{Component: "es-master"}},
+			[]NodePool{{Component: esMaster}},
 			[]string{"elasticsearch-master-vmi-system-es-master-0"},
-			[]string{"es-master"},
+			[]string{esMaster},
 		},
 	}
 
@@ -155,15 +155,15 @@ func getVZ() *vzapi.Verrazzano {
 			Components: vzapi.ComponentSpec{
 				DNS: &vzapi.DNSComponent{
 					OCI: &vzapi.OCI{
-						DNSZoneName: "mydomain.com",
+						DNSZoneName: fakeDomain,
 					},
 				},
 				Kibana: &vzapi.KibanaComponent{},
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					Nodes: []vzapi.OpenSearchNode{
-						{Name: "es-master"},
-						{Name: "es-data"},
-						{Name: "data-ingest"}},
+						{Name: esMaster},
+						{Name: esData},
+						{Name: dataIngest}},
 				},
 			},
 		},

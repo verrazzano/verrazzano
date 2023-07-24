@@ -33,10 +33,12 @@ const (
 	podTemplateHashLabel         = "pod-template-hash"
 	dashboardLabelSelector       = "opensearch.cluster.dashboards"
 
-	profilesRelativePath   = "../../../../manifests/profiles"
-	testBomFilePath        = "../../testdata/test_bom.json"
-	TestHelmCThirdPartyDir = "../../../../thirdparty"
-	TestHelmConfigDir      = "../../../../helm_config"
+	profilesRelativePath = "../../../../manifests/profiles"
+	esMaster             = "es-master"
+	esData               = "es-data"
+	esData1              = "es-data1"
+	dataIngest           = "data-ingest"
+	fakeDomain           = "mydomain.com"
 )
 
 var (
@@ -193,7 +195,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &disabled},
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -213,7 +215,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &disabled},
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -233,7 +235,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -253,7 +255,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -277,7 +279,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -301,7 +303,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &opensearchAndOsdDisabled,
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -321,7 +323,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &opensearchDisabled,
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
@@ -344,7 +346,7 @@ func TestGetIngressNames(t *testing.T) {
 						OpenSearchOperator: &opensearchDashboardsDisbaled,
 						DNS: &v1alpha1.DNSComponent{
 							OCI: &v1alpha1.OCI{
-								DNSZoneName: "mydomain.com",
+								DNSZoneName: fakeDomain,
 							},
 						},
 					},
