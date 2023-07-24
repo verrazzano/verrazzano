@@ -1944,13 +1944,13 @@ func createServiceAccountTokenSecret(serviceAccount string, namespace string) er
 	return nil
 }
 
-func VzReadyV1beta1() error {
+func VzReadyV1beta1() (bool, error) {
 	cr, err := GetVerrazzanoV1beta1()
 	if err != nil {
-		return err
+		return false, err
 	}
-	if cr.Status.State != v1beta1.VzStateReady {
-		return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+	if cr.Status.State == v1beta1.VzStateReady {
+		return true, nil
 	}
-	return nil
+	return false, fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 }

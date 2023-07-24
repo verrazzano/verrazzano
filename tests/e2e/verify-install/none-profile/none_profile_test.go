@@ -4,6 +4,7 @@
 package noneprofile
 
 import (
+	"fmt"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -20,6 +21,8 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+// allowedNamespaces holds the list of namespaces permissible for installation with the default 'none' profile.
+// Any other namespace not mentioned here is considered unnecessary
 var allowedNamespaces = []string{
 	"default", "kube-system", "kube-node-lease", "kube-public",
 	"monitoring", "local-path-storage", "metallb-system",
@@ -33,9 +36,10 @@ var beforesuite = t.BeforeSuiteFunc(func() {
 var _ = t.Describe("Verify None Profile Install", func() {
 	t.It("Should have the none profile installed and in Ready state", func() {
 		// Verify that none profile installation succeeded
-		Eventually(func() error {
-			return pkg.VzReadyV1beta1()
-		}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with no error")
+		Eventually(func() (bool, error) {
+			isReady, err := pkg.VzReadyV1beta1()
+			return isReady, err
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Verrazzano CR to be in Ready state")
 	})
 })
 
@@ -47,14 +51,10 @@ var _ = t.Describe("Verify Namespaces", func() {
 		}
 
 		ns, err := pkg.ListNamespaces(metav1.ListOptions{})
-		Expect(err).Should(BeNil())
-
+		Expect(err).ShouldNot(HaveOccurred())
 		for _, item := range ns.Items {
 			_, isAllowed := allowedNamespacesMap[item.Name]
-			if !isAllowed {
-				t.Logs.Errorf("Namespace %s is not allowed with none profile installation, Allowed namespaces are %v\n", item.Name, allowedNamespacesMap)
-			}
-			Expect(isAllowed).To(BeTrue())
+			Expect(isAllowed).To(BeTrue(), fmt.Sprintf("Namespace %s is not allowed with none profile installation, Allowed namespaces are %v\n", item.Name, allowedNamespacesMap))
 		}
 	})
 })

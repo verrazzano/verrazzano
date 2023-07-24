@@ -3,6 +3,7 @@
 package spi
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -223,6 +224,11 @@ func TestContextProfilesMerge(t *testing.T) {
 	}
 }
 
+// TestNoneProfileHaveEverythingDisabled Tests the none profile context merge
+// GIVEN a Verrazzano instance with a none profile
+// WHEN I call NewContext
+// THEN the correct context is created with the proper merge of the profile and user overrides and should match the expected CR
+// and the effectiveCR
 func TestNoneProfileHaveEverythingDisabled(t *testing.T) {
 	config.TestProfilesDir = profileDir
 	defer func() { config.TestProfilesDir = "" }()
@@ -248,10 +254,14 @@ func TestNoneProfileHaveEverythingDisabled(t *testing.T) {
 	// As the ComponentSpec is not a list, we need to use the reflect library to manipulate objects with arbitrary types
 	val := reflect.ValueOf(context.EffectiveCR().Spec.Components)
 	t.Logf("Verifying 'enabled' field for all %d components in the ComponentSpec list", val.NumField())
-	a.NotZero(val.NumField()) // Should not be 0 components
+	a.NotZero(val.NumField(), "Expected non-empty list of components, but empty list was received")
 
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			fieldName := val.Type().Field(i).Name // get the field name from the type
+			a.False(field.IsNil(), fmt.Sprintf("The component '%s' body is nil, or is not disabled explicitly", fieldName))
+		}
 		if field.Kind() == reflect.Ptr && !field.IsNil() {
 			enabledField := field.Elem().FieldByName("Enabled")
 			if enabledField.IsValid() && !enabledField.IsNil() {
