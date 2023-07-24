@@ -58,7 +58,7 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	privateCASecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconst.VerrazzanoSystemNamespace,
-			Name:      vzconst.PrivateCASecret,
+			Name:      vzconst.PrivateCABundle,
 		},
 	}
 	if err := c.Get(context.TODO(), client.ObjectKeyFromObject(privateCASecret), privateCASecret); err != nil {

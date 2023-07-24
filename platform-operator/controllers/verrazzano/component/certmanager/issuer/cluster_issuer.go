@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/certs"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -18,7 +17,7 @@ import (
 	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	cmclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -248,7 +247,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 			log.Oncef("Skip renewal of CA certificate")
 			continue
 		}
-		if currentCert.Spec.IssuerRef.Name != constants.VerrazzanoClusterIssuerName {
+		if currentCert.Spec.IssuerRef.Name != vzconst.VerrazzanoClusterIssuerName {
 			log.Oncef("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
@@ -333,13 +332,13 @@ func (c clusterIssuerComponent) verrazzanoCertManagerResourcesReady(ctx spi.Comp
 	logger := ctx.Log()
 
 	exists, err := vzresource.Resource{
-		Name:   constants.VerrazzanoClusterIssuerName,
+		Name:   vzconst.VerrazzanoClusterIssuerName,
 		Client: ctx.Client(),
 		Object: &certv1.ClusterIssuer{},
 		Log:    logger,
 	}.Exists()
 	if err != nil {
-		logger.ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", constants.VerrazzanoClusterIssuerName, err)
+		logger.ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", vzconst.VerrazzanoClusterIssuerName, err)
 	}
 
 	return exists
@@ -397,7 +396,7 @@ func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client,
 
 	// Create the buffer and the cluster issuer data struct
 	clusterIssuerData := templateData{
-		ClusterIssuerName: constants.VerrazzanoClusterIssuerName,
+		ClusterIssuerName: vzconst.VerrazzanoClusterIssuerName,
 		AcmeSecretName:    caAcmeSecretName,
 		Email:             vzCertAcme.EmailAddress,
 		Server:            acmeServer,
@@ -516,7 +515,7 @@ func createOrUpdateCAResources(log vzlog.VerrazzanoLogger, crtClient crtclient.C
 	log.Debug("Applying ClusterIssuer")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoClusterIssuerName,
+			Name: vzconst.VerrazzanoClusterIssuerName,
 		},
 	}
 
@@ -607,7 +606,7 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 	// leave resources abandoned in the Verrazzano cert-manager namespace; take a second pass and clean those up if
 	// our Cert-Manager is in play
 	if vzcr.IsCertManagerEnabled(effectiveCR) {
-		if err := cleanupUnusedResourcesForNamespace(compContext, constants.CertManagerNamespace, clusterIssuer, isCAValue); err != nil {
+		if err := cleanupUnusedResourcesForNamespace(compContext, vzconst.CertManagerNamespace, clusterIssuer, isCAValue); err != nil {
 			return err
 		}
 	}
@@ -619,7 +618,7 @@ func cleanupUnusedResourcesForNamespace(compContext spi.ComponentContext, cluste
 	log := compContext.Log()
 	defaultCANotUsed := func() bool {
 		// We're not using the default CA if we're either configured for ACME or it's a Customer-provided CA
-		return !isCAValue || clusterIssuer.CA.SecretName != constants.DefaultVerrazzanoCASecretName
+		return !isCAValue || clusterIssuer.CA.SecretName != vzconst.DefaultVerrazzanoCASecretName
 	}
 	if isCAValue {
 		log.Oncef("Clean up ACME issuer secret")
@@ -640,7 +639,7 @@ func cleanupUnusedResourcesForNamespace(compContext spi.ComponentContext, cluste
 		if err := deleteObject(log, client, caCertificateName, clusterResourceNamespace, &certv1.Certificate{}); err != nil {
 			return err
 		}
-		if err := deleteObject(log, client, constants.DefaultVerrazzanoCASecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
+		if err := deleteObject(log, client, vzconst.DefaultVerrazzanoCASecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
 	}
@@ -712,7 +711,7 @@ func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.Comp
 	privateCASecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconst.VerrazzanoSystemNamespace,
-			Name:      vzconst.PrivateCASecret,
+			Name:      vzconst.PrivateCABundle,
 		},
 	}
 
@@ -788,7 +787,7 @@ func (c clusterIssuerComponent) uninstallVerrazzanoCertManagerResources(compCont
 	}
 
 	err := vzresource.Resource{
-		Name:      constants.DefaultVerrazzanoCASecretName,
+		Name:      vzconst.DefaultVerrazzanoCASecretName,
 		Namespace: issuerConfig.ClusterResourceNamespace,
 		Client:    compContext.Client(),
 		Object:    &v1.Secret{},
@@ -816,7 +815,7 @@ func (c clusterIssuerComponent) deleteCertManagerIssuerResources(log vzlog.Verra
 
 	// Delete the ClusterIssuer created by Verrazzano
 	err := vzresource.Resource{
-		Name:   constants.VerrazzanoClusterIssuerName,
+		Name:   vzconst.VerrazzanoClusterIssuerName,
 		Client: client,
 		Object: &certv1.ClusterIssuer{},
 		Log:    log,

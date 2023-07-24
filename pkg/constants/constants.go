@@ -113,8 +113,8 @@ const AdditionalTLS = "tls-ca-additional"
 // AdditionalTLSCAKey is the key containing the CA in the secret specified by the AdditionalTLS constant
 const AdditionalTLSCAKey = "ca-additional.pem"
 
-// PrivateCASecret is an optional tls secret that contains private CAs used to issue/validate Verrazzano certificates
-const PrivateCASecret = "verrazzano-tls-ca"
+// PrivateCABundle is an optional tls secret that contains private CAs used to issue/validate Verrazzano certificates
+const PrivateCABundle = "verrazzano-tls-ca"
 
 const CACertKey = "ca.crt"
 

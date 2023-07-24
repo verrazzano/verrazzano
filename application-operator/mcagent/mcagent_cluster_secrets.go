@@ -211,7 +211,7 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 		caKey string
 	}{
 		{
-			NamespacedName: types.NamespacedName{Name: globalconst.VerrazzanoSystemNamespace, Namespace: globalconst.PrivateCASecret},
+			NamespacedName: types.NamespacedName{Name: globalconst.VerrazzanoSystemNamespace, Namespace: globalconst.PrivateCABundle},
 			caKey:          globalconst.CABundleKey,
 		},
 		{
