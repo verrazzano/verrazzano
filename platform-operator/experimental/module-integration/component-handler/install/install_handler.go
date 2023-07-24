@@ -14,8 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
 )
 
-type ComponentHandler struct {
-}
+type ComponentHandler struct {}
 
 var (
 	_ handlerspi.StateMachineHandler = &ComponentHandler{}

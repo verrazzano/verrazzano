@@ -5,16 +5,15 @@ package delete
 
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/handlers/common"
-	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
-	"github.com/verrazzano/verrazzano-modules/pkg/helm"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
 )
 
-type ComponentHandler struct {
-	common.BaseHandler
-}
+type ComponentHandler struct{}
 
 var (
 	_ handlerspi.StateMachineHandler = &ComponentHandler{}
@@ -29,8 +28,10 @@ func (h ComponentHandler) GetWorkName() string {
 	return "uninstall"
 }
 
-// IsWorkNeeded returns true if install is needed
+// IsWorkNeeded returns true if uninstall is needed
 func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
+	// Always return true so that the post-uninstall can run in the case that the VPO
+	// was restarted
 	return true, result.NewResult()
 }
 
@@ -41,44 +42,49 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Do the pre-delete
+	if err := comp.PreInstall(compCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
 	return result.NewResult()
 }
 
 // DoWorkUpdateStatus does the work status update
 func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
-	module := ctx.CR.(*moduleapi.Module)
-	return status.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUninstallStarted)
+	return result.NewResult()
 }
 
 // DoWork uninstalls the module using Helm
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
-	installed, err := helm.IsReleaseInstalled(ctx.HelmRelease.Name, ctx.HelmRelease.Namespace)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
 	if err != nil {
-		ctx.Log.ErrorfThrottled("Error checking if Helm release installed for %s/%s", ctx.HelmRelease.Namespace, ctx.HelmRelease.Name)
-		return result.NewResult()
-	}
-	if !installed {
-		return result.NewResult()
+		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	err = helm.Uninstall(ctx.Log, ctx.HelmRelease.Name, ctx.HelmRelease.Namespace, ctx.DryRun)
-	return result.NewResultShortRequeueDelayIfError(err)
+	if err := comp.Uninstall(compCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	return result.NewResult()
 }
 
 // IsWorkDone Indicates whether a module is uninstalled
 func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	if ctx.DryRun {
-		ctx.Log.Debugf("IsReady() dry run for %s", ctx.HelmRelease.Name)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
+	if err != nil {
+		return false, result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	installed, err := comp.IsInstalled(compCtx)
+	if err != nil {
+		ctx.Log.ErrorfThrottled("Error checking if Helm release installed for %s/%s", ctx.HelmRelease.Namespace, ctx.HelmRelease.Name)
 		return true, result.NewResult()
 	}
-
-	deployed, err := helm.IsReleaseDeployed(ctx.HelmRelease.Name, ctx.HelmRelease.Namespace)
-	if err != nil {
-		ctx.Log.ErrorfThrottled("Error occurred checking release deployment: %v", err.Error())
-		return false, result.NewResultShortRequeueDelayIfError(err)
-	}
-
-	return !deployed, result.NewResult()
+	return !installed, result.NewResult()
 }
 
 // PostWorkUpdateStatus does the post-work status update
@@ -88,11 +94,36 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 
 // PostWork does installation pre-work
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if err := comp.PostUninstall(compCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
 	return result.NewResult()
 }
 
 // WorkCompletedUpdateStatus does the lifecycle completed Work status update
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
-	return status.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
+	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the Verrazzano component status
+	nsn, err := common.GetVerrazzanoNSN(ctx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	sd := common.StatusData{
+		Vznsn:       *nsn,
+		CondType:    vzapi.CondUninstallComplete,
+		CompName:    module.Spec.ModuleName,
+		CompVersion: module.Spec.Version,
+		Msg:         string(vzapi.CondUninstallComplete),
+		Ready:       true,
+	}
+	return common.UpdateComponentStatus(ctx, sd)
 }
