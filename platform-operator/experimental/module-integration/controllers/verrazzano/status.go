@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/time"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -18,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"strconv"
 )
 
 // updateVzState updates the status state in the Verrazzano CR
@@ -130,7 +130,7 @@ func (r Reconciler) updateStatusForAllComponents(log vzlog.VerrazzanoLogger, eff
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	return nil
+	return result.NewResult()
 }
 
 // updateStatusForSingleComponent the Verrazzano CR component status with the latest status from the Module
@@ -147,23 +147,13 @@ func (r *Reconciler) updateStatusForSingleComponent(vzcr *vzapi.Verrazzano, comp
 		return compStatus, nil
 	}
 
-	// Make sure the condition is later than the module update time.
-	// This check prevents looking at old conditions that don't apply to the
-	// most recent Module CR updates
+	// Make sure the module has the current Verrazzano generation, it not then we have an old copy of the module.
 	if module.Annotations == nil {
 		return compStatus, nil
 	}
-	moduleUpdateTS, _ := module.Annotations[vzconst.VerrazzanoUpdateTimestampAnnotation]
-	moduleUpdateTime, err := time.ParseTime(moduleUpdateTS)
-	if err != nil {
-		return nil, err
-	}
-	condTime, err := time.ParseTime(cond.LastTransitionTime)
-	if err != nil {
-		return nil, err
-	}
-	if condTime.Before(moduleUpdateTime) {
-		return nil, nil
+	gen, _ := module.Annotations[vzconst.VerrazzanoObservedGenerationAnnotation]
+	if gen != strconv.FormatInt(vzcr.Generation, 10) {
+		return compStatus, nil
 	}
 
 	// Init vars used to update the VZ component status

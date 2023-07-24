@@ -51,8 +51,8 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 		return result.NewResultShortRequeueDelay()
 	}
 
-	// All the modules have been reconciled and are ready
-	return result.NewResult()
+	// Always requeue, the legacy verrazzano controller will delete the finalizer and the VZ CR will go away.
+	return result.NewResultShortRequeueDelay()
 }
 
 // PostRemoveFinalizer is called after the finalizer is successfully removed.

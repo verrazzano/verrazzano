@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/time"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -109,7 +108,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
-	return nil
+	return result.NewResult()
 }
 
 // mutateModule mutates the module for the create or update callback
@@ -121,7 +120,6 @@ func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp 
 	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
 	module.Annotations[constants.VerrazzanoObservedGenerationAnnotation] = strconv.FormatInt(effectiveCR.Generation, 10)
 	module.Annotations[constants.VerrazzanoVersionAnnotation] = vzVersion
-	module.Annotations[constants.VerrazzanoUpdateTimestampAnnotation] = time.GetCurrentTime()
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
@@ -191,5 +189,5 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 	if reterr != nil {
 		return result.NewResultShortRequeueDelayWithError(reterr)
 	}
-	return nil
+	return result.NewResult()
 }

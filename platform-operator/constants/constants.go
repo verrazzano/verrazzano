@@ -279,9 +279,6 @@ const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
 // VerrazzanoObservedGenerationAnnotation is the annotation for the verrazzano CR observed generation
 const VerrazzanoObservedGenerationAnnotation = "module.verrazzano.io/vz-cr-observed-generation"
 
-// VerrazzanoUpdateTimestampAnnotation is the annotation for a timestamp when the module CR is updated
-const VerrazzanoUpdateTimestampAnnotation = "module.verrazzano.io/update-timestamp"
-
 // VerrazzanoVersionAnnotation is the annotation for the verrazzano CR version
 const VerrazzanoVersionAnnotation = "module.verrazzano.io/vz-cr-version"
 
