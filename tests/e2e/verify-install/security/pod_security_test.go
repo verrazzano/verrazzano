@@ -260,7 +260,7 @@ func ensureContainerSecurityContext(sc *corev1.SecurityContext, podName, contain
 	if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, RunAsNonRoot != true", podName, containerName))
 	}
-	if sc.Privileged == nil || *sc.Privileged {
+	if sc.Privileged != nil && *sc.Privileged {
 		errors = append(errors, fmt.Errorf("SecurityContext not configured correctly for pod %s, container %s, Privileged != false", podName, containerName))
 	}
 	if sc.AllowPrivilegeEscalation == nil || *sc.AllowPrivilegeEscalation {
