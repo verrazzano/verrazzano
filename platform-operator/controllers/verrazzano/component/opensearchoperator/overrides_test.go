@@ -281,7 +281,7 @@ func TestAppendOverrides(t *testing.T) {
 		Status: v1.ServiceStatus{
 			LoadBalancer: v1.LoadBalancerStatus{
 				Ingress: []v1.LoadBalancerIngress{
-					{IP: "11.22.33.44"},
+					{IP: "1.2.3.4"},
 				},
 			},
 		},
@@ -290,27 +290,27 @@ func TestAppendOverrides(t *testing.T) {
 
 	ingressKVS := map[string]string{
 		`ingress.openSearch.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:    "opensearch.vmi.system.default.11.22.33.44.nip.io",
-		"ingress.openSearch.host":                                        "opensearch.vmi.system.default.11.22.33.44.nip.io",
+		`ingress.openSearch.annotations.cert-manager\.io/common-name`:    "opensearch.vmi.system.default.1.2.3.4.nip.io",
+		"ingress.openSearch.host":                                        "opensearch.vmi.system.default.1.2.3.4.nip.io",
 		"ingress.openSearch.ingressClassName":                            "verrazzano-nginx",
 		"ingress.openSearch.tls[0].secretName":                           "system-tls-os-ingest",
-		"ingress.openSearch.tls[0].hosts[0]":                             "opensearch.vmi.system.default.11.22.33.44.nip.io",
+		"ingress.openSearch.tls[0].hosts[0]":                             "opensearch.vmi.system.default.1.2.3.4.nip.io",
 
 		`ingress.openSearchDashboards.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:    "osd.vmi.system.default.11.22.33.44.nip.io",
-		"ingress.openSearchDashboards.host":                                        "osd.vmi.system.default.11.22.33.44.nip.io",
+		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:    "osd.vmi.system.default.1.2.3.4.nip.io",
+		"ingress.openSearchDashboards.host":                                        "osd.vmi.system.default.1.2.3.4.nip.io",
 		"ingress.openSearchDashboards.ingressClassName":                            "verrazzano-nginx",
 		"ingress.openSearchDashboards.tls[0].secretName":                           "system-tls-osd",
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                             "osd.vmi.system.default.11.22.33.44.nip.io",
+		"ingress.openSearchDashboards.tls[0].hosts[0]":                             "osd.vmi.system.default.1.2.3.4.nip.io",
 	}
 
 	ingressSslipKVS := map[string]string{
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:           "opensearch.vmi.system.default.11.22.33.44.sslip.io",
-		"ingress.openSearch.host":                                               "opensearch.vmi.system.default.11.22.33.44.sslip.io",
-		"ingress.openSearch.tls[0].hosts[0]":                                    "opensearch.vmi.system.default.11.22.33.44.sslip.io",
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`: "osd.vmi.system.default.11.22.33.44.sslip.io",
-		"ingress.openSearchDashboards.host":                                     "osd.vmi.system.default.11.22.33.44.sslip.io",
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                          "osd.vmi.system.default.11.22.33.44.sslip.io",
+		`ingress.openSearch.annotations.cert-manager\.io/common-name`:           "opensearch.vmi.system.default.1.2.3.4.sslip.io",
+		"ingress.openSearch.host":                                               "opensearch.vmi.system.default.1.2.3.4.sslip.io",
+		"ingress.openSearch.tls[0].hosts[0]":                                    "opensearch.vmi.system.default.1.2.3.4.sslip.io",
+		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`: "osd.vmi.system.default.1.2.3.4.sslip.io",
+		"ingress.openSearchDashboards.host":                                     "osd.vmi.system.default.1.2.3.4.sslip.io",
+		"ingress.openSearchDashboards.tls[0].hosts[0]":                          "osd.vmi.system.default.1.2.3.4.sslip.io",
 	}
 
 	ingressDisabledKVS := map[string]string{
