@@ -446,6 +446,8 @@ data:
                 check_host = backend..me.hostSuffix
             elseif backend == 'thanos-query-store' then
                 check_host = backend..me.hostSuffix
+            elseif backend == 'thanos-ruler' then
+                check_host = backend..me.hostSuffix
             elseif backend == 'opensearch-logging' then
                 check_host = 'opensearch.logging'..me.hostSuffix
             elseif backend == 'osd-logging' then
@@ -550,6 +552,8 @@ data:
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-query-frontend', '9090')
         elseif backend == 'thanos-query-store' then
             serverUrl = me.makeMonitoringComponentBackendUrl('grpc', 'thanos-query-grpc', '10901')
+        elseif backend == 'thanos-ruler' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-ruler', '9090')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl('osd', '5601')
         elseif backend == 'osd' then
@@ -1248,6 +1252,8 @@ data:
             allowedOrigins = os.getenv("VZ_THANOS_QUERY_ALLOWED_ORIGINS")
         elseif backend == 'thanos-query-store' then
             allowedOrigins = os.getenv("VZ_QUERY_STORE_ALLOWED_ORIGINS")
+        elseif backend == 'thanos-ruler' then
+            allowedOrigins = os.getenv("VZ_THANOS_RULER_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'osd' then
@@ -1304,6 +1310,7 @@ data:
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
     env VZ_THANOS_QUERY_ALLOWED_ORIGINS;
     env VZ_QUERY_STORE_ALLOWED_ORIGINS;
+    env VZ_THANOS_RULER_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;

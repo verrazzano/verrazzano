@@ -67,7 +67,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ingress:
-    # allow thanos-query-frontend to forward requests to thanos-query and
+    # allow thanos-query-frontend and ruler to forward requests to thanos-query and
     # thanos-query to talk to thanos-storegateway
     - from:
         - namespaceSelector:
@@ -106,3 +106,32 @@ spec:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
   policyTypes:
     - Ingress
+---
+{{ if .Values.ruler.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-ruler
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ingress:
+    # allow auth proxy to forward requests to thanos-ruler
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - verrazzano-authproxy
+      ports:
+        - port: 10902
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+  policyTypes:
+    - Ingress
+{{end}}
