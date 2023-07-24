@@ -13,6 +13,7 @@ func NewTraitDefaultsForWLSDomainWorkload(workload *unstructured.Unstructured) (
 	port := 7001
 	path := "/wls-exporter/metrics"
 	secret, err := fetchWLSDomainCredentialsSecretName(workload)
+	scraper := "verrazzano-system/vmi-system-prometheus-0"
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +24,7 @@ func NewTraitDefaultsForWLSDomainWorkload(workload *unstructured.Unstructured) (
 		}},
 		Path:   &path,
 		Secret: secret,
-		//Scraper: &r.Scraper
+		Scraper: &scraper,
 	}, nil
 }
 func fetchWLSDomainCredentialsSecretName(workload *unstructured.Unstructured) (*string, error) {
@@ -40,7 +41,7 @@ func NewTraitDefaultsForCOHWorkload(workload *unstructured.Unstructured) (*vzapi
 	path := "/metrics"
 	port := 9612
 	var secret *string
-
+	scraper := "verrazzano-system/vmi-system-prometheus-0"
 	enabled, p, s, err := fetchCoherenceMetricsSpec(workload)
 	if err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func NewTraitDefaultsForCOHWorkload(workload *unstructured.Unstructured) (*vzapi
 		}},
 		Path:   &path,
 		Secret: secret,
-		//Scraper: &r.Scraper
+		Scraper: &scraper,
 	}, nil
 }
 func fetchCoherenceMetricsSpec(workload *unstructured.Unstructured) (*bool, *int, *string, error) {
@@ -105,6 +106,7 @@ func fetchCoherenceMetricsSpec(workload *unstructured.Unstructured) (*bool, *int
 func  NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSpec, error) {
 	port := 8080
 	path := "/metrics"
+	scraper := "verrazzano-system/vmi-system-prometheus-0"
 	return &vzapi.MetricsTraitSpec{
 		Ports: []vzapi.PortSpec{{
 			Port: &port,
@@ -112,6 +114,6 @@ func  NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSpec, error) {
 		}},
 		Path:    &path,
 		Secret:  nil,
-		//Scraper: &r.Scraper
+		Scraper: &scraper,
 	} , nil
 }

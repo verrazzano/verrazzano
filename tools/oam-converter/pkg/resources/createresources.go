@@ -6,13 +6,12 @@ package resources
 import (
 	"errors"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/coherenceresources"
-	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/helidonresources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/metrics"
 	weblogic "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/weblogicresources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 )
 
-func CreateResources(conversionComponents []*types.ConversionComponents) (*types.KubeRecources, error) {
+func CreateKubeResources(conversionComponents []*types.ConversionComponents) (*types.KubeRecources, error) {
 	outputResources := types.KubeRecources{}
 	for _, conversionComponent := range conversionComponents {
 		if conversionComponent.MetricsTrait != nil {
@@ -38,11 +37,11 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 			}
 		}
 		if conversionComponent.Helidonworkload != nil {
-			err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent)
-			if err != nil {
-				return &outputResources,errors.New("failed to create Child resources from Helidon workload")
-
-			}
+			////err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent)
+			//if err != nil {
+			//	return &outputResources,errors.New("failed to create Child resources from Helidon workload")
+			//
+			//}
 		}
 	}
 	return &outputResources,nil

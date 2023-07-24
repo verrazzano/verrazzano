@@ -4,6 +4,7 @@
 package servicemonitor
 
 import (
+	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -11,6 +12,7 @@ import (
 	utils "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/controllers"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -18,7 +20,9 @@ const (
 )
 
 func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*promoperapi.ServiceMonitor,error) {
+	var ctx context.Context
 	var log vzlog.VerrazzanoLogger
+	var cli client.Client
 	trait := conversionComponent.MetricsTrait
 
 	serviceMonitor := promoperapi.ServiceMonitor{}
@@ -50,9 +54,8 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	if !supported || traitDefaults == nil {
 		return &serviceMonitor, err
 	}
-
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := utils.FetchSourceCredentialsSecretIfRequired(trait, traitDefaults, workload)
+	secret, err := utils.FetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, cli)
 	if err != nil {
 		return &serviceMonitor, err
 	}

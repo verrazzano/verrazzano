@@ -29,7 +29,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 
 		appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
 		if !found || err != nil {
-			return nil, errors.New("namespace key doesn't exist")
+			//return nil, errors.New("namespace key doesn't exist")
 		}
 
 		appSpec, found, err := unstructured.NestedMap(appMap, "spec")

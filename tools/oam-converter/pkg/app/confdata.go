@@ -30,7 +30,7 @@ func ConfData() error {
 	var components []map[string]interface{}
 
 	//iterate through user inputted directory
-	files := iterateDirectory(inputDirectory)
+	files, _ := iterateDirectory(inputDirectory)
 	var data []byte
 	//Loop through all app files and store into appDataArr
 	for _, input := range files {
@@ -46,11 +46,11 @@ func ConfData() error {
 			}
 			compKind, found, err := unstructured.NestedString(component, "kind")
 			if !found || err != nil {
-				return err
+				errors.New("kind was not found as a string field")
 			}
 			compApiVersion, found, err := unstructured.NestedString(component, "apiVersion")
 			if !found || err != nil {
-				return err
+				errors.New("apiVersion was not found as a string field")
 			}
 			if compKind == "Component" && compApiVersion == "core.oam.dev/v1alpha2" {
 				components = append(components, component)
@@ -58,6 +58,7 @@ func ConfData() error {
 			if compKind == "ApplicationConfiguration" && compApiVersion == "core.oam.dev/v1alpha2" {
 				appData = append(appData, component)
 			}
+			//TODO: If Kind is neither Component or AppConfig, return YAML
 
 		}
 	}
@@ -65,16 +66,16 @@ func ConfData() error {
 	conversionComponents, err := traits.ExtractTrait(appData)
 
 	if err != nil {
-		return errors.New("failed extracting traits from app")
+		return err
 	}
 	conversionComponents, err = traits.ExtractWorkload(components, conversionComponents)
 	if err != nil {
-		return errors.New("error in extractingthe trait and workload - %s")
+		return err
 	}
 
-	outputResources, err := resources.CreateResources(conversionComponents)
+	outputResources, err := resources.CreateKubeResources(conversionComponents)
 
-	printDirectory(outputDirectory, outputResources)
+	writeKubeResources(outputDirectory, outputResources)
 
 	if err != nil {
 		return err
@@ -82,47 +83,79 @@ func ConfData() error {
 	return nil
 }
 
-func iterateDirectory(path string) []string {
+func iterateDirectory(path string) ([]string, error){
 	var files []string
 
 	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Fatalf(err.Error())
+			return err
 		}
 		if strings.Contains(info.Name(), "yaml") || strings.Contains(info.Name(), "yml") {
 			files = append(files, path)
 		}
 		return nil
 	})
-	return files
+	return files, nil
 }
-func printDirectory(directoryPath string, outputResources *types.KubeRecources)(error){
+func writeKubeResources(outputDirectory string, outputResources *types.KubeRecources)(error){
 	fileName := "output.yaml"
-	filePath := filepath.Join(directoryPath, fileName)
+	filePath := filepath.Join(outputDirectory, fileName)
 	f, err := os.Create(filePath)
 	var output string
 	if err != nil {
 		return err
 	}
 	if outputResources.VirtualServices != nil {
-		//for _, virtualservice := range outputResources.VirtualServices {
-		//
-		//}
+		for _, virtualservice := range outputResources.VirtualServices {
+			r, err := json.Marshal(virtualservice)
+			if err != nil {
+				return err
+			}
+			out, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+			output = output + "---\n" + string(out)
+		}
 	}
 	if outputResources.Gateways != nil {
-		//for _, gateway := range outputResources.Gateways {
-		//
-		//}
+		for _, gateway := range outputResources.Gateways {
+			r, err := json.Marshal(gateway)
+			if err != nil {
+				return err
+			}
+			out, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+			output = output + "---\n" + string(out)
+		}
 	}
 	if outputResources.DestinationRules != nil {
-		//for _, destinationRule := range outputResources.DestinationRules {
-
-		//}
+		for _, destinationrule := range outputResources.DestinationRules {
+			r, err := json.Marshal(destinationrule)
+			if err != nil {
+				return err
+			}
+			out, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+			output = output + "---\n" + string(out)
+		}
 	}
 	if outputResources.AuthPolicies != nil {
-		//for _, authPolicy := range outputResources.AuthPolicies {
-
-		//}
+		for _, authpolicy := range outputResources.AuthPolicies {
+			r, err := json.Marshal(authpolicy)
+			if err != nil {
+				return err
+			}
+			out, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+			output = output + "---\n" + string(out)
+		}
 	}
 	if outputResources.ServiceMonitors != nil {
 		for _, servicemonitor := range outputResources.ServiceMonitors {
