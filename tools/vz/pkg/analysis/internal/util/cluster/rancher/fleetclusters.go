@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -33,9 +34,14 @@ type fleetClusterStatus struct {
 }
 
 // AnalyzeFleetClusters - analyze the status of Rancher fleet clusters resources
-func AnalyzeFleetClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeFleetClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &fleetClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", fleetClusterResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", fleetClusterResource), list)
 	if err != nil {
 		return err
 	}

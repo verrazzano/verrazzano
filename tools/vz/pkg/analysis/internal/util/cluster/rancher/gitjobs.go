@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -32,9 +33,14 @@ type gitJobStatus struct {
 }
 
 // AnalyzeGitJobs - analyze the status of GitJob objects
-func AnalyzeGitJobs(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeGitJobs(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &gitJobList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", gitJobResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", gitJobResource), list)
 	if err != nil {
 		return err
 	}
