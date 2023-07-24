@@ -185,7 +185,7 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 
 // updateStatusForComponents updates the vz CR status for the components based on the module status
 // return true if all components are ready
-func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) (bool, error) {
+func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) error {
 	var readyCount int
 	var moduleCount int
 
@@ -211,17 +211,11 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effect
 		}
 	}
 
-	vzReady := moduleCount == readyCount
-	if vzReady {
-		effectiveCR.Status.State = vzapi.VzStateReady
-	}
-
 	// Update the status.  If it didn't change then the Kubernetes API server will not be called
 	err := r.Client.Status().Update(context.TODO(), effectiveCR)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	// return true if all modules are ready
-	return vzReady, nil
+	return nil
 }

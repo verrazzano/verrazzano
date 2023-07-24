@@ -42,7 +42,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -61,7 +61,7 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 
 // DoWork uninstalls the module using Helm
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -74,7 +74,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 // IsWorkDone Indicates whether a module is uninstalled
 func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -94,7 +94,7 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 
 // PostWork does installation pre-work
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
