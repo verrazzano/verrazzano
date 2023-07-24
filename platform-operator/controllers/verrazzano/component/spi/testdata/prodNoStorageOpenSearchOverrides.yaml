@@ -326,7 +326,7 @@ spec:
       enabled: true
       overrides:
         - values:
-            openSearchCluster:
+            opensearchCluster:
               nodePools:
                 - component: es-master
                   replicas: 3

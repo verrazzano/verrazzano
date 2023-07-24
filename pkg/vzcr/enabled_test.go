@@ -2084,7 +2084,7 @@ func TestIsOpenSearchEnabled(t *testing.T) {
 					ValueOverrides: []vzapi.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":false}}"),
 							},
 						},
 					},
@@ -2100,7 +2100,7 @@ func TestIsOpenSearchEnabled(t *testing.T) {
 					ValueOverrides: []installv1beta1.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":false}}"),
 							},
 						},
 					},
@@ -2150,7 +2150,7 @@ func TestIsOpenSearchEnabled(t *testing.T) {
 					ValueOverrides: []vzapi.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":true}}"),
 							},
 						},
 					},
@@ -2166,7 +2166,7 @@ func TestIsOpenSearchEnabled(t *testing.T) {
 					ValueOverrides: []installv1beta1.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":true}}"),
 							},
 						},
 					},
@@ -2254,7 +2254,7 @@ func TestIsOpenSearchDashboardsEnabledEnabled(t *testing.T) {
 					ValueOverrides: []vzapi.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
 							},
 						},
 					},
@@ -2270,7 +2270,7 @@ func TestIsOpenSearchDashboardsEnabledEnabled(t *testing.T) {
 					ValueOverrides: []installv1beta1.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
 							},
 						},
 					},
@@ -2320,7 +2320,7 @@ func TestIsOpenSearchDashboardsEnabledEnabled(t *testing.T) {
 					ValueOverrides: []vzapi.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":true}}"),
 							},
 						},
 					},
@@ -2336,7 +2336,7 @@ func TestIsOpenSearchDashboardsEnabledEnabled(t *testing.T) {
 					ValueOverrides: []installv1beta1.Overrides{
 						{
 							Values: &v1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":true}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":true}}"),
 							},
 						},
 					},

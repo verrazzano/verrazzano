@@ -258,7 +258,7 @@ func Test_appendVMIValues(t *testing.T) {
 								ValueOverrides: []vzapi.Overrides{
 									{
 										Values: &v1.JSON{
-											Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
+											Raw: []byte("{\"opensearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
 										},
 									},
 								},
@@ -432,7 +432,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 								ValueOverrides: []vzapi.Overrides{
 									{
 										Values: &v1.JSON{
-											Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
+											Raw: []byte("{\"opensearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
 										},
 									},
 								},

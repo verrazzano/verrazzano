@@ -46,7 +46,7 @@ var (
 		InstallOverrides: v1alpha1.InstallOverrides{
 			ValueOverrides: []v1alpha1.Overrides{{
 				Values: &v1.JSON{
-					Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+					Raw: []byte("{\"opensearchCluster\":{\"enabled\":false}}"),
 				}},
 			},
 		},
@@ -55,7 +55,7 @@ var (
 		InstallOverrides: v1alpha1.InstallOverrides{
 			ValueOverrides: []v1alpha1.Overrides{{
 				Values: &v1.JSON{
-					Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
+					Raw: []byte("{\"opensearchCluster\":{\"dashboards\":{\"enable\":false}}}"),
 				}},
 			},
 		},
@@ -64,7 +64,7 @@ var (
 		InstallOverrides: v1alpha1.InstallOverrides{
 			ValueOverrides: []v1alpha1.Overrides{{
 				Values: &v1.JSON{
-					Raw: []byte("{\"openSearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
+					Raw: []byte("{\"opensearchCluster\":{\"dashboards\":{\"enable\":false},\"enabled\":false}}"),
 				}},
 			},
 		},

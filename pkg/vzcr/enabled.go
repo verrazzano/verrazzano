@@ -710,9 +710,9 @@ func IsOpenSearchEnabled(cr runtime.Object, client client.Client) (bool, error) 
 		return true, nil
 	}
 	for _, overrideYaml := range overrideStrings {
-		value, err := override.ExtractValueFromOverrideString(overrideYaml, "openSearchCluster.enabled")
+		value, err := override.ExtractValueFromOverrideString(overrideYaml, "opensearchCluster.enabled")
 		if err != nil {
-			return true, fmt.Errorf("error while reading value for openSearchCluster.enabled from overrides")
+			return true, fmt.Errorf("error while reading value for opensearchCluster.enabled from overrides")
 		}
 		if value != nil {
 			return value.(bool), nil
@@ -750,9 +750,9 @@ func IsOpenSearchDashboardsEnabled(cr runtime.Object, client client.Client) (boo
 	}
 	for _, overrideYaml := range overrideStrings {
 		if strings.Contains(overrideYaml, "dashboards:") {
-			value, err := override.ExtractValueFromOverrideString(overrideYaml, "openSearchCluster.dashboards.enable")
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "opensearchCluster.dashboards.enable")
 			if err != nil {
-				return true, fmt.Errorf("error while reading value for openSearchCluster.dashboards.enabled from overrides")
+				return true, fmt.Errorf("error while reading value for opensearchCluster.dashboards.enabled from overrides")
 			}
 			if value != nil {
 				return value.(bool), nil

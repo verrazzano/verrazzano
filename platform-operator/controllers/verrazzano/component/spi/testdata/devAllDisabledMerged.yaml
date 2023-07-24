@@ -298,7 +298,7 @@ spec:
       enabled: false
       overrides:
         - values:
-            openSearchCluster:
+            opensearchCluster:
               nodePools:
                 - component: es-master
                   additionalConfig:

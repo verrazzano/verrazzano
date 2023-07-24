@@ -24,7 +24,7 @@ import (
 )
 
 type OpenSearch struct {
-	OpenSearchCluster `json:"openSearchCluster"`
+	OpenSearchCluster `json:"opensearchCluster"`
 }
 
 type OpenSearchCluster struct {
@@ -162,10 +162,10 @@ func Buildv1beta1NodePoolOverrides(cr *v1beta1.Verrazzano) []v1beta1.Overrides {
 	return mergedOverrides
 }
 
-// MergeNodePoolOverrides merges the openSearchCluster.nodePools overrides
+// MergeNodePoolOverrides merges the opensearchCluster.nodePools overrides
 // Returns a single yaml string with merged node pools
 // Since nodePools are a list and not a map they are replaced when user overrides via the CR
-// To prevent that, all the openSearchCluster.nodePools overrides are merged here
+// To prevent that, all the opensearchCluster.nodePools overrides are merged here
 // Precedence (from high to low):
 // 1. User provided overrides
 // 2. Configuration from current OpenSearch and OpenSearchDashboards components
@@ -234,7 +234,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Bootstrap pod overrides
 	if IsUpgrade(ctx, nodePools) || IsSingleMasterNodeCluster(nodePools) {
 		kvs = append(kvs, bom.KeyValue{
-			Key:   `openSearchCluster.bootstrap.additionalConfig.cluster\.initial_master_nodes`,
+			Key:   `opensearchCluster.bootstrap.additionalConfig.cluster\.initial_master_nodes`,
 			Value: fmt.Sprintf("%s-%s-0", clusterName, getMasterNode(nodePools)),
 		})
 	}
@@ -251,7 +251,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		osdReplica := osd.Replicas
 		if osdReplica != nil {
 			kvs = append(kvs, bom.KeyValue{
-				Key:   "openSearchCluster.dashboards.replicas",
+				Key:   "opensearchCluster.dashboards.replicas",
 				Value: fmt.Sprint(*osdReplica),
 			})
 		}
@@ -265,7 +265,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		if osPlugins.Enabled && len(osPlugins.InstallList) > 0 {
 			for i, plugin := range osPlugins.InstallList {
 				kvs = append(kvs, bom.KeyValue{
-					Key:   fmt.Sprintf("openSearchCluster.general.pluginsList[%d]", i),
+					Key:   fmt.Sprintf("opensearchCluster.general.pluginsList[%d]", i),
 					Value: plugin,
 				})
 			}
@@ -277,7 +277,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		if osdPlugins.Enabled && len(osdPlugins.InstallList) > 0 {
 			for i, plugin := range osdPlugins.InstallList {
 				kvs = append(kvs, bom.KeyValue{
-					Key:   fmt.Sprintf("openSearchCluster.dashboards.pluginsList[%d]", i),
+					Key:   fmt.Sprintf("opensearchCluster.dashboards.pluginsList[%d]", i),
 					Value: plugin,
 				})
 			}
@@ -310,11 +310,11 @@ func buildIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.
 
 	} else {
 		kvs = append(kvs, bom.KeyValue{
-			Key:   "ingress.openSearch.enable",
+			Key:   "ingress.opensearch.enable",
 			Value: "false",
 		})
 		kvs = append(kvs, bom.KeyValue{
-			Key:   "ingress.openSearchDashboards.enable",
+			Key:   "ingress.opensearchDashboards.enable",
 			Value: "false",
 		})
 	}
@@ -328,15 +328,15 @@ func appendOSDIngressOverrides(ingressAnnotations map[string]string, dnsSubDomai
 	ingressAnnotations[`cert-manager\.io/common-name`] = osdHostName
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearchDashboards.ingressClassName",
+		Key:   "ingress.opensearchDashboards.ingressClassName",
 		Value: ingressClassName,
 	})
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearchDashboards.host",
+		Key:   "ingress.opensearchDashboards.host",
 		Value: osdHostName,
 	})
 
-	annotationsKey := "ingress.openSearchDashboards.annotations"
+	annotationsKey := "ingress.opensearchDashboards.annotations"
 	for key, value := range ingressAnnotations {
 		kvs = append(kvs, bom.KeyValue{
 			Key:       fmt.Sprintf("%s.%s", annotationsKey, key),
@@ -346,12 +346,12 @@ func appendOSDIngressOverrides(ingressAnnotations map[string]string, dnsSubDomai
 	}
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearchDashboards.tls[0].secretName",
+		Key:   "ingress.opensearchDashboards.tls[0].secretName",
 		Value: "system-tls-osd",
 	})
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearchDashboards.tls[0].hosts[0]",
+		Key:   "ingress.opensearchDashboards.tls[0].hosts[0]",
 		Value: osdHostName,
 	})
 
@@ -364,15 +364,15 @@ func appendOSIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain
 	ingressAnnotations[`cert-manager\.io/common-name`] = opensearchHostName
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearch.ingressClassName",
+		Key:   "ingress.opensearch.ingressClassName",
 		Value: ingressClassName,
 	})
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearch.host",
+		Key:   "ingress.opensearch.host",
 		Value: opensearchHostName,
 	})
 
-	annotationsKey := "ingress.openSearch.annotations"
+	annotationsKey := "ingress.opensearch.annotations"
 	for key, value := range ingressAnnotations {
 		kvs = append(kvs, bom.KeyValue{
 			Key:       fmt.Sprintf("%s.%s", annotationsKey, key),
@@ -382,12 +382,12 @@ func appendOSIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain
 	}
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearch.tls[0].secretName",
+		Key:   "ingress.opensearch.tls[0].secretName",
 		Value: "system-tls-os-ingest",
 	})
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.openSearch.tls[0].hosts[0]",
+		Key:   "ingress.opensearch.tls[0].hosts[0]",
 		Value: opensearchHostName,
 	})
 

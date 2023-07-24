@@ -251,7 +251,7 @@ func TestAppendOverrides(t *testing.T) {
 	}()
 	falseVal := false
 
-	nodeOverride := "{\"openSearchCluster\":{\"nodePools\":[{\"component\": \"es-master\",\"replicas\": %d,\"roles\":[\"master\"]}]}}"
+	nodeOverride := "{\"opensearchCluster\":{\"nodePools\":[{\"component\": \"es-master\",\"replicas\": %d,\"roles\":[\"master\"]}]}}"
 
 	singleNodeOS := v1alpha1.OpenSearchOperatorComponent{
 		InstallOverrides: v1alpha1.InstallOverrides{
@@ -295,61 +295,61 @@ func TestAppendOverrides(t *testing.T) {
 	domainOSDIngress := "osd.vmi.system.default.mydomain.com"
 
 	ingressKVS := map[string]string{
-		`ingress.openSearch.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:    nipOSIngress,
-		"ingress.openSearch.host":                                        nipOSIngress,
-		"ingress.openSearch.ingressClassName":                            "verrazzano-nginx",
-		"ingress.openSearch.tls[0].secretName":                           "system-tls-os-ingest",
-		"ingress.openSearch.tls[0].hosts[0]":                             nipOSIngress,
+		`ingress.opensearch.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
+		`ingress.opensearch.annotations.cert-manager\.io/common-name`:    nipOSIngress,
+		"ingress.opensearch.host":                                        nipOSIngress,
+		"ingress.opensearch.ingressClassName":                            "verrazzano-nginx",
+		"ingress.opensearch.tls[0].secretName":                           "system-tls-os-ingest",
+		"ingress.opensearch.tls[0].hosts[0]":                             nipOSIngress,
 
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:    nipOSDIngress,
-		"ingress.openSearchDashboards.host":                                        nipOSDIngress,
-		"ingress.openSearchDashboards.ingressClassName":                            "verrazzano-nginx",
-		"ingress.openSearchDashboards.tls[0].secretName":                           "system-tls-osd",
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                             nipOSDIngress,
+		`ingress.opensearchDashboards.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
+		`ingress.opensearchDashboards.annotations.cert-manager\.io/common-name`:    nipOSDIngress,
+		"ingress.opensearchDashboards.host":                                        nipOSDIngress,
+		"ingress.opensearchDashboards.ingressClassName":                            "verrazzano-nginx",
+		"ingress.opensearchDashboards.tls[0].secretName":                           "system-tls-osd",
+		"ingress.opensearchDashboards.tls[0].hosts[0]":                             nipOSDIngress,
 	}
 
 	ingressSslipKVS := map[string]string{
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:           sslipOSIngress,
-		"ingress.openSearch.host":                                               sslipOSIngress,
-		"ingress.openSearch.tls[0].hosts[0]":                                    sslipOSIngress,
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`: sslipOSDIngress,
-		"ingress.openSearchDashboards.host":                                     sslipOSDIngress,
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                          sslipOSDIngress,
+		`ingress.opensearch.annotations.cert-manager\.io/common-name`:           sslipOSIngress,
+		"ingress.opensearch.host":                                               sslipOSIngress,
+		"ingress.opensearch.tls[0].hosts[0]":                                    sslipOSIngress,
+		`ingress.opensearchDashboards.annotations.cert-manager\.io/common-name`: sslipOSDIngress,
+		"ingress.opensearchDashboards.host":                                     sslipOSDIngress,
+		"ingress.opensearchDashboards.tls[0].hosts[0]":                          sslipOSDIngress,
 	}
 
 	ingressDisabledKVS := map[string]string{
-		"ingress.openSearch.enable":           "false",
-		"ingress.openSearchDashboards.enable": "false",
+		"ingress.opensearch.enable":           "false",
+		"ingress.opensearchDashboards.enable": "false",
 	}
 
 	bootstrapKVS := map[string]string{
-		`openSearchCluster.bootstrap.additionalConfig.cluster\.initial_master_nodes`: "opensearch-es-master-0",
+		`opensearchCluster.bootstrap.additionalConfig.cluster\.initial_master_nodes`: "opensearch-es-master-0",
 	}
 
 	pluginKVS := map[string]string{
-		"openSearchCluster.general.pluginsList[0]":    "pluginA",
-		"openSearchCluster.general.pluginsList[1]":    "pluginB",
-		"openSearchCluster.dashboards.pluginsList[0]": "pluginA",
-		"openSearchCluster.dashboards.pluginsList[1]": "pluginB",
+		"opensearchCluster.general.pluginsList[0]":    "pluginA",
+		"opensearchCluster.general.pluginsList[1]":    "pluginB",
+		"opensearchCluster.dashboards.pluginsList[0]": "pluginA",
+		"opensearchCluster.dashboards.pluginsList[1]": "pluginB",
 	}
 
 	dashboardReplicaKVS := map[string]string{
-		"openSearchCluster.dashboards.replicas": "3",
+		"opensearchCluster.dashboards.replicas": "3",
 	}
 
 	externalDNSKVs := map[string]string{
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:                         domainOSIngress,
-		"ingress.openSearch.host":                                                             domainOSIngress,
-		"ingress.openSearch.tls[0].hosts[0]":                                                  domainOSIngress,
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:               domainOSDIngress,
-		"ingress.openSearchDashboards.host":                                                   domainOSDIngress,
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                                        domainOSDIngress,
-		`ingress.openSearch.annotations.external-dns\.alpha\.kubernetes\.io/target`:           "verrazzano-ingress.default.mydomain.com",
-		`ingress.openSearch.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:              "60",
-		`ingress.openSearchDashboards.annotations.external-dns\.alpha\.kubernetes\.io/target`: "verrazzano-ingress.default.mydomain.com",
-		`ingress.openSearchDashboards.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:    "60",
+		`ingress.opensearch.annotations.cert-manager\.io/common-name`:                         domainOSIngress,
+		"ingress.opensearch.host":                                                             domainOSIngress,
+		"ingress.opensearch.tls[0].hosts[0]":                                                  domainOSIngress,
+		`ingress.opensearchDashboards.annotations.cert-manager\.io/common-name`:               domainOSDIngress,
+		"ingress.opensearchDashboards.host":                                                   domainOSDIngress,
+		"ingress.opensearchDashboards.tls[0].hosts[0]":                                        domainOSDIngress,
+		`ingress.opensearch.annotations.external-dns\.alpha\.kubernetes\.io/target`:           "verrazzano-ingress.default.mydomain.com",
+		`ingress.opensearch.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:              "60",
+		`ingress.opensearchDashboards.annotations.external-dns\.alpha\.kubernetes\.io/target`: "verrazzano-ingress.default.mydomain.com",
+		`ingress.opensearchDashboards.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:    "60",
 	}
 
 	tests := []struct {
@@ -416,7 +416,7 @@ func TestAppendOverrides(t *testing.T) {
 		// WHEN plugin list is present in OS
 		// THEN plugin overrides are added
 		{
-			name: "test Istio Disabled",
+			name: "test Plugins enabled",
 			vz: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
@@ -442,7 +442,7 @@ func TestAppendOverrides(t *testing.T) {
 		// WHEN OpenSearchDashboard replica is configured
 		// THEN replica value is added
 		{
-			name: "test Istio Injection Disabled",
+			name: "test Dashboard replicas",
 			vz: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
