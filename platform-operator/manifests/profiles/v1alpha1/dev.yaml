@@ -19,7 +19,7 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            openSearchCluster:
+            opensearchCluster:
               nodePools:
                 - component: es-master
                   additionalConfig:

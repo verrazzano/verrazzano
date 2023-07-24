@@ -46,7 +46,7 @@ var openSearchDisabledCR = &vzapi.Verrazzano{
 					ValueOverrides: []vzapi.Overrides{
 						{
 							Values: &apiextensionsv1.JSON{
-								Raw: []byte("{\"openSearchCluster\":{\"enabled\":false}}"),
+								Raw: []byte("{\"opensearchCluster\":{\"enabled\":false}}"),
 							},
 						},
 					},

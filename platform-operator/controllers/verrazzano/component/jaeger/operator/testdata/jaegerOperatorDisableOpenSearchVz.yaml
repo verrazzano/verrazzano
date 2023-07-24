@@ -13,5 +13,5 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            openSearchCluster:
+            opensearchCluster:
               enabled: false

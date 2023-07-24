@@ -9,7 +9,7 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            openSearchCluster:
+            opensearchCluster:
               nodePools:
                 - component: master
                   replicas: 3

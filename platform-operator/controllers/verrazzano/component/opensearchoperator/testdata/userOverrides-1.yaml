@@ -9,7 +9,7 @@ spec:
     opensearchOperator:
       overrides:
         - values:
-            openSearchCluster:
+            opensearchCluster:
               nodePools:
                 - component: es-master
                   diskSize: 100Gi

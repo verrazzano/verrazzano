@@ -10,7 +10,7 @@ manager:
     pullPolicy: "IfNotPresent"
 
 ingress:
-  openSearch:
+  opensearch:
     enable: true
     annotations:
       kubernetes.io/tls-acme: "true"
@@ -25,7 +25,7 @@ ingress:
     portNumber: 8775
     tls: []
 
-  openSearchDashboards:
+  opensearchDashboards:
     enable: true
     annotations:
       kubernetes.io/tls-acme: "true"
@@ -40,7 +40,7 @@ ingress:
     portNumber: 8775
     tls: []
 
-openSearchCluster:
+opensearchCluster:
   enabled: true
   name: opensearch
   security:
