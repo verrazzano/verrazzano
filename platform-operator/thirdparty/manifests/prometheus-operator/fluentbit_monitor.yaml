@@ -1,23 +1,23 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: fluentd
+  name: fluentbit
   namespace: {{ .monitoringNamespace }}
   labels:
     release: prometheus-operator
 spec:
   namespaceSelector:
     matchNames:
-      - {{ .systemNamespace }}
+    - {{ .systemNamespace }}
   selector:
     matchLabels:
-      app: fluentd
+      app.kubernetes.io/name: "fluent-bit"
   endpoints:
     - path: /metrics
-      targetPort: http-metrics
+      targetPort: metrics
       enableHttp2: false
       {{ if .isIstioEnabled }}
       scheme: https
@@ -26,6 +26,6 @@ spec:
         certFile: /etc/istio-certs/cert-chain.pem
         keyFile: /etc/istio-certs/key.pem
         insecureSkipVerify: true
-      {{ else }}
+        {{ else }}
       scheme: http
       {{ end }}
