@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -139,7 +139,7 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	return GetKubernetesClientsetWithConfig(config)
 }
 
-//GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
+// GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
 func GetKubernetesClientsetOrDie() *kubernetes.Clientset {
 	clientset, err := GetKubernetesClientset()
 	if err != nil {
@@ -165,6 +165,10 @@ func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, err
 		return nil, err
 	}
 	return goClient.CoreV1(), nil
+}
+
+func ResetCoreV1Client() {
+	GetCoreV1Func = GetCoreV1Client
 }
 
 // GetAppsV1Func is the function the AppsV1Interface
@@ -278,7 +282,7 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 // NewPodExecutor is to be overridden during unit tests
 var NewPodExecutor = remotecommand.NewSPDYExecutor
 
-//ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
+// ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
 func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, container string, command []string) (string, string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
