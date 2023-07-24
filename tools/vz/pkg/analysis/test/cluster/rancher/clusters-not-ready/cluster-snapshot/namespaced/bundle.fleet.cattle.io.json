@@ -1,0 +1,81 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "Bundle",
+      "metadata": {
+        "name": "fleet-agent-c-dz2mv",
+        "namespace": "fleet-default"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-13T16:14:28Z",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-13T16:57:14Z",
+            "status": "True",
+            "type": "Processed"
+          }
+        ],
+        "unavailable": 0,
+        "unavailablePartitions": 0
+      }
+    },
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "Bundle",
+      "metadata": {
+        "name": "fleet-agent-c-zhp55",
+        "namespace": "fleet-default"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-18T12:22:57Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-18T12:22:57Z",
+            "status": "True",
+            "type": "Processed"
+          }
+        ],
+        "unavailable": 1,
+        "unavailablePartitions": 0
+      }
+    },
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "Bundle",
+      "metadata": {
+        "name": "fleet-agent-local",
+        "namespace": "fleet-local"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-05T20:33:58Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-05T20:33:58Z",
+            "status": "True",
+            "type": "Processed"
+          }
+        ],
+        "unavailable": 0,
+        "unavailablePartitions": 1
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

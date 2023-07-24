@@ -46,23 +46,25 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 
 	var consoleURL *string
 	if vzcr.IsConsoleEnabled(ctx.EffectiveCR()) {
-		consoleURL = getComponentIngressURL(ingressList.Items, ctx, authproxy.ComponentName, constants.VzConsoleIngress)
+		consoleURL = getComponentIngressURL(ingressList.Items, ctx, authproxy.ComponentName, constants.VzIngress)
 	} else {
 		consoleURL = nil
 	}
 
 	instanceInfo := &v1alpha1.InstanceInfo{
-		ConsoleURL:     consoleURL,
-		RancherURL:     getComponentIngressURL(ingressList.Items, ctx, rancher.ComponentName, constants.RancherIngress),
-		KeyCloakURL:    getComponentIngressURL(ingressList.Items, ctx, keycloak.ComponentName, constants.KeycloakIngress),
-		ElasticURL:     getComponentIngressURL(ingressList.Items, ctx, opensearch.ComponentName, constants.OpensearchIngress),
-		KibanaURL:      getComponentIngressURL(ingressList.Items, ctx, opensearchdashboards.ComponentName, constants.OpensearchDashboardsIngress),
-		GrafanaURL:     getComponentIngressURL(ingressList.Items, ctx, grafana.ComponentName, constants.GrafanaIngress),
-		PrometheusURL:  getComponentIngressURL(ingressList.Items, ctx, promoperator.ComponentName, constants.PrometheusIngress),
-		KialiURL:       getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
-		JaegerURL:      getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
-		ArgoCDURL:      getComponentIngressURL(ingressList.Items, ctx, argocd.ComponentName, constants.ArgoCDIngress),
-		ThanosQueryURL: getComponentIngressURL(ingressList.Items, ctx, thanos.ComponentName, vzconst.ThanosQueryIngress),
+		ConsoleURL:      consoleURL,
+		RancherURL:      getComponentIngressURL(ingressList.Items, ctx, rancher.ComponentName, constants.RancherIngress),
+		KeyCloakURL:     getComponentIngressURL(ingressList.Items, ctx, keycloak.ComponentName, constants.KeycloakIngress),
+		ElasticURL:      getComponentIngressURL(ingressList.Items, ctx, opensearch.ComponentName, constants.OpensearchIngress),
+		KibanaURL:       getComponentIngressURL(ingressList.Items, ctx, opensearchdashboards.ComponentName, constants.OpensearchDashboardsIngress),
+		GrafanaURL:      getComponentIngressURL(ingressList.Items, ctx, grafana.ComponentName, constants.GrafanaIngress),
+		PrometheusURL:   getComponentIngressURL(ingressList.Items, ctx, promoperator.ComponentName, constants.PrometheusIngress),
+		KialiURL:        getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
+		JaegerURL:       getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
+		ArgoCDURL:       getComponentIngressURL(ingressList.Items, ctx, argocd.ComponentName, constants.ArgoCDIngress),
+		ThanosQueryURL:  getComponentIngressURL(ingressList.Items, ctx, thanos.ComponentName, vzconst.ThanosQueryIngress),
+		ThanosRulerURL:  getComponentIngressURL(ingressList.Items, ctx, thanos.ComponentName, vzconst.ThanosRulerIngress),
+		AlertmanagerURL: getComponentIngressURL(ingressList.Items, ctx, promoperator.ComponentName, constants.AlertmanagerIngress),
 	}
 	return instanceInfo
 }

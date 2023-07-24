@@ -25,6 +25,8 @@ spec:
                 integration: sidecar
               prometheusSpec:
                 replicas: 2
+            alertmanager:
+              enabled: true
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:

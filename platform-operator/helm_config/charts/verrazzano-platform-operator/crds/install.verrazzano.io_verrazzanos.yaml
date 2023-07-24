@@ -4417,6 +4417,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  alertmanagerUrl:
+                    type: string
                   argoCDUrl:
                     type: string
                   consoleUrl:
@@ -4438,6 +4440,8 @@ spec:
                   rancherUrl:
                     type: string
                   thanosQueryUrl:
+                    type: string
+                  thanosRulerUrl:
                     type: string
                 type: object
               state:
@@ -7596,6 +7600,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  alertmanagerUrl:
+                    type: string
                   argoCDUrl:
                     type: string
                   consoleUrl:
@@ -7617,6 +7623,8 @@ spec:
                   rancherUrl:
                     type: string
                   thanosQueryUrl:
+                    type: string
+                  thanosRulerUrl:
                     type: string
                 type: object
               state:

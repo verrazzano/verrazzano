@@ -1,0 +1,33 @@
+{
+  "apiVersion": "management.cattle.io/v3",
+  "items": [
+    {
+      "apiVersion": "management.cattle.io/v3",
+      "kind": "ManagedChart",
+      "metadata": {
+        "name": "test",
+        "namespace": "fleet-local"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-19T19:32:29Z",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T19:32:29Z",
+            "status": "True",
+            "type": "Processed"
+          },
+          {
+            "lastUpdateTime": "2023-07-19T20:26:33Z",
+            "status": "True",
+            "type": "Defined"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "ManagedChartList"
+}

@@ -119,6 +119,8 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of the installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
+	// The Alertmanager URL for this Verrazzano installation.
+	AlertmanagerURL *string `json:"alertmanagerUrl,omitempty"`
 	// The Argo CD UI URL for this Verrazzano installation.
 	ArgoCDURL *string `json:"argoCDUrl,omitempty"`
 	// The Console URL for this Verrazzano installation.
@@ -142,6 +144,8 @@ type InstanceInfo struct {
 	// The Thanos Query URL for this Verrazzano installation.
 	// The Thanos Query ingress gets forwarded to the Thanos Query Frontend service.
 	ThanosQueryURL *string `json:"thanosQueryUrl,omitempty"`
+	// The Thanos Ruler URL for this Verrazzano installation.
+	ThanosRulerURL *string `json:"thanosRulerUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of a Verrazzano resource.
@@ -294,6 +298,9 @@ const (
 
 	// CompStateFailed is the state when an install/uninstall/upgrade has failed
 	CompStateFailed CompStateType = "Failed"
+
+	// CompStateReconciling is the state when a module is reconciling
+	CompStateReconciling CompStateType = "Reconciling"
 )
 
 // ComponentSpec contains a set of components used by Verrazzano.

@@ -10,29 +10,21 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gertd/go-pluralize"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	k8sversionutil "k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	logcmn "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -44,6 +36,18 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	k8sversionutil "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -71,6 +75,9 @@ const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
 
 // fluentbitFilterAndParserTemplate is the template name that consists Fluentbit Filter and Parser resource for Istio.
 const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
+
+// clusterProvisioner is the configmap indicating the kontainer driver that provisioned the cluster
+const clusterProvisioner = "cluster-provisioner"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
@@ -102,15 +109,24 @@ var certificates = []types.NamespacedName{
 }
 
 // For use to override during unit tests
-type checkClusterProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
+type checkProvisionedFuncSig func(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error)
 
-var checkClusterProvisionedFunc checkClusterProvisionedFuncSig = checkClusterProvisioned
+var checkClusterProvisionedFunc checkProvisionedFuncSig = checkClusterProvisioned
 
-func SetCheckClusterProvisionedFunc(newFunc checkClusterProvisionedFuncSig) {
+func SetCheckClusterProvisionedFunc(newFunc checkProvisionedFuncSig) {
 	checkClusterProvisionedFunc = newFunc
 }
 func SetDefaultCheckClusterProvisionedFunc() {
 	checkClusterProvisionedFunc = checkClusterProvisioned
+}
+
+var checkContainerDriverProvisionedFunc checkProvisionedFuncSig = checkContainerDriverProvisioned
+
+func SetCheckContainerDriverProvisionedFunc(newFunc checkProvisionedFuncSig) {
+	checkContainerDriverProvisionedFunc = newFunc
+}
+func SetDefaultCheckContainerDriverProvisionedFunc() {
+	checkContainerDriverProvisionedFunc = checkContainerDriverProvisioned
 }
 
 func NewComponent() spi.Component {
@@ -127,7 +143,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, clusterapi.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
@@ -450,7 +466,15 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	}
 	log.Debugf("Patched Rancher ingress")
 
-	return nil
+	return r.checkRestartRequired(ctx)
+}
+
+func (r rancherComponent) Upgrade(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	if err := r.HelmComponent.Upgrade(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
+	}
+	return r.checkRestartRequired(ctx)
 }
 
 // IsReady component check
@@ -509,9 +533,17 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
+		return err
 	}
-	return common.ActivateKontainerDriver(ctx)
+
+	dynClient, err := getDynamicClientFunc()()
+	if err != nil {
+		return err
+	}
+	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
+		return err
+	}
+	return common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -559,7 +591,15 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	if err := common.ActivateKontainerDriver(ctx); err != nil {
+
+	dynClient, err := getDynamicClientFunc()()
+	if err != nil {
+		return err
+	}
+	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
+		return err
+	}
+	if err := common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName); err != nil {
 		return log.ErrorfThrottledNewErr("Failed to activate kontainerdriver post upgrade: %s", err.Error())
 	}
 	return cleanupRancherResources(context.TODO(), ctx.Client())
@@ -712,6 +752,20 @@ func IsClusterProvisionedByRancher() (bool, error) {
 	return checkClusterProvisionedFunc(client, dynClient)
 }
 
+// IsClusterProvisionedByOCNEContainerDriver checks if the Kubernetes cluster was provisioned by the Rancher OCNE container driver.
+func IsClusterProvisionedByOCNEContainerDriver() (bool, error) {
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return false, err
+	}
+	dynClient, err := k8sutil.GetDynamicClientFunc()
+	if err != nil {
+		return false, err
+	}
+
+	return checkContainerDriverProvisionedFunc(client, dynClient)
+}
+
 // checkClusterProvisioned checks if the Kubernetes cluster was provisioned by Rancher.
 func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
 	// Check for the "local" namespace.
@@ -752,6 +806,22 @@ func checkClusterProvisioned(client corev1.CoreV1Interface, dynClient dynamic.In
 	return false, nil
 }
 
+// checkContainerDriverProvisioned checks if the Kubernetes cluster was provisioned by the OCNE KontainerDriver.
+func checkContainerDriverProvisioned(client corev1.CoreV1Interface, dynClient dynamic.Interface) (bool, error) {
+	// Find the provisioner configmap resource and check if ociocne is indicated as the driver.
+	_, err := client.ConfigMaps(constants.DefaultNamespace).Get(context.TODO(), clusterProvisioner, metav1.GetOptions{})
+	if kerrs.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// NOTE: not checking driver type since the existence of configmap alone indicates a container driver is responsible
+	// for the provisioning of the cluster
+	return true, nil
+}
+
 // createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano
 func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
 	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
@@ -770,4 +840,109 @@ func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+// checkRestartRequired Restarts the Rancher deployment if necessary; at present this is required when the
+// private CA bundle/secret is configured and updated, but the Rancher deployment hasn't been rolled to pick it up
+func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
+	if r.isRancherDeploymentUpdateInProgress(ctx) {
+		// The rancher pods are already in the process of being updated
+		ctx.Log().Debugf("Rancher deployment update already in progress, skipping restart check")
+		return nil
+	}
+	privateCABundleInSync, err := r.isPrivateCABundleInSync(ctx)
+	if err != nil {
+		return err
+	}
+	if privateCABundleInSync {
+		// Rancher pods have the latest tls-ca bundle reflected in the Settings object, nothing to do
+		return nil
+	}
+	// The Rancher pods' "cacerts" Settings value is out of sync with tls-ca, do a rolling restart of the Rancher pods
+	// to pick up the new bundle
+	ctx.Log().Progressf("Rancher private CA bundle drift detected, performing a rolling restart of the Rancher deployment")
+	return restartRancherDeployment(ctx.Log(), ctx.Client())
+}
+
+func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentContext) bool {
+	rancherDeployment := []types.NamespacedName{
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	return !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), rancherDeployment, 1, "rancher")
+}
+
+// isPrivateCABundleInSync If the tls-ca private CA bundle secret is present, verify that the bundle in the secret is
+// in sync with the "cacerts" Settings object being used by pods; if they are not in sync it is an indicator that we
+// need to roll the Rancher deployment
+func (r rancherComponent) isPrivateCABundleInSync(ctx spi.ComponentContext) (bool, error) {
+	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+	if err != nil {
+		return false, err
+	}
+	if !found {
+		return true, nil
+	}
+	cacertsSettingsValue, err := getSettingValue(ctx.Client(), SettingCACerts)
+	if err != nil {
+		return false, err
+	}
+	return cacertsSettingsValue == currentCABundleInSecret, nil
+}
+
+// getCurrentCABundleSecretsValue Returns the current CA bundle stored in the Rancher tls-ca secret as a trimmed string
+func (r rancherComponent) getCurrentCABundleSecretsValue(ctx spi.ComponentContext, secretName string, key string) (string, bool, error) {
+	tlsCASecret, err := getSecret(ComponentNamespace, secretName)
+	if err != nil {
+		if clipkg.IgnoreNotFound(err) != nil {
+			return "", false, err
+		}
+		ctx.Log().Debugf("%s secret not defined, skipping restart", secretName)
+		return "", false, nil
+	}
+	currentCACerts, found := tlsCASecret.Data[key]
+	if !found {
+		return "", false, ctx.Log().ErrorfThrottledNewErr("Did not find %s key in % secret", key,
+			clipkg.ObjectKeyFromObject(tlsCASecret))
+	}
+	return strings.TrimSpace(string(currentCACerts)), true, nil
+}
+
+func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error {
+	deployment := appsv1.Deployment{}
+	if err := c.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
+		Name: ComponentName}, &deployment); err != nil {
+		if kerrs.IsNotFound(err) {
+			log.Debugf("Rancher deployment %s/%s not found, nothing to do",
+				vzconst.RancherSystemNamespace, ComponentName)
+			return nil
+		}
+		log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
+			vzconst.RancherSystemNamespace, ComponentName, err)
+		return err
+	}
+
+	// annotate the deployment to do a restart of the pod
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
+
+	if err := c.Update(context.TODO(), &deployment); err != nil {
+		return logcmn.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name),
+			err, log.GetRootZapLogger())
+	}
+	log.Debugf("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+		deployment.Namespace, deployment.Name)
+	return nil
+}
+
+func getSecret(namespace string, name string) (*v1.Secret, error) {
+	v1Client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return nil, err
+	}
+	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }

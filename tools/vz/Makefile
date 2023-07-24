@@ -1,5 +1,6 @@
 # Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+include ../../make/quality.mk
 
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 VZ_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')
@@ -59,7 +60,7 @@ go-build: ## build the CLI for multiple architecture and platforms
 
 .PHONY: build-cli
 build-cli: ## build the CLI for current system and architecture
-	$(GO) build -ldflags "${CLI_GO_LDFLAGS}" -o out/$(shell go env GOOS)-$(shell go env GOARCH)/vz ${GOPATH}/src/${VZ_DIR}/main.go
+	$(GO) build -ldflags "${CLI_GO_LDFLAGS}" -o out/$(shell go env GOOS)_$(shell go env GOARCH)/vz ${GOPATH}/src/${VZ_DIR}/main.go
 
 .PHONY: cli
 cli: ## install the CLI

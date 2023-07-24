@@ -681,9 +681,12 @@ spec:
             - key: app.kubernetes.io/component
               operator: In
               values:
+              - compactor
               - query
               - query-frontend
+              - ruler
               - storegateway
+              - ruler
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: mysql-operator

@@ -46,10 +46,10 @@ func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha
 
 	var requeue bool
 
-	// Loop through the Verrazzano components and Uninstall each one.
+	// Loop through the Verrazzano components in uninstall order, and Uninstall each one.
 	// Don't block uninstalling the next component if the current one has an error.
 	// It is normal for a component to return an error if it is waiting for some condition.
-	for _, comp := range registry.GetComponents() {
+	for _, comp := range registry.GetComponentsForUninstall() {
 		UninstallContext := tracker.getComponentUninstallContext(comp.Name())
 		result, err := r.uninstallSingleComponent(spiCtx, UninstallContext, comp)
 		if err != nil || result.Requeue {
@@ -95,7 +95,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				return ctrl.Result{}, err
 			}
 			if !installed {
-				compLog.Oncef("Component %s is not installed, nothing to do for uninstall", compName)
+				compLog.Debugf("Component %s is not installed, nothing to do for uninstall", compName)
 				UninstallContext.uninstallState = compStateUninstallEnd
 				continue
 			}
