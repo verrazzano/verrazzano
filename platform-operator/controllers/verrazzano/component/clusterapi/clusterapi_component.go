@@ -93,7 +93,7 @@ func (c clusterAPIComponent) Namespace() string {
 
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done.
 func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
-	return true
+	return false
 }
 
 // GetDependencies returns the dependencies of this component.
@@ -217,7 +217,6 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	}
 
 	overridesContext := newOverridesContext(overrides)
-
 	// Set up the init options for the CAPI init.
 	initOptions := clusterapi.InitOptions{
 		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
@@ -285,18 +284,19 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+
 	overridesContext := newOverridesContext(overrides)
+	podMatcher := &PodMatcherClusterAPI{}
 
 	// Set up the upgrade options for the CAPI apply upgrade.
-	const formatString = "%s/%s:%s"
-	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{
-		CoreProvider:            fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overridesContext.GetOCIVersion())},
+	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(ctx, overridesContext)
+	if err != nil {
+		return err
 	}
-
-	return capiClient.ApplyUpgrade(applyUpgradeOptions)
+	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
+		return capiClient.ApplyUpgrade(applyUpgradeOptions)
+	}
+	return nil
 }
 
 func (c clusterAPIComponent) PostUpgrade(ctx spi.ComponentContext) error {

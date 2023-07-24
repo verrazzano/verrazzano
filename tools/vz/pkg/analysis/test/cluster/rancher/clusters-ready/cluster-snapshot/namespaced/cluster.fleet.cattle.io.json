@@ -1,0 +1,79 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "Cluster",
+      "metadata": {
+        "name": "c-zhp55",
+        "namespace": "fleet-default"
+      },
+      "status": {
+        "agentMigrated": true,
+        "agentNamespaceMigrated": true,
+        "cattleNamespaceMigrated": true,
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-18T12:22:57Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-18T17:52:56Z",
+            "status": "True",
+            "type": "Processed"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:39:12Z",
+            "status": "True",
+            "type": "Imported"
+          },
+          {
+            "lastUpdateTime": "2023-06-30T10:39:09Z",
+            "status": "True",
+            "type": "Reconciled"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "fleet.cattle.io/v1alpha1",
+      "kind": "Cluster",
+      "metadata": {
+        "name": "local",
+        "namespace": "fleet-local"
+      },
+      "status": {
+        "agentMigrated": true,
+        "agentNamespaceMigrated": true,
+        "cattleNamespaceMigrated": true,
+        "conditions": [
+          {
+            "lastUpdateTime": "2023-07-05T20:33:58Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastUpdateTime": "2023-07-18T17:48:57Z",
+            "status": "True",
+            "type": "Processed"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:08:42Z",
+            "status": "True",
+            "type": "Imported"
+          },
+          {
+            "lastUpdateTime": "2023-06-27T10:08:37Z",
+            "status": "True",
+            "type": "Reconciled"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

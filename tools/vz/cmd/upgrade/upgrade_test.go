@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -83,6 +84,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
@@ -160,6 +162,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
@@ -192,6 +195,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
@@ -273,7 +277,6 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			assert.NotNil(t, cmd)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-			cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -311,7 +314,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			// Verify the version got updated
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 			assert.NoError(t, err)
-			assert.Equal(t, "v1.4.0", vz.Spec.Version)
+			assert.Equal(t, "v1.5.2", vz.Spec.Version)
 		})
 	}
 }
@@ -329,6 +332,7 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 
@@ -351,6 +355,7 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.3")

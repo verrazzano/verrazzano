@@ -79,7 +79,7 @@ func TestNamespace(t *testing.T) {
 func TestShouldInstallBeforeUpgrade(t *testing.T) {
 	var comp clusterAPIComponent
 	flag := comp.ShouldInstallBeforeUpgrade()
-	assert.Equal(t, true, flag)
+	assert.Equal(t, false, flag)
 }
 
 // TestGetDependencies tests the GetDependencies function
@@ -452,6 +452,7 @@ func TestUpgrade(t *testing.T) {
 	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
+	config.TestHelmConfigDir = TestHelmConfigDir
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp clusterAPIComponent

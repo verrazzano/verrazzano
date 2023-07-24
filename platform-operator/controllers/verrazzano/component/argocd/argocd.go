@@ -4,6 +4,7 @@
 package argocd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -11,8 +12,13 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Constants for Kubernetes resource names
@@ -63,4 +69,46 @@ func isArgoCDReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// remove stale argo app, app set, and project resources
+func removeArgoResources(ctx spi.ComponentContext) error {
+	if err := removeArgoResourceKind(ctx, common.ArgoCDKindApplication); err != nil {
+		return err
+	}
+	if err := removeArgoResourceKind(ctx, common.ArgoCDKindApplicationSet); err != nil {
+		return err
+	}
+	if err := removeArgoResourceKind(ctx, common.ArgoCDKindAppProject); err != nil {
+		return err
+	}
+	return nil
+}
+
+// removeArgoResourceKind iterates through the ArgoCD resources installed, removes the finalizer, and deletes them
+func removeArgoResourceKind(ctx spi.ComponentContext, kind string) error {
+	c := ctx.Client()
+	resources := unstructured.UnstructuredList{}
+	resources.SetGroupVersionKind(common.GetArgoProjAPIGVRForResource(kind))
+	if err := c.List(context.TODO(), &resources, client.InNamespace(constants.ArgoCDNamespace)); err != nil {
+		return err
+	}
+	for i := range resources.Items {
+		resource := resources.Items[i]
+		// for each resource delete the finalizer and then delete the resource
+		_, err := controllerruntime.CreateOrUpdate(context.TODO(), c, &resource, func() error {
+			resource.SetFinalizers([]string{})
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("Error removing finalizer stale ArgoCD %s resource %s", kind, resource.GetName())
+		}
+
+		err = c.Delete(context.TODO(), &resource)
+		if err != nil {
+			return fmt.Errorf("Error removing finalizer stale ArgoCD %s resource %s", kind, resource.GetName())
+
+		}
+	}
+	return nil
 }

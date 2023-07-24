@@ -4,6 +4,8 @@
 package authproxy
 
 import (
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -16,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -119,7 +120,7 @@ func TestIsEnabled(t *testing.T) {
 func TestGetIngressNames(t *testing.T) {
 	ingressNames := NewComponent().GetIngressNames(nil)
 	assert.True(t, len(ingressNames) == 1)
-	assert.Equal(t, constants.VzConsoleIngress, ingressNames[0].Name)
+	assert.Equal(t, constants.VzIngress, ingressNames[0].Name)
 	assert.Equal(t, ComponentNamespace, ingressNames[0].Namespace)
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -12,11 +12,17 @@ import (
 var regexToReplacementList = []string{}
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
+const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
+const sshAuthKeys = "ssh-rsa\\s+[A-Za-z0-9=+ \\-\\/@]+"
+const ocid = "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"
 
 // InitRegexToReplacementMap Initialize the regex string to replacement string map
 // Append to this map for any future additions
 func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, ipv4Regex)
+	regexToReplacementList = append(regexToReplacementList, userData)
+	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
+	regexToReplacementList = append(regexToReplacementList, ocid)
 }
 
 // SanitizeString sanitizes each line in a given file,

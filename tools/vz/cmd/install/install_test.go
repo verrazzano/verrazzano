@@ -7,6 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -22,12 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
-	"path/filepath"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 const (
@@ -737,10 +739,13 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
+
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	if c != nil {
 		rc.SetClient(c)
 	}
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
+
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	return cmd, buf, errBuf, rc
@@ -806,6 +811,8 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	}()
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	rc.SetClient(c)
+	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
+
 	cmd := analyze.NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
@@ -903,4 +910,31 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+}
+
+// TestInstallFromFilename tests installing from a filename.
+//
+// GIVEN a filename after install command with filename flags set
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command fails and should catch the missing filename flag or the missing file
+func TestInstallFromFilename(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
+
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
+	// Send stdout stderr to a byte bufferF
+	rc.SetClient(c)
+
+	os.Args = append(os.Args, testFilenamePath)
+	cmd.Execute()
+	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
 }
