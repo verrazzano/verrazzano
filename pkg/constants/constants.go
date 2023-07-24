@@ -108,7 +108,7 @@ const RancherTLSCA = "tls-ca"
 const RancherTLSCAKey = "cacerts.pem"
 
 // AdditionalTLS is an optional tls secret that contains additional CA
-//const AdditionalTLS = "tls-ca-additional"
+const AdditionalTLS = "tls-ca-additional"
 
 // AdditionalTLSCAKey is the key containing the CA in the secret specified by the AdditionalTLS constant
 const AdditionalTLSCAKey = "ca-additional.pem"
