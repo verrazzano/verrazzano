@@ -6,26 +6,26 @@ package types
 import (
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type ConversionComponents struct {
-	AppName             string
-	ComponentName       string
-	AppNamespace        string
-	IngressTrait        *vzapi.IngressTrait
-	MetricsTrait        *vzapi.MetricsTrait
-	Helidonworkload     *unstructured.Unstructured
-	Coherenceworkload   *unstructured.Unstructured
-	WeblogicworkloadMap map[string]*unstructured.Unstructured
+	AppName           string
+	ComponentName     string
+	AppNamespace      string
+	IngressTrait      *vzapi.IngressTrait
+	Helidonworkload   *unstructured.Unstructured
+	Coherenceworkload *unstructured.Unstructured
+	Weblogicworkload  *unstructured.Unstructured
 }
 
-type KubeRecources struct {
-	VirtualServices  []*vsapi.VirtualService
-	Gateways         []*vsapi.Gateway
-	DestinationRules []*vsapi.DestinationRule
-	AuthPolicies     []*clisecurity.AuthorizationPolicy
+type KubeResources struct {
+	VirtualServices  [][]*vsapi.VirtualService
+	Gateway          map[string]interface{}
+	DestinationRules [][]*istioclient.DestinationRule
+	AuthPolicies     [][]*clisecurity.AuthorizationPolicy
 	ServiceMonitors  []*promoperapi.ServiceMonitor
 }

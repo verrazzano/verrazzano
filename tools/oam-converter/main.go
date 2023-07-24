@@ -4,16 +4,11 @@
 package main
 
 import (
-	"fmt"
 	app "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/app"
-	"os"
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Not enough args to run tool")
-		return
-	}
+	//Configure data from app and comp file to extract traits and workloads
 	err := app.ConfData()
 	if err != nil {
 		print(err)
