@@ -281,36 +281,42 @@ func TestAppendOverrides(t *testing.T) {
 		Status: v1.ServiceStatus{
 			LoadBalancer: v1.LoadBalancerStatus{
 				Ingress: []v1.LoadBalancerIngress{
-					{IP: "1.2.3.4"},
+					{IP: "0.0.0.0"}, // Avoid sonar lint
 				},
 			},
 		},
 	}
-	externalDNSZone := "mydomain.com"
+	externalDNSZone := fakeDomain
+	nipOSIngress := "opensearch.vmi.system.default.0.0.0.0.nip.io"
+	nipOSDIngress := "osd.vmi.system.default.0.0.0.0.nip.io"
+	sslipOSIngress := "opensearch.vmi.system.default.0.0.0.0.sslip.io"
+	sslipOSDIngress := "osd.vmi.system.default.0.0.0.0.sslip.io"
+	domainOSIngress := "opensearch.vmi.system.default.mydomain.com"
+	domainOSDIngress := "osd.vmi.system.default.mydomain.com"
 
 	ingressKVS := map[string]string{
 		`ingress.openSearch.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:    "opensearch.vmi.system.default.1.2.3.4.nip.io",
-		"ingress.openSearch.host":                                        "opensearch.vmi.system.default.1.2.3.4.nip.io",
+		`ingress.openSearch.annotations.cert-manager\.io/common-name`:    nipOSIngress,
+		"ingress.openSearch.host":                                        nipOSIngress,
 		"ingress.openSearch.ingressClassName":                            "verrazzano-nginx",
 		"ingress.openSearch.tls[0].secretName":                           "system-tls-os-ingest",
-		"ingress.openSearch.tls[0].hosts[0]":                             "opensearch.vmi.system.default.1.2.3.4.nip.io",
+		"ingress.openSearch.tls[0].hosts[0]":                             nipOSIngress,
 
 		`ingress.openSearchDashboards.annotations.cert-manager\.io/cluster-issuer`: "verrazzano-cluster-issuer",
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:    "osd.vmi.system.default.1.2.3.4.nip.io",
-		"ingress.openSearchDashboards.host":                                        "osd.vmi.system.default.1.2.3.4.nip.io",
+		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:    nipOSDIngress,
+		"ingress.openSearchDashboards.host":                                        nipOSDIngress,
 		"ingress.openSearchDashboards.ingressClassName":                            "verrazzano-nginx",
 		"ingress.openSearchDashboards.tls[0].secretName":                           "system-tls-osd",
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                             "osd.vmi.system.default.1.2.3.4.nip.io",
+		"ingress.openSearchDashboards.tls[0].hosts[0]":                             nipOSDIngress,
 	}
 
 	ingressSslipKVS := map[string]string{
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:           "opensearch.vmi.system.default.1.2.3.4.sslip.io",
-		"ingress.openSearch.host":                                               "opensearch.vmi.system.default.1.2.3.4.sslip.io",
-		"ingress.openSearch.tls[0].hosts[0]":                                    "opensearch.vmi.system.default.1.2.3.4.sslip.io",
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`: "osd.vmi.system.default.1.2.3.4.sslip.io",
-		"ingress.openSearchDashboards.host":                                     "osd.vmi.system.default.1.2.3.4.sslip.io",
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                          "osd.vmi.system.default.1.2.3.4.sslip.io",
+		`ingress.openSearch.annotations.cert-manager\.io/common-name`:           sslipOSIngress,
+		"ingress.openSearch.host":                                               sslipOSIngress,
+		"ingress.openSearch.tls[0].hosts[0]":                                    sslipOSIngress,
+		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`: sslipOSDIngress,
+		"ingress.openSearchDashboards.host":                                     sslipOSDIngress,
+		"ingress.openSearchDashboards.tls[0].hosts[0]":                          sslipOSDIngress,
 	}
 
 	ingressDisabledKVS := map[string]string{
@@ -334,12 +340,12 @@ func TestAppendOverrides(t *testing.T) {
 	}
 
 	externalDNSKVs := map[string]string{
-		`ingress.openSearch.annotations.cert-manager\.io/common-name`:                         "opensearch.vmi.system.default.mydomain.com",
-		"ingress.openSearch.host":                                                             "opensearch.vmi.system.default.mydomain.com",
-		"ingress.openSearch.tls[0].hosts[0]":                                                  "opensearch.vmi.system.default.mydomain.com",
-		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:               "osd.vmi.system.default.mydomain.com",
-		"ingress.openSearchDashboards.host":                                                   "osd.vmi.system.default.mydomain.com",
-		"ingress.openSearchDashboards.tls[0].hosts[0]":                                        "osd.vmi.system.default.mydomain.com",
+		`ingress.openSearch.annotations.cert-manager\.io/common-name`:                         domainOSIngress,
+		"ingress.openSearch.host":                                                             domainOSIngress,
+		"ingress.openSearch.tls[0].hosts[0]":                                                  domainOSIngress,
+		`ingress.openSearchDashboards.annotations.cert-manager\.io/common-name`:               domainOSDIngress,
+		"ingress.openSearchDashboards.host":                                                   domainOSDIngress,
+		"ingress.openSearchDashboards.tls[0].hosts[0]":                                        domainOSDIngress,
 		`ingress.openSearch.annotations.external-dns\.alpha\.kubernetes\.io/target`:           "verrazzano-ingress.default.mydomain.com",
 		`ingress.openSearch.annotations.external-dns\.alpha\.kubernetes\.io/ttl`:              "60",
 		`ingress.openSearchDashboards.annotations.external-dns\.alpha\.kubernetes\.io/target`: "verrazzano-ingress.default.mydomain.com",
