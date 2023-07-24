@@ -100,6 +100,8 @@ const jaegerAllInOneTemplate = `jaeger:
   spec:
     strategy: allInOne
     storage: memory
+    collector: {}
+    query: {}
 `
 
 // A template to define Jaeger override for creating default Jaeger instance
@@ -287,7 +289,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 				return nil, err
 			}
 			if createInstance {
-				jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
+				jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
 				// Append defaultJaegerImage values file
 				kvs = append(kvs, bom.KeyValue{Value: jaegerValuesFile, IsFile: true})
 
