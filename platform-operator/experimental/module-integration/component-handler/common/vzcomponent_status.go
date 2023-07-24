@@ -73,7 +73,7 @@ func UpdateComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.
 // addOrReplaceCondition appends the condition to the list of conditions.
 // if the condition already exists, then remove it
 func addOrReplaceCondition(compStatus *vzapi.ComponentStatusDetails, cond vzapi.Condition) {
-	cond.LastTransitionTime = getTransitionTime()
+	cond.LastTransitionTime = getCurrentTime()
 
 	// Copy conditions that have a different type than the input condition into a new list
 	var newConditions []vzapi.Condition
@@ -90,7 +90,7 @@ func addOrReplaceCondition(compStatus *vzapi.ComponentStatusDetails, cond vzapi.
 	compStatus.Conditions = append(newConditions, cond)
 }
 
-func getTransitionTime() string {
+func getCurrentTime() string {
 	t := time.Now().UTC()
 	return fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
 		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())

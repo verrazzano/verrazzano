@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/time"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -29,7 +30,7 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *vzapi.Verrazza
 }
 
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
-// operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
+// operator-based installation.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
 func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *vzapi.Verrazzano) result.Result {
 	if cr.Status.Components == nil {
@@ -85,112 +86,9 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *v
 	return result.NewResult()
 }
 
-// Update the component status in place for VZ CR
-func (r *Reconciler) loadModuleStatusIntoComponentStatus(vzcr *vzapi.Verrazzano, compName string, module *moduleapi.Module) *vzapi.ComponentStatusDetails {
-	compStatus := vzcr.Status.Components[compName]
-	if compStatus == nil {
-		// legacy verrazzano controller has not initialized the component status yet.
-		return nil
-	}
-
-	cond := modulestatus.GetReadyCondition(module)
-	if cond == nil {
-		return compStatus
-	}
-
-	var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
-	var state = vzapi.CompStateReconciling
-	lastGen := compStatus.LastReconciledGeneration
-
-	// The module is only done when it is ready condition is true and the
-	// last reconciled generation matches the spec generation
-	if cond.Status == corev1.ConditionTrue && module.Status.LastSuccessfulGeneration == module.Generation {
-		available = vzapi.ComponentAvailable
-		state = vzapi.CompStateReady
-		lastGen = vzcr.Generation
-	}
-
-	compStatus.State = state
-	compStatus.Available = &available
-	compStatus.LastReconciledGeneration = lastGen
-	compStatus.ReconcilingGeneration = vzcr.Generation
-
-	return compStatus
-}
-
-//
-//// updateStatus updates the status in the Verrazzano CR
-//func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, version *string) error {
-//	t := time.Now().UTC()
-//	condition := installv1alpha1.Condition{
-//		Type:    conditionType,
-//		Status:  corev1.ConditionTrue,
-//		Message: message,
-//		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-//			t.Year(), t.Month(), t.Day(),
-//			t.Hour(), t.Minute(), t.Second()),
-//	}
-//	conditions := appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
-//
-//	// Set the state of resource
-//	state := conditionToVzState(conditionType)
-//	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, state)
-//
-//	event := &vzstatus.UpdateEvent{
-//		Verrazzano: cr,
-//		Version:    version,
-//		State:      state,
-//		Conditions: conditions,
-//	}
-//
-//	if conditionType == installv1alpha1.CondInstallComplete {
-//		spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
-//		if err != nil {
-//			spiCtx.Log().Errorf("Failed to create component context: %v", err)
-//			return err
-//		}
-//		event.InstanceInfo = vzinstance.GetInstanceInfo(spiCtx)
-//	}
-//
-//	// Update the status
-//	r.StatusUpdater.Update(event)
-//	return nil
-//}
-
-// checkComponentsReady returns true if the components are ready with a matching VZ generation
-func (r Reconciler) checkComponentsReady(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
-	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(effectiveCR) {
-			continue
-		}
-		if !comp.ShouldUseModule() {
-			continue
-		}
-		// get the module
-		module := &moduleapi.Module{}
-		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
-			if errors.IsNotFound(err) {
-				continue
-			}
-			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
-			continue
-		}
-		// Set the effectiveCR status from the module status
-		r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
-	}
-
-	// Update the status.  If it didn't change then the Kubernetes API server will not be called
-	err := r.Client.Status().Update(context.TODO(), effectiveCR)
-	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
-	return nil
-}
-
-
-// updateStatusForComponents updates the vz CR status for the components based on the module status
-// return true if all components are ready
-func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+// updateStatusForComponents updates the vz CR status for all the components based on the module status.
+// Requeue if all components are not ready.
+func (r Reconciler) updateStatusForAllComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	var readyCount int
 	var moduleCount int
 
@@ -212,8 +110,11 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effect
 			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
 			continue
 		}
-		// Set the effectiveCR status from the module status
-		compStatus := r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
+		// Set the VZ status from the module status
+		compStatus, err := r.updateStatusForSingleComponent(effectiveCR, comp.Name(), module)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
 		if compStatus != nil && compStatus.State == vzapi.CompStateReady {
 			readyCount++
 		}
@@ -232,33 +133,56 @@ func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effect
 	return nil
 }
 
-// updateStatusForComponents updates the vz CR status for the components based on the module status
-// return true if all components are ready
-func (r Reconciler) updateVZStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
-	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(effectiveCR) {
-			continue
-		}
-		if !comp.ShouldUseModule() {
-			continue
-		}
-		// get the module
-		module := &moduleapi.Module{}
-		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
-			if errors.IsNotFound(err) {
-				continue
-			}
-			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
-			continue
-		}
-		// Set the effectiveCR status from the module status
-		r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
+// updateStatusForSingleComponent the Verrazzano CR component status with the latest status from the Module
+func (r *Reconciler) updateStatusForSingleComponent(vzcr *vzapi.Verrazzano, compName string, module *moduleapi.Module) (*vzapi.ComponentStatusDetails, error) {
+	compStatus := vzcr.Status.Components[compName]
+	if compStatus == nil {
+		// legacy Verrazzano controller has not initialized the component status yet.
+		return nil, nil
 	}
 
-	// Update the status.  If it didn't change then the Kubernetes API server will not be called
-	err := r.Client.Status().Update(context.TODO(), effectiveCR)
-	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
+	// Get the Module ready condition, return if it doesn't exist yet
+	cond := modulestatus.GetReadyCondition(module)
+	if cond == nil {
+		return compStatus, nil
 	}
-	return nil
+
+	// Make sure the condition is later than the module update time.
+	// This check prevents looking at old conditions that don't apply to the
+	// most recent Module CR updates
+	if module.Annotations == nil {
+		return compStatus, nil
+	}
+	moduleUpdateTS, _ := module.Annotations[vzconst.VerrazzanoUpdateTimestampAnnotation]
+	moduleUpdateTime, err := time.ParseTime(moduleUpdateTS)
+	if err != nil {
+		return nil, err
+	}
+	condTime, err := time.ParseTime(cond.LastTransitionTime)
+	if err != nil {
+		return nil, err
+	}
+	if condTime.Before(moduleUpdateTime) {
+		return nil, nil
+	}
+
+	// Init vars used to update the VZ component status
+	var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
+	var state = vzapi.CompStateReconciling
+	lastGen := compStatus.LastReconciledGeneration
+
+	// The module is only done when it is ready condition is true and the
+	// last reconciled generation matches the spec generation
+	if cond.Status == corev1.ConditionTrue && module.Status.LastSuccessfulGeneration == module.Generation {
+		available = vzapi.ComponentAvailable
+		state = vzapi.CompStateReady
+		lastGen = vzcr.Generation
+	}
+
+	compStatus.State = state
+	compStatus.Available = &available
+	compStatus.LastReconciledGeneration = lastGen
+	compStatus.ReconcilingGeneration = vzcr.Generation
+
+	return compStatus, nil
 }

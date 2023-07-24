@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/time"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -57,7 +58,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// (like uninstall) are not blocked by a different component's failure
 	res1 := r.createOrUpdateModules(log, effectiveCR)
 	res2 := r.deleteModules(log, effectiveCR, true)
-	res3 := r.updateStatusForComponents(log, effectiveCR)
+	res3 := r.updateStatusForAllComponents(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed
 	if res1.ShouldRequeue() || res2.ShouldRequeue() || res3.ShouldRequeue() {
@@ -120,6 +121,7 @@ func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp 
 	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
 	module.Annotations[constants.VerrazzanoObservedGenerationAnnotation] = strconv.FormatInt(effectiveCR.Generation, 10)
 	module.Annotations[constants.VerrazzanoVersionAnnotation] = vzVersion
+	module.Annotations[constants.VerrazzanoUpdateTimestampAnnotation] = time.GetCurrentTime()
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
@@ -165,7 +167,8 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 		if !comp.ShouldUseModule() {
 			continue
 		}
-		if disabledOnly && !comp.IsEnabled(effectiveCR) {
+		if disabledOnly && comp.IsEnabled(effectiveCR) {
+			// Ignore this since only disabled components should be uninstalled
 			continue
 		}
 		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{
