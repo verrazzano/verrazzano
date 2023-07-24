@@ -27,8 +27,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
+	if vzcr.IsClusterOperatorEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
+			return err
+		}
 	}
 
 	// Set istio injection flag.  This will be false if Istio disabled or injections explictiy disabled
