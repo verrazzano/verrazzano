@@ -7,7 +7,6 @@ import (
 	"fmt"
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
@@ -58,25 +57,12 @@ func buildCertificateName(trait *vzapi.IngressTrait, appNamespace string) string
 
 // buildLegacyCertificateName will generate a cert name
 func buildLegacyCertificateName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
-
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return ""
-	}
-
 	return fmt.Sprintf("%s-%s-cert", appNamespace, trait.Name)
 }
 
 // buildLegacyCertificateSecretName will generate a cert secret name
 func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
-
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return ""
-	}
-
 	return fmt.Sprintf("%s-%s-cert-secret", appNamespace, trait.Name)
-
 }
 
 // validateConfiguredSecret ensures that a secret is specified and the trait rules specify a "hosts" setting.  The

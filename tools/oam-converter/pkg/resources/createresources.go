@@ -37,7 +37,7 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 	}
 
 	for _, conversionComponent := range conversionComponents {
-		if conversionComponent.WeblogicworkloadMap != nil {
+		if conversionComponent.Weblogicworkload != nil {
 
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
 			virtualServices = append(virtualServices, virtualService)
