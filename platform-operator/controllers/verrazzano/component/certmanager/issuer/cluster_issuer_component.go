@@ -60,14 +60,6 @@ func (c clusterIssuerComponent) IsInstalled(ctx spi.ComponentContext) (bool, err
 
 // PreInstall runs before cert-manager-config component is executed
 func (c clusterIssuerComponent) PreInstall(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager-config PreInstall dry run")
-		return nil
-	}
-	if err := c.createOrUpdatePrivateCABundleSecret(compContext); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -90,7 +82,7 @@ func (c clusterIssuerComponent) Upgrade(compContext spi.ComponentContext) error 
 }
 
 func (c clusterIssuerComponent) PreUpgrade(compContext spi.ComponentContext) error {
-	return c.createOrUpdatePrivateCABundleSecret(compContext)
+	return nil
 }
 
 // Uninstall removes cert-manager-config objects that are created outside of Helm
@@ -224,8 +216,13 @@ func (c clusterIssuerComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (c clusterIssuerComponent) PostInstall(context spi.ComponentContext) error {
-	return nil
+func (c clusterIssuerComponent) PostInstall(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PreInstall dry run")
+		return nil
+	}
+	return c.createOrUpdatePrivateCABundleSecret(compContext)
 }
 
 func (c clusterIssuerComponent) IsOperatorUninstallSupported() bool {
@@ -240,8 +237,13 @@ func (c clusterIssuerComponent) PostUninstall(context spi.ComponentContext) erro
 	return nil
 }
 
-func (c clusterIssuerComponent) PostUpgrade(context spi.ComponentContext) error {
-	return nil
+func (c clusterIssuerComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PreInstall dry run")
+		return nil
+	}
+	return c.createOrUpdatePrivateCABundleSecret(compContext)
 }
 
 func (c clusterIssuerComponent) Reconcile(ctx spi.ComponentContext) error {
