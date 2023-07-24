@@ -4,9 +4,11 @@
 package verrazzano
 
 import (
-	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -21,12 +23,36 @@ func (r Reconciler) GetName() string {
 // PreRemoveFinalizer is called when the resource is being deleted, before the finalizer
 // is removed.  Use this method to delete Kubernetes resources, etc.
 func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	cr := &moduleapi.Module{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, cr); err != nil {
+	actualCR := &vzapi.Verrazzano{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
+		spictx.Log.ErrorfThrottled(err.Error())
+		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
+
+	// Get effective CR and set the effective CR status with the actual status
+	// Note that the reconciler code only udpdate the status, which is why the effective
+	// CR is passed.  If was ever to update the spec, then the actual CR would need to be used.
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	effectiveCR.Status = actualCR.Status
+
+	log := vzlog.DefaultLogger()
+
+	// Delete modules that are enabled and update status
+	// Don't block status update of component if delete failed
+	res1 := r.deleteModules(log, effectiveCR, false)
+	res2 := r.updateStatusForComponents(log, effectiveCR)
+
+	// Requeue if any of the previous operations indicate a requeue is needed
+	if res1.ShouldRequeue() || res2.ShouldRequeue() {
+		return result.NewResultShortRequeueDelay()
+	}
+
+	// All the modules have been reconciled and are ready
 	return result.NewResult()
-	//	return r.reconcileAction(spictx, cr, r.HandlerInfo.DeleteActionHandler)
 }
 
 // PostRemoveFinalizer is called after the finalizer is successfully removed.

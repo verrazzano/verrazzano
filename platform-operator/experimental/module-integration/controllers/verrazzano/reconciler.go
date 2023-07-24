@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strconv"
 )
@@ -50,20 +52,16 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 
 	log := vzlog.DefaultLogger()
 
-	// Temp disable, this is done by the legacy Verrazzano controller
-	//res := r.initStatus(log, effectiveCR)
-	//if res.ShouldRequeue() {
-	//	return res
-	//}
+	// VZ components can be installed, updated, upgraded, or uninstalled independently
+	// Process all the components and only requeue are the end, so that operations
+	// (like uninstall) are not blocked by a different component's failure
+	res1 := r.createOrUpdateModules(log, effectiveCR)
+	res2 := r.deleteModules(log, effectiveCR, true)
+	res3 := r.updateStatusForComponents(log, effectiveCR)
 
-	err = r.createOrUpdateModules(effectiveCR)
-	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	ready, err := r.updateStatusForComponents(log, effectiveCR)
-	if err != nil || !ready {
-		return result.NewResultShortRequeueDelayWithError(err)
+	// Requeue if any of the previous operations indicate a requeue is needed
+	if res1.ShouldRequeue() || res2.ShouldRequeue() || res3.ShouldRequeue() {
+		return result.NewResultShortRequeueDelay()
 	}
 
 	// All the modules have been reconciled and are ready
@@ -71,10 +69,10 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 // createOrUpdateModules creates or updates all the modules
-func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
+func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	semver, err := validators.GetCurrentBomVersion()
 	if err != nil {
-		return err
+		return result.NewResultShortRequeueDelayWithError(fmt.Errorf("Failed to get BOM version: %v", err))
 	}
 
 	version := semver.ToString()
@@ -87,7 +85,7 @@ func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
 
 		createOrUpdate, err := r.shouldCreateOrUpdateModule(effectiveCR, comp)
 		if err != nil {
-			return err
+			return result.NewResultShortRequeueDelayWithError(err)
 		}
 		if !createOrUpdate {
 			continue
@@ -104,7 +102,10 @@ func (r Reconciler) createOrUpdateModules(effectiveCR *vzapi.Verrazzano) error {
 			return mutateModule(effectiveCR, &module, comp, version, version)
 		})
 		if err != nil {
-			return err
+			if !errors.IsConflict(err) {
+				log.Errorf("Failed createOrUpdate module %s: %v", module.Name, err)
+			}
+			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
 	return nil
@@ -155,67 +156,37 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 	return true, nil
 }
 
-// Temp disable since legacy Verrazzano controller does this
-//// Init status fields
-//func (r Reconciler) initStatus(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
-//	// Init the state to Ready if this CR has never been processed
-//	// Always requeue to update cache, ignore error since requeue anyway
-//	if len(effectiveCR.Status.State) == 0 {
-//		effectiveCR.Status.State = vzapi.VzStateReconciling
-//		r.updateStatus(log, effectiveCR)
-//		return result.NewResultShortRequeueDelay()
-//	}
-//
-//	// Check if init done for this resource
-//	_, ok := initializedSet[effectiveCR.Name]
-//	if ok {
-//		return result.NewResult()
-//	}
-//
-//	// Pre-populate the component status fields
-//	res := r.initializeComponentStatus(log, effectiveCR)
-//	if res.ShouldRequeue() {
-//		return res
-//	}
-//
-//	// Update the map indicating the resource has been initialized
-//	initializedSet[effectiveCR.Name] = true
-//	return result.NewResult()
-//}
+// deleteModules deletes all the modules, optionally only deleting ones that disabled
+func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, disabledOnly bool) result.Result {
+	var reterr error
 
-// updateStatusForComponents updates the vz CR status for the components based on the module status
-// return true if all components are ready
-func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) error {
-	var readyCount int
-	var moduleCount int
-
+	// Delete all modules.  Loop through all the components once even if error occurs.
 	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(effectiveCR) {
+		if !comp.ShouldUseModule() {
 			continue
 		}
-		moduleCount++
-
-		// get the module
-		module := &moduleapi.Module{}
-		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
+		if disabledOnly && !comp.IsEnabled(effectiveCR) {
+			continue
+		}
+		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{
+			Name:      comp.Name(),
+			Namespace: constants.VerrazzanoInstallNamespace,
+		}}
+		err := r.Client.Delete(context.TODO(), &module, &client.DeleteOptions{})
+		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
 			}
-			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
+			if !errors.IsConflict(err) {
+				log.Progressf("Failed to delete Component %s, retrying: %v", comp.Name(), err)
+			}
+			reterr = err
 			continue
 		}
-		// Set the effectiveCR status from the module status
-		compStatus := r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
-		if compStatus != nil && compStatus.State == vzapi.CompStateReady {
-			readyCount++
-		}
 	}
-
-	// Update the status.  If it didn't change then the Kubernetes API server will not be called
-	err := r.Client.Status().Update(context.TODO(), effectiveCR)
-	if err != nil {
-		return err
+	// return last error found so that we retry
+	if reterr != nil {
+		return result.NewResultShortRequeueDelayWithError(reterr)
 	}
-
 	return nil
 }

@@ -8,12 +8,15 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // updateVzState updates the status state in the Verrazzano CR
@@ -153,3 +156,109 @@ func (r *Reconciler) loadModuleStatusIntoComponentStatus(vzcr *vzapi.Verrazzano,
 //	r.StatusUpdater.Update(event)
 //	return nil
 //}
+
+// checkComponentsReady returns true if the components are ready with a matching VZ generation
+func (r Reconciler) checkComponentsReady(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+	for _, comp := range registry.GetComponents() {
+		if !comp.IsEnabled(effectiveCR) {
+			continue
+		}
+		if !comp.ShouldUseModule() {
+			continue
+		}
+		// get the module
+		module := &moduleapi.Module{}
+		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
+			continue
+		}
+		// Set the effectiveCR status from the module status
+		r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
+	}
+
+	// Update the status.  If it didn't change then the Kubernetes API server will not be called
+	err := r.Client.Status().Update(context.TODO(), effectiveCR)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	return nil
+}
+
+
+// updateStatusForComponents updates the vz CR status for the components based on the module status
+// return true if all components are ready
+func (r Reconciler) updateStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+	var readyCount int
+	var moduleCount int
+
+	for _, comp := range registry.GetComponents() {
+		if !comp.IsEnabled(effectiveCR) {
+			continue
+		}
+		if !comp.ShouldUseModule() {
+			continue
+		}
+		moduleCount++
+
+		// get the module
+		module := &moduleapi.Module{}
+		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
+			continue
+		}
+		// Set the effectiveCR status from the module status
+		compStatus := r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
+		if compStatus != nil && compStatus.State == vzapi.CompStateReady {
+			readyCount++
+		}
+	}
+
+	// Update the status.  If it didn't change then the Kubernetes API server will not be called
+	err := r.Client.Status().Update(context.TODO(), effectiveCR)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if moduleCount != readyCount {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	return nil
+}
+
+// updateStatusForComponents updates the vz CR status for the components based on the module status
+// return true if all components are ready
+func (r Reconciler) updateVZStatusForComponents(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+	for _, comp := range registry.GetComponents() {
+		if !comp.IsEnabled(effectiveCR) {
+			continue
+		}
+		if !comp.ShouldUseModule() {
+			continue
+		}
+		// get the module
+		module := &moduleapi.Module{}
+		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)
+			continue
+		}
+		// Set the effectiveCR status from the module status
+		r.loadModuleStatusIntoComponentStatus(effectiveCR, comp.Name(), module)
+	}
+
+	// Update the status.  If it didn't change then the Kubernetes API server will not be called
+	err := r.Client.Status().Update(context.TODO(), effectiveCR)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	return nil
+}
