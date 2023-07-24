@@ -6,10 +6,6 @@ package v1beta1
 import (
 	"context"
 	"fmt"
-	"strings"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -18,7 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"strings"
 )
 
 var getControllerRuntimeClient = validators.GetClient
@@ -195,9 +193,16 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 	if err != nil {
 		return err
 	}
+
+	// iterates over the list of pods and returns an error if there is more than one vpo installed but not Failed
 	if len(podList.Items) > 1 {
-		return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != "Failed" {
+				return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+			}
+		}
 	}
+
 	return nil
 }
 
