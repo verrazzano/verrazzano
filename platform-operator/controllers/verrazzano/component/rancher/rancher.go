@@ -130,6 +130,12 @@ const (
 	SettingUIBrand                    = "ui-brand"
 	SettingUIBrandValue               = "verrazzano"
 	SettingCACerts                    = "cacerts"
+	SettingAuthResyncCron             = "auth-user-info-resync-cron"
+	SettingAuthMaxAge                 = "auth-user-info-max-age-seconds"
+	SettingAuthTTL                    = "auth-user-session-ttl-minutes"
+	SettingAuthResyncCronValue        = "*/15 * * *"
+	SettingAuthMaxAgeValue            = "600"
+	SettingAuthTTLValue               = "540"
 )
 
 // auth config

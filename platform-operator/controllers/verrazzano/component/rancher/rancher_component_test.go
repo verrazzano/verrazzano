@@ -91,17 +91,17 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 34, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
+	assert.Equal(t, 28, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 35, len(kvs)) // one extra for the systemDefaultRegistry override
+	assert.Equal(t, 29, len(kvs)) // one extra for the systemDefaultRegistry override
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
 
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 35, len(kvs))
+	assert.Equal(t, 29, len(kvs))
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
@@ -179,12 +179,12 @@ func TestApplendLetsEncryptStagingEnvOverrides(t *testing.T) {
 	assert.NotContains(t, kvs, bom.KeyValue{Key: privateCAKey, Value: privateCAValue})
 }
 
-// TestAppendEnvOverrides verifies that Rancher image overrides and other env overrides are added
+// TestAppendImageOverrides verifies that Rancher image overrides are added
 // GIVEN a Verrazzano CR
 // AND  there is no registry override
-// WHEN appendEnvOverrides is called
-// THEN appendEnvOverrides should add the image overrides with the registry prepended along with the other env overrides
-func TestAppendEnvOverrides(t *testing.T) {
+// WHEN appendImageOverrides is called
+// THEN appendImageOverrides should add the image overrides with the registry prepended
+func TestAppendImageOverrides(t *testing.T) {
 	a := assert.New(t)
 
 	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
@@ -200,33 +200,12 @@ func TestAppendEnvOverrides(t *testing.T) {
 		expectedImages[key] = false
 	}
 
-	kvs, err := appendEnvOverrides(ctx, []bom.KeyValue{})
+	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
 	a.Nil(err)
-	a.Equal(26, len(kvs))
-	skipNextVal := false
-	for index, kv := range kvs {
-		if skipNextVal {
-			skipNextVal = false
-			continue
-		}
-		if kv.Value == cattleUIEnvName {
-			a.Equal(kvs[index+1].Value, "true")
-			skipNextVal = true
-			continue
-		}
-		if kv.Value == cattleAuthMaxAgeSecondsEnvName {
-			a.Equal(kvs[index+1].Value, cattleAuthMaxAgeSecondsEnvVal)
-			skipNextVal = true
-			continue
-		}
-		if kv.Value == cattleAuthResyncCronEnvName {
-			a.Equal(kvs[index+1].Value, cattleAuthResyncCronEnvVal)
-			skipNextVal = true
-			continue
-		}
-		if kv.Value == cattleAuthSessionTTLEnvName {
-			a.Equal(kvs[index+1].Value, cattleAuthSessionTTLEnvVal)
-			skipNextVal = true
+	a.Equal(20, len(kvs))
+	for _, kv := range kvs {
+		// special exception for the extra arguments
+		if kv.Value == "true" {
 			continue
 		}
 		if regexp.MustCompile(`extraEnv\[\d+]\.name`).Match([]byte(kv.Key)) {
@@ -243,7 +222,7 @@ func TestAppendEnvOverrides(t *testing.T) {
 		}
 		splitImage := strings.Split(kv.Value, "/")
 		expectedImages[splitImage[len(splitImage)-1]] = true
-		a.Equal("ghcr.io", splitImage[0], "Expected image to have the ghcr.io prefix")
+		a.Equal(splitImage[0], "ghcr.io", "Expected image to have the ghcr.io prefix")
 	}
 
 	for key, val := range expectedImages {
@@ -310,12 +289,12 @@ func TestPSPEnabledOverrides(t *testing.T) {
 	}
 }
 
-// TestAppendEnvOverridesWithRegistryOverride verifies that Rancher image overrides are added
+// TestAppendImageOverrides verifies that Rancher image overrides are added
 // GIVEN a Verrazzano CR
 // AND  there a registry override
-// WHEN appendEnvOverrides is called
-// THEN appendEnvOverrides should add the image overrides without the registry prepended
-func TestAppendEnvOverridesWithRegistryOverride(t *testing.T) {
+// WHEN appendImageOverrides is called
+// THEN appendImageOverrides should add the image overrides without the registry prepended
+func TestAppendImageOverridesWithRegistryOverride(t *testing.T) {
 	a := assert.New(t)
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -328,22 +307,14 @@ func TestAppendEnvOverridesWithRegistryOverride(t *testing.T) {
 		expectedImages[key] = false
 	}
 
-	kvs, err := appendEnvOverrides(ctx, []bom.KeyValue{})
+	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
 	a.Nil(err)
-	a.Equal(26, len(kvs))
-	skipNextVal := false
+	a.Equal(20, len(kvs))
 	for _, kv := range kvs {
-		if skipNextVal {
-			skipNextVal = false
+		// special exception for the extra arguments
+		if kv.Value == "true" || kv.Value == "ghcr.io" {
 			continue
 		}
-		// Skip the env settings not related to image overrides
-		if kv.Value == cattleUIEnvName || kv.Value == cattleAuthMaxAgeSecondsEnvName ||
-			kv.Value == cattleAuthResyncCronEnvName || kv.Value == cattleAuthSessionTTLEnvName {
-			skipNextVal = true
-			continue
-		}
-
 		if regexp.MustCompile(`extraEnv\[\d+]\.name`).Match([]byte(kv.Key)) {
 			a.NotEmpty(kv.Value)
 			continue

@@ -214,6 +214,14 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightLogoFilePath, k8sClient)
 					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkLogoFilePath, k8sClient)
 
+					// Verify Rancher auth settings
+					minVer20, err := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+					Expect(err).ToNot(HaveOccurred())
+					if minVer20 {
+						verifySettingValue(rancher.SettingAuthResyncCron, rancher.SettingAuthResyncCronValue, k8sClient)
+						verifySettingValue(rancher.SettingAuthMaxAge, rancher.SettingAuthMaxAgeValue, k8sClient)
+						verifySettingValue(rancher.SettingAuthTTL, rancher.SettingAuthTTLValue, k8sClient)
+					}
 				}
 
 				minVer15, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
