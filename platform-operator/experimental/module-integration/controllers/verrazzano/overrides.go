@@ -60,7 +60,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 
 	// Copy Secret overrides to new secret and add info to the module ValuesFrom
 	if overrides.SecretRef != nil {
-		if err := r.copySecret(overrides.SecretRef, module, effectiveCR.Namespace); err != nil {
+		if err := r.copySecret(overrides.SecretRef, effectiveCR, module, effectiveCR.Namespace); err != nil {
 			log.ErrorfThrottled("Failed to create values secret for module %s: %v", module.Name, err)
 			return err
 		}
@@ -77,7 +77,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 
 	// Copy ConfigMap overrides to new CM and add info to the module ValuesFrom
 	if overrides.ConfigMapRef != nil {
-		if err := r.copyConfigMap(overrides.ConfigMapRef, module, effectiveCR.Namespace); err != nil {
+		if err := r.copyConfigMap(overrides.ConfigMapRef, effectiveCR, module, effectiveCR.Namespace); err != nil {
 			log.ErrorfThrottled("Failed to create values configmap for module %s: %v", module.Name, err)
 			return err
 		}
@@ -96,7 +96,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 }
 
 // copy the component config secret to the module namespace and set the module as owner
-func (r Reconciler) copySecret(secretRef *corev1.SecretKeySelector, module *moduleapi.Module, fromSecretNamespace string) error {
+func (r Reconciler) copySecret(secretRef *corev1.SecretKeySelector, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, fromSecretNamespace string) error {
 	data, err := modulehelm.GetSecretOverrides(modulelog.DefaultLogger(), r.Client, secretRef, fromSecretNamespace)
 	if err != nil {
 		return err
@@ -104,19 +104,19 @@ func (r Reconciler) copySecret(secretRef *corev1.SecretKeySelector, module *modu
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: module.Namespace, Name: getConfigResourceName(module.Name)},
 	}
-	controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
 		secret.Data[secretRef.Key] = []byte(data)
-		return controllerutil.SetControllerReference(module, &secret, r.Scheme)
+		return nil
 	})
 
-	return nil
+	return err
 }
 
 // copy the component configmap to the module namespace and set the module as owner
-func (r Reconciler) copyConfigMap(cmRef *corev1.ConfigMapKeySelector, module *moduleapi.Module, fromSecretNamespace string) error {
+func (r Reconciler) copyConfigMap(cmRef *corev1.ConfigMapKeySelector, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, fromSecretNamespace string) error {
 	data, err := modulehelm.GetConfigMapOverrides(modulelog.DefaultLogger(), r.Client, cmRef, fromSecretNamespace)
 	if err != nil {
 		return err
@@ -124,14 +124,15 @@ func (r Reconciler) copyConfigMap(cmRef *corev1.ConfigMapKeySelector, module *mo
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Namespace: module.Namespace, Name: getConfigResourceName(module.Name)},
 	}
-	controllerutil.CreateOrUpdate(context.TODO(), r.Client, &cm, func() error {
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &cm, func() error {
 		if cm.Data == nil {
 			cm.Data = make(map[string]string)
 		}
 		cm.Data[cmRef.Key] = data
-		return controllerutil.SetControllerReference(module, &cm, r.Scheme)
+		return nil
 	})
-	return nil
+
+	return err
 }
 
 func getConfigResourceName(moduleName string) string {
