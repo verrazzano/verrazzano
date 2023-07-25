@@ -1,0 +1,63 @@
+{
+  "apiVersion": "cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "Machine",
+      "metadata": {
+        "name": "c-h78bf-control-plane-wr9n9",
+        "namespace": "c-h78bf"
+      },
+       "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-07-24T16:11:53Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "APIServerPodHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:10:24Z",
+            "status": "True",
+            "type": "BootstrapReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "ControllerManagerPodHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "EtcdMemberHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "EtcdPodHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:11:53Z",
+            "status": "True",
+            "type": "InfrastructureReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:54Z",
+            "status": "True",
+            "type": "NodeHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "SchedulerPodHealthy"
+          }
+        ]
+       }
+    }
+  ],
+  "kind": "MachineList"
+}
