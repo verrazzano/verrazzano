@@ -42,8 +42,8 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	if conversionComponent.Coherenceworkload != nil {
 		workload = conversionComponent.Coherenceworkload
 	}
-	if conversionComponent.WeblogicworkloadMap != nil {
-		workload = conversionComponent.WeblogicworkloadMap[""]
+	if conversionComponent.Weblogicworkload != nil {
+		workload = conversionComponent.Weblogicworkload
 	}
 
 	//fetch trait defaultss

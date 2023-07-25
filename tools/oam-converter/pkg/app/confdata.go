@@ -10,7 +10,6 @@ import (
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
-	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
@@ -26,8 +25,7 @@ func ConfData() error {
 
 	//Check the length of args
 	if len(os.Args) != 3 {
-		fmt.Println("Not enough args to run tool")
-		return nil
+		return errors.New("Not enough args to run tool")
 	} else {
 		inputDirectory = os.Args[1]
 		outputDirectory = os.Args[2]
@@ -39,18 +37,16 @@ func ConfData() error {
 	var components []map[string]interface{}
 
 	//used to store non-oam file data
-	var K8sResources []map[string]interface{}
+	var k8sResources []any
 
 	//iterate through user inputted directory
 	files, err := iterateDirectory(inputDirectory)
 	if err != nil {
 		fmt.Println("Error in iterating over directory", err)
 	}
-	var data []byte
-
 	//Read each file from the input directory
 	for _, input := range files {
-		data, _ = ioutil.ReadFile(input)
+		data, _ := ioutil.ReadFile(input)
 		datastr := string(data)
 
 		//Split the objects using "---" delimiter
@@ -74,14 +70,10 @@ func ConfData() error {
 			//Check the kind od each component and apiVersion
 			if compKind == "Component" && compApiVersion == consts.CompApiVersion {
 				components = append(components, component)
-			}
-			if compKind == "ApplicationConfiguration" && compApiVersion == consts.CompApiVersion {
+			} else if compKind == "ApplicationConfiguration" && compApiVersion == consts.CompApiVersion {
 				appData = append(appData, component)
-			}
-			//For generic workload
-			if compKind != "Component" && compKind != "ApplicationConfiguration" {
-				//TODO for K8s resources that are not OAM-specific
-				K8sResources = append(K8sResources, component)
+			} else{
+				k8sResources = append(k8sResources, component)
 			}
 		}
 	}
@@ -106,155 +98,42 @@ func ConfData() error {
 	if err != nil {
 		return err
 	}
+	//write the nonOAM resources to the file
+	err = writeKubeResources(outputDirectory, k8sResources)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // Write the kube resources to the files in output directory
-func writeKubeResources(outputDirectory string, outputResources *types.KubeResources) error {
+func writeKubeResources(outputDirectory string, outputResources []any) error {
+	for index := range outputResources {
+		func () error{
+			//fileName := "" + index.Name + ".yaml" TODO add filename
+			fileName := "OAMoutput.yaml"
+			filePath := filepath.Join(outputDirectory, fileName)
 
-	//Write virtual services to files
-	if outputResources.VirtualServices != nil {
-		for index := range outputResources.VirtualServices {
-			for _, virtualService := range outputResources.VirtualServices[index] {
-				fileName := "" + virtualService.Name + ".yaml"
-				filePath := filepath.Join(outputDirectory, fileName)
-
-				f, err := os.Create(filePath)
-				if err != nil {
-					return err
-				}
-				r, err := json.Marshal(virtualService)
-				if err != nil {
-					return err
-				}
-				output, err := yaml.JSONToYAML(r)
-				if err != nil {
-					return err
-				}
-
-				defer f.Close()
-
-				_, err = f.WriteString(string(output))
-				if err != nil {
-					return err
-				}
-
-			}
-
-		}
-	}
-
-	//Write down gateway to files
-	if outputResources.Gateway != nil {
-
-		fileName := "gateway.yaml"
-		filePath := filepath.Join(outputDirectory, fileName)
-
-		f, err := os.Create(filePath)
-		if err != nil {
-			return err
-		}
-
-		gatewayYaml, err := yaml.Marshal(outputResources.Gateway)
-		if err != nil {
-			return errors.New("failed to marshal YAML: %w")
-		}
-
-		_, err = f.WriteString(string(gatewayYaml))
-		if err != nil {
-			return errors.New("failed to write YAML to file: %w")
-		}
-		defer f.Close()
-	}
-
-	//Write down destination rules to files
-	if outputResources.DestinationRules != nil {
-		for index := range outputResources.DestinationRules {
-			for _, destinationRule := range outputResources.DestinationRules[index] {
-				if destinationRule != nil {
-					fileName := "" + destinationRule.Name
-					filePath := filepath.Join(outputDirectory, fileName)
-
-					f, err := os.Create(filePath)
-					r, err := json.Marshal(destinationRule)
-					if err != nil {
-						return err
-					}
-					output, err := yaml.JSONToYAML(r)
-					if err != nil {
-						return err
-					}
-
-					defer f.Close()
-
-					_, err2 := f.WriteString(string(output))
-					if err2 != nil {
-						return err2
-					}
-				}
-			}
-		}
-	}
-
-	//Write down Authorization Policies to files
-	if outputResources.AuthPolicies != nil {
-		for index := range outputResources.AuthPolicies {
-			for _, authPolicy := range outputResources.AuthPolicies[index] {
-				if authPolicy != nil {
-					fileName := "authzpolicy.yaml"
-					filePath := filepath.Join(outputDirectory, fileName)
-
-					f, err := os.Create(filePath)
-					r, err := json.Marshal(authPolicy)
-					if err != nil {
-						return err
-					}
-					output, err := yaml.JSONToYAML(r)
-					if err != nil {
-						return err
-					}
-
-					defer f.Close()
-
-					_, err2 := f.WriteString(string(output))
-					if err2 != nil {
-						return err2
-					}
-
-				}
-
-			}
-		}
-	}
-
-	//Write down Service Monitors to files
-	if outputResources.ServiceMonitors != nil {
-		var output string
-		fileName := "output.yaml"
-		filePath := filepath.Join(outputDirectory, fileName)
-		f, err := os.Create(filePath)
-		if err != nil {
-			return err
-		}
-		for _, servicemonitor := range outputResources.ServiceMonitors {
-			r, err := json.Marshal(servicemonitor)
+			f, err := os.Create(filePath)
 			if err != nil {
 				return err
 			}
-			out, err := yaml.JSONToYAML(r)
+			r, err := json.Marshal(index)
 			if err != nil {
 				return err
 			}
-			output = output + "---\n" + string(out)
-		}
+			output, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
 
-		defer f.Close()
+			defer f.Close()
 
-		_, err2 := f.WriteString(string(output))
-		if err2 != nil {
-			return err2
-		}
-
+			_, err = f.WriteString(string(output))
+			if err != nil {
+				return err
+			}
+		 return nil}()
 	}
 	return nil
 }

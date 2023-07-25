@@ -29,7 +29,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 
 		appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
 		if !found || err != nil {
-			return nil, errors.New("namespace key doesn't exist")
+			//return nil, errors.New("namespace key doesn't exist")
 		}
 
 		appSpec, found, err := unstructured.NestedMap(appMap, "spec")
@@ -78,6 +78,27 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 							AppName:       appName,
 							ComponentName: componentMap["componentName"].(string),
 							IngressTrait:  ingressTrait,
+						})
+					}
+					if traitKind == consts.MetricsTrait {
+						metricsTrait := &vzapi.MetricsTrait{}
+						traitJSON, err := json.Marshal(traitSpec)
+
+						if err != nil {
+							fmt.Printf("Failed to marshal trait: %v", err)
+						}
+
+						err = json.Unmarshal(traitJSON, metricsTrait)
+
+						if err != nil {
+							fmt.Printf("Failed to unmarshal trait: %v", err)
+						}
+
+						conversionComponents = append(conversionComponents, &types.ConversionComponents{
+							AppNamespace:  appNamespace,
+							AppName:       appName,
+							ComponentName: componentMap["componentName"].(string),
+							MetricsTrait:  metricsTrait,
 						})
 					}
 				}
