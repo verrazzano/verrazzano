@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -30,6 +32,11 @@ const rancherDeploymentName = "rancher"
 
 // reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request, vz *vzapi.Verrazzano) (ctrl.Result, error) {
+
+	if vz.Status.State != vzapi.VzStateReady {
+		vzlog.DefaultLogger().Progressf("Verrazzano state is %s, CA secrets reconciling paused", vz.Status.State)
+		return vzctrl.NewRequeueWithDelay(10, 30, time.Second), nil
+	}
 
 	isVzIngressSecret := isVerrazzanoIngressSecretName(req.NamespacedName)
 	isAddnlTLSSecret := isAdditionalTLSSecretName(req.NamespacedName)
@@ -78,13 +85,14 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	// Update the Rancher TLS CA secret with the CA in Verrazzano TLS Secret
 	if isVzIngressSecret {
 		// Update the Verrazzano private CA bundle; source of truth from a VZ perspective
-		result, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
+		_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
 			vzconst.CABundleKey, caKey, caSecret, false)
 		if err != nil {
 			return newRequeueWithDelay(), nil
 		}
 
-		result, err = r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
+		// Update the Rancher copy and bounce the deployment if necessary
+		result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
 			vzconst.RancherTLSCAKey, caKey, caSecret, false)
 		if err != nil {
 			return newRequeueWithDelay(), nil
@@ -176,7 +184,7 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
 
 	if err := r.Update(context.TODO(), &deployment); err != nil {
-		return vzlog.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
+		return log.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
 	}
 	r.log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
 		deployment.Namespace, deployment.Name)
