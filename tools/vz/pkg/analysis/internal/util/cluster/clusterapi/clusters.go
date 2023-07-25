@@ -14,7 +14,7 @@ import (
 
 const capiClusterResource = "clusters.cluster.x-k8s.io"
 
-// Minimal definition of cluster.x-k8s.io object that only contains the fields that will be analyzed
+// Minimal definition of clusters.cluster.x-k8s.io object that only contains the fields that will be analyzed
 type clusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -29,9 +29,10 @@ type clusterStatus struct {
 	Conditions []clusterCondition `json:"conditions,omitempty"`
 }
 type clusterCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Message string                 `json:"message,omitempty"`
+	Reason  string                 `json:"reason,omitempty"`
+	Status  corev1.ConditionStatus `json:"status"`
+	Type    string                 `json:"type"`
 }
 
 // AnalyzeClusters handles the checking of the status of cluster-qpi cluster resources.

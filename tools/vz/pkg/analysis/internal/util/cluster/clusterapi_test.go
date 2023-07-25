@@ -36,6 +36,30 @@ var capiTestCases = []capiTestCase{
 		Namespaced:     true,
 		ExpectedIssues: 1,
 	},
+	{
+		Function:       capi.AnalyzeOCIClusters,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeOCIClusters,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeOCNEControlPlane,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeOCNEControlPlane,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
 }
 
 // Test analyze Cluster API resources with different cluster snapshots.
