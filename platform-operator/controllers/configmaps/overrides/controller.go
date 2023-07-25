@@ -5,7 +5,6 @@ package overrides
 
 import (
 	"context"
-	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -79,7 +78,7 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
-	if vz.Status.State != v1alpha1.VzStateUninstalling {
+	if vz.Status.State != installv1alpha1.VzStateUninstalling {
 		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, r.log); err != nil {
 			return newRequeueWithDelay(), nil
 		}
