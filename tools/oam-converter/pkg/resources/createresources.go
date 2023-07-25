@@ -19,7 +19,7 @@ import (
 )
 
 func CreateResources(conversionComponents []*types.ConversionComponents) (*types.KubeResources, error) {
-	var virtualServices [][]*vsapi.VirtualService
+	var virtualServices []*vsapi.VirtualService
 	var destinationRules [][]*istioclient.DestinationRule
 	var authzPolicies [][]*clisecurity.AuthorizationPolicy
 	var virtualService []*vsapi.VirtualService
@@ -40,7 +40,7 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 		if conversionComponent.Weblogicworkload != nil {
 
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
-			virtualServices = append(virtualServices, virtualService)
+			virtualServices = append(virtualServices, virtualService...)
 			destinationRules = append(destinationRules, destinationRule)
 			authzPolicies = append(authzPolicies, authzPolicy)
 			if err != nil {
