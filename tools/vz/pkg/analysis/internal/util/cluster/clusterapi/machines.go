@@ -23,15 +23,7 @@ type machineList struct {
 type machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            machineStatus `json:"status,omitempty"`
-}
-type machineStatus struct {
-	Conditions []machineCondition `json:"conditions,omitempty"`
-}
-type machineCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeMachine handles the checking of the status of cluster-qpi machine resources.

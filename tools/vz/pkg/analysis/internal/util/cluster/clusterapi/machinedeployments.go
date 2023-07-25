@@ -23,15 +23,7 @@ type machineDeploymentList struct {
 type machineDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            machineDeploymentStatus `json:"status,omitempty"`
-}
-type machineDeploymentStatus struct {
-	Conditions []machineDeploymentCondition `json:"conditions,omitempty"`
-}
-type machineDeploymentCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeMachineDeployment handles the checking of the status of cluster-qpi machine deploymet resources.

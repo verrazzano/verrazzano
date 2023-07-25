@@ -27,13 +27,8 @@ type ociCluster struct {
 	Status            ociClusterStatus `json:"status,omitempty"`
 }
 type ociClusterStatus struct {
-	Conditions []ociClusterCondition `json:"conditions,omitempty"`
-	Ready      bool                  `json:"ready,omitempty"`
-}
-type ociClusterCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Conditions []capiCondition `json:"conditions,omitempty"`
+	Ready      bool            `json:"ready,omitempty"`
 }
 
 // AnalyzeOCIClusters handles the checking of the status of cluster-qpi ocicluster resources.

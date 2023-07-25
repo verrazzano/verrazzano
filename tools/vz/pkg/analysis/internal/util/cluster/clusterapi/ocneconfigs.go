@@ -23,15 +23,7 @@ type ocneConfigList struct {
 type ocneConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            ocneConfigStatus `json:"status,omitempty"`
-}
-type ocneConfigStatus struct {
-	Conditions []ocneConfigCondition `json:"conditions,omitempty"`
-}
-type ocneConfigCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeOCNEConfig handles the checking of the status of cluster-qpi ocneConfig resources.

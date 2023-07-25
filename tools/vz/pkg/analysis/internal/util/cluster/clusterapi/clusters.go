@@ -23,15 +23,7 @@ type clusterList struct {
 type cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            clusterStatus `json:"status,omitempty"`
-}
-type clusterStatus struct {
-	Conditions []clusterCondition `json:"conditions,omitempty"`
-}
-type clusterCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeClusters handles the checking of the status of cluster-qpi cluster resources.

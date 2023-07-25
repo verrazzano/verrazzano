@@ -23,15 +23,7 @@ type ocneControlPlaneList struct {
 type ocneControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            ocneControlPlaneStatus `json:"status,omitempty"`
-}
-type ocneControlPlaneStatus struct {
-	Conditions []ocneControlPlaneCondition `json:"conditions,omitempty"`
-}
-type ocneControlPlaneCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeOCNEControlPlane handles the checking of the status of cluster-qpi ocneControlPlane resources.

@@ -23,15 +23,7 @@ type ociMachineList struct {
 type ociMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            ociMachineStatus `json:"status,omitempty"`
-}
-type ociMachineStatus struct {
-	Conditions []ociMachineCondition `json:"conditions,omitempty"`
-}
-type ociMachineCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeOCIMachine handles the checking of the status of cluster-qpi ociMachine resources.
