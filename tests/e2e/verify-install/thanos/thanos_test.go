@@ -5,6 +5,7 @@ package thanos
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -146,6 +147,31 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			Eventually(func() (bool, error) {
 				return pkg.IngressesExist(inClusterVZ, constants.VerrazzanoSystemNamespace, ingresses)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Thanos Ingresses should exist")
+		})
+
+		// GIVEN the Thanos is installed
+		// WHEN the ingresses exist
+		// THEN they should be accessible
+		WhenThanosInstalledIt("Thanos ingresses should be accessible", func() {
+			httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+			creds := pkg.EventuallyGetSystemVMICredentials()
+
+			table := []interface{}{
+				func(getURLFromVZStatus func() *string) {
+					url := getURLFromVZStatus()
+					if url != nil {
+						Eventually(func() bool {
+							return pkg.AssertURLAccessibleAndAuthorized(httpClient, *url, creds))
+						}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(Equal(http.StatusOK))
+					}
+				},
+				Entry("Thanos Query Frontend UI", func() *string { return inClusterVZ.Status.VerrazzanoInstance.ThanosQueryURL }),
+			}
+			if isRulerEnabled {
+				table = append(table, Entry("Thanos Ruler UI", func() *string { return inClusterVZ.Status.VerrazzanoInstance.ThanosQueryURL }))
+			}
+
+			t.DescribeTable("Access VMI endpoints", table...)
 		})
 	})
 })
