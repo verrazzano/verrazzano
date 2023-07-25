@@ -5,7 +5,6 @@ package thanos
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -169,7 +168,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 					}
 				}
 				return true
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(Equal(http.StatusOK))
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 	})
 })
