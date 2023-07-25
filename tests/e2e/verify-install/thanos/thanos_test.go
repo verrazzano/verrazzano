@@ -122,6 +122,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			if isRulerEnabled {
 				pods = append(pods, "thanos-ruler")
 			}
+			t.Logs.Infof("The following pod prefixes should exist %v", pods)
 
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, pods)
@@ -135,13 +136,14 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Thanos is installed
 		// WHEN we check to make sure the ingresses have been created
 		// THEN we successfully find the ingresses in the cluster
-		WhenThanosInstalledIt("query store and query frontend ingresses exist", func() {
-			Eventually(func() (bool, error) {
-				ingresses := []string{"thanos-query-frontend", "thanos-query-store"}
-				if isRulerEnabled {
-					ingresses = append(ingresses, "thanos-ruler")
-				}
+		WhenThanosInstalledIt("Thanos ingresses exist", func() {
+			ingresses := []string{"thanos-query-frontend", "thanos-query-store"}
+			if isRulerEnabled {
+				ingresses = append(ingresses, "thanos-ruler")
+			}
 
+			t.Logs.Infof("The following ingresses should exist %v", ingresses)
+			Eventually(func() (bool, error) {
 				return pkg.IngressesExist(inClusterVZ, constants.VerrazzanoSystemNamespace, ingresses)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Thanos Ingresses should exist")
 		})
