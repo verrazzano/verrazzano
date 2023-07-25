@@ -2,7 +2,7 @@
 apiVersion: opensearch.opster.io/v1
 kind: OpenSearchCluster
 metadata:
-  name: {{ .Values.clusterName | default .Release.Name}}
+  name: {{ .Values.opensearchCluster.name | default "opensearch" }}
   namespace: {{ .Release.Namespace }}
 spec:
   {{- if .Values.opensearchCluster.bootstrap }}
@@ -56,6 +56,7 @@ spec:
     {{- end }}
     {{- if .Values.opensearchCluster.general.drainDataNodes }}
     drainDataNodes: {{ .Values.opensearchCluster.general.drainDataNodes }}
+    {{- end }}
     {{- if .Values.opensearchCluster.general.securityContext }}
     securityContext:
       {{ toYaml .Values.opensearchCluster.general.securityContext | nindent 6}}
@@ -173,7 +174,7 @@ spec:
   {{- if .Values.opensearchCluster.confMgmt }}
   confMgmt:
     {{- if .Values.opensearchCluster.confMgmt.smartScaler }}
-    smartScaler: .Values.opensearchCluster.confMgmt.smartScaler
+    smartScaler: {{ .Values.opensearchCluster.confMgmt.smartScaler }}
     {{- end }}
   {{- end }}
   nodePools:
@@ -242,9 +243,9 @@ spec:
           accessModes:
             {{  toYaml $val.persistence.pvc.accessModes | nindent 10 }}
           {{- end }}
-       {{- else if eq (len $val.persistence.emptyDir) 0 }}
+        {{- else if eq (len $val.persistence.emptyDir) 0 }}
         emptyDir: {}
-       {{- end }}
+        {{- end }}
      {{- end }}
       {{- if $val.additionalConfig }}
       additionalConfig:
