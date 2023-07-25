@@ -28,10 +28,10 @@ func ConfData() error {
 	if len(os.Args) != 3 {
 		fmt.Println("Not enough args to run tool")
 		return nil
-	} else {
-		inputDirectory = os.Args[1]
-		outputDirectory = os.Args[2]
 	}
+	inputDirectory = os.Args[1]
+	outputDirectory = os.Args[2]
+
 	//used to store app file data
 	var appData []map[string]interface{}
 
@@ -72,10 +72,10 @@ func ConfData() error {
 				return errors.New("component api version doesn't exist or not found in the specified type")
 			}
 			//Check the kind od each component and apiVersion
-			if compKind == "Component" && compApiVersion == consts.CompApiVersion {
+			if compKind == "Component" && compApiVersion == consts.CompAPIVersion {
 				components = append(components, component)
 			}
-			if compKind == "ApplicationConfiguration" && compApiVersion == consts.CompApiVersion {
+			if compKind == "ApplicationConfiguration" && compApiVersion == consts.CompAPIVersion {
 				appData = append(appData, component)
 			}
 			//For generic workload
@@ -100,7 +100,9 @@ func ConfData() error {
 
 	//Create child resources
 	outputResources, err := resources.CreateResources(conversionComponents)
-
+	if err != nil {
+		return err
+	}
 	//Write the K8s child resources to the file
 	err = writeKubeResources(outputDirectory, outputResources)
 	if err != nil {
@@ -176,6 +178,9 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 					filePath := filepath.Join(outputDirectory, fileName)
 
 					f, err := os.Create(filePath)
+					if err != nil {
+						return err
+					}
 					r, err := json.Marshal(destinationRule)
 					if err != nil {
 						return err
@@ -205,6 +210,9 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 					filePath := filepath.Join(outputDirectory, fileName)
 
 					f, err := os.Create(filePath)
+					if err != nil {
+						return err
+					}
 					r, err := json.Marshal(authPolicy)
 					if err != nil {
 						return err

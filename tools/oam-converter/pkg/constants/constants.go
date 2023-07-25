@@ -13,5 +13,5 @@ const (
 	HTTPSProtocol             = "HTTPS"
 	VerrazzanoClusterIssuer   = "verrazzano-cluster-issuer"
 	CertificateAPIVersion     = "cert-manager.io/v1"
-	CompApiVersion            = "core.oam.dev/v1alpha2"
+	CompAPIVersion            = "core.oam.dev/v1alpha2"
 )
