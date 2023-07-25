@@ -1,3 +1,6 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package verrazzano
 
 import (
@@ -16,9 +19,9 @@ import (
 )
 
 // setModuleOverrides sets the Module values and valuesFrom fields.
-// any VZ CR config override secrets or configmaps need to be copied to the module namespace
+// All VZ CR config override secrets or configmaps need to be copied to the module namespace
 func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
-	// Put overrides into v1beta1 overrides struct
+	// Get component override list (either v1alpha1 or v1beta1)
 	compOverrideList := comp.GetOverrides(effectiveCR)
 	switch compOverrideList.(type) {
 	case []vzapi.Overrides:
@@ -28,13 +31,17 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 			b.Values = o.Values
 			b.SecretRef = o.SecretRef
 			b.ConfigMapRef = o.ConfigMapRef
-			r.setOverrides(log, b, effectiveCR, module)
+			if err := r.setModuleValuesForOneOverride(log, b, effectiveCR, module); err != nil {
+				return err
+			}
 		}
 
 	case []vzapibeta1.Overrides:
 		overrideList := compOverrideList.([]vzapibeta1.Overrides)
 		for _, o := range overrideList {
-			r.setOverrides(log, o, effectiveCR, module)
+			if err := r.setModuleValuesForOneOverride(log, o, effectiveCR, module); err != nil {
+				return err
+			}
 		}
 	default:
 		err := fmt.Errorf("Failed, component %s Overrides is not a known type", comp.Name())
@@ -44,7 +51,8 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 	return nil
 }
 
-func (r Reconciler) setOverrides(log vzlog.VerrazzanoLogger, overrides vzapibeta1.Overrides, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) error {
+// Set the module values or valuesFrom for a single override struct
+func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzapibeta1.Overrides, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) error {
 	if overrides.Values != nil {
 		// TODO - need to combine with existing values
 		module.Spec.Values = overrides.Values
@@ -53,7 +61,7 @@ func (r Reconciler) setOverrides(log vzlog.VerrazzanoLogger, overrides vzapibeta
 	// Copy Secret overrides to new secret and add info to the module ValuesFrom
 	if overrides.SecretRef != nil {
 		if err := r.copySecret(overrides.SecretRef, module, effectiveCR.Namespace); err != nil {
-			log.ErrorfThrottled("Failed to create values secret for module %s: err", module.Name, err)
+			log.ErrorfThrottled("Failed to create values secret for module %s: %v", module.Name, err)
 			return err
 		}
 		module.Spec.ValuesFrom = append(module.Spec.ValuesFrom, moduleapi.ValuesFromSource{
@@ -70,7 +78,7 @@ func (r Reconciler) setOverrides(log vzlog.VerrazzanoLogger, overrides vzapibeta
 	// Copy ConfigMap overrides to new CM and add info to the module ValuesFrom
 	if overrides.ConfigMapRef != nil {
 		if err := r.copyConfigMap(overrides.ConfigMapRef, module, effectiveCR.Namespace); err != nil {
-			log.ErrorfThrottled("Failed to create values configmap for module %s: err", module.Name, err)
+			log.ErrorfThrottled("Failed to create values configmap for module %s: %v", module.Name, err)
 			return err
 		}
 		module.Spec.ValuesFrom = append(module.Spec.ValuesFrom, moduleapi.ValuesFromSource{
