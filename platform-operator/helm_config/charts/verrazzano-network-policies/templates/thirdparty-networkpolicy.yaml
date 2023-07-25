@@ -295,7 +295,6 @@ spec:
           protocol: TCP
 
 {{- end }}
-{{- if (lookup "v1" "Namespace" "" "cattle-system") }}
 ---
 # Network policy for Rancher cluster agent
 # - always create this policy in case the target cluster is intended to be a managed cluster
@@ -312,7 +311,6 @@ spec:
       app: cattle-cluster-agent
   policyTypes:
     - Ingress
-{{- end }}
 {{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher UI/API
