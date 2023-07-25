@@ -686,7 +686,6 @@ spec:
               - query-frontend
               - ruler
               - storegateway
-              - ruler
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: mysql-operator
