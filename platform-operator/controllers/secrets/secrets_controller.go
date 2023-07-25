@@ -5,9 +5,15 @@ package secrets
 
 import (
 	"context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,14 +21,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
-	"go.uber.org/zap"
 )
 
 // VerrazzanoSecretsReconciler reconciles secrets.
@@ -65,11 +63,6 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// Nothing to do if the vz resource is being deleted
 		if vz.DeletionTimestamp != nil {
 			return ctrl.Result{}, nil
-		}
-
-		if vz.Status.State != installv1alpha1.VzStateReady {
-			vzlog.DefaultLogger().Progressf("Verrazzano state is %s, secrets reconciling paused", vz.Status.State)
-			return vzctrl.NewRequeueWithDelay(10, 30, time.Second), nil
 		}
 
 		// We care about the CA secret for the cluster - this can come from the verrazzano ingress

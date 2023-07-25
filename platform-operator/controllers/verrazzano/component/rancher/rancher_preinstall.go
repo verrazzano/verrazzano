@@ -47,13 +47,16 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 // If private CAs are not in use, we will clean up the cattle-system/tls-ca secret if it exists
 func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	log.Debugf("Cleaning up legacy Rancher additional CA secret %s/%s if it exists", common.CattleSystem, vzconst.AdditionalTLS)
-	vzresource.Resource{
+	err := vzresource.Resource{
 		Namespace: common.CattleSystem,
 		Name:      vzconst.AdditionalTLS,
 		Client:    c,
 		Object:    &v1.Secret{},
 		Log:       log,
 	}.Delete()
+	if err != nil {
+		return err
+	}
 
 	privateCASecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -98,65 +101,6 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 	}
 	return nil
 }
-
-// getPrivateBundleData returns the CA cert bundle when a private CA configuration is in use (self-signed, customer CA,
-// or Let's Encrypt Staging); this data will be stored in the tls-ca secret used by Rancher for private/untrusted CA
-// configurations
-//func getPrivateBundleData(c client.Client) ([]byte, error) {
-//	clusterIssuer := vz.Spec.Components.ClusterIssuer
-//	if clusterIssuer == nil {
-//		// Not necessarily an error, since CM and the ClusterIssuer could be disabled
-//		log.Progressf("No cluster issuer found, skipping CA certificate bundle configuration")
-//		return []byte{}, nil
-//	}
-//
-//	isCAIssuer, err := clusterIssuer.IsCAIssuer()
-//	if err != nil {
-//		return []byte{}, err
-//	}
-//	var isLetsEncryptStagingEnv bool
-//	if clusterIssuer.LetsEncrypt != nil {
-//		isLetsEncryptStagingEnv = vzcr.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
-//	}
-//
-//	var bundleData []byte
-//	if isCAIssuer {
-//		log.Infof("Getting private CA bundle for Rancher")
-//		if bundleData, err = createPrivateCABundle(log, c, clusterIssuer); err != nil {
-//			return []byte{}, err
-//		}
-//	} else if isLetsEncryptStagingEnv {
-//		log.Infof("Getting Let's Encrypt Staging CA bundle for Rancher")
-//		if bundleData, err = certs.CreateLetsEncryptStagingBundle(); err != nil {
-//			return []byte{}, err
-//		}
-//	}
-//	return bundleData, nil
-//}
-//
-//// createPrivateCABundle Obtains the private CA bundle for the self-signed/customer-provided CA configuration
-//func createPrivateCABundle(log vzlog.VerrazzanoLogger, c client.Client, clusterIssuer *vzapi.ClusterIssuerComponent) ([]byte, error) {
-//	caSecretNamespace := clusterIssuer.ClusterResourceNamespace
-//	caSecretName := clusterIssuer.CA.SecretName
-//	namespacedName := types.NamespacedName{
-//		Namespace: caSecretNamespace,
-//		Name:      caSecretName,
-//	}
-//	certKey := caCert
-//	if isDefault, _ := clusterIssuer.IsDefaultIssuer(); !isDefault {
-//		certKey = customCACertKey
-//	}
-//	caSecret := &v1.Secret{}
-//	if err := c.Get(context.TODO(), namespacedName, caSecret); err != nil {
-//		return []byte{}, err
-//	}
-//	if len(caSecret.Data[certKey]) < 1 {
-//		return nil, log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s",
-//			caSecretNamespace,
-//			caSecretName, certKey)
-//	}
-//	return caSecret.Data[certKey], nil
-//}
 
 // isUsingDefaultCACertificate Returns true if the default self-signed issuer is in use
 func isUsingDefaultCACertificate(cm *vzapi.ClusterIssuerComponent) bool {
