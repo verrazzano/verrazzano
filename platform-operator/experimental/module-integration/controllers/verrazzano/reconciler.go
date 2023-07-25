@@ -99,7 +99,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			// TODO For now have the module version match the VZ version
-			return mutateModule(effectiveCR, &module, comp, version, version)
+			return r.mutateModule(log, effectiveCR, &module, comp, version, version)
 		})
 		if err != nil {
 			if !errors.IsConflict(err) {
@@ -112,7 +112,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 }
 
 // mutateModule mutates the module for the create or update callback
-func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, vzVersion string, moduleVersion string) error {
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, vzVersion string, moduleVersion string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
@@ -125,7 +125,9 @@ func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp 
 	module.Spec.TargetNamespace = comp.Namespace()
 
 	module.Spec.Version = moduleVersion
-
+	if err := r.setModuleValues(log, effectiveCR, module, comp); err != nil {
+		return err
+	}
 	return nil
 }
 

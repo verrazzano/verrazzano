@@ -18,8 +18,9 @@ import (
 // suffix this to the secret and configmap for the module config.
 const suffix = "-values"
 
-// copy the secret to the module namespace and set the module as owner
-func (r Reconciler) setModuleOverrides(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, vzVersion string, moduleVersion string) error {
+// setModuleOverrides sets the Module values and valuesFrom fields.
+// any VZ CR config override secrets or configmaps need to be copied to the module namespace
+func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
 	var beta1ov vzapibeta1.Overrides
 
 	// Put overrides into v1beta1 overrides struct
