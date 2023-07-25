@@ -60,7 +60,7 @@ alertmanager:
   alertmanagerSpec:
     alertmanagerConfigSelector:
       matchLabels:
-        verrazzano.io/alerts: true
+        verrazzano.io/alerts: system
     securityContext:
       fsGroup: 65534
       runAsGroup: 65534
