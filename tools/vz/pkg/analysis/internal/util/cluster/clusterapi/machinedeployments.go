@@ -26,8 +26,8 @@ type machineDeployment struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeMachineDeployment handles the checking of the status of cluster-qpi machine deploymet resources.
-func AnalyzeMachineDeployment(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+// AnalyzeMachineDeployments handles the checking of the status of cluster-qpi machine deploymet resources.
+func AnalyzeMachineDeployments(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {
 		resourceRoot = filepath.Join(clusterRoot, namespace)

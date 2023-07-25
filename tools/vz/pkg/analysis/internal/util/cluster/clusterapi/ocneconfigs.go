@@ -26,8 +26,8 @@ type ocneConfig struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeOCNEConfig handles the checking of the status of cluster-qpi ocneConfig resources.
-func AnalyzeOCNEConfig(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+// AnalyzeOCNEConfigs handles the checking of the status of cluster-qpi ocneConfig resources.
+func AnalyzeOCNEConfigs(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {
 		resourceRoot = filepath.Join(clusterRoot, namespace)

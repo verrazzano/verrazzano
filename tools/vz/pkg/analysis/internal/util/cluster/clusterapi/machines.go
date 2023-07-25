@@ -26,8 +26,8 @@ type machine struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeMachine handles the checking of the status of cluster-qpi machine resources.
-func AnalyzeMachine(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+// AnalyzeMachines handles the checking of the status of cluster-qpi machine resources.
+func AnalyzeMachines(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {
 		resourceRoot = filepath.Join(clusterRoot, namespace)

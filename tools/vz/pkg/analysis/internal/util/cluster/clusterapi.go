@@ -33,9 +33,9 @@ func AnalyzeClusterAPI(log *zap.SugaredLogger, clusterRoot string) error {
 
 	// Second, process the namespaced resources.
 	namespaceAnalyzers := []func(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error{
-		capi.AnalyzeClusters, capi.AnalyzeOCIClusters, capi.AnalyzeOCNEControlPlane,
-		capi.AnalyzeMachine, capi.AnalyzeMachineDeployment, capi.AnalyzeOCNEConfig,
-		capi.AnalyzeOCIMachine,
+		capi.AnalyzeClusters, capi.AnalyzeOCIClusters, capi.AnalyzeOCNEControlPlanes,
+		capi.AnalyzeMachines, capi.AnalyzeMachineDeployments, capi.AnalyzeOCNEConfigs,
+		capi.AnalyzeOCIMachines,
 	}
 	snapshotFiles, err := os.ReadDir(clusterRoot)
 	if err != nil {
