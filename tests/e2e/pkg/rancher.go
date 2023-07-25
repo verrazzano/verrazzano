@@ -145,7 +145,7 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, ttl string, userAccessToken string, log zap.SugaredLogger) (string, error) {
 	api, err := GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
-		log.Errorf("API Endpoint not successfully recieved based on KubeConfig Path")
+		log.Errorf("API Endpoint not successfully received based on KubeConfig Path")
 		return "", err
 	}
 	rancherURL, err := GetURLForIngress(&log, api, "cattle-system", "rancher", "https")
