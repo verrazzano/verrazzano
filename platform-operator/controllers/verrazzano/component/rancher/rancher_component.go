@@ -627,6 +627,10 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
+		if err := configureAuthSettings(ctx); err != nil {
+			return ctx.Log().ErrorfThrottledNewErr("failed configuring rancher auth settings: %s", err.Error())
+		}
+
 		if err := createOrUpdateRancherUser(ctx); err != nil {
 			return err
 		}
@@ -705,6 +709,34 @@ func configureUISettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring ui-brand setting: %s", err.Error())
 	}
 
+	return nil
+}
+
+// configureAuthSettings configures Rancher auth settings required for the Rancher Keycloak auth integration.
+func configureAuthSettings(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	// Set "auth-user-info-resync-cron" to run the resync cron once in 15 minutes, less than the Keycloak default
+	// SSO idle timeout (30 minutes)
+	if err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingAuthResyncCron}, common.GVKSetting,
+		map[string]interface{}{"value": SettingAuthResyncCronValue}); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring auth-user-info-resync-cron setting: %s",
+			err.Error())
+	}
+
+	// Set "auth-user-info-max-age-seconds" to "600", less than the Keycloak default SSO idle timeout (1800 seconds)
+	// and less than the interval set for auth resync cron
+	if err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingAuthMaxAge}, common.GVKSetting,
+		map[string]interface{}{"value": SettingAuthMaxAgeValue}); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring auth-user-info-max-age-seconds setting: %s",
+			err.Error())
+	}
+
+	// Set "auth-user-session-ttl-minutes" to "540", less than the Keycloak default SSO session max (600 minutes)
+	if err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingAuthTTL}, common.GVKSetting,
+		map[string]interface{}{"value": SettingAuthTTLValue}); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring auth-user-session-ttl-minutes setting: %s",
+			err.Error())
+	}
 	return nil
 }
 
