@@ -113,7 +113,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			if isCompactorEnabled {
 				pods = append(pods, "thanos-compactor")
 			}
-
+			t.Logs.Infof("Expected Thanos pods: %v", pods)
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, pods)
 				if err != nil {
