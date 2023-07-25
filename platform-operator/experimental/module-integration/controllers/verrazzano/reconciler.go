@@ -125,6 +125,7 @@ func mutateModule(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp 
 	module.Spec.TargetNamespace = comp.Namespace()
 
 	module.Spec.Version = moduleVersion
+
 	return nil
 }
 
