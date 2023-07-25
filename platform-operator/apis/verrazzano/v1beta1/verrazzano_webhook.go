@@ -196,7 +196,7 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 		return err
 	}
 
-	// iterates over the list of pods and returns an error if there is more than one vpo installed but not Failed
+	// Iterates over the list of pods and verifies that there is only a single VPO instance running
 	if len(podList.Items) > 1 {
 		healthyPod := 0
 		for _, pod := range podList.Items {
