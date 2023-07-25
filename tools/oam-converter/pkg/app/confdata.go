@@ -67,15 +67,15 @@ func ConfData() error {
 			if !found || err != nil {
 				return errors.New("component kind doesn't exist or not found in the specified type")
 			}
-			compApiVersion, found, err := unstructured.NestedString(component, "apiVersion")
+			compVersion, found, err := unstructured.NestedString(component, "apiVersion")
 			if !found || err != nil {
 				return errors.New("component api version doesn't exist or not found in the specified type")
 			}
 			//Check the kind od each component and apiVersion
-			if compKind == "Component" && compApiVersion == consts.CompAPIVersion {
+			if compKind == "Component" && compVersion == consts.CompAPIVersion {
 				components = append(components, component)
 			}
-			if compKind == "ApplicationConfiguration" && compApiVersion == consts.CompAPIVersion {
+			if compKind == "ApplicationConfiguration" && compVersion == consts.CompAPIVersion {
 				appData = append(appData, component)
 			}
 			//For generic workload
