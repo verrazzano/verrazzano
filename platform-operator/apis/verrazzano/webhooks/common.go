@@ -4,8 +4,10 @@
 package webhooks
 
 import (
+	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -42,4 +44,20 @@ func extractValueFromOverrideString(overrideStr string, field string) (interface
 		return nil, err
 	}
 	return jsonString.Path(field).Data(), nil
+}
+
+// ValidatePlatformOperatorSingleton iterates over the list of pods and verifies that there is only a single VPO instance running
+func ValidatePlatformOperatorSingleton(podList v1.PodList) error {
+	if len(podList.Items) > 1 {
+		healthyPod := 0
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != "Failed" {
+				healthyPod++
+			}
+		}
+		if healthyPod > 1 {
+			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		}
+	}
+	return nil
 }

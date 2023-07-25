@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
@@ -20,8 +21,6 @@ import (
 )
 
 var getControllerRuntimeClient = validators.GetClient
-
-const failedPhase = "Failed"
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
@@ -195,18 +194,9 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 	if err != nil {
 		return err
 	}
-
-	// Iterates over the list of pods and verifies that there is only a single VPO instance running
-	if len(podList.Items) > 1 {
-		healthyPod := 0
-		for _, pod := range podList.Items {
-			if pod.Status.Phase != failedPhase {
-				healthyPod++
-			}
-		}
-		if healthyPod > 1 {
-			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
-		}
+	err = webhooks.ValidatePlatformOperatorSingleton(podList)
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -189,20 +190,15 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 		return err
 	}
 	var podList v1.PodList
-	runtimeClient.List(context.TODO(), &podList,
+	err = runtimeClient.List(context.TODO(), &podList,
 		client.InNamespace(constants.VerrazzanoInstallNamespace),
 		client.MatchingLabels{"app": "verrazzano-platform-operator"})
-	// Iterates over the list of pods and verifies that there is only a single VPO instance running
-	if len(podList.Items) > 1 {
-		healthyPod := 0
-		for _, pod := range podList.Items {
-			if pod.Status.Phase != failedPhase {
-				healthyPod++
-			}
-		}
-		if healthyPod > 1 {
-			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
-		}
+	if err != nil {
+		return err
+	}
+	err = webhooks.ValidatePlatformOperatorSingleton(podList)
+	if err != nil {
+		return err
 	}
 	return nil
 }
