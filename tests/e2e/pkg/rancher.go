@@ -1,13 +1,15 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -23,6 +25,16 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+type Payload struct {
+	ClusterID string `json:"clusterID"`
+	TTL       int    `json:"ttl"`
+}
+
+type TokenPostResponse struct {
+	Token   string `json:"token"`
+	Created string `json:"created"`
+}
 
 func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
 	ingressHost := EventuallyGetIngressHost(log, api, namespace, name)
@@ -128,6 +140,57 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 	}
 
 	return token, nil
+}
+
+func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, ttl string, userAccessToken string, log zap.SugaredLogger) (string, error) {
+	api, err := GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		log.Errorf("API Endpoint not succesfully recieved based on KubeConfig Path")
+		return "", err
+	}
+	rancherURL, err := GetURLForIngress(&log, api, "cattle-system", "rancher", "https")
+	if err != nil {
+		log.Errorf("URL For Rancher not successfuly found")
+		return "", err
+	}
+	val, _ := strconv.Atoi(ttl)
+	payload := &Payload{
+		ClusterID: clusterID,
+		TTL:       val * 60000,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	reqURL := rancherURL + "/v3/tokens"
+
+	req, err := retryablehttp.NewRequest("POST", reqURL, data)
+	if err != nil {
+		return "", err
+	}
+	req.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Content-Type": {"application/json"}}
+
+	response, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusCreated)
+	if err != nil {
+		return "", err
+	}
+
+	var tokenPostResponse TokenPostResponse
+	err = json.Unmarshal([]byte(responseBody), &tokenPostResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenPostResponse.Created, nil
 }
 
 // VerifyRancherAccess verifies that Rancher is accessible.
