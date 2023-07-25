@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cluster
+package clusterapi
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-const ociClusterResource = "ociclusters.infrastructure.cluster.x-k8s.io"
+const ociClustersResource = "ociclusters.infrastructure.cluster.x-k8s.io"
 
 // Minimal definition of ociclusters.infrastructure.cluster.x-k8s.io object that only contains the fields that
 // will be analyzed.
@@ -31,10 +31,9 @@ type ociClusterStatus struct {
 	Ready      bool                  `json:"ready,omitempty"`
 }
 type ociClusterCondition struct {
-	Message string                 `json:"message,omitempty"`
-	Reason  string                 `json:"reason,omitempty"`
-	Status  corev1.ConditionStatus `json:"status"`
-	Type    string                 `json:"type"`
+	Reason string                 `json:"reason,omitempty"`
+	Status corev1.ConditionStatus `json:"status"`
+	Type   string                 `json:"type"`
 }
 
 // AnalyzeOCIClusters handles the checking of the status of cluster-qpi ocicluster resources.
@@ -63,7 +62,7 @@ func analyzeOCICluster(clusterRoot string, ociCluster ociCluster, issueReporter 
 	var subMessage string
 	if !ociCluster.Status.Ready {
 		if len(ociCluster.Status.Conditions) == 0 {
-			message := fmt.Sprintf("%q resource %q in namespace %q, %s", ociClusterResource, ociCluster.Name, ociCluster.Namespace, "is not ready")
+			message := fmt.Sprintf("%q resource %q in namespace %q, %s", ociClustersResource, ociCluster.Name, ociCluster.Namespace, "is not ready")
 			messages = append([]string{message}, messages...)
 		} else {
 			for _, condition := range ociCluster.Status.Conditions {
@@ -79,9 +78,9 @@ func analyzeOCICluster(clusterRoot string, ociCluster ociCluster, issueReporter 
 					// Add a message for the issue
 					var message string
 					if len(condition.Reason) == 0 {
-						message = fmt.Sprintf("%q resource %q in namespace %q, %s", ociClusterResource, ociCluster.Name, ociCluster.Namespace, subMessage)
+						message = fmt.Sprintf("%q resource %q in namespace %q, %s", ociClustersResource, ociCluster.Name, ociCluster.Namespace, subMessage)
 					} else {
-						message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", ociClusterResource, ociCluster.Name, ociCluster.Namespace, subMessage, condition.Reason)
+						message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", ociClustersResource, ociCluster.Name, ociCluster.Namespace, subMessage, condition.Reason)
 					}
 					messages = append([]string{message}, messages...)
 

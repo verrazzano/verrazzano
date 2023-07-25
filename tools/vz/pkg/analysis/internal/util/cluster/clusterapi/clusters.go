@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cluster
+package clusterapi
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-const capiClusterResource = "clusters.cluster.x-k8s.io"
+const capiClustersResource = "clusters.cluster.x-k8s.io"
 
 // Minimal definition of clusters.cluster.x-k8s.io object that only contains the fields that will be analyzed
 type clusterList struct {
@@ -29,10 +29,9 @@ type clusterStatus struct {
 	Conditions []clusterCondition `json:"conditions,omitempty"`
 }
 type clusterCondition struct {
-	Message string                 `json:"message,omitempty"`
-	Reason  string                 `json:"reason,omitempty"`
-	Status  corev1.ConditionStatus `json:"status"`
-	Type    string                 `json:"type"`
+	Reason string                 `json:"reason,omitempty"`
+	Status corev1.ConditionStatus `json:"status"`
+	Type   string                 `json:"type"`
 }
 
 // AnalyzeClusters handles the checking of the status of cluster-qpi cluster resources.
@@ -76,9 +75,9 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s", capiClustersResource, cluster.Name, cluster.Namespace, subMessage)
 			} else {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", capiClustersResource, cluster.Name, cluster.Namespace, subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cluster
+package clusterapi
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-const ocneControlPlaneResource = "ocnecontrolplanes.controlplane.cluster.x-k8s.io"
+const ocneControlPlanesResource = "ocnecontrolplanes.controlplane.cluster.x-k8s.io"
 
 // Minimal definition of controlplanes.controlplane.x-k8s.io object that only contains the fields that will be analyzed.
 type ocneControlPlaneList struct {
@@ -29,10 +29,9 @@ type ocneControlPlaneStatus struct {
 	Conditions []ocneControlPlaneCondition `json:"conditions,omitempty"`
 }
 type ocneControlPlaneCondition struct {
-	Message string                 `json:"message,omitempty"`
-	Reason  string                 `json:"reason,omitempty"`
-	Status  corev1.ConditionStatus `json:"status"`
-	Type    string                 `json:"type"`
+	Reason string                 `json:"reason,omitempty"`
+	Status corev1.ConditionStatus `json:"status"`
+	Type   string                 `json:"type"`
 }
 
 // AnalyzeOCNEControlPlane handles the checking of the status of cluster-qpi ocneControlPlane resources.
@@ -82,8 +81,10 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 				subMessage = "kube-controller-manager pod is not healthy"
 			case "SchedulerPodHealthy":
 				subMessage = "kube-scheduler pod is not healthy"
+			case "EtcdMemberHealthy":
+				subMessage = "member's etcd is not healthy"
 			case "EtcdPodHealthy":
-				subMessage = "machine's is not healthy"
+				subMessage = "pod's etcd is not healthy"
 			case "EtcdClusterHealthy":
 				subMessage = "cluster's etcd is not healthy"
 			case "ModuleOperatorDeployed":
@@ -98,9 +99,9 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s", ocneControlPlaneResource, ocneControlPlane.Name, ocneControlPlane.Namespace, subMessage)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s", ocneControlPlanesResource, ocneControlPlane.Name, ocneControlPlane.Namespace, subMessage)
 			} else {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", ocneControlPlaneResource, ocneControlPlane.Name, ocneControlPlane.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", ocneControlPlanesResource, ocneControlPlane.Name, ocneControlPlane.Namespace, subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 
