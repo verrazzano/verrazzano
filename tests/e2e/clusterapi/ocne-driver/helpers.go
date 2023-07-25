@@ -29,10 +29,10 @@ type clusterState string
 type transitioningFlag string
 
 const (
-	provisioningState      clusterState      = "provisioning"
-	activeState            clusterState      = "active"
-	transitioningFlagNo    transitioningFlag = "no"
-	transitioningFlagError transitioningFlag = "error"
+	provisioningClusterState clusterState      = "provisioning"
+	activeClusterState       clusterState      = "active"
+	transitioningFlagNo      transitioningFlag = "no"
+	transitioningFlagError   transitioningFlag = "error"
 )
 
 // Creates the cloud credential through the Rancher REST API
@@ -342,11 +342,14 @@ func verifyCluster(clusterName string, expectedNodes int, expectedClusterState c
 		return err
 	}
 
-	// Check if the cluster has the expected nodes and pods running
-	if err = verifyClusterNodes(clusterName, workloadKubeconfigPath, expectedNodes, log); err != nil {
-		return err
+	if expectedNodes > 0 {
+		// Check if the cluster has the expected nodes and pods running
+		if err = verifyClusterNodes(clusterName, workloadKubeconfigPath, expectedNodes, log); err != nil {
+			return err
+		}
+		return verifyClusterPods(clusterName, workloadKubeconfigPath, log)
 	}
-	return verifyClusterPods(clusterName, workloadKubeconfigPath, log)
+	return nil
 }
 
 // Verifies that a GET request to the Rancher API for this cluster returns expected values.
@@ -390,16 +393,18 @@ func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterStat
 	caCert := jsonData.Path("caCert").Data()
 	requestedResources := jsonData.Path("requested").Data()
 
-	nonNilAttributes := []struct {
-		value interface{}
-		name  string
-	}{
-		{caCert, "CA certificate"},
-		{requestedResources, "requested resources"},
-	}
-	for _, n := range nonNilAttributes {
-		if n.value == nil {
-			return fmt.Errorf("cluster %s should have a non-nil value for %s", clusterName, n.name)
+	if expectedClusterState == activeClusterState {
+		nonNilAttributes := []struct {
+			value interface{}
+			name  string
+		}{
+			{caCert, "CA certificate"},
+			{requestedResources, "requested resources"},
+		}
+		for _, n := range nonNilAttributes {
+			if n.value == nil {
+				return fmt.Errorf("cluster %s should have a non-nil value for %s", clusterName, n.name)
+			}
 		}
 	}
 

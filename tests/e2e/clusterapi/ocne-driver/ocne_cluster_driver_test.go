@@ -95,7 +95,7 @@ func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 
-	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-%s-invalid-k8s", ocneClusterNameSuffix)
+	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
 }
 
 var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchronizedBeforeSuiteAllProcessesFunc)
@@ -149,7 +149,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, 1, activeState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
 		})
 	})
@@ -173,7 +173,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNodeInvalid, 0, provisioningState, transitioningFlagError, t.Logs)
+				return verifyCluster(clusterNameSingleNodeInvalid, 0, provisioningClusterState, transitioningFlagError, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
 		})
 	})
@@ -194,7 +194,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, 2, activeState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameNodePool, 2, activeClusterState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
