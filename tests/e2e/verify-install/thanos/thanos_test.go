@@ -161,7 +161,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 					url := getURLFromVZStatus()
 					if url != nil {
 						Eventually(func() bool {
-							return pkg.AssertURLAccessibleAndAuthorized(httpClient, *url, creds))
+							return pkg.AssertURLAccessibleAndAuthorized(httpClient, *url, creds)
 						}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(Equal(http.StatusOK))
 					}
 				},
