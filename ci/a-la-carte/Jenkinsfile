@@ -232,6 +232,34 @@ pipeline {
             }
         }
 
+        stage('Verify none profile installation') {
+            parallel {
+                stage('verify-none-profile') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-none-profile"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-none-profile')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            dumpK8sCluster('verify-none-profile-failure-dump')
+                        }
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('verify-none-profile-failure-dump')
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Install Prometheus Edge Stack') {
             environment {
