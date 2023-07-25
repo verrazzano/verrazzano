@@ -21,6 +21,8 @@ import (
 
 var getControllerRuntimeClient = validators.GetClient
 
+const failedPhase = "Failed"
+
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
 	// clean up any temp files that may have been left over after a container restart
@@ -196,13 +198,16 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 
 	// iterates over the list of pods and returns an error if there is more than one vpo installed but not Failed
 	if len(podList.Items) > 1 {
+		healthyPod := 0
 		for _, pod := range podList.Items {
-			if pod.Status.Phase != "Failed" {
-				return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+			if pod.Status.Phase != failedPhase {
+				healthyPod++
 			}
 		}
+		if healthyPod > 1 {
+			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		}
 	}
-
 	return nil
 }
 

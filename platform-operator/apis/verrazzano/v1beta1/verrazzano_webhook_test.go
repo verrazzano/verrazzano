@@ -442,60 +442,34 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 // THEN an error is returned
 func Test_verifyPlatformOperatorSingletonNoFailedPods(t *testing.T) {
 	tests := []struct {
-		name        string
-		isSingleton string
+		name       string
+		shouldPass bool
+		failedPods int
+		podList    []string
 	}{
-		{name: "Single VPO instance", isSingleton: "true"},
-		{name: "Multiple VPO instances", isSingleton: "false"},
-		{name: "Failed pods present", isSingleton: ""},
+		{name: "Single VPO instance", shouldPass: true, podList: []string{"appName"}},
+		{name: "Single VPO instance unhealthy", shouldPass: true, failedPods: 1, podList: []string{"appName"}},
+		{name: "Multiple VPO instances all healthy", shouldPass: false, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instance unhealthy", shouldPass: false, failedPods: 1, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instance 1 healthy", shouldPass: true, failedPods: 2, podList: []string{"foo", "goo", "app"}},
+		{name: "Failed pods present", shouldPass: true, failedPods: 1, podList: []string{"foo", "goo"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vz := &Verrazzano{}
-
-			if tt.isSingleton == "true" {
-				labels := map[string]string{
-					"app": "appName",
-				}
-				getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-					return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
-						TypeMeta: metav1.TypeMeta{},
-						Items: []v1.Pod{
-							{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
-						},
-					}).Build(), nil
-				}
+			labels := map[string]string{
+				"app": "verrazzano-platform-operator",
+			}
+			if len(tt.podList) == 1 {
+				getPodList(tt.podList, labels, tt.failedPods)
 				defer func() { getControllerRuntimeClient = validators.GetClient }()
 				assert.NoError(t, vz.verifyPlatformOperatorSingleton())
-			} else if tt.isSingleton == "false" {
-				labels := map[string]string{
-					"app": "verrazzano-platform-operator",
-				}
-				getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-					return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
-						TypeMeta: metav1.TypeMeta{},
-						Items: []v1.Pod{
-							{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
-							{ObjectMeta: metav1.ObjectMeta{Name: "goo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
-						},
-					}).Build(), nil
-				}
+			} else if len(tt.podList) > 1 && !tt.shouldPass {
+				getPodList(tt.podList, labels, tt.failedPods)
 				defer func() { getControllerRuntimeClient = validators.GetClient }()
 				assert.Error(t, vz.verifyPlatformOperatorSingleton())
-			} else {
-				labels := map[string]string{
-					"app": "verrazzano-platform-operator",
-				}
-				getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-					return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
-						TypeMeta: metav1.TypeMeta{},
-						Items: []v1.Pod{
-							{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace}},
-							{ObjectMeta: metav1.ObjectMeta{Name: "trouble", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels},
-								Status: v1.PodStatus{Phase: "Failed"}},
-						},
-					}).Build(), nil
-				}
+			} else if len(tt.podList) > 1 && tt.shouldPass {
+				getPodList(tt.podList, labels, tt.failedPods)
 				defer func() { getControllerRuntimeClient = validators.GetClient }()
 				assert.NoError(t, vz.verifyPlatformOperatorSingleton())
 			}
@@ -628,4 +602,29 @@ func TestInvalidClusterK8SVersion(t *testing.T) {
 	}
 	assert.ErrorContains(t, currentSpec.ValidateCreate(), errMsg)
 	assert.ErrorContains(t, currentSpec.ValidateUpdate(currentSpec), errMsg)
+}
+
+func getPodList(listOfPods []string, labels map[string]string, failedPods int) {
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
+			TypeMeta: metav1.TypeMeta{},
+			Items:    createPodList(listOfPods, labels, failedPods),
+		}).Build(), nil
+	}
+}
+
+func createPodList(listOfPods []string, labels map[string]string, failedPods int) []v1.Pod {
+	var list []v1.Pod
+	for _, podName := range listOfPods {
+		pod := v1.Pod{}
+		pod.Name = podName
+		pod.Namespace = constants.VerrazzanoInstallNamespace
+		pod.Labels = labels
+		if failedPods != 0 {
+			pod.Status.Phase = "Failed"
+			failedPods--
+		}
+		list = append(list, pod)
+	}
+	return list
 }
