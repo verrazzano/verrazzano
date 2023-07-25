@@ -68,10 +68,10 @@ func analyzeOCICluster(clusterRoot string, ociCluster ociCluster, issueReporter 
 			for _, condition := range ociCluster.Status.Conditions {
 				if condition.Status != corev1.ConditionTrue {
 					switch condition.Type {
-					case "Ready":
-						subMessage = "is not ready"
 					case "ClusterReady":
 						subMessage = "cluster is not ready"
+					case "Ready":
+						subMessage = "is not ready"
 					default:
 						continue
 					}

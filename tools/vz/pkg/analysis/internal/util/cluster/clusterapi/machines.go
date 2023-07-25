@@ -61,8 +61,6 @@ func analyzeMachine(clusterRoot string, machine machine, issueReporter *report.I
 	for _, condition := range machine.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Ready":
-				subMessage = "is not ready"
 			case "APIServerPodHealthy":
 				subMessage = "kube-apiserver pod is not healthy"
 			case "BootstrapReady":
@@ -79,6 +77,8 @@ func analyzeMachine(clusterRoot string, machine machine, issueReporter *report.I
 				subMessage = "Kubernetes node is not healthy"
 			case "SchedulerPodHealthy":
 				subMessage = "kube-scheduler pod is not healthy"
+			case "Ready":
+				subMessage = "is not ready"
 			default:
 				continue
 			}

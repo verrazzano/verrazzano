@@ -61,8 +61,6 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 	for _, condition := range ocneControlPlane.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Ready":
-				subMessage = "is not ready"
 			case "Available":
 				subMessage = "is not available"
 			case "CertificatesAvailable":
@@ -93,6 +91,8 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 				subMessage = "Verrazzano Platform Operator is not deployed"
 			case "MachinesSpecUpToDate":
 				subMessage = "machines are not up-to-date"
+			case "Ready":
+				subMessage = "is not ready"
 			default:
 				continue
 			}

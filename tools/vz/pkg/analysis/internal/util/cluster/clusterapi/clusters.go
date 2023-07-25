@@ -61,14 +61,14 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 	for _, condition := range cluster.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Ready":
-				subMessage = "is not ready"
 			case "ControlPlaneInitialized":
 				subMessage = "control plane not initialized"
 			case "ControlPlaneReady":
 				subMessage = "control plane is not ready"
 			case "InfrastructureReady":
 				subMessage = "infrastructure is not ready"
+			case "Ready":
+				subMessage = "is not ready"
 			default:
 				continue
 			}
