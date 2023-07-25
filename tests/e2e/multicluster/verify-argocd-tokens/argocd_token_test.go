@@ -67,59 +67,60 @@ var _ = t.Describe("ArgoCD Token Sync Testing", Label("f:platform-lcm.install"),
 			}
 			rancherConfigForArgoCD, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, argoCDUsernameForRancher, argoCDPasswordForRancher)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error occured when created a Rancher Config for ArgoCD"))
+				pkg.Log(pkg.Error, "Error occurred when created a Rancher Config for ArgoCD")
 				return err
 			}
 			client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error creating the client set used by the cluster operator"))
+				pkg.Log(pkg.Error, "Error creating the client set used by the cluster operator")
 				return err
 			}
 			managedCluster, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error getting the current managed cluster resource"))
+				pkg.Log(pkg.Error, "Error getting the current managed cluster resource")
 				return err
 			}
 			clusterID := managedCluster.Status.RancherRegistration.ClusterID
 			if clusterID == "" {
+				pkg.Log(pkg.Error, "The managed cluster does not have a clusterID value")
 				err := fmt.Errorf("ClusterID value is not yet populated for the managed cluster")
 				return err
 			}
 			httpClientForRancher, err := pkg.GetVerrazzanoHTTPClient(adminKubeconfig)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error getting the Verrazzano http client"))
+				pkg.Log(pkg.Error, "Error getting the Verrazzano http client")
 				return err
 			}
 			createdTimeStampForNewTokenCreated, err = pkg.AddAccessTokenToRancherForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, ttl, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error creating New Token"))
+				pkg.Log(pkg.Error, "Error creating New Token")
 				return err
 			}
 			return err
 
 		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to Be Able To Create a Token through the API")
 	})
-	t.It("The secret can be successfuly altered to trigger an update locally and sent through the client", func() {
+	t.It("The secret can be successfully altered to trigger an update locally and sent through the client", func() {
 		secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 		Eventually(func() error {
 			secretToTriggerUpdate, err := pkg.GetSecret(argoCDNamespace, secretName)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Unable to find the secret in the cluster after token creation has occurred"))
+				pkg.Log(pkg.Error, "Unable to find the secret in the cluster after token creation has occurred")
 				return err
 			}
 			delete(secretToTriggerUpdate.Annotations, "verrazzano.io/expires-at-timestamp")
 			clientSetForCluster, err := pkg.GetKubernetesClientsetForCluster(adminKubeconfig)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Unable to get admin client set"))
+				pkg.Log(pkg.Error, "Unable to get admin client set")
 			}
 			editedSecret, err := clientSetForCluster.CoreV1().Secrets(argoCDNamespace).Update(context.TODO(), secretToTriggerUpdate, metav1.UpdateOptions{})
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error editing the secret through the client"))
+				pkg.Log(pkg.Error, "Error editing the secret through the client")
 				return err
 			}
 			_, ok := editedSecret.Annotations["verrazzano.io/expires-at-timestamp"]
 			if ok {
-				pkg.Log(pkg.Error, fmt.Sprintf("The client was successful, but the secret was not successful edited"))
+				pkg.Log(pkg.Error, "The client was successful, but the secret was not successful edited")
 				return fmt.Errorf("The client was successful, but the secret was not successful edited")
 			}
 			return err
@@ -130,17 +131,17 @@ var _ = t.Describe("ArgoCD Token Sync Testing", Label("f:platform-lcm.install"),
 		Eventually(func() error {
 			updatedSecret, err := pkg.GetSecret(argoCDNamespace, secretName)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to query the edited secret"))
+				pkg.Log(pkg.Error, "Failed to query the edited secret")
 				return err
 			}
 			_, ok := updatedSecret.Annotations["verrazzano.io/expires-at-timestamp"]
 			if !ok {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to add an expires-at-timestamp to the secret based on a new token that is created"))
-				return fmt.Errorf("The secret was not successfuly edited, as it does not have an expired timestamp")
+				pkg.Log(pkg.Error, "Failed to add an expires-at-timestamp to the secret based on a new token that is created")
+				return fmt.Errorf("The secret was not successfully edited, as it does not have an expired timestamp")
 			}
 			createdTimestampCurrentlyOnUpdatedSecret, ok := updatedSecret.Annotations["verrazzano.io/create-timestamp"]
 			if createdTimestampCurrentlyOnUpdatedSecret != createdTimeStampForNewTokenCreated || !ok {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to succesfully update the secret with the created timestamp of the most recent token created"))
+				pkg.Log(pkg.Error, "Failed to successfully update the secret with the created timestamp of the most recent token created")
 				return fmt.Errorf("The created-at timestamp of the secret was not correctly updated with the created timestamp of the most recently created token")
 			}
 			return err
@@ -188,7 +189,7 @@ func retrieveArgoCDPassword(namespace, name string) (string, error) {
 	}
 	decodedArgoCDPasswordForSecret, err := base64.StdEncoding.DecodeString(string(encodedArgoCDPasswordForSecret))
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error occured decoding the password string"))
+		pkg.Log(pkg.Error, "Error occurred decoding the password string")
 		return "", err
 	}
 	return string(decodedArgoCDPasswordForSecret), nil
