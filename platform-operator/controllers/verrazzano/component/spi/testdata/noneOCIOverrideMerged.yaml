@@ -3,10 +3,12 @@
 metadata:
   name: "none-dns-override"
 spec:
-  profile: "none"
+  profile: none
   environmentName: default
   components:
     applicationOperator:
+      enabled: false
+    argoCD:
       enabled: false
     authProxy:
       enabled: false
@@ -66,13 +68,15 @@ spec:
                       weight: 100
     certManagerWebhookOCI:
       enabled: false
+    clusterAPI:
+      enabled: false
     clusterAgent:
       enabled: false
     clusterIssuer:
       enabled: false
       clusterResourceNamespace: "cert-manager"
       ca:
-        secretName: "verrazzano-ca-certificate-secret"
+        secretName: verrazzano-ca-certificate-secret
     clusterOperator:
       enabled: false
     coherenceOperator:
@@ -107,14 +111,16 @@ spec:
               memory: 1G
           roles:
             - master
-    fluentd:
-      enabled: false
-      elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
-      elasticsearchSecret: verrazzano-es-internal
+      plugins:
+        enabled: false
     fluentOperator:
       enabled: false
     fluentbitOpensearchOutput:
       enabled: false
+    fluentd:
+      enabled: false
+      elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
+      elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: false
     ingress:
@@ -197,21 +203,8 @@ spec:
                           values:
                             - istio-egressgateway
                     topologyKey: kubernetes.io/hostname
-    kiali:
+    jaegerOperator:
       enabled: false
-      overrides:
-        - values:
-            deployment:
-              replicas: 1
-              affinity:
-                pod_anti:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app: kiali
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100
     keycloak:
       enabled: false
       overrides:
@@ -259,16 +252,35 @@ spec:
                               app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
                               app.kubernetes.io/name: mysql-innodbcluster-mysql-server
                           topologyKey: kubernetes.io/hostname
+    kiali:
+      enabled: false
+      overrides:
+        - values:
+            deployment:
+              replicas: 1
+              affinity:
+                pod_anti:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: kiali
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+    kibana:
+      enabled: false
+      replicas: 1
     kubeStateMetrics:
       enabled: false
     mySQLOperator:
       enabled: false
-    kibana:
-      enabled: false
-      replicas: 1
     oam:
       enabled: false
     prometheus:
+      enabled: false
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
       enabled: false
     prometheusOperator:
       enabled: false
@@ -286,15 +298,17 @@ spec:
                               app.kubernetes.io/name: prometheus
                           topologyKey: kubernetes.io/hostname
                         weight: 100
+    prometheusPushgateway:
+      enabled: false
     rancher:
+      enabled: false
+    rancherBackup:
+      enabled: false
+    thanos:
+      enabled: false
+    velero:
       enabled: false
     verrazzano:
       enabled: false
     weblogicOperator:
-      enabled: false
-    argoCD:
-      enabled: false
-    thanos:
-      enabled: false
-    clusterAPI:
       enabled: false

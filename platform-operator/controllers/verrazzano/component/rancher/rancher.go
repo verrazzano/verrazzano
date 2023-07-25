@@ -129,6 +129,13 @@ const (
 	SettingUILinkColorValue           = "rgb(49, 118, 217)"
 	SettingUIBrand                    = "ui-brand"
 	SettingUIBrandValue               = "verrazzano"
+	SettingCACerts                    = "cacerts"
+	SettingAuthResyncCron             = "auth-user-info-resync-cron"
+	SettingAuthMaxAge                 = "auth-user-info-max-age-seconds"
+	SettingAuthTTL                    = "auth-user-session-ttl-minutes"
+	SettingAuthResyncCronValue        = "*/15 * * * *"
+	SettingAuthMaxAgeValue            = "600"
+	SettingAuthTTLValue               = "540"
 )
 
 // auth config
@@ -518,6 +525,25 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 	}
 
 	return nil
+}
+
+// getSettingValue Returns a Rancher Settings object value with the leading and trailing whitespace trimmed
+func getSettingValue(c client.Client, settingName string) (string, error) {
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(common.GVKSetting)
+	resource.SetName(settingName)
+
+	if err := c.Get(context.Background(), types.NamespacedName{Name: resource.GetName()}, &resource); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return "", err
+		}
+		return "", nil
+	}
+	settingsContent := resource.UnstructuredContent()
+	if value, found := settingsContent["value"]; found {
+		return strings.TrimSpace(value.(string)), nil
+	}
+	return "", nil
 }
 
 // createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher

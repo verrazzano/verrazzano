@@ -3,8 +3,10 @@
 package spi
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -219,6 +221,57 @@ func TestContextProfilesMerge(t *testing.T) {
 			// Tests Log method
 			a.Equal(log, context.Log(), "The log in the context doesn't match the original one")
 		})
+	}
+}
+
+// TestNoneProfileHaveEverythingDisabled Tests the none profile context merge
+// GIVEN a Verrazzano instance with a none profile
+// WHEN I call NewContext
+// THEN the correct context is created with the proper merge of the profile and user overrides and should match the expected CR
+// and the effectiveCR
+func TestNoneProfileHaveEverythingDisabled(t *testing.T) {
+	config.TestProfilesDir = profileDir
+	defer func() { config.TestProfilesDir = "" }()
+	a := assert.New(t)
+
+	// Load the expected merged result into VZ CR
+	expectedYaml := basicNoneMerged
+	expectedVZ, err := loadExpectedMergeResult(expectedYaml)
+	a.NoError(err)
+	a.NotNil(expectedVZ)
+
+	// Create the context with effectiveCR
+	actualCR := basicNoneClusterWithStatus
+	log := vzlog.DefaultLogger()
+	context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &actualCR, nil, false)
+	a.NotNil(context, "Context was nil")
+	a.NoError(err)
+
+	if context == nil {
+		return
+	}
+
+	// As the ComponentSpec is not a list, we need to use the reflect library to manipulate objects with arbitrary types
+	val := reflect.ValueOf(context.EffectiveCR().Spec.Components)
+	t.Logf("Verifying 'enabled' field for all %d components in the ComponentSpec list", val.NumField())
+	a.NotZero(val.NumField(), "Expected non-empty list of components, but empty list was received")
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			fieldName := val.Type().Field(i).Name // get the field name from the type
+			a.False(field.IsNil(), fmt.Sprintf("The component '%s' body is nil, or is not disabled explicitly", fieldName))
+		}
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			enabledField := field.Elem().FieldByName("Enabled")
+			if enabledField.IsValid() && !enabledField.IsNil() {
+				enabled := enabledField.Elem().Bool()
+				// If Enabled is true, fail the test
+				if enabled {
+					t.Errorf("Component %s is enabled", val.Type().Field(i).Name)
+				}
+			}
+		}
 	}
 }
 

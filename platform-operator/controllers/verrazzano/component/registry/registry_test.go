@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -197,6 +198,25 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), thanos.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), clusteragent.ComponentName)
+}
+
+// TestGetComponents tests getting the components
+// GIVEN a component
+//
+//	WHEN I call GetComponentsForUninstall
+//	THEN it returns all the components in reverse order of GetComponents
+func TestGetComponentsForUninstall(t *testing.T) {
+	a := assert.New(t)
+	comps := GetComponents()
+	uninstallComps := GetComponentsForUninstall()
+	a.Equal(len(comps), len(uninstallComps))
+	j := len(comps) - 1
+	for i := range uninstallComps {
+		a.Equal(comps[j].Name(), uninstallComps[i].Name())
+		a.Equal(comps[j].Namespace(), uninstallComps[i].Namespace())
+		a.Equal(reflect.TypeOf(comps[j]).Name(), reflect.TypeOf(uninstallComps[i]).Name())
+		j--
+	}
 }
 
 // TestFindComponent tests FindComponent

@@ -681,8 +681,10 @@ spec:
             - key: app.kubernetes.io/component
               operator: In
               values:
+              - compactor
               - query
               - query-frontend
+              - ruler
               - storegateway
         - namespaceSelector:
             matchLabels:

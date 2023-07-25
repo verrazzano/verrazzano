@@ -112,6 +112,9 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureCapiNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureRancherNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}

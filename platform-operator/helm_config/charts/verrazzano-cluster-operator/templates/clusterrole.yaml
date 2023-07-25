@@ -73,6 +73,14 @@ rules:
       - watch
       - delete
   - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - apps
     resources:
       - deployments
