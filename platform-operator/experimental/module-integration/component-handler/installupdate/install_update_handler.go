@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package install
+package installupdate
 
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
@@ -14,14 +14,23 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
 )
 
-type ComponentHandler struct {}
+type ActionType string
+
+const (
+	InstallAction ActionType = constants.InstallOperation
+	UpdateAction  ActionType = constants.UpdateOperation
+)
+
+type ComponentHandler struct {
+	action ActionType
+}
 
 var (
 	_ handlerspi.StateMachineHandler = &ComponentHandler{}
 )
 
-func NewHandler() handlerspi.StateMachineHandler {
-	return &ComponentHandler{}
+func NewHandler(action ActionType) handlerspi.StateMachineHandler {
+	return &ComponentHandler{action: action}
 }
 
 // GetWorkName returns the work name
@@ -36,9 +45,20 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // PreWorkUpdateStatus does the pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+	var reason moduleapi.ModuleConditionReason
+	var cond vzapi.ConditionType
+
+	if h.action == InstallAction {
+		reason = moduleapi.ReadyReasonInstallStarted
+		cond = vzapi.CondInstallStarted
+	} else {
+		reason = moduleapi.ReadyReasonInstallStarted
+		cond = vzapi.CondInstallStarted
+	}
+
 	// Update the module status
 	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonInstallStarted)
+	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 	if res.ShouldRequeue() {
 		return res
 	}
@@ -50,9 +70,9 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	}
 	sd := common.StatusData{
 		Vznsn:    *nsn,
-		CondType: vzapi.CondInstallStarted,
+		CondType: cond,
 		CompName: module.Spec.ModuleName,
-		Msg:      string(vzapi.CondInstallStarted),
+		Msg:      string(cond),
 		Ready:    true,
 	}
 	return common.UpdateComponentStatus(ctx, sd)
@@ -60,7 +80,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -85,7 +105,7 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 
 // DoWork installs the module using Helm
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -98,7 +118,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 // IsWorkDone Indicates whether a module is installed and ready
 func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -114,7 +134,7 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 
 // PostWork does installation post-work
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.InstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -126,8 +146,20 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 
 // WorkCompletedUpdateStatus updates the status to completed
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+	var reason moduleapi.ModuleConditionReason
+	var cond vzapi.ConditionType
+
+	if h.action == InstallAction {
+		reason = moduleapi.ReadyReasonInstallSucceeded
+		cond = vzapi.CondInstallStarted
+	} else {
+		reason = moduleapi.ReadyReasonUpdateSucceeded
+		// Note, Verrazzano uses install condition for update
+		cond = vzapi.CondInstallStarted
+	}
+
 	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonInstallSucceeded)
+	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
 	if res.ShouldRequeue() {
 		return res
 	}
@@ -139,10 +171,10 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 	sd := common.StatusData{
 		Vznsn:       *nsn,
-		CondType:    vzapi.CondInstallComplete,
+		CondType:    cond,
 		CompName:    module.Spec.ModuleName,
 		CompVersion: module.Spec.Version,
-		Msg:         string(vzapi.CondInstallComplete),
+		Msg:         string(cond),
 		Ready:       true,
 	}
 	return common.UpdateComponentStatus(ctx, sd)

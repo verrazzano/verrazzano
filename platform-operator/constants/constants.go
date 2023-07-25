@@ -167,6 +167,9 @@ const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
 // InstallOperation indicates that an install operation being executed by a component
 const InstallOperation = "install"
 
+// UpdateOperation indicates that an update operation being executed by a component
+const UpdateOperation = "update"
+
 // UpgradeOperation indicates that an upgrade operation being executed by a component
 const UpgradeOperation = "upgrade"
 
