@@ -451,25 +451,25 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	// Verify Correct number of RedirectURIs
-	// 23 redirect Uris for new installation
-	// 27 redirect Uris for upgrade from older versions. The urls are deprecated ingress hosts.
+	// 25 redirect Uris for new installation
+	// 29 redirect Uris for upgrade from older versions. The urls are deprecated ingress hosts.
 	if isMinVersion150 {
-		if !(len(keycloakClient.RedirectUris) == 27 || len(keycloakClient.RedirectUris) == 23) {
+		if !(len(keycloakClient.RedirectUris) == 29 || len(keycloakClient.RedirectUris) == 25) {
 			t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 			return false
 		}
-	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 27 {
+	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 29 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
 	if isMinVersion150 {
-		if !(len(keycloakClient.WebOrigins) == 14 || len(keycloakClient.WebOrigins) == 12) {
+		if !(len(keycloakClient.WebOrigins) == 15 || len(keycloakClient.WebOrigins) == 13) {
 			t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 			return false
 		}
-	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 12 {
+	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 13 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}

@@ -229,3 +229,6 @@ const ThanosQueryIngress = "thanos-query-frontend"
 
 // ThanosQueryStoreIngress is the name of the ingress for the Thanos Query Store API
 const ThanosQueryStoreIngress = "thanos-query-store"
+
+// ThanosRulerIngress is the name of the ingress for the Thanos Ruler
+const ThanosRulerIngress = "thanos-ruler"

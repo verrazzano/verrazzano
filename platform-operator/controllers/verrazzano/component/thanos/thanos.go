@@ -29,6 +29,10 @@ const (
 	// Thanos Query StoreAPI constants
 	queryStoreHostName        = "thanos-query-store"
 	queryStoreCertificateName = "system-tls-query-store"
+
+	// Thanos Ruler ingress constants
+	rulerHostName        = "thanos-ruler"
+	rulerCertificateName = "system-tls-thanos-ruler"
 )
 
 // GetOverrides gets the install overrides for the Thanos component
@@ -129,7 +133,22 @@ func appendIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom
 		PathType:         netv1.PathTypeImplementationSpecific,
 		ServicePort:      constants.VerrazzanoAuthProxyGRPCServicePort,
 	}
-	return formatIngressOverrides(ctx, storeProps, kvs), nil
+	kvs = formatIngressOverrides(ctx, storeProps, kvs)
+
+	rulerHostName := fmt.Sprintf("%s.%s", rulerHostName, dnsSubDomain)
+	rulerProps := ingressOverrideProperties{
+		KeyPrefix:        "ruler.ingress",
+		Subdomain:        dnsSubDomain,
+		HostName:         rulerHostName,
+		IngressClassName: ingressClassName,
+		TLSSecretName:    rulerCertificateName,
+		Path:             "/()(.*)",
+		PathType:         netv1.PathTypeImplementationSpecific,
+		ServicePort:      constants.VerrazzanoAuthProxyServicePort,
+	}
+	kvs = append(kvs, bom.KeyValue{Key: "ruler.extraFlags[0]", Value: fmt.Sprintf("--alert.query-url=https://%s", frontendHostName)})
+	return formatIngressOverrides(ctx, rulerProps, kvs), nil
+
 }
 
 // ingressOverrideProperties creates a structure to host Override property strings for Thanos ingresses
