@@ -15,7 +15,6 @@ import (
 	"strings"
 )
 
-
 func CoallateAllHostsForTrait(trait *vzapi.IngressTrait, appName string, appNamespace string) ([]string, error) {
 	allHosts := []string{}
 	var err error

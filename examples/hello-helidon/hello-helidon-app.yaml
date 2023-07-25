@@ -4,6 +4,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: hello-helidon
+  namespace: hello-helidon
   annotations:
     version: v1.0.0
     description: "Hello Helidon application"
@@ -26,3 +27,14 @@ spec:
                 - paths:
                     - path: "/greet"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: hello-helidon-ingress-trait
+            spec:
+              rules:
+                - paths:
+                    - path: "/metrics"
+                      pathType: Exact
+
