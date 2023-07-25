@@ -38,7 +38,7 @@ func (h ComponentHandler) GetWorkName() string {
 	return "install"
 }
 
-// IsWorkNeeded returns true if install is needed
+// IsWorkNeeded returns true if install/update is needed
 func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
 	return true, result.NewResult()
 }

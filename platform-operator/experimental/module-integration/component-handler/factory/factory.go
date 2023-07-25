@@ -13,10 +13,8 @@ import (
 // NewModuleHandlerInfo creates a new ModuleHandlerInfo
 func NewModuleHandlerInfo() handlerspi.ModuleHandlerInfo {
 	return handlerspi.ModuleHandlerInfo{
-		InstallActionHandler: installupdate.NewHandler(installupdate.InstallAction),
 		DeleteActionHandler:  delete.NewHandler(),
-
-		// Update uses same handler as install
+		InstallActionHandler: installupdate.NewHandler(installupdate.InstallAction),
 		UpdateActionHandler:  installupdate.NewHandler(installupdate.UpdateAction),
 		UpgradeActionHandler: upgrade.NewHandler(),
 	}
