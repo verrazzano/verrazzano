@@ -129,6 +129,12 @@ const (
 	SettingUILinkColorValue           = "rgb(49, 118, 217)"
 	SettingUIBrand                    = "ui-brand"
 	SettingUIBrandValue               = "verrazzano"
+	SettingAuthResyncCron             = "auth-user-info-resync-cron"
+	SettingAuthMaxAge                 = "auth-user-info-max-age-seconds"
+	SettingAuthTTL                    = "auth-user-session-ttl-minutes"
+	SettingAuthResyncCronValue        = "*/15 * * * *"
+	SettingAuthMaxAgeValue            = "600"
+	SettingAuthTTLValue               = "540"
 )
 
 // auth config
