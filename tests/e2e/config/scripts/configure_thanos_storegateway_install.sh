@@ -33,6 +33,17 @@ if [ "${ENABLE_THANOS_COMPACTOR}" == "true" ]; then
   yq -i eval ".spec.components.thanos.overrides.[0].values.compactor.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
+if [ "${ENABLE_THANOS_RULER}" == "true" ]; then
+  echo "Editing install config file for Thanos Ruler ${INSTALL_CONFIG_TO_EDIT}"
+  # enable alertmanager
+  yq -i eval ".spec.components.prometheusOperator.overrides[0].values.alertmanager.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.prometheusOperator.overrides[0].values.alertmanager.alertmanagerSpec.podMetadata.annotations.sidecar\.istio\.io/inject = \"false\"" ${INSTALL_CONFIG_TO_EDIT}
+
+  yq -i eval ".spec.components.thanos.overrides.[0].values.ruler.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.thanos.overrides.[0].values.ruler.alertmanagers[0] = https://prometheus-operator-kube-p-alertmanager:9093" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.thanos.overrides.[0].values.ruler.config.groups[0].name = test_group" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
 # Modify the VZ CR to enable storage on the Prometheus Thanos Sidecar
 # This yq magic adds the Sidecar object storage config overrides to the correct override array element, but only if there is an existing prometheus override
 echo "Editing install config file to enable long-term storage on the Prometheus Thanos Sidecar ${INSTALL_CONFIG_TO_EDIT}"
