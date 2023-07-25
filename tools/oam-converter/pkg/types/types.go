@@ -23,9 +23,9 @@ type ConversionComponents struct {
 }
 
 type KubeResources struct {
-	VirtualServices  [][]*vsapi.VirtualService
+	VirtualServices  []*vsapi.VirtualService
 	Gateway          map[string]interface{}
-	DestinationRules [][]*istioclient.DestinationRule
-	AuthPolicies     [][]*clisecurity.AuthorizationPolicy
+	DestinationRules []*istioclient.DestinationRule
+	AuthPolicies     []*clisecurity.AuthorizationPolicy
 	ServiceMonitors  []*promoperapi.ServiceMonitor
 }

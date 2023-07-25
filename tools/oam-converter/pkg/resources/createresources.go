@@ -20,8 +20,8 @@ import (
 
 func CreateResources(conversionComponents []*types.ConversionComponents) (*types.KubeResources, error) {
 	var virtualServices []*vsapi.VirtualService
-	var destinationRules [][]*istioclient.DestinationRule
-	var authzPolicies [][]*clisecurity.AuthorizationPolicy
+	var destinationRules []*istioclient.DestinationRule
+	var authzPolicies []*clisecurity.AuthorizationPolicy
 	var virtualService []*vsapi.VirtualService
 	var destinationRule []*istioclient.DestinationRule
 	var authzPolicy []*clisecurity.AuthorizationPolicy
@@ -41,8 +41,8 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
 			virtualServices = append(virtualServices, virtualService...)
-			destinationRules = append(destinationRules, destinationRule)
-			authzPolicies = append(authzPolicies, authzPolicy)
+			destinationRules = append(destinationRules, destinationRule...)
+			authzPolicies = append(authzPolicies, authzPolicy...)
 			if err != nil {
 				return nil, errors.New("failed to create Child resources from Weblogic workload")
 
@@ -50,9 +50,9 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 		}
 		if conversionComponent.Coherenceworkload != nil {
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
-			virtualServices = append(virtualServices, virtualService)
-			destinationRules = append(destinationRules, destinationRule)
-			authzPolicies = append(authzPolicies, authzPolicy)
+			virtualServices = append(virtualServices, virtualService...)
+			destinationRules = append(destinationRules, destinationRule...)
+			authzPolicies = append(authzPolicies, authzPolicy...)
 			if err != nil {
 				return nil, errors.New("failed to create Child resources from Coherence workload")
 
@@ -60,9 +60,9 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 		}
 		if conversionComponent.Helidonworkload != nil {
 			virtualService, destinationRule, authzPolicy, err = helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent, gateway, allHostsForTrait)
-			virtualServices = append(virtualServices, virtualService)
-			destinationRules = append(destinationRules, destinationRule)
-			authzPolicies = append(authzPolicies, authzPolicy)
+			virtualServices = append(virtualServices, virtualService...)
+			destinationRules = append(destinationRules, destinationRule...)
+			authzPolicies = append(authzPolicies, authzPolicy...)
 			if err != nil {
 				return nil, errors.New("failed to create Child resources from Helidon workload")
 
