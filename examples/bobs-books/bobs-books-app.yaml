@@ -61,10 +61,4 @@ spec:
     - componentName: bobs-mysql-service
     - componentName: bobs-mysql-configmap
 
-  kubectl create secret docker-registry bobs-books-repo-credentials \
-  --docker-server=container-registry.oracle.com \
-  --docker-username=vrushali.shah@oracle.com \
-  --docker-password=Vrush*22121999 \
-  --docker-email=vrushali.shah@oracle.com \
-  -n bobs-books
 

@@ -27,14 +27,5 @@ spec:
                 - paths:
                     - path: "/greet"
                       pathType: Prefix
-        - trait:
-            apiVersion: oam.verrazzano.io/v1alpha1
-            kind: IngressTrait
-            metadata:
-              name: hello-helidon-ingress-trait
-            spec:
-              rules:
-                - paths:
-                    - path: "/metrics"
-                      pathType: Exact
+
 
