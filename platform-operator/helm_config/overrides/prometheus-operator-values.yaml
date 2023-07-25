@@ -58,6 +58,9 @@ prometheus:
 alertmanager:
   enabled: false
   alertmanagerSpec:
+    alertmanagerConfigSelector:
+      matchLabels:
+        verrazzano.io/alerts: true
     securityContext:
       fsGroup: 65534
       runAsGroup: 65534
