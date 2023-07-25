@@ -138,7 +138,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
-				return createSingleNodeCluster(clusterNameSingleNode, t.Logs, false)
+				return createSingleNodeCluster(clusterNameSingleNode, t.Logs, nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
@@ -149,7 +149,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, 1, t.Logs)
+				return verifyCluster(clusterNameSingleNode, 1, activeState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
 		})
 	})
@@ -158,7 +158,11 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
-				return createSingleNodeCluster(clusterNameSingleNodeInvalid, t.Logs, true)
+				mutateFn := func(config *RancherOCNECluster) {
+					// setting an invalid kubernetes version
+					config.OciocneEngineConfig.KubernetesVersion = "v1.22.7"
+				}
+				return createSingleNodeCluster(clusterNameSingleNodeInvalid, t.Logs, mutateFn)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
@@ -169,7 +173,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNodeInvalid, 0, t.Logs)
+				return verifyCluster(clusterNameSingleNodeInvalid, 0, provisioningState, transitioningFlagError, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
 		})
 	})
@@ -190,7 +194,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, 2, t.Logs)
+				return verifyCluster(clusterNameNodePool, 2, activeState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
