@@ -155,23 +155,21 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 		WhenThanosInstalledIt("Thanos ingresses should be accessible", func() {
 			httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 			creds := pkg.EventuallyGetSystemVMICredentials()
-
-			table := []interface{}{
-				func(getURLFromVZStatus func() *string) {
-					url := getURLFromVZStatus()
-					if url != nil {
-						Eventually(func() bool {
-							return pkg.AssertURLAccessibleAndAuthorized(httpClient, *url, creds)
-						}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(Equal(http.StatusOK))
-					}
-				},
-				Entry("Thanos Query Frontend UI", func() *string { return inClusterVZ.Status.VerrazzanoInstance.ThanosQueryURL }),
+			urls := []*string{
+				inClusterVZ.Status.VerrazzanoInstance.ThanosQueryURL,
 			}
 			if isRulerEnabled {
-				table = append(table, Entry("Thanos Ruler UI", func() *string { return inClusterVZ.Status.VerrazzanoInstance.ThanosQueryURL }))
+				urls = append(urls, inClusterVZ.Status.VerrazzanoInstance.ThanosRulerURL)
 			}
 
-			t.DescribeTable("Access VMI endpoints", table...)
+			Eventually(func() bool {
+				for _, url := range urls {
+					if !pkg.AssertURLAccessibleAndAuthorized(httpClient, *url, creds) {
+						return false
+					}
+				}
+				return true
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(Equal(http.StatusOK))
 		})
 	})
 })
