@@ -133,7 +133,7 @@ func TestIsAnyMonitoringComponentEnabled(t *testing.T) {
 					},
 				},
 			},
-			false,
+			tr,
 		},
 	}
 
