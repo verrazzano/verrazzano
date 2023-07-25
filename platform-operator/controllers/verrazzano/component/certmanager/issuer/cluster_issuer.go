@@ -717,11 +717,9 @@ func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.Comp
 
 	_, err = controllerruntime.CreateOrUpdate(context.TODO(), cli, privateCASecret, func() error {
 		if len(privateCASecret.Data) == 0 {
-			if len(privateCASecret.Data) == 0 {
-				privateCASecret.Data = make(map[string][]byte)
-			}
-			privateCASecret.Data[vzconst.CABundleKey] = bundleData
+			privateCASecret.Data = make(map[string][]byte)
 		}
+		privateCASecret.Data[vzconst.CABundleKey] = bundleData
 		return nil
 	})
 	return err
