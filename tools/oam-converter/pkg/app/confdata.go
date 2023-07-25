@@ -116,31 +116,29 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 
 	//Write virtual services to files
 	if outputResources.VirtualServices != nil {
-		for index := range outputResources.VirtualServices {
-			for _, virtualService := range outputResources.VirtualServices[index] {
-				fileName := "" + virtualService.Name + ".yaml"
-				filePath := filepath.Join(outputDirectory, fileName)
+		for _, virtualService := range outputResources.VirtualServices {
 
-				f, err := os.Create(filePath)
-				if err != nil {
-					return err
-				}
-				r, err := json.Marshal(virtualService)
-				if err != nil {
-					return err
-				}
-				output, err := yaml.JSONToYAML(r)
-				if err != nil {
-					return err
-				}
+			fileName := "" + virtualService.Name + ".yaml"
+			filePath := filepath.Join(outputDirectory, fileName)
 
-				defer f.Close()
+			f, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
+			r, err := json.Marshal(virtualService)
+			if err != nil {
+				return err
+			}
+			output, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
 
-				_, err = f.WriteString(string(output))
-				if err != nil {
-					return err
-				}
+			defer f.Close()
 
+			_, err = f.WriteString(string(output))
+			if err != nil {
+				return err
 			}
 
 		}
@@ -171,31 +169,30 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 
 	//Write down destination rules to files
 	if outputResources.DestinationRules != nil {
-		for index := range outputResources.DestinationRules {
-			for _, destinationRule := range outputResources.DestinationRules[index] {
-				if destinationRule != nil {
-					fileName := "" + destinationRule.Name
-					filePath := filepath.Join(outputDirectory, fileName)
+		for _, destinationRule := range outputResources.DestinationRules {
 
-					f, err := os.Create(filePath)
-					if err != nil {
-						return err
-					}
-					r, err := json.Marshal(destinationRule)
-					if err != nil {
-						return err
-					}
-					output, err := yaml.JSONToYAML(r)
-					if err != nil {
-						return err
-					}
+			if destinationRule != nil {
+				fileName := "" + destinationRule.Name
+				filePath := filepath.Join(outputDirectory, fileName)
 
-					defer f.Close()
+				f, err := os.Create(filePath)
+				if err != nil {
+					return err
+				}
+				r, err := json.Marshal(destinationRule)
+				if err != nil {
+					return err
+				}
+				output, err := yaml.JSONToYAML(r)
+				if err != nil {
+					return err
+				}
 
-					_, err2 := f.WriteString(string(output))
-					if err2 != nil {
-						return err2
-					}
+				defer f.Close()
+
+				_, err2 := f.WriteString(string(output))
+				if err2 != nil {
+					return err2
 				}
 			}
 		}
@@ -203,35 +200,34 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 
 	//Write down Authorization Policies to files
 	if outputResources.AuthPolicies != nil {
-		for index := range outputResources.AuthPolicies {
-			for _, authPolicy := range outputResources.AuthPolicies[index] {
-				if authPolicy != nil {
-					fileName := "authzpolicy.yaml"
-					filePath := filepath.Join(outputDirectory, fileName)
+		for _, authPolicy := range outputResources.AuthPolicies {
 
-					f, err := os.Create(filePath)
-					if err != nil {
-						return err
-					}
-					r, err := json.Marshal(authPolicy)
-					if err != nil {
-						return err
-					}
-					output, err := yaml.JSONToYAML(r)
-					if err != nil {
-						return err
-					}
+			if authPolicy != nil {
+				fileName := "authzpolicy.yaml"
+				filePath := filepath.Join(outputDirectory, fileName)
 
-					defer f.Close()
+				f, err := os.Create(filePath)
+				if err != nil {
+					return err
+				}
+				r, err := json.Marshal(authPolicy)
+				if err != nil {
+					return err
+				}
+				output, err := yaml.JSONToYAML(r)
+				if err != nil {
+					return err
+				}
 
-					_, err2 := f.WriteString(string(output))
-					if err2 != nil {
-						return err2
-					}
+				defer f.Close()
 
+				_, err2 := f.WriteString(string(output))
+				if err2 != nil {
+					return err2
 				}
 
 			}
+
 		}
 	}
 
