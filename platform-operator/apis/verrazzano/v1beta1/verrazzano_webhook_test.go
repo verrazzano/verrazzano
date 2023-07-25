@@ -440,7 +440,7 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 // GIVEN a verifyPlatformOperatorSingleton call
 // WHEN there are FAILED pods
 // THEN an error is returned
-func Test_verifyPlatformOperatorSingletonNoFailedPods(t *testing.T) {
+func Test_verifyPlatformOperatorSingletonFailedPods(t *testing.T) {
 	tests := []struct {
 		name       string
 		shouldPass bool
@@ -450,9 +450,10 @@ func Test_verifyPlatformOperatorSingletonNoFailedPods(t *testing.T) {
 		{name: "Single VPO instance", shouldPass: true, podList: []string{"appName"}},
 		{name: "Single VPO instance unhealthy", shouldPass: true, failedPods: 1, podList: []string{"appName"}},
 		{name: "Multiple VPO instances all healthy", shouldPass: false, podList: []string{"foo", "goo"}},
-		{name: "Multiple VPO instance unhealthy", shouldPass: false, failedPods: 1, podList: []string{"foo", "goo", "app"}},
-		{name: "Multiple VPO instance 1 healthy", shouldPass: true, failedPods: 2, podList: []string{"foo", "goo", "app"}},
-		{name: "Failed pods present", shouldPass: true, failedPods: 1, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances unhealthy", shouldPass: false, failedPods: 1, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 healthy", shouldPass: true, failedPods: 2, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 unhealthy", shouldPass: true, failedPods: 1, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances all unhealthy", shouldPass: true, failedPods: 4, podList: []string{"foo", "goo", "app", "app1"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

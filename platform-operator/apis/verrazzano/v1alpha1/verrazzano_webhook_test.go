@@ -482,6 +482,48 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 	assert.NoError(t, vz.verifyPlatformOperatorSingleton())
 }
 
+// Test_verifyPlatformOperatorSingletonNoFailedPods Tests the verifyPlatformOperatorSingleton check
+// GIVEN a verifyPlatformOperatorSingleton call
+// WHEN there are FAILED pods
+// THEN an error is returned
+func Test_verifyPlatformOperatorSingletonFailedPods(t *testing.T) {
+	tests := []struct {
+		name       string
+		shouldPass bool
+		failedPods int
+		podList    []string
+	}{
+		{name: "Single VPO instance", shouldPass: true, podList: []string{"appName"}},
+		{name: "Single VPO instance unhealthy", shouldPass: true, failedPods: 1, podList: []string{"appName"}},
+		{name: "Multiple VPO instances all healthy", shouldPass: false, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances unhealthy", shouldPass: false, failedPods: 1, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 healthy", shouldPass: true, failedPods: 2, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 unhealthy", shouldPass: true, failedPods: 1, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances all unhealthy", shouldPass: true, failedPods: 4, podList: []string{"foo", "goo", "app", "app1"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vz := &Verrazzano{}
+			labels := map[string]string{
+				"app": "verrazzano-platform-operator",
+			}
+			if len(tt.podList) == 1 {
+				getPodList(tt.podList, labels, tt.failedPods)
+				defer func() { getControllerRuntimeClient = validators.GetClient }()
+				assert.NoError(t, vz.verifyPlatformOperatorSingleton())
+			} else if len(tt.podList) > 1 && !tt.shouldPass {
+				getPodList(tt.podList, labels, tt.failedPods)
+				defer func() { getControllerRuntimeClient = validators.GetClient }()
+				assert.Error(t, vz.verifyPlatformOperatorSingleton())
+			} else if len(tt.podList) > 1 && tt.shouldPass {
+				getPodList(tt.podList, labels, tt.failedPods)
+				defer func() { getControllerRuntimeClient = validators.GetClient }()
+				assert.NoError(t, vz.verifyPlatformOperatorSingleton())
+			}
+		})
+	}
+}
+
 // Test_combineErrors Tests combineErrors
 // GIVEN slices of errors
 // WHEN there is one or more errors
@@ -561,4 +603,29 @@ func TestInvalidClusterK8SVersion(t *testing.T) {
 	}
 	assert.ErrorContains(t, currentSpec.ValidateCreate(), errMsg)
 	assert.ErrorContains(t, currentSpec.ValidateUpdate(currentSpec), errMsg)
+}
+
+func getPodList(listOfPods []string, labels map[string]string, failedPods int) {
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
+			TypeMeta: metav1.TypeMeta{},
+			Items:    createPodList(listOfPods, labels, failedPods),
+		}).Build(), nil
+	}
+}
+
+func createPodList(listOfPods []string, labels map[string]string, failedPods int) []v1.Pod {
+	var list []v1.Pod
+	for _, podName := range listOfPods {
+		pod := v1.Pod{}
+		pod.Name = podName
+		pod.Namespace = constants.VerrazzanoInstallNamespace
+		pod.Labels = labels
+		if failedPods != 0 {
+			pod.Status.Phase = "Failed"
+			failedPods--
+		}
+		list = append(list, pod)
+	}
+	return list
 }
