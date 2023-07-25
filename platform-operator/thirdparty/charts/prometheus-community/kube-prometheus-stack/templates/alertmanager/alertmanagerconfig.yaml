@@ -5,7 +5,7 @@ metadata:
   name: alertmanager-config
   namespace: verrazzano-monitoring
   labels:
-    verrazzano.io/alerts: true
+    verrazzano.io/alerts: system
     app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 {{- if .Values.alertmanager.annotations }}
