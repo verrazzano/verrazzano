@@ -67,6 +67,7 @@ pipeline {
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
         booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to run opensearch-operator based opensearch tests', name: 'RUN_OPENSEARCH_OPERATOR_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to run clusterAPI override tests', name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
@@ -97,6 +98,7 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         ENABLE_THANOS_STORE_GATEWAY = true
+        ENABLE_THANOS_COMPACTOR = true
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -617,6 +619,16 @@ pipeline {
                                 runGinkgo('opensearch-operator/topology')
                             }
                         }
+                    }
+                }
+
+                stage('ClusterAPI Override Tests') {
+                    when { expression {params.RUN_CLUSTERAPI_OVERRIDE_TESTS} }
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/clusterapi-overrides"
+                    }
+                    steps {
+                        runGinkgo('clusterapi/capi-overrides')
                     }
                 }
             }

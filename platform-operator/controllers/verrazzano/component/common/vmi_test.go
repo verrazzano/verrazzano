@@ -11,13 +11,18 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	scheme2 "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -346,8 +351,8 @@ func TestReassociateResources(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme2.Scheme).WithObjects(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vmoComponentNamespace,
-			Name:      vmoComponentName,
+			Namespace: VMOComponentNamespace,
+			Name:      VMOComponentName,
 		},
 	}).Build()
 	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, nil, false))
@@ -355,11 +360,11 @@ func TestReassociateResources(t *testing.T) {
 	err = ReassociateVMOResources(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: vmoComponentNamespace, Name: vmoComponentName}, &service)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: VMOComponentNamespace, Name: VMOComponentName}, &service)
 	assert.NoError(t, err)
 	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], vmoComponentName)
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], vmoComponentNamespace)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], VMOComponentName)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], VMOComponentNamespace)
 	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
 
@@ -376,18 +381,18 @@ func TestExportVmoHelmChart(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme2.Scheme).WithObjects(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vmoComponentNamespace,
-			Name:      vmoComponentName,
+			Namespace: VMOComponentNamespace,
+			Name:      VMOComponentName,
 		},
 	}).Build()
 	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: vmoComponentNamespace, Name: vmoComponentName}, &service)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: VMOComponentNamespace, Name: VMOComponentName}, &service)
 	assert.NoError(t, err)
 	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], vmoComponentName)
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], vmoComponentNamespace)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], VMOComponentName)
+	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], VMOComponentNamespace)
 	assert.Contains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
 
@@ -473,4 +478,181 @@ func Test_SetStorageSize(t *testing.T) {
 	storageRequest := &ResourceRequestValues{Storage: storageSize}
 	SetStorageSize(storageRequest, storageObject)
 	assert.Equal(t, storageSize, storageObject.Size)
+}
+
+// TestGetVMOManagedDeployments tests GetVMOManagedDeployments
+// GIVEN both VMO managed and non-VMO managed deployments exist
+// WHEN GetVMOManagedDeployments is called
+// THEN only the VMO managed deployment(s) are returned
+func TestGetVMOManagedDeployments(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+
+	vmoMgd := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nonVMOMgd", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedDeployments(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, vmoMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestGetVMOManagedIngresses tests GetVMOManagedIngresses
+// GIVEN both VMO managed and non-VMO managed ingresses exist
+// WHEN GetVMOManagedIngresses is called
+// THEN only the VMO managed ingress(es) are returned
+func TestGetVMOManagedIngresses(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = netv1.AddToScheme(scheme)
+
+	vmoMgd := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "otherobj", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedIngresses(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestGetVMOManagedServices tests GetVMOManagedServices
+// GIVEN both VMO managed and non-VMO managed services exist
+// WHEN GetVMOManagedServices is called
+// THEN only the VMO managed service(s) are returned
+func TestGetVMOManagedServices(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+
+	vmoMgd := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "otherobj", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedServices(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestGetVMOManagedStatefulsets tests GetVMOManagedStatefulsets
+// GIVEN both VMO managed and non-VMO managed statefulsets exist
+// WHEN GetVMOManagedStatefulsets is called
+// THEN only the VMO managed statefulset(s) are returned
+func TestGetVMOManagedStatefulsets(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+
+	vmoMgd := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vmoMgd", Namespace: "somens", Labels: vmoManagedLabels},
+	}
+	nonVMOMgd := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "otherobj", Namespace: "somens"},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(&vmoMgd, &nonVMOMgd).
+		Build()
+
+	list, err := GetVMOManagedStatefulsets(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+	assert.Len(t, list.Items, 1)
+	assert.Equal(t, vmoMgd.Name, list.Items[0].Name)
+	assert.Equal(t, nonVMOMgd.Namespace, list.Items[0].Namespace)
+}
+
+// TestDeleteVMI tests DeleteVMI
+// GIVEN a system VMI exists in the cluster
+//
+//	WHEN DeleteVMI is called
+//	THEN the VMI is deleted
+//
+// GIVEN a system VMI does NOT in the cluster
+//
+//	WHEN DeleteVMI is called
+//	THEN no error is returned
+func TestDeleteVMI(t *testing.T) {
+	systemVMI := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: VMIName, Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	otherVMISystemNS := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: "otherVMI", Namespace: constants.VerrazzanoSystemNamespace},
+	}
+	otherVMIOtherNS := vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: "otherVMI", Namespace: "otherNS"},
+	}
+
+	tests := []struct {
+		name          string
+		vmis          []client.Object
+		expectDeleted []vmov1.VerrazzanoMonitoringInstance
+	}{
+		{"Only System VMI exists",
+			[]client.Object{&systemVMI},
+			[]vmov1.VerrazzanoMonitoringInstance{systemVMI}},
+		{"Only non-system VMIs exist",
+			[]client.Object{&otherVMISystemNS, &otherVMIOtherNS},
+			[]vmov1.VerrazzanoMonitoringInstance{}},
+		{"System VMI and non-system VMIs exist",
+			[]client.Object{&systemVMI, &otherVMISystemNS, &otherVMIOtherNS},
+			[]vmov1.VerrazzanoMonitoringInstance{systemVMI}},
+		{"No VMIs exist", []client.Object{}, []vmov1.VerrazzanoMonitoringInstance{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+			// for the Component interface hook
+			scheme := runtime.NewScheme()
+			_ = vmov1.AddToScheme(scheme)
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.vmis...).Build()
+			err := DeleteVMI(spi.NewFakeContext(fakeClient, nil, nil, false))
+			for _, expectDeleted := range tt.expectDeleted {
+				obj := vmov1.VerrazzanoMonitoringInstance{}
+				err := fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: expectDeleted.GetNamespace(), Name: expectDeleted.GetName()}, &obj)
+				assert.True(t, errors.IsNotFound(err))
+			}
+			assert.NoError(t, err)
+		})
+	}
 }

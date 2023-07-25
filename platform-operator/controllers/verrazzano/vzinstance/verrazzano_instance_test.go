@@ -6,9 +6,10 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -40,6 +41,7 @@ func TestGetInstanceInfo(t *testing.T) {
 	const kibanaURL = "kibana." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
+	const thanosRulerURL = "thanos-ruler." + dnsDomain
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
@@ -95,10 +97,18 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzIngress},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "thanos-ruler"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: thanosRulerURL},
 						},
 					},
 				},
@@ -111,6 +121,9 @@ func TestGetInstanceInfo(t *testing.T) {
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
+					Enabled: &enabled,
+				},
+				Thanos: &v1alpha1.ThanosComponent{
 					Enabled: &enabled,
 				},
 			},
@@ -127,6 +140,7 @@ func TestGetInstanceInfo(t *testing.T) {
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+thanosRulerURL, *instanceInfo.ThanosRulerURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
@@ -177,7 +191,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzIngress},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},

@@ -666,8 +666,8 @@ func TestApplySystemMonitors(t *testing.T) {
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-	// expect that 9 ServiceMonitors are created
-	assert.Len(t, monitors.Items, 10)
+	// expect that 11 ServiceMonitors are created
+	assert.Len(t, monitors.Items, 11)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
@@ -960,6 +960,36 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	assertions.NoError(err)
 
 	authPolicy := &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
+	assertions.NoError(err)
+
+	assertions.Len(authPolicy.Spec.Rules, 2)
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
+	assertions.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+
+	// GIVEN Prometheus Operator is being installed or upgraded
+	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function with additional components enabled
+	// THEN  the expected Istio authorization policy is created with rules for those components as well
+	additionalComponentsCR := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+				Thanos: &vzapi.ThanosComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(client, &additionalComponentsCR, nil, false)
+
+	err = createOrUpdatePrometheusAuthPolicy(ctx)
+	assertions.NoError(err)
+
+	authPolicy = &istioclisec.AuthorizationPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assertions.NoError(err)
 
