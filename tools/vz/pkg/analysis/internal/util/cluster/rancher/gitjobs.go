@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -79,14 +78,15 @@ func analyzeGitJob(clusterRoot string, job gitJob, issueReporter *report.IssueRe
 		if len(condition.Message) > 0 {
 			msg = fmt.Sprintf(", message is %q", condition.Message)
 		}
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s %s%s", gitJobResource, job.Name, job.Namespace, subMessage, reason, msg)
+		message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 		messages = append([]string{message}, messages...)
 	}
 
 	if len(messages) > 0 {
 		if len(status.JobStatus) > 0 {
-			messages = append([]string{fmt.Sprintf("The Rancher GitJob status is %s", status.JobStatus)}, messages...)
+			messages = append([]string{fmt.Sprintf("\tthe Rancher GitJob status is %s", status.JobStatus)}, messages...)
 		}
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %s", gitJobResource, job.Name, job.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

@@ -5,11 +5,12 @@ package clusterapi
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"path/filepath"
 )
 
 const ocneControlPlanesResource = "ocnecontrolplanes.controlplane.cluster.x-k8s.io"
@@ -91,9 +92,9 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s", ocneControlPlanesResource, ocneControlPlane.Name, ocneControlPlane.Namespace, subMessage)
+				message = fmt.Sprintf("\t%s", subMessage)
 			} else {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", ocneControlPlanesResource, ocneControlPlane.Name, ocneControlPlane.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("\t%s - reason is %s", subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 
@@ -101,6 +102,7 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", ocneControlPlanesResource, ocneControlPlane.Name, ocneControlPlane.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
 	}
 }

@@ -84,17 +84,18 @@ func analyzeGitRepo(clusterRoot string, gitRepo gitRepo, issueReporter *report.I
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s %s%s", gitRepoResource, gitRepo.Name, gitRepo.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if status.DesiredReadyClusters != status.ReadyClusters {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s expected %d to be ready, actual ready is %d", gitRepoResource, gitRepo.Name, gitRepo.Namespace, status.DesiredReadyClusters, status.ReadyClusters)
+		message := fmt.Sprintf("\texpected %d to be ready, actual ready is %d", status.DesiredReadyClusters, status.ReadyClusters)
 		messages = append([]string{message}, messages...)
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %s", gitRepoResource, gitRepo.Name, gitRepo.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
