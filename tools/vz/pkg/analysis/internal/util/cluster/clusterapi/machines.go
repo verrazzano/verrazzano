@@ -27,7 +27,7 @@ type machine struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeMachines handles the checking of the status of cluster-qpi machine resources.
+// AnalyzeMachines handles the checking of the status of cluster-api machine resources.
 func AnalyzeMachines(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {

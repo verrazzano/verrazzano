@@ -27,7 +27,7 @@ type ocneConfig struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeOCNEConfigs handles the checking of the status of cluster-qpi ocneConfig resources.
+// AnalyzeOCNEConfigs handles the checking of the status of cluster-api ocneConfig resources.
 func AnalyzeOCNEConfigs(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {

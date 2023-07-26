@@ -27,7 +27,7 @@ type ociMachine struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeOCIMachines handles the checking of the status of cluster-qpi ociMachine resources.
+// AnalyzeOCIMachines handles the checking of the status of cluster-api ociMachine resources.
 func AnalyzeOCIMachines(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {

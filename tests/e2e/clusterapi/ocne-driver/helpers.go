@@ -25,6 +25,16 @@ import (
 // Acts as a cache, mapping the cluster names to cluster IDs
 var clusterIDMapping = map[string]string{}
 
+type clusterState string
+type transitioningFlag string
+
+const (
+	provisioningClusterState clusterState      = "provisioning"
+	activeClusterState       clusterState      = "active"
+	transitioningFlagNo      transitioningFlag = "no"
+	transitioningFlagError   transitioningFlag = "error"
+)
+
 // Creates the cloud credential through the Rancher REST API
 func createCloudCredential(credentialName string, log *zap.SugaredLogger) (string, error) {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cloudcredentials", log)
@@ -105,8 +115,10 @@ func getCredential(credID string, log *zap.SugaredLogger) (*gabs.Container, erro
 	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
 }
 
+type mutateRancherOCNEClusterFunc func(config *RancherOCNECluster)
+
 // Creates a single node OCNE Cluster through CAPI
-func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
+func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger, mutateFn mutateRancherOCNEClusterFunc) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
 	if err != nil {
 		log.Errorf("error reading node public key file: %v", err)
@@ -117,6 +129,10 @@ func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger) error {
 	var rancherOCNEClusterConfig RancherOCNECluster
 	nodePools := []string{}
 	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
+
+	if mutateFn != nil {
+		mutateFn(&rancherOCNEClusterConfig)
+	}
 
 	return createCluster(clusterName, rancherOCNEClusterConfig, log)
 }
@@ -307,10 +323,10 @@ func fetchClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (*
 }
 
 // Checks whether the cluster was created as expected. Returns nil if all is good.
-func verifyCluster(clusterName string, numberNodes int, log *zap.SugaredLogger) error {
+func verifyCluster(clusterName string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
 	// Check if the cluster looks good from the Rancher API
 	var err error
-	if err = verifyGetRequest(clusterName, numberNodes, log); err != nil {
+	if err = verifyGetRequest(clusterName, expectedNodes, expectedClusterState, expectedTransitioning, log); err != nil {
 		return err
 	}
 
@@ -326,16 +342,19 @@ func verifyCluster(clusterName string, numberNodes int, log *zap.SugaredLogger) 
 		return err
 	}
 
-	// Check if the cluster has the expected nodes and pods running
-	if err = verifyClusterNodes(clusterName, workloadKubeconfigPath, numberNodes, log); err != nil {
-		return err
+	if expectedNodes > 0 {
+		// Check if the cluster has the expected nodes and pods running
+		if err = verifyClusterNodes(clusterName, workloadKubeconfigPath, expectedNodes, log); err != nil {
+			return err
+		}
+		return verifyClusterPods(clusterName, workloadKubeconfigPath, log)
 	}
-	return verifyClusterPods(clusterName, workloadKubeconfigPath, log)
+	return nil
 }
 
 // Verifies that a GET request to the Rancher API for this cluster returns expected values.
-// Intended to be called on clusters in Active state.
-func verifyGetRequest(clusterName string, numberNodes int, log *zap.SugaredLogger) error {
+// Intended to be called on clusters with expected number of nodes and cluster state.
+func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
 	jsonBody, err := getCluster(clusterName, log)
 	if err != nil {
 		return err
@@ -358,9 +377,9 @@ func verifyGetRequest(clusterName string, numberNodes int, log *zap.SugaredLogge
 	}{
 		{resourceType, "cluster", "resource type"},
 		{name, clusterName, "cluster name"},
-		{nodeCount, float64(numberNodes), "node count"},
-		{state, "active", "state"},
-		{transitioning, "no", "transitioning flag"},
+		{nodeCount, float64(expectedNodes), "node count"},
+		{state, string(expectedClusterState), "state"},
+		{transitioning, string(expectedTransitioning), "transitioning flag"},
 		{fleetNamespace, "fleet-default", "fleet workspace"},
 		{driver, "ociocne", "driver"},
 	}
@@ -374,16 +393,18 @@ func verifyGetRequest(clusterName string, numberNodes int, log *zap.SugaredLogge
 	caCert := jsonData.Path("caCert").Data()
 	requestedResources := jsonData.Path("requested").Data()
 
-	nonNilAttributes := []struct {
-		value interface{}
-		name  string
-	}{
-		{caCert, "CA certificate"},
-		{requestedResources, "requested resources"},
-	}
-	for _, n := range nonNilAttributes {
-		if n.value == nil {
-			return fmt.Errorf("cluster %s should have a non-nil value for %s", clusterName, n.name)
+	if expectedClusterState == activeClusterState {
+		nonNilAttributes := []struct {
+			value interface{}
+			name  string
+		}{
+			{caCert, "CA certificate"},
+			{requestedResources, "requested resources"},
+		}
+		for _, n := range nonNilAttributes {
+			if n.value == nil {
+				return fmt.Errorf("cluster %s should have a non-nil value for %s", clusterName, n.name)
+			}
 		}
 	}
 

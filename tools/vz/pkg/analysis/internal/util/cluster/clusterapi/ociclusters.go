@@ -32,7 +32,7 @@ type ociClusterStatus struct {
 	Ready      bool            `json:"ready,omitempty"`
 }
 
-// AnalyzeOCIClusters handles the checking of the status of cluster-qpi ocicluster resources.
+// AnalyzeOCIClusters handles the checking of the status of cluster-api ocicluster resources.
 func AnalyzeOCIClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {
