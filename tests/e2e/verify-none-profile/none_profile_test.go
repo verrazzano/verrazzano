@@ -4,7 +4,6 @@
 package verifynoneprofile
 
 import (
-	"fmt"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -56,7 +55,7 @@ var _ = t.Describe("Verify Namespaces", func() {
 		for _, item := range ns.Items {
 			_, isAllowed := allowedNamespacesMap[item.Name]
 			if !isAllowed {
-				failures = append(failures, fmt.Sprintf("Namespace %s is not allowed with none profile installation\n", item.Name))
+				failures = append(failures, item.Name)
 			}
 		}
 		Expect(failures).To(BeEmpty(), "Namespaces not allowed: %v, Allowed namespaces are %v", failures, allowedNamespaces)
