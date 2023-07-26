@@ -804,7 +804,7 @@ func createOrUpdateAlertmanagerConfig(ctx spi.ComponentContext) error {
 			},
 		}
 		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), alertmanagerConfig, func() error {
-			if len(alertmanagerConfig.Spec.Receivers) == 0 {
+			if alertmanagerConfig.Spec.Receivers == nil || len(alertmanagerConfig.Spec.Receivers) == 0 {
 				alertmanagerConfig.Spec.Receivers = []promoperapiv1alpha1.Receiver{
 					{
 						Name: nullAlertmanagerConfigReceiver,
@@ -812,10 +812,12 @@ func createOrUpdateAlertmanagerConfig(ctx spi.ComponentContext) error {
 				}
 			}
 			if alertmanagerConfig.Spec.Route == nil {
-				alertmanagerConfig.Spec.Route.Receiver = nullAlertmanagerConfigReceiver
-				alertmanagerConfig.Spec.Route.GroupInterval = "5m"
-				alertmanagerConfig.Spec.Route.GroupWait = "30s"
-				alertmanagerConfig.Spec.Route.RepeatInterval = "4h"
+				alertmanagerConfig.Spec.Route = &promoperapiv1alpha1.Route{
+					Receiver:       nullAlertmanagerConfigReceiver,
+					GroupWait:      "0s",
+					GroupInterval:  "5m",
+					RepeatInterval: "4h",
+				}
 			}
 			return nil
 		})
