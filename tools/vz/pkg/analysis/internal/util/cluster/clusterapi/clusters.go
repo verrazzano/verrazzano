@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package cluster
+package clusterapi
 
 import (
 	"fmt"
@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 )
 
-const capiClusterResource = "clusters.cluster.x-k8s.io"
+const capiClustersResource = "clusters.cluster.x-k8s.io"
 
-// Minimal definition of cluster.x-k8s.io object that only contains the fields that will be analyzed
+// Minimal definition of clusters.cluster.x-k8s.io object that only contains the fields that will be analyzed
 type clusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -23,15 +23,7 @@ type clusterList struct {
 type cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Status            clusterStatus `json:"status,omitempty"`
-}
-type clusterStatus struct {
-	Conditions []clusterCondition `json:"conditions,omitempty"`
-}
-type clusterCondition struct {
-	Reason string                 `json:"reason,omitempty"`
-	Status corev1.ConditionStatus `json:"status"`
-	Type   string                 `json:"type"`
+	Status            capiStatus `json:"status,omitempty"`
 }
 
 // AnalyzeClusters handles the checking of the status of cluster-qpi cluster resources.
@@ -61,23 +53,23 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 	for _, condition := range cluster.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
-			case "Ready":
-				subMessage = "is not ready"
 			case "ControlPlaneInitialized":
 				subMessage = "control plane not initialized"
 			case "ControlPlaneReady":
 				subMessage = "control plane is not ready"
 			case "InfrastructureReady":
 				subMessage = "infrastructure is not ready"
+			case "Ready":
+				subMessage = "is not ready"
 			default:
 				continue
 			}
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s", capiClustersResource, cluster.Name, cluster.Namespace, subMessage)
 			} else {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", capiClusterResource, cluster.Name, cluster.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", capiClustersResource, cluster.Name, cluster.Namespace, subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 

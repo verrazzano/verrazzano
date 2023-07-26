@@ -1,0 +1,29 @@
+{
+  "apiVersion": "infrastructure.cluster.x-k8s.io/v1beta2",
+  "items": [
+    {
+      "apiVersion": "infrastructure.cluster.x-k8s.io/v1beta2",
+      "kind": "OCICluster",
+      "metadata": {
+        "name": "c-drdlq",
+        "namespace": "c-drdlq"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-07-18T17:08:28Z",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2023-07-18T17:08:28Z",
+            "status": "True",
+            "type": "ClusterReady"
+          }
+        ],
+        "ready": false
+      }
+    }
+  ],
+  "kind": "OCIClusterList"
+}
