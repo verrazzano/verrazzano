@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const bundleDeploymentResource = "bundledeployment.fleet.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type bundleDeploymentsList struct {
@@ -29,9 +32,14 @@ type bundleDeploymentStatus struct {
 }
 
 // AnalyzeBundleDeployments - analyze the status of BundleDeployment objects
-func AnalyzeBundleDeployments(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeBundleDeployments(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &bundleDeploymentsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "bundledeployment.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", bundleDeploymentResource), list)
 	if err != nil {
 		return err
 	}
@@ -78,7 +86,7 @@ func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployme
 	}
 
 	if !bundleDeployment.Status.Ready {
-		message := fmt.Sprintf("Rancher BundledDeployment resource %q in namespace %s is not ready", bundleDeployment.Name, bundleDeployment.Namespace)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s is not ready", bundleDeploymentResource, bundleDeployment.Name, bundleDeployment.Namespace)
 		messages = append([]string{message}, messages...)
 	}
 

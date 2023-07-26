@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const clusterGroupResource = "clustergroup.fleet.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type clusterGroupList struct {
@@ -28,10 +31,15 @@ type clusterGroupStatus struct {
 	Conditions           []cattleCondition `json:"conditions,omitempty"`
 }
 
-// AnalyzeClusterGroups - analyze the status of ClusterGruop objects
-func AnalyzeClusterGroups(clusterRoot string, issueReporter *report.IssueReporter) error {
+// AnalyzeClusterGroups - analyze the status of ClusterGroup objects
+func AnalyzeClusterGroups(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &clusterGroupList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clustergroup.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", clusterGroupResource), list)
 	if err != nil {
 		return err
 	}
@@ -70,13 +78,13 @@ func analyzeClusterGroup(clusterRoot string, clusterGroup clusterGroup, issueRep
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher ClusterGroup resource %q %s %s%s", clusterGroup.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q %s %s%s", clusterGroupResource, clusterGroup.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if clusterGroup.Status.NonReadyClusterCount > 0 {
-		message := fmt.Sprintf("Rancher Bundle resource %q in namespace %s has %d clusters not ready", clusterGroup.Name, clusterGroup.Namespace, clusterGroup.Status.NonReadyClusterCount)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s has %d clusters not ready", clusterGroupResource, clusterGroup.Name, clusterGroup.Namespace, clusterGroup.Status.NonReadyClusterCount)
 		messages = append([]string{message}, messages...)
 	}
 	if len(messages) > 0 {

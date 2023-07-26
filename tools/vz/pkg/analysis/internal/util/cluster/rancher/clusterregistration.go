@@ -5,11 +5,14 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const clusterRegistrationResource = "clusterregistration.fleet.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type clusterRegistrationList struct {
@@ -28,9 +31,14 @@ type clusterRegistrationStatus struct {
 }
 
 // AnalyzeClusterRegistrations - analyze the status of ClusterRegistration objects
-func AnalyzeClusterRegistrations(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterRegistrations(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &clusterRegistrationList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterregistration.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", clusterRegistrationResource), list)
 	if err != nil {
 		return err
 	}
@@ -50,7 +58,7 @@ func analyzeClusterRegistration(clusterRoot string, clusterRegistration clusterR
 	var messages []string
 
 	if !clusterRegistration.Status.Granted {
-		message := fmt.Sprintf("Rancher ClusterRegistration resource %q in namespace %s is not granted for cluster %s", clusterRegistration.Name, clusterRegistration.Namespace, clusterRegistration.Status.ClusterName)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s is not granted for cluster %s", clusterRegistrationResource, clusterRegistration.Name, clusterRegistration.Namespace, clusterRegistration.Status.ClusterName)
 		messages = append([]string{message}, messages...)
 	}
 

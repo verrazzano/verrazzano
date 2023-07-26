@@ -16,6 +16,7 @@ const (
 	catalogGroup      = "catalog.cattle.io"
 	provisioningGroup = "provisioning.cattle.io"
 	fleetGroup        = "fleet.cattle.io"
+	gitJobGroup       = "gitjob.cattle.io"
 )
 
 type rancherResource struct {
@@ -33,13 +34,17 @@ var rancherResources = []rancherResource{
 
 // rancherNamespacedResources - resources that are namespaced
 var rancherNamespacedResources = []rancherResource{
+	{GVR: schema.GroupVersionResource{Group: catalogGroup, Version: cattleV1, Resource: "apps"}, Kind: "App"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundles"}, Kind: "Bundle"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "bundledeployments"}, Kind: "BundleDeployment"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clusters"}, Kind: "Cluster"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clustergroups"}, Kind: "ClusterGroup"},
 	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "clusterregistrations"}, Kind: "ClusterRegistration"},
+	{GVR: schema.GroupVersionResource{Group: fleetGroup, Version: cattleV1Alpha1, Resource: "gitrepos"}, Kind: "GitRepo"},
 	{GVR: schema.GroupVersionResource{Group: provisioningGroup, Version: cattleV1, Resource: "clusters"}, Kind: "Cluster"},
 	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "nodes"}, Kind: "Node"},
+	{GVR: schema.GroupVersionResource{Group: mgmtGroup, Version: cattleV3, Resource: "managedcharts"}, Kind: "ManagedChart"},
+	{GVR: schema.GroupVersionResource{Group: gitJobGroup, Version: cattleV1, Resource: "gitjobs"}, Kind: "GitJob"},
 }
 
 // CaptureGlobalRancherResources captures global resources related to ClusterAPI

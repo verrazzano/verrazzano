@@ -1,0 +1,28 @@
+{
+  "apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha1",
+  "items": [
+    {
+      "apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha1",
+      "kind": "OCNEConfig",
+      "metadata": {
+        "name": "c-pzd2r-zdr65",
+        "namespace": "c-pzd2r"
+      },
+      "status": {
+        "conditions": [
+          {
+            "reason": "WaitingForControlPlaneAvailable",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "WaitingForControlPlaneAvailable",
+            "status": "False",
+            "type": "DataSecretAvailable"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "OCNEConfigList"
+}

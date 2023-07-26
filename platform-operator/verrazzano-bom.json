@@ -52,26 +52,32 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230718063143-2e2de655",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230718063143-2e2de655",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230718063143-2e2de655",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230718063143-2e2de655",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
+            },
+            {
+              "image": "cert-manager-ctl",
+              "tag": "v1.9.1-20230720073051-ec3b7033",
+              "helmFullImageKey": "startupapicheck.image.repository",
+              "helmTagKey": "startupapicheck.image.tag"
             }
           ]
         }
@@ -148,16 +154,16 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230717131935-d2ee60180",
-              "rancherUI": "v2.7.2-9/release-2.7.2",
+              "rancherUI": "v2.7.2-10/release-2.7.2",
               "ocneDriverVersion": "v0.21.0",
               "ocneDriverChecksum": "ef300103b9b593a49006636dfc873147dcbb46d646f84ebe66af7037b3efa4d4",
-              "tag": "v2.7.3-20230717133025-51373799e",
+              "tag": "v2.7.3-20230725135145-51373799e",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230717133025-51373799e"
+              "tag": "v2.7.3-20230725135145-51373799e"
             }
           ]
         },
@@ -265,7 +271,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230711035747-67edc78",
+              "tag": "v2.0.0-20230724214803-d6adc4e",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -467,7 +473,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230711070818-2fe76f7",
+              "tag": "v2.2.0-20230725071427-8e93dbe",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },

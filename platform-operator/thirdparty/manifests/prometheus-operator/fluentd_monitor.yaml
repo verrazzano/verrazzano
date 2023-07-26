@@ -19,13 +19,13 @@ spec:
     - path: /metrics
       targetPort: http-metrics
       enableHttp2: false
-    {{ if .isIstioEnabled }}
+      {{ if .isIstioEnabled }}
       scheme: https
       tlsConfig:
         caFile: /etc/istio-certs/root-cert.pem
         certFile: /etc/istio-certs/cert-chain.pem
         keyFile: /etc/istio-certs/key.pem
         insecureSkipVerify: true
-    {{ else }}
+      {{ else }}
       scheme: http
-    {{ end }}
+      {{ end }}

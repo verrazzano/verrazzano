@@ -5,11 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const kontainerDriverResource = "kontainerdriver.management.cattle.io"
 
 // KontainerDriverList has the minimal definition of KontainerDriver object.
 type KontainerDriverList struct {
@@ -31,9 +35,14 @@ type KontainerDriverCondition struct {
 }
 
 // AnalyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
-func AnalyzeKontainerDrivers(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeKontainerDrivers(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	kontainerDriverList := &KontainerDriverList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "kontainerdriver.management.cattle.io.json", kontainerDriverList)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", kontainerDriverResource), kontainerDriverList)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal KontainerDriver list from cluster snapshot: %s", err)
 	}
@@ -61,7 +70,7 @@ func reportKontainerDriverIssue(clusterRoot string, driver KontainerDriver, issu
 		}
 
 		if len(messages) != 0 {
-			messages = append([]string{fmt.Sprintf("KontainerDriver resource \"%s\" is not ready per it's resource status", driver.Name)}, messages...)
+			messages = append([]string{fmt.Sprintf("Rancher %s resource \"%s\" is not ready per it's resource status", kontainerDriverResource, driver.Name)}, messages...)
 			issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 		}
 	}

@@ -170,6 +170,14 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 	return err
 }
 
+// deleteKialiIngress Deletes the Kiali ingress
+func deleteKialiIngress(ctx spi.ComponentContext, namespace string) error {
+	ingress := v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: namespace},
+	}
+	return clipkg.IgnoreNotFound(ctx.Client().Delete(context.TODO(), &ingress))
+}
+
 func getKialiHostName(context spi.ComponentContext) (string, error) {
 	dnsDomain, err := vzconfig.BuildDNSDomain(context.Client(), context.EffectiveCR())
 	if err != nil {

@@ -4,9 +4,15 @@ spec:
   components:
     applicationOperator:
       enabled: false
+    argoCD:
+      enabled: false
     authProxy:
       enabled: false
     clusterAPI:
+      enabled: false
+    clusterAgent:
+      enabled: false
+    clusterIssuer:
       enabled: false
     certManager:
       enabled: false
@@ -14,15 +20,15 @@ spec:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
-    clusterAgent:
-      enabled: false
-    clusterIssuer:
+    certManagerWebhookOCI:
       enabled: false
     clusterOperator:
       enabled: false
     coherenceOperator:
       enabled: false
     console:
+      enabled: false
+    dns:
       enabled: false
     elasticsearch:
       enabled: false
@@ -36,13 +42,21 @@ spec:
             - master
     fluentd:
       enabled: false
+    fluentOperator:
+      enabled: false
+    fluentbitOpensearchOutput:
+      enabled: false
     grafana:
       enabled: false
     ingress:
       enabled: false
     istio:
       enabled: false
+    jaegerOperator:
+      enabled: false
     kiali:
+      enabled: false
+    kibana:
       enabled: false
     keycloak:
       enabled: false
@@ -50,21 +64,27 @@ spec:
       enabled: false
     mySQLOperator:
       enabled: false
-    kibana:
-      enabled: false
     oam:
       enabled: false
     prometheus:
       enabled: false
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
+      enabled: false
     prometheusOperator:
       enabled: false
+    prometheusPushgateway:
+      enabled: false
     rancher:
+      enabled: false
+    rancherBackup:
+      enabled: false
+    thanos:
+      enabled: false
+    velero:
       enabled: false
     verrazzano:
       enabled: false
     weblogicOperator:
-      enabled: false
-    argoCD:
-      enabled: false
-    thanos:
       enabled: false

@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const bundleResource = "bundle.fleet.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type bundleList struct {
@@ -30,9 +33,14 @@ type bundleStatus struct {
 }
 
 // AnalyzeBundles - analyze the status of Bundle objects
-func AnalyzeBundles(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeBundles(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &bundleList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "bundle.fleet.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", bundleResource), list)
 	if err != nil {
 		return err
 	}
@@ -71,17 +79,17 @@ func analyzeBundle(clusterRoot string, bundle bundle, issueReporter *report.Issu
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher Bundle resource %q %s %s%s", bundle.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("Rancher %s resource %q %s %s%s", bundleResource, bundle.Name, subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if bundle.Status.Unavailable > 0 {
-		message := fmt.Sprintf("Rancher Bundle resource %q in namespace %s has %d unavailable", bundle.Name, bundle.Namespace, bundle.Status.Unavailable)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s has %d unavailable", bundleResource, bundle.Name, bundle.Namespace, bundle.Status.Unavailable)
 		messages = append([]string{message}, messages...)
 	}
 	if bundle.Status.UnavailablePartitions > 0 {
-		message := fmt.Sprintf("Rancher Bundle resource %q in namespace %s has %d unavailable partitions", bundle.Name, bundle.Namespace, bundle.Status.UnavailablePartitions)
+		message := fmt.Sprintf("Rancher %s resource %q in namespace %s has %d unavailable partitions", bundleResource, bundle.Name, bundle.Namespace, bundle.Status.UnavailablePartitions)
 		messages = append([]string{message}, messages...)
 	}
 
