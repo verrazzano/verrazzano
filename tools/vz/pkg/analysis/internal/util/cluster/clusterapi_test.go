@@ -108,6 +108,18 @@ var capiTestCases = []capiTestCase{
 		Namespaced:     true,
 		ExpectedIssues: 1,
 	},
+	{
+		Function:       capi.AnalyzeMachineSets,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeMachineSets,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
 }
 
 // Test analyze Cluster API resources with different cluster snapshots.
