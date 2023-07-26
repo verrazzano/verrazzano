@@ -52,7 +52,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		reason = moduleapi.ReadyReasonInstallStarted
 		cond = vzapi.CondInstallStarted
 	} else {
-		reason = moduleapi.ReadyReasonInstallStarted
+		reason = moduleapi.ReadyReasonUpdateStarted
 		cond = vzapi.CondInstallStarted
 	}
 
