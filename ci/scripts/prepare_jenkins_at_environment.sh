@@ -154,7 +154,7 @@ if [ $USE_DB_FOR_GRAFANA == true ]; then
   ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
 fi
 # Create the storage provider secret and update the Thanos overrides in the VZ file
-./tests/e2e/config/scripts/configure_thanos_storegateway_install.sh ${INSTALL_CONFIG_FILE_KIND}
+./tests/e2e/config/scripts/configure_thanos_install_storage.sh ${INSTALL_CONFIG_FILE_KIND}
 cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
 TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}

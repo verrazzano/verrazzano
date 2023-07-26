@@ -60,12 +60,12 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		// check if storegateway component is enabled
 		isStoreGatewayEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "storegateway")
 		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides: %v", err))
+			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides for the Store Gateway: %v", err))
 		}
 		// check if compactor component is enabled
 		isCompactorEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "compactor")
 		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides for the Store Gateway: %v", err))
+			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides for the Compactor: %v", err))
 		}
 		isRulerEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "ruler")
 		if err != nil {
