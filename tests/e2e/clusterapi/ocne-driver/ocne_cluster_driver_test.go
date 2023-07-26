@@ -204,14 +204,14 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 		// Update - decrease resource usage
 		t.It("update OCNE cluster to decrease resource usage", func() {
-			poolReplicas = 1
+			poolReplicas--
+			expectedNodeCount--
+
 			Eventually(func() error {
 				volumeSize, ocpus, memory := 100, 1, 16
 				mutateFn := getMutateFnNodePoolsAndResourceUsage(poolName, poolReplicas, volumeSize, ocpus, memory)
 				return updateConfigAndCluster(&clusterConfig, mutateFn, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-			// expect 3 control plane nodes, 1 worker nodes
-			expectedNodeCount = 4
 		})
 		t.It("check the OCNE cluster updated", func() {
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
