@@ -79,12 +79,13 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q on branch %s with URL %s: %s %s%s", catalogResource, catalog.Name, catalog.Spec.Branch, catalog.Spec.URL, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q on branch %s with URL %s", catalogResource, catalog.Name, catalog.Spec.Branch, catalog.Spec.URL)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

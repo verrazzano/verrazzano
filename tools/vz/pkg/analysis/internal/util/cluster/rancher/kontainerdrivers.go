@@ -64,7 +64,7 @@ func reportKontainerDriverIssue(clusterRoot string, driver KontainerDriver, issu
 			switch condition.Type {
 			case "Active", "Downloaded", "Installed":
 				if condition.Status != "True" {
-					messages = append(messages, fmt.Sprintf(" - condition type \"%s\" has a status of \"%s\"", condition.Type, condition.Status))
+					messages = append(messages, fmt.Sprintf("\tcondition type \"%s\" has a status of \"%s\"", condition.Type, condition.Status))
 				}
 			}
 		}
