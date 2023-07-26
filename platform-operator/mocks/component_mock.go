@@ -938,6 +938,20 @@ func (mr *MockComponentMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponent)(nil).ShouldInstallBeforeUpgrade))
 }
 
+// ShouldUseModule mocks base method.
+func (m *MockComponent) ShouldUseModule() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShouldUseModule")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ShouldUseModule indicates an expected call of ShouldUseModule.
+func (mr *MockComponentMockRecorder) ShouldUseModule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldUseModule", reflect.TypeOf((*MockComponent)(nil).ShouldUseModule))
+}
+
 // Uninstall mocks base method.
 func (m *MockComponent) Uninstall(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()
