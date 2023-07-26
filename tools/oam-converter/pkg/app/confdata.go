@@ -26,10 +26,11 @@ func ConfData() error {
 	//Check the length of args
 	if len(os.Args) != 3 {
 		return errors.New("Not enough args to run tool")
-	} else {
-		inputDirectory = os.Args[1]
-		outputDirectory = os.Args[2]
 	}
+
+	inputDirectory = os.Args[1]
+	outputDirectory = os.Args[2]
+
 	//used to store app file data
 	var appData []map[string]interface{}
 
@@ -63,16 +64,16 @@ func ConfData() error {
 			if !found || err != nil {
 				return errors.New("component kind doesn't exist or not found in the specified type")
 			}
-			compApiVersion, found, err := unstructured.NestedString(component, "apiVersion")
+			compAPIVersion, found, err := unstructured.NestedString(component, "apiVersion")
 			if !found || err != nil {
 				return errors.New("component api version doesn't exist or not found in the specified type")
 			}
 			//Check the kind od each component and apiVersion
-			if compKind == "Component" && compApiVersion == consts.CompApiVersion {
+			if compKind == "Component" && compAPIVersion == consts.CompApiVersion {
 				components = append(components, component)
-			} else if compKind == "ApplicationConfiguration" && compApiVersion == consts.CompApiVersion {
+			} else if compKind == "ApplicationConfiguration" && compAPIVersion == consts.CompApiVersion {
 				appData = append(appData, component)
-			} else{
+			} else {
 				k8sResources = append(k8sResources, component)
 			}
 		}
@@ -109,7 +110,7 @@ func ConfData() error {
 // Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources []any) error {
 	for index := range outputResources {
-		func () error{
+		func() error {
 			//fileName := "" + index.Name + ".yaml" TODO add filename
 			fileName := "OAMoutput.yaml"
 			filePath := filepath.Join(outputDirectory, fileName)
@@ -133,7 +134,8 @@ func writeKubeResources(outputDirectory string, outputResources []any) error {
 			if err != nil {
 				return err
 			}
-		 return nil}()
+			return nil
+		}()
 	}
 	return nil
 }

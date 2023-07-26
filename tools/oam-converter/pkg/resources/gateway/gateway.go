@@ -139,7 +139,7 @@ func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionC
 	var allHostsForTrait []string
 	var err error
 	for _, conversionComponent := range conversionComponents {
-		if (conversionComponent.IngressTrait != nil){
+		if conversionComponent.IngressTrait != nil {
 			allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 			if err != nil {
 				print(err)

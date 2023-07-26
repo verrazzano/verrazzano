@@ -14,12 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-const (
-	prometheusClusterNameLabel = "verrazzano_cluster"
-)
-
-func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*promoperapi.ServiceMonitor,error) {
+func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*promoperapi.ServiceMonitor, error) {
 	var ctx context.Context
 	var log vzlog.VerrazzanoLogger
 	var cli client.Client

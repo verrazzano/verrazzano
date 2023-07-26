@@ -8,7 +8,6 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-	corev1 "k8s.io/api/core/v1"
 	k8score "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -24,7 +23,7 @@ func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compNam
 	}
 	return strings.Replace(sname, "_", "-", -1), nil
 }
-func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait,appName string, compName string, portNum int) (string, error) {
+func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, portNum int) (string, error) {
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	portStr := ""
 	if portNum > 0 {
@@ -53,7 +52,7 @@ func UseHTTPSForScrapeTarget(trait *vzapi.MetricsTrait) (bool, error) {
 		return false, nil
 	}
 	// Get the namespace resource that the MetricsTrait is deployed to
-	namespace := &corev1.Namespace{}
+	namespace := &k8score.Namespace{}
 
 	value, ok := namespace.Labels["istio-injection"]
 	if ok && value == "enabled" {
@@ -94,6 +93,7 @@ func GetPortSpecs(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSp
 	}
 	return ports
 }
+
 // fetchSourceCredentialsSecretIfRequired fetches the metrics endpoint authentication credentials if a secret is provided.
 func FetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured, cli client.Client) (*k8score.Secret, error) {
 	secretName := trait.Spec.Secret
