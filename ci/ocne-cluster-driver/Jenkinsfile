@@ -551,7 +551,7 @@ def runGinkgo(testSuitePath) {
         sh """
             echo Starting the OCNE cluster driver tests
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -p -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -p -v --timeout 3h --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
