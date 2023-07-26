@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"go.uber.org/zap"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -169,18 +168,18 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 	// Cluster 2. Create with a node pool, then perform some updates.
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
 		var poolName string
+		var poolReplicas int
+		var expectedNodeCount int
 
 		// clusterConfig specifies the parameters passed into the cluster creation
 		// and is updated as update requests are made
 		var clusterConfig RancherOCNECluster
 
-		// expected number of nodes is number of worker nodes + control plane node
-		poolReplicas := 2
-		expectedNodeCount := poolReplicas + numControlPlaneNodes
-
 		// Create the cluster and verify it comes up
 		t.It("create OCNE cluster", func() {
 			poolName = fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
+			poolReplicas = 2
+			expectedNodeCount = poolReplicas + numControlPlaneNodes
 
 			Eventually(func() error {
 				volumeSize, ocpus, memory := 150, 2, 32
@@ -254,60 +253,3 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 	})
 })
-
-type mutateRancherOCNEClusterFunc func(config *RancherOCNECluster)
-
-// Creates an OCNE Cluster, and returns an error if not successful. Creates a single node cluster by default.
-// `config` is expected to point to an empty RancherOCNECluster struct, which is populated with values by this function.
-// `mutateFn`, if not nil, can be used to make additional changes to the cluster config before the cluster creation request is made.
-func createClusterAndFillConfig(clusterName string, config *RancherOCNECluster, log *zap.SugaredLogger, mutateFn mutateRancherOCNEClusterFunc) error {
-	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
-	if err != nil {
-		log.Errorf("error reading node public key file: %v", err)
-		return err
-	}
-
-	// Fill in the values for the create cluster API request body
-	config.fillCommonValues()
-	config.OciocneEngineConfig.CloudCredentialID = cloudCredentialID
-	config.OciocneEngineConfig.DisplayName = clusterName
-	config.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
-	config.OciocneEngineConfig.NodePools = []string{}
-	config.Name = clusterName
-	config.CloudCredentialID = cloudCredentialID
-
-	// Make additional changes to the cluster config
-	if mutateFn != nil {
-		mutateFn(config)
-	}
-
-	return createCluster(clusterName, *config, log)
-}
-
-// This function takes in the cluster config of an existing cluster, and changes the fields required to make the update.
-// Then, this triggers an update for the OCNE cluster.
-func updateConfigAndCluster(config *RancherOCNECluster, mutateFn mutateRancherOCNEClusterFunc, log *zap.SugaredLogger) error {
-	if mutateFn == nil {
-		err := fmt.Errorf("cannot provide a nil mutate function to update the cluster")
-		log.Error(err)
-		return err
-	}
-
-	clusterName := config.Name
-	mutateFn(config)
-	return updateCluster(clusterName, *config, log)
-}
-
-// This returns a mutateRancherOCNEClusterFunc, which edits a cluster config to have a node pool with the specified name and number of replicas.
-// Both the control plane and node pool nodes use the specified volume size, number of ocpus, and memory.
-func getMutateFnNodePoolsAndResourceUsage(nodePoolName string, poolReplicas, volumeSize, ocpus, memory int) mutateRancherOCNEClusterFunc {
-	return func(config *RancherOCNECluster) {
-		config.OciocneEngineConfig.ControlPlaneVolumeGbs = volumeSize
-		config.OciocneEngineConfig.ControlPlaneOcpus = ocpus
-		config.OciocneEngineConfig.ControlPlaneMemoryGbs = memory
-
-		config.OciocneEngineConfig.NodePools = []string{
-			getNodePoolSpec(nodePoolName, nodeShape, poolReplicas, memory, ocpus, volumeSize),
-		}
-	}
-}

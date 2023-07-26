@@ -115,6 +115,49 @@ func getCredential(credID string, log *zap.SugaredLogger) (*gabs.Container, erro
 	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
 }
 
+type mutateRancherOCNEClusterFunc func(config *RancherOCNECluster)
+
+// This returns a mutateRancherOCNEClusterFunc, which edits a cluster config to have a node pool with the specified name and number of replicas.
+// Both the control plane and node pool nodes use the specified volume size, number of ocpus, and memory.
+func getMutateFnNodePoolsAndResourceUsage(nodePoolName string, poolReplicas, volumeSize, ocpus, memory int) mutateRancherOCNEClusterFunc {
+	return func(config *RancherOCNECluster) {
+		config.OciocneEngineConfig.ControlPlaneVolumeGbs = volumeSize
+		config.OciocneEngineConfig.ControlPlaneOcpus = ocpus
+		config.OciocneEngineConfig.ControlPlaneMemoryGbs = memory
+
+		config.OciocneEngineConfig.NodePools = []string{
+			getNodePoolSpec(nodePoolName, nodeShape, poolReplicas, memory, ocpus, volumeSize),
+		}
+	}
+}
+
+// Creates an OCNE Cluster, and returns an error if not successful. Creates a single node cluster by default.
+// `config` is expected to point to an empty RancherOCNECluster struct, which is populated with values by this function.
+// `mutateFn`, if not nil, can be used to make additional changes to the cluster config before the cluster creation request is made.
+func createClusterAndFillConfig(clusterName string, config *RancherOCNECluster, log *zap.SugaredLogger, mutateFn mutateRancherOCNEClusterFunc) error {
+	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
+	if err != nil {
+		log.Errorf("error reading node public key file: %v", err)
+		return err
+	}
+
+	// Fill in the values for the create cluster API request body
+	config.fillCommonValues()
+	config.OciocneEngineConfig.CloudCredentialID = cloudCredentialID
+	config.OciocneEngineConfig.DisplayName = clusterName
+	config.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
+	config.OciocneEngineConfig.NodePools = []string{}
+	config.CloudCredentialID = cloudCredentialID
+	config.Name = clusterName
+
+	// Make additional changes to the cluster config
+	if mutateFn != nil {
+		mutateFn(config)
+	}
+
+	return createCluster(clusterName, *config, log)
+}
+
 // Creates an OCNE cluster through ClusterAPI by making a request to the Rancher API
 func createCluster(clusterName string, requestPayload RancherOCNECluster, log *zap.SugaredLogger) error {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster?_replace=true", log)
@@ -146,6 +189,20 @@ func deleteClusterFromID(clusterID string, log *zap.SugaredLogger) error {
 		return err
 	}
 	return nil
+}
+
+// This function takes in the cluster config of an existing cluster, and changes the fields required to make the update.
+// Then, this triggers an update for the OCNE cluster.
+func updateConfigAndCluster(config *RancherOCNECluster, mutateFn mutateRancherOCNEClusterFunc, log *zap.SugaredLogger) error {
+	if mutateFn == nil {
+		err := fmt.Errorf("cannot provide a nil mutate function to update the cluster")
+		log.Error(err)
+		return err
+	}
+
+	clusterName := config.Name
+	mutateFn(config)
+	return updateCluster(clusterName, *config, log)
 }
 
 // Requests an update to the node pool configuration of the OCNE cluster
