@@ -231,7 +231,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 	caBundle = secret.Data[mcconstants.CaCrtKey]
 
 	// Append CA from additional-ca secret if it exists
-	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.AdditionalTLS, false)
+	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.RancherTLSCA, false)
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		// Combine the two CA bundles
 		caBundle = make([]byte, len(secret.Data[mcconstants.CaCrtKey]))
 		copy(caBundle, secret.Data[mcconstants.CaCrtKey])
-		caBundle = append(caBundle, optSecret.Data[constants.AdditionalTLSCAKey]...)
+		caBundle = append(caBundle, optSecret.Data[constants.RancherTLSCAKey]...)
 	}
 
 	return caBundle, nil

@@ -82,13 +82,13 @@ func GetAdditionalCA(c client.Reader) []byte {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: CattleSystem,
-		Name:      constants.AdditionalTLS}
+		Name:      constants.RancherTLSCA}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
 		return []byte{}
 	}
 
-	return secret.Data[constants.AdditionalTLSCAKey]
+	return secret.Data[constants.RancherTLSCAKey]
 }
 
 func CertPool(certs ...[]byte) *x509.CertPool {

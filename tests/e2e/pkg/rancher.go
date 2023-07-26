@@ -277,7 +277,7 @@ func CreateNewRancherConfigForUser(log *zap.SugaredLogger, kubeconfigPath string
 	}
 
 	// the tls-ca-additional secret is optional
-	additionalCA, _ := GetCACertFromSecret(constants.AdditionalTLS, constants.RancherSystemNamespace, constants.AdditionalTLSCAKey, kubeconfigPath)
+	additionalCA, _ := GetCACertFromSecret(constants.RancherTLSCA, constants.RancherSystemNamespace, constants.RancherTLSCAKey, kubeconfigPath)
 
 	httpClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
