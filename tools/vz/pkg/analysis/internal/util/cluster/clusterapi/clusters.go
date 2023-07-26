@@ -68,7 +68,7 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("%s", capiClustersResource, subMessage)
+				message = fmt.Sprintf("%s", subMessage)
 			} else {
 				message = fmt.Sprintf("\t%s - reason is %s", subMessage, condition.Reason)
 			}
