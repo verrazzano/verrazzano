@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -30,9 +31,14 @@ type clusterRegistrationStatus struct {
 }
 
 // AnalyzeClusterRegistrations - analyze the status of ClusterRegistration objects
-func AnalyzeClusterRegistrations(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterRegistrations(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &clusterRegistrationList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", clusterRegistrationResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", clusterRegistrationResource), list)
 	if err != nil {
 		return err
 	}
