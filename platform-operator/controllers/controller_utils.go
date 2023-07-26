@@ -6,19 +6,17 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -106,6 +104,12 @@ func ProcDeletedOverride(statusUpdater vzstatus.Updater, c client.Client, vz *in
 // it will create one, otherwise it updates the configmap with the effective CR
 func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 
+	//In the case of verrazzano uninstall,the reconciler re-creates the config map
+	//when the vz status is either uninstalling or uninstall completely then do not create anything
+	currentCondition := vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
+	if currentCondition != installv1alpha1.CondUninstallComplete || currentCondition != installv1alpha1.CondUninstallStarted {
+		return nil
+	}
 	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
 	v1beta1ActualCR := &v1beta1.Verrazzano{}
 	err := vz.ConvertTo(v1beta1ActualCR)
