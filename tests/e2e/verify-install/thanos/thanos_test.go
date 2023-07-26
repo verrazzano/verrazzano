@@ -118,11 +118,10 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			if isCompactorEnabled {
 				pods = append(pods, "thanos-compactor")
 			}
-			t.Logs.Infof("Expected Thanos pods: %v", pods)
 			if isRulerEnabled {
 				pods = append(pods, "thanos-ruler")
 			}
-			t.Logs.Infof("The following pod prefixes should exist %v", pods)
+			t.Logs.Infof("Expected Thanos pods: %v", pods)
 
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, pods)
@@ -142,7 +141,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 				ingresses = append(ingresses, "thanos-ruler")
 			}
 
-			t.Logs.Infof("The following ingresses should exist %v", ingresses)
+			t.Logs.Infof("Expected Thanos ingresses %v", ingresses)
 			Eventually(func() (bool, error) {
 				return pkg.IngressesExist(inClusterVZ, constants.VerrazzanoSystemNamespace, ingresses)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Thanos Ingresses should exist")
