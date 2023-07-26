@@ -211,29 +211,31 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 		caKey string
 	}{
 		{
-			NamespacedName: types.NamespacedName{Name: globalconst.VerrazzanoSystemNamespace, Namespace: globalconst.PrivateCABundle},
+			NamespacedName: types.NamespacedName{Namespace: globalconst.VerrazzanoSystemNamespace, Name: globalconst.PrivateCABundle},
 			caKey:          globalconst.CABundleKey,
 		},
 		{
-			NamespacedName: types.NamespacedName{Name: globalconst.RancherSystemNamespace, Namespace: globalconst.AdditionalTLS},
+			NamespacedName: types.NamespacedName{Namespace: globalconst.RancherSystemNamespace, Name: globalconst.AdditionalTLS},
 			caKey:          globalconst.AdditionalTLSCAKey,
 		},
 		{
-			NamespacedName: types.NamespacedName{Name: constants.VerrazzanoSystemNamespace, Namespace: constants.VerrazzanoIngressTLSSecret},
+			NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret},
 			caKey:          mcconstants.CaCrtKey,
 		},
 	}
 	for _, sourceSecretInfo := range secretsList {
+		s.Log.Infof("checking secret %s", sourceSecretInfo.NamespacedName)
 		bundleData, found, err := s.getBundleDataFromSecret(sourceSecretInfo.NamespacedName, sourceSecretInfo.caKey)
 		if err != nil {
 			s.Log.Errorf("Error retrieving bundle data from secret %s", sourceSecretInfo.NamespacedName)
 			return nil, err
 		}
 		if found {
-			s.Log.Debugf("Using bundle data from secret %s", sourceSecretInfo.NamespacedName)
+			s.Log.Infof("Using bundle data from secret %s", sourceSecretInfo.NamespacedName)
 			return bundleData, nil
 		}
 	}
+	s.Log.Infof("No bundle data found")
 	return nil, nil
 }
 
