@@ -282,6 +282,11 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				}
 				return createSingleNodeCluster(clusterNameSingleNodeInvalid, &clusterConfig, t.Logs, mutateFn)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+			// Track this cluster's ID for deletion later
+			clusterID, err := getClusterIDFromName(clusterNameSingleNodeInvalid, t.Logs)
+			Expect(err).ShouldNot(HaveOccurred())
+			clusterIDsToDelete = append(clusterIDsToDelete, clusterID)
+			t.Logs.Infof("the cluster ID of %s is %s", clusterNameSingleNodeInvalid, clusterID)
 		})
 
 		t.It("check OCNE cluster is not active", func() {
