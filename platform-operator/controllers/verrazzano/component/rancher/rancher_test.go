@@ -256,18 +256,6 @@ func createLocalAuthConfig() unstructured.Unstructured {
 	return authConfig
 }
 
-func createKeycloakSecret() v1.Secret {
-	return v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "keycloak",
-			Name:      "keycloak-http",
-		},
-		Data: map[string][]byte{
-			"password": []byte("blahblah"),
-		},
-	}
-}
-
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
 // GIVEN a Verrazzano CR
 //
