@@ -283,7 +283,7 @@ func isManagedClusterActiveInRancher(rc *rancherutil.RancherConfig, clusterID st
 // the Rancher TLS secret and if that is not found it looks for the Verrazzano system TLS secret.
 func getCACertFromManagedCluster(rc *rancherutil.RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 	// first look for the Rancher TLS secret
-	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.AdditionalTLS, cons.AdditionalTLSCAKey, log)
+	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.RancherTLSCA, cons.RancherTLSCAKey, log)
 	if err != nil {
 		return "", err
 	}
