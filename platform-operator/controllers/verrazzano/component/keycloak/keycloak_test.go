@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	"net/url"
 	"strings"
 	"testing"
@@ -63,17 +64,6 @@ var crEnabled = vzapi.Verrazzano{
 func fakeRESTConfig() (*rest.Config, kubernetes.Interface, error) {
 	cfg, cli := k8sutilfake.NewClientsetConfig()
 	return cfg, cli, nil
-}
-
-func createTestLoginSecret() *v1.Secret {
-	return &v1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "keycloak-http",
-			Namespace: "keycloak",
-		},
-		Data: map[string][]byte{"password": []byte("password")},
-	}
 }
 
 func createTestNginxService() *v1.Service {
@@ -326,6 +316,7 @@ func fakeGetVerrazzanoUserFromKeycloakNoVerrazzanoUser(url *url.URL) (string, st
 func TestUpdateKeycloakURIs(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	loginSecret := keycloakutil.CreateTestKeycloakLoginSecret()
 	cfg, cli, _ := fakeRESTConfig()
 	clientID := "client"
 	uriTemplate := "\"redirectUris\": [\"https://client.{{.DNSSubDomain}}/verify-auth\"]"
@@ -338,21 +329,21 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 	}{
 		{
 			name:        "testUpdateKeycloakURIs",
-			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(), testVZ, nil, false),
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, createTestNginxService()).Build(), testVZ, nil, false),
 			clientID:    clientID,
 			uriTemplate: uriTemplate,
 			wantErr:     false,
 		},
 		{
 			name:        "testFailForInvalidUriTemplate",
-			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(), testVZ, nil, false),
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, createTestNginxService()).Build(), testVZ, nil, false),
 			clientID:    clientID,
 			uriTemplate: "test.{{{.DNSSubDomain}}",
 			wantErr:     true,
 		},
 		{
 			name:        "testFailForNoIngress",
-			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret()).Build(), testVZ, nil, false),
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret).Build(), testVZ, nil, false),
 			wantErr:     true,
 			clientID:    clientID,
 			uriTemplate: uriTemplate,
@@ -379,27 +370,13 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 // WHEN I call configureKeycloakRealms
 // THEN configure the Keycloak realms, otherwise returning an error if the environment is invalid
 func TestConfigureKeycloakRealms(t *testing.T) {
-	loginSecret := createTestLoginSecret()
+	loginSecret := keycloakutil.CreateTestKeycloakLoginSecret()
 	nginxService := createTestNginxService()
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	podExecFunc := k8sutilfake.PodExecResult
 	authConfig := createTestKeycloakAuthConfig()
-
-	keycloakPod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      keycloakPodName,
-			Namespace: ComponentNamespace,
-		},
-		Status: v1.PodStatus{
-			Conditions: []v1.PodCondition{
-				{
-					Type:   v1.PodReady,
-					Status: v1.ConditionTrue,
-				},
-			},
-		},
-	}
+	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 
 	var tests = []struct {
 		name        string
@@ -677,8 +654,8 @@ func TestGetEnvironmentName(t *testing.T) {
 // WHEN I call loginKeycloak
 // THEN throw an error if the k8s environment is invalid (bad secret)
 func TestLoginKeycloak(t *testing.T) {
-	httpSecret := createTestLoginSecret()
-	httpSecretEmptyPassword := createTestLoginSecret()
+	httpSecret := keycloakutil.CreateTestKeycloakLoginSecret()
+	httpSecretEmptyPassword := keycloakutil.CreateTestKeycloakLoginSecret()
 	httpSecretEmptyPassword.Data["password"] = []byte("")
 	cfg, restclient, _ := fakeRESTConfig()
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
@@ -700,7 +677,7 @@ func TestLoginKeycloak(t *testing.T) {
 		},
 		{
 			"should log into keycloak when the password is present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(httpSecret).Build(),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(httpSecret, keycloakutil.CreateTestKeycloakPod()).Build(),
 			false,
 		},
 	}
@@ -730,16 +707,18 @@ func TestCreateOrUpdateAuthSecret(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN true is returned
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -748,8 +727,9 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
@@ -758,8 +738,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
@@ -768,8 +749,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
@@ -778,8 +760,9 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and managed cluster profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and managed cluster profile
+//	THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -789,8 +772,9 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and prod profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and prod profile
+//	THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -800,8 +784,9 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and dev profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and dev profile
+//	THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1405,25 +1390,11 @@ func TestUpgradeStatefulSet(t *testing.T) {
 // WHEN I call GetRancherClientSecretFromKeycloak
 // THEN returns an rancher client secret, otherwise returning an error if the environment is invalid
 func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
-	loginSecret := createTestLoginSecret()
+	loginSecret := keycloakutil.CreateTestKeycloakLoginSecret()
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	podExecFunc := k8sutilfake.PodExecResult
-
-	keycloakPod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      keycloakPodName,
-			Namespace: ComponentNamespace,
-		},
-		Status: v1.PodStatus{
-			Conditions: []v1.PodCondition{
-				{
-					Type:   v1.PodReady,
-					Status: v1.ConditionTrue,
-				},
-			},
-		},
-	}
+	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 
 	var tests = []struct {
 		name        string
@@ -1504,25 +1475,12 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 // WHEN I call GetVerrazzanoUserFromKeycloak
 // THEN returns a verrazzano user struct, otherwise returning an error if the environment is invalid
 func TestGetVerrazzanoUserFromKeycloak(t *testing.T) {
-	loginSecret := createTestLoginSecret()
+	loginSecret := keycloakutil.CreateTestKeycloakLoginSecret()
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	podExecFunc := k8sutilfake.PodExecResult
 
-	keycloakPod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      keycloakPodName,
-			Namespace: ComponentNamespace,
-		},
-		Status: v1.PodStatus{
-			Conditions: []v1.PodCondition{
-				{
-					Type:   v1.PodReady,
-					Status: v1.ConditionTrue,
-				},
-			},
-		},
-	}
+	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 
 	var tests = []struct {
 		name        string
