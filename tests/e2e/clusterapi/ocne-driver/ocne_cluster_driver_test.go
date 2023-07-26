@@ -112,7 +112,8 @@ var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchroni
 
 // Part of SynchronizedAfterSuite, run by all processes
 func synchronizedAfterSuiteAllProcessesFunc() {
-	// Delete the clusters concurrently
+	// Delete the clusters tracked by this process concurrently.
+	// Each clusterID should only be present on one process's clusterIDsToDelete list.
 	var wg sync.WaitGroup
 	for _, clusterID := range clusterIDsToDelete {
 		wg.Add(1)
@@ -414,6 +415,7 @@ type mutateRancherOCNEClusterFunc func(config *RancherOCNECluster)
 
 // Creates a single node OCNE Cluster through CAPI, and returns an error if not successful.
 // `config` is expected to point to an empty RancherOCNECluster, which is populated with values by this function.
+// `mutateFn`, if not nil, can be used to make additional changes to the cluster config.
 func createSingleNodeCluster(clusterName string, config *RancherOCNECluster, log *zap.SugaredLogger, mutateFn mutateRancherOCNEClusterFunc) error {
 	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
 	if err != nil {
