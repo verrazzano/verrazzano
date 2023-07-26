@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
 )
 
-type ComponentHandler struct {}
+type ComponentHandler struct{}
 
 var (
 	_ handlerspi.StateMachineHandler = &ComponentHandler{}
@@ -128,7 +128,7 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := comp.PostInstall(compCtx); err != nil {
+	if err := comp.PostUpgrade(compCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()

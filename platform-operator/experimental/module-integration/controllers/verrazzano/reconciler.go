@@ -56,7 +56,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
 	res1 := r.createOrUpdateModules(log, effectiveCR)
-	res2 := r.deleteModules(log, effectiveCR, true)
+	res2 := r.deleteModules(log, effectiveCR)
 	res3 := r.updateStatusForAllComponents(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed
@@ -160,16 +160,19 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 }
 
 // deleteModules deletes all the modules, optionally only deleting ones that disabled
-func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, disabledOnly bool) result.Result {
+func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	var reterr error
+
+	// If deletion timestamp is non-zero then the VZ CR got deleted
+    fullUninstall := !effectiveCR.GetDeletionTimestamp().IsZero()
 
 	// Delete all modules.  Loop through all the components once even if error occurs.
 	for _, comp := range registry.GetComponents() {
 		if !comp.ShouldUseModule() {
 			continue
 		}
-		if disabledOnly && comp.IsEnabled(effectiveCR) {
-			// Ignore this since only disabled components should be uninstalled
+		// If not full uninstall then only disabled components should be uninstalled
+		if !fullUninstall && comp.IsEnabled(effectiveCR) {
 			continue
 		}
 		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{

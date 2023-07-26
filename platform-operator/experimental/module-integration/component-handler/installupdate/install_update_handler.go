@@ -151,11 +151,11 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 
 	if h.action == InstallAction {
 		reason = moduleapi.ReadyReasonInstallSucceeded
-		cond = vzapi.CondInstallStarted
+		cond = vzapi.CondInstallComplete
 	} else {
 		reason = moduleapi.ReadyReasonUpdateSucceeded
 		// Note, Verrazzano uses install condition for update
-		cond = vzapi.CondInstallStarted
+		cond = vzapi.CondInstallComplete
 	}
 
 	module := ctx.CR.(*moduleapi.Module)

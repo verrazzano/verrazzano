@@ -51,6 +51,10 @@ func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha
 	// It is normal for a component to return an error if it is waiting for some condition.
 	for _, comp := range registry.GetComponents() {
 		if comp.ShouldUseModule() {
+			// Requeue until the module is gone
+			if !IsModuleUninstallDone() {
+				requeue = true
+			}
 			// Ignore if this component is being handled by a Module
 			continue
 		}

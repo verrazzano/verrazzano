@@ -92,6 +92,9 @@ func (r Reconciler) updateStatusForAllComponents(log vzlog.VerrazzanoLogger, eff
 	var readyCount int
 	var moduleCount int
 
+	// If deletion timestamp is non-zero then the VZ CR got deleted
+	fullUninstall := !effectiveCR.GetDeletionTimestamp().IsZero()
+
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsEnabled(effectiveCR) {
 			continue
@@ -105,6 +108,10 @@ func (r Reconciler) updateStatusForAllComponents(log vzlog.VerrazzanoLogger, eff
 		module := &moduleapi.Module{}
 		if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
 			if errors.IsNotFound(err) {
+				// If this is a full uninstall then assume a missing module has been deleted already
+				if fullUninstall {
+					readyCount++
+				}
 				continue
 			}
 			log.ErrorfThrottled("Failed getting Module %s: %v", comp.Name(), err)

@@ -37,7 +37,26 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // PreWorkUpdateStatus does the lifecycle pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
-	return result.NewResult()
+	// Update the module status
+	module := ctx.CR.(*moduleapi.Module)
+	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUninstallStarted)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the Verrazzano component status
+	nsn, err := common.GetVerrazzanoNSN(ctx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	sd := common.StatusData{
+		Vznsn:    *nsn,
+		CondType: vzapi.CondUninstallStarted,
+		CompName: module.Spec.ModuleName,
+		Msg:      string(vzapi.CondUninstallStarted),
+		Ready:    true,
+	}
+	return common.UpdateComponentStatus(ctx, sd)
 }
 
 // PreWork does the pre-work
@@ -48,7 +67,7 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	}
 
 	// Do the pre-delete
-	if err := comp.PreInstall(compCtx); err != nil {
+	if err := comp.PreUninstall(compCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()

@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,13 +44,17 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 
 	// Delete modules that are enabled and update status
 	// Don't block status update of component if delete failed
-	res1 := r.deleteModules(log, effectiveCR, false)
+	res1 := r.deleteModules(log, effectiveCR)
 	res2 := r.updateStatusForAllComponents(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed
 	if res1.ShouldRequeue() || res2.ShouldRequeue() {
 		return result.NewResultShortRequeueDelay()
 	}
+
+	// Let legacy Verrazzano controller know that modules are uninstalled
+	// This is just temporary until the legacy controller is removed
+	reconcile.SetModuleUninstallDone()
 
 	// Always requeue, the legacy verrazzano controller will delete the finalizer and the VZ CR will go away.
 	return result.NewResultShortRequeueDelay()
