@@ -25,7 +25,7 @@ const (
 // Any other namespace not mentioned here is considered unnecessary
 var allowedNamespaces = []string{
 	"default", "kube-system", "kube-node-lease", "kube-public",
-	"monitoring", "local-path-storage", "metallb-system",
+	"cattle-system", "monitoring", "local-path-storage", "metallb-system",
 	"verrazzano-install", "verrazzano-system",
 }
 
