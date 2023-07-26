@@ -245,9 +245,13 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		return nil, err
 	}
 	tlsIngressCA, found := vzIngressSecret.Data[mcconstants.CaCrtKey]
-	if found && !strings.Contains(strings.TrimSpace(string(caBundle)), strings.TrimSpace(string(tlsIngressCA))) {
-		r.log.Infof("Adding ingress CA cert bundle to Admin CA bundle")
-		caBundle = append(caBundle, tlsIngressCA...)
+	if found {
+		if !strings.Contains(strings.TrimSpace(string(caBundle)), strings.TrimSpace(string(tlsIngressCA))) {
+			r.log.Infof("Adding ingress CA cert bundle to Admin CA bundle")
+			caBundle = append(caBundle, tlsIngressCA...)
+		} else {
+			r.log.Infof("ingress CA bundle already present in bundle data, skipping")
+		}
 	}
 
 	return caBundle, nil
