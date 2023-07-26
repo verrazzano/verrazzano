@@ -85,7 +85,7 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 	}
 
 	if len(messages) > 0 {
-		messages = append([]string{fmt.Sprintf("Rancher %s resource %q %s %s%s", clusterRepoResource, clusterRepo.Name)}, messages...)
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q", clusterRepoResource, clusterRepo.Name)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
