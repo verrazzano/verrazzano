@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	promoperapiv1beta1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1"
+	promoperapiv1alpha1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -794,7 +794,7 @@ func createOrUpdateAlertmanagerConfig(ctx spi.ComponentContext) error {
 	}
 
 	if alertmanagerEnabled {
-		alertmanagerConfig := &promoperapiv1beta1.AlertmanagerConfig{
+		alertmanagerConfig := &promoperapiv1alpha1.AlertmanagerConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      alertmanagerConfigName,
 				Namespace: ComponentNamespace,
@@ -805,7 +805,7 @@ func createOrUpdateAlertmanagerConfig(ctx spi.ComponentContext) error {
 		}
 		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), alertmanagerConfig, func() error {
 			if len(alertmanagerConfig.Spec.Receivers) == 0 {
-				alertmanagerConfig.Spec.Receivers = []promoperapiv1beta1.Receiver{
+				alertmanagerConfig.Spec.Receivers = []promoperapiv1alpha1.Receiver{
 					{
 						Name: nullAlertmanagerConfigReceiver,
 					},

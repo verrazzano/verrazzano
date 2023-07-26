@@ -6,7 +6,7 @@ package main
 import (
 	"flag"
 	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
-	promoperapiv1beta1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1"
+	promoperapiv1alpha1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"os"
 
@@ -62,7 +62,7 @@ func init() {
 
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)
-	_ = promoperapiv1beta1.AddToScheme(scheme)
+	_ = promoperapiv1alpha1.AddToScheme(scheme)
 
 	// Add K8S api-extensions so that we can list CustomResourceDefinitions during uninstall of VZ
 	_ = v1.AddToScheme(scheme)
