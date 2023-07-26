@@ -6,7 +6,6 @@ package cluster
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster/rancher"
@@ -26,18 +25,18 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 	var errors []string
 
 	// First, process the cluster scoped resources.
-	analyzers := []func(clusterRoot string, issueReporter *report.IssueReporter) error{
+	analyzers := []func(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error{
 		rancher.AnalyzeClusterRepos, rancher.AnalyzeCatalogs,
 		rancher.AnalyzeKontainerDrivers, rancher.AnalyzeManagementClusters,
 	}
 	for _, analyze := range analyzers {
-		if err = analyze(clusterRoot, &issueReporter); err != nil {
+		if err = analyze(clusterRoot, "", &issueReporter); err != nil {
 			errors = append(errors, err.Error())
 		}
 	}
 
 	// Second, process the namespaced resources.
-	namespaceAnalyzers := []func(clusterRoot string, issueReporter *report.IssueReporter) error{
+	namespaceAnalyzers := []func(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error{
 		rancher.AnalyzeProvisioningClusters, rancher.AnalyzeBundleDeployments,
 		rancher.AnalyzeBundles, rancher.AnalyzeClusterGroups, rancher.AnalyzeClusterRegistrations,
 		rancher.AnalyzeFleetClusters, rancher.AnalyzeCatalogApps, rancher.AnalyzeNodes,
@@ -50,7 +49,7 @@ func AnalyzeRancher(log *zap.SugaredLogger, clusterRoot string) error {
 	for _, f := range snapshotFiles {
 		if f.IsDir() {
 			for _, analyze := range namespaceAnalyzers {
-				if err = analyze(filepath.Join(clusterRoot, f.Name()), &issueReporter); err != nil {
+				if err = analyze(clusterRoot, f.Name(), &issueReporter); err != nil {
 					errors = append(errors, err.Error())
 				}
 			}
