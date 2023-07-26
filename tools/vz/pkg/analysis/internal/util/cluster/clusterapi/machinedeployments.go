@@ -5,11 +5,12 @@ package clusterapi
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"path/filepath"
 )
 
 const machineDeploymentsResource = "machinedeployments.cluster.x-k8s.io"
@@ -63,9 +64,9 @@ func analyzeMachineDeployment(clusterRoot string, machineDeployment machineDeplo
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s", machineDeploymentsResource, machineDeployment.Name, machineDeployment.Namespace, subMessage)
+				message = fmt.Sprintf("\t%s", subMessage)
 			} else {
-				message = fmt.Sprintf("%q resource %q in namespace %q, %s - reason is %s", machineDeploymentsResource, machineDeployment.Name, machineDeployment.Namespace, subMessage, condition.Reason)
+				message = fmt.Sprintf("\t%s - reason is %s", subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 
@@ -73,6 +74,7 @@ func analyzeMachineDeployment(clusterRoot string, machineDeployment machineDeplo
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", machineDeploymentsResource, machineDeployment.Name, machineDeployment.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
 	}
 }
