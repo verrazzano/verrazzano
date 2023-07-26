@@ -796,6 +796,12 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 		return result, nil
 	}
 
+	if vz.Status.State != installv1alpha1.VzStateReady {
+		vz.Status.State = installv1alpha1.VzStateReady
+		r.Status().Update(context.TODO(), vz)
+		return newRequeueWithDelay(), nil
+	}
+
 	if err := r.setUninstallCondition(log, vz, installv1alpha1.CondUninstallComplete, "Verrazzano uninstall completed"); err != nil {
 		return newRequeueWithDelay(), err
 	}

@@ -41,6 +41,11 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResult()
 	}
 
+	// Wait for legacy verrazzano controller to initialize status
+	if actualCR.Status.Components == nil {
+		return result.NewResultShortRequeueDelay()
+	}
+
 	// Get effective CR and set the effective CR status with the actual status
 	// Note that the reconciler code only udpdate the status, which is why the effective
 	// CR is passed.  If was ever to update the spec, then the actual CR would need to be used.

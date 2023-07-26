@@ -63,7 +63,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		CondType: vzapi.CondUpgradeStarted,
 		CompName: module.Spec.ModuleName,
 		Msg:      string(vzapi.CondUpgradeStarted),
-		Ready:    true,
+		Ready:    false,
 	}
 	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
 }

@@ -4,6 +4,7 @@
 package reconcile
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -308,11 +309,10 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 
 	statusUpdated := false
-	componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 	for _, comp := range registry.GetComponents() {
 		if status, ok := cr.Status.Components[comp.Name()]; ok {
 			if status.LastReconciledGeneration == 0 {
-				componentsToUpdate[comp.Name()] = status
+				cr.Status.Components[comp.Name()] = status
 				status.LastReconciledGeneration = cr.Generation
 			}
 			// Skip components that have already been processed
@@ -334,7 +334,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 					lastReconciled = compContext.ActualCR().Generation
 				}
 			}
-			componentsToUpdate[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
+			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,
@@ -344,10 +344,8 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 	// Update the status
 	if statusUpdated {
-		r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-			Verrazzano: cr,
-			Components: componentsToUpdate,
-		})
+		// Use Status update directly so any conflicting updates get rejected
+		r.Status().Update(context.TODO(), cr)
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil

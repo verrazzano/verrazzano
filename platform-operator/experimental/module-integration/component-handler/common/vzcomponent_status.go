@@ -51,6 +51,8 @@ func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusDat
 		compStatus.State = vzapi.CompStateReady
 		compStatus.LastReconciledGeneration = vzcr.Generation
 		compStatus.Version = sd.CompVersion
+	} else {
+		compStatus.State = vzapi.CompStateReconciling
 	}
 
 	// Append or replace the condition

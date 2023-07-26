@@ -73,7 +73,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		CondType: cond,
 		CompName: module.Spec.ModuleName,
 		Msg:      string(cond),
-		Ready:    true,
+		Ready:    false,
 	}
 	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
 }
