@@ -33,9 +33,6 @@ var argoCDUsernameForRancher = "vz-argoCD-reg"
 var ttl = os.Getenv(argocdClusterTokenTTLEnvVarName)
 var createdTimeStampForNewTokenCreated = ""
 
-// test that an update can be triggred
-//test that it leads to the right reulst
-
 var _ = t.Describe("ArgoCD Token Sync Testing", Label("f:platform-lcm.install"), func() {
 	t.It("has the expected secrets", func() {
 		secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
