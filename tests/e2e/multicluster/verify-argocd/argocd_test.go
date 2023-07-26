@@ -324,15 +324,10 @@ func retrieveArgoCDPassword(namespace, name string) (string, error) {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
 		return "", err
 	}
-	encodedArgoCDPasswordForSecret, ok := s.Data["password"]
+	argoCDPasswordForSecret, ok := s.Data["password"]
 	if !ok {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to find password value in ArgoCD secret %s in namespace %s", name, namespace))
 		return "", fmt.Errorf("Failed to find password value in ArgoCD secret %s in namespace %s", name, namespace)
 	}
-	decodedArgoCDPasswordForSecret, err := b64.StdEncoding.DecodeString(string(encodedArgoCDPasswordForSecret))
-	if err != nil {
-		pkg.Log(pkg.Error, "Error occurred decoding the password string")
-		return "", err
-	}
-	return string(decodedArgoCDPasswordForSecret), nil
+	return string(argoCDPasswordForSecret), nil
 }
