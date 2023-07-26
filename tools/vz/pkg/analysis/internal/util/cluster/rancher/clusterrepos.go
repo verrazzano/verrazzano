@@ -79,12 +79,13 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q %s %s%s", clusterRepoResource, clusterRepo.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q %s %s%s", clusterRepoResource, clusterRepo.Name)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

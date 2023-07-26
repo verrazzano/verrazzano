@@ -76,12 +76,13 @@ func analyzeManagedChart(clusterRoot string, managedChart managedChart, issueRep
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q in namespace %q %s %s%s", managedChartResource, managedChart.Name, managedChart.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %q", managedChartResource, managedChart.Name, managedChart.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
