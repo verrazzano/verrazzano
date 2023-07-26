@@ -183,7 +183,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// This update added 2 control plane node, 1 worker node
 			expectedNodeCount += 3
 		})
-		t.It("check the OCNE cluster updated successfully", func() {
+		t.It("check the OCNE cluster updated successfully 1", func() {
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNewName, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNewName))
 			Eventually(func() error {
@@ -200,7 +200,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// This update added 1 worker node
 			expectedNodeCount++
 		})
-		t.It("check the OCNE cluster updated successfully", func() {
+		t.It("check the OCNE cluster updated successfully 2", func() {
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNewName, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNewName))
 			Eventually(func() error {
@@ -244,7 +244,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// expect 3 control plane nodes, 1 worker nodes
 			expectedNodeCount = 4
 		})
-		t.It("check the OCNE cluster updated successfully", func() {
+		t.It("check the OCNE cluster updated successfully 3", func() {
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 			Eventually(func() error {
@@ -261,7 +261,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// expect only 1 control plane node
 			expectedNodeCount = 1
 		})
-		t.It("check the OCNE cluster updated successfully", func() {
+		t.It("check the OCNE cluster updated successfully 4", func() {
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 			Eventually(func() error {
