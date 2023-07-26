@@ -188,7 +188,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNewName, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNewName))
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, description, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameNewName, description, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNewName))
 		})
 
@@ -205,7 +205,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNewName, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNewName))
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, description, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameNewName, description, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNewName))
 		})
 	})

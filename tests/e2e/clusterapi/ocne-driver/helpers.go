@@ -275,6 +275,7 @@ func verifyCluster(clusterName, description string, expectedNodes int, expectedC
 	if expectedNodes > 0 {
 		// Check if the cluster has the expected nodes and pods running
 		if err = verifyClusterNodes(clusterName, workloadKubeconfigPath, expectedNodes, log); err != nil {
+			log.Errorf("error validating number of nodes in %s: %s", clusterName, err)
 			return err
 		}
 		return verifyClusterPods(clusterName, workloadKubeconfigPath, log)
