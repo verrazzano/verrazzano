@@ -80,9 +80,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
-	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
-	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.RancherSystemNamespace, err)
+	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.RancherSystemNamespace, err)
+		}
 	}
 
 	if isAnyMonitoringComponentEnabled(ctx) {
