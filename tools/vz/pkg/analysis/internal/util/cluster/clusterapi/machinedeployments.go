@@ -26,7 +26,7 @@ type machineDeployment struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeMachineDeployments handles the checking of the status of cluster-qpi machine deploymet resources.
+// AnalyzeMachineDeployments handles the checking of the status of cluster-api machine deploymet resources.
 func AnalyzeMachineDeployments(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {
