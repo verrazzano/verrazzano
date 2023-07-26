@@ -51,7 +51,6 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 
 	var messages []string
 	var subMessage string
-	baseMessageAdded := false
 	for _, condition := range cluster.Status.Conditions {
 		if condition.Status != corev1.ConditionTrue {
 			switch condition.Type {
@@ -66,16 +65,12 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 			default:
 				continue
 			}
-			if !baseMessageAdded {
-				messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", capiClustersResource, cluster.Name, cluster.Namespace)}, messages...)
-				baseMessageAdded = true
-			}
 			// Add a message for the issue
 			var message string
 			if len(condition.Reason) == 0 {
 				message = fmt.Sprintf("%s", capiClustersResource, subMessage)
 			} else {
-				message = fmt.Sprintf("%s - reason is %s", subMessage, condition.Reason)
+				message = fmt.Sprintf("\t%s - reason is %s", subMessage, condition.Reason)
 			}
 			messages = append([]string{message}, messages...)
 
@@ -83,6 +78,7 @@ func analyzeCluster(clusterRoot string, cluster cluster, issueReporter *report.I
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", capiClustersResource, cluster.Name, cluster.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
 	}
 }
