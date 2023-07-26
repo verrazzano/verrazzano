@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,9 +32,14 @@ type managementClusterSpec struct {
 }
 
 // AnalyzeManagementClusters - analyze the status of Rancher management clusters resources
-func AnalyzeManagementClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeManagementClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &managementClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", managementClusterResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", managementClusterResource), list)
 	if err != nil {
 		return err
 	}

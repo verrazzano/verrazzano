@@ -1,0 +1,30 @@
+{
+  "apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha1",
+  "items": [
+    {
+      "apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha1",
+      "kind": "OCNEConfig",
+      "metadata": {
+        "name": "c-pzd2r-control-plane-fxr2v",
+        "namespace": "c-pzd2r"
+      },
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "CertificatesAvailable"
+          },
+          {
+            "status": "True",
+            "type": "DataSecretAvailable"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "OCNEConfigList"
+}

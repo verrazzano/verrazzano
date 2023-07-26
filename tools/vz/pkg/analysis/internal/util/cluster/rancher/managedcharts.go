@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -27,9 +28,14 @@ type managedChart struct {
 }
 
 // AnalyzeManagedCharts - analyze the status of ManagedCharts objects
-func AnalyzeManagedCharts(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeManagedCharts(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &managedChartsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", managedChartResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", managedChartResource), list)
 	if err != nil {
 		return err
 	}

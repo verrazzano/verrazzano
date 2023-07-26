@@ -29,6 +29,7 @@ var (
 	isThanosSupported     bool
 	isThanosInstalled     bool
 	isStoreGatewayEnabled bool
+	isCompactorEnabled    bool
 	inClusterVZ           *v1alpha1.Verrazzano
 )
 
@@ -55,22 +56,28 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	isThanosInstalled = vzcr.IsThanosEnabled(inClusterVZ)
 
 	if isThanosInstalled {
-		isStoreGatewayEnabled, err = isStoreGatewayEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides)
+		// check if storegateway component is enabled
+		isStoreGatewayEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "storegateway")
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides: %v", err))
+		}
+		// check if compactor component is enabled
+		isCompactorEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "compactor")
 		if err != nil {
 			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides: %v", err))
 		}
 	}
 })
 
-// isStoreGatewayEnabledInOverrides returns true if the Thanos Store Gateway is enabled in the VZ CR overrides
-func isStoreGatewayEnabledInOverrides(overrides []v1alpha1.Overrides) (bool, error) {
+// isThanosComponentEnabledInOverrides returns true if the specified Thanos component is enabled in the VZ CR overrides
+func isThanosComponentEnabledInOverrides(overrides []v1alpha1.Overrides, thanosCompName string) (bool, error) {
 	for _, override := range inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
 		if override.Values != nil {
 			jsonString, err := gabs.ParseJSON(override.Values.Raw)
 			if err != nil {
 				return false, err
 			}
-			if container := jsonString.Path("storegateway.enabled"); container != nil {
+			if container := jsonString.Path(fmt.Sprintf("%s.enabled", thanosCompName)); container != nil {
 				if enabled, ok := container.Data().(bool); ok {
 					return enabled, nil
 				}
@@ -103,7 +110,10 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			if isStoreGatewayEnabled {
 				pods = append(pods, "thanos-storegateway")
 			}
-
+			if isCompactorEnabled {
+				pods = append(pods, "thanos-compactor")
+			}
+			t.Logs.Infof("Expected Thanos pods: %v", pods)
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, pods)
 				if err != nil {

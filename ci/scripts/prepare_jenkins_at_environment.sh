@@ -28,6 +28,7 @@ TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/pre-install-overrides/t
 TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
 INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT:-30m}
 ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
+ENABLE_THANOS_COMPACTOR=${ENABLE_THANOS_COMPACTOR:-false}
 INSTALL_EXTERNAL_CERT_MANAGER=${INSTALL_EXTERNAL_CERT_MANAGER:-false}
 
 clusterNames=$(kind get clusters)

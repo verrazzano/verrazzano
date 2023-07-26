@@ -26,6 +26,13 @@ echo "Editing install config file for Thanos Store Gateway ${INSTALL_CONFIG_TO_E
 yq -i eval ".spec.components.thanos.overrides.[0].values.existingObjstoreSecret = \"objstore-config\"" ${INSTALL_CONFIG_TO_EDIT}
 yq -i eval ".spec.components.thanos.overrides.[0].values.storegateway.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 
+# If specified, also enable the Thanos Compactor - storage provider is shared by storegateway
+# and compactor, so doesn't need extra configuration
+if [ "${ENABLE_THANOS_COMPACTOR}" == "true" ]; then
+  echo "Editing install config file for Thanos Compactor ${INSTALL_CONFIG_TO_EDIT}"
+  yq -i eval ".spec.components.thanos.overrides.[0].values.compactor.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
 # Modify the VZ CR to enable storage on the Prometheus Thanos Sidecar
 # This yq magic adds the Sidecar object storage config overrides to the correct override array element, but only if there is an existing prometheus override
 echo "Editing install config file to enable long-term storage on the Prometheus Thanos Sidecar ${INSTALL_CONFIG_TO_EDIT}"

@@ -1,0 +1,63 @@
+{
+  "apiVersion": "controlplane.cluster.x-k8s.io/v1alpha1",
+  "items": [
+    {
+      "apiVersion": "controlplane.cluster.x-k8s.io/v1alpha1",
+      "kind": "OCNEControlPlane",
+      "metadata": {
+        "name": "c-h78bf-control-plane",
+        "namespace": "c-h78bf"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-07-24T16:17:54Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:54Z",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:10:23Z",
+            "status": "True",
+            "type": "CertificatesAvailable"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "ControlPlaneComponentsHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:57Z",
+            "status": "True",
+            "type": "EtcdClusterHealthy"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:10:43Z",
+            "status": "True",
+            "type": "MachinesCreated"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:12:19Z",
+            "status": "True",
+            "type": "MachinesReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:17:56Z",
+            "status": "True",
+            "type": "ModuleOperatorDeployed"
+          },
+          {
+            "lastTransitionTime": "2023-07-24T16:12:19Z",
+            "status": "True",
+            "type": "Resized"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "OCNEControlPlaneList"
+}
