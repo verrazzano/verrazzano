@@ -123,7 +123,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 	})
 	t.Context("Token Update Tests", func() {
 		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
+			os.Setenv(k8sutil.EnvVarTestKubeConfig, adminKubeconfig)
 		})
 		t.It("The expected secret currently contains both the createdAt and ExpiredAt annotations", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
