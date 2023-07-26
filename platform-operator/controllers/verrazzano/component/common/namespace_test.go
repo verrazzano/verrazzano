@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -81,4 +81,69 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 		return true
 	}
 	return false
+}
+
+// TestIsAnyMonitoringComponentEnabled tests the isAnyMonitoringComponentEnabled function
+// GIVEN a list of component context with effective CR and expected flag
+// WHEN the isAnyMonitoringComponentEnabled function is called
+// THEN the function call succeeds and the expected flag is returned
+func TestIsAnyMonitoringComponentEnabled(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	var tests = []struct {
+		name     string
+		vz       vzapi.Verrazzano
+		expected bool
+	}{
+		{"When PrometheusOperator is enabled",
+			vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+							Enabled: &trueValue,
+						},
+					},
+				},
+			},
+			true,
+		},
+		{"When everything is disabled",
+			vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						KubeStateMetrics:       &vzapi.KubeStateMetricsComponent{Enabled: &falseValue},
+						Prometheus:             &vzapi.PrometheusComponent{Enabled: &falseValue},
+						PrometheusAdapter:      &vzapi.PrometheusAdapterComponent{Enabled: &falseValue},
+						PrometheusPushgateway:  &vzapi.PrometheusPushgatewayComponent{Enabled: &falseValue},
+						PrometheusOperator:     &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			false,
+		},
+		{"When PrometheusNodeExporter is enabled",
+			vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
+							Enabled: &trueValue,
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
+			isEnabled := isAnyMonitoringComponentEnabled(ctx)
+			assert.Equal(t, isEnabled, test.expected)
+		})
+	}
 }
