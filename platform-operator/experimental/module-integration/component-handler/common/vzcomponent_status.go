@@ -25,8 +25,8 @@ type StatusData struct {
 	Ready       bool
 }
 
-// UpdateComponentStatus updates the component status
-func UpdateComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.Result {
+// UpdateVerrazzanoComponentStatus updates the component status
+func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.Result {
 	// Always get the latest module from the controller-runtime cache to try and avoid conflict error
 	vzcr := &vzapi.Verrazzano{}
 	if err := ctx.Client.Get(context.TODO(), sd.Vznsn, vzcr); err != nil {

@@ -75,7 +75,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		Msg:      string(cond),
 		Ready:    true,
 	}
-	return common.UpdateComponentStatus(ctx, sd)
+	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
 }
 
 // PreWork does the pre-work
@@ -177,5 +177,5 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		Msg:         string(cond),
 		Ready:       true,
 	}
-	return common.UpdateComponentStatus(ctx, sd)
+	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
 }

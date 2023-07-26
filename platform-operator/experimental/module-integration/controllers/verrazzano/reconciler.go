@@ -57,10 +57,9 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// (like uninstall) are not blocked by a different component's failure
 	res1 := r.createOrUpdateModules(log, effectiveCR)
 	res2 := r.deleteModules(log, effectiveCR)
-	res3 := r.updateStatusForAllComponents(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed
-	if res1.ShouldRequeue() || res2.ShouldRequeue() || res3.ShouldRequeue() {
+	if res1.ShouldRequeue() || res2.ShouldRequeue() {
 		return result.NewResultShortRequeueDelay()
 	}
 
@@ -79,10 +78,6 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
-		if !comp.ShouldUseModule() {
-			continue
-		}
-
 		createOrUpdate, err := r.shouldCreateOrUpdateModule(effectiveCR, comp)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
@@ -162,15 +157,19 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 // deleteModules deletes all the modules, optionally only deleting ones that disabled
 func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	var reterr error
+	var deletedCount int
+	var moduleCount int
 
 	// If deletion timestamp is non-zero then the VZ CR got deleted
-    fullUninstall := !effectiveCR.GetDeletionTimestamp().IsZero()
+	fullUninstall := !effectiveCR.GetDeletionTimestamp().IsZero()
 
 	// Delete all modules.  Loop through all the components once even if error occurs.
 	for _, comp := range registry.GetComponents() {
 		if !comp.ShouldUseModule() {
 			continue
 		}
+		moduleCount++
+
 		// If not full uninstall then only disabled components should be uninstalled
 		if !fullUninstall && comp.IsEnabled(effectiveCR) {
 			continue
@@ -182,6 +181,7 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 		err := r.Client.Delete(context.TODO(), &module, &client.DeleteOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
+				deletedCount++
 				continue
 			}
 			if !errors.IsConflict(err) {
@@ -191,9 +191,14 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 			continue
 		}
 	}
+	if deletedCount != moduleCount {
+		return result.NewResultShortRequeueDelay()
+	}
+
 	// return last error found so that we retry
 	if reterr != nil {
 		return result.NewResultShortRequeueDelayWithError(reterr)
 	}
+	// All modules have been deleted and the Module CRs are gone
 	return result.NewResult()
 }

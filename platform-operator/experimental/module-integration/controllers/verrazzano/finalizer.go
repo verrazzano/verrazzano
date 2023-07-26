@@ -44,11 +44,8 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 
 	// Delete modules that are enabled and update status
 	// Don't block status update of component if delete failed
-	res1 := r.deleteModules(log, effectiveCR)
-	res2 := r.updateStatusForAllComponents(log, effectiveCR)
-
-	// Requeue if any of the previous operations indicate a requeue is needed
-	if res1.ShouldRequeue() || res2.ShouldRequeue() {
+	res := r.deleteModules(log, effectiveCR)
+	if res.ShouldRequeue()  {
 		return result.NewResultShortRequeueDelay()
 	}
 
