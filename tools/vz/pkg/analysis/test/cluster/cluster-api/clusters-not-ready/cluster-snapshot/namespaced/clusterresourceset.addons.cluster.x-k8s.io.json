@@ -1,0 +1,23 @@
+{
+  "apiVersion": "addons.cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "addons.cluster.x-k8s.io/v1beta1",
+      "kind": "ClusterResourceSet",
+      "metadata": {
+        "name": "c-r877x-ccm-resource-set",
+        "namespace": "c-r877x"
+      },
+      "status": {
+        "conditions": [
+          {
+            "reason": "RemoteClusterClientFailed",
+            "status": "False",
+            "type": "ResourcesApplied"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "ClusterResourceSetList"
+}
