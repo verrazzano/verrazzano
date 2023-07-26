@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapiv1beta1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -48,13 +49,18 @@ const (
 	networkPolicyName        = "vmi-system-prometheus"
 	istioCertMountPath       = "/etc/istio-certs"
 
-	prometheusName     = "prometheus"
-	alertmanagerName   = "alertmanager"
-	thanosName         = "thanos"
-	configReloaderName = "prometheus-config-reloader"
+	prometheusName         = "prometheus"
+	alertmanagerName       = "alertmanager"
+	alertmanagerConfigName = "alertmanager-config"
+	thanosName             = "thanos"
+	configReloaderName     = "prometheus-config-reloader"
 
 	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
 	defaultPrometheusStorage = "50Gi"
+
+	alertmanagerConfigLabelName    = "verrazzano.io/alerts"
+	alertmanagerConfigLabelValue   = "system"
+	nullAlertmanagerConfigReceiver = "null-receiver"
 )
 
 func prometheusOperatorListOptions() (*client.ListOptions, error) {
@@ -138,6 +144,9 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := common.UpdatePrometheusAnnotations(ctx, ComponentNamespace, ComponentName); err != nil {
+		return err
+	}
+	if err := createOrUpdateAlertmanagerConfig(ctx); err != nil {
 		return err
 	}
 	// if there is a persistent volume that was migrated from the VMO-managed Prometheus, make sure the reclaim policy is set
@@ -775,5 +784,42 @@ func reconcileAlertmanagerIngress(ctx spi.ComponentContext) error {
 		return deleteIngress(constants.AlertmanagerIngress, ctx)
 	}
 
+	return nil
+}
+
+func createOrUpdateAlertmanagerConfig(ctx spi.ComponentContext) error {
+	alertmanagerEnabled, err := vzcr.IsAlertmanagerEnabled(ctx.EffectiveCR(), ctx)
+	if err != nil {
+		return err
+	}
+
+	if alertmanagerEnabled {
+		alertmanagerConfig := &promoperapiv1beta1.AlertmanagerConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      alertmanagerConfigName,
+				Namespace: ComponentNamespace,
+				Labels: map[string]string{
+					alertmanagerConfigLabelName: alertmanagerConfigLabelValue,
+				},
+			},
+		}
+		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), alertmanagerConfig, func() error {
+			if len(alertmanagerConfig.Spec.Receivers) == 0 {
+				alertmanagerConfig.Spec.Receivers = []promoperapiv1beta1.Receiver{
+					{
+						Name: nullAlertmanagerConfigReceiver,
+					},
+				}
+			}
+			if alertmanagerConfig.Spec.Route == nil {
+				alertmanagerConfig.Spec.Route.Receiver = nullAlertmanagerConfigReceiver
+				alertmanagerConfig.Spec.Route.GroupInterval = "5m"
+				alertmanagerConfig.Spec.Route.GroupWait = "30s"
+				alertmanagerConfig.Spec.Route.RepeatInterval = "4h"
+			}
+			return nil
+		})
+		return err
+	}
 	return nil
 }
