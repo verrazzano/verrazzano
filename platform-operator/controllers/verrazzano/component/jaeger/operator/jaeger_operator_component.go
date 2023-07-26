@@ -88,6 +88,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0]",
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
 			Dependencies:              []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
@@ -230,7 +231,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	createInstance, _, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}

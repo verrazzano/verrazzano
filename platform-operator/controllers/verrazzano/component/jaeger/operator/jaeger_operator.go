@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -99,9 +99,6 @@ const jaegerAllInOneTemplate = `jaeger:
   create: true
   spec:
     strategy: allInOne
-    collector: {}
-    query: {}
-    storage: {}
 `
 
 // A template to define Jaeger override for creating default Jaeger instance
@@ -260,49 +257,41 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	}
 	// Check to create a default Jaeger instance if the Verrazzano is a local cluster
 	if registrationSecret == nil {
-		createInstance, err := isCreateDefaultJaegerInstance(compContext)
+		isDefaultInstance, jaegerTemplate, err := isCreateDefaultJaegerInstance(compContext)
 		if err != nil {
 			return nil, err
 		}
-		if createInstance {
-			jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml")
-			// Append defaultJaegerImage values file
-			kvs = append(kvs, bom.KeyValue{Value: jaegerValuesFile, IsFile: true})
-
-			// use jaegerCRTemplate to populate Jaeger spec data
-			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
-			if err != nil {
-				return nil, err
-			}
-			var osReplicaCount int32 = 1
-			if opensearch.IsSingleDataNodeCluster(compContext) {
-				osReplicaCount = 0
-			}
-			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-			err = jaegerCRTemplate.Execute(&b, data)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			createInstance, err = isCreateAllInOneJaegerInstance(compContext)
+		if isDefaultInstance {
+			createInstance, err := createJaegerInstance(compContext)
 			if err != nil {
 				return nil, err
 			}
 			if createInstance {
-				jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-all-in-one-operator-values.yaml")
-				// Append defaultJaegerImage values file
+				jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-default-values.yaml")
+				// Append jaeger-default-values values file
 				kvs = append(kvs, bom.KeyValue{Value: jaegerValuesFile, IsFile: true})
 
-				jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
-				if err != nil {
-					return nil, err
+				var osReplicaCount int32 = 1
+				if opensearch.IsSingleDataNodeCluster(compContext) {
+					osReplicaCount = 0
 				}
-				err = jaegerCRTemplate.Execute(&b, data)
+				data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
+				err = jaegerTemplate.Execute(&b, data)
 				if err != nil {
 					return nil, err
 				}
 			}
-
+		} else {
+			createInstance, err := createJaegerInstance(compContext)
+			if err != nil {
+				return nil, err
+			}
+			if createInstance {
+				err = jaegerTemplate.Execute(&b, data)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -474,6 +463,7 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	return secret, nil
 }
 
+/*
 // isCreateDefaultJaegerInstance determines if the default Jaeger instance has to be created or not.
 func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
 	// Default Jaeger instance will be created if Verrazzano's OpenSearch can be used as storage
@@ -491,9 +481,27 @@ func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
 	return false, nil
 }
 
-// isCreateAllInOneJaegerInstance determines if the All-In-One Jaeger instance has to be created or not.
-func isCreateAllInOneJaegerInstance(ctx spi.ComponentContext) (bool, error) {
-	// All-In-One Jaeger instance will be created
+*/
+
+// isCreateDefaultJaegerInstance determines if the default Jaeger instance has to be created or not. But it will always return the jaeger template
+func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, *template.Template, error) {
+	// Default Jaeger jaegerTemplate will be applied if Verrazzano's OpenSearch can be used as storage
+	if canUseVZOpenSearchStorage(ctx) {
+		jaegerTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+		if err != nil {
+			return false, nil, err
+		}
+		return true, jaegerTemplate, nil
+	}
+	jaegerTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
+	if err != nil {
+		return false, nil, err
+	}
+	return false, jaegerTemplate, nil
+}
+
+func createJaegerInstance(ctx spi.ComponentContext) (bool, error) {
+	// Checking if a jaeger instance should be started
 	jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
 	if err != nil {
 		return false, err
@@ -839,7 +847,7 @@ func createJaegerSecrets(ctx spi.ComponentContext) error {
 	if registrationSecret != nil {
 		return nil
 	}
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	createInstance, _, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}
