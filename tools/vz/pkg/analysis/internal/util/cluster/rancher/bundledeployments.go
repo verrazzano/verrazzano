@@ -80,17 +80,17 @@ func analyzeBundleDeployment(clusterRoot string, bundleDeployment bundleDeployme
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher BundledDeployment resource %q %s %s%s", bundleDeployment.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if !bundleDeployment.Status.Ready {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s is not ready", bundleDeploymentResource, bundleDeployment.Name, bundleDeployment.Namespace)
-		messages = append([]string{message}, messages...)
+		messages = append([]string{"\tis not ready"}, messages...)
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher BundledDeployment resource %q", bundleDeployment.Name)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
