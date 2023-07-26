@@ -115,48 +115,6 @@ func getCredential(credID string, log *zap.SugaredLogger) (*gabs.Container, erro
 	return helpers.HTTPHelper(httpClient, "GET", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
 }
 
-type mutateRancherOCNEClusterFunc func(config *RancherOCNECluster)
-
-// Creates a single node OCNE Cluster through CAPI
-func createSingleNodeCluster(clusterName string, log *zap.SugaredLogger, mutateFn mutateRancherOCNEClusterFunc) error {
-	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
-	if err != nil {
-		log.Errorf("error reading node public key file: %v", err)
-		return err
-	}
-
-	// Fill in the values for the create cluster API request body
-	var rancherOCNEClusterConfig RancherOCNECluster
-	nodePools := []string{}
-	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
-
-	if mutateFn != nil {
-		mutateFn(&rancherOCNEClusterConfig)
-	}
-
-	return createCluster(clusterName, rancherOCNEClusterConfig, log)
-}
-
-// Creates a OCNE Cluster with node pools through CAPI
-func createNodePoolCluster(clusterName, nodePoolName string, log *zap.SugaredLogger) error {
-	nodePublicKeyContents, err := getFileContents(nodePublicKeyPath, log)
-	if err != nil {
-		log.Errorf("error reading node public key file: %v", err)
-		return err
-	}
-
-	// Fill in the values for the create cluster API request body
-	var rancherOCNEClusterConfig RancherOCNECluster
-	nodePools := []string{
-		fmt.Sprintf(
-			"{\"name\":\"%s\",\"replicas\":1,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"%s\"}",
-			nodePoolName, nodeShape),
-	}
-	rancherOCNEClusterConfig.fillValues(clusterName, nodePublicKeyContents, cloudCredentialID, nodePools)
-
-	return createCluster(clusterName, rancherOCNEClusterConfig, log)
-}
-
 // Creates an OCNE cluster through ClusterAPI by making a request to the Rancher API
 func createCluster(clusterName string, requestPayload RancherOCNECluster, log *zap.SugaredLogger) error {
 	requestURL, adminToken := setupRequest(rancherURL, "v3/cluster?_replace=true", log)
@@ -178,19 +136,34 @@ func createCluster(clusterName string, requestPayload RancherOCNECluster, log *z
 }
 
 // Deletes the OCNE cluster by sending a DELETE request to the Rancher API
-func deleteCluster(clusterName string, log *zap.SugaredLogger) error {
-	clusterID, err := getClusterIDFromName(clusterName, log)
-	if err != nil {
-		log.Errorf("could not fetch cluster ID from cluster name %s: %s", clusterName, err)
-		return err
-	}
-	log.Infof("clusterID for deletion: %s", clusterID)
-
+func deleteClusterFromID(clusterID string, log *zap.SugaredLogger) error {
+	log.Infof("Deleting cluster %s", clusterID)
 	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s/%s", "v1/provisioning.cattle.io.clusters/fleet-default", clusterID), log)
 
-	_, err = helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	_, err := helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
 	if err != nil {
 		log.Errorf("error while deleting cluster: %v", err)
+		return err
+	}
+	return nil
+}
+
+// Requests an update to the node pool configuration of the OCNE cluster
+// via a PUT request to the Rancher API
+func updateCluster(clusterName string, requestPayload RancherOCNECluster, log *zap.SugaredLogger) error {
+	clusterID, err := getClusterIDFromName(clusterName, log)
+	if err != nil {
+		log.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	}
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?_replace=true", clusterID), log)
+	clusterBData, err := json.Marshal(requestPayload)
+	if err != nil {
+		log.Errorf("json marshalling error: %v", zap.Error(err))
+		return err
+	}
+	_, err = helpers.HTTPHelper(httpClient, "PUT", requestURL, adminToken, "Bearer", http.StatusOK, clusterBData, log)
+	if err != nil {
+		log.Errorf("error while retrieving http data: %v", zap.Error(err))
 		return err
 	}
 	return nil
@@ -203,60 +176,13 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 		log.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
 	}
 
-	// Debug logging
-	var cmd helpers.BashCommand
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
-	cmd.CommandArgs = cmdArgs
-	response := helpers.Runner(&cmd, log)
-	log.Infof("All CAPI clusters =  %s", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, log)
-	log.Infof("All management clusters =  %s", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, log)
-	log.Infof("All provisioning clusters =  %s", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, log)
-	log.Infof("All CAPI machines =  %s", (&response.StandardOut).String())
-
-	kubeconfigPath, err := getWorkloadKubeconfig(clusterID, log)
-	if err != nil {
-		log.Error("could not download kubeconfig from rancher")
-	}
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, log)
-	log.Infof("All nodes in workload cluster =  %s", (&response.StandardOut).String())
-
-	cmdArgs = []string{}
-	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
-	cmd.CommandArgs = cmdArgs
-	response = helpers.Runner(&cmd, log)
-	log.Infof("All pods in workload cluster =  %s", (&response.StandardOut).String())
-
 	// Check if the cluster is active
 	return checkProvisioningClusterReady("fleet-default", clusterID, log)
 }
 
 // Returns true if the OCNE cluster is deleted/does not exist
-func isClusterDeleted(clusterName string, log *zap.SugaredLogger) (bool, error) {
+func isClusterDeletedFromID(clusterID string, log *zap.SugaredLogger) (bool, error) {
 	// Check that the CAPI cluster object was deleted
-	clusterID, err := getClusterIDFromName(clusterName, log)
-	if err != nil {
-		return false, err
-	}
 	clusterObjectFound, err := checkClusterExistsFromK8s(clusterID, clusterID, log)
 	return !clusterObjectFound, err
 }
@@ -286,6 +212,9 @@ func checkProvisioningClusterReady(namespace, clusterID string, log *zap.Sugared
 		return false, err
 	}
 
+	if provCluster.Status.Ready {
+		log.Infof("provisioning cluster %s is ready", clusterID)
+	}
 	return provCluster.Status.Ready, err
 }
 
@@ -323,10 +252,11 @@ func fetchClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (*
 }
 
 // Checks whether the cluster was created as expected. Returns nil if all is good.
-func verifyCluster(clusterName string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
+func verifyCluster(clusterName, description string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
 	// Check if the cluster looks good from the Rancher API
 	var err error
-	if err = verifyGetRequest(clusterName, expectedNodes, expectedClusterState, expectedTransitioning, log); err != nil {
+	if err = verifyGetRequest(clusterName, description, expectedNodes, expectedClusterState, expectedTransitioning, log); err != nil {
+		log.Errorf("error validating GET request for cluster %s: %s", clusterName, err)
 		return err
 	}
 
@@ -354,7 +284,7 @@ func verifyCluster(clusterName string, expectedNodes int, expectedClusterState c
 
 // Verifies that a GET request to the Rancher API for this cluster returns expected values.
 // Intended to be called on clusters with expected number of nodes and cluster state.
-func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
+func verifyGetRequest(clusterName, clusterDescription string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
 	jsonBody, err := getCluster(clusterName, log)
 	if err != nil {
 		return err
@@ -364,6 +294,7 @@ func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterStat
 	// Assert that these attributes are as expected
 	resourceType := jsonBody.Path("resourceType").Data()
 	name := jsonData.Path("name").Data()
+	description := jsonData.Path("description").Data()
 	nodeCount := jsonData.Path("nodeCount").Data()
 	state := jsonData.Path("state").Data()
 	transitioning := jsonData.Path("transitioning").Data()
@@ -377,6 +308,7 @@ func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterStat
 	}{
 		{resourceType, "cluster", "resource type"},
 		{name, clusterName, "cluster name"},
+		{description, clusterDescription, "description"},
 		{nodeCount, float64(expectedNodes), "node count"},
 		{state, string(expectedClusterState), "state"},
 		{transitioning, string(expectedTransitioning), "transitioning flag"},
@@ -408,6 +340,7 @@ func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterStat
 		}
 	}
 
+	log.Infof("cluster %s looks active and normal from a GET call to the Rancher API", clusterName)
 	return nil
 }
 
@@ -423,6 +356,7 @@ func verifyClusterNodes(clusterName, kubeconfigPath string, expectedNumberNodes 
 		log.Error(err)
 		return err
 	}
+	log.Infof("cluster %s had the expected number of nodes", clusterName)
 	return nil
 }
 
@@ -483,6 +417,13 @@ func getClusterIDFromName(clusterName string, log *zap.SugaredLogger) (string, e
 	// Cache this value and return
 	clusterIDMapping[clusterName] = id
 	return id, nil
+}
+
+// Returns a string representing a node pool
+// FIXME: "{\"name\":\"%s\",\"replicas\":%d,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"%s\"}"
+func getNodePoolSpec(name, shape string, replicas, memory, ocpus, volumeSize int) string {
+	return fmt.Sprintf("{\"name\":\"%s\",\"replicas\":%d,\"memory\":%d,\"ocpus\":%d,\"volumeSize\":%d,\"shape\":\"%s\"}",
+		name, replicas, memory, ocpus, volumeSize, shape)
 }
 
 // Generates the kubeconfig of the workload cluster with an ID of `clusterID`
