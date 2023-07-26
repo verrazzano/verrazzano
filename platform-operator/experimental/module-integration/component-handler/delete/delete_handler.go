@@ -37,12 +37,7 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // PreWorkUpdateStatus does the lifecycle pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
-	// Update the module status
 	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUninstallStarted)
-	if res.ShouldRequeue() {
-		return res
-	}
 
 	// Update the Verrazzano component status
 	nsn, err := common.GetVerrazzanoNSN(ctx)
@@ -56,7 +51,13 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		Msg:      string(vzapi.CondUninstallStarted),
 		Ready:    false,
 	}
-	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the module status
+	return modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUninstallStarted)
 }
 
 // PreWork does the pre-work
@@ -126,10 +127,6 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 // WorkCompletedUpdateStatus does the lifecycle completed Work status update
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
-	if res.ShouldRequeue() {
-		return res
-	}
 
 	// Update the Verrazzano component status
 	nsn, err := common.GetVerrazzanoNSN(ctx)
@@ -144,5 +141,12 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		Msg:         string(vzapi.CondUninstallComplete),
 		Ready:       true,
 	}
-	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the module status
+	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
 }
+

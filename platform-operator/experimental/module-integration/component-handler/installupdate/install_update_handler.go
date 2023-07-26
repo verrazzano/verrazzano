@@ -35,7 +35,7 @@ func NewHandler(action ActionType) handlerspi.StateMachineHandler {
 
 // GetWorkName returns the work name
 func (h ComponentHandler) GetWorkName() string {
-	return "install"
+	return string(h.action)
 }
 
 // IsWorkNeeded returns true if install/update is needed
@@ -45,6 +45,7 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // PreWorkUpdateStatus does the pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
 	var reason moduleapi.ModuleConditionReason
 	var cond vzapi.ConditionType
 
@@ -54,13 +55,6 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	} else {
 		reason = moduleapi.ReadyReasonUpdateStarted
 		cond = vzapi.CondInstallStarted
-	}
-
-	// Update the module status
-	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
-	if res.ShouldRequeue() {
-		return res
 	}
 
 	// Update the Verrazzano component status
@@ -75,7 +69,12 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		Msg:      string(cond),
 		Ready:    false,
 	}
-	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	if res.ShouldRequeue() {
+		return res
+	}
+	// Update the module status
+	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
 
 // PreWork does the pre-work
@@ -146,6 +145,7 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 
 // WorkCompletedUpdateStatus updates the status to completed
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
 	var reason moduleapi.ModuleConditionReason
 	var cond vzapi.ConditionType
 
@@ -156,12 +156,6 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		reason = moduleapi.ReadyReasonUpdateSucceeded
 		// Note, Verrazzano uses install condition for update
 		cond = vzapi.CondInstallComplete
-	}
-
-	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
-	if res.ShouldRequeue() {
-		return res
 	}
 
 	// Update the Verrazzano component status
@@ -177,5 +171,11 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		Msg:         string(cond),
 		Ready:       true,
 	}
-	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the module status
+	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
 }

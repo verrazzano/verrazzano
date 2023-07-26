@@ -46,12 +46,7 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // PreWorkUpdateStatus updates the status for the pre-work state
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
-	// Update the module status
 	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUpgradeStarted)
-	if res.ShouldRequeue() {
-		return res
-	}
 
 	// Update the Verrazzano component status
 	nsn, err := common.GetVerrazzanoNSN(ctx)
@@ -65,7 +60,13 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 		Msg:      string(vzapi.CondUpgradeStarted),
 		Ready:    false,
 	}
-	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the module status
+	return modulestatus.UpdateReadyConditionReconciling(ctx, module, moduleapi.ReadyReasonUpgradeStarted)
 }
 
 // PreWork does the pre-work
@@ -137,10 +138,6 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 // WorkCompletedUpdateStatus updates the status to completed
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
-	res := modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUpgradeSucceeded)
-	if res.ShouldRequeue() {
-		return res
-	}
 
 	// Update the Verrazzano component status
 	nsn, err := common.GetVerrazzanoNSN(ctx)
@@ -155,5 +152,11 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		Msg:         string(vzapi.CondUpgradeComplete),
 		Ready:       true,
 	}
-	return common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Update the module status
+	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUpgradeSucceeded)
 }
