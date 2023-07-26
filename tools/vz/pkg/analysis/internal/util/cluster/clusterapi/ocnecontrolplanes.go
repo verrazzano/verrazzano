@@ -26,7 +26,7 @@ type ocneControlPlane struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeOCNEControlPlanes handles the checking of the status of cluster-qpi ocneControlPlane resources.
+// AnalyzeOCNEControlPlanes handles the checking of the status of cluster-api ocneControlPlane resources.
 func AnalyzeOCNEControlPlanes(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {

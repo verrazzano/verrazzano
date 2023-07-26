@@ -26,7 +26,7 @@ type machineSet struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeMachineSetss handles the checking of the status of cluster-qpi machineSet resources.
+// AnalyzeMachineSetss handles the checking of the status of cluster-api machineSet resources.
 func AnalyzeMachineSets(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {

@@ -26,7 +26,7 @@ type clusterResourceSet struct {
 	Status            capiStatus `json:"status,omitempty"`
 }
 
-// AnalyzeClusterResourceSets handles the checking of the status of cluster-qpi clusterResoureSet resources.
+// AnalyzeClusterResourceSets handles the checking of the status of cluster-api clusterResoureSet resources.
 func AnalyzeClusterResourceSets(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
 	resourceRoot := clusterRoot
 	if len(namespace) != 0 {
