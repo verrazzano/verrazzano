@@ -12,7 +12,7 @@ if [[ $THANOS_ENABLED != "true" ]]; then
 fi
 
 if [ "${ENABLE_THANOS_STORE_GATEWAY}" != "true" ] && [ "${ENABLE_THANOS_COMPACTOR}" != "true" ] && [ "${ENABLE_THANOS_RULER}" != "true" ]; then
-  echo "None of the Thanos Object storage components are enabled, skipping edit of ${INSTALL_CONFIG_TO_EDIT}"
+  echo "None of the Thanos Object Storage components are enabled, skipping edit of ${INSTALL_CONFIG_TO_EDIT}"
   exit
 fi
 
@@ -35,19 +35,20 @@ if [ "${ENABLE_THANOS_STORE_GATEWAY}" == "true" ]; then
   yq -i eval ".spec.components.thanos.overrides.[0].values.storegateway.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
-# If specified, also enable the Thanos Compactor - storage provider is shared by storegateway
-# and compactor, so doesn't need extra configuration
+# If specified, also enable the Thanos Compactor - storage provider is shared so doesn't need extra configuration
 if [ "${ENABLE_THANOS_COMPACTOR}" == "true" ]; then
   echo "Editing install config file for Thanos Compactor ${INSTALL_CONFIG_TO_EDIT}"
   yq -i eval ".spec.components.thanos.overrides.[0].values.compactor.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
+# If specified, also enable the Thanos Ruler - storage provider is shared so doesn't need extra configuration
 if [ "${ENABLE_THANOS_RULER}" == "true" ]; then
   echo "Editing install config file for Thanos Ruler ${INSTALL_CONFIG_TO_EDIT}"
-  # enable alertmanager
+  # ensure alertmanager is enabled and running outside of Istio
   yq -i eval ".spec.components.prometheusOperator.overrides[2].values.alertmanager.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval '.spec.components.prometheusOperator.overrides[2].values.alertmanager.alertmanagerSpec.podMetadata.annotations."sidecar.istio.io/inject" = "false"' ${INSTALL_CONFIG_TO_EDIT}
 
+  # Add the Thanos Ruler overrides
   yq -i eval ".spec.components.thanos.overrides.[0].values.ruler.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval '.spec.components.thanos.overrides.[0].values.ruler.alertmanagers[0] = "https://prometheus-operator-kube-p-alertmanager:9093"' ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval '.spec.components.thanos.overrides.[0].values.ruler.config.groups[0].name = "test_group"' ${INSTALL_CONFIG_TO_EDIT}
