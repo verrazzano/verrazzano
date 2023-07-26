@@ -421,7 +421,6 @@ func getClusterIDFromName(clusterName string, log *zap.SugaredLogger) (string, e
 }
 
 // Returns a string representing a node pool
-// FIXME: "{\"name\":\"%s\",\"replicas\":%d,\"memory\":32,\"ocpus\":2,\"volumeSize\":100,\"shape\":\"%s\"}"
 func getNodePoolSpec(name, shape string, replicas, memory, ocpus, volumeSize int) string {
 	return fmt.Sprintf("{\"name\":\"%s\",\"replicas\":%d,\"memory\":%d,\"ocpus\":%d,\"volumeSize\":%d,\"shape\":\"%s\"}",
 		name, replicas, memory, ocpus, volumeSize, shape)
