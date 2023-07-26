@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,9 +32,14 @@ type bundleDeploymentStatus struct {
 }
 
 // AnalyzeBundleDeployments - analyze the status of BundleDeployment objects
-func AnalyzeBundleDeployments(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeBundleDeployments(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &bundleDeploymentsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", bundleDeploymentResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", bundleDeploymentResource), list)
 	if err != nil {
 		return err
 	}
