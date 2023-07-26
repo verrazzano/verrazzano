@@ -175,6 +175,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 // checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Ignore if this component is being handled by a Module
+			continue
+		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) {
 			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 			if !ok {
@@ -196,6 +200,11 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Ignore if this component is being handled by a Module
+			continue
+		}
+
 		spiCtx.Log().Debugf("Reconciling watched component %s", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {
@@ -212,10 +221,10 @@ func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
 }
 func (r *Reconciler) waitForModulesReady(compContext spi.ComponentContext) (ctrl.Result, error) {
-	// Loop through all the Verrazzano components and install each one
+	// Loop through all the Verrazzano components being handled by Modules and check if ready
 	for _, comp := range registry.GetComponents() {
 		if !comp.ShouldUseModule() {
-			// Ignore if this component is not being handled by a Module
+			// Ignore if this component is NOT being handled by a Module
 			continue
 		}
 		if !comp.IsEnabled(compContext.EffectiveCR()) {
