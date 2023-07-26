@@ -58,6 +58,6 @@ var _ = t.Describe("Verify Namespaces", func() {
 				failures = append(failures, item.Name)
 			}
 		}
-		Expect(failures).To(BeEmpty(), "Namespaces not allowed: %v, Allowed namespaces are %v", failures, allowedNamespaces)
+		Expect(failures).To(BeEmpty(), "Namespaces not allowed: %v, Allowed namespaces are only %v", failures, allowedNamespaces)
 	})
 })
