@@ -4,7 +4,9 @@
 package thanos
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -169,5 +171,50 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 				return true
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
+
+		// GIVEN the Thanos is installed
+		// WHEN the ruler is enabled
+		// THEN the rule data from Prometheus should be synced
+		WhenThanosInstalledIt("Thanos ruler should contain rules populated from Prometheus", func() {
+			if !isRulerEnabled {
+				Skip("Skipping Rule verification because Ruler is not enabled")
+			}
+
+			var host string
+			var err error
+			Eventually(func() (string, error) {
+				host, err = k8sutil.GetHostnameFromGateway(constants.VerrazzanoSystemNamespace, "")
+				return host, err
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeEmpty())
+
+			url := fmt.Sprintf("https://%s/api/v1/rules", host)
+			Eventually(func() (bool, error) {
+				return doRulesExistInThanosRuler(url, host)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
 	})
 })
+
+// doRulesExistOnThanosRuler returns true if the rule data from the Thanos Ruler API is not empty given a URL and Host
+func doRulesExistInThanosRuler(url, host string) (bool, error) {
+	resp, err := pkg.GetWebPage(url, host)
+	if err != nil {
+		return false, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Logs.Errorf("Failed to get an OK response from %s, response: %d", url, resp.StatusCode)
+		return false, err
+	}
+
+	type ruleData struct {
+		Data interface{} `json:"data"`
+	}
+	var data ruleData
+	err = json.Unmarshal(resp.Body, &data)
+	if err != nil {
+		t.Logs.Errorf("Failed to unmarshal the response data from %s: %v", url, err)
+		return false, err
+	}
+
+	return resp.StatusCode == http.StatusOK && data.Data != nil, err
+}
