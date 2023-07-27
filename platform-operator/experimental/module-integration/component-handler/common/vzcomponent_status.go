@@ -36,7 +36,7 @@ func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusDat
 	if vzcr.Status.Components == nil {
 		vzcr.Status.Components = vzapi.ComponentStatusMap{}
 	}
-	compStatus, _ := vzcr.Status.Components[sd.CompName]
+	compStatus := vzcr.Status.Components[sd.CompName]
 	if compStatus == nil {
 		compStatus = &vzapi.ComponentStatusDetails{
 			Available:                getAvailPtr(vzapi.ComponentUnavailable),

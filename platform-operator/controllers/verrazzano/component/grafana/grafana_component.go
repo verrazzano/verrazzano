@@ -63,7 +63,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 }
 
 // ShouldUseModule returns true if component is implemented using a Module
-func (g grafanaComponent)  ShouldUseModule() bool {
+func (g grafanaComponent) ShouldUseModule() bool {
 	return false
 }
 

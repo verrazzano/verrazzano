@@ -24,9 +24,9 @@ import (
 func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
 	// Get component override list (either v1alpha1 or v1beta1)
 	compOverrideList := comp.GetOverrides(effectiveCR)
-	switch compOverrideList.(type) {
+	switch castType := compOverrideList.(type) {
 	case []vzapi.Overrides:
-		overrideList := compOverrideList.([]vzapi.Overrides)
+		overrideList := castType
 		for _, o := range overrideList {
 			var b vzapibeta1.Overrides
 			b.Values = o.Values
@@ -38,7 +38,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 		}
 
 	case []vzapibeta1.Overrides:
-		overrideList := compOverrideList.([]vzapibeta1.Overrides)
+		overrideList := castType
 		for _, o := range overrideList {
 			if err := r.setModuleValuesForOneOverride(log, o, effectiveCR, module); err != nil {
 				return err

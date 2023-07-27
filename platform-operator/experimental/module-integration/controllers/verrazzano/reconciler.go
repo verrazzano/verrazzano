@@ -26,12 +26,6 @@ import (
 	"strconv"
 )
 
-// initializedSet is needed to keep track of which Verrazzano CRs have been initialized
-var initializedSet = make(map[string]bool)
-
-// Set to true during unit testing
-var unitTesting bool
-
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	actualCR := &vzapi.Verrazzano{}

@@ -52,7 +52,7 @@ func (d opensearchDashboardsComponent) ShouldInstallBeforeUpgrade() bool {
 }
 
 // ShouldUseModule returns true if component is implemented using a Module
-func (d opensearchDashboardsComponent)  ShouldUseModule() bool {
+func (d opensearchDashboardsComponent) ShouldUseModule() bool {
 	return false
 }
 
