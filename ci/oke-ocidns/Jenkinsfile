@@ -230,6 +230,9 @@ pipeline {
                 println("agentlabel: ${agentLabel}")
                 sh """
                     echo "${NODE_LABELS}"
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
 
                 script {
@@ -570,7 +573,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
                     }
                     steps {
-                        runGinkgo('examples/todo')
+                        runGinkgoEx('examples/todo')
                     }
                 }
                 stage('examples socks') {
@@ -588,7 +591,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
                     }
                     steps {
-                        runGinkgo('examples/springboot')
+                        runGinkgoEx('examples/springboot')
                     }
                 }
                 stage('examples helidon 1') {
@@ -596,7 +599,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-1"
                     }
                     steps {
-                        runGinkgo('examples/helidon')
+                        runGinkgoEx('examples/helidon')
                     }
                 }
                 stage('examples helidon 2') {
@@ -604,7 +607,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-2"
                     }
                     steps {
-                        runGinkgo('examples/helidon')
+                        runGinkgoEx('examples/helidon')
                     }
                 }
                 stage('examples helidon-config') {
@@ -612,7 +615,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
                     }
                     steps {
-                        runGinkgo('examples/helidonconfig')
+                        runGinkgoEx('examples/helidonconfig')
                     }
                 }
                 stage('examples bobs books') {
@@ -620,7 +623,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
                     }
                     steps {
-                        runGinkgo('examples/bobsbooks')
+                        runGinkgoEx('examples/bobsbooks')
                     }
                 }
                 stage('examples weblogic cluster') {
@@ -628,7 +631,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-cluster"
                     }
                     steps {
-                        runGinkgo('workloads/weblogic-cluster')
+                        runGinkgoEx('workloads/weblogic-cluster')
                     }
                 }
             }
@@ -689,7 +692,7 @@ pipeline {
 def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-          cd ${WORKSPACE}/tests/e2e
+          cd ${GO_REPO_PATH}/verrazzano/tests/e2e
           SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
         """
     }
@@ -708,6 +711,15 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${WORKSPACE}/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoEx(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
