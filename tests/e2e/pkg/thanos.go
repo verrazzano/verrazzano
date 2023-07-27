@@ -11,17 +11,24 @@ import (
 	"net/http"
 )
 
-// GetRulesFromThanosRuler returns the rule data from the Thanos Ruler API is not empty given basic auth
-func GetRulesFromThanosRuler(username string, password string, kubeconfigPath string) (interface{}, error) {
+// GetRulesFromThanosRuler returns the rule data from the Thanos Ruler API given a kubeconfig
+func GetRulesFromThanosRuler(kubeconfigPath string) (interface{}, error) {
 	retryableClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed get an HTTP client: %v", err))
 		return nil, err
 	}
 
-	url := GetThanosQueryIngressHost(kubeconfigPath)
-	resp, err := doReq(url, "GET", "", "", username, password, nil, retryableClient)
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get the Verrazzano password from the cluster %v", err))
+		return nil, err
+	}
+
+	url := GetSystemThanosRulerURL(kubeconfigPath)
+	resp, err := doReq(url, "GET", "", "", "verrazzanno", password, nil, retryableClient)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to make a request to the Thanos Ruler ingress %v", err))
 		return nil, err
 	}
 

@@ -179,16 +179,8 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 				Skip("Skipping Rule verification because Ruler is not enabled")
 			}
 
-			var host string
-			var err error
-			Eventually(func() (string, error) {
-				host, err = k8sutil.GetHostnameFromGateway(constants.VerrazzanoSystemNamespace, "")
-				return host, err
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeEmpty())
-
-			url := fmt.Sprintf("https://%s/api/v1/rules", host)
 			Eventually(func() (interface{}, error) {
-				return pkg.GetRulesFromThanosRuler(url, host, kubeconfigPath)
+				return pkg.GetRulesFromThanosRuler(kubeconfigPath)
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
 		})
 	})
