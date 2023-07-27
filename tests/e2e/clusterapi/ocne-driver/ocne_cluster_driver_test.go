@@ -21,7 +21,6 @@ const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 45 * time.Minute
-	longWaitTimeout      = 60 * time.Minute
 	pollingInterval      = 30 * time.Second
 )
 
@@ -205,7 +204,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 			Eventually(func() error {
 				return verifyCluster(clusterNameNodePool, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
-			}, longWaitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
+			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
 
