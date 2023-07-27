@@ -280,6 +280,8 @@ pipeline {
                         sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     make -B coverage
+                    echo "Checking versions..."
+                    release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
                 """
                     }
                     post {
