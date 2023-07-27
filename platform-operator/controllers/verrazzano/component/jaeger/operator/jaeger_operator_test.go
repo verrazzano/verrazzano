@@ -195,9 +195,9 @@ func TestAppendOverrides(t *testing.T) {
 		{
 			name:         "OpenSearchDisabled",
 			description:  "Test OpenSearch disabled",
-			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
+			expectedYAML: "testdata/jaegerOperatorDisableOpenSearchValues.yaml",
 			actualCR:     "testdata/jaegerOperatorDisableOpenSearchVz.yaml",
-			numKeyValues: 2,
+			numKeyValues: 1,
 			expectedErr:  nil,
 		},
 		{
@@ -245,11 +245,8 @@ func TestAppendOverrides(t *testing.T) {
 				expectedJSON, err := yaml.YAMLToJSON(expectedData)
 				asserts.NoError(err)
 
-				if test.name != "OpenSearchDisabled" {
-					// Compare the actual and expected values objects
-					asserts.Equal(string(expectedJSON), string(actualJSON))
-					return nil
-				}
+				// Compare the actual and expected values objects
+				asserts.Equal(string(expectedJSON), string(actualJSON))
 				return nil
 			}
 
@@ -274,7 +271,7 @@ func TestAppendOverrides(t *testing.T) {
 				asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
 			} else {
 				// Check Temp file
-				asserts.True(kvs[0].IsFile, "Expected generated Jaeger Operator overrides first in list of helm args")
+				asserts.True(kvs[1].IsFile, "Expected generated Jaeger production strategy overrides in list of helm args")
 				tempFilePath := kvs[1].Value
 				files = append(files, tempFilePath)
 				_, err = os.Stat(tempFilePath)
@@ -295,47 +292,6 @@ func TestAppendOverrides(t *testing.T) {
 			"Found unexpected temp file remaining: %s", file)
 	}
 
-}
-
-func TestInstallAllInOneImageOverridesFile(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	tests := []struct {
-		name              string
-		description       string
-		expectedSubString string
-	}{
-		{
-			name:              "All-In-One",
-			description:       "This test should have the All-IN-ONE-IMAGE spec in the overrides file.",
-			expectedSubString: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
-		},
-		{
-			name:              "Default",
-			description:       "This test should have the default Jaeger spec in the overrides file.",
-			expectedSubString: "testdata/jaegerOperatorProdOverrideValues.yaml",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Read the Verrazzano CR into a struct
-			testCR := vzapi.Verrazzano{}
-
-			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
-			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
-			var kvs []bom.KeyValue
-			kvs, err := AppendOverrides(fakeContext, "", "", "", kvs)
-			assert.NoError(t, err)
-			if len(kvs) != 2 {
-				t.Errorf("The length of %v is too short", kvs)
-			}
-			if !kvs[0].IsFile {
-				t.Errorf("The value of overrides at 0 is not a file")
-			}
-		})
-	}
 }
 
 // cleanFile - Clean up the specified file path

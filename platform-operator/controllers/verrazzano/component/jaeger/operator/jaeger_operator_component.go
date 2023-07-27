@@ -231,11 +231,11 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 
-	createInstance, _, err := isCreateDefaultJaegerInstance(ctx)
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}
-	if createInstance {
+	if createInstance && canUseVZOpenSearchStorage(ctx) {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
