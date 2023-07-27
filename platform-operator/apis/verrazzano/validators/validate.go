@@ -9,6 +9,7 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io/fs"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 
@@ -427,4 +428,20 @@ func getSupportedKubernetesVersions() ([]string, error) {
 	}
 
 	return bom.GetSupportedKubernetesVersion(), nil
+}
+
+// ValidatePlatformOperatorSingleton iterates over the list of pods and verifies that there is only a single VPO instance running
+func ValidatePlatformOperatorSingleton(podList v1.PodList) error {
+	if len(podList.Items) > 1 {
+		healthyPod := 0
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != "Failed" {
+				healthyPod++
+			}
+		}
+		if healthyPod > 1 {
+			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		}
+	}
+	return nil
 }

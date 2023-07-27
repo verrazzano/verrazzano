@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
@@ -194,7 +193,7 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 	if err != nil {
 		return err
 	}
-	err = webhooks.ValidatePlatformOperatorSingleton(podList)
+	err = validators.ValidatePlatformOperatorSingleton(podList)
 	if err != nil {
 		return err
 	}

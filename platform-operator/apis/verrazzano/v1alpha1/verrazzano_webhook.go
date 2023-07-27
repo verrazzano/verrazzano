@@ -6,20 +6,17 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	v1 "k8s.io/api/core/v1"
-
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"strings"
 )
 
 var getControllerRuntimeClient = validators.GetClient
@@ -196,7 +193,7 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 	if err != nil {
 		return err
 	}
-	err = webhooks.ValidatePlatformOperatorSingleton(podList)
+	err = validators.ValidatePlatformOperatorSingleton(podList)
 	if err != nil {
 		return err
 	}
