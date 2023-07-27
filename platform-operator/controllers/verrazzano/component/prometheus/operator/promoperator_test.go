@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	promoperapiv1alpha1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	"strings"
 	"testing"
 
@@ -63,6 +64,8 @@ func init() {
 	_ = certapiv1.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
 	_ = promoperapi.AddToScheme(testScheme)
+	_ = promoperapi.AddToScheme(testScheme)
+	_ = promoperapiv1alpha1.AddToScheme(testScheme)
 }
 
 // TestIsPrometheusOperatorReady tests the isPrometheusOperatorReady function for the Prometheus Operator
@@ -305,10 +308,12 @@ func TestPostInstallUpgrade(t *testing.T) {
 	time := metav1.Now()
 
 	var tests = []struct {
-		name      string
-		vz        vzapi.Verrazzano
-		ingresses netv1.IngressList
-		cert      certapiv1.Certificate
+		name                   string
+		vz                     vzapi.Verrazzano
+		ingresses              netv1.IngressList
+		cert                   certapiv1.Certificate
+		alertmanagerConfigPre  *promoperapiv1alpha1.AlertmanagerConfig
+		alertmanagerConfigPost *promoperapiv1alpha1.AlertmanagerConfig
 	}{
 		{
 			name: "TestPostInstallUpgrade When everything is disabled",
@@ -440,15 +445,141 @@ func TestPostInstallUpgrade(t *testing.T) {
 					},
 				},
 			},
+			alertmanagerConfigPost: &promoperapiv1alpha1.AlertmanagerConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      alertmanagerConfigName,
+					Namespace: ComponentNamespace,
+					Labels: map[string]string{
+						alertmanagerConfigLabelName: alertmanagerConfigLabelValue,
+					},
+				},
+				Spec: promoperapiv1alpha1.AlertmanagerConfigSpec{
+					Receivers: []promoperapiv1alpha1.Receiver{
+						{
+							Name: nullAlertmanagerConfigReceiver,
+						},
+					},
+					Route: &promoperapiv1alpha1.Route{
+						Receiver:       nullAlertmanagerConfigReceiver,
+						GroupWait:      "30s",
+						GroupInterval:  "5m",
+						RepeatInterval: "4h",
+					},
+				},
+			},
+		},
+		{
+			name: "TestPostInstallUpgrade When authproxy, nginx, prometheus, prometheus operator and alertmanager are enabled and AlertmanagerConfig exists",
+			vz: vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{
+				AuthProxy:  &vzapi.AuthProxyComponent{Enabled: &enabled},
+				Ingress:    &vzapi.IngressNginxComponent{Enabled: &enabled},
+				Prometheus: &vzapi.PrometheusComponent{Enabled: &enabled},
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &enabled, InstallOverrides: vzapi.InstallOverrides{
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &v1.JSON{Raw: []byte("{\"alertmanager\":{\"enabled\":true}}")},
+						},
+					},
+				}},
+				DNS: &vzapi.DNSComponent{
+					OCI: &vzapi.OCI{
+						DNSZoneName: "mydomain.com",
+					},
+				},
+			}}},
+			ingresses: netv1.IngressList{Items: []netv1.Ingress{{
+				ObjectMeta: metav1.ObjectMeta{Name: constants.PrometheusIngress, Namespace: authproxy.ComponentNamespace},
+			},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: constants.AlertmanagerIngress, Namespace: authproxy.ComponentNamespace},
+				}}},
+			cert: certapiv1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{Name: prometheusCertificateName, Namespace: authproxy.ComponentNamespace},
+				Status: certapiv1.CertificateStatus{
+					Conditions: []certapiv1.CertificateCondition{
+						{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+					},
+				},
+			},
+			alertmanagerConfigPre: &promoperapiv1alpha1.AlertmanagerConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      alertmanagerConfigName,
+					Namespace: ComponentNamespace,
+					Labels: map[string]string{
+						alertmanagerConfigLabelName: alertmanagerConfigLabelValue,
+					},
+				},
+				Spec: promoperapiv1alpha1.AlertmanagerConfigSpec{
+					Receivers: []promoperapiv1alpha1.Receiver{
+						{
+							Name: nullAlertmanagerConfigReceiver,
+						},
+						{
+							Name: "email-receiver",
+							EmailConfigs: []promoperapiv1alpha1.EmailConfig{{
+								To: "test@test.com",
+							}},
+						},
+					},
+					Route: &promoperapiv1alpha1.Route{
+						Receiver:       "email-receiver",
+						GroupWait:      "1s",
+						GroupInterval:  "1m",
+						RepeatInterval: "1h",
+					},
+				},
+			},
+			alertmanagerConfigPost: &promoperapiv1alpha1.AlertmanagerConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      alertmanagerConfigName,
+					Namespace: ComponentNamespace,
+					Labels: map[string]string{
+						alertmanagerConfigLabelName: alertmanagerConfigLabelValue,
+					},
+				},
+				Spec: promoperapiv1alpha1.AlertmanagerConfigSpec{
+					Receivers: []promoperapiv1alpha1.Receiver{
+						{
+							Name: nullAlertmanagerConfigReceiver,
+						},
+						{
+							Name: "email-receiver",
+							EmailConfigs: []promoperapiv1alpha1.EmailConfig{{
+								To: "test@test.com",
+							}},
+						},
+					},
+					Route: &promoperapiv1alpha1.Route{
+						Receiver:       "email-receiver",
+						GroupWait:      "1s",
+						GroupInterval:  "1m",
+						RepeatInterval: "1h",
+					},
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&test.cert).WithLists(&test.ingresses).Build()
+			clientBuilder := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&test.cert).WithLists(&test.ingresses)
+			if test.alertmanagerConfigPre != nil {
+				clientBuilder = clientBuilder.WithObjects(test.alertmanagerConfigPre)
+			}
+			client := clientBuilder.Build()
 			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
 			err := postInstallUpgrade(ctx)
 			assert.NoError(t, err)
+			if test.alertmanagerConfigPost != nil {
+				alertmanagerConfig := &promoperapiv1alpha1.AlertmanagerConfig{}
+				err = client.Get(context.TODO(), types.NamespacedName{Name: test.alertmanagerConfigPost.Name, Namespace: test.alertmanagerConfigPost.Namespace}, alertmanagerConfig)
+				assert.NoError(t, err)
+				assert.Equal(t, test.alertmanagerConfigPost.Spec.Receivers, alertmanagerConfig.Spec.Receivers)
+				assert.Equal(t, test.alertmanagerConfigPost.Spec.Route.Receiver, alertmanagerConfig.Spec.Route.Receiver)
+				assert.Equal(t, test.alertmanagerConfigPost.Spec.Route.GroupInterval, alertmanagerConfig.Spec.Route.GroupInterval)
+				assert.Equal(t, test.alertmanagerConfigPost.Spec.Route.RepeatInterval, alertmanagerConfig.Spec.Route.RepeatInterval)
+
+			}
 		})
 	}
 }

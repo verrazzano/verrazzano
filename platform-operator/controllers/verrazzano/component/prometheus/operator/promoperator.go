@@ -814,7 +814,7 @@ func createOrUpdateAlertmanagerConfig(ctx spi.ComponentContext) error {
 			if alertmanagerConfig.Spec.Route == nil {
 				alertmanagerConfig.Spec.Route = &promoperapiv1alpha1.Route{
 					Receiver:       nullAlertmanagerConfigReceiver,
-					GroupWait:      "0s",
+					GroupWait:      "30s",
 					GroupInterval:  "5m",
 					RepeatInterval: "4h",
 				}
