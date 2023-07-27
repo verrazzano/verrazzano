@@ -3,10 +3,20 @@
 
 import groovy.transform.Field
 
+@Field
+def LAST_PERIODIC_COMMIT = ""
+
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
+
+def ociOsRegion = "us-phoenix-1"
+def ociOsBucket = "verrazzano-builds"
+def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
+def cleanBranchName = "${env.BRANCH_NAME.replace("/", "%2F")}"
+def lastPeriodicOsLocation = "${cleanBranchName}/last-periodic-run-commit.txt"
+def lastPeriodicLocation = "${WORKSPACE}/last-backend-run-commit.txt"
 
 pipeline {
     options {
@@ -35,7 +45,17 @@ pipeline {
         }
 
     environment {
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+
+        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+
+        OCI_OS_REGION="us-phoenix-1"
     }
 
     stages {
@@ -47,18 +67,10 @@ pipeline {
                 }
             }
 
-        stage('Get last commit ran') {
+        stage('Get most recent periodic commit') {
             steps {
-                script {
-                    try {
-                        LAST_RUN_COMMIT = params.LAST_RUN_COMMIT
-                        echo("Last run commit: ${LAST_RUN_COMMIT}")
-                    }
-                    catch (Exception e) {
-                        echo("Could not read variable from parameters, assuming this is the first run of the pipeline. Exception: ${e}")
-                        LAST_RUN_COMMIT = ""
-                    }
-                }
+                LAST_PERIODIC_COMMIT = getLastPeriodicRunCommit()
+                echo("Last periodic commit: ${LAST_PERIODIC_COMMIT}")
             }
         }
 
@@ -72,22 +84,8 @@ pipeline {
 
             steps {
                 script {
-                    LAST_RUN_COMMIT = SHORT_COMMIT_HASH
-                    echo("Running periodics with commit ${LAST_RUN_COMMIT}")
+                    echo("Running periodics with commit ${LAST_PERIODIC_COMMIT}")
                     //build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
-                }
-            }
-        }
-
-        stage('Store last commit ran') {
-            steps {
-                script {
-                    echo("Storing last run commit as ${LAST_RUN_COMMIT}")
-                    properties:([
-                        parameters:([
-                            string(defaultValue: "${LAST_RUN_COMMIT}", description: 'Variable description', name: 'LAST_RUN_COMMIT', trim: true)
-                        ])
-                    ])
                 }
             }
         }
@@ -102,6 +100,35 @@ def cleanWorkspaceAndCheckout() {
     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
     // update the description with some meaningful info
     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+}
+
+// Returns the last run commit for the periodics, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
+def getLastPeriodicRunCommit() {
+    lastPeriodicCommitCommandOutput = sh (
+        label: "Get last clean periodic commit ID",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file ${LAST_PERIODIC_LOCATION} 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastPeriodicCommitCommandOutput}"
+    if (lastPeriodicCommitCommandOutput.length() > 0) {
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastPeriodicCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f ${LAST_PERIODIC_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last periodic run commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
+    }
+    // Get the commit ID for the last known clean pass of the Periodic tests
+    def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
+    return lastPeriodicsCommitProps['git-commit']
 }
 
 def scmCheckout() {
@@ -121,7 +148,7 @@ def scmCheckout() {
 
 // Checks if the commit has changed since last run
 def runPipeline() {
-  return LAST_RUN_COMMIT != SHORT_COMMIT_HASH
+  return LAST_PERIODIC_COMMIT_COMMIT != SHORT_COMMIT_HASH
 }
 
 def getCronSchedule() {

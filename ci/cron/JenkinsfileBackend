@@ -1,6 +1,13 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+// Non Fields
+def branchSpecificSchedule = getCronSchedule()
+
+def ociOsRegion = "us-phoenix-1"
+def ociOsBucket = "verrazzano-builds"
+def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
+def CLEAN_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-backend-test/verrazzano_backend-commit.txt"
 
 For each branch (master + release-*) {
     Check if there is anything in objectstore for each branch {
