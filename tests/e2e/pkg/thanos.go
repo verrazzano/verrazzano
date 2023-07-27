@@ -43,7 +43,7 @@ func GetRulesFromThanosRuler(kubeconfigPath string) (interface{}, error) {
 	var data ruleData
 	err = json.Unmarshal(resp.Body, &data)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to unmarshal the response data from %s: %v", url, err))
+		Log(Error, fmt.Sprintf("Failed to unmarshal the response data %s: %v", data, err))
 		return nil, err
 	}
 
