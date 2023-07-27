@@ -62,6 +62,7 @@ var (
 		{podName: "prometheus-pushgateway", componentName: pushgateway.ComponentName},
 		{podName: "prometheus-node-exporter", componentName: nodeexporter.ComponentName},
 		{podName: "prometheus-prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
+		{podName: "prometheus-prometheus-operator-kube-p-alertmanager", componentName: prometheusOperator.ComponentName},
 	}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",

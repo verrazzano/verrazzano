@@ -64,7 +64,18 @@ type noneModifier struct {
 }
 
 func (m prometheusEdgeStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{Enabled: &trueVal}
+	cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{
+		Enabled: &trueVal,
+		InstallOverrides: vzapi.InstallOverrides{
+			ValueOverrides: []vzapi.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte("{\"alertmanager\": {\"enabled\": \"true\"}}"),
+					},
+				},
+			},
+		},
+	}
 	cr.Spec.Components.Prometheus = &vzapi.PrometheusComponent{Enabled: &trueVal}
 	cr.Spec.Components.PrometheusNodeExporter = &vzapi.PrometheusNodeExporterComponent{Enabled: &trueVal}
 	cr.Spec.Components.PrometheusAdapter = &vzapi.PrometheusAdapterComponent{Enabled: &trueVal}
@@ -149,7 +160,18 @@ func (m clusterManagementStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (m noneModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{Enabled: &falseVal}
+	cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{
+		Enabled: &falseVal,
+		InstallOverrides: vzapi.InstallOverrides{
+			ValueOverrides: []vzapi.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte("{\"alertmanager\": {\"enabled\": \"false\"}}"),
+					},
+				},
+			},
+		},
+	}
 	cr.Spec.Components.Prometheus = &vzapi.PrometheusComponent{Enabled: &falseVal}
 }
 
