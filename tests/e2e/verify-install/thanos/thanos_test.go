@@ -4,9 +4,7 @@
 package thanos
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -28,6 +26,7 @@ const (
 var t = framework.NewTestFramework("thanos")
 
 var (
+	kubeconfigPath        string
 	isThanosSupported     bool
 	isThanosInstalled     bool
 	isStoreGatewayEnabled bool
@@ -188,33 +187,9 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeEmpty())
 
 			url := fmt.Sprintf("https://%s/api/v1/rules", host)
-			Eventually(func() (bool, error) {
-				return doRulesExistInThanosRuler(url, host)
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+			Eventually(func() (interface{}, error) {
+				return pkg.GetRulesFromThanosRuler(url, host, kubeconfigPath)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
 		})
 	})
 })
-
-// doRulesExistOnThanosRuler returns true if the rule data from the Thanos Ruler API is not empty given a URL and Host
-func doRulesExistInThanosRuler(url, host string) (bool, error) {
-	resp, err := pkg.GetWebPage(url, host)
-	if err != nil {
-		return false, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Logs.Errorf("Failed to get an OK response from %s, response: %d", url, resp.StatusCode)
-		return false, err
-	}
-
-	type ruleData struct {
-		Data interface{} `json:"data"`
-	}
-	var data ruleData
-	err = json.Unmarshal(resp.Body, &data)
-	if err != nil {
-		t.Logs.Errorf("Failed to unmarshal the response data from %s: %v", url, err)
-		return false, err
-	}
-
-	return resp.StatusCode == http.StatusOK && data.Data != nil, err
-}
