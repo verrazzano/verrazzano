@@ -12,14 +12,12 @@ import (
 	v1beta12 "istio.io/api/type/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"strings"
 )
 
 // creates Authorization Policy
-func CreateAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string) error {
+func CreateAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRule, namePrefix string, hosts []string) (*clisecurity.AuthorizationPolicy, error) {
+
 	// If any path needs an AuthorizationPolicy then add one for every path
 	var addAuthPolicy bool
 	for _, path := range rule.Paths {
@@ -60,18 +58,18 @@ func CreateAuthorizationPolicies(trait *vzapi.IngressTrait, rule vzapi.IngressRu
 			return mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts, requireFrom)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // mutateAuthorizationPolicy changes the destination rule based upon a trait's configuration
-func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) error {
+func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string, requireFrom bool) (*clisecurity.AuthorizationPolicy, error) {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
 		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts, requireFrom)
 		if err != nil {
 			print(err)
-			return err
+			return nil, err
 		}
 	}
 
@@ -81,37 +79,8 @@ func mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzP
 		},
 		Rules: policyRules,
 	}
-	fmt.Println("AuthorizationPolicy", authzPolicy)
-	directoryPath := "/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/"
-	fileName := "az.yaml"
-	filePath := filepath.Join(directoryPath, fileName)
 
-	authzPolicyYaml, err := yaml.Marshal(authzPolicy)
-	if err != nil {
-		fmt.Printf("Failed to Marshal file: %v\n", err)
-		return err
-	}
-
-	// Write the YAML content to the file
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Printf("Failed to open file: %v\n", err)
-		return err
-	}
-	defer file.Close()
-
-	// Append the YAML content to the file
-	_, err = file.Write(authzPolicyYaml)
-	if err != nil {
-		fmt.Printf("Failed to write to file: %v\n", err)
-		return err
-	}
-	_, err = file.WriteString("---\n")
-	if err != nil {
-		fmt.Printf("Failed to write string: %v\n", err)
-		return err
-	}
-	return nil
+	return authzPolicy, nil
 }
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule

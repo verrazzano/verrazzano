@@ -5,201 +5,276 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	coherence "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/coherenceresources"
-	helidon "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/helidonresources"
-	weblogic "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/weblogicresources"
-	extract "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
+	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"io/ioutil"
-	"log"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
 
-// contains function checks if the specifies string is present in array of strings
-func contains(arr []string, target string) bool {
-	for _, element := range arr {
-		if element == target {
-			return true
-		}
-	}
-	return false
-}
-
 func ConfData() error {
 
-	helidonWorkloads := []*vzapi.VerrazzanoHelidonWorkload{}
-	coherenceWorkloads := []*vzapi.VerrazzanoCoherenceWorkload{}
-	//Read app File
-	appData, err := ioutil.ReadFile("../../examples/bobs-books/bobs-books-app.yaml")
-	if err != nil {
-		fmt.Println("Failed to read YAML file:", err)
-		return err
+	var inputDirectory string
+	var outputDirectory string
+
+	//Check the length of args
+	if len(os.Args) != 3 {
+		fmt.Println("Not enough args to run tool")
+		return nil
 	}
+	inputDirectory = os.Args[1]
+	outputDirectory = os.Args[2]
 
-	//Read Comp file
-	compData, err := ioutil.ReadFile("../../examples/bobs-books/bobs-books-comp.yaml")
-	if err != nil {
-		fmt.Println("Failed to read YAML file:", err)
-		return err
-	}
-	//A map for app file
-	appMap := make(map[string]interface{})
+	//used to store app file data
+	var appData []map[string]interface{}
 
-	// Unmarshal the OAM YAML input data into the map
-	err = yaml.Unmarshal(appData, &appMap)
-	if err != nil {
-		log.Fatalf("Failed to unmarshal YAML: %v", err)
-	}
-
-	workloadTraitMap, componentNames, ingressTraits, metricsTraits := extract.HandleYAMLStructurePanic(appMap)
-	fmt.Print(ingressTraits)
-
-	//Splitting up the comp file with "---" delimiter into multiple objects
-	compStr := string(compData)
-	compObjects := strings.Split(compStr, "---")
-
-	//Array of components in comp file
+	//used to store comp file data
 	var components []map[string]interface{}
 
-	for _, obj := range compObjects {
-		var component map[string]interface{}
-		err := yaml.Unmarshal([]byte(obj), &component)
+	//used to store non-oam file data
+	var K8sResources []map[string]interface{}
+
+	//iterate through user inputted directory
+	files, err := iterateDirectory(inputDirectory)
+	if err != nil {
+		fmt.Println("Error in iterating over directory", err)
+	}
+	var data []byte
+
+	//Read each file from the input directory
+	for _, input := range files {
+		data, _ = ioutil.ReadFile(input)
+		datastr := string(data)
+
+		//Split the objects using "---" delimiter
+		objects := strings.Split(datastr, "---")
+
+		//Iterate over each object to segregate into applicationConfiguration kind or Component kind
+		for _, obj := range objects {
+			var component map[string]interface{}
+			err := yaml.Unmarshal([]byte(obj), &component)
+			if err != nil {
+				return errors.New("error in unmarshalling the components")
+			}
+			compKind, found, err := unstructured.NestedString(component, "kind")
+			if !found || err != nil {
+				return errors.New("component kind doesn't exist or not found in the specified type")
+			}
+			compVersion, found, err := unstructured.NestedString(component, "apiVersion")
+			if !found || err != nil {
+				return errors.New("component api version doesn't exist or not found in the specified type")
+			}
+			//Check the kind od each component and apiVersion
+			if compKind == "Component" && compVersion == consts.CompAPIVersion {
+				components = append(components, component)
+			}
+			if compKind == "ApplicationConfiguration" && compVersion == consts.CompAPIVersion {
+				appData = append(appData, component)
+			}
+			//For generic workload
+			if compKind != "Component" && compKind != "ApplicationConfiguration" {
+				//TODO for K8s resources that are not OAM-specific
+				K8sResources = append(K8sResources, component)
+			}
+		}
+	}
+
+	//Extract traits from app file
+	conversionComponents, err := traits.ExtractTrait(appData)
+
+	if err != nil {
+		return errors.New("failed extracting traits from app")
+	}
+	//Extract workloads from app file
+	conversionComponents, err = traits.ExtractWorkload(components, conversionComponents)
+	if err != nil {
+		return errors.New("error in extracting workload")
+	}
+
+	//Create child resources
+	outputResources, err := resources.CreateResources(conversionComponents)
+	if err != nil {
+		return err
+	}
+	//Write the K8s child resources to the file
+	err = writeKubeResources(outputDirectory, outputResources)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Write the kube resources to the files in output directory
+func writeKubeResources(outputDirectory string, outputResources *types.KubeResources) error {
+
+	//Write virtual services to files
+	if outputResources.VirtualServices != nil {
+		for _, virtualService := range outputResources.VirtualServices {
+
+			fileName := "" + virtualService.Name + ".yaml"
+			filePath := filepath.Join(outputDirectory, fileName)
+
+			f, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
+			r, err := json.Marshal(virtualService)
+			if err != nil {
+				return err
+			}
+			output, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+
+			defer f.Close()
+
+			_, err = f.WriteString(string(output))
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+
+	//Write down gateway to files
+	if outputResources.Gateway != nil {
+
+		fileName := "gateway.yaml"
+		filePath := filepath.Join(outputDirectory, fileName)
+
+		f, err := os.Create(filePath)
 		if err != nil {
-			log.Fatalf("Failed to unmarshal YAML: %v", err)
+			return err
 		}
-		components = append(components, component)
-	}
-	weblogicMap := make(map[string]*vzapi.VerrazzanoWebLogicWorkload)
-	coherenceWorkloads, helidonWorkloads, weblogicMap, err = segregateWorkloads(weblogicMap, components, componentNames, helidonWorkloads, coherenceWorkloads)
-	if err != nil {
-		fmt.Printf("Failed to segregate: %v\n", err)
-		return err
-	}
 
-	for _, trait := range metricsTraits {
+		gatewayYaml, err := yaml.Marshal(outputResources.Gateway)
+		if err != nil {
+			return errors.New("failed to marshal YAML: %w")
+		}
 
-		fmt.Printf("Trait API Version: %s\n", trait.APIVersion)
-		fmt.Printf("Trait name: %s\n", trait.Name)
-		//Put metricsTrait method
+		_, err = f.WriteString(string(gatewayYaml))
+		if err != nil {
+			return errors.New("failed to write YAML to file: %w")
+		}
+		defer f.Close()
 	}
 
-	err = createResources(workloadTraitMap, weblogicMap, coherenceWorkloads, helidonWorkloads)
-	if err != nil {
-		return err
+	//Write down destination rules to files
+	if outputResources.DestinationRules != nil {
+		for _, destinationRule := range outputResources.DestinationRules {
+
+			if destinationRule != nil {
+				fileName := "" + destinationRule.Name
+				filePath := filepath.Join(outputDirectory, fileName)
+
+				f, err := os.Create(filePath)
+				if err != nil {
+					return err
+				}
+				r, err := json.Marshal(destinationRule)
+				if err != nil {
+					return err
+				}
+				output, err := yaml.JSONToYAML(r)
+				if err != nil {
+					return err
+				}
+
+				defer f.Close()
+
+				_, err2 := f.WriteString(string(output))
+				if err2 != nil {
+					return err2
+				}
+			}
+		}
+	}
+
+	//Write down Authorization Policies to files
+	if outputResources.AuthPolicies != nil {
+		for _, authPolicy := range outputResources.AuthPolicies {
+
+			if authPolicy != nil {
+				fileName := "authzpolicy.yaml"
+				filePath := filepath.Join(outputDirectory, fileName)
+
+				f, err := os.Create(filePath)
+				if err != nil {
+					return err
+				}
+				r, err := json.Marshal(authPolicy)
+				if err != nil {
+					return err
+				}
+				output, err := yaml.JSONToYAML(r)
+				if err != nil {
+					return err
+				}
+
+				defer f.Close()
+
+				_, err2 := f.WriteString(string(output))
+				if err2 != nil {
+					return err2
+				}
+
+			}
+
+		}
+	}
+
+	//Write down Service Monitors to files
+	if outputResources.ServiceMonitors != nil {
+		var output string
+		fileName := "output.yaml"
+		filePath := filepath.Join(outputDirectory, fileName)
+		f, err := os.Create(filePath)
+		if err != nil {
+			return err
+		}
+		for _, servicemonitor := range outputResources.ServiceMonitors {
+			r, err := json.Marshal(servicemonitor)
+			if err != nil {
+				return err
+			}
+			out, err := yaml.JSONToYAML(r)
+			if err != nil {
+				return err
+			}
+			output = output + "---\n" + string(out)
+		}
+
+		defer f.Close()
+
+		_, err2 := f.WriteString(string(output))
+		if err2 != nil {
+			return err2
+		}
+
 	}
 	return nil
 }
 
-func segregateWorkloads(weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload, components []map[string]interface{}, componentNames []string, helidonWorkloads []*vzapi.VerrazzanoHelidonWorkload, coherenceWorkloads []*vzapi.VerrazzanoCoherenceWorkload) ([]*vzapi.VerrazzanoCoherenceWorkload, []*vzapi.VerrazzanoHelidonWorkload, map[string]*vzapi.VerrazzanoWebLogicWorkload, error) {
-	//A weblogic map with the key as component name and value as a VerrazzanoWeblogicWorkload struct
+// Iterate over input directory
+func iterateDirectory(path string) ([]string, error) {
+	var files []string
 
-	for _, comp := range components {
-
-		var name string
-
-		kind := comp["spec"].(map[string]interface{})["workload"].(map[string]interface{})["kind"].(string)
-		name = comp["metadata"].(map[string]interface{})["name"].(string)
-
-		//Checking if the specific component name is present in the component names array
-		//where component names array is the array of component names
-		//which has ingress traits applied on it
-		if contains(componentNames, name) {
-			if kind == "VerrazzanoWebLogicWorkload" {
-
-				workload := comp["spec"].(map[string]interface{})["workload"].(map[string]interface{})
-				weblogicWorkload := &vzapi.VerrazzanoWebLogicWorkload{}
-				workloadJSON, err := json.Marshal(workload)
-
-				if err != nil {
-					log.Fatalf("Failed to marshal trait: %v", err)
-
-				}
-
-				err = json.Unmarshal(workloadJSON, &weblogicWorkload)
-				if err != nil {
-					fmt.Printf("Failed to unmarshal: %v\n", err)
-					return nil, nil, nil, err
-				}
-
-				//putting into map of workloads whose key is the component name and
-				//value is the weblogic workload
-				weblogicMap[name] = weblogicWorkload
-			}
-			if kind == "VerrazzanoHelidonWorkload" {
-				//Appending the helidon workloads in the helidon workload array
-				workload := comp["spec"].(map[string]interface{})["workload"].(map[string]interface{})
-				helidonWorkload := &vzapi.VerrazzanoHelidonWorkload{}
-				workloadJSON, err := json.Marshal(workload)
-
-				if err != nil {
-					log.Fatalf("Failed to marshal trait: %v", err)
-				}
-
-				err = json.Unmarshal(workloadJSON, &helidonWorkload)
-				if err != nil {
-					fmt.Printf("Failed to unmarshal: %v\n", err)
-					return nil, nil, nil, err
-				}
-
-				helidonWorkloads = append(helidonWorkloads, helidonWorkload)
-			}
-			if kind == "VerrazzanoCoherenceWorkload" {
-
-				//Appending the coherence workloads in the coherence workload array
-				name = comp["metadata"].(map[string]interface{})["name"].(string)
-				workload := comp["spec"].(map[string]interface{})["workload"].(map[string]interface{})
-				coherenceWorkload := &vzapi.VerrazzanoCoherenceWorkload{}
-				workloadJSON, err := json.Marshal(workload)
-
-				if err != nil {
-					log.Fatalf("Failed to marshal trait: %v", err)
-				}
-
-				err = json.Unmarshal(workloadJSON, &coherenceWorkload)
-				if err != nil {
-					fmt.Printf("Failed to unmarshal: %v\n", err)
-					return nil, nil, nil, err
-				}
-
-				coherenceWorkloads = append(coherenceWorkloads, coherenceWorkload)
-
-			}
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
-	}
-	return coherenceWorkloads, helidonWorkloads, weblogicMap, nil
-}
-
-func createResources(workloadTraitMap map[string]*vzapi.IngressTrait, weblogicMap map[string]*vzapi.VerrazzanoWebLogicWorkload, coherenceWorkloads []*vzapi.VerrazzanoCoherenceWorkload, helidonWorkloads []*vzapi.VerrazzanoHelidonWorkload) error {
-	//Create child resources of each ingress trait
-	for key, value := range workloadTraitMap {
-
-		//fmt.Printf("Trait name: %s\n", trait.Name)
-		for name := range weblogicMap {
-			if name == key {
-				err := weblogic.CreateIngressChildResourcesFromWeblogic(key, value, weblogicMap[name])
-				if err != nil {
-					return err
-				}
-			}
+		if strings.Contains(info.Name(), "yaml") || strings.Contains(info.Name(), "yml") {
+			files = append(files, path)
 		}
-		for _, coherenceWorkload := range coherenceWorkloads {
-			if coherenceWorkload.Name == key {
-				err := coherence.CreateIngressChildResourcesFromCoherence(key, value, coherenceWorkload)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		for _, helidonWorkload := range helidonWorkloads {
-			if helidonWorkload.Name == key {
-				err := helidon.CreateIngressChildResourcesFromHelidon(key, value, helidonWorkload)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
+		return nil
+	})
+	return files, nil
 }

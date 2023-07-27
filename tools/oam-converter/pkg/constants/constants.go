@@ -4,21 +4,14 @@
 package constants
 
 const (
-	YamlComponents            = "components"
-	YamlSpec                  = "spec"
 	YamlTraits                = "traits"
-	TraitKind                 = "kind"
-	TraitComponent            = "trait"
-	YamlMetadata              = "metadata"
-	YamlName                  = "name"
-	YamlNamespace             = "namespace"
 	IngressTrait              = "IngressTrait"
-	MetricsTrait              = "metricsTrait"
-	GatewayAPIVersion         = "networking.istio.io/v1alpha3"
-	VirtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
-	DestinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	GatewayAPIVersion         = "networking.istio.io/v1beta1"
+	VirtualServiceAPIVersion  = "networking.istio.io/v1beta1"
+	DestinationRuleAPIVersion = "networking.istio.io/v1beta13"
 	AuthorizationAPIVersion   = "security.istio.io/v1beta1"
 	HTTPSProtocol             = "HTTPS"
 	VerrazzanoClusterIssuer   = "verrazzano-cluster-issuer"
 	CertificateAPIVersion     = "cert-manager.io/v1"
+	CompAPIVersion            = "core.oam.dev/v1alpha2"
 )
