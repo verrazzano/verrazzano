@@ -26,7 +26,6 @@ const (
 var t = framework.NewTestFramework("thanos")
 
 var (
-	kubeconfigPath        string
 	isThanosSupported     bool
 	isThanosInstalled     bool
 	isStoreGatewayEnabled bool
@@ -179,6 +178,7 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 				Skip("Skipping Rule verification because Ruler is not enabled")
 			}
 
+			kubeconfigPath := getKubeConfigOrAbort()
 			Eventually(func() (interface{}, error) {
 				return pkg.GetRulesFromThanosRuler(kubeconfigPath)
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
