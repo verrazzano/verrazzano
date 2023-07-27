@@ -25,10 +25,7 @@ const (
 )
 
 var (
-	t                            = framework.NewTestFramework("capi-ocne-driver")
-	clusterNameSingleNode        string
-	clusterNameNodePool          string
-	clusterNameSingleNodeInvalid string
+	t = framework.NewTestFramework("capi-ocne-driver")
 
 	// Keep track of which clusters to clean up at the end by ID, since cluster names can be edited.
 	clusterIDsToDelete []string
@@ -94,10 +91,6 @@ func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 
 	err = ensureOCNEDriverVarsInitialized(t.Logs)
 	Expect(err).ShouldNot(HaveOccurred())
-
-	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
-	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
-	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
 }
 
 var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchronizedBeforeSuiteAllProcessesFunc)
@@ -139,7 +132,12 @@ var _ = t.SynchronizedAfterSuite(synchronizedAfterSuiteAllProcessesFunc, synchro
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
 	// Cluster 1. Create with a single node.
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
+		var clusterNameSingleNode string
 		var clusterConfig RancherOCNECluster
+
+		t.BeforeAll(func() {
+			clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
+		})
 
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
@@ -167,6 +165,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	// Cluster 2. Create with a node pool, then perform an update.
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
+		var clusterNameNodePool string
 		var poolName string
 		var poolReplicas int
 		var expectedNodeCount int
@@ -175,12 +174,15 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		// and is updated as update requests are made
 		var clusterConfig RancherOCNECluster
 
-		// Create the cluster and verify it comes up
-		t.It("create OCNE cluster", func() {
+		t.BeforeAll(func() {
+			clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 			poolName = fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
 			poolReplicas = 2
 			expectedNodeCount = poolReplicas + numControlPlaneNodes
+		})
 
+		// Create the cluster and verify it comes up
+		t.It("create OCNE cluster", func() {
 			Eventually(func() error {
 				volumeSize, ocpus, memory := 150, 2, 32
 				mutateFn := getMutateFnNodePoolsAndResourceUsage(poolName, poolReplicas, volumeSize, ocpus, memory)
@@ -223,7 +225,13 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	// Cluster 3. Pass in invalid parameters when creating a cluster.
 	t.Context("OCNE cluster creation with single node invalid kubernetes version", Ordered, func() {
+		var clusterNameSingleNodeInvalid string
 		var clusterConfig RancherOCNECluster
+
+		t.BeforeAll(func() {
+			clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
+		})
+
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
