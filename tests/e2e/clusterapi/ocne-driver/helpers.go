@@ -179,11 +179,16 @@ func createCluster(clusterName string, requestPayload RancherOCNECluster, log *z
 }
 
 // Deletes the OCNE cluster by sending a DELETE request to the Rancher API
-func deleteClusterFromID(clusterID string, log *zap.SugaredLogger) error {
-	log.Infof("Deleting cluster %s", clusterID)
+func deleteCluster(clusterName string, log *zap.SugaredLogger) error {
+	clusterID, err := getClusterIDFromName(clusterName, log)
+	if err != nil {
+		log.Errorf("could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+		return err
+	}
+	log.Infof("clusterID for deletion: %s", clusterID)
 	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("%s/%s", "v1/provisioning.cattle.io.clusters/fleet-default", clusterID), log)
 
-	_, err := helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
+	_, err = helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
 	if err != nil {
 		log.Errorf("error while deleting cluster: %v", err)
 		return err
@@ -281,8 +286,12 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 }
 
 // Returns true if the OCNE cluster is deleted/does not exist
-func isClusterDeletedFromID(clusterID string, log *zap.SugaredLogger) (bool, error) {
+func isClusterDeleted(clusterName string, log *zap.SugaredLogger) (bool, error) {
 	// Check that the CAPI cluster object was deleted
+	clusterID, err := getClusterIDFromName(clusterName, log)
+	if err != nil {
+		return false, err
+	}
 	clusterObjectFound, err := checkClusterExistsFromK8s(clusterID, clusterID, log)
 	return !clusterObjectFound, err
 }

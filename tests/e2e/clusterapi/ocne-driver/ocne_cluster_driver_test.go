@@ -28,8 +28,9 @@ const (
 var (
 	t = framework.NewTestFramework("capi-ocne-driver")
 
-	// Keep track of which clusters to clean up at the end by ID, since cluster names can be edited.
-	clusterIDsToDelete []string
+	clusterNameSingleNode        string
+	clusterNameNodePool          string
+	clusterNameSingleNodeInvalid string
 )
 
 // Part of SynchronizedBeforeSuite, run by only one process
@@ -92,34 +93,37 @@ func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 
 	err = ensureOCNEDriverVarsInitialized(t.Logs)
 	Expect(err).ShouldNot(HaveOccurred())
+
+	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
+	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
+	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
 }
 
 var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchronizedBeforeSuiteAllProcessesFunc)
 
-// Part of SynchronizedAfterSuite, run by all processes
-func synchronizedAfterSuiteAllProcessesFunc() {
-	// Delete the clusters tracked by this process concurrently.
-	// Each clusterID should only be present on one process's clusterIDsToDelete list.
-	var wg sync.WaitGroup
-	for _, clusterID := range clusterIDsToDelete {
-		wg.Add(1)
-		go func(id string) {
-			defer wg.Done()
-			// Delete the OCNE cluster
-			Eventually(func() error {
-				return deleteClusterFromID(id, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
-			// Verify the cluster is deleted
-			Eventually(func() (bool, error) { return isClusterDeletedFromID(id, t.Logs) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("cluster %s is not deleted", id))
-		}(clusterID)
-	}
-	wg.Wait()
-}
-
 // Part of SynchronizedAfterSuite, run by only one process
 func synchronizedAfterSuiteProcess1Func() {
+	// Delete the clusters concurrently
+	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeInvalid}
+	var wg sync.WaitGroup
+	for _, clusterName := range clusterNames {
+		if clusterName != "" {
+			wg.Add(1)
+			go func(name string) {
+				defer wg.Done()
+				// Delete the OCNE cluster
+				Eventually(func() error {
+					return deleteCluster(name, t.Logs)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+				// Verify the cluster is deleted
+				Eventually(func() (bool, error) { return isClusterDeleted(name, t.Logs) }, waitTimeout, pollingInterval).Should(
+					BeTrue(), fmt.Sprintf("cluster %s is not deleted", name))
+			}(clusterName)
+		}
+	}
+	wg.Wait()
+
 	// Delete the credential
 	deleteCredential(cloudCredentialID, t.Logs)
 
@@ -128,29 +132,18 @@ func synchronizedAfterSuiteProcess1Func() {
 		BeTrue(), fmt.Sprintf("cloud credential %s is not deleted", cloudCredentialID))
 }
 
-var _ = t.SynchronizedAfterSuite(synchronizedAfterSuiteAllProcessesFunc, synchronizedAfterSuiteProcess1Func)
+var _ = t.SynchronizedAfterSuite(func() {}, synchronizedAfterSuiteProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
 	// Cluster 1. Create with a single node.
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
-		var clusterNameSingleNode string
 		var clusterConfig RancherOCNECluster
-
-		t.BeforeAll(func() {
-			clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
-		})
 
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
 				return createClusterAndFillConfig(clusterNameSingleNode, &clusterConfig, t.Logs, nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
-			// Track this cluster's ID for deletion later
-			clusterID, err := getClusterIDFromName(clusterNameSingleNode, t.Logs)
-			Expect(err).ShouldNot(HaveOccurred())
-			clusterIDsToDelete = append(clusterIDsToDelete, clusterID)
-			t.Logs.Infof("the cluster ID of %s is %s", clusterNameSingleNode, clusterID)
 		})
 
 		t.It("check OCNE cluster is active", func() {
@@ -166,7 +159,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	// Cluster 2. Create with a node pool, then perform an update.
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
-		var clusterNameNodePool string
 		var poolName string
 		var poolReplicas int
 		var expectedNodeCount int
@@ -176,7 +168,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		var clusterConfig RancherOCNECluster
 
 		t.BeforeAll(func() {
-			clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 			poolName = fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
 			poolReplicas = 2
 			expectedNodeCount = poolReplicas + numControlPlaneNodes
@@ -189,12 +180,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				mutateFn := getMutateFnNodePoolsAndResourceUsage(poolName, poolReplicas, volumeSize, ocpus, memory)
 				return createClusterAndFillConfig(clusterNameNodePool, &clusterConfig, t.Logs, mutateFn)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
-			// Track this cluster's ID for deletion later
-			clusterID, err := getClusterIDFromName(clusterNameNodePool, t.Logs)
-			Expect(err).ShouldNot(HaveOccurred())
-			clusterIDsToDelete = append(clusterIDsToDelete, clusterID)
-			t.Logs.Infof("the cluster ID of %s is %s", clusterNameNodePool, clusterID)
 		})
 		t.It("check OCNE cluster is active", func() {
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
@@ -226,12 +211,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	// Cluster 3. Pass in invalid parameters when creating a cluster.
 	t.Context("OCNE cluster creation with single node invalid kubernetes version", Ordered, func() {
-		var clusterNameSingleNodeInvalid string
 		var clusterConfig RancherOCNECluster
-
-		t.BeforeAll(func() {
-			clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
-		})
 
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
@@ -242,11 +222,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				}
 				return createClusterAndFillConfig(clusterNameSingleNodeInvalid, &clusterConfig, t.Logs, mutateFn)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-			// Track this cluster's ID for deletion later
-			clusterID, err := getClusterIDFromName(clusterNameSingleNodeInvalid, t.Logs)
-			Expect(err).ShouldNot(HaveOccurred())
-			clusterIDsToDelete = append(clusterIDsToDelete, clusterID)
-			t.Logs.Infof("the cluster ID of %s is %s", clusterNameSingleNodeInvalid, clusterID)
 		})
 
 		t.It("check OCNE cluster is not active", func() {
