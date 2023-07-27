@@ -136,23 +136,8 @@ func appendReloaderSidecarOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue
 }
 
 func constructFullImageString(bomFile bom.Bom, subcomponent bom.BomSubComponent, image bom.BomImage) string {
-	registry := func() string {
-		if image.Registry != "" {
-			return image.Registry
-		}
-		if subcomponent.Registry != "" {
-			return subcomponent.Registry
-		}
-		return bomFile.GetRegistry()
-	}()
-
-	repository := func() string {
-		if image.Repository != "" {
-			return image.Repository
-		}
-		return subcomponent.Repository
-	}()
-
+	registry := bomFile.ResolveRegistry(&subcomponent, image)
+	repository := bomFile.ResolveRepo(&subcomponent, image)
 	return fmt.Sprintf("%s/%s/%s:%s", registry, repository, image.ImageName, image.ImageTag)
 }
 
