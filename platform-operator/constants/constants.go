@@ -285,5 +285,8 @@ const VerrazzanoObservedGenerationAnnotation = "module.verrazzano.io/vz-cr-obser
 // VerrazzanoVersionAnnotation is the annotation for the verrazzano CR version
 const VerrazzanoVersionAnnotation = "module.verrazzano.io/vz-cr-version"
 
+// VerrazzanoModuleOwnerLabel is the label for the module that owns the resource
+const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
+
 // AlertmanagerIngress is the name of the ingress for Alertmanager
 const AlertmanagerIngress = "alertmanager"
