@@ -234,47 +234,47 @@ func isClusterActive(clusterName string, log *zap.SugaredLogger) (bool, error) {
 	}
 
 	// Debug logging
-	// var cmd helpers.BashCommand
-	// var cmdArgs []string
-	// cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
-	// cmd.CommandArgs = cmdArgs
-	// response := helpers.Runner(&cmd, log)
-	// log.Infof("All CAPI clusters =  %s", (&response.StandardOut).String())
+	var cmd helpers.BashCommand
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.cluster.x-k8s.io", "-A")
+	cmd.CommandArgs = cmdArgs
+	response := helpers.Runner(&cmd, log)
+	log.Infof("All CAPI clusters =  %s", (&response.StandardOut).String())
 
-	// cmdArgs = []string{}
-	// cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
-	// cmd.CommandArgs = cmdArgs
-	// response = helpers.Runner(&cmd, log)
-	// log.Infof("All management clusters =  %s", (&response.StandardOut).String())
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.management.cattle.io")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("All management clusters =  %s", (&response.StandardOut).String())
 
-	// cmdArgs = []string{}
-	// cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
-	// cmd.CommandArgs = cmdArgs
-	// response = helpers.Runner(&cmd, log)
-	// log.Infof("All provisioning clusters =  %s", (&response.StandardOut).String())
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "get", "clusters.provisioning.cattle.io", "-A")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("All provisioning clusters =  %s", (&response.StandardOut).String())
 
-	// cmdArgs = []string{}
-	// cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
-	// cmd.CommandArgs = cmdArgs
-	// response = helpers.Runner(&cmd, log)
-	// log.Infof("All CAPI machines =  %s", (&response.StandardOut).String())
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "get", "ma", "-A")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("All CAPI machines =  %s", (&response.StandardOut).String())
 
-	// kubeconfigPath, err := getWorkloadKubeconfig(clusterID, log)
-	// if err != nil {
-	// 	log.Error("could not download kubeconfig from rancher")
-	// }
+	kubeconfigPath, err := getWorkloadKubeconfig(clusterID, log)
+	if err != nil {
+		log.Error("could not download kubeconfig from rancher")
+	}
 
-	// cmdArgs = []string{}
-	// cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
-	// cmd.CommandArgs = cmdArgs
-	// response = helpers.Runner(&cmd, log)
-	// log.Infof("All nodes in workload cluster =  %s", (&response.StandardOut).String())
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "nodes", "-o", "wide")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("All nodes in workload cluster =  %s", (&response.StandardOut).String())
 
-	// cmdArgs = []string{}
-	// cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
-	// cmd.CommandArgs = cmdArgs
-	// response = helpers.Runner(&cmd, log)
-	// log.Infof("All pods in workload cluster =  %s", (&response.StandardOut).String())
+	cmdArgs = []string{}
+	cmdArgs = append(cmdArgs, "kubectl", "--kubeconfig", kubeconfigPath, "get", "pod", "-A", "-o", "wide")
+	cmd.CommandArgs = cmdArgs
+	response = helpers.Runner(&cmd, log)
+	log.Infof("All pods in workload cluster =  %s", (&response.StandardOut).String())
 
 	// Check if the cluster is active
 	return checkProvisioningClusterReady("fleet-default", clusterID, log)
