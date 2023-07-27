@@ -128,6 +128,7 @@ func appendReloaderSidecarOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue
 
 		// Security setup for the sidecar
 		{Key: fmt.Sprintf("%s.securityContext.privileged", sidecarPrefix), Value: "false"},
+		{Key: fmt.Sprintf("%s.securityContext.allowPrivilegeEscalation", sidecarPrefix), Value: "false"},
 		{Key: fmt.Sprintf("%s.securityContext.capabilities.drop[0]", sidecarPrefix), Value: "ALL"},
 	}...)
 
