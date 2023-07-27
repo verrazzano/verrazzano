@@ -21,7 +21,7 @@ const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 45 * time.Minute
-	longWaitTimeout          = 60 * time.Minute
+	longWaitTimeout      = 60 * time.Minute
 	pollingInterval      = 30 * time.Second
 )
 
