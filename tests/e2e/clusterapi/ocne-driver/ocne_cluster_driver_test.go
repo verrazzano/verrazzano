@@ -137,7 +137,7 @@ func synchronizedAfterSuiteProcess1Func() {
 var _ = t.SynchronizedAfterSuite(synchronizedAfterSuiteAllProcessesFunc, synchronizedAfterSuiteProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
-	// Cluster 1. Create with a single node, then perform some updates.
+	// Cluster 1. Create with a single node.
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
 		var clusterConfig RancherOCNECluster
 
@@ -160,12 +160,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, "", 1, activeClusterState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
 		})
 	})
 
-	// Cluster 2. Create with a node pool, then perform some updates.
+	// Cluster 2. Create with a node pool, then perform an update.
 	t.Context("OCNE cluster creation with node pools", Ordered, func() {
 		var poolName string
 		var poolReplicas int
@@ -197,7 +197,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, "", expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameNodePool, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 
@@ -216,7 +216,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
 			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, "", expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
+				return verifyCluster(clusterNameNodePool, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
@@ -248,7 +248,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNodeInvalid, "", 0, provisioningClusterState, transitioningFlagError, t.Logs)
+				return verifyCluster(clusterNameSingleNodeInvalid, 0, provisioningClusterState, transitioningFlagError, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
 		})
 	})

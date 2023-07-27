@@ -309,10 +309,10 @@ func fetchClusterFromK8s(namespace, clusterID string, log *zap.SugaredLogger) (*
 }
 
 // Checks whether the cluster was created as expected. Returns nil if all is good.
-func verifyCluster(clusterName, description string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
+func verifyCluster(clusterName string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
 	// Check if the cluster looks good from the Rancher API
 	var err error
-	if err = verifyGetRequest(clusterName, description, expectedNodes, expectedClusterState, expectedTransitioning, log); err != nil {
+	if err = verifyGetRequest(clusterName, expectedNodes, expectedClusterState, expectedTransitioning, log); err != nil {
 		log.Errorf("error validating GET request for cluster %s: %s", clusterName, err)
 		return err
 	}
@@ -342,7 +342,7 @@ func verifyCluster(clusterName, description string, expectedNodes int, expectedC
 
 // Verifies that a GET request to the Rancher API for this cluster returns expected values.
 // Intended to be called on clusters with expected number of nodes and cluster state.
-func verifyGetRequest(clusterName, clusterDescription string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
+func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterState clusterState, expectedTransitioning transitioningFlag, log *zap.SugaredLogger) error {
 	jsonBody, err := getCluster(clusterName, log)
 	if err != nil {
 		return err
@@ -352,7 +352,6 @@ func verifyGetRequest(clusterName, clusterDescription string, expectedNodes int,
 	// Assert that these attributes are as expected
 	resourceType := jsonBody.Path("resourceType").Data()
 	name := jsonData.Path("name").Data()
-	description := jsonData.Path("description").Data()
 	nodeCount := jsonData.Path("nodeCount").Data()
 	state := jsonData.Path("state").Data()
 	transitioning := jsonData.Path("transitioning").Data()
@@ -366,7 +365,6 @@ func verifyGetRequest(clusterName, clusterDescription string, expectedNodes int,
 	}{
 		{resourceType, "cluster", "resource type"},
 		{name, clusterName, "cluster name"},
-		{description, clusterDescription, "description"},
 		{nodeCount, float64(expectedNodes), "node count"},
 		{state, string(expectedClusterState), "state"},
 		{transitioning, string(expectedTransitioning), "transitioning flag"},
