@@ -24,12 +24,11 @@ import (
 )
 
 const (
-	waitTimeout                     = 15 * time.Minute
-	pollingInterval                 = 10 * time.Second
-	consistentlyDuration            = 1 * time.Minute
-	testNamespace                   = "hello-helidon-argo"
-	argoCDNamespace                 = "argocd"
-	argocdClusterTokenTTLEnvVarName = "ARGOCD_CLUSTER_TOKEN_TTL" //nolint:gosec
+	waitTimeout          = 15 * time.Minute
+	pollingInterval      = 10 * time.Second
+	consistentlyDuration = 1 * time.Minute
+	testNamespace        = "hello-helidon-argo"
+	argoCDNamespace      = "argocd"
 )
 
 const (
@@ -41,7 +40,7 @@ var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 var argoCDUsernameForRancher = "vz-argoCD-reg"
-var ttl = os.Getenv(argocdClusterTokenTTLEnvVarName)
+var ttl = "240"
 var createdTimeStampForNewTokenCreated = ""
 
 var t = framework.NewTestFramework("argocd_test")
@@ -214,10 +213,8 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				_, ok := updatedSecret.Annotations["verrazzano.io/expires-at-timestamp"]
 				if !ok {
 					pkg.Log(pkg.Error, "Failed to add an expires-at-timestamp to the secret based on a new token that is created")
-					pkg.Log(pkg.Error, "The secret expired timestamp does not currently exist and the secret created timestamp is"+updatedSecret.Annotations["verrazzano.io/create-timestamp"])
 					return fmt.Errorf("The secret was not successfully edited, as it does not have an expired timestamp")
 				}
-				pkg.Log(pkg.Error, "The secret expired timestamp does currently exist and the secret created timestamp is"+updatedSecret.Annotations["verrazzano.io/create-timestamp"])
 				createdTimestampCurrentlyOnUpdatedSecret, ok := updatedSecret.Annotations["verrazzano.io/create-timestamp"]
 				if createdTimestampCurrentlyOnUpdatedSecret != createdTimeStampForNewTokenCreated || !ok {
 					pkg.Log(pkg.Error, "Failed to successfully update the secret with the created timestamp of the most recent token created")

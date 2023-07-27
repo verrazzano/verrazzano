@@ -177,7 +177,6 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateArgoCDSecret(rc *ranc
 }
 
 func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *corev1.Secret, rc *rancherutil.RancherConfig, clusterName, clusterID, rancherURL string, caData []byte) error {
-	r.log.Infof("Currently entering mutuateArgoCDClusterSecret function")
 	token := rc.APIAccessToken
 	if secret.Annotations == nil {
 		secret.Annotations = map[string]string{}
@@ -187,7 +186,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 	createNewToken := true
 
 	if okCreated && okExpires {
-		r.log.Infof("Currently entering condition where the annotation has both a created and an expires timestamp")
 		now := time.Now()
 		timeCreated, err := time.Parse(time.RFC3339, tokenCreated)
 		if err != nil {
@@ -202,7 +200,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 		createNewToken = now.After(timeCreated.Add(lifespan * 3 / 4))
 	}
 	if okCreated && !okExpires {
-		r.log.Infof("Currently entering loop where the annotation has a created timestamp, but does not have an expiration timestamp")
 		// get token by userId/clusterId
 		userID, err := r.getArgoCDClusterUserID()
 		if err != nil {
@@ -215,7 +212,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 
 		secret.Annotations[createTimestamp] = created
 		if expiresAt != "" {
-			r.log.Infof("In the process of the condition, an expired Timestamp has been found for the new token that it is updating at")
 			secret.Annotations[expiresAtTimestamp] = expiresAt
 		}
 		createNewToken = false
