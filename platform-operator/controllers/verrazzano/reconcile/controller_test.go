@@ -631,8 +631,8 @@ func TestUninstallComplete(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUninstallStarted tests the Reconcile method for the following use case
@@ -640,6 +640,7 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
+	metricsexporter.Init()
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -861,7 +862,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestVerrazzanoNotFound tests the Reconcile method for the following use case

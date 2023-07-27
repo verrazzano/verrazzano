@@ -418,6 +418,21 @@ func (mr *MockComponentInfoMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponentInfo)(nil).ShouldInstallBeforeUpgrade))
 }
 
+
+// ShouldUseModule mocks base method.
+func (m *MockComponentInfo) ShouldUseModule() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShouldUseModule")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ShouldUseModule indicates an expected call of ShouldUseModule.
+func (mr *MockComponentInfoMockRecorder) ShouldUseModule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldUseModule", reflect.TypeOf((*MockComponentInfo)(nil).ShouldUseModule))
+}
+
 // MockComponentInstaller is a mock of ComponentInstaller interface.
 type MockComponentInstaller struct {
 	ctrl     *gomock.Controller

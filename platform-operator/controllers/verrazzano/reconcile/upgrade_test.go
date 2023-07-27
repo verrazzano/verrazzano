@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -44,7 +45,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -441,10 +441,10 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 
 	// Validate the results
 	asserts.NoError(err)
-	asserts.True(result.Requeue)
-	asserts.NotEqual(time.Duration(0)*time.Second, result.RequeueAfter)
+	asserts.False(result.Requeue)
+	asserts.Equal(time.Duration(0)*time.Second, result.RequeueAfter)
 
-	// check for uninstall started condition
+	// check for ready condition
 	verrazzano := vzapi.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.Error(err)
@@ -877,6 +877,8 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 // WHEN the component upgrades normally
 // THEN no error is returned and the correct spi.Component upgrade methods have been returned
 func TestUpgradeComponent(t *testing.T) {
+	metricsexporter.Init()
+
 	initUnitTesing()
 	// Need to use real component name since upgrade loops through registry
 	componentName := oam.ComponentName
@@ -932,6 +934,7 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
+	mockComp.EXPECT().ShouldUseModule().Return(false).AnyTimes()
 
 	ingressList := networkingv1.IngressList{Items: []networkingv1.Ingress{}}
 	//sa := rbac.NewServiceAccount(namespace, name, []string{}, map[string]string{})
@@ -988,6 +991,8 @@ func TestUpgradeComponent(t *testing.T) {
 // WHEN the component fails to upgrade since a status other than "deployed" exists
 // THEN the offending secret is deleted so the upgrade can proceed
 func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
+	metricsexporter.Init()
+
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -1041,6 +1046,8 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
 	mockComp.EXPECT().Name().Return("testcomp").Times(1).AnyTimes()
+	mockComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
+	mockComp.EXPECT().ShouldUseModule().Return(false).AnyTimes()
 
 	// expect a call to list any secrets with a status other than "deployed" for the component
 	statuses := []string{"unknown", "uninstalled", "superseded", "failed", "uninstalling", "pending-install", "pending-upgrade", "pending-rollback"}
@@ -1083,6 +1090,8 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 // WHEN where one component is enabled and another is disabled
 // THEN the upgrade completes normally and the correct spi.Component upgrade methods have not been invoked for the disabled component
 func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
+	metricsexporter.Init()
+
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -1139,6 +1148,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
+	mockEnabledComp.EXPECT().ShouldUseModule().Return(false).AnyTimes()
 
 	// Set disabled mock component expectations
 	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1).AnyTimes()
@@ -1147,6 +1157,8 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
+	mockDisabledComp.EXPECT().ShouldUseModule().Return(false).AnyTimes()
+
 	ingressList := networkingv1.IngressList{Items: []networkingv1.Ingress{}}
 
 	authConfig := createKeycloakAuthConfig()

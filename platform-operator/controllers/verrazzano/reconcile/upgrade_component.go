@@ -50,7 +50,7 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		return newRequeueWithDelay(), err
 	}
 
-	// Loop through all of the Verrazzano components and upgrade each one.
+	// Loop through all the Verrazzano components and upgrade each one.
 	// Don't move to the next component until the current one has been succcessfully upgraded
 	for _, comp := range registry.GetComponents() {
 		if comp.ShouldUseModule() {
