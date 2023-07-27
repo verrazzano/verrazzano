@@ -204,16 +204,16 @@ func TestAppendOverrides(t *testing.T) {
 	externalDNSZone := "mydomain.com"
 
 	reloaderSidecarKVS := map[string]string{
-		"ruler.sidecar[0].image":                                `ghcr.io/verrazzano/prometheus-config-reloader:v\d+\.\d+\.\d+-.+-.+`,
-		"ruler.sidecar[0].name":                                 configReloaderSubcomponentName,
-		"ruler.sidecar[0].args[0]":                              "--listen-address=:8080",
-		"ruler.sidecar[0].args[1]":                              "--reload-url=http://127.0.0.1:10902/-/reload",
-		"ruler.sidecar[0].args[2]":                              "--watched-dir=/conf/rules/",
-		"ruler.sidecar[0].volumeMounts[0].mountPath":            "/conf/rules/",
-		"ruler.sidecar[0].volumeMounts[0].name":                 "ruler-config",
-		"ruler.configmapName":                                   "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0",
-		"ruler.sidecar[0].securityContext.privileged":           "false",
-		"ruler.sidecar[0].securityContext.capabilities.drop[0]": "ALL",
+		"ruler.sidecars[0].image":                                `ghcr.io/verrazzano/prometheus-config-reloader:v\d+\.\d+\.\d+-.+-.+`,
+		"ruler.sidecars[0].name":                                 configReloaderSubcomponentName,
+		"ruler.sidecars[0].args[0]":                              "--listen-address=:8080",
+		"ruler.sidecars[0].args[1]":                              "--reload-url=http://127.0.0.1:10902/-/reload",
+		"ruler.sidecars[0].args[2]":                              "--watched-dir=/conf/rules/",
+		"ruler.sidecars[0].volumeMounts[0].mountPath":            "/conf/rules/",
+		"ruler.sidecars[0].volumeMounts[0].name":                 "ruler-config",
+		"ruler.configmapName":                                    "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0",
+		"ruler.sidecars[0].securityContext.privileged":           "false",
+		"ruler.sidecars[0].securityContext.capabilities.drop[0]": "ALL",
 	}
 
 	tests := []struct {

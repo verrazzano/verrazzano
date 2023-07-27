@@ -115,7 +115,7 @@ func appendReloaderSidecarOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue
 
 	image := subcomponent.Images[0]
 	imageString := constructFullImageString(bomFile, *subcomponent, image)
-	sidecarPrefix := "ruler.sidecar[0]"
+	sidecarPrefix := "ruler.sidecars[0]"
 	kvs = append(kvs, []bom.KeyValue{
 		{Key: fmt.Sprintf("%s.image", sidecarPrefix), Value: imageString},
 		{Key: fmt.Sprintf("%s.name", sidecarPrefix), Value: configReloaderSubcomponentName},
