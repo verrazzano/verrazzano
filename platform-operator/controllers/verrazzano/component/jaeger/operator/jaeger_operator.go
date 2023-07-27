@@ -802,7 +802,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
-		ingress.Annotations["cert-manager.io/cluster-issuer"] = globalconst.VerrazzanoClusterIssuerName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzcr.GetClusterIssuerNameFromCR(ctx.EffectiveCR())
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget

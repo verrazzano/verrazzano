@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -63,7 +62,7 @@ func patchArgoCDIngress(ctx spi.ComponentContext) error {
 			ingress.Annotations = map[string]string{}
 		}
 		ingress.Annotations["cert-manager.io/common-name"] = argoCDHostName
-		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzconst.VerrazzanoClusterIssuerName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzcr.GetClusterIssuerNameFromCR(ctx.EffectiveCR())
 		ingress.Annotations["kubernetes.io/tls-acme"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
 		ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"

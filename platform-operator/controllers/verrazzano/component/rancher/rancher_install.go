@@ -7,8 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -45,7 +45,7 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 	ingress.Annotations["kubernetes.io/tls-acme"] = "true"
 	ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTPS"
 	ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"
-	ingress.Annotations["cert-manager.io/cluster-issuer"] = constants.VerrazzanoClusterIssuerName
+	ingress.Annotations["cert-manager.io/cluster-issuer"] = vzcr.GetClusterIssuerNameFromCR(vz)
 	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
 
 	isLEIssuer, err := clusterIssuer.IsLetsEncryptIssuer()

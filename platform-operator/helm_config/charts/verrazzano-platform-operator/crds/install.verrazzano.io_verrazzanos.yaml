@@ -726,6 +726,13 @@ spec:
                       enabled:
                         default: true
                         type: boolean
+                      issuerRef:
+                        properties:
+                          issuerName:
+                            type: string
+                        required:
+                        - issuerName
+                        type: object
                       letsEncrypt:
                         properties:
                           emailAddress:
@@ -4862,6 +4869,13 @@ spec:
                       enabled:
                         default: true
                         type: boolean
+                      issuerRef:
+                        properties:
+                          issuerName:
+                            type: string
+                        required:
+                        - issuerName
+                        type: object
                       letsEncrypt:
                         properties:
                           emailAddress:

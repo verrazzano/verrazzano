@@ -13,7 +13,6 @@ import (
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
@@ -820,7 +819,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
 		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
 			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
-		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzconst.VerrazzanoClusterIssuerName
+		ingress.Annotations["cert-manager.io/cluster-issuer"] = vzcr.GetClusterIssuerNameFromCR(ctx.EffectiveCR())
 		// update target annotation on Keycloak Ingress for external DNS
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())

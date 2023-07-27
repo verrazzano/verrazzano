@@ -5,7 +5,6 @@ package thanos
 
 import (
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -235,7 +234,7 @@ func formatIngressOverrides(ctx spi.ComponentContext, props ingressOverridePrope
 	}
 	kvs = append(kvs, []bom.KeyValue{
 		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/common-name`, props.KeyPrefix), Value: props.HostName},
-		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/cluster-issuer`, props.KeyPrefix), Value: vzconst.VerrazzanoClusterIssuerName},
+		{Key: fmt.Sprintf(`%s.annotations.cert-manager\.io/cluster-issuer`, props.KeyPrefix), Value: vzcr.GetClusterIssuerNameFromCR(ctx.EffectiveCR())},
 	}...)
 	return kvs
 }

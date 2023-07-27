@@ -1185,6 +1185,11 @@ type CAIssuer struct {
 	SecretName string `json:"secretName"`
 }
 
+// ClusterIssuerRef Named reference to an externally-managed ClusterIssuer
+type ClusterIssuerRef struct {
+	IssuerName string `json:"issuerName"`
+}
+
 // IssuerConfig identifies the configuration for the Verrazzano ClusterIssuer.  Only one value may be set.
 type IssuerConfig struct {
 	// The LetsEncrypt issuer configuration.
@@ -1193,6 +1198,9 @@ type IssuerConfig struct {
 	// The certificate configuration.
 	// +optional
 	CA *CAIssuer `json:"ca,omitempty"`
+	// A reference to an externally managed ClusterIssuer to use for Verrazzano-issued certificates
+	// +optional
+	IssuerRef *ClusterIssuerRef `json:"issuerRef,omitempty"`
 }
 
 // Certificate - Deprecated. Represents the type of cert issuer for an installation.

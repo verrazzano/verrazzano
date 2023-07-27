@@ -199,9 +199,14 @@ func convertIssuerConfig(src IssuerConfig) v1beta1.IssuerConfig {
 	if src.CA != nil {
 		caIssuer = &v1beta1.CAIssuer{SecretName: src.CA.SecretName}
 	}
+	var issuerRef *v1beta1.ClusterIssuerRef
+	if src.IssuerRef != nil {
+		issuerRef = &v1beta1.ClusterIssuerRef{IssuerName: src.IssuerRef.IssuerName}
+	}
 	return v1beta1.IssuerConfig{
 		LetsEncrypt: leIssuer,
 		CA:          caIssuer,
+		IssuerRef:   issuerRef,
 	}
 }
 

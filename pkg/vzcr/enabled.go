@@ -5,6 +5,7 @@ package vzcr
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,6 +15,36 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
+
+func GetClusterIssuerNameFromCR(cr runtime.Object) string {
+	if cr == nil {
+		return constants.VerrazzanoClusterIssuerName
+	}
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		return GetClusterIssuerName(vzv1alpha1.Spec.Components.ClusterIssuer)
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		return GetClusterIssuerName(vzv1beta1.Spec.Components.ClusterIssuer)
+	}
+	return constants.VerrazzanoClusterIssuerName
+}
+
+func GetClusterIssuerName(clusterIssuerComp interface{}) string {
+	issuerName := constants.VerrazzanoClusterIssuerName
+	if clusterIssuerComp == nil {
+		return issuerName
+	}
+
+	if vzv1alpha1, ok := clusterIssuerComp.(*installv1alpha1.ClusterIssuerComponent); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.IssuerRef != nil {
+			issuerName = vzv1alpha1.IssuerRef.IssuerName
+		}
+	} else if vzv1beta1, ok := clusterIssuerComp.(*installv1beta1.ClusterIssuerComponent); ok {
+		if vzv1beta1 != nil && vzv1beta1.IssuerRef != nil {
+			issuerName = vzv1beta1.IssuerRef.IssuerName
+		}
+	}
+	return issuerName
+}
 
 // IsPrometheusEnabled - Returns false only if explicitly disabled in the CR
 func IsPrometheusEnabled(cr runtime.Object) bool {
