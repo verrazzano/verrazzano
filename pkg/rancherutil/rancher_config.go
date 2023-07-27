@@ -279,7 +279,6 @@ type TokenGetResponse struct {
 	Created   string `json:"created"`
 	ClusterID string `json:"clusterId"`
 	ExpiresAt string `json:"expiresAt"`
-	UserID    string `json:"userID"`
 }
 
 // GetTokenWithFilter get created expiresAt attribute of a user token with filter
@@ -292,6 +291,7 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 	if err != nil {
 		return "", "", err
 	}
+
 	err = httputil.ValidateResponseCode(response, http.StatusOK)
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to validate response: %v", err)
@@ -307,29 +307,12 @@ func GetTokenWithFilter(rc *RancherConfig, log vzlog.VerrazzanoLogger, userID, c
 	if err != nil {
 		return "", "", log.ErrorfNewErr("Failed to parse response: %v", err)
 	}
-	var tokenToReturn *TokenGetResponse
-	for i, item := range items {
-		if item.ClusterID != clusterID || item.UserID != userID {
-			continue
+	for _, item := range items {
+		if item.ClusterID == clusterID {
+			return item.Created, item.ExpiresAt, nil
 		}
-
-		if tokenToReturn == nil && len(item.Created) > 0 {
-			tokenToReturn = &(items[i])
-			continue
-		}
-		// Find the latest token based on creation timestamp
-		timeOfCurrentTokenToReturn, _ := time.Parse(time.RFC3339, tokenToReturn.Created)
-		timeOfTokenBeingExamined, _ := time.Parse(time.RFC3339, item.Created)
-
-		if timeOfTokenBeingExamined.After(timeOfCurrentTokenToReturn) {
-			tokenToReturn = &(items[i])
-		}
-
 	}
-	if tokenToReturn == nil {
-		return "", "", nil
-	}
-	return tokenToReturn.Created, tokenToReturn.ExpiresAt, nil
+	return "", "", log.ErrorfNewErr("Failed to find the token in Rancher response")
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string
