@@ -344,7 +344,12 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 	// Update the status
 	if statusUpdated {
-		// Use Status update directly so any conflicting updates get rejected
+		// Use Status update directly so any conflicting updates get rejected.
+		// This is needed for integration with the new Verrazzano controller used for modules
+		// Basically, that controller was seeing the component status updates and creating
+		// Module CRs, which in turn updated the component status conditions.  However, this code
+		// was subsequently re-initializing the component status because it didn't know there was an update conflict
+		// and that it needed to requeue, so it was using a stale copy of the VZ CR.
 		r.Status().Update(context.TODO(), cr)
 		return newRequeueWithDelay(), nil
 	}

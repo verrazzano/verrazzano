@@ -796,6 +796,8 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 		return result, nil
 	}
 
+	// Seeing a problem where the VZ CR webhook rejects the following CondUninstallComplete update because
+	// the VZ CR is in uninstalling state.  Set the state to Ready and requeue to pick up a fresh VZ CR
 	if vz.Status.State != installv1alpha1.VzStateReady {
 		vz.Status.State = installv1alpha1.VzStateReady
 		r.Status().Update(context.TODO(), vz)

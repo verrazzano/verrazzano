@@ -615,9 +615,8 @@ func TestUninstallComplete(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 2)
 			return nil
-		})
+		}).AnyTimes()
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -632,8 +631,8 @@ func TestUninstallComplete(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUninstallStarted tests the Reconcile method for the following use case
@@ -765,6 +764,8 @@ func setFakeComponentsDisabled() {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
+	metricsexporter.Init()
+
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -860,7 +861,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestVerrazzanoNotFound tests the Reconcile method for the following use case

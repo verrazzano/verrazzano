@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -77,6 +78,8 @@ var jaegerEnabled = true
 // WHEN a verrazzano version is empty
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
+	metricsexporter.Init()
+
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -438,8 +441,8 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 
 	// Validate the results
 	asserts.NoError(err)
-	asserts.False(result.Requeue)
-	asserts.Equal(time.Duration(0)*time.Second, result.RequeueAfter)
+	asserts.True(result.Requeue)
+	asserts.NotEqual(time.Duration(0)*time.Second, result.RequeueAfter)
 
 	// check for uninstall started condition
 	verrazzano := vzapi.Verrazzano{}
