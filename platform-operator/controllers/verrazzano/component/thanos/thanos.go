@@ -33,6 +33,8 @@ const (
 	// Thanos Ruler ingress constants
 	rulerHostName        = "thanos-ruler"
 	rulerCertificateName = "system-tls-thanos-ruler"
+
+	configReloaderSubcomponentName = "prometheus-config-reloader"
 )
 
 // GetOverrides gets the install overrides for the Thanos component
@@ -60,11 +62,16 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	image, err := bomFile.BuildImageOverrides(ComponentName)
 	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to build Thanos image overrides from the Verrazzano BOM: %d", err)
+		return kvs, ctx.Log().ErrorfNewErr("Failed to build Thanos image overrides from the Verrazzano BOM: %v", err)
 	}
 	kvs = append(kvs, image...)
 
 	kvs = appendVerrazzanoOverrides(ctx, kvs)
+
+	kvs, err = appendReloaderSidecarOverrides(ctx, kvs, bomFile)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to build Thanos sidecar overrides from the Verrazzano BOM: %v", err)
+	}
 
 	return appendIngressOverrides(ctx, kvs)
 }
@@ -90,6 +97,62 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 	// Create the verrazzano-monitoring namespace if not already created
 	ctx.Log().Debugf("Creating namespace %s for Thanos", constants.VerrazzanoMonitoringNamespace)
 	return common.EnsureVerrazzanoMonitoringNamespace(ctx)
+}
+
+// appendReloaderSidecarOverrides generates overrides for the Prometheus Config Reloader sidecar for the Thanos Ruler
+func appendReloaderSidecarOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, bomFile bom.Bom) ([]bom.KeyValue, error) {
+	subcomponent, err := bomFile.GetSubcomponent(configReloaderSubcomponentName)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get subcomponent %s from the Verrazzano BOM: %v", configReloaderSubcomponentName, err)
+	}
+
+	if subcomponent == nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to find subcomponent %s", configReloaderSubcomponentName)
+	}
+	if len(subcomponent.Images) != 1 {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get config reloader image from the bom, %d images returned when only one is expected", len(subcomponent.Images))
+	}
+
+	image := subcomponent.Images[0]
+	imageString := constructFullImageString(bomFile, *subcomponent, image)
+	sidecarPrefix := "ruler.sidecar[0]"
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: fmt.Sprintf("%s.image", sidecarPrefix), Value: imageString},
+		{Key: fmt.Sprintf("%s.name", sidecarPrefix), Value: configReloaderSubcomponentName},
+		{Key: fmt.Sprintf("%s.args[0]", sidecarPrefix), Value: "--listen-address=:8080"},
+		{Key: fmt.Sprintf("%s.args[1]", sidecarPrefix), Value: "--reload-url=http://127.0.0.1:10902/-/reload"},
+		{Key: fmt.Sprintf("%s.args[2]", sidecarPrefix), Value: "--watched-dir=/conf/rules/"},
+		{Key: fmt.Sprintf("%s.volumeMounts[0].mountPath", sidecarPrefix), Value: "/conf/rules/"},
+		{Key: fmt.Sprintf("%s.volumeMounts[0].name", sidecarPrefix), Value: "ruler-config"},
+		{Key: "ruler.configmapName", Value: "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0"},
+
+		// Security setup for the sidecar
+		{Key: fmt.Sprintf("%s.securityContext.privileged", sidecarPrefix), Value: "false"},
+		{Key: fmt.Sprintf("%s.securityContext.capabilities.drop[0]", sidecarPrefix), Value: "ALL"},
+	}...)
+
+	return kvs, nil
+}
+
+func constructFullImageString(bomFile bom.Bom, subcomponent bom.BomSubComponent, image bom.BomImage) string {
+	registry := func() string {
+		if image.Registry != "" {
+			return image.Registry
+		}
+		if subcomponent.Registry != "" {
+			return subcomponent.Registry
+		}
+		return bomFile.GetRegistry()
+	}()
+
+	repository := func() string {
+		if image.Repository != "" {
+			return image.Repository
+		}
+		return subcomponent.Repository
+	}()
+
+	return fmt.Sprintf("%s/%s/%s:%s", registry, repository, image.ImageName, image.ImageTag)
 }
 
 // appendIngressOverrides generates overrides for ingress objects in the Thanos component
