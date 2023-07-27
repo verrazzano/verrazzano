@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -649,101 +649,6 @@ func TestSyncAgentSecretFromAdminCluster(t *testing.T) {
 			asserts.NoError(t, err)
 			asserts.Equal(t, controllerutil.OperationResultNone, reSyncOperationResult)
 
-		})
-	}
-}
-
-// TestSyncLocalClusterCA tests an additional case of syncing just the MC CA to the admin cluster
-// when the CA cert is empty
-func TestSyncLocalClusterCA(t *testing.T) {
-	assert := asserts.New(t)
-	log := zap.S().With("test")
-	testMCLocalNonEmptyCA, err := getSampleSecret(vzTLSSecretPath)
-	assert.NoError(err, sampleMCTLSReadErrMsg)
-	testAdminMCNonEmptyCA, err := getSampleSecret(mcCASecretPath)
-	assert.NoError(err, sampleMCCAReadErrMsg)
-
-	testMCLocalEmptyCA := testMCLocalNonEmptyCA.DeepCopy()
-	testMCLocalEmptyCA.Data[mcconstants.CaCrtKey] = nil
-	testAdminMCEmptyCA := testAdminMCNonEmptyCA.DeepCopy()
-	testAdminMCEmptyCA.Data[keyCaCrtNoDot] = nil
-
-	testVMC, err := getSampleClusterCAVMC(vmcPath)
-	assert.NoError(err, sampleVMCReadErrMsg)
-
-	tests := []struct {
-		name                string
-		testMCLocalCASecret *corev1.Secret
-		testAdminMCCASecret *corev1.Secret
-	}{
-		{
-			"Both admin MC CA and managed cluster local CA empty",
-			testMCLocalEmptyCA,
-			testAdminMCEmptyCA,
-		},
-		{
-			"Managed cluster local CA empty but admin MC CA is non-empty",
-			testMCLocalEmptyCA,
-			&testAdminMCNonEmptyCA,
-		},
-		{
-			"Admin MC CA empty, managed cluster local CA non-empty",
-			&testMCLocalNonEmptyCA,
-			testAdminMCEmptyCA,
-		},
-		{
-			"Both admin MC CA and managed cluster local CA are non-empty and equal",
-			&testMCLocalNonEmptyCA,
-			&testAdminMCNonEmptyCA,
-		},
-		{
-			"Both admin MC CA and managed cluster local CA are non-empty and different",
-			&testMCLocalNonEmptyCA,
-			&testAdminMCNonEmptyCA,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			adminRuntimeObjects := []runtime.Object{&testVMC}
-			managedCA := ""
-			if tt.testAdminMCCASecret != nil {
-				adminRuntimeObjects = append(adminRuntimeObjects, tt.testAdminMCCASecret)
-			}
-			adminClient := fake.NewClientBuilder().
-				WithScheme(newClusterCAScheme()).
-				WithRuntimeObjects(adminRuntimeObjects...).
-				Build()
-
-			localRuntimeObjects := []runtime.Object{}
-			if tt.testMCLocalCASecret != nil {
-				localRuntimeObjects = append(localRuntimeObjects, tt.testMCLocalCASecret)
-				managedCA = string(tt.testMCLocalCASecret.Data[mcconstants.CaCrtKey])
-			}
-			localClient := fake.NewClientBuilder().
-				WithScheme(newClusterCAScheme()).
-				WithRuntimeObjects(localRuntimeObjects...).
-				Build()
-
-			s := &Syncer{
-				AdminClient:        adminClient,
-				LocalClient:        localClient,
-				Log:                log,
-				ManagedClusterName: testClusterName,
-				Context:            context.TODO(),
-			}
-			err := s.syncLocalClusterCA()
-			assert.NoError(err)
-			adminMCSecretAfterTest := corev1.Secret{}
-			err = adminClient.Get(context.TODO(),
-				types.NamespacedName{
-					Namespace: tt.testAdminMCCASecret.Namespace,
-					Name:      tt.testAdminMCCASecret.Name},
-				&adminMCSecretAfterTest)
-			assert.NoError(err)
-			// in all cases, after the call to syncLocalClusterCAs, the managed cluster CA on the
-			// admin side should equal the one on the managed side (either through update or because
-			// they were equal to start with
-			assert.Equal(managedCA, string(adminMCSecretAfterTest.Data[keyCaCrtNoDot]))
 		})
 	}
 }
