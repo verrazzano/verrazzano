@@ -46,8 +46,9 @@ func GetRulesFromThanosRuler(kubeconfigPath string) (interface{}, error) {
 		Log(Error, fmt.Sprintf("Failed to unmarshal the response data %s: %v", data, err))
 		return nil, err
 	}
+	Log(Debug, fmt.Sprintf("response body: %v", data.Data))
 
-	return data, err
+	return data.Data, err
 }
 
 // GetSystemThanosRulerURL gets the system Thanos Ingress host in the given cluster
