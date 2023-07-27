@@ -439,7 +439,7 @@ func verifyGetRequest(clusterName string, expectedNodes int, expectedClusterStat
 		}
 	}
 
-	log.Infof("cluster %s looks active and normal from a GET call to the Rancher API", clusterName)
+	log.Infof("cluster %s looks as expected from a GET call to the Rancher API", clusterName)
 	return nil
 }
 
