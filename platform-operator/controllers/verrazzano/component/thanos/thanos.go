@@ -124,7 +124,7 @@ func appendReloaderSidecarOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue
 		{Key: fmt.Sprintf("%s.args[2]", sidecarPrefix), Value: "--watched-dir=/conf/rules/"},
 		{Key: fmt.Sprintf("%s.volumeMounts[0].mountPath", sidecarPrefix), Value: "/conf/rules/"},
 		{Key: fmt.Sprintf("%s.volumeMounts[0].name", sidecarPrefix), Value: "ruler-config"},
-		{Key: "ruler.configmapName", Value: "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0"},
+		{Key: "ruler.existingConfigmap", Value: "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0"},
 
 		// Security setup for the sidecar
 		{Key: fmt.Sprintf("%s.securityContext.privileged", sidecarPrefix), Value: "false"},

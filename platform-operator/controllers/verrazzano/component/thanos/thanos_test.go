@@ -211,7 +211,7 @@ func TestAppendOverrides(t *testing.T) {
 		"ruler.sidecars[0].args[2]":                              "--watched-dir=/conf/rules/",
 		"ruler.sidecars[0].volumeMounts[0].mountPath":            "/conf/rules/",
 		"ruler.sidecars[0].volumeMounts[0].name":                 "ruler-config",
-		"ruler.configmapName":                                    "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0",
+		"ruler.existingConfigmap":                                "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0",
 		"ruler.sidecars[0].securityContext.privileged":           "false",
 		"ruler.sidecars[0].securityContext.capabilities.drop[0]": "ALL",
 	}
