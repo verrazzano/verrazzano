@@ -25,7 +25,7 @@ func GetRulesFromThanosRuler(kubeconfigPath string) (interface{}, error) {
 		return nil, err
 	}
 
-	url := GetSystemThanosRulerURL(kubeconfigPath)
+	url := fmt.Sprintf("%s/api/v1/rules", GetSystemThanosRulerURL(kubeconfigPath))
 	resp, err := doReq(url, "GET", "", "", "verrazzano", password, nil, retryableClient)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to make a request to the Thanos Ruler ingress %v", err))
