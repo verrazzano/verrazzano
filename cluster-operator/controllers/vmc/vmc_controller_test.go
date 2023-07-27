@@ -410,7 +410,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 
 // TestCreateVMCFetchCACertFromManagedCluster tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
-// WHEN a VerrazzanoManagedCluster resource has been applied and the caSecret field is NOT empty
+// WHEN a VerrazzanoManagedCluster resource has been applied and the caSecret field is empty
 // THEN ensure that we fetch the CA cert secret from the managed cluster and populate the caSecret field
 func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	// clear any cached user auth tokens when the test completes
@@ -454,7 +454,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, false)
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
@@ -463,7 +463,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 			asserts.Fail("failed due to error %v", err)
 		}
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
-		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, false)
 		return nil
 	}, func(secret *corev1.Secret) error {
 		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
@@ -2509,15 +2509,9 @@ func validateScrapeConfig(t *testing.T, scrapeConfig *gabs.Container, caBasePath
 	asserts.Equal(testManagedCluster, scrapeConfig.Search("metric_relabel_configs", "0",
 		"replacement").Data(),
 		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have right replacement value")
-	schemePath := scrapeConfig.Path("scheme")
-	tlsScrapeConfig := scrapeConfig.Search("tls_config", "ca_file")
 	if expectTLSConfig {
-		asserts.Equal("https", schemePath.Data(), "wrong scheme")
-		assert.NotNil(t, tlsScrapeConfig)
-		asserts.Equal(caBasePath+"ca-test", tlsScrapeConfig.Data(), "Wrong cert path")
-	} else {
-		assert.Nil(t, tlsScrapeConfig)
-		asserts.Equal("https", schemePath.Data(), "wrong scheme")
+		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
+		asserts.Equal(caBasePath+"ca-test", scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 	}
 }
 
