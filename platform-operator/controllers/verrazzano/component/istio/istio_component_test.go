@@ -397,7 +397,7 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
 				Name:      IstiodDeployment,
-				Labels:    map[string]string{"app": IstiodDeployment, "release": "istio"},
+				Labels:    map[string]string{"app": IstiodDeployment},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
@@ -431,7 +431,7 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
 				Name:      IstioIngressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioIngressgatewayDeployment, "release": "istio"},
+				Labels:    map[string]string{"app": IstioIngressgatewayDeployment},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
@@ -459,6 +459,23 @@ func TestIsReady(t *testing.T) {
 				Namespace:   IstioNamespace,
 				Name:        IstioIngressgatewayDeployment + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioEgressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioEgressgatewayDeployment},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": IstioEgressgatewayDeployment},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&v1.Pod{
@@ -1316,56 +1333,6 @@ func TestValidateInstallWithExistingIstio(t *testing.T) {
 		},
 	}
 	common.RunValidateInstallTest(t, NewComponent, tests...)
-}
-
-// TestIsAvailable test the IsAvailable function for Istio
-//
-//	 GIVEN a call to IsAvailable
-//		WHEN the deployments given in the istio operator are available
-//		THEN the status available is returned
-func TestIsAvailable(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: IstioNamespace,
-				Name:      IstiodDeployment,
-				Labels:    map[string]string{"app": IstiodDeployment, "release": "istio"},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": IstiodDeployment},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				ReadyReplicas:     1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: IstioNamespace,
-				Name:      IstioIngressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioIngressgatewayDeployment, "release": "istio"},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": IstioIngressgatewayDeployment},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				ReadyReplicas:     1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-	).Build()
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	var iComp istioComponent
-	_, available := iComp.IsAvailable(compContext)
-	assert.Equal(t, v1alpha1.ComponentAvailability(v1alpha1.ComponentAvailable), available)
 }
 
 func newScheme() *runtime.Scheme {

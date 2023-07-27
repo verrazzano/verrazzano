@@ -9,6 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
+
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -18,13 +23,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
@@ -33,7 +35,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,8 +78,6 @@ const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
-var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
-
 const (
 	// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
 	// Put external IPs into the IstioOperator YAML, which does support it
@@ -89,6 +88,21 @@ const (
 	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
 	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"
 )
+
+var istioDeployments = []types.NamespacedName{
+	{
+		Name:      IstiodDeployment,
+		Namespace: IstioNamespace,
+	},
+	{
+		Name:      IstioIngressgatewayDeployment,
+		Namespace: IstioNamespace,
+	},
+	{
+		Name:      IstioEgressgatewayDeployment,
+		Namespace: IstioNamespace,
+	},
+}
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -388,7 +402,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return (&ready.AvailabilityObjects{DeploymentSelectors: []clipkg.ListOption{&istioLabelSelector}}).IsAvailable(ctx.Log(), ctx.Client())
+	return (&ready.AvailabilityObjects{DeploymentNames: istioDeployments}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
@@ -420,9 +434,8 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	return true
 }
 
-// areIstioDeploymentsReady verifies that the enabled deployments in the Istio Operator CR are ready
-func areIstioDeploymentsReady(ctx spi.ComponentContext, prefix string) bool {
-	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &istioLabelSelector)
+func areIstioDeploymentsReady(context spi.ComponentContext, prefix string) bool {
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), istioDeployments, 1, prefix)
 }
 
 func isIstioManifestNotInstalledError(err error) bool {
