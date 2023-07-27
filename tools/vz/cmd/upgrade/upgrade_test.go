@@ -214,6 +214,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			assert.NotNil(t, cmd)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -251,7 +252,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			// Verify the version got updated
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 			assert.NoError(t, err)
-			assert.Equal(t, "v1.5.2", vz.Spec.Version)
+			assert.Equal(t, "v1.4.0", vz.Spec.Version)
 		})
 	}
 }
