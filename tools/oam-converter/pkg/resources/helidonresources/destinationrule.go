@@ -4,23 +4,23 @@
 package helidonresources
 
 import (
-	"fmt"
+	"errors"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	istio "istio.io/api/networking/v1beta1"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"time"
 )
 
 // createOfUpdateDestinationRule creates or updates the DestinationRule.
-func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) error {
+func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, helidonWorkload *unstructured.Unstructured) (*istioclient.DestinationRule, error) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -31,19 +31,18 @@ func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vz
 				Name:      name},
 		}
 		namespace := &corev1.Namespace{}
-		fmt.Println("destinationRule", destinationRule)
 		return mutateDestinationRuleFromHelidonWorkload(destinationRule, rule, namespace, helidonWorkload)
 
 	}
-	return nil
+	return nil, nil
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) error {
+func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, helidonWorkload *unstructured.Unstructured) (*istioclient.DestinationRule, error) {
 	dest, err := createDestinationFromRuleOrHelidonWorkload(rule, helidonWorkload)
 	if err != nil {
 		print(err)
-		return err
+		return nil, err
 	}
 
 	mode := istionet.ClientTLSSettings_DISABLE
@@ -71,61 +70,95 @@ func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.Desti
 			},
 		},
 	}
-	fmt.Println("DestinationRule", destinationRule)
-	directoryPath := "/Users/vrushah/GolandProjects/verrazzano/tools/oam-converter/"
-	fileName := "dr.yaml"
-	filePath := filepath.Join(directoryPath, fileName)
 
-	destinationRuleYaml, err := yaml.Marshal(destinationRule)
-	if err != nil {
-		fmt.Printf("Failed to marshal: %v\n", err)
-		return err
-	}
-	// Write the YAML content to the file
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Printf("Failed to open file: %v\n", err)
-		return err
-	}
-	defer file.Close()
-
-	// Append the YAML content to the file
-	_, err = file.Write(destinationRuleYaml)
-	if err != nil {
-		fmt.Printf("Failed to write to file: %v\n", err)
-		return err
-	}
-	_, err = file.WriteString("---\n")
-	if err != nil {
-		fmt.Printf("Failed to write to file: %v\n", err)
-		return err
-	}
-	return nil
+	return destinationRule, nil
 }
 
-// createDestinationFromRuleOrService creates a destination from either the rule or the service.
-// If the rule contains destination information that is used.
-func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) (*istio.HTTPRouteDestination, error) {
+// createDestinationFromRuleOrService creates a destination from the rule or workload
+// If the rule contains destination information that is used otherwise workload information is used
+func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonWorkload *unstructured.Unstructured) (*istio.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
-		dest := &istio.HTTPRouteDestination{Destination: &istio.Destination{Host: rule.Destination.Host}}
-		if rule.Destination.Port != 0 {
-			dest.Destination.Port = &istio.PortSelector{Number: rule.Destination.Port}
+
+		dest, err := destination.CreateDestinationFromRule(rule)
+		if err != nil {
+			return nil, err
 		}
-		return dest, nil
+		return dest, err
+
 	}
 
-	return createDestinationFromHelidonWorkload(rule.Destination.Port, helidonWorkload)
+	return createDestinationFromHelidonWorkload(helidonWorkload)
 
 }
 
-func createDestinationFromHelidonWorkload(rulePort uint32, helidonWorkload *vzapi.VerrazzanoHelidonWorkload) (*istio.HTTPRouteDestination, error) {
+// creates a destination in the virtual service from helidon workload if port details not present in trait
+func createDestinationFromHelidonWorkload(helidonWorkload *unstructured.Unstructured) (*istio.HTTPRouteDestination, error) {
 
-	if helidonWorkload.Spec.DeploymentTemplate.PodSpec.Containers[0].Ports[0].ContainerPort != 0 {
-		dest := istio.HTTPRouteDestination{
-			Destination: &istio.Destination{Host: helidonWorkload.Name}}
-		// Set the port to rule destination port
-		dest.Destination.Port = &istio.PortSelector{Number: uint32(helidonWorkload.Spec.DeploymentTemplate.PodSpec.Containers[0].Ports[0].ContainerPort)}
-		return &dest, nil
+	helidonWorkloadStruct := helidonWorkload.UnstructuredContent()
+	spec, found, err := unstructured.NestedMap(helidonWorkloadStruct, "spec")
+	if !found || err != nil {
+		return nil, errors.New("spec key in a component doesn't exist or not found in the specified type")
 	}
-	return nil, fmt.Errorf("unable to select service for specified destination port %d", rulePort)
+	deploymentTemplate, found, err := unstructured.NestedMap(spec, "deploymentTemplate")
+	if !found || err != nil {
+		return nil, errors.New("deployment template key in a component doesn't exist or not found in the specified type")
+	}
+	podSpec, found, err := unstructured.NestedMap(deploymentTemplate, "podSpec")
+	if !found || err != nil {
+		return nil, errors.New("pod spec in a component doesn't exist or not found in the specified type")
+	}
+	container, found, err := unstructured.NestedSlice(podSpec, "containers")
+	if !found || err != nil {
+		return nil, errors.New("container in a component doesn't exist or not found in the specified type")
+	}
+	metaData, found, err := unstructured.NestedMap(deploymentTemplate, "metadata")
+	if !found || err != nil {
+		return nil, errors.New("metadata in a component doesn't exist or not found in the specified type")
+	}
+	name, found, err := unstructured.NestedString(metaData, "name")
+	if !found || err != nil {
+		return nil, errors.New("name in a component doesn't exist or not found in the specified type")
+	}
+
+	// Iterate over the container slice
+	for _, item := range container {
+
+		// Type assertion to convert the item back to map[string]interface{}
+		if itemMap, ok := item.(map[string]interface{}); ok {
+
+			// Check if the "ports" key exists in the map
+			if ports, exists := itemMap["ports"]; exists {
+
+				// Type assertion to convert "ports" to []interface{}
+				if portsSlice, ok := ports.([]interface{}); ok {
+
+					// Iterate over the ports slice
+					for _, port := range portsSlice {
+
+						// Type assertion to convert each port to map[string]interface{}
+						if portMap, ok := port.(map[string]interface{}); ok {
+
+							// Check if the "containerPort" key exists in the portMap
+							if containerPort, exists := portMap["containerPort"]; exists {
+
+								// Access the value of "containerPort" and convert into uint32
+								int32ContainerPort := uint32(containerPort.(int64))
+
+								dest := istio.HTTPRouteDestination{
+
+									Destination: &istio.Destination{Host: name}}
+
+								// Set the port to rule destination port
+								dest.Destination.Port = &istio.PortSelector{Number: int32ContainerPort}
+								return &dest, nil
+
+							}
+						}
+					}
+				}
+			}
+		}
+
+	}
+	return nil, errors.New("unable to select data for specified destination port")
 }

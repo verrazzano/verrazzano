@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const catalogResource = "catalog.management.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type catalogsList struct {
@@ -30,9 +33,14 @@ type catalogSpec struct {
 }
 
 // AnalyzeCatalogs - analyze the status of Catalog objects
-func AnalyzeCatalogs(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeCatalogs(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &catalogsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "catalog.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", catalogResource), list)
 	if err != nil {
 		return err
 	}
@@ -63,7 +71,6 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -72,12 +79,13 @@ func analyzeCatalog(clusterRoot string, catalog catalog, issueReporter *report.I
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Catalog resource %q on branch %s with URL %s: %s %s%s", catalog.Name, catalog.Spec.Branch, catalog.Spec.URL, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q on branch %s with URL %s", catalogResource, catalog.Name, catalog.Spec.Branch, catalog.Spec.URL)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

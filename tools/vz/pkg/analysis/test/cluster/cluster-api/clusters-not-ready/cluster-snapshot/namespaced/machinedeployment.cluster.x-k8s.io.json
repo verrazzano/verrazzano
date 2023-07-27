@@ -1,0 +1,28 @@
+{
+  "apiVersion": "cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "MachineDeployment",
+      "metadata": {
+        "name": "pool-u52w2",
+        "namespace": "c-pzd2r"
+      },
+      "status": {
+        "conditions": [
+          {
+            "reason": "WaitingForAvailableMachines",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "WaitingForAvailableMachines",
+            "status": "False",
+            "type": "Available"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "MachineDeploymentList"
+}

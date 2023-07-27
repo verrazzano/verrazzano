@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const nodeResource = "node.management.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type nodeList struct {
@@ -25,9 +28,14 @@ type node struct {
 }
 
 // AnalyzeNodes - analyze the status of Node objects
-func AnalyzeNodes(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeNodes(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &nodeList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "node.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", nodeResource), list)
 	if err != nil {
 		return err
 	}
@@ -80,12 +88,13 @@ func analyzeNode(clusterRoot string, node node, issueReporter *report.IssueRepor
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher Node resource %q %s %s%s", node.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %q", nodeResource, node.Name, node.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

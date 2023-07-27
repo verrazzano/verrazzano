@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const managementClusterResource = "cluster.management.cattle.io"
 
 // Minimal definition that only contains the fields that will be analyzed
 type managementClusterList struct {
@@ -29,9 +32,14 @@ type managementClusterSpec struct {
 }
 
 // AnalyzeManagementClusters - analyze the status of Rancher management clusters resources
-func AnalyzeManagementClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeManagementClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &managementClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "cluster.management.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", managementClusterResource), list)
 	if err != nil {
 		return err
 	}
@@ -96,7 +104,6 @@ func analyzeManagementCluster(clusterRoot string, cluster managementCluster, iss
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -105,12 +112,13 @@ func analyzeManagementCluster(clusterRoot string, cluster managementCluster, iss
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher management cluster resource %q (displayed as %s) %s%s%s", cluster.Name, cluster.Spec.DisplayName, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s%s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q (displayed as %s)", managementClusterResource, cluster.Name, cluster.Spec.DisplayName)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

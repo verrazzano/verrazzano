@@ -67,4 +67,4 @@ webhook:
         - ALL
 
 startupapicheck:
-  enabled: false
+  enabled: true

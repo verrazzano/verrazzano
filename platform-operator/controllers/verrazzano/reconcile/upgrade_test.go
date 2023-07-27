@@ -937,8 +937,8 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().ShouldUseModule().Return(false).AnyTimes()
 
 	ingressList := networkingv1.IngressList{Items: []networkingv1.Ingress{}}
-	//sa := rbac.NewServiceAccount(namespace, name, []string{}, map[string]string{})
-	//crb := rbac.NewClusterRoleBinding(&vz, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(name))
+	// sa := rbac.NewServiceAccount(namespace, name, []string{}, map[string]string{})
+	// crb := rbac.NewClusterRoleBinding(&vz, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(name))
 	authConfig := createKeycloakAuthConfig()
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := keycloakutil.CreateTestKeycloakLoginSecret()
@@ -1634,7 +1634,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzIngress},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: consoleURL},
@@ -1823,7 +1823,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzIngress},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: consoleURL},

@@ -295,22 +295,6 @@ spec:
           protocol: TCP
 
 {{- end }}
----
-# Network policy for Rancher cluster agent
-# - always create this policy in case the target cluster is intended to be a managed cluster
-# Ingress: deny all
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: cattle-cluster-agent
-  namespace: cattle-system
-spec:
-  podSelector:
-    matchLabels:
-      app: cattle-cluster-agent
-  policyTypes:
-    - Ingress
 {{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher UI/API
@@ -681,8 +665,10 @@ spec:
             - key: app.kubernetes.io/component
               operator: In
               values:
+              - compactor
               - query
               - query-frontend
+              - ruler
               - storegateway
         - namespaceSelector:
             matchLabels:

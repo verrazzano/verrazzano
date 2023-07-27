@@ -5,12 +5,15 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const clusterRepoResource = "clusterrepo.catalog.cattle.io"
 
 // Minimal definition of object that only contains the fields that will be analyzed
 type clusterRepoList struct {
@@ -30,9 +33,14 @@ type clusterRepoSpec struct {
 }
 
 // AnalyzeClusterRepos - analyze the status of ClusterRepo objects
-func AnalyzeClusterRepos(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterRepos(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &clusterRepoList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, "clusterrepo.catalog.cattle.io.json", list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", clusterRepoResource), list)
 	if err != nil {
 		return err
 	}
@@ -63,7 +71,6 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 				continue
 			}
 			// Add a message for the issue
-			var message string
 			reason := ""
 			msg := ""
 			if len(condition.Reason) > 0 {
@@ -72,12 +79,13 @@ func analyzeClusterRepo(clusterRoot string, clusterRepo clusterRepo, issueReport
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message = fmt.Sprintf("Rancher ClusterRepo resource %q %s %s%s", clusterRepo.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q", clusterRepoResource, clusterRepo.Name)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

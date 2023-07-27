@@ -1,0 +1,34 @@
+{
+  "apiVersion": "cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "MachineSet",
+      "metadata": {
+        "name": "pool-u52w2-7c87f895ddx9jk4d",
+        "namespace": "c-pzd2r"
+      },
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "MachinesCreated"
+          },
+          {
+            "status": "True",
+            "type": "MachinesReady"
+          },
+          {
+            "status": "True",
+            "type": "Resized"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "MachineSetList"
+}

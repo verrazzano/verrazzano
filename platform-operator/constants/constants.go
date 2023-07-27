@@ -44,8 +44,8 @@ const AdminClusterConfigMapName = "verrazzano-admin-cluster"
 // ServerDataKey is the key into ConfigMap data for cluster server address
 const ServerDataKey = "server"
 
-// VzConsoleIngress - the name of the ingress for Verrazzano console and api
-const VzConsoleIngress = "verrazzano-ingress"
+// VzIngress - the name of the ingress for Verrazzano console and api
+const VzIngress = "verrazzano-ingress"
 
 // RegistryOverrideEnvVar is the environment variable name used to override the registry housing images we install
 const RegistryOverrideEnvVar = "REGISTRY"

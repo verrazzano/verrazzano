@@ -169,9 +169,13 @@ func (t ThanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 		Namespace: ns,
 		Name:      vzconst.ThanosQueryIngress,
 	})
-	return append(ingressNames, types.NamespacedName{
+	ingressNames = append(ingressNames, types.NamespacedName{
 		Namespace: ns,
 		Name:      vzconst.ThanosQueryStoreIngress,
+	})
+	return append(ingressNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      vzconst.ThanosRulerIngress,
 	})
 }
 
@@ -190,8 +194,12 @@ func (t ThanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.N
 		Namespace: ns,
 		Name:      queryCertificateName,
 	})
-	return append(certificateNames, types.NamespacedName{
+	certificateNames = append(certificateNames, types.NamespacedName{
 		Namespace: ns,
 		Name:      queryStoreCertificateName,
+	})
+	return append(certificateNames, types.NamespacedName{
+		Namespace: ns,
+		Name:      rulerCertificateName,
 	})
 }

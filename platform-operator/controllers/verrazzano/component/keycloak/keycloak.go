@@ -565,6 +565,8 @@ const pkceClientUrisTemplate = `
 	  "https://osd.logging.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://thanos-ruler.{{.DNSSubDomain}}/*",
+	  "https://thanos-ruler.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://jaeger.{{.DNSSubDomain}}/*",
 	  "https://alertmanager.{{.DNSSubDomain}}/*",
 	  "https://alertmanager.{{.DNSSubDomain}}/_authentication_callback"{{ if .OSHostExists}},
@@ -584,6 +586,7 @@ const pkceClientUrisTemplate = `
 	  "https://osd.logging.{{.DNSSubDomain}}",
 	  "https://opensearch.logging.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}",
+	  "https://thanos-ruler.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}",
 	  "https://alertmanager.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
@@ -875,7 +878,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			pod := keycloakPod()
 			err1 := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
 			if err1 != nil {
-				ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err1)
+				ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", pod.Name, err1)
 				return err1
 			}
 			err2 := ctx.Client().Delete(context.TODO(), pod)
@@ -1104,7 +1107,7 @@ func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	kcPod := keycloakPod()
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: kcPod.Namespace, Name: kcPod.Name}, kcPod)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", kcPod.Name, err)
+		ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", kcPod.Name, err)
 		return err
 	}
 	if !isPodReady(kcPod) {
