@@ -343,10 +343,10 @@ listImageSizes() {
   for image in "${images[@]}"; do
     echo "pulling ${image}"
     docker pull "${image}"
-    # Append image size into the image-sizes-unsorted.txt
+    # Append image size into the image-sizes.txt
     size=$(docker image inspect "${image}" | jq -r '.[0].Size')
     hsize=$(numfmt --to=si ${size})
-    echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes-unsorted.txt
+    echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes.txt
   done
 }
 
@@ -365,10 +365,10 @@ loadExampleTarFiles() {
   for image in "${images[@]}"; do
     echo "pulling ${image}"
     docker pull "${image}"
-    # Append image size into the image-sizes-unsorted.txt
+    # Append image size into the image-sizes.txt
     size=$(docker image inspect "${image}" | jq -r '.[0].Size')
     hsize=$(numfmt --to=si ${size})
-    echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes-unsorted.txt
+    echo "${image},${size},${hsize}" >> ${WORKSPACE}/image-sizes.txt
   done
 
   docker save -o "${generatedDir}/${VZ_EXAMPLE_IMAGES_BUNDLE}" "${images[@]}"
@@ -499,9 +499,6 @@ generateVZFullDistribution "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_FULL
 
 # List the image tar files
 listImageSizes
-
-# Sort the image sizes by size and remove any dups
-cat ${WORKSPACE}/image-sizes-unsorted.txt | sort -u -k 2 -t ',' -n > ${WORKSPACE}/image-sizes.txt
 
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
