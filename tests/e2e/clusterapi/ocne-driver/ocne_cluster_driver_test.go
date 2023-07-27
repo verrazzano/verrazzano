@@ -25,13 +25,14 @@ const (
 )
 
 var (
-	t                     = framework.NewTestFramework("capi-ocne-driver")
-	clusterNameSingleNode string
-	clusterNameNodePool   string
+	t                            = framework.NewTestFramework("capi-ocne-driver")
+	clusterNameSingleNode        string
+	clusterNameNodePool          string
+	clusterNameSingleNodeInvalid string
 )
 
 // Part of SynchronizedBeforeSuite, run by only one process
-func sbsProcess1Func() []byte {
+func synchronizedBeforeSuiteProcess1Func() []byte {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	if !pkg.IsRancherEnabled(kubeconfigPath) || !pkg.IsClusterAPIEnabled(kubeconfigPath) {
@@ -48,9 +49,10 @@ func sbsProcess1Func() []byte {
 		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
-	// Create the cloud credential to be used for all tests
-	ensureVarsInitializedForCredential()
+	verifyRequiredEnvironmentVariables()
+
 	cloudCredentialName := fmt.Sprintf("strudel-cred-%s", ocneClusterNameSuffix)
+	// Create the cloud credential to be used for all tests
 	var credentialID string
 	Eventually(func() error {
 		var err error
@@ -67,7 +69,7 @@ func sbsProcess1Func() []byte {
 }
 
 // Part of SynchronizedBeforeSuite, run by all processes
-func sbsAllProcessesFunc(credentialIDBytes []byte) {
+func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 	// Define global variables for all processes
 	cloudCredentialID = string(credentialIDBytes)
 
@@ -84,19 +86,24 @@ func sbsAllProcessesFunc(credentialIDBytes []byte) {
 		AbortSuite(fmt.Sprintf("failed getting rancherURL: %v", err))
 	}
 
+	// Calling this method again so that all processes have the variables initialized
+	verifyRequiredEnvironmentVariables()
+
 	err = ensureOCNEDriverVarsInitialized(t.Logs)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
+
+	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
 }
 
-var _ = t.SynchronizedBeforeSuite(sbsProcess1Func, sbsAllProcessesFunc)
+var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchronizedBeforeSuiteAllProcessesFunc)
 
 // Part of SynchronizedAfterSuite, run by only one process
-func sasProcess1Func() {
+func synchronizedAfterSuiteProcess1Func() {
 	// Delete the clusters concurrently
-	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool}
+	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeInvalid}
 	var wg sync.WaitGroup
 	for _, clusterName := range clusterNames {
 		if clusterName != "" {
@@ -124,14 +131,14 @@ func sasProcess1Func() {
 		BeTrue(), fmt.Sprintf("cloud credential %s is not deleted", cloudCredentialID))
 }
 
-var _ = t.SynchronizedAfterSuite(func() {}, sasProcess1Func)
+var _ = t.SynchronizedAfterSuite(func() {}, synchronizedAfterSuiteProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
-				return createSingleNodeCluster(clusterNameSingleNode, t.Logs)
+				return createSingleNodeCluster(clusterNameSingleNode, t.Logs, nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
@@ -142,8 +149,32 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, 1, t.Logs)
+				return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
+		})
+	})
+
+	t.Context("OCNE cluster creation with single node invalid kubernetes version", Ordered, func() {
+		t.It("create OCNE cluster", func() {
+			// Create the cluster
+			Eventually(func() error {
+				mutateFn := func(config *RancherOCNECluster) {
+					// setting an invalid kubernetes version
+					config.OciocneEngineConfig.KubernetesVersion = "v1.22.7"
+				}
+				return createSingleNodeCluster(clusterNameSingleNodeInvalid, t.Logs, mutateFn)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		})
+
+		t.It("check OCNE cluster is not active", func() {
+			// Verify the cluster is not active
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeInvalid, t.Logs) }, waitTimeout, pollingInterval).Should(
+				BeFalse(), fmt.Sprintf("cluster %s is active", clusterNameSingleNodeInvalid))
+
+			// Verify that the cluster is configured correctly
+			Eventually(func() error {
+				return verifyCluster(clusterNameSingleNodeInvalid, 0, provisioningClusterState, transitioningFlagError, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
 		})
 	})
 
@@ -163,7 +194,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, 2, t.Logs)
+				return verifyCluster(clusterNameNodePool, 2, activeClusterState, transitioningFlagNo, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})

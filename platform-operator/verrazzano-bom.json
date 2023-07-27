@@ -265,7 +265,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.2-20230718195046-274bd46",
+              "tag": "v1.6.3-20230724213913-d8bed68",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.2-20230718193648-3e1f23c",
+              "tag": "v1.6.3-20230724213654-0f2362e",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },

@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,9 +32,14 @@ type clusterGroupStatus struct {
 }
 
 // AnalyzeClusterGroups - analyze the status of ClusterGroup objects
-func AnalyzeClusterGroups(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeClusterGroups(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &clusterGroupList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", clusterGroupResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", clusterGroupResource), list)
 	if err != nil {
 		return err
 	}
@@ -72,16 +78,17 @@ func analyzeClusterGroup(clusterRoot string, clusterGroup clusterGroup, issueRep
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q %s %s%s", clusterGroupResource, clusterGroup.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if clusterGroup.Status.NonReadyClusterCount > 0 {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s has %d clusters not ready", clusterGroupResource, clusterGroup.Name, clusterGroup.Namespace, clusterGroup.Status.NonReadyClusterCount)
+		message := fmt.Sprintf("\thas %d clusters not ready", clusterGroup.Status.NonReadyClusterCount)
 		messages = append([]string{message}, messages...)
 	}
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q", clusterGroupResource, clusterGroup.Name)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 
