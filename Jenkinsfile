@@ -263,6 +263,8 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     make precommit
                     make unit-test-coverage-ratcheting
+                    echo "Checking versions..."
+                    release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
                 """
                     }
                     post {
