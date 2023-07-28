@@ -123,9 +123,13 @@ func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject() error 
 			if namespaceList.Items[i].Labels == nil {
 				namespaceList.Items[i].Labels = map[string]string{}
 			}
+			if namespaceList.Items[i].Annotations == nil {
+				namespaceList.Items[i].Annotations = map[string]string{}
+			}
 			_, rancherProjectIDExists := namespaceList.Items[i].Labels[RancherProjectIDLabelKey]
 			if isVerrazzanoManagedNamespace(&(namespaceList.Items[i])) && !rancherProjectIDExists {
 				nw.log.Infof("Updating the Namespace%v", namespaceList.Items[i])
+				namespaceList.Items[i].Annotations[RancherProjectIDLabelKey] = constants.MCLocalCluster + ":" + getRancherSystemProjectID()
 				namespaceList.Items[i].Labels[RancherProjectIDLabelKey] = getRancherSystemProjectID()
 				if err := nw.client.Update(context.TODO(), &(namespaceList.Items[i]), &clipkg.UpdateOptions{}); err != nil {
 					return err
@@ -156,7 +160,6 @@ func isVerrazzanoManagedNamespace(ns *v1.Namespace) bool {
 	if rancherSystemLabelExists && value != "true" && verrazzanoSystemLabelExists {
 		return true
 	}
-
 	return false
 }
 
