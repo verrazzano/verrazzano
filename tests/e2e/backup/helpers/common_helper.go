@@ -8,6 +8,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"strings"
+	"text/template"
+	"time"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -15,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -27,12 +34,6 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
-	"net/http"
-	"os"
-	"os/exec"
-	"strings"
-	"text/template"
-	"time"
 )
 
 var decUnstructured = k8sYaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
@@ -390,17 +391,19 @@ func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 // HTTPHelper utility for http method use cases
 func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenType string, expectedResponseCode int, payload interface{}, log *zap.SugaredLogger) (*gabs.Container, error) {
 
-	var retryabeRequest *retryablehttp.Request
+	var retryableRequest *retryablehttp.Request
 	var err error
 
 	switch method {
 	case "GET":
-		retryabeRequest, err = retryablehttp.NewRequest(http.MethodGet, httpURL, payload)
-		retryabeRequest.Header.Set("Content-Type", "application/json")
+		retryableRequest, err = retryablehttp.NewRequest(http.MethodGet, httpURL, payload)
+		retryableRequest.Header.Set("Content-Type", "application/json")
 	case "POST":
-		retryabeRequest, err = retryablehttp.NewRequest(http.MethodPost, httpURL, payload)
+		retryableRequest, err = retryablehttp.NewRequest(http.MethodPost, httpURL, payload)
 	case "DELETE":
-		retryabeRequest, err = retryablehttp.NewRequest(http.MethodDelete, httpURL, payload)
+		retryableRequest, err = retryablehttp.NewRequest(http.MethodDelete, httpURL, payload)
+	case "PUT":
+		retryableRequest, err = retryablehttp.NewRequest(http.MethodPut, httpURL, payload)
 	}
 	if err != nil {
 		log.Error(fmt.Sprintf("error creating retryable api request for %s: %v", httpURL, err))
@@ -409,12 +412,12 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 
 	switch tokenType {
 	case "Bearer":
-		retryabeRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
+		retryableRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
 	case "Basic":
-		retryabeRequest.SetBasicAuth(strings.Split(token, ":")[0], strings.Split(token, ":")[1])
+		retryableRequest.SetBasicAuth(strings.Split(token, ":")[0], strings.Split(token, ":")[1])
 	}
-	retryabeRequest.Header.Set("Accept", "application/json")
-	response, err := httpClient.Do(retryabeRequest)
+	retryableRequest.Header.Set("Accept", "application/json")
+	response, err := httpClient.Do(retryableRequest)
 	if err != nil {
 		log.Error(fmt.Sprintf("error invoking api request %s: %v", httpURL, err))
 		return nil, err
