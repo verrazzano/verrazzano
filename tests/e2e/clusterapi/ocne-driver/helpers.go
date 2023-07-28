@@ -13,6 +13,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
+	"github.com/verrazzano/verrazzano/tests/e2e/clusterapi/capi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -617,4 +618,42 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName s
 		return nil, err
 	}
 	return dataFetched, nil
+}
+
+// Given a list of CAPI Conditions, return the Condition with the most recent lastTransitionTime.
+func getMostRecentCondition(conditionList []Condition) Condition {
+	var recent Condition
+	for _, condition := range conditionList {
+		if recent == (Condition{}) || condition.LastTransitionTime.After(recent.LastTransitionTime) {
+			recent = condition
+		}
+	}
+	return recent
+}
+
+func getCAPICluster(clusterID string, log *zap.SugaredLogger) (*capi.Cluster, error) {
+	var capiCluster capi.Cluster
+	clusterFetched, err := getUnstructuredData("cluster.x-k8s.io", "v1beta1", "clusters", clusterID, clusterID, log)
+	if err != nil {
+		log.Errorf("Unable to fetch CAPI cluster '%s' due to '%v'", clusterID, zap.Error(err))
+		return nil, err
+	}
+
+	if clusterFetched == nil {
+		log.Infof("No CAPI clusters with name '%s' in namespace '%s' was detected", clusterID, clusterID)
+		return &capiCluster, nil
+	}
+
+	bdata, err := json.Marshal(clusterFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &capiCluster)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &capiCluster, nil
 }

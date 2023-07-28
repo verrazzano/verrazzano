@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"go.uber.org/zap"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -146,9 +147,8 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 
 		t.It("check OCNE cluster is active", func() {
-			// Verify the cluster is active
-			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode, t.Logs) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
+			waitUntilCreatedClusterIsActive(clusterNameSingleNode, t.Logs)
+
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
 				return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
@@ -236,3 +236,51 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 	})
 })
+
+// Waits for this OCNE cluster to become active after a request to create it has been made.
+func waitUntilCreatedClusterIsActive(clusterName string, log *zap.SugaredLogger) {
+	clusterID, err := getClusterIDFromName(clusterName, log)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	var mostRecentTransitionTime time.Time
+
+	// Overall timeout: wait until the cluster is active
+	Eventually(func() (bool, error) {
+
+		// Shorter timeout: check that the cluster creation is making progress
+		Eventually(
+			func() (bool, error) { return checkCAPIConditionProgress(clusterID, &mostRecentTransitionTime, log) },
+			shortWaitTimeout, shortPollingInterval).Should(
+			BeTrue(), fmt.Sprintf("CAPI cluster %s showing no signs of progress", clusterName))
+
+		return isClusterActive(clusterNameSingleNode, t.Logs)
+	}, waitTimeout, pollingInterval).Should(
+		BeTrue(), fmt.Sprintf("cluster %s is not active", clusterName))
+}
+
+// Returns `true` if the CAPI cluster associated with the given `clusterID`
+// shows a Condition with a transitionTime more recent than `previousTransitionTime`.
+func checkCAPIConditionProgress(clusterID string, previousTransitionTime *time.Time, log *zap.SugaredLogger) (bool, error) {
+	capiCluster, err := getCAPICluster(clusterID, log)
+	if err != nil {
+		log.Errorf("could not get capi cluster %s: %s", clusterID, err)
+		return false, err
+	}
+
+	// Convert the conditions list in the CAPI cluster to []Condition
+	var conditionList []Condition
+	for _, c := range capiCluster.Status.Conditions {
+		conditionList = append(conditionList, c)
+	}
+
+	recentCondition := getMostRecentCondition(conditionList)
+	if previousTransitionTime.IsZero() || recentCondition.LastTransitionTime.After(*previousTransitionTime) {
+		// Found a new Condition. Update the previousTransitionTime.
+		*previousTransitionTime = recentCondition.LastTransitionTime
+		log.Infof("CAPI cluster %s shows new condition of type %s and status %s",
+			clusterID, recentCondition.Type, recentCondition.Status)
+		return true, nil
+	}
+	// The CAPI conditions list shows no new changes
+	return false, nil
+}

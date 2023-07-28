@@ -208,3 +208,10 @@ type OCNEMetadataContents struct {
 		Kubelet string `yaml:"kubelet"`
 	} `yaml:"packages"`
 }
+
+// Represents a Condition of a CAPI cluster object.
+type Condition struct {
+	LastTransitionTime time.Time `json:"lastTransitionTime"`
+	Status             string    `json:"status"`
+	Type               string    `json:"type"`
+}
