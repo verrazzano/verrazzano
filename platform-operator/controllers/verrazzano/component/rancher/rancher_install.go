@@ -16,6 +16,7 @@ import (
 	networking "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -130,5 +131,17 @@ func cleanupRancherResources(ctx context.Context, c client.Client) error {
 			return err
 		}
 	}
+
+	// Delete the system-library catalog which is no longer installed/supported.
+	catalog := schema.GroupVersionResource{
+		Group:    common.APIGroupRancherManagement,
+		Version:  common.APIGroupVersionRancherManagement,
+		Resource: "catalogs",
+	}
+	err = di.Resource(catalog).Delete(ctx, "system-library", metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
 	return nil
 }

@@ -28,6 +28,7 @@ const (
 	name      = "NAME"
 )
 
+var GVKCatalog = common.GetRancherMgmtAPIGVKForKind("Catalog")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
 var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
@@ -40,6 +41,26 @@ func createKontainerDriver(name string) *unstructured.Unstructured {
 	kontainerDriver.SetName(name)
 	kontainerDriver.UnstructuredContent()["spec"] = map[string]interface{}{}
 	return kontainerDriver
+}
+
+func createNodeDriver(name string) *unstructured.Unstructured {
+	nodeDriver := &unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	nodeDriver.SetGroupVersionKind(GVKNodeDriver)
+	nodeDriver.SetName(name)
+	nodeDriver.UnstructuredContent()["spec"] = map[string]interface{}{}
+	return nodeDriver
+}
+
+func createCatalog(name string) *unstructured.Unstructured {
+	catalog := &unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	catalog.SetGroupVersionKind(GVKCatalog)
+	catalog.SetName(name)
+	catalog.UnstructuredContent()["spec"] = map[string]interface{}{}
+	return catalog
 }
 
 // TestAddAcmeIngressAnnotations verifies if LetsEncrypt Annotations are added to the Ingress
