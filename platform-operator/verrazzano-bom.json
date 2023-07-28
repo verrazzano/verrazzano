@@ -473,7 +473,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230725071427-8e93dbe",
+              "tag": "v2.2.0-20230728114120-794513a",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
