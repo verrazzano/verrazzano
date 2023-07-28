@@ -120,6 +120,17 @@ spec:
         - operation:
             ports:
               - "10902"
+    # allow query to talk to the Store API on Thanos Ruler
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-query
+      to:
+        - operation:
+            ports:
+              - "10901"
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}

@@ -129,6 +129,19 @@ spec:
       ports:
         - port: 10902
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - query
+      ports:
+        - port: 10901
+          protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
