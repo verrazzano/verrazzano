@@ -48,8 +48,8 @@ func TestStart(t *testing.T) {
 }
 
 // TestMoveSystemNamespaces tests the following cases
-// GIVEN that rancher component is enabled and in not ready state in Verrazzano installlation
-// OR when not all subcomponents are ready
+// GIVEN that rancher component is enabled and in not ready state in Verrazzano installation
+// OR when subcomponents are not ready
 // THEN no operation takes place
 func TestNotToMoveSystemNamespacesWhenRancherNotReady(t *testing.T) {
 	namespace1 := &v1.Namespace{
@@ -111,9 +111,9 @@ func TestNotToMoveSystemNamespacesWhenRancherNotReady(t *testing.T) {
 }
 
 // TestToNotMoveSystemNamespaces tests the following cases
-// GIVEN that rancher component is enabled and in ready state in Verrazzano installlation
+// GIVEN that rancher component is enabled and in ready state in Verrazzano installation
 // When namespaces on the cluster does not have label "verrazzano.io/namespace"
-// THEN the namespace  is skipped
+// THEN the namespace  is ignored
 func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 	namespace1 := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -180,8 +180,8 @@ func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 }
 
 // TestMoveSystemNamespaces tests the following cases
-// GIVEN that rancher component is enabled and in ready state in Verrazzano installlation
-// When namespaces on the cluster has label "verrazzano.io/namespace"
+// GIVEN that rancher component is enabled and in ready state in Verrazzano installation
+// When namespaces on the cluster has a label "verrazzano.io/namespace"
 // And when namespaces on the cluster does not have a label management.cattle.io/system-namespace
 // THEN the method retrieves the System project ID from the rancher
 // And updates the namespace annotation and label with the Project ID.
