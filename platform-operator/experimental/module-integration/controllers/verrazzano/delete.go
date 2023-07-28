@@ -33,12 +33,12 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 		if !comp.ShouldUseModule() {
 			continue
 		}
-		moduleCount++
 
 		// If not full uninstall then only disabled components should be uninstalled
 		if !fullUninstall && comp.IsEnabled(effectiveCR) {
 			continue
 		}
+		moduleCount++
 		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{
 			Name:      comp.Name(),
 			Namespace: constants.VerrazzanoInstallNamespace,
