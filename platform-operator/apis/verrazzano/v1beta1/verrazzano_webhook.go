@@ -4,17 +4,13 @@
 package v1beta1
 
 import (
-	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"strings"
 )
@@ -173,29 +169,6 @@ func (v *Verrazzano) validateProfile(oldResource *Verrazzano) error {
 		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldProfile, newProfile)
 	}
 
-	return nil
-}
-
-// verifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
-// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
-// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
-// multiple instances, if that makes sense.
-func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
-	runtimeClient, err := getControllerRuntimeClient(newScheme())
-	if err != nil {
-		return err
-	}
-	var podList v1.PodList
-	err = runtimeClient.List(context.TODO(), &podList,
-		client.InNamespace(constants.VerrazzanoInstallNamespace),
-		client.MatchingLabels{"app": "verrazzano-platform-operator"})
-	if err != nil {
-		return err
-	}
-	err = validators.ValidatePlatformOperatorSingleton(podList)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -430,22 +430,6 @@ func getSupportedKubernetesVersions() ([]string, error) {
 	return bom.GetSupportedKubernetesVersion(), nil
 }
 
-// ValidatePlatformOperatorSingleton iterates over the list of pods and verifies that there is only a single VPO instance running
-func ValidatePlatformOperatorSingleton(podList v1.PodList) error {
-	if len(podList.Items) > 1 {
-		healthyPod := 0
-		for _, pod := range podList.Items {
-			if pod.Status.Phase != "Failed" {
-				healthyPod++
-			}
-		}
-		if healthyPod > 1 {
-			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
-		}
-	}
-	return nil
-}
-
 // VerifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
 // if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
 // updates before terminating.  In the longer term we may want some kind of leader-election strategy to support

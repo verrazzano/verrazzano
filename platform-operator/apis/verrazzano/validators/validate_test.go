@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	v1 "k8s.io/apiserver/pkg/apis/example/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"path/filepath"
@@ -622,26 +621,24 @@ func TestVerifyPlatformOperatorSingletonFailedPods(t *testing.T) {
 				"app": "verrazzano-platform-operator",
 			}
 
-			runtimeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
+			runtimeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&corev1.PodList{
 				TypeMeta: metav1.TypeMeta{},
 				Items:    createPodList(tt.podList, labels, tt.failedPods)},
 			).Build()
 
-			if len(tt.podList) == 1 {
+			if tt.shouldPass {
 				assert.NoError(t, VerifyPlatformOperatorSingleton(runtimeClient))
-			} else if len(tt.podList) > 1 && !tt.shouldPass {
+			} else if !tt.shouldPass {
 				assert.Error(t, VerifyPlatformOperatorSingleton(runtimeClient))
-			} else if len(tt.podList) > 1 && tt.shouldPass {
-				assert.NoError(t, VerifyPlatformOperatorSingleton(runtimeClient))
 			}
 		})
 	}
 }
 
-func createPodList(listOfPods []string, labels map[string]string, failedPods int) []v1.Pod {
-	var list []v1.Pod
+func createPodList(listOfPods []string, labels map[string]string, failedPods int) []corev1.Pod {
+	var list []corev1.Pod
 	for _, podName := range listOfPods {
-		pod := v1.Pod{}
+		pod := corev1.Pod{}
 		pod.Name = podName
 		pod.Namespace = constants.VerrazzanoInstallNamespace
 		pod.Labels = labels
@@ -656,7 +653,7 @@ func createPodList(listOfPods []string, labels map[string]string, failedPods int
 
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	v1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
 	clientgoscheme.AddToScheme(scheme)
 
 	return scheme

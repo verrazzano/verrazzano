@@ -4,24 +4,18 @@
 package v1alpha1
 
 import (
-	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"strings"
 )
 
 var getControllerRuntimeClient = validators.GetClient
-
-const failedPhase = "Failed"
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
@@ -63,13 +57,13 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	// Verify only one instance of the operator is running
-	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+	client, err := getControllerRuntimeClient(newScheme())
+	if err != nil {
 		return err
 	}
 
-	client, err := getControllerRuntimeClient(newScheme())
-	if err != nil {
+	// Verify only one instance of the operator is running
+	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
 		return err
 	}
 
@@ -113,8 +107,13 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
+	client, err := getControllerRuntimeClient(newScheme())
+	if err != nil {
+		return err
+	}
+
 	// Verify only one instance of the operator is running
-	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
 		return err
 	}
 
@@ -135,16 +134,12 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	newSpecVerString := strings.TrimSpace(v.Spec.Version)
 	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)
 	currSpecVerString := strings.TrimSpace(oldResource.Spec.Version)
-	err := validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
+	err = validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
 	}
 
-	client, err := getControllerRuntimeClient(newScheme())
-	if err != nil {
-		return err
-	}
 	if err := validateOCISecrets(client, &v.Spec); err != nil {
 		return err
 	}
@@ -174,36 +169,6 @@ func (v *Verrazzano) validateProfile(oldResource *Verrazzano) error {
 		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldProfile, newProfile)
 	}
 
-	return nil
-}
-
-// verifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
-// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
-// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
-// multiple instances, if that makes sense.
-func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
-	runtimeClient, err := getControllerRuntimeClient(newScheme())
-	if err != nil {
-		return err
-	}
-	var podList v1.PodList
-	err = runtimeClient.List(context.TODO(), &podList,
-		client.InNamespace(constants.VerrazzanoInstallNamespace),
-		client.MatchingLabels{"app": "verrazzano-platform-operator"})
-	if err != nil {
-		return err
-	}
-	if len(podList.Items) > 1 {
-		healthyPod := 0
-		for _, pod := range podList.Items {
-			if pod.Status.Phase != "Failed" {
-				healthyPod++
-			}
-		}
-		if healthyPod > 1 {
-			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
-		}
-	}
 	return nil
 }
 
