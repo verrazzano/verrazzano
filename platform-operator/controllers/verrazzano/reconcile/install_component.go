@@ -67,8 +67,12 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 
 	var requeue bool
 
-	// Loop through all of the Verrazzano components and install each one
+	// Loop through all the Verrazzano components and install each one
 	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Ignore if this component is being handled by a Module
+			continue
+		}
 		installContext := tracker.getComponentInstallContext(comp.Name())
 		if result := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade); result.Requeue {
 			requeue = true

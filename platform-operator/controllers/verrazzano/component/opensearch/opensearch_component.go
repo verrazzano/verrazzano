@@ -51,6 +51,11 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
 }
 
+// ShouldUseModule returns true if component is implemented using a Module
+func (o opensearchComponent) ShouldUseModule() bool {
+	return false
+}
+
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
 	return []string{networkpolicies.ComponentName, vmo.ComponentName, fluentoperator.ComponentName}

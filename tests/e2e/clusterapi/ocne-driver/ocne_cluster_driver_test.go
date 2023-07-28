@@ -25,7 +25,8 @@ const (
 )
 
 var (
-	t                            = framework.NewTestFramework("capi-ocne-driver")
+	t = framework.NewTestFramework("capi-ocne-driver")
+
 	clusterNameSingleNode        string
 	clusterNameNodePool          string
 	clusterNameSingleNodeInvalid string
@@ -94,7 +95,6 @@ func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
-
 	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
 }
 
@@ -134,11 +134,14 @@ func synchronizedAfterSuiteProcess1Func() {
 var _ = t.SynchronizedAfterSuite(func() {}, synchronizedAfterSuiteProcess1Func)
 
 var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-driver"), func() {
+	// Cluster 1. Create with a single node.
 	t.Context("OCNE cluster creation with single node", Ordered, func() {
+		var clusterConfig RancherOCNECluster
+
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
-				return createSingleNodeCluster(clusterNameSingleNode, t.Logs, nil)
+				return createClusterAndFillConfig(clusterNameSingleNode, &clusterConfig, t.Logs, nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
@@ -146,7 +149,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
-
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
 				return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
@@ -154,7 +156,62 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 	})
 
+	// Cluster 2. Create with a node pool, then perform an update.
+	t.Context("OCNE cluster creation with node pools", Ordered, func() {
+		var poolName string
+		var poolReplicas int
+		var expectedNodeCount int
+
+		// clusterConfig specifies the parameters passed into the cluster creation
+		// and is updated as update requests are made
+		var clusterConfig RancherOCNECluster
+
+		t.BeforeAll(func() {
+			poolName = fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
+			poolReplicas = 2
+			expectedNodeCount = poolReplicas + numControlPlaneNodes
+		})
+
+		// Create the cluster and verify it comes up
+		t.It("create OCNE cluster", func() {
+			Eventually(func() error {
+				volumeSize, ocpus, memory := 150, 2, 32
+				mutateFn := getMutateFnNodePoolsAndResourceUsage(poolName, poolReplicas, volumeSize, ocpus, memory)
+				return createClusterAndFillConfig(clusterNameNodePool, &clusterConfig, t.Logs, mutateFn)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		})
+		t.It("check OCNE cluster is active", func() {
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
+			Eventually(func() error {
+				return verifyCluster(clusterNameNodePool, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
+		})
+
+		// Update - decrease resource usage
+		t.It("update OCNE cluster to decrease resource usage", func() {
+			poolReplicas--
+			expectedNodeCount--
+
+			Eventually(func() error {
+				volumeSize, ocpus, memory := 100, 1, 16
+				mutateFn := getMutateFnNodePoolsAndResourceUsage(poolName, poolReplicas, volumeSize, ocpus, memory)
+				return updateConfigAndCluster(&clusterConfig, mutateFn, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		})
+		t.It("check the OCNE cluster updated", func() {
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
+			Eventually(func() error {
+				return verifyCluster(clusterNameNodePool, expectedNodeCount, activeClusterState, transitioningFlagNo, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
+		})
+	})
+
+	// Cluster 3. Pass in invalid parameters when creating a cluster.
 	t.Context("OCNE cluster creation with single node invalid kubernetes version", Ordered, func() {
+		var clusterConfig RancherOCNECluster
+
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
@@ -162,40 +219,20 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 					// setting an invalid kubernetes version
 					config.OciocneEngineConfig.KubernetesVersion = "v1.22.7"
 				}
-				return createSingleNodeCluster(clusterNameSingleNodeInvalid, t.Logs, mutateFn)
+				return createClusterAndFillConfig(clusterNameSingleNodeInvalid, &clusterConfig, t.Logs, mutateFn)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
 		t.It("check OCNE cluster is not active", func() {
 			// Verify the cluster is not active
-			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeInvalid, t.Logs) }, waitTimeout, pollingInterval).Should(
+			waitTimeoutNegative := 20 * time.Minute
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeInvalid, t.Logs) }, waitTimeoutNegative, pollingInterval).Should(
 				BeFalse(), fmt.Sprintf("cluster %s is active", clusterNameSingleNodeInvalid))
 
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
 				return verifyCluster(clusterNameSingleNodeInvalid, 0, provisioningClusterState, transitioningFlagError, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
-		})
-	})
-
-	t.Context("OCNE cluster creation with node pools", Ordered, func() {
-		t.It("create OCNE cluster", func() {
-			nodePoolName := fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
-			// Create the cluster
-			Eventually(func() error {
-				return createNodePoolCluster(clusterNameNodePool, nodePoolName, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-		})
-
-		t.It("check OCNE cluster is active", func() {
-			// Verify the cluster is active
-			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
-
-			// Verify that the cluster is configured correctly
-			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, 2, activeClusterState, transitioningFlagNo, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
 		})
 	})
 })
