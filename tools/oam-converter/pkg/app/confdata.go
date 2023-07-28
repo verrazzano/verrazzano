@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"io/ioutil"
+	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
@@ -110,36 +113,73 @@ func ConfData() error {
 // Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources []any) error {
 	for index := range outputResources {
-		func() error {
-			//fileName := "" + index.Name + ".yaml" TODO add filename
-			fileName := "OAMoutput.yaml"
-			filePath := filepath.Join(outputDirectory, fileName)
-
-			f, err := os.Create(filePath)
-			if err != nil {
-				return err
-			}
-			r, err := json.Marshal(index)
-			if err != nil {
-				return err
-			}
-			output, err := yaml.JSONToYAML(r)
-			if err != nil {
-				return err
-			}
-
-			defer f.Close()
-
-			_, err = f.WriteString(string(output))
-			if err != nil {
-				return err
-			}
-			return nil
-		}()
+		err := writeToDirectory(outputDirectory, outputResources[index])
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
+func writeToDirectory(outputDirectory string, index any) error {
+	//fileName := "" + index.TypeMeta.Kind + ".yaml"
+	var fileName string
+	var filePath string
+	var object any
+
+	//check to find out what resource is being manipulated and printed
+	switch index.(type) {
+	case map[string]interface{}:
+		object = index.(map[string]interface{})
+		fileName = "gateway.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
+	case []*vsapi.VirtualService:
+		object = index
+		fileName = "virtualservice.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
+	case []*vsapi.DestinationRule:
+		object = index
+		fileName = "destinationrule.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
+	case []*clisecurity.AuthorizationPolicy:
+		object = index
+		fileName = "authorizationpolicy.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
+	case *promoperapi.ServiceMonitor:
+		object = index
+		fileName = "servicemonitor.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
+	default:
+		object = index
+		fileName = "output.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
+	}
+
+	//print resources in respective files
+	writeToFile(filePath, object)
+	return nil
+}
+func writeToFile(filePath string, object any) error{
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	r, err := json.Marshal(object)
+	if err != nil {
+		return err
+	}
+	output, err := yaml.JSONToYAML(r)
+	if err != nil {
+		return err
+	}
+	_, err = f.WriteString(string(output))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return nil
+}
 // Iterate over input directory
 func iterateDirectory(path string) ([]string, error) {
 	var files []string

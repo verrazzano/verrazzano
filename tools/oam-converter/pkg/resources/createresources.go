@@ -40,6 +40,7 @@ func CreateResources(conversionComponents []*types.ConversionComponents) ([]any,
 				return nil, errors.New("failed to create service monitor from MetricsTrait")
 
 			}
+			continue
 		}
 		if conversionComponent.Weblogicworkload != nil {
 

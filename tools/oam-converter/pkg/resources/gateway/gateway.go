@@ -148,6 +148,7 @@ func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionC
 		}
 	}
 	secretNames := CreateGatewaySecret(conversionComponents, allHostsForTrait)
+
 	if len(secretNames) == len(conversionComponents) && secretNames != nil {
 		gwName, err := BuildGatewayName(conversionComponents[0].AppNamespace)
 		if err != nil {
@@ -166,6 +167,10 @@ func CreateGatewaySecret(conversionComponents []*types.ConversionComponents, hos
 	var secrets []string
 	for _, conversionComponent := range conversionComponents {
 		var secretName string
+		if conversionComponent.IngressTrait == nil{
+			secrets = append(secrets,"")
+			continue
+		}
 		if conversionComponent.IngressTrait.Spec.TLS != (vzapi.IngressSecurity{}) {
 			secretName = validateConfiguredSecret(conversionComponent.IngressTrait)
 		} else {
@@ -206,20 +211,22 @@ func CreateGateway(conversionComponents []*types.ConversionComponents, hostsForT
 func mutateGateway(conversionComponents []*types.ConversionComponents, gateway *vsapi.Gateway, hostsForTrait []string, secretNames []string) (*vsapi.Gateway, error) {
 	for i := range conversionComponents {
 		// perform an operation
-		server := &istio.Server{
-			Name:  conversionComponents[i].IngressTrait.Name,
-			Hosts: hostsForTrait,
-			Port: &istio.Port{
-				Name:     formatGatewayServerPortName(conversionComponents[i].IngressTrait.Name),
-				Number:   443,
-				Protocol: consts.HTTPSProtocol,
-			},
-			Tls: &istio.ServerTLSSettings{
-				Mode:           istio.ServerTLSSettings_SIMPLE,
-				CredentialName: secretNames[i],
-			},
+		if conversionComponents[i].IngressTrait != nil {
+			server := &istio.Server{
+				Name:  conversionComponents[i].IngressTrait.Name,
+				Hosts: hostsForTrait,
+				Port: &istio.Port{
+					Name:     formatGatewayServerPortName(conversionComponents[i].IngressTrait.Name),
+					Number:   443,
+					Protocol: consts.HTTPSProtocol,
+				},
+				Tls: &istio.ServerTLSSettings{
+					Mode:           istio.ServerTLSSettings_SIMPLE,
+					CredentialName: secretNames[i],
+				},
+			}
+			gateway.Spec.Servers = updateGatewayServersList(gateway.Spec.Servers, server)
 		}
-		gateway.Spec.Servers = updateGatewayServersList(gateway.Spec.Servers, server)
 	}
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 	return gateway, nil

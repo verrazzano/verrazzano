@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	metrics "github.com/verrazzano/verrazzano/pkg/metrics"
 	utils "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/controllers"
@@ -18,6 +19,7 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	var ctx context.Context
 	var log vzlog.VerrazzanoLogger
 	var cli client.Client
+	var traitDefaults *vzapi.MetricsTraitSpec
 	trait := conversionComponent.MetricsTrait
 
 	serviceMonitor := promoperapi.ServiceMonitor{}
@@ -28,27 +30,22 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 		return &serviceMonitor, err
 	}
 
-	// Fetch workload resource using information from the trait
+	// Fetch workload resource as well as trait defaults using information from the trait
 	var workload *unstructured.Unstructured
 
 	if conversionComponent.Helidonworkload != nil {
 		workload = conversionComponent.Helidonworkload
+		traitDefaults, err = utils.NewTraitDefaultsForGenericWorkload()
 	}
 	if conversionComponent.Coherenceworkload != nil {
 		workload = conversionComponent.Coherenceworkload
+		traitDefaults, err = utils.NewTraitDefaultsForCOHWorkload(workload)
 	}
 	if conversionComponent.Weblogicworkload != nil {
 		workload = conversionComponent.Weblogicworkload
+		traitDefaults, err = utils.NewTraitDefaultsForWLSDomainWorkload(workload)
 	}
 
-	//fetch trait defaultss
-	traitDefaults, supported, err := utils.FetchTraitDefaults(workload)
-	if err != nil {
-		return &serviceMonitor, err
-	}
-	if !supported || traitDefaults == nil {
-		return &serviceMonitor, err
-	}
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
 	secret, err := utils.FetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, cli)
 	if err != nil {
@@ -56,7 +53,7 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	}
 
 	//fetch if trait uses Istio
-	useHTTPS, err := utils.UseHTTPSForScrapeTarget(trait)
+	useHTTPS, err := utils.UseHTTPSForScrapeTarget(ctx, cli, trait)
 	if err != nil {
 		return &serviceMonitor, err
 	}

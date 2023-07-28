@@ -47,13 +47,15 @@ func getNamespaceFromObjectMetaOrDefault(meta metav1.ObjectMeta) string {
 	}
 	return name
 }
-func UseHTTPSForScrapeTarget(trait *vzapi.MetricsTrait) (bool, error) {
+func UseHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
 	if trait.Spec.WorkloadReference.Kind == "VerrazzanoCoherenceWorkload" || trait.Spec.WorkloadReference.Kind == "Coherence" {
 		return false, nil
 	}
 	// Get the namespace resource that the MetricsTrait is deployed to
 	namespace := &k8score.Namespace{}
-
+	if err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace); err != nil {
+		return false, err
+	}
 	value, ok := namespace.Labels["istio-injection"]
 	if ok && value == "enabled" {
 		return true, nil
