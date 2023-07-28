@@ -50,8 +50,6 @@ if [ "${ENABLE_THANOS_RULER}" == "true" ]; then
 
   # Add the Thanos Ruler overrides
   yq -i eval ".spec.components.thanos.overrides.[0].values.ruler.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval '.spec.components.thanos.overrides.[0].values.ruler.alertmanagers[0] = "https://prometheus-operator-kube-p-alertmanager:9093"' ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval '.spec.components.thanos.overrides.[0].values.ruler.config.groups[0].name = "test_group"' ${INSTALL_CONFIG_TO_EDIT}
 fi
 
 # Modify the VZ CR to enable storage on the Prometheus Thanos Sidecar
