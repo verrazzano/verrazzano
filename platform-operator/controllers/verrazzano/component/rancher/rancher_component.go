@@ -712,6 +712,13 @@ func configureAuthSettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring auth-user-session-ttl-minutes setting: %s",
 			err.Error())
 	}
+
+	// Set "kubeconfig-default-token-ttl-minutes" to "540", less than the Keycloak default SSO session max (600 minutes)
+	if err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingKubeDefaultTokenTTL}, common.GVKSetting,
+		map[string]interface{}{"value": SettingKubeDefaultTokenTTLValue}); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring kubeconfig-default-token-ttl-minutes setting: %s",
+			err.Error())
+	}
 	return nil
 }
 
