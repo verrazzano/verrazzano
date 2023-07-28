@@ -70,7 +70,7 @@ func (m prometheusEdgeStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			ValueOverrides: []vzapi.Overrides{
 				{
 					Values: &apiextensionsv1.JSON{
-						Raw: []byte("{\"alertmanager\": {\"enabled\": \"true\"}}"),
+						Raw: []byte("{\"alertmanager\": {\"enabled\": true}}"),
 					},
 				},
 			},
@@ -166,7 +166,7 @@ func (m noneModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			ValueOverrides: []vzapi.Overrides{
 				{
 					Values: &apiextensionsv1.JSON{
-						Raw: []byte("{\"alertmanager\": {\"enabled\": \"false\"}}"),
+						Raw: []byte("{\"alertmanager\": {\"enabled\": false}}"),
 					},
 				},
 			},
