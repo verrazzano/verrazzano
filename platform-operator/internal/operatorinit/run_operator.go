@@ -18,7 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/factory"
 	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/controllers/verrazzano"
@@ -42,7 +42,7 @@ const vpoHelmChartConfigMapName = "vpo-helm-chart"
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	// Determine NGINX namespace before initializing components
+	// Determine NGINX namespacewatch before initializing components
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		return err
@@ -112,8 +112,10 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		}
 	} else {
 		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-		watchNamespace := namespace.NewNamespaceWatcher(mgr.GetClient(), kubeClient, time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
-		watchNamespace.Start()
+		watchNamespace := namespacewatch.NewNamespaceWatcher(mgr.GetClient(), time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
+		if vzconfig.NamespacePeriodSeconds > 0 {
+			watchNamespace.Start()
+		}
 		reconciler := reconcile.Reconciler{
 			Client:            mgr.GetClient(),
 			Scheme:            mgr.GetScheme(),
