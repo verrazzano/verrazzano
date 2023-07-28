@@ -61,18 +61,18 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	client, err := getControllerRuntimeClient(newScheme())
+	runtimeClient, err := getControllerRuntimeClient(newScheme())
 	if err != nil {
 		return err
 	}
 
 	// Verify only one instance of the operator is running
-	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+	if err := validators.VerifyPlatformOperatorSingleton(runtimeClient); err != nil {
 		return err
 	}
 
 	// Validate that only one install is allowed.
-	if err := ValidateActiveInstall(client); err != nil {
+	if err := ValidateActiveInstall(runtimeClient); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	if err := validateOCISecrets(client, &v.Spec); err != nil {
+	if err := validateOCISecrets(runtimeClient, &v.Spec); err != nil {
 		return err
 	}
 
@@ -110,9 +110,13 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
 		return err
 	}
+	client, err := getControllerRuntimeClient(newScheme())
+	if err != nil {
+		return err
+	}
 
 	// Verify only one instance of the operator is running
-	if err := v.verifyPlatformOperatorSingleton(); err != nil {
+	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
 		return err
 	}
 
@@ -133,15 +137,10 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	newSpecVerString := strings.TrimSpace(v.Spec.Version)
 	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)
 	currSpecVerString := strings.TrimSpace(oldResource.Spec.Version)
-	err := validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
+	err = validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
 
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
-		return err
-	}
-
-	client, err := getControllerRuntimeClient(newScheme())
-	if err != nil {
 		return err
 	}
 

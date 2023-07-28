@@ -193,9 +193,16 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 	if err != nil {
 		return err
 	}
-	err = validators.ValidatePlatformOperatorSingleton(podList)
-	if err != nil {
-		return err
+	if len(podList.Items) > 1 {
+		healthyPod := 0
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != "Failed" {
+				healthyPod++
+			}
+		}
+		if healthyPod > 1 {
+			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		}
 	}
 	return nil
 }
