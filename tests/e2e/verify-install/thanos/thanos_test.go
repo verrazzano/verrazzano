@@ -151,6 +151,9 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 		// WHEN the ingresses exist
 		// THEN they should be accessible
 		WhenThanosInstalledIt("Thanos ingresses should be accessible", func() {
+			if pkg.IsManagedClusterProfile() {
+				Skip("Skip verifying ingress accessibility for managed clusters")
+			}
 			httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 			creds := pkg.EventuallyGetSystemVMICredentials()
 			urls := []*string{
