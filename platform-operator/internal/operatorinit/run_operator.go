@@ -126,11 +126,6 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		if vzconfig.HealthCheckPeriodSeconds > 0 {
 			healthCheck.Start()
 		}
-
-		watchNamespace := namespacewatch.NewNamespaceWatcher(mgr.GetClient(), time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
-		if vzconfig.NamespacePeriodSeconds > 0 {
-			watchNamespace.Start()
-		}
 	}
 
 	// Setup secrets reconciler
@@ -157,6 +152,12 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}
 	mysqlCheck.Start()
+
+	// Setup Namespaces watcher
+	watchNamespace := namespacewatch.NewNamespaceWatcher(mgr.GetClient(), time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
+	if vzconfig.NamespacePeriodSeconds > 0 {
+		watchNamespace.Start()
+	}
 
 	// Setup stacks reconciler
 	if err = (&components.ComponentConfigMapReconciler{
