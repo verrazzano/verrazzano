@@ -42,7 +42,7 @@ const vpoHelmChartConfigMapName = "vpo-helm-chart"
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	// Determine NGINX namespacewatch before initializing components
+	// Determine NGINX namespace before initializing components
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
 		return err
