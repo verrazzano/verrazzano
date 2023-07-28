@@ -32,9 +32,16 @@ func getRancherProjectList(dynClient dynamic.Interface) (*unstructured.Unstructu
 }
 
 // getRancherSystemProjectID returns the ID of Rancher system project
-func getRancherSystemProjectID(dynClient dynamic.Interface) string {
+func getRancherSystemProjectID(nw *NamespacesWatcher) string {
+	dynClient, err := getDynamicClient()
+	if err != nil {
+		nw.log.Errorf("%v", err)
+	}
+	rancherProjectList, err := getRancherProjectList(dynClient)
+	if err != nil {
+		nw.log.Errorf("%v", err)
+	}
 	var projectID string
-	rancherProjectList, _ := getRancherProjectList(dynClient)
 	for _, rancherProject := range rancherProjectList.Items {
 		projectName := rancherProject.UnstructuredContent()["spec"].(map[string]interface{})["displayName"].(string)
 		if projectName == "System" {

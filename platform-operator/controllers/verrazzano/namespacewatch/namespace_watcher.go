@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/dynamic"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
@@ -65,14 +64,12 @@ func (nw *NamespacesWatcher) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes namespaces update
-				dynClient, err := getDynamicClient()
+				rancherSystemProjectID := getRancherSystemProjectID(nw)
+				err := nw.MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID)
 				if err != nil {
 					nw.log.Errorf("%v", err)
 				}
-				err = nw.MoveSystemNamespacesToRancherSystemProject(dynClient)
-				if err != nil {
-					nw.log.Errorf("%v", err)
-				}
+
 			case <-nw.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()
@@ -83,13 +80,11 @@ func (nw *NamespacesWatcher) Start() {
 }
 
 // MoveSystemNamespacesToRancherSystemProject Updates the label & annotation with Rancher System Project ID
-// For namespaces that have label "verrazzano.io/namesapce"
+// For namespaces that have label "verrazzano.io/namespace"
 // And that does not have a label "management.cattle.io/system-namespace"
 // "management.cattle.io/system-namespace" namespace label indicates it is managed by Rancher
-func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(dynClient dynamic.Interface) error {
-	var rancherSystemProjectID = getRancherSystemProjectID(dynClient)
+func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID string) error {
 	var rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
-
 	namespaceList := &v1.NamespaceList{}
 	err := nw.client.List(context.TODO(), namespaceList, &clipkg.ListOptions{})
 	if err != nil {
@@ -105,11 +100,10 @@ func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(dynClien
 	if err != nil {
 		return fmt.Errorf("failed to get Verrazzano resource logger: %v", err)
 	}
-	ctx, err := spi.NewContext(logger, nw.client, vz, nil, false)
+	ctx, err := spi.NewContext(logger, nw.client, vz, nil, true)
 	if err != nil {
 		return err
 	}
-
 	_, rancherComponent := registry.FindComponent(common.RancherName)
 	isEnabled := rancherComponent.IsEnabled(ctx.EffectiveCR())
 	if isEnabled && rancherComponent.IsReady(ctx) {
