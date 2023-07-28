@@ -128,7 +128,7 @@ func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionC
 
 		allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 		if err != nil {
-			print(err)
+			return nil, nil, err
 
 		}
 
@@ -137,12 +137,12 @@ func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionC
 	if len(secretNames) == len(conversionComponents) && secretNames != nil {
 		gwName, err := BuildGatewayName(conversionComponents[0].AppNamespace)
 		if err != nil {
-			print(err)
+			return nil, nil, err
 
 		}
 		gateway, err = CreateGateway(conversionComponents, allHostsForTrait, gwName, secretNames)
 		if err != nil {
-			print(err)
+			return nil, nil, err
 
 		}
 	}

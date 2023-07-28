@@ -4,7 +4,6 @@
 package resources
 
 import (
-	"errors"
 	"fmt"
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
@@ -40,33 +39,35 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 		if conversionComponent.Weblogicworkload != nil {
 
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Child resources from Weblogic workload %w", err)
+
+			}
 			virtualServices = append(virtualServices, virtualService...)
 			destinationRules = append(destinationRules, destinationRule...)
 			authzPolicies = append(authzPolicies, authzPolicy...)
-			if err != nil {
-				return nil, errors.New("failed to create Child resources from Weblogic workload")
 
-			}
 		}
 		if conversionComponent.Coherenceworkload != nil {
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Child resources from coherence workload %w", err)
+
+			}
 			virtualServices = append(virtualServices, virtualService...)
 			destinationRules = append(destinationRules, destinationRule...)
 			authzPolicies = append(authzPolicies, authzPolicy...)
-			if err != nil {
-				return nil, errors.New("failed to create Child resources from Coherence workload")
-
-			}
 		}
 		if conversionComponent.Helidonworkload != nil {
 			virtualService, destinationRule, authzPolicy, err = helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent, gateway, allHostsForTrait)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Child resources from helidon workload %w", err)
+
+			}
 			virtualServices = append(virtualServices, virtualService...)
 			destinationRules = append(destinationRules, destinationRule...)
 			authzPolicies = append(authzPolicies, authzPolicy...)
-			if err != nil {
-				return nil, errors.New("failed to create Child resources from Helidon workload")
 
-			}
 		}
 	}
 	//Appending it to Kube Resources to print the output
@@ -114,5 +115,5 @@ func createChildResources(conversionComponent *types.ConversionComponents, gatew
 		}
 		return virtualServices, destinationRules, authzPolicies, nil
 	}
-	return nil, nil, nil, errors.New("ingress Trait is empty")
+	return nil, nil, nil, fmt.Errorf("ingress Trait is empty")
 }
