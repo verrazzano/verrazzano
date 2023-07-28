@@ -107,9 +107,6 @@ func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	if vz.Status.VerrazzanoInstance.ThanosQueryURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ThanosQueryURL)
 	}
-	if vz.Status.VerrazzanoInstance.ThanosRulerURL != nil {
-		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ThanosRulerURL)
-	}
 	if vz.Status.VerrazzanoInstance.AlertmanagerURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.AlertmanagerURL)
 	}
