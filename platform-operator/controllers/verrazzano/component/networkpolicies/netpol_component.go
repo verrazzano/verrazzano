@@ -80,8 +80,8 @@ func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Associate the network policies to the verrazzano-network-policies release
-	if err := associateNetworkPoliciesWithHelm(ctx); err != nil {
+	// Update the network policies to associate or disassociate the verrazzano-network-policies release as needed
+	if err := updateNetworkPoliciesHelmRelease(ctx); err != nil {
 		return err
 	}
 
@@ -101,8 +101,8 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Associate the network policies to the verrazzano-network-policies release
-	err := associateNetworkPoliciesWithHelm(ctx)
+	// Update the network policies to associate or disassociate the verrazzano-network-policies release as needed
+	err := updateNetworkPoliciesHelmRelease(ctx)
 	if err != nil {
 		return err
 	}
