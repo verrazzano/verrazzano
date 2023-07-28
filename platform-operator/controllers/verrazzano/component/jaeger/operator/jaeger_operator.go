@@ -485,8 +485,7 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 	if jaegerCreateOverride != nil {
 		return jaegerCreateOverride.(bool), nil
 	}
-	// Jaeger instance would be created if Verrazzano's OpenSearch can be used as storage
-	return canUseVZOpenSearchStorage(ctx), nil
+	return false, nil
 }
 
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
@@ -691,7 +690,7 @@ func getAllComponentDeployments(ctx spi.ComponentContext) ([]types.NamespacedNam
 		return nil, err
 	}
 	deploys := getJaegerOperatorDeployments()
-	if defaultJaegerEnabled {
+	if defaultJaegerEnabled && canUseVZOpenSearchStorage(ctx) {
 		deploys = append(deploys, getJaegerComponentDeployments()...)
 	}
 	return deploys, nil
