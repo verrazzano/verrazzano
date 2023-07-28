@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/factory"
 	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/controllers/verrazzano"
@@ -111,6 +112,8 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		}
 	} else {
 		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+		watchNamespace := namespace.NewNamespaceWatcher(mgr.GetClient(), kubeClient, time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
+		watchNamespace.Start()
 		reconciler := reconcile.Reconciler{
 			Client:            mgr.GetClient(),
 			Scheme:            mgr.GetScheme(),
