@@ -45,13 +45,13 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 		}}
 
 		// Delete all the configuration secrets that were referenced by the module
-		res := r.deleteConfigSecrets(log, module.Namespace, module.Name)
+		res := r.deleteConfigSecrets(log, module.Namespace, comp.Name())
 		if res.ShouldRequeue() {
 			return res
 		}
 
 		// Delete all the configuration configmaps that were referenced by the module
-		res = r.deleteConfigMaps(log, module.Namespace)
+		res = r.deleteConfigMaps(log, module.Namespace, comp.Name())
 		if res.ShouldRequeue() {
 			return res
 		}
@@ -82,9 +82,9 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 }
 
 // deleteConfigSecrets deletes all the module config secrets
-func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, componentName string) result.Result {
+func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
 	secretList := &corev1.SecretList{}
-	req, _ := labels.NewRequirement(constants.VerrazzanoModuleOwnerLabel, selection.Equals, []string{componentName})
+	req, _ := labels.NewRequirement(constants.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
 	selector := labels.NewSelector().Add(*req)
 	if err := r.Client.List(context.TODO(), secretList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
 		log.Infof("Failed getting secrets in %s namespace, retrying: %v", namespace, err)
@@ -103,6 +103,22 @@ func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace st
 }
 
 // deleteConfigMaps deletes all the module config maps
-func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string) result.Result {
+func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
+	configMapList := &corev1.ConfigMapList{}
+	req, _ := labels.NewRequirement(constants.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	selector := labels.NewSelector().Add(*req)
+	if err := r.Client.List(context.TODO(), configMapList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
+		log.Infof("Failed getting configMaps in %s namespace, retrying: %v", namespace, err)
+	}
+
+	for i, s := range configMapList.Items {
+		err := r.Client.Delete(context.TODO(), &configMapList.Items[i])
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Errorf("Failed deleting configMap %s/%s, retrying: %v", namespace, s.Name, err)
+		}
+	}
 	return result.NewResult()
 }

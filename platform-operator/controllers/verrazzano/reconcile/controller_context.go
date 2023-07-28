@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 )
 
-var vzControllerContext *VerrazzanoControllerContext
+var vzControllerContext VerrazzanoControllerContext
 
 // VerrazzanoControllerContext is used to synchronize the two Verrazzano controllers, the legacy controller and
 // the module-based controller.  This will be removed when we finally have a single controller.
