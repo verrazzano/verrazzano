@@ -97,10 +97,8 @@ func (nw *NamespacesWatcher) Start() {
 }
 
 func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject() error {
-	var rancherSystemProjectIDAnnotation string
-	var rancherSystemProjectID string
-	rancherSystemProjectID = getRancherSystemProjectID()
-	rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
+	var rancherSystemProjectID = getRancherSystemProjectID()
+	var rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
 	namespaceList := &v1.NamespaceList{}
 	err := nw.client.List(context.TODO(), namespaceList, &clipkg.ListOptions{})
 	if err != nil {
