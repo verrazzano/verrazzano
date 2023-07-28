@@ -11,8 +11,11 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,6 +43,19 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 			Name:      comp.Name(),
 			Namespace: constants.VerrazzanoInstallNamespace,
 		}}
+
+		// Delete all the configuration secrets that were referenced by the module
+		res := r.deleteConfigSecrets(log, module.Namespace, module.Name)
+		if res.ShouldRequeue() {
+			return res
+		}
+
+		// Delete all the configuration configmaps that were referenced by the module
+		res = r.deleteConfigMaps(log, module.Namespace)
+		if res.ShouldRequeue() {
+			return res
+		}
+
 		err := r.Client.Delete(context.TODO(), &module, &client.DeleteOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -62,5 +78,31 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 		return result.NewResultShortRequeueDelayWithError(reterr)
 	}
 	// All modules have been deleted and the Module CRs are gone
+	return result.NewResult()
+}
+
+// deleteConfigSecrets deletes all the module config secrets
+func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, componentName string) result.Result {
+	secretList := &corev1.SecretList{}
+	req, _ := labels.NewRequirement(constants.VerrazzanoModuleOwnerLabel, selection.Equals, []string{componentName})
+	selector := labels.NewSelector().Add(*req)
+	if err := r.Client.List(context.TODO(), secretList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
+		log.Infof("Failed getting secrets in %s namespace, retrying: %v", namespace, err)
+	}
+
+	for i, s := range secretList.Items {
+		err := r.Client.Delete(context.TODO(), &secretList.Items[i])
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Errorf("Failed deleting secret %s/%s, retrying: %v", namespace, s.Name, err)
+		}
+	}
+	return result.NewResult()
+}
+
+// deleteConfigMaps deletes all the module config maps
+func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string) result.Result {
 	return result.NewResult()
 }
