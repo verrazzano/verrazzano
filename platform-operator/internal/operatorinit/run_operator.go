@@ -112,10 +112,6 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		}
 	} else {
 		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-		watchNamespace := namespacewatch.NewNamespaceWatcher(mgr.GetClient(), time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
-		if vzconfig.NamespacePeriodSeconds > 0 {
-			watchNamespace.Start()
-		}
 		reconciler := reconcile.Reconciler{
 			Client:            mgr.GetClient(),
 			Scheme:            mgr.GetScheme(),
@@ -129,6 +125,11 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		}
 		if vzconfig.HealthCheckPeriodSeconds > 0 {
 			healthCheck.Start()
+		}
+
+		watchNamespace := namespacewatch.NewNamespaceWatcher(mgr.GetClient(), time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
+		if vzconfig.NamespacePeriodSeconds > 0 {
+			watchNamespace.Start()
 		}
 	}
 
