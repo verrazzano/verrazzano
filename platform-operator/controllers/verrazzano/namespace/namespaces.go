@@ -97,6 +97,10 @@ func (nw *NamespacesWatcher) Start() {
 }
 
 func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject() error {
+	var rancherSystemProjectIDAnnotation string
+	var rancherSystemProjectID string
+	rancherSystemProjectID = getRancherSystemProjectID()
+	rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
 	namespaceList := &v1.NamespaceList{}
 	err := nw.client.List(context.TODO(), namespaceList, &clipkg.ListOptions{})
 	if err != nil {
@@ -126,16 +130,15 @@ func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject() error 
 			if namespaceList.Items[i].Annotations == nil {
 				namespaceList.Items[i].Annotations = map[string]string{}
 			}
-			_, rancherProjectIDExists := namespaceList.Items[i].Labels[RancherProjectIDLabelKey]
-			if isVerrazzanoManagedNamespace(&(namespaceList.Items[i])) && !rancherProjectIDExists {
+			_, rancherProjectIDAnnotationExists := namespaceList.Items[i].Annotations[RancherProjectIDLabelKey]
+			if isVerrazzanoManagedNamespace(&(namespaceList.Items[i])) && !rancherProjectIDAnnotationExists {
 				nw.log.Infof("Updating the Namespace%v", namespaceList.Items[i])
-				namespaceList.Items[i].Annotations[RancherProjectIDLabelKey] = constants.MCLocalCluster + ":" + getRancherSystemProjectID()
-				namespaceList.Items[i].Labels[RancherProjectIDLabelKey] = getRancherSystemProjectID()
+				namespaceList.Items[i].Annotations[RancherProjectIDLabelKey] = rancherSystemProjectIDAnnotation
+				namespaceList.Items[i].Labels[RancherProjectIDLabelKey] = rancherSystemProjectID
 				if err := nw.client.Update(context.TODO(), &(namespaceList.Items[i]), &clipkg.UpdateOptions{}); err != nil {
 					return err
 				}
 			}
-
 		}
 	}
 	fmt.Println("RANCHER IS NOT ENABLED OR NOT Ready++++++_+++++++++++++", isEnabled, rancherComponent.IsReady(ctx))
