@@ -29,7 +29,7 @@ import (
 const (
 	channelBufferSize                = 100
 	RancherManagedNamespaceLabelKey  = "management.cattle.io/system-namespace"
-	RancherProjectIdLabelKey         = "field.cattle.io/projectId"
+	RancherProjectIDLabelKey         = "field.cattle.io/projectId"
 	APIGroupRancherManagement        = "management.cattle.io"
 	APIGroupVersionRancherManagement = "v3"
 )
@@ -123,10 +123,10 @@ func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject() error 
 			if namespaceList.Items[i].Labels == nil {
 				namespaceList.Items[i].Labels = map[string]string{}
 			}
-			_, rancherProjectIdExists := namespaceList.Items[i].Labels[RancherProjectIdLabelKey]
-			if isVerrazzanoManagedNamespace(&(namespaceList.Items[i])) && !rancherProjectIdExists {
+			_, rancherProjectIDExists := namespaceList.Items[i].Labels[RancherProjectIDLabelKey]
+			if isVerrazzanoManagedNamespace(&(namespaceList.Items[i])) && !rancherProjectIDExists {
 				nw.log.Infof("Updating the Namespace%v", namespaceList.Items[i])
-				namespaceList.Items[i].Labels[RancherProjectIdLabelKey] = getRancherSystemProjectId()
+				namespaceList.Items[i].Labels[RancherProjectIDLabelKey] = getRancherSystemProjectID()
 				if err := nw.client.Update(context.TODO(), &(namespaceList.Items[i]), &clipkg.UpdateOptions{}); err != nil {
 					return err
 				}
@@ -169,8 +169,8 @@ func getRancherProjectList(dynClient dynamic.Interface, gvr schema.GroupVersionR
 	return rancherProjectList, nil
 }
 
-func getRancherSystemProjectId() string {
-	var projectId string
+func getRancherSystemProjectID() string {
+	var projectID string
 	dynClient, _ := getDynamicClient()
 	gvr := GetRancherMgmtAPIGVRForResource("projects")
 	fmt.Println("GVR----------", gvr)
@@ -180,10 +180,10 @@ func getRancherSystemProjectId() string {
 		fmt.Println("PROJECT NAME----------" + projectName)
 		if projectName == "System" {
 			fmt.Println("SYSTEM----------" + projectName)
-			projectId = rancherProject.UnstructuredContent()["metadata"].(map[string]interface{})["name"].(string)
+			projectID = rancherProject.UnstructuredContent()["metadata"].(map[string]interface{})["name"].(string)
 		}
 	}
-	return projectId
+	return projectID
 }
 
 // GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind
