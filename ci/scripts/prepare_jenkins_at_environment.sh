@@ -29,7 +29,6 @@ TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test
 INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT:-30m}
 ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
 ENABLE_THANOS_COMPACTOR=${ENABLE_THANOS_COMPACTOR:-false}
-ENABLE_THANOS_RULER=${ENABLE_THANOS_RULER:-false}
 INSTALL_EXTERNAL_CERT_MANAGER=${INSTALL_EXTERNAL_CERT_MANAGER:-false}
 
 clusterNames=$(kind get clusters)
@@ -153,8 +152,10 @@ VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
 if [ $USE_DB_FOR_GRAFANA == true ]; then
   ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
 fi
-# Create the storage provider secret and update the Thanos overrides in the VZ file
-./tests/e2e/config/scripts/configure_thanos_install_storage.sh ${INSTALL_CONFIG_FILE_KIND}
+# If Thanos Store Gateway flag is set, create the storage provider secret and update the Thanos overrides in the VZ file
+if [ $ENABLE_THANOS_STORE_GATEWAY == true ]; then
+  ./tests/e2e/config/scripts/configure_thanos_storegateway_install.sh ${INSTALL_CONFIG_FILE_KIND}
+fi
 cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
 TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}

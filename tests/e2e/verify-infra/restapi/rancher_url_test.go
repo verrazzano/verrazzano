@@ -121,6 +121,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						verifySettingValue(rancher.SettingAuthResyncCron, rancher.SettingAuthResyncCronValue, k8sClient)
 						verifySettingValue(rancher.SettingAuthMaxAge, rancher.SettingAuthMaxAgeValue, k8sClient)
 						verifySettingValue(rancher.SettingAuthTTL, rancher.SettingAuthTTLValue, k8sClient)
+						verifySettingValue(rancher.SettingKubeDefaultTokenTTL, rancher.SettingKubeDefaultTokenTTLValue, k8sClient)
 					}
 
 					start = time.Now()
