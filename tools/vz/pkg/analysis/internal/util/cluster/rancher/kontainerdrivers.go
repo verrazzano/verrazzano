@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -34,9 +35,14 @@ type KontainerDriverCondition struct {
 }
 
 // AnalyzeKontainerDrivers handles the checking of the status of KontainerDriver resources.
-func AnalyzeKontainerDrivers(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeKontainerDrivers(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	kontainerDriverList := &KontainerDriverList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", kontainerDriverResource), kontainerDriverList)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", kontainerDriverResource), kontainerDriverList)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal KontainerDriver list from cluster snapshot: %s", err)
 	}
@@ -58,7 +64,7 @@ func reportKontainerDriverIssue(clusterRoot string, driver KontainerDriver, issu
 			switch condition.Type {
 			case "Active", "Downloaded", "Installed":
 				if condition.Status != "True" {
-					messages = append(messages, fmt.Sprintf(" - condition type \"%s\" has a status of \"%s\"", condition.Type, condition.Status))
+					messages = append(messages, fmt.Sprintf("\tcondition type \"%s\" has a status of \"%s\"", condition.Type, condition.Status))
 				}
 			}
 		}

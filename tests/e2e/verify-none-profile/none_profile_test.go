@@ -4,7 +4,6 @@
 package verifynoneprofile
 
 import (
-	"fmt"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -25,9 +24,8 @@ const (
 // Any other namespace not mentioned here is considered unnecessary
 var allowedNamespaces = []string{
 	"default", "kube-system", "kube-node-lease", "kube-public",
-	"monitoring", "local-path-storage", "metallb-system",
-	"cattle-system", "verrazzano-install", "verrazzano-mc", "verrazzano-system",
-	"verrazzano-monitoring", "verrazzano-ingress-nginx",
+	"cattle-system", "monitoring", "local-path-storage", "metallb-system",
+	"verrazzano-install", "verrazzano-system",
 }
 
 var beforesuite = t.BeforeSuiteFunc(func() {
@@ -52,9 +50,14 @@ var _ = t.Describe("Verify Namespaces", func() {
 
 		ns, err := pkg.ListNamespaces(metav1.ListOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
+
+		failures := []string{}
 		for _, item := range ns.Items {
 			_, isAllowed := allowedNamespacesMap[item.Name]
-			Expect(isAllowed).To(BeTrue(), fmt.Sprintf("Namespace %s is not allowed with none profile installation, Allowed namespaces are %v\n", item.Name, allowedNamespacesMap))
+			if !isAllowed {
+				failures = append(failures, item.Name)
+			}
 		}
+		Expect(failures).To(BeEmpty(), "Namespaces not allowed: %v, Allowed namespaces are only %v", failures, allowedNamespaces)
 	})
 })

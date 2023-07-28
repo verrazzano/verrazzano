@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	//Configure data from app and comp file to extract traits and workloads
 	err := app.ConfData()
 	if err != nil {
 		print(err)
