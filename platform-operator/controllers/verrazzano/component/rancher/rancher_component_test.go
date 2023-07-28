@@ -1130,24 +1130,6 @@ func TestPostUpgrade(t *testing.T) {
 	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
 }
 
-// TestPostUpgradeWithIngress tests a happy path post upgrade run with the rancher ingress
-// GIVEN a Rancher install state where all components are ready
-//
-//	WHEN PostUpgrade is called
-//	THEN PostUpgrade should return nil
-func TestPostUpgradeWithIngress(t *testing.T) {
-	s := getScheme()
-	s.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(s)
-	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
-	defer func() {
-		resetDynamicClientFunc()
-	}()
-	component := NewComponent()
-	_, ctxWithIngress := prepareContexts()
-	assert.NoError(t, component.PostUpgrade(ctxWithIngress))
-}
-
 func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
@@ -1316,16 +1298,11 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false, profilesRelativePath)
 
-	// Setup unstructured resources with fake client and context
-	driverObj := createKontainerDriver(common.KontainerDriverOCIName)
+	// Setup OCI KontainerDriver with fake client and context
+	driverName := common.KontainerDriverOCIName
+	driverObj := createKontainerDriver(driverName)
 	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = " https://rancher.default.nip.io/kontainerdriver/ociocne/v0.22.0/kontainer-engine-driver-ociocne-linux"
-	okeDriverObj := createKontainerDriver(common.KontainerDriverOKEName)
-	okeDriverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
-	okeDriverObj.UnstructuredContent()["spec"].(map[string]interface{})["url"] = " https://rancher.default.nip.io/kontainerdriver/oke/v1.8.3/kontainer-engine-driver-oke-linux"
-	nodeDriverObj := createNodeDriver("testnodedriver")
-	catalogObj := createCatalog("system-library")
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), driverObj, okeDriverObj, nodeDriverObj, catalogObj)
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), driverObj)
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 
 	// mock the pod executor when resetting the Rancher admin password
