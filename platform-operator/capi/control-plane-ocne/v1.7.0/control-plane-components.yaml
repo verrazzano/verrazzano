@@ -1,6 +1,6 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -3082,8 +3082,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        # This image will be overridden by the Verrazzano controller
-        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v1.6.1-20230620181634-aebde3b
+        image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:v1.7.0-20230728161919-ffd7110
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
