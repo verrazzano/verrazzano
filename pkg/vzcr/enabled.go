@@ -677,11 +677,36 @@ func IsAlertmanagerEnabled(cr runtime.Object, ctx spi.ComponentContext) (bool, e
 	if err != nil {
 		return false, fmt.Errorf("error while reading install overrides, error: %v", err.Error())
 	}
+	return checkOverridesForAlertmanager(overrideStrings)
+}
 
+// IsAlertmanagerEnabledInValues returns true only if the Alertmanager is explicitly enabled in the CR as part of Prometheus Operator overrides values
+func IsAlertmanagerEnabledInValues(cr runtime.Object) (bool, error) {
+	var overrideStrings []string
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 == nil || vzv1alpha1.Spec.Components.PrometheusOperator == nil || (vzv1alpha1.Spec.Components.PrometheusOperator.Enabled != nil && !*vzv1alpha1.Spec.Components.PrometheusOperator.Enabled) || vzv1alpha1.Spec.Components.PrometheusOperator.ValueOverrides == nil {
+			return false, nil
+		}
+		for i := range vzv1alpha1.Spec.Components.PrometheusOperator.ValueOverrides {
+			overrideStrings = append(overrideStrings, vzv1alpha1.Spec.Components.PrometheusOperator.ValueOverrides[i].Values.String())
+		}
+
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 == nil || vzv1beta1.Spec.Components.PrometheusOperator == nil || (vzv1beta1.Spec.Components.PrometheusOperator.Enabled != nil && !*vzv1beta1.Spec.Components.PrometheusOperator.Enabled) || vzv1beta1.Spec.Components.PrometheusOperator.ValueOverrides == nil {
+			return false, nil
+		}
+		for i := range vzv1beta1.Spec.Components.PrometheusOperator.ValueOverrides {
+			overrideStrings = append(overrideStrings, vzv1beta1.Spec.Components.PrometheusOperator.ValueOverrides[i].Values.String())
+		}
+	}
+
+	return checkOverridesForAlertmanager(overrideStrings)
+}
+
+func checkOverridesForAlertmanager(overrideStrings []string) (bool, error) {
 	if len(overrideStrings) == 0 {
 		return false, nil
 	}
-
 	for _, overrideYaml := range overrideStrings {
 		if strings.Contains(overrideYaml, "alertmanager:") {
 			value, err := override.ExtractValueFromOverrideString(overrideYaml, "alertmanager.enabled")

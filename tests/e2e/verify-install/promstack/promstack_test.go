@@ -53,7 +53,8 @@ type enabledComponents struct {
 }
 
 var (
-	vz *vzalpha1.Verrazzano
+	vz                  *vzalpha1.Verrazzano
+	alertmanagerEnabled bool
 
 	promStackEnabledComponents = []enabledComponents{
 		{podName: "prometheus-adapter", componentName: adapter.ComponentName},
@@ -62,8 +63,13 @@ var (
 		{podName: "prometheus-pushgateway", componentName: pushgateway.ComponentName},
 		{podName: "prometheus-node-exporter", componentName: nodeexporter.ComponentName},
 		{podName: "prometheus-prometheus-operator-kube-p-prometheus", componentName: prometheusOperator.ComponentName},
-		{podName: "prometheus-prometheus-operator-kube-p-alertmanager", componentName: prometheusOperator.ComponentName},
 	}
+
+	alertmanagerPod = enabledComponents{
+		podName:       "prometheus-prometheus-operator-kube-p-alertmanager",
+		componentName: "alertmanager",
+	}
+
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
 		"alertmanagers.monitoring.coreos.com",
@@ -111,6 +117,10 @@ func listEnabledComponents() []string {
 			enabledPods = append(enabledPods, component.podName)
 		}
 	}
+
+	if alertmanagerEnabled {
+		enabledPods = append(enabledPods, alertmanagerPod.podName)
+	}
 	return enabledPods
 }
 
@@ -120,6 +130,10 @@ func listDisabledComponents() []string {
 		if !vzcr.IsComponentStatusEnabled(vz, component.componentName) {
 			disabledPods = append(disabledPods, component.podName)
 		}
+	}
+
+	if !alertmanagerEnabled {
+		disabledPods = append(disabledPods, alertmanagerPod.podName)
 	}
 	return disabledPods
 }
@@ -255,6 +269,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
 	}
+
+	alertmanagerEnabled, err = vzcr.IsAlertmanagerEnabledInValues(vz)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to check verrazzano resource for alertmanager enabled: %v", err))
+	}
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -292,14 +311,14 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure any disabled pods are NOT running
 		// THEN we successfully find the running pods
 		WhenPromStackInstalledIt("Disabled pods not running", func() {
-			promStackPodsRunning := func() bool {
+			promStackPodsRunning := func() (bool, error) {
 				disabledPods := listDisabledComponents()
 				t.Logs.Debugf("Checking disabled component pods %v", disabledPods)
 				result, err := pkg.PodsNotRunning(constants.VerrazzanoMonitoringNamespace, disabledPods)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Unexpected error occurred checking for pods %v in namespace: %v, error: %v", disabledPods, constants.VerrazzanoMonitoringNamespace, err))
+					t.Logs.Errorf("Unexpected error occurred checking for pods %v in namespace: %v, error: %v", disabledPods, constants.VerrazzanoMonitoringNamespace, err)
 				}
-				return result
+				return result, err
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
