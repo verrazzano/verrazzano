@@ -40,6 +40,19 @@ func GetComponentAndContext(ctx handlerspi.HandlerContext, operation string) (sp
 }
 
 func GetVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {
+	nsn, err := GetVerrazzanoNSN(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	vz := &vzapi.Verrazzano{}
+	if err := ctx.Client.Get(context.TODO(), *nsn, vz); err != nil {
+		return nil, err
+	}
+	return vz, nil
+}
+
+func GetVerrazzanoNSN(ctx handlerspi.HandlerContext) (*types.NamespacedName, error) {
 	module := ctx.CR.(*moduleapi.Module)
 	var name, ns string
 	if module.Annotations != nil {
@@ -49,10 +62,5 @@ func GetVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {
 	if name == "" || ns == "" {
 		return nil, fmt.Errorf("Module %s is missing annotations for verrazzano CR name and namespace", module.Name)
 	}
-
-	vz := &vzapi.Verrazzano{}
-	if err := ctx.Client.Get(context.TODO(), types.NamespacedName{Namespace: ns, Name: name}, vz); err != nil {
-		return nil, err
-	}
-	return vz, nil
+	return &types.NamespacedName{Namespace: ns, Name: name}, nil
 }

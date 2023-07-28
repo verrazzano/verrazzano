@@ -231,9 +231,6 @@ const (
 
 	// CondUpgradeComplete means the upgrade has completed successfully
 	CondUpgradeComplete ConditionType = "UpgradeComplete"
-
-	// CompStateReconciling is the state when a module is reconciling
-	CompStateReconciling CompStateType = "Reconciling"
 )
 
 // Condition describes the current state of an installation.
@@ -311,6 +308,9 @@ const (
 
 	// CompStateFailed is the state when an install/uninstall/upgrade has failed
 	CompStateFailed CompStateType = "Failed"
+
+	// CompStateReconciling is the state when a module is reconciling
+	CompStateReconciling CompStateType = "Reconciling"
 )
 
 // ComponentSpec contains a set of components used by Verrazzano.

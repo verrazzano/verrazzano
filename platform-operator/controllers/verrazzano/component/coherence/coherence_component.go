@@ -41,6 +41,7 @@ type coherenceComponent struct {
 }
 
 func NewComponent() spi.Component {
+	useModule := config.Get().ModuleIntegration
 	return coherenceComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
@@ -50,6 +51,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			UseModule:                 useModule,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName},
