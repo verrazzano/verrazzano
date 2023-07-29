@@ -9,7 +9,6 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io/fs"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 
@@ -435,7 +434,7 @@ func getSupportedKubernetesVersions() ([]string, error) {
 // updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
 // multiple instances, if that makes sense.
 func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
-	var podList v1.PodList
+	var podList corev1.PodList
 	err := runtimeClient.List(context.TODO(), &podList,
 		client.InNamespace(constants.VerrazzanoInstallNamespace),
 		client.MatchingLabels{"app": "verrazzano-platform-operator"})
