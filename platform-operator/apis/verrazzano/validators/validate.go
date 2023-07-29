@@ -9,7 +9,6 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io/fs"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 
@@ -428,30 +427,4 @@ func getSupportedKubernetesVersions() ([]string, error) {
 	}
 
 	return bom.GetSupportedKubernetesVersion(), nil
-}
-
-// VerifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
-// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
-// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
-// multiple instances, if that makes sense.
-func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
-	var podList v1.PodList
-	err := runtimeClient.List(context.TODO(), &podList,
-		client.InNamespace(constants.VerrazzanoInstallNamespace),
-		client.MatchingLabels{"app": "verrazzano-platform-operator"})
-	if err != nil {
-		return err
-	}
-	if len(podList.Items) > 1 {
-		healthyPod := 0
-		for _, pod := range podList.Items {
-			if pod.Status.Phase != "Failed" {
-				healthyPod++
-			}
-		}
-		if healthyPod > 1 {
-			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
-		}
-	}
-	return nil
 }
