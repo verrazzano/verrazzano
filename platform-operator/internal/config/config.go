@@ -83,6 +83,7 @@ type OperatorConfig struct {
 	// MySQLCheckPeriodSeconds period for MySQL check background task in seconds; a value of 0 disables MySQL checks
 	MySQLCheckPeriodSeconds int64
 
+	// NamespacePeriodSeconds period to watch Namespaces in seconds; a value of 0 disables Namespace watcher
 	NamespacePeriodSeconds int64
 
 	// MySQLRepairTimeoutSeconds is the amount of time the MySQL check background thread will allow to transpire between
