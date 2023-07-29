@@ -5,19 +5,19 @@ package networkpolicies
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,13 +79,21 @@ func TestPostInstall(t *testing.T) {
 // GIVEN a network policies helm component
 //
 //	WHEN the PreUpgrade function is called
-//	 AND there is an existing network policy associated with the verrazzano helm release
+//	IF there is an existing network policy associated with the verrazzano helm release
 //	THEN the network policy association is changed so that it is associated with the network policies helm release
+//	IF there is an existing network policy that should be removed from the verrazzano-network-policies helm release
+//	THEN the network policy association is deleted
 func TestPreUpgrade(t *testing.T) {
 	const netPolName = "istiod-access"
-	fakeClient := fake.NewClientBuilder().WithObjects(
-		&netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: constants.IstioSystemNamespace, Name: netPolName}},
-	).Build()
+	netPolNameList := []types.NamespacedName{
+		{Namespace: constants.IstioSystemNamespace, Name: netPolName},
+	}
+	netPolNameList = append(netPolNameList, netPolsRemoveHelmRelease...)
+	fakeBldr := fake.NewClientBuilder()
+	for _, name := range netPolNameList {
+		fakeBldr = fakeBldr.WithObjects(&netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: name.Namespace, Name: name.Name}})
+	}
+	fakeClient := fakeBldr.Build()
 
 	defer helm.SetDefaultActionConfigFunction()
 	helm.SetActionConfigFunction(func(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
@@ -121,8 +129,13 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 	assertNamespaces(t, fakeClient)
 
-	// assert that the network policy is now associated with this component's helm release
-	assertNetPolicyHelmOwnership(t, fakeClient)
+	// assert that the Istio network policy is now associated with this component's helm release
+	assertNetPolicyHelmOwnership(t, types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: netPolName}, fakeClient)
+
+	// assert that network policies from the remove list no longer have this component's helm release
+	for _, pol := range netPolsRemoveHelmRelease {
+		assertNoHelmOwnership(t, pol, fakeClient)
+	}
 }
 
 // GIVEN a network policies helm component
@@ -222,21 +235,22 @@ func assertNamespaces(t *testing.T, client clipkg.Client) {
 
 // assertNetPolicyHelmOwnership asserts that any network policies are now associated with the helm release
 // in this component
-func assertNetPolicyHelmOwnership(t *testing.T, client clipkg.Client) {
-	found := false
-	for _, ns := range netPolNamespaces() {
-		netpolList := netv1.NetworkPolicyList{}
-		client.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
+func assertNetPolicyHelmOwnership(t *testing.T, name types.NamespacedName, client clipkg.Client) {
+	netpol := netv1.NetworkPolicy{}
+	err := client.Get(context.TODO(), name, &netpol)
+	assert.NoErrorf(t, err, "Expected to find network policy %v with no error", name)
+	assert.Equal(t, ComponentName, netpol.Annotations["meta.helm.sh/release-name"])
+	assert.Equal(t, ComponentNamespace, netpol.Annotations["meta.helm.sh/release-namespace"])
+	assert.Equal(t, "Helm", netpol.Labels["app.kubernetes.io/managed-by"])
+}
 
-		for _, netpol := range netpolList.Items {
-			found = true
-			assert.Equal(t, ComponentName, netpol.Annotations["meta.helm.sh/release-name"])
-			assert.Equal(t, ComponentNamespace, netpol.Annotations["meta.helm.sh/release-namespace"])
-			assert.Equal(t, "Helm", netpol.Labels["app.kubernetes.io/managed-by"])
-		}
-	}
-
-	assert.True(t, found, "Expected to find at least one network policy")
+func assertNoHelmOwnership(t *testing.T, name types.NamespacedName, client clipkg.Client) {
+	netpol := netv1.NetworkPolicy{}
+	err := client.Get(context.TODO(), name, &netpol)
+	assert.NoErrorf(t, err, "Expected to find network policy %v with no error", name)
+	assert.Equal(t, "", netpol.Annotations["meta.helm.sh/release-name"])
+	assert.Equal(t, "", netpol.Annotations["meta.helm.sh/release-namespace"])
+	assert.Equal(t, "", netpol.Labels["app.kubernetes.io/managed-by"])
 }
 
 // netPolNamespaces returns an array of namespace names that contain Verrazzano network policies

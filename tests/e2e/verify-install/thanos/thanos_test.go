@@ -172,5 +172,19 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 				return true
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
+
+		// GIVEN the Thanos is installed
+		// WHEN the ruler is enabled
+		// THEN the rule data from Prometheus should be synced
+		WhenThanosInstalledIt("Thanos ruler should contain rules populated from Prometheus", func() {
+			if !isRulerEnabled {
+				Skip("Skipping Rule verification because Ruler is not enabled")
+			}
+
+			kubeconfigPath := getKubeConfigOrAbort()
+			Eventually(func() (interface{}, error) {
+				return pkg.GetRulesFromThanosRuler(kubeconfigPath)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
+		})
 	})
 })
