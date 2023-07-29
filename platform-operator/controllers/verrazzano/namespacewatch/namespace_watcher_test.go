@@ -61,8 +61,7 @@ func TestNotToMoveSystemNamespacesWhenRancherNotReady(t *testing.T) {
 		},
 	}
 	enabled := true
-	var availability v1alpha1.ComponentAvailability
-	availability = "Available"
+	var availability v1alpha1.ComponentAvailability = "Available"
 	vzCR := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -121,8 +120,7 @@ func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 		},
 	}
 	enabled := true
-	var availability v1alpha1.ComponentAvailability
-	availability = "Available"
+	var availability v1alpha1.ComponentAvailability = "Available"
 	vzCR := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -195,8 +193,7 @@ func TestMoveSystemNamespaces(t *testing.T) {
 		},
 	}
 	enabled := true
-	var availability v1alpha1.ComponentAvailability
-	availability = "Available"
+	var availability v1alpha1.ComponentAvailability = "Available"
 	vzCR := &v1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
