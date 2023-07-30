@@ -7,11 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
-
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -21,9 +16,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"go.uber.org/zap"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"net/http"
+	"strconv"
+	"strings"
 )
 
 type Payload struct {
@@ -34,6 +33,121 @@ type Payload struct {
 type TokenPostResponse struct {
 	Token   string `json:"token"`
 	Created string `json:"created"`
+}
+
+//
+//type Token struct {
+//	AuthProvider string      `json:"authProvider"`
+//	BaseType     string      `json:"baseType"`
+//	ClusterID    string      `json:"clusterId"`
+//	Created      string      `json:"created"`
+//	CreatedTS    int64       `json:"createdTS"`
+//	CreatorID    interface{} `json:"creatorId"`
+//	Current      bool        `json:"current"`
+//	Description  string      `json:"description"`
+//	Enabled      bool        `json:"enabled"`
+//	Expired      bool        `json:"expired"`
+//	ExpiresAt    string      `json:"expiresAt"`
+//	ID           string      `json:"id"`
+//	IsDerived    bool        `json:"isDerived"`
+//	Labels       struct {
+//		AuthnManagementCattleIoTokenUserID string `json:"authn.management.cattle.io/token-userId"`
+//		CattleIoCreator                    string `json:"cattle.io/creator"`
+//	} `json:"labels"`
+//	LastUpdateTime string `json:"lastUpdateTime"`
+//	Links          struct {
+//		Remove string `json:"remove"`
+//		Self   string `json:"self"`
+//		Update string `json:"update"`
+//	} `json:"links"`
+//	Name          string `json:"name"`
+//	TTL           int    `json:"ttl"`
+//	Type          string `json:"type"`
+//	UserID        string `json:"userId"`
+//	UserPrincipal string `json:"userPrincipal"`
+//	UUID          string `json:"uuid"`
+//}
+
+type ListOfTokenOutputFromRancher struct {
+	Type  string `json:"type"`
+	Links struct {
+		Self string `json:"self"`
+	} `json:"links"`
+	CreateTypes struct {
+		Token string `json:"token"`
+	} `json:"createTypes"`
+	Actions struct {
+	} `json:"actions"`
+	Pagination struct {
+		Limit int `json:"limit"`
+	} `json:"pagination"`
+	Sort struct {
+		Order   string `json:"order"`
+		Reverse string `json:"reverse"`
+		Links   struct {
+			AuthProvider   string `json:"authProvider"`
+			Description    string `json:"description"`
+			ExpiresAt      string `json:"expiresAt"`
+			LastUpdateTime string `json:"lastUpdateTime"`
+			Token          string `json:"token"`
+			UUID           string `json:"uuid"`
+		} `json:"links"`
+	} `json:"sort"`
+	Filters struct {
+		AuthProvider interface{} `json:"authProvider"`
+		ClusterID    interface{} `json:"clusterId"`
+		Created      interface{} `json:"created"`
+		CreatorID    interface{} `json:"creatorId"`
+		Current      []struct {
+			Modifier string `json:"modifier"`
+			Value    string `json:"value"`
+		} `json:"current"`
+		Description    interface{} `json:"description"`
+		Enabled        interface{} `json:"enabled"`
+		Expired        interface{} `json:"expired"`
+		ExpiresAt      interface{} `json:"expiresAt"`
+		IsDerived      interface{} `json:"isDerived"`
+		LastUpdateTime interface{} `json:"lastUpdateTime"`
+		Name           interface{} `json:"name"`
+		Removed        interface{} `json:"removed"`
+		Token          interface{} `json:"token"`
+		TTL            interface{} `json:"ttl"`
+		UserID         interface{} `json:"userId"`
+		UserPrincipal  interface{} `json:"userPrincipal"`
+		UUID           interface{} `json:"uuid"`
+	} `json:"filters"`
+	ResourceType string `json:"resourceType"`
+	Data         []struct {
+		AuthProvider string      `json:"authProvider"`
+		BaseType     string      `json:"baseType"`
+		ClusterID    string      `json:"clusterId"`
+		Created      string      `json:"created"`
+		CreatedTS    int64       `json:"createdTS"`
+		CreatorID    interface{} `json:"creatorId"`
+		Current      bool        `json:"current"`
+		Description  string      `json:"description"`
+		Enabled      bool        `json:"enabled"`
+		Expired      bool        `json:"expired"`
+		ExpiresAt    string      `json:"expiresAt"`
+		ID           string      `json:"id"`
+		IsDerived    bool        `json:"isDerived"`
+		Labels       struct {
+			AuthnManagementCattleIoTokenUserID string `json:"authn.management.cattle.io/token-userId"`
+			CattleIoCreator                    string `json:"cattle.io/creator"`
+		} `json:"labels"`
+		LastUpdateTime string `json:"lastUpdateTime"`
+		Links          struct {
+			Remove string `json:"remove"`
+			Self   string `json:"self"`
+			Update string `json:"update"`
+		} `json:"links"`
+		Name          string `json:"name"`
+		TTL           int    `json:"ttl"`
+		Type          string `json:"type"`
+		UserID        string `json:"userId"`
+		UserPrincipal string `json:"userPrincipal"`
+		UUID          string `json:"uuid"`
+	} `json:"data"`
 }
 
 func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
@@ -135,7 +249,7 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 
 	token, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "token", "unable to find token in Rancher response")
 	if err != nil {
-		log.Errorf("Failed to extra token from Rancher response: %v", err)
+		log.Errorf("Failed to extract token from Rancher response: %v", err)
 		return "", err
 	}
 
@@ -191,6 +305,99 @@ func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, ku
 	}
 
 	return tokenPostResponse.Created, nil
+}
+
+func GetTokenNamesForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, userAccessToken string, log zap.SugaredLogger) ([]string, error) {
+	api, err := GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		log.Errorf("API Endpoint not successfully received based on KubeConfig Path")
+		return nil, err
+	}
+	rancherURL, err := GetURLForIngress(&log, api, "cattle-system", "rancher", "https")
+	if err != nil {
+		log.Errorf("URL For Rancher not successfully found")
+		return nil, err
+	}
+	reqURL := rancherURL + "/v3/tokens"
+
+	req, err := retryablehttp.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Content-Type": {"application/json"}}
+	response, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		return nil, err
+	}
+	//Need to come up with struct
+	var listOfTokenOutputFromRancher = ListOfTokenOutputFromRancher{}
+	err = json.Unmarshal(responseBody, &listOfTokenOutputFromRancher)
+	if err != nil {
+		return nil, err
+	}
+	listOfTokens := listOfTokenOutputFromRancher.Data
+	var listOfTokensToReturn = make([]string, 0)
+
+	for _, token := range listOfTokens {
+		//Check if token is valid, if it is token that we want than append it
+		if token.ClusterID == token.ClusterID {
+			listOfTokensToReturn = append(listOfTokensToReturn, token.Name)
+		}
+
+	}
+	return listOfTokensToReturn, nil
+
+}
+func DeleteTokensForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, userAccessToken string, log zap.SugaredLogger) (string, error) {
+	api, err := GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		log.Errorf("API Endpoint not successfully received based on KubeConfig Path")
+		return "", err
+	}
+	rancherURL, err := GetURLForIngress(&log, api, "cattle-system", "rancher", "https")
+	if err != nil {
+		log.Errorf("URL For Rancher not successfully found")
+		return "", err
+	}
+	reqURL := rancherURL + "/v3/tokens"
+
+	req, err := retryablehttp.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Content-Type": {"application/json"}}
+	response, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		return "", err
+	}
+	//Need to come up with struct
+	var listOfTokenOutputFromRancher = ListOfTokenOutputFromRancher{}
+	err = json.Unmarshal(responseBody, &listOfTokenOutputFromRancher)
+
+	fmt.Println(listOfTokenOutputFromRancher.Data)
+	if err != nil {
+		return "", err
+	}
+	return "test", nil
+
 }
 
 // VerifyRancherAccess verifies that Rancher is accessible.
