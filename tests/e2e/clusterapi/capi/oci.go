@@ -20,7 +20,7 @@ const (
 // Client interface for OCI Clients
 type OCIClient interface {
 	GetSubnetByID(ctx context.Context, subnetID string, log *zap.SugaredLogger) (*core.Subnet, error)
-	GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error)
+	GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion, shape string, log *zap.SugaredLogger) (string, error)
 	GetVcnIDByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
 	GetVcnCIDRByName(ctx context.Context, compartmentID, displayName string, log *zap.SugaredLogger) (string, error)
 	GetSubnetIDByName(ctx context.Context, compartmentID, vcnID, displayName string, log *zap.SugaredLogger) (string, error)
@@ -63,11 +63,13 @@ func NewClient(provider common.ConfigurationProvider) (OCIClient, error) {
 }
 
 // GetImageIDByName retrieves an image OCID given an image name and a compartment id, if that image exists.
-func (c *ClientImpl) GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion string, log *zap.SugaredLogger) (string, error) {
+func (c *ClientImpl) GetImageIDByName(ctx context.Context, compartmentID, displayName, operatingSystem, operatingSystemVersion, shape string, log *zap.SugaredLogger) (string, error) {
 	images, err := c.computeClient.ListImages(ctx, core.ListImagesRequest{
 		CompartmentId:          &compartmentID,
 		OperatingSystem:        &operatingSystem,
 		OperatingSystemVersion: &operatingSystemVersion,
+		Shape:                  &shape,
+		SortBy:                 "TIMECREATED",
 	})
 	if err != nil {
 		return "", err
@@ -79,6 +81,7 @@ func (c *ClientImpl) GetImageIDByName(ctx context.Context, compartmentID, displa
 
 	for _, image := range images.Items {
 		if strings.Contains(*image.DisplayName, displayName) {
+			log.Infof(" Image details: display name= %v", *image.DisplayName)
 			return *image.Id, nil
 		}
 	}
