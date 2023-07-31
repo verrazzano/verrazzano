@@ -52,13 +52,13 @@ pipeline {
     }
 
     stages {
-    stage('Clean workspace and checkout') {
+        stage('Clean workspace and checkout') {
                 steps {
                     script {
                         cleanWorkspaceAndCheckout()
                     }
                 }
-            }
+        }
 
         stage('Get most recent periodic commit') {
             steps {
@@ -141,7 +141,7 @@ def scmCheckout() {
 
 // Checks if the commit has changed since last run
 def runPipeline() {
-  return LAST_PERIODIC_COMMIT_COMMIT != SHORT_COMMIT_HASH
+  return LAST_PERIODIC_COMMIT != SHORT_COMMIT_HASH
 }
 
 def getCronSchedule() {
