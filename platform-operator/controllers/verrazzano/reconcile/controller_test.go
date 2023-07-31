@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"reflect"
+	"sigs.k8s.io/yaml"
 	"sync"
 	"testing"
 	"time"
@@ -23,9 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -62,7 +63,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/yaml"
 )
 
 // For unit testing
@@ -201,7 +201,7 @@ func TestInstall(t *testing.T) {
 
 			// Expect a call to get the ingressList
 			expectGetIngressListExists(mock)
-
+			//expectGetVerrazzanoCondition(mock, verrazzanoToUse, namespace, name)
 			// Expect a call to update the finalizers - return success
 			mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 			if test.finalizer != finalizerName {
@@ -606,9 +606,6 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Expecting a call to get effective-config ConfigMap
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
-
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -715,9 +712,6 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
-
-	// Expecting a call to get effective-config ConfigMap
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 
 	// Expect a call to update the job - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()

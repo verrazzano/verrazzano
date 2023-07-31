@@ -106,10 +106,10 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 
 	//In the case of verrazzano uninstall,the reconciler re-creates the config map
 	//when the vz status is either uninstalling or uninstall completely then do not create anything
-	if len(vz.Status.Conditions) < 1 {
-		return nil
+	var currentCondition installv1alpha1.ConditionType
+	if len(vz.Status.Conditions) > 0 {
+		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
-	currentCondition := vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	if currentCondition == installv1alpha1.CondUninstallComplete || currentCondition == installv1alpha1.CondUninstallStarted {
 		log.Debug("verrazzano uninstalling, skipping the effective config map creation")
 		return nil
