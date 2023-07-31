@@ -247,6 +247,12 @@ var nodeDriverGVR = schema.GroupVersionResource{
 	Resource: "nodedrivers",
 }
 
+var catalogGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "catalogs",
+}
+
 var dynamicSchemaGVR = schema.GroupVersionResource{
 	Group:    "management.cattle.io",
 	Version:  "v3",
