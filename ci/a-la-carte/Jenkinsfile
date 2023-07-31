@@ -577,7 +577,7 @@ pipeline {
             }
             steps {
                 sh """
-                    ${GO_REPO_PATH}/vz uninstall -y --timeout 10m
+                    ${GO_REPO_PATH}/vz uninstall -y --timeout 30m
                     ${GO_REPO_PATH}/verrazzano/ci/scripts/wait-for-namespace-not-exist.sh verrazzano-install
                 """
             }
