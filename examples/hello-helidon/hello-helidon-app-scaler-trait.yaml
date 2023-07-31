@@ -27,3 +27,9 @@ spec:
                 - paths:
                     - path: "/greet"
                       pathType: Prefix
+        - trait:
+            apiVersion: core.oam.dev/v1alpha2
+            kind: ManualScalerTrait
+            spec:
+              replicaCount: 2
+...
