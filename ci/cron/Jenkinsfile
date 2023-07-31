@@ -16,7 +16,7 @@ def ociOsBucket = "verrazzano-builds"
 def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
 def cleanBranchName = "${env.BRANCH_NAME.replace("/", "%2F")}"
 def lastPeriodicOsLocation = "${cleanBranchName}/last-periodic-run-commit.txt"
-def lastPeriodicLocation = "${WORKSPACE}/last-backend-run-commit.txt"
+// def lastPeriodicLocation = "${WORKSPACE}/last-backend-run-commit.txt"
 
 pipeline {
     options {
