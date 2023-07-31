@@ -11,6 +11,11 @@ if [[ $THANOS_ENABLED != "true" ]]; then
   exit
 fi
 
+if [ "${ENABLE_THANOS_STORE_GATEWAY}" != "true" ] && [ "${ENABLE_THANOS_COMPACTOR}" != "true" ] && [ "${ENABLE_THANOS_RULER}" != "true" ]; then
+  echo "None of the Thanos Object Storage components are enabled, skipping edit of ${INSTALL_CONFIG_TO_EDIT}"
+  exit
+fi
+
 # Thanos storage provider config that uses local filesystem
 STORAGE_PROVIDER_CONFIG='type: FILESYSTEM
 config:
@@ -21,16 +26,30 @@ config:
 kubectl create ns verrazzano-monitoring 2>/dev/null || true
 kubectl create secret generic -n verrazzano-monitoring objstore-config --from-literal=objstore.yml="${STORAGE_PROVIDER_CONFIG}"
 
-# Modify the VZ CR to enable Thanos Store Gateway and to reference the storage provider secret
-echo "Editing install config file for Thanos Store Gateway ${INSTALL_CONFIG_TO_EDIT}"
+# Add the object store override because it is independent of other Thanos components
 yq -i eval ".spec.components.thanos.overrides.[0].values.existingObjstoreSecret = \"objstore-config\"" ${INSTALL_CONFIG_TO_EDIT}
-yq -i eval ".spec.components.thanos.overrides.[0].values.storegateway.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 
-# If specified, also enable the Thanos Compactor - storage provider is shared by storegateway
-# and compactor, so doesn't need extra configuration
+# Modify the VZ CR to enable Thanos Store Gateway and to reference the storage provider secret
+if [ "${ENABLE_THANOS_STORE_GATEWAY}" == "true" ]; then
+  echo "Editing install config file for Thanos Store Gateway ${INSTALL_CONFIG_TO_EDIT}"
+  yq -i eval ".spec.components.thanos.overrides.[0].values.storegateway.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
+# If specified, also enable the Thanos Compactor - storage provider is shared so doesn't need extra configuration
 if [ "${ENABLE_THANOS_COMPACTOR}" == "true" ]; then
   echo "Editing install config file for Thanos Compactor ${INSTALL_CONFIG_TO_EDIT}"
   yq -i eval ".spec.components.thanos.overrides.[0].values.compactor.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
+# If specified, also enable the Thanos Ruler - storage provider is shared so doesn't need extra configuration
+if [ "${ENABLE_THANOS_RULER}" == "true" ]; then
+  echo "Editing install config file for Thanos Ruler ${INSTALL_CONFIG_TO_EDIT}"
+  # ensure alertmanager is enabled and running outside of Istio
+  yq -i eval ".spec.components.prometheusOperator.overrides[2].values.alertmanager.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval '.spec.components.prometheusOperator.overrides[2].values.alertmanager.alertmanagerSpec.podMetadata.annotations."sidecar.istio.io/inject" = "false"' ${INSTALL_CONFIG_TO_EDIT}
+
+  # Add the Thanos Ruler overrides
+  yq -i eval ".spec.components.thanos.overrides.[0].values.ruler.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
 # Modify the VZ CR to enable storage on the Prometheus Thanos Sidecar

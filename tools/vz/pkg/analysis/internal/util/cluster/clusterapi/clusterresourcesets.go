@@ -75,6 +75,6 @@ func analyzeClusterResourceSet(clusterRoot string, clusterResourceSet clusterRes
 
 	if len(messages) > 0 {
 		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", capiClusterResourceSetsResource, clusterResourceSet.Name, clusterResourceSet.Namespace)}, messages...)
-		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterIssues, clusterRoot, messages, []string{})
 	}
 }

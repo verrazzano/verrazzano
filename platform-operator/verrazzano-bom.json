@@ -233,7 +233,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v1.6.1",
+      "version": "v1.7.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -241,11 +241,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.6.1-20230713001831-abc04fb"
+              "tag": "v1.7.0-20230728161919-ffd7110"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.6.1-20230713001831-abc04fb"
+              "tag": "v1.7.0-20230728161919-ffd7110"
             }
           ]
         }
@@ -473,7 +473,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230725071427-8e93dbe",
+              "tag": "v2.2.0-20230728114120-794513a",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
