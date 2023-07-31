@@ -62,6 +62,9 @@ type HelmComponent struct {
 	// InstallBeforeUpgrade if component can be installed before upgade is done, default false
 	InstallBeforeUpgrade bool
 
+	// UseModule if component should be implmemented by a Module, default false
+	UseModule bool
+
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
 
@@ -162,6 +165,11 @@ func (h HelmComponent) Namespace() string {
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
 func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 	return h.InstallBeforeUpgrade
+}
+
+// ShouldUseModule returns true if component is implemented using a Module, default false
+func (h HelmComponent) ShouldUseModule() bool {
+	return h.UseModule
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD

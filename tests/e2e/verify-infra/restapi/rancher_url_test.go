@@ -114,6 +114,15 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}
 
 					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
+					// Verify Rancher auth settings
+					minVer20, err := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+					Expect(err).ToNot(HaveOccurred())
+					if minVer20 {
+						verifySettingValue(rancher.SettingAuthResyncCron, rancher.SettingAuthResyncCronValue, k8sClient)
+						verifySettingValue(rancher.SettingAuthMaxAge, rancher.SettingAuthMaxAgeValue, k8sClient)
+						verifySettingValue(rancher.SettingAuthTTL, rancher.SettingAuthTTLValue, k8sClient)
+						verifySettingValue(rancher.SettingKubeDefaultTokenTTL, rancher.SettingKubeDefaultTokenTTLValue, k8sClient)
+					}
 
 					start = time.Now()
 					t.Logs.Info("Verify Verrazzano rancher user")

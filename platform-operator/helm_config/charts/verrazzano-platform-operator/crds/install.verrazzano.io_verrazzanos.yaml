@@ -4441,6 +4441,8 @@ spec:
                     type: string
                   thanosQueryUrl:
                     type: string
+                  thanosRulerUrl:
+                    type: string
                 type: object
               state:
                 type: string
@@ -7621,6 +7623,8 @@ spec:
                   rancherUrl:
                     type: string
                   thanosQueryUrl:
+                    type: string
+                  thanosRulerUrl:
                     type: string
                 type: object
               state:

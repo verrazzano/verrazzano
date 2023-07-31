@@ -29,6 +29,8 @@ var (
 	isThanosSupported     bool
 	isThanosInstalled     bool
 	isStoreGatewayEnabled bool
+	isCompactorEnabled    bool
+	isRulerEnabled        bool
 	inClusterVZ           *v1alpha1.Verrazzano
 )
 
@@ -55,22 +57,32 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	isThanosInstalled = vzcr.IsThanosEnabled(inClusterVZ)
 
 	if isThanosInstalled {
-		isStoreGatewayEnabled, err = isStoreGatewayEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides)
+		// check if storegateway component is enabled
+		isStoreGatewayEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "storegateway")
 		if err != nil {
-			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides: %v", err))
+			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides for the Store Gateway: %v", err))
+		}
+		// check if compactor component is enabled
+		isCompactorEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "compactor")
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides for the Compactor: %v", err))
+		}
+		isRulerEnabled, err = isThanosComponentEnabledInOverrides(inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides, "ruler")
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to process VZ CR Thanos overrides for the Ruler: %v", err))
 		}
 	}
 })
 
-// isStoreGatewayEnabledInOverrides returns true if the Thanos Store Gateway is enabled in the VZ CR overrides
-func isStoreGatewayEnabledInOverrides(overrides []v1alpha1.Overrides) (bool, error) {
+// isThanosComponentEnabledInOverrides returns true if the specified Thanos component is enabled in the VZ CR overrides
+func isThanosComponentEnabledInOverrides(overrides []v1alpha1.Overrides, thanosCompName string) (bool, error) {
 	for _, override := range inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
 		if override.Values != nil {
 			jsonString, err := gabs.ParseJSON(override.Values.Raw)
 			if err != nil {
 				return false, err
 			}
-			if container := jsonString.Path("storegateway.enabled"); container != nil {
+			if container := jsonString.Path(fmt.Sprintf("%s.enabled", thanosCompName)); container != nil {
 				if enabled, ok := container.Data().(bool); ok {
 					return enabled, nil
 				}
@@ -103,6 +115,13 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 			if isStoreGatewayEnabled {
 				pods = append(pods, "thanos-storegateway")
 			}
+			if isCompactorEnabled {
+				pods = append(pods, "thanos-compactor")
+			}
+			if isRulerEnabled {
+				pods = append(pods, "thanos-ruler")
+			}
+			t.Logs.Infof("Expected Thanos pods: %v", pods)
 
 			Eventually(func() (bool, error) {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, pods)
@@ -116,11 +135,56 @@ var _ = t.Describe("Thanos", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Thanos is installed
 		// WHEN we check to make sure the ingresses have been created
 		// THEN we successfully find the ingresses in the cluster
-		WhenThanosInstalledIt("query store and query frontend ingresses exist", func() {
+		WhenThanosInstalledIt("Thanos ingresses exist", func() {
+			ingresses := []string{"thanos-query-frontend", "thanos-query-store"}
+			if isRulerEnabled {
+				ingresses = append(ingresses, "thanos-ruler")
+			}
+
+			t.Logs.Infof("Expected Thanos ingresses %v", ingresses)
 			Eventually(func() (bool, error) {
-				ingresses := []string{"thanos-query-frontend", "thanos-query-store"}
 				return pkg.IngressesExist(inClusterVZ, constants.VerrazzanoSystemNamespace, ingresses)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Thanos Ingresses should exist")
+		})
+
+		// GIVEN the Thanos is installed
+		// WHEN the ingresses exist
+		// THEN they should be accessible
+		WhenThanosInstalledIt("Thanos ingresses should be accessible", func() {
+			if pkg.IsManagedClusterProfile() {
+				Skip("Skip verifying ingress accessibility for managed clusters")
+			}
+			httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+			creds := pkg.EventuallyGetSystemVMICredentials()
+			urls := []*string{
+				inClusterVZ.Status.VerrazzanoInstance.ThanosQueryURL,
+			}
+			if isRulerEnabled {
+				urls = append(urls, inClusterVZ.Status.VerrazzanoInstance.ThanosRulerURL)
+			}
+
+			Eventually(func() bool {
+				for _, url := range urls {
+					if !pkg.AssertURLAccessibleAndAuthorized(httpClient, *url, creds) {
+						return false
+					}
+				}
+				return true
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
+
+		// GIVEN the Thanos is installed
+		// WHEN the ruler is enabled
+		// THEN the rule data from Prometheus should be synced
+		WhenThanosInstalledIt("Thanos ruler should contain rules populated from Prometheus", func() {
+			if !isRulerEnabled {
+				Skip("Skipping Rule verification because Ruler is not enabled")
+			}
+
+			kubeconfigPath := getKubeConfigOrAbort()
+			Eventually(func() (interface{}, error) {
+				return pkg.GetRulesFromThanosRuler(kubeconfigPath)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
 		})
 	})
 })

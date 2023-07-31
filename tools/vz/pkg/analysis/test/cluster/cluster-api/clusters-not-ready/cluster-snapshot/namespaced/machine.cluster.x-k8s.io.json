@@ -1,0 +1,81 @@
+{
+  "apiVersion": "cluster.x-k8s.io/v1beta1",
+  "items": [
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "Machine",
+      "metadata": {
+        "name": "c-pzd2r-control-plane-7ttt4",
+        "namespace": "c-pzd2r"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-07-20T14:46:02Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2023-07-20T14:44:47Z",
+            "status": "True",
+            "type": "BootstrapReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-20T14:46:02Z",
+            "status": "True",
+            "type": "InfrastructureReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-20T14:44:46Z",
+            "reason": "WaitingForNodeRef",
+            "severity": "Info",
+            "status": "False",
+            "type": "NodeHealthy"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "cluster.x-k8s.io/v1beta1",
+      "kind": "Machine",
+      "metadata": {
+        "name": "pool-u52w2-7c87f895ddx9jk4d-42bj6",
+        "namespace": "c-pzd2r"
+     },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2023-07-20T14:43:44Z",
+            "message": "0 of 2 completed",
+            "reason": "WaitingForBootstrapData",
+            "severity": "Info",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2023-07-20T14:44:44Z",
+            "reason": "WaitingForControlPlaneAvailable",
+            "severity": "Info",
+            "status": "False",
+            "type": "BootstrapReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-20T14:43:44Z",
+            "reason": "WaitingForBootstrapData",
+            "severity": "Info",
+            "status": "False",
+            "type": "InfrastructureReady"
+          },
+          {
+            "lastTransitionTime": "2023-07-20T14:43:43Z",
+            "reason": "WaitingForNodeRef",
+            "severity": "Info",
+            "status": "False",
+            "type": "NodeHealthy"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "MachineList"
+}

@@ -6,6 +6,8 @@ package operatorinit
 import (
 	"context"
 	"github.com/pkg/errors"
+	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
@@ -17,8 +19,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
+	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/factory"
+	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
+	"sync"
+
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +34,6 @@ import (
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -89,6 +94,23 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
+
+	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
+	// Use the new controller if module integration is enabled, otherwise use the original verrazzano controller
+	if vzconfig.ModuleIntegration {
+		// init module controllers, one for each component
+		if err := initModuleControllers(log, mgr); err != nil {
+			log.Errorf("Failed to start all module controllers", err)
+			return errors.Wrap(err, "Failed to setup controller for module controller for the components")
+		}
+
+		// init verrazzano module controller
+		if err := verrazzanomodule.InitController(mgr); err != nil {
+			log.Errorf("Failed to start module-based Verrazzano controller", err)
+			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
+		}
+	}
+
 	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
 	reconciler := reconcile.Reconciler{
 		Client:            mgr.GetClient(),
@@ -207,4 +229,26 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 	}
 
 	return err
+}
+
+// initModuleControllers creates a controller for every module
+func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+
+	// Temp hack to prevent module controller from looking up helm info
+	module.IgnoreHelmInfo()
+
+	for _, comp := range registry.GetComponents() {
+		// TODO
+		// Add function to component SPI to get WatchDescriptors
+		// Pass the descriptors to the InitController so that each component can watch whatever it wants
+		// and react
+		// END TODO
+
+		// init controller
+		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
+			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
+			return err
+		}
+	}
+	return nil
 }

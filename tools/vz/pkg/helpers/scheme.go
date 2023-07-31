@@ -30,4 +30,10 @@ func AddCapiToScheme(scheme *runtime.Scheme) {
 	for _, resource := range capiResources {
 		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
 	}
+	for _, resource := range rancherNamespacedResources {
+		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
+	}
+	for _, resource := range rancherResources {
+		scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: resource.GVR.Group, Version: resource.GVR.Version, Kind: resource.Kind + "List"}, &unstructured.Unstructured{})
+	}
 }

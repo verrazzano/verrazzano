@@ -28,6 +28,7 @@ const (
 	name      = "NAME"
 )
 
+var GVKCatalog = common.GetRancherMgmtAPIGVKForKind("Catalog")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKDynamicSchema = common.GetRancherMgmtAPIGVKForKind("DynamicSchema")
 var GVKNodeDriverList = common.GetRancherMgmtAPIGVKForKind(GVKNodeDriver.Kind + "List")
@@ -144,6 +145,7 @@ func TestCleanupRancherResources(t *testing.T) {
 		nd1                  = "nd1"
 		nd2                  = "nd2"
 		dynamicSchemaND2Name = "ds2"
+		systemCatalog        = "system-library"
 	)
 
 	nodeDriver1 := &unstructured.Unstructured{}
@@ -177,9 +179,13 @@ func TestCleanupRancherResources(t *testing.T) {
 		},
 	})
 
+	catalog := &unstructured.Unstructured{}
+	catalog.SetGroupVersionKind(GVKCatalog)
+	catalog.SetName(systemCatalog)
+
 	scheme := getScheme()
 	scheme.AddKnownTypeWithName(GVKNodeDriverList, &unstructured.UnstructuredList{})
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2, dynamicSchemaND1, dynamicSchemaND2)
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, nodeDriver1, nodeDriver2, dynamicSchemaND1, dynamicSchemaND2, catalog)
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
 		resetDynamicClientFunc()
@@ -201,6 +207,10 @@ func TestCleanupRancherResources(t *testing.T) {
 	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd1, metav1.GetOptions{})
 	assert.True(t, apierrors.IsNotFound(err))
 	_, err = fakeDynamicClient.Resource(nodeDriverGVR).Get(ctx, nd2, metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err))
+
+	// Check that system-library catalog is no longer found
+	_, err = fakeDynamicClient.Resource(catalogGVR).Get(ctx, systemCatalog, metav1.GetOptions{})
 	assert.True(t, apierrors.IsNotFound(err))
 
 	// Check Rancher CAPI webhooks are no longer found

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -101,7 +101,7 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// if the deletion timestamp is set, delete the corresponding VMC
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
-			if err := r.deleteVMC(cluster); err != nil {
+			if err := r.DeleteVMC(cluster); err != nil {
 				reconcileErrorCount.Inc()
 				return ctrl.Result{}, err
 			}
@@ -233,8 +233,8 @@ func (r *RancherClusterReconciler) ensureVMC(cluster *unstructured.Unstructured)
 	return nil
 }
 
-// deleteVMC deletes the VMC associated with a Rancher cluster
-func (r *RancherClusterReconciler) deleteVMC(cluster *unstructured.Unstructured) error {
+// DeleteVMC deletes the VMC associated with a Rancher cluster
+func (r *RancherClusterReconciler) DeleteVMC(cluster *unstructured.Unstructured) error {
 	// ignore the "local" cluster
 	if localClusterName == cluster.GetName() {
 		return nil
@@ -257,7 +257,7 @@ func (r *RancherClusterReconciler) deleteVMC(cluster *unstructured.Unstructured)
 	// if the VMC has a cluster id in the status, delete the VMC
 	if len(vmc.Status.RancherRegistration.ClusterID) > 0 {
 		r.Log.Infof("Deleting VMC %s because it is no longer in Rancher", vmc.Name)
-		if err := r.Delete(context.TODO(), vmc); err != nil {
+		if err := r.Delete(context.TODO(), vmc); client.IgnoreNotFound(err) != nil {
 			r.Log.Errorf("Unable to delete VMC %s: %v", vmc.Name, err)
 			return err
 		}

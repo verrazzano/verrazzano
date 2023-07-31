@@ -49,3 +49,5 @@ experimentalFeatures:
   # Experimental support for Module CRDs and controllers
   moduleAPI:
     enabled: false
+  moduleIntegration:
+    enabled: false

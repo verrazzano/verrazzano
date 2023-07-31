@@ -51,13 +51,14 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   rules:
-    # allow query-frontend to forward requests to query
+    # allow query-frontend and ruler to forward requests to query
     - from:
         - source:
             namespaces:
               - verrazzano-monitoring
             principals:
               - cluster.local/ns/verrazzano-monitoring/sa/thanos-query-frontend
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-ruler
       to:
         - operation:
             ports:
@@ -99,4 +100,51 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}
       app.kubernetes.io/component: query
+---
+{{ if .Values.ruler.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-ruler
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  rules:
+    # allow the authproxy requests to the HTTP endpoint
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy
+      to:
+        - operation:
+            ports:
+              - "10902"
+    # allow query to talk to the Store API on Thanos Ruler
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-system
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/thanos-query
+      to:
+        - operation:
+            ports:
+              - "10901"
+    # allow Prometheus to scrape from Thanos Ruler
+    - from:
+        - source:
+            namespaces:
+              - verrazzano-monitoring
+            principals:
+              - cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus
+      to:
+        - operation:
+            ports:
+              - "10902"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: ruler
+{{end}}
 {{end}}

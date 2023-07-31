@@ -62,6 +62,8 @@ const (
 	dbHostKey               = "database.hostname"
 	headlessService         = "keycloak-headless"
 	kcAdminScript           = "/opt/keycloak/bin/kcadm.sh"
+	keycloakSecretName      = "keycloak-http" //nolint:gosec //#gosec G101
+	keycloakIngressName     = "keycloak"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -563,6 +565,8 @@ const pkceClientUrisTemplate = `
 	  "https://osd.logging.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://thanos-query.{{.DNSSubDomain}}/*",
 	  "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://thanos-ruler.{{.DNSSubDomain}}/*",
+	  "https://thanos-ruler.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://jaeger.{{.DNSSubDomain}}/*",
 	  "https://alertmanager.{{.DNSSubDomain}}/*",
 	  "https://alertmanager.{{.DNSSubDomain}}/_authentication_callback"{{ if .OSHostExists}},
@@ -582,6 +586,7 @@ const pkceClientUrisTemplate = `
 	  "https://osd.logging.{{.DNSSubDomain}}",
 	  "https://opensearch.logging.{{.DNSSubDomain}}",
 	  "https://thanos-query.{{.DNSSubDomain}}",
+	  "https://thanos-ruler.{{.DNSSubDomain}}",
 	  "https://jaeger.{{.DNSSubDomain}}",
 	  "https://alertmanager.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
@@ -809,7 +814,7 @@ func getEnvironmentName(envName string) string {
 // updateKeycloakIngress updates the Ingress
 func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	ingress := networkv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
+		ObjectMeta: metav1.ObjectMeta{Name: keycloakIngressName, Namespace: constants.KeycloakNamespace},
 	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
@@ -856,17 +861,6 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 
 // configureKeycloakRealms configures the Verrazzano system realm
 func configureKeycloakRealms(ctx spi.ComponentContext) error {
-	// Make sure the Keycloak pod is ready
-	pod := keycloakPod()
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err)
-		return err
-	}
-	if !isPodReady(pod) {
-		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
-		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
-	}
 
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
@@ -881,6 +875,12 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		// to resolve the condition.
 		err = LoginKeycloak(ctx, cfg, cli)
 		if err != nil {
+			pod := keycloakPod()
+			err1 := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
+			if err1 != nil {
+				ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", pod.Name, err1)
+				return err1
+			}
 			err2 := ctx.Client().Delete(context.TODO(), pod)
 			if err2 != nil {
 				ctx.Log().Errorf("Component Keycloak failed to recycle pod %s: %v", pod.Name, err2)
@@ -1103,11 +1103,23 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 // loginKeycloak logs into Keycloak so kcadm API calls can be made
 func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+	// Make sure the Keycloak pod is ready
+	kcPod := keycloakPod()
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: kcPod.Namespace, Name: kcPod.Name}, kcPod)
+	if err != nil {
+		ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", kcPod.Name, err)
+		return err
+	}
+	if !isPodReady(kcPod) {
+		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", kcPod.Name)
+		return fmt.Errorf("Waiting for pod %s to be ready", kcPod.Name)
+	}
+
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
-	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: "keycloak",
-		Name:      "keycloak-http",
+	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: constants.KeycloakNamespace,
+		Name:      keycloakSecretName,
 	}, secret)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Keycloak password: %s", err)
@@ -1123,12 +1135,11 @@ func LoginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debug("LoginKeycloak: Successfully retrieved Keycloak password")
 
 	// Login to Keycloak
-	kcPod := keycloakPod()
 	loginCmd := kcAdminScript + " config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password " + keycloakpw
 	ctx.Log().Debugf("LoginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
+		ctx.Log().Progressf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")

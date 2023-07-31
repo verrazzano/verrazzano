@@ -116,10 +116,6 @@ pipeline {
             }
         }
 
-        stage('Verify Scan Results') {
-
-        }
-
         stage('Create Github Release') {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')

@@ -99,6 +99,18 @@ func (c *externalDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
 	return postUninstall(ctx.Log(), ctx.Client())
 }
 
+// PreUninstall makes sure that it is safe to uninstall external-dns
+func (c externalDNSComponent) PreUninstall(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("%s PreUninstall dry run", ComponentName)
+		return nil
+	}
+	if err := preUninstall(ctx.Log(), ctx.Client()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUninstall(ctx)
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c *externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install

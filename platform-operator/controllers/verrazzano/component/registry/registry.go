@@ -123,6 +123,20 @@ func GetComponents() []spi.Component {
 	return getComponentsFn()
 }
 
+func GetComponentsForUninstall() []spi.Component {
+	if len(componentsRegistry) == 0 {
+		InitRegistry()
+	}
+	comps := getComponentsFn()
+	uninstallComps := make([]spi.Component, len(comps))
+	uninstallIdx := len(comps) - 1
+	for _, comp := range comps {
+		uninstallComps[uninstallIdx] = comp
+		uninstallIdx--
+	}
+	return uninstallComps
+}
+
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
 func getComponents() []spi.Component {
 	return componentsRegistry

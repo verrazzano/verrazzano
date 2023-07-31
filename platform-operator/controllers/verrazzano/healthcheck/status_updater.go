@@ -98,6 +98,10 @@ func (v *VerrazzanoStatusUpdater) doUpdate(event *UpdateEvent) error {
 		if err != nil {
 			return err
 		}
+		if vz == nil {
+			// This can happen when vz is being deleted.
+			return nil
+		}
 		event.merge(vz)
 		err = v.client.Status().Update(context.TODO(), vz)
 		if err == nil || !apierrors.IsConflict(err) {

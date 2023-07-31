@@ -44,8 +44,8 @@ const AdminClusterConfigMapName = "verrazzano-admin-cluster"
 // ServerDataKey is the key into ConfigMap data for cluster server address
 const ServerDataKey = "server"
 
-// VzConsoleIngress - the name of the ingress for Verrazzano console and api
-const VzConsoleIngress = "verrazzano-ingress"
+// VzIngress - the name of the ingress for Verrazzano console and api
+const VzIngress = "verrazzano-ingress"
 
 // RegistryOverrideEnvVar is the environment variable name used to override the registry housing images we install
 const RegistryOverrideEnvVar = "REGISTRY"
@@ -167,6 +167,9 @@ const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
 // InstallOperation indicates that an install operation being executed by a component
 const InstallOperation = "install"
 
+// UpdateOperation indicates that an update operation being executed by a component
+const UpdateOperation = "update"
+
 // UpgradeOperation indicates that an upgrade operation being executed by a component
 const UpgradeOperation = "upgrade"
 
@@ -269,6 +272,21 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 
 // VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
+
+// VerrazzanoCRNameAnnotation is the annotation for the verrazzano CR name
+const VerrazzanoCRNameAnnotation = "module.verrazzano.io/vz-cr-name"
+
+// VerrazzanoCRNamespaceAnnotation is the annotation for the verrazzano CR namespace
+const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
+
+// VerrazzanoObservedGenerationAnnotation is the annotation for the verrazzano CR observed generation
+const VerrazzanoObservedGenerationAnnotation = "module.verrazzano.io/vz-cr-observed-generation"
+
+// VerrazzanoVersionAnnotation is the annotation for the verrazzano CR version
+const VerrazzanoVersionAnnotation = "module.verrazzano.io/vz-cr-version"
+
+// VerrazzanoModuleOwnerLabel is the label for the module that owns the resource
+const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
 
 // AlertmanagerIngress is the name of the ingress for Alertmanager
 const AlertmanagerIngress = "alertmanager"
