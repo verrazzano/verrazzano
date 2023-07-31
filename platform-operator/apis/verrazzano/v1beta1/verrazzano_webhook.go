@@ -54,10 +54,6 @@ func (v *Verrazzano) ValidateCreate() error {
 		return nil
 	}
 
-	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
-		return err
-	}
-
 	runtimeClient, err := getControllerRuntimeClient(newScheme())
 	if err != nil {
 		return err
