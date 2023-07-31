@@ -11,13 +11,6 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
 
-def ociOsRegion = "us-phoenix-1"
-def ociOsBucket = "verrazzano-builds"
-def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
-def cleanBranchName = "${env.BRANCH_NAME.replace("/", "%2F")}"
-def lastPeriodicOsLocation = "${cleanBranchName}/last-periodic-run-commit.txt"
-// def lastPeriodicLocation = "${WORKSPACE}/last-backend-run-commit.txt"
-
 pipeline {
     options {
         timeout(time: 12, unit: 'HOURS')
@@ -53,7 +46,7 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
         LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
-//         LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
     }
