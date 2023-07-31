@@ -4,13 +4,20 @@
 package validators
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // For unit testing
@@ -213,4 +220,66 @@ func Test_cleanTempFiles(t *testing.T) {
 			assert.NoFileExists(tmpFile.Name(), "Error, temp file %s not deleted", tmpFile.Name())
 		}
 	}
+}
+
+// TestVerifyPlatformOperatorSingletonNoFailedPods Tests the VerifyPlatformOperatorSingleton check
+// GIVEN a VerifyPlatformOperatorSingleton call
+// WHEN there are FAILED pods
+// THEN an error is returned
+func TestVerifyPlatformOperatorSingletonFailedPods(t *testing.T) {
+	tests := []struct {
+		name       string
+		shouldPass bool
+		failedPods int
+		podList    []string
+	}{
+		{name: "Single VPO instance", shouldPass: true, podList: []string{"appName"}},
+		{name: "Single VPO instance unhealthy", shouldPass: true, failedPods: 1, podList: []string{"appName"}},
+		{name: "Multiple VPO instances all healthy", shouldPass: false, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances unhealthy", shouldPass: false, failedPods: 1, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 healthy", shouldPass: true, failedPods: 2, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 unhealthy", shouldPass: true, failedPods: 1, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances all unhealthy", shouldPass: true, failedPods: 4, podList: []string{"foo", "goo", "app", "app1"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labels := map[string]string{
+				"app": "verrazzano-platform-operator",
+			}
+
+			runtimeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&corev1.PodList{
+				TypeMeta: metav1.TypeMeta{},
+				Items:    createPodList(tt.podList, labels, tt.failedPods)},
+			).Build()
+
+			if tt.shouldPass {
+				assert.NoError(t, VerifyPlatformOperatorSingleton(runtimeClient))
+			} else if !tt.shouldPass {
+				assert.Error(t, VerifyPlatformOperatorSingleton(runtimeClient))
+			}
+		})
+	}
+}
+
+func createPodList(listOfPods []string, labels map[string]string, failedPods int) []corev1.Pod {
+	var list []corev1.Pod
+	for _, podName := range listOfPods {
+		pod := corev1.Pod{}
+		pod.Name = podName
+		pod.Namespace = constants.VerrazzanoInstallNamespace
+		pod.Labels = labels
+		if failedPods != 0 {
+			pod.Status.Phase = "Failed"
+			failedPods--
+		}
+		list = append(list, pod)
+	}
+	return list
+}
+
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	corev1.AddToScheme(scheme)
+	clientgoscheme.AddToScheme(scheme)
+	return scheme
 }

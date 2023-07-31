@@ -8,6 +8,10 @@ import (
 	"encoding/pem"
 	goerrors "errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"strings"
+
 	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -16,16 +20,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	"io/fs"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 const (
@@ -161,7 +162,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 	return nil
 }
 
-//checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
+// checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
 // update, this is an error condition, as we don't want to allow any updates without an upgrade
 func CheckUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) error {
 	installedVerString := strings.TrimSpace(statusVersion)
@@ -210,7 +211,7 @@ func ValidatePrivateKey(secretName string, pemData []byte) error {
 	return nil
 }
 
-//validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
+// validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
 func ValidateFluentdConfigData(secret *corev1.Secret) error {
 	secretName := secret.Name
 	configData, ok := secret.Data[FluentdOCISecretConfigEntry]
@@ -311,7 +312,7 @@ func ValidateUpgradeRequest(newSpecVerString string, currStatusVerString string,
 	return nil
 }
 
-//ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
+// ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
 func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
 	log := zap.S().With("validate", "version")
 	log.Info("Validate version")
@@ -350,4 +351,30 @@ func GetClient(scheme *runtime.Scheme) (client.Client, error) {
 	}
 
 	return client.New(config, client.Options{Scheme: scheme})
+}
+
+// VerifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
+// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
+// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
+// multiple instances, if that makes sense.
+func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
+	var podList corev1.PodList
+	err := runtimeClient.List(context.TODO(), &podList,
+		client.InNamespace(constants.VerrazzanoInstallNamespace),
+		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	if err != nil {
+		return err
+	}
+	if len(podList.Items) > 1 {
+		healthyPod := 0
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != "Failed" {
+				healthyPod++
+			}
+		}
+		if healthyPod > 1 {
+			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		}
+	}
+	return nil
 }
