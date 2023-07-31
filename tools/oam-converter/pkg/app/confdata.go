@@ -96,6 +96,9 @@ func ConfData() error {
 
 	//Create child resources
 	outputResources, err := resources.CreateResources(conversionComponents)
+	if err != nil {
+		return err
+	}
 
 	//Write the K8s child resources to the file
 	err = writeKubeResources(outputDirectory, outputResources)
