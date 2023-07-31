@@ -22,7 +22,7 @@
   "editable": true,
   "gnetId": 12937,
   "graphTooltip": 0,
-  "iteration": 1690819883422,
+  "iteration": 1690822265932,
   "links": [],
   "panels": [
     {
@@ -1647,7 +1647,7 @@
       "id": 27,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -1658,7 +1658,7 @@
           "values": false
         },
         "text": {},
-        "textMode": "auto"
+        "textMode": "name"
       },
       "pluginVersion": "7.5.17",
       "targets": [
