@@ -89,6 +89,6 @@ func analyzeMachine(clusterRoot string, machine machine, issueReporter *report.I
 
 	if len(messages) > 0 {
 		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", machinesResource, machine.Name, machine.Namespace)}, messages...)
-		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterIssues, clusterRoot, messages, []string{})
 	}
 }
