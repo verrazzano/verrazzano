@@ -122,7 +122,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			UninstallContext.uninstallState = compStateUninstall
 
 		case compStateUninstall:
-			compLog.Infof("Component %s is calling uninstall", compName)
+			compLog.Oncef("Component %s is calling uninstall", compName)
 			if err := comp.Uninstall(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
 					compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
@@ -138,10 +138,10 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				return newRequeueWithDelay(), nil
 			}
 			if installed {
-				compLog.Infof("Waiting for component %s to be uninstalled", compName)
+				compLog.Oncef("Waiting for component %s to be uninstalled", compName)
 				return newRequeueWithDelay(), nil
 			}
-			compLog.Infof("Component %s has been uninstalled, running post-uninstall", compName)
+			compLog.Oncef("Component %s has been uninstalled, running post-uninstall", compName)
 			if err := comp.PostUninstall(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
 					compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)

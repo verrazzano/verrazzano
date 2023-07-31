@@ -63,7 +63,7 @@ type componentTrackerContext struct {
 
 // installComponents will install the components as required
 func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
-	spiCtx.Log().Info("Installing components")
+	spiCtx.Log().Once("Installing components")
 
 	var requeue bool
 
@@ -338,7 +338,7 @@ func skipComponentFromDisabledState(compContext spi.ComponentContext, comp spi.C
 	// Only check for min VPO version if this is not the PreUpgrade case
 	if !preUpgrade && !isVersionOk(compContext.Log(), comp.GetMinVerrazzanoVersion(), compContext.ActualCR().Status.Version) {
 		// User needs to do upgrade before this component can be installed
-		compContext.Log().Infof("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
+		compContext.Log().Oncef("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 			comp.Name(), comp.GetMinVerrazzanoVersion())
 		return true
 	}
