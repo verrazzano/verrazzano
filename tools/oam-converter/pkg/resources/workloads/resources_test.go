@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonresources
+package workloads
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -74,7 +74,7 @@ func TestCreateIngressChildResourcesFromHelidon(t *testing.T) {
 	allHostsForTrait := []string{"example.com"}
 
 	// Call the function with the sample inputs
-	virtualServices, _, _, err := CreateIngressChildResourcesFromHelidon(conversionComponent, gateway, allHostsForTrait)
+	virtualServices, _, _, err := CreateIngressChildResourcesFromWorkload(conversionComponent, gateway, allHostsForTrait)
 
 	// Verify the output
 	assert.NoError(t, err, "Expected no error")

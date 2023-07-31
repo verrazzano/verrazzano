@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	workload "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/workloads"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
@@ -27,7 +26,7 @@ func ConfData() error {
 
 	//Check the length of args
 	if len(os.Args) != 3 {
-		return fmt.Errorf("Not enough args to run tool")
+		return errors.New("not enough args to run tool. Add input directory path and output directory path as args")
 	}
 	inputDirectory = os.Args[1]
 	outputDirectory = os.Args[2]
@@ -39,7 +38,7 @@ func ConfData() error {
 	var components []map[string]interface{}
 
 	//used to store non-oam file data
-	var k8sResources []map[string]interface{}
+	//	var k8sResources unstructured.Unstructured
 
 	//iterate through user inputted directory
 	files, err := iterateDirectory(inputDirectory)
@@ -49,7 +48,10 @@ func ConfData() error {
 
 	//Read each file from the input directory
 	for _, input := range files {
-		data, _ := ioutil.ReadFile(input)
+		data, err := os.ReadFile(input)
+		if err != nil {
+			return fmt.Errorf("error in reading file %w", err)
+		}
 		datastr := string(data)
 
 		//Split the objects using "---" delimiter
@@ -75,13 +77,7 @@ func ConfData() error {
 				components = append(components, component)
 			} else if compKind == "ApplicationConfiguration" && compVersion == consts.CompAPIVersion {
 				appData = append(appData, component)
-			} else {
-				//For generic workload
-				//TODO for K8s resources that are not OAM-specific
-				k8sResources = append(k8sResources, component)
-
 			}
-
 		}
 	}
 
@@ -110,7 +106,7 @@ func ConfData() error {
 	return nil
 }
 
-// Write the kube resources to the files in output directory
+// writeKubeResources Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources *types.KubeResources) (err error) {
 
 	//Write virtual services to files
@@ -132,14 +128,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			if err != nil {
 				return err
 			}
-
-			// Use defer with an anonymous function to close the file after it's processed
-			defer func() {
-				if err := f.Close(); err != nil {
-					err = fmt.Errorf("failed to close file: %w", err)
-				}
-			}()
-
+			defer f.Close()
 			_, err = f.WriteString(string(output))
 			if err != nil {
 				return err
@@ -168,12 +157,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		if err != nil {
 			return fmt.Errorf("failed to write YAML to file: %w", err)
 		}
-		// Use defer with an anonymous function to close the file after it's processed
-		defer func() {
-			if err := f.Close(); err != nil {
-				err = fmt.Errorf("failed to close file: %w", err)
-			}
-		}()
+		defer f.Close()
 	}
 
 	//Write down destination rules to files
@@ -196,14 +180,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
-
-				// Use defer with an anonymous function to close the file after it's processed
-				defer func() {
-					if err := f.Close(); err != nil {
-						err = fmt.Errorf("failed to close file: %w", err)
-					}
-				}()
-
+				defer f.Close()
 				_, err2 := f.WriteString(string(output))
 				if err2 != nil {
 					return err2
@@ -232,24 +209,14 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
-
-				// Use defer with an anonymous function to close the file after it's processed
-				defer func() {
-					if err := f.Close(); err != nil {
-						err = fmt.Errorf("failed to close file: %w", err)
-					}
-				}()
-
+				defer f.Close()
 				_, err2 := f.WriteString(string(output))
 				if err2 != nil {
 					return err2
 				}
-
 			}
-
 		}
 	}
-
 	//Write down Service Monitors to files
 	if outputResources.ServiceMonitors != nil {
 		var output string
@@ -270,19 +237,16 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			}
 			output = output + "---\n" + string(out)
 		}
-
 		defer f.Close()
-
 		_, err2 := f.WriteString(string(output))
 		if err2 != nil {
 			return err2
 		}
-
 	}
 	return nil
 }
 
-// Iterate over input directory
+// iterateDirectory Iterate over input directory
 func iterateDirectory(path string) ([]string, error) {
 	var files []string
 

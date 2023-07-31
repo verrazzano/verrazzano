@@ -1,0 +1,19 @@
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: test-appconf
+  namespace: test-namespace
+spec:
+  components:
+    - componentName: test-component
+      traits:
+       - trait:
+           apiVersion: oam.verrazzano.io/v1alpha1
+           kind: IngressTrait
+           metadata:
+             name: test-ingress-trait
+           spec:
+             rules:
+               - paths:
+                   - path: /test-ingress-path
+                     pathType: Prefix

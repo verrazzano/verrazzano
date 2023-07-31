@@ -24,44 +24,72 @@ func Test_getIngressTraitNsn(t *testing.T) {
 }
 
 func Test_CreateAuthorizationPolicyRule(t *testing.T) {
-	// Test case 1: Valid authorization rule without 'From' clause
-	rule1 := &vzapi.AuthorizationRule{
-		When: []*vzapi.AuthorizationRuleCondition{
-			{Key: "app", Values: []string{"myapp"}},
-		},
+	// Define a struct to represent each test case.
+	type testCase struct {
+		Name           string
+		Rule           *vzapi.AuthorizationRule
+		Path           string
+		Hosts          []string
+		RequireFrom    bool
+		ExpectedResult *v1beta1.Rule
+		ExpectedError  bool
 	}
-	path1 := "/api/v1"
-	hosts1 := []string{"example.com"}
-	requireFrom1 := false
 
-	expectedRule1 := &v1beta1.Rule{
-		When: []*v1beta1.Condition{
-			{Key: "app", Values: []string{"myapp"}},
-		},
-		To: []*v1beta1.Rule_To{{
-			Operation: &v1beta1.Operation{
-				Hosts: hosts1,
-				Paths: []string{path1},
+	// Define the test cases using the testCase struct.
+	testCases := []testCase{
+		{
+			Name: "Valid authorization rule without 'From' clause",
+			Rule: &vzapi.AuthorizationRule{
+				When: []*vzapi.AuthorizationRuleCondition{
+					{Key: "app", Values: []string{"myapp"}},
+				},
 			},
-		}},
+			Path:        "/api/v1",
+			Hosts:       []string{"example.com"},
+			RequireFrom: false,
+			ExpectedResult: &v1beta1.Rule{
+				When: []*v1beta1.Condition{
+					{Key: "app", Values: []string{"myapp"}},
+				},
+				To: []*v1beta1.Rule_To{{
+					Operation: &v1beta1.Operation{
+						Hosts: []string{"example.com"},
+						Paths: []string{"/api/v1"},
+					},
+				}},
+			},
+			ExpectedError: false,
+		},
+		{
+			Name: "Authorization rule with missing 'From' clause",
+			Rule: &vzapi.AuthorizationRule{
+				From: nil,
+			},
+			Path:           "",
+			Hosts:          []string{},
+			RequireFrom:    true,
+			ExpectedResult: nil,
+			ExpectedError:  true,
+		},
 	}
 
-	ruleResult1, err1 := createAuthorizationPolicyRule(rule1, path1, hosts1, requireFrom1)
-	assert.Nil(t, err1, "Error was not expected for Test case 1")
-	assert.Equal(t, expectedRule1, ruleResult1, "Test case 1 failed: Unexpected result")
+	// Run the test cases.
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// Call the function being tested.
+			ruleResult, err := createAuthorizationPolicyRule(tc.Rule, tc.Path, tc.Hosts, tc.RequireFrom)
 
-	// Test case 2: Authorization rule with missing 'From' clause
-	rule2 := &vzapi.AuthorizationRule{
-		From: nil,
+			// Perform assertions.
+			if tc.ExpectedError {
+				assert.Errorf(t, err, "Error was expected")
+				assert.Contains(t, err.Error(), "Authorization Policy requires 'From' clause", "Unexpected error message")
+				assert.Nil(t, ruleResult, "Result should be nil due to error")
+			} else {
+				assert.Nil(t, err, "Error was not expected")
+				assert.Equal(t, tc.ExpectedResult, ruleResult, "Unexpected result")
+			}
+		})
 	}
-	path2 := ""
-	hosts2 := []string{}
-	requireFrom2 := true
-
-	ruleResult2, err2 := createAuthorizationPolicyRule(rule2, path2, hosts2, requireFrom2)
-	assert.NotNil(t, err2, "Error was expected for Test case 2")
-	assert.Contains(t, err2.Error(), "Authorization Policy requires 'From' clause", "Test case 2 failed: Unexpected error message")
-	assert.Nil(t, ruleResult2, "Test case 2 failed: Result should be nil due to error")
 }
 
 func TestMutateAuthorizationPolicy(t *testing.T) {
@@ -74,7 +102,6 @@ func TestMutateAuthorizationPolicy(t *testing.T) {
 					{Key: "app", Values: []string{"myapp"}},
 				},
 			},
-			// Add more rules here if needed for testing other cases
 		},
 	}
 	path := "/api/v1"

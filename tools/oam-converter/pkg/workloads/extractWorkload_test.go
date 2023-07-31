@@ -4,132 +4,93 @@
 package workloads
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
+	reader "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/testdata"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 )
 
 func TestExtractWorkload(t *testing.T) {
-	// Test data: components array
-	components := []map[string]interface{}{
-		{
-			"apiVersion": "core.oam.dev/v1alpha2",
-			"kind":       "Component",
-			"metadata": map[string]interface{}{
-				"name": "hello-helidon-component",
-			},
-			"spec": map[string]interface{}{
-				"workload": map[string]interface{}{
-					"apiVersion": "oam.verrazzano.io/v1alpha1",
-					"kind":       "VerrazzanoHelidonWorkload",
-					"metadata": map[string]interface{}{
-						"name": "hello-helidon-workload",
-						"labels": map[string]interface{}{
-							"app":     "hello-helidon",
-							"version": "v1",
-						},
-					},
-					"spec": map[string]interface{}{
-						"deploymentTemplate": map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"name": "hello-helidon-deployment",
-							},
-							"podSpec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "hello-helidon-container",
-										"image": "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20230126194830-31cd41f",
-										"ports": []interface{}{
-											map[string]interface{}{
-												"containerPort": int64(8080),
-												"name":          "http",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+
+	compMaps := []map[string]interface{}{}
+
+	compConf, err := reader.ReadFromYAMLTemplate("testdata/template/helidon_workload.yaml")
+	if err != nil {
+		return
 	}
+	compMaps = append(compMaps, compConf)
+
+	appMaps := []map[string]interface{}{}
+
+	appConf, err := reader.ReadFromYAMLTemplate("testdata/template/app_conf.yaml")
+	if err != nil {
+		return
+	}
+	appMaps = append(appMaps, appConf)
+	spec, found, err := unstructured.NestedMap(appConf, "spec")
+	if !found || err != nil {
+		errors.New("app components doesn't exist")
+	}
+
+	appComponents, found, err := unstructured.NestedSlice(spec, "components")
+
+	if !found || err != nil {
+		errors.New("app components doesn't exist")
+	}
+	ingressData := make(map[string]interface{})
+	for _, component := range appComponents {
+		componentMap := component.(map[string]interface{})
+		componentTraits, ok := componentMap[consts.YamlTraits].([]interface{})
+		if ok && len(componentTraits) > 0 {
+			for _, trait := range componentTraits {
+				traitMap := trait.(map[string]interface{})
+				ingressData, found, err = unstructured.NestedMap(traitMap, "trait")
+				if !found || err != nil {
+					fmt.Errorf("trait spec doesn't exist")
+
+				}
+
+			}
+		}
+	}
+	jsonData, err := json.Marshal(ingressData)
+	ingressTrait := &vzapi.IngressTrait{}
+	err = json.Unmarshal(jsonData, &ingressTrait)
 
 	// Test data: conversionComponents array
 	conversionComponents := []*types.ConversionComponents{
-
 		{
 			AppNamespace:  "hello-helidon",
 			AppName:       "hello-helidon",
 			ComponentName: "hello-helidon-component",
-			IngressTrait: &vzapi.IngressTrait{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "IngressTrait",
-					APIVersion: "oam.verrazzano.io/v1alpha1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "hello-helidon-ingress",
-				},
-				Spec: vzapi.IngressTraitSpec{
-					Rules: []vzapi.IngressRule{
-						{
-							Destination: vzapi.IngressDestination{},
-							Paths: []vzapi.IngressPath{
-								{
-									Path:     "/greet",
-									PathType: "Prefix",
-								},
-							},
-						},
-					},
-				},
-			},
+			IngressTrait:  ingressTrait,
 		},
 	}
 
 	// Call the function to test
-	result, err := ExtractWorkload(components, conversionComponents)
+	result, err := ExtractWorkload(compMaps, conversionComponents)
 
 	// Assertions
 	assert.NoError(t, err)
 
-	expectedHelidonWorkload := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "oam.verrazzano.io/v1alpha1",
-			"kind":       "VerrazzanoHelidonWorkload",
-			"metadata": map[string]interface{}{
-				"name": "hello-helidon-workload",
-				"labels": map[string]interface{}{
-					"app":     "hello-helidon",
-					"version": "v1",
-				},
-			},
-			"spec": map[string]interface{}{
-				"deploymentTemplate": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"name": "hello-helidon-deployment",
-					},
-					"podSpec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "hello-helidon-container",
-								"image": "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20230126194830-31cd41f",
-								"ports": []interface{}{
-									map[string]interface{}{
-										"containerPort": int64(8080),
-										"name":          "http",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+	compSpec, found, err := unstructured.NestedMap(compConf, "spec")
+	if !found || err != nil {
+		errors.New("spec key in a component doesn't exist or not found in the specified type")
 	}
+	compWorkload, found, err := unstructured.NestedMap(compSpec, "workload")
+	if !found || err != nil {
+		errors.New("workload in a component doesn't exist or not found in the specified type")
+	}
+	expectedHelidonWorkload := &unstructured.Unstructured{
+		Object: compWorkload,
+	}
+
 	assert.Equal(t, expectedHelidonWorkload, result[0].Helidonworkload)
 
 }

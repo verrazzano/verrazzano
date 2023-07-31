@@ -9,8 +9,8 @@ import (
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
-	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/helidonresources"
 	vs "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/virtualservice"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/workloads"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -36,7 +36,7 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 	}
 
 	for _, conversionComponent := range conversionComponents {
-		if conversionComponent.Weblogicworkload != nil {
+		if conversionComponent.Weblogicworkload != nil || conversionComponent.Coherenceworkload != nil {
 
 			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
 			if err != nil {
@@ -48,20 +48,10 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 			authzPolicies = append(authzPolicies, authzPolicy...)
 
 		}
-		if conversionComponent.Coherenceworkload != nil {
-			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
+		if conversionComponent.Helidonworkload != nil || conversionComponent.Service != nil {
+			virtualService, destinationRule, authzPolicy, err = workloads.CreateIngressChildResourcesFromWorkload(conversionComponent, gateway, allHostsForTrait)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create Child resources from coherence workload %w", err)
-
-			}
-			virtualServices = append(virtualServices, virtualService...)
-			destinationRules = append(destinationRules, destinationRule...)
-			authzPolicies = append(authzPolicies, authzPolicy...)
-		}
-		if conversionComponent.Helidonworkload != nil {
-			virtualService, destinationRule, authzPolicy, err = helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent, gateway, allHostsForTrait)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create Child resources from helidon workload %w", err)
+				return nil, fmt.Errorf("failed to create Child resources from workload %w", err)
 
 			}
 			virtualServices = append(virtualServices, virtualService...)

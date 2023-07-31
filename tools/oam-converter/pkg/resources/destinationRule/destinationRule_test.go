@@ -14,49 +14,64 @@ import (
 )
 
 func TestCreateDestinationFromRule(t *testing.T) {
-	// Test case 1: Rule with host and port
-	rule1 := vzapi.IngressRule{
-		Destination: vzapi.IngressDestination{
-			Host: "example.com",
-			Port: 8080,
+	testCases := []struct {
+		name          string
+		rule          vzapi.IngressRule
+		expectedDest  *istio.HTTPRouteDestination
+		expectedError error
+	}{
+		// Test case 1: Rule with host and port
+		{
+			name: "Test case 1",
+			rule: vzapi.IngressRule{
+				Destination: vzapi.IngressDestination{
+					Host: "example.com",
+					Port: 8080,
+				},
+			},
+			expectedDest: &istio.HTTPRouteDestination{
+				Destination: &istio.Destination{
+					Host: "example.com",
+					Port: &istio.PortSelector{Number: 8080},
+				},
+			},
+			expectedError: nil,
+		},
+		// Test case 2: Rule with host only
+		{
+			name: "Test case 2",
+			rule: vzapi.IngressRule{
+				Destination: vzapi.IngressDestination{
+					Host: "example2.com",
+				},
+			},
+			expectedDest: &istio.HTTPRouteDestination{
+				Destination: &istio.Destination{
+					Host: "example2.com",
+				},
+			},
+			expectedError: nil,
+		},
+		// Test case 3: Rule without host or port
+		{
+			name:          "Test case 3",
+			rule:          vzapi.IngressRule{},
+			expectedDest:  &istio.HTTPRouteDestination{Destination: &istio.Destination{}},
+			expectedError: nil,
 		},
 	}
-	dest1, err1 := CreateDestinationFromRule(rule1)
-	assert.NoError(t, err1, "Error was not expected for test case 1")
-	expectedDest1 := &istio.HTTPRouteDestination{
-		Destination: &istio.Destination{
-			Host: "example.com",
-			Port: &istio.PortSelector{Number: 8080},
-		},
-	}
-	assert.Equal(t, expectedDest1, dest1, "Unexpected destination for test case 1")
 
-	// Test case 2: Rule with host only
-	rule2 := vzapi.IngressRule{
-		Destination: vzapi.IngressDestination{
-			Host: "example2.com",
-		},
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dest, err := CreateDestinationFromRule(tc.rule)
+			assert.Equal(t, tc.expectedDest, dest, "Unexpected destination")
+			assert.Equal(t, tc.expectedError, err, "Unexpected error")
+		})
 	}
-	dest2, err2 := CreateDestinationFromRule(rule2)
-	assert.NoError(t, err2, "Error was not expected for test case 2")
-	expectedDest2 := &istio.HTTPRouteDestination{
-		Destination: &istio.Destination{
-			Host: "example2.com",
-		},
-	}
-	assert.Equal(t, expectedDest2, dest2, "Unexpected destination for test case 2")
-
-	// Test case 3: Rule without host or port
-	rule3 := vzapi.IngressRule{}
-	dest3, err3 := CreateDestinationFromRule(rule3)
-	assert.NoError(t, err3, "Error was not expected for test case 3")
-	expectedDest3 := &istio.HTTPRouteDestination{
-		Destination: &istio.Destination{},
-	}
-	assert.Equal(t, expectedDest3, dest3, "Unexpected destination for test case 3")
 }
 
 func TestCreateDestinationRule(t *testing.T) {
+
 	// Test case 1: Rule with HTTPCookie
 	trait := &vzapi.IngressTrait{
 		ObjectMeta: metav1.ObjectMeta{
@@ -76,7 +91,6 @@ func TestCreateDestinationRule(t *testing.T) {
 	destRule1, err1 := CreateDestinationRule(trait, rule1, name)
 	assert.NoError(t, err1, "Error was not expected for test case 1")
 	assert.NotNil(t, destRule1, "DestinationRule should not be nil for test case 1")
-	// Add more assertions as needed for other fields in destRule1
 
 	// Test case 2: Rule without HTTPCookie
 	rule2 := vzapi.IngressRule{}

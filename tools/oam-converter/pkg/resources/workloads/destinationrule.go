@@ -1,26 +1,27 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonresources
+package workloads
 
 import (
 	"errors"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
+	serviceDestination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/services"
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"
 	istio "istio.io/api/networking/v1beta1"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"reflect"
 	"time"
 )
 
-// createOfUpdateDestinationRule creates or updates the DestinationRule.
-func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, helidonWorkload *unstructured.Unstructured) (*istioclient.DestinationRule, error) {
+// creates or updates the DestinationRule.
+func createDestinationRuleFromWorkload(trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, helidonWorkload *unstructured.Unstructured, service *corev1.Service) (*istioclient.DestinationRule, error) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -31,15 +32,15 @@ func createDestinationRuleFromHelidonWorkload(trait *vzapi.IngressTrait, rule vz
 				Name:      name},
 		}
 		namespace := &corev1.Namespace{}
-		return mutateDestinationRuleFromHelidonWorkload(destinationRule, rule, namespace, helidonWorkload)
+		return mutateDestinationRuleFromWorkload(destinationRule, rule, namespace, helidonWorkload, service)
 
 	}
 	return nil, nil
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, helidonWorkload *unstructured.Unstructured) (*istioclient.DestinationRule, error) {
-	dest, err := createDestinationFromRuleOrHelidonWorkload(rule, helidonWorkload)
+func mutateDestinationRuleFromWorkload(destinationRule *istioclient.DestinationRule, rule vzapi.IngressRule, namespace *corev1.Namespace, helidonWorkload *unstructured.Unstructured, service *corev1.Service) (*istioclient.DestinationRule, error) {
+	dest, err := createDestinationFromRuleOrService(rule, helidonWorkload, service)
 	if err != nil {
 		print(err)
 		return nil, err
@@ -76,7 +77,7 @@ func mutateDestinationRuleFromHelidonWorkload(destinationRule *istioclient.Desti
 
 // createDestinationFromRuleOrService creates a destination from the rule or workload
 // If the rule contains destination information that is used otherwise workload information is used
-func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonWorkload *unstructured.Unstructured) (*istio.HTTPRouteDestination, error) {
+func createDestinationFromRuleOrService(rule vzapi.IngressRule, helidonWorkload *unstructured.Unstructured, service *corev1.Service) (*istio.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
 
 		dest, err := destination.CreateDestinationFromRule(rule)
@@ -85,6 +86,12 @@ func createDestinationFromRuleOrHelidonWorkload(rule vzapi.IngressRule, helidonW
 		}
 		return dest, err
 
+	}
+	if rule.Destination.Port != 0 {
+		return serviceDestination.CreateDestinationMatchRulePort(service, rule.Destination.Port)
+	}
+	if helidonWorkload == nil && service != nil {
+		return serviceDestination.CreateDestinationFromService(service)
 	}
 
 	return createDestinationFromHelidonWorkload(helidonWorkload)
@@ -140,9 +147,14 @@ func createDestinationFromHelidonWorkload(helidonWorkload *unstructured.Unstruct
 
 							// Check if the "containerPort" key exists in the portMap
 							if containerPort, exists := portMap["containerPort"]; exists {
-
+								var int32ContainerPort uint32
+								if isInt64(containerPort) {
+									int32ContainerPort = uint32(containerPort.(int64))
+								}
+								if isFloat64(containerPort) {
+									int32ContainerPort = uint32(containerPort.(float64))
+								}
 								// Access the value of "containerPort" and convert into uint32
-								int32ContainerPort := uint32(containerPort.(int64))
 
 								dest := istio.HTTPRouteDestination{
 
@@ -157,8 +169,17 @@ func createDestinationFromHelidonWorkload(helidonWorkload *unstructured.Unstruct
 					}
 				}
 			}
+			return nil, errors.New("Port does not exist")
 		}
 
 	}
 	return nil, errors.New("unable to select data for specified destination port")
+}
+
+func isInt64(val interface{}) bool {
+	return reflect.TypeOf(val).Kind() == reflect.Int64
+}
+
+func isFloat64(val interface{}) bool {
+	return reflect.TypeOf(val).Kind() == reflect.Float64
 }

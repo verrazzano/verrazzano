@@ -6,6 +6,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"log"
 )
@@ -61,9 +62,6 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 
 					}
 
-					//putting into map of workloads whose key is the component name and
-					//value is the weblogic workload
-
 					conversionComponents[i].Weblogicworkload = weblogicMap
 
 				case "VerrazzanoHelidonWorkload":
@@ -97,6 +95,19 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 
 					}
 					conversionComponents[i].Coherenceworkload = coherenceWorkload
+				case "Service":
+					service := &corev1.Service{}
+					workloadJSON, err := json.Marshal(workload)
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+					}
+
+					err = json.Unmarshal(workloadJSON, &service)
+					if err != nil {
+						fmt.Printf("Failed to unmarshal: %v\n", err)
+
+					}
+					conversionComponents[i].Service = service
 				}
 
 			}
