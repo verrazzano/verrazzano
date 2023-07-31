@@ -69,7 +69,7 @@ pipeline {
 
         stage('Get most recent periodic commit') {
             steps {
-                LAST_PERIODIC_COMMIT = getLastPeriodicRunCommit()
+                getLastPeriodicRunCommit()
                 echo("Last periodic commit: ${LAST_PERIODIC_COMMIT}")
             }
         }
@@ -128,7 +128,7 @@ def getLastPeriodicRunCommit() {
     }
     // Get the commit ID for the last known clean pass of the Periodic tests
     def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
-    return lastPeriodicsCommitProps['git-commit']
+    LAST_PERIODIC_COMMIT = lastPeriodicsCommitProps['git-commit']
 }
 
 def scmCheckout() {
