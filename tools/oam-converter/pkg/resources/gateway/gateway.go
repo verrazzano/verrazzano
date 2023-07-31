@@ -59,7 +59,7 @@ func buildCertificateName(trait *vzapi.IngressTrait, appNamespace string) string
 // buildLegacyCertificateName will generate a cert name
 func buildLegacyCertificateName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
 
-	appName, ok := trait.Labels[oam.LabelAppName]
+	_, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return ""
 	}
@@ -70,7 +70,7 @@ func buildLegacyCertificateName(trait *vzapi.IngressTrait, appNamespace string, 
 // buildLegacyCertificateSecretName will generate a cert secret name
 func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
 
-	appName, ok := trait.Labels[oam.LabelAppName]
+	_, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return ""
 	}

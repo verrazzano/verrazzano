@@ -128,7 +128,7 @@ func writeToDirectory(outputDirectory string, index any) error {
 	var object any
 
 	//check to find out what resource is being manipulated and printed
-	switch _ := index.(type) {
+	switch val := index.(type) {
 	case map[string]interface{}:
 		object = index.(map[string]interface{})
 		fileName = "gateway.yaml"
@@ -149,10 +149,12 @@ func writeToDirectory(outputDirectory string, index any) error {
 		object = index
 		fileName = "servicemonitor.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
-	default:
+	case []any:
 		object = index
 		fileName = "output.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
+	default:
+		return fmt.Errorf("Wrong data type%v", val)
 	}
 
 	//print resources in respective files
