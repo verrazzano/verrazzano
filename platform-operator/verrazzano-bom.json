@@ -473,7 +473,7 @@
           "images": [
             {
               "image": "fluent-operator-jenkins",
-              "tag": "20230728071708-082371e",
+              "tag": "20230731083218-ee9fa65",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
