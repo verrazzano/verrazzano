@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -14,10 +15,7 @@ import (
 )
 
 const (
-	RancherManagedNamespaceLabelKey  = "management.cattle.io/system-namespace"
-	RancherProjectIDLabelKey         = "field.cattle.io/projectId"
-	APIGroupRancherManagement        = "management.cattle.io"
-	APIGroupVersionRancherManagement = "v3"
+	RancherProjectIDLabelKey = "field.cattle.io/projectId"
 )
 
 // getRancherProjectList returns the list of Rancher projects
@@ -26,7 +24,7 @@ func getRancherProjectList(dynClient dynamic.Interface) (*unstructured.Unstructu
 	gvr := GetRancherMgmtAPIGVRForResource("projects")
 	rancherProjectList, err := dynClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get %s/%s/%s: %v", gvr.Resource, gvr.Group, gvr.Version, err)
+		return nil, fmt.Errorf("failed to list %s/%s/%s: %v", gvr.Resource, gvr.Group, gvr.Version, err)
 	}
 	return rancherProjectList, nil
 }
@@ -54,8 +52,8 @@ func getRancherSystemProjectID(nw *NamespacesWatcher) string {
 // GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind
 func GetRancherMgmtAPIGVRForResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    APIGroupRancherManagement,
-		Version:  APIGroupVersionRancherManagement,
+		Group:    common.APIGroupRancherManagement,
+		Version:  common.APIGroupVersionRancherManagement,
 		Resource: resource,
 	}
 }

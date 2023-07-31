@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"go.uber.org/zap/zapcore"
 	v1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,7 +18,7 @@ import (
 // isVerrazzanoManagedNamespace checks if the given namespace is managed by Verrazzano
 func isVerrazzanoManagedNamespace(ns *v1.Namespace) bool {
 	_, verrazzanoSystemLabelExists := ns.Labels[constants.VerrazzanoManagedKey]
-	value, rancherSystemLabelExists := ns.Annotations[RancherManagedNamespaceLabelKey]
+	value, rancherSystemLabelExists := ns.Annotations[rancher.RancherSysNS]
 	if verrazzanoSystemLabelExists && !rancherSystemLabelExists {
 		return true
 	}
@@ -29,12 +30,13 @@ func isVerrazzanoManagedNamespace(ns *v1.Namespace) bool {
 
 // getVerrazzanoResource fetches a Verrazzano resource, if one exists
 func getVerrazzanoResource(client clipkg.Client) (*vzapi.Verrazzano, error) {
+	var err error
 	vzList := &vzapi.VerrazzanoList{}
-	if err := client.List(context.TODO(), vzList); err != nil {
+	if err = client.List(context.TODO(), vzList); err != nil {
 		return nil, err
 	}
 	if len(vzList.Items) != 1 {
-		return nil, nil
+		return nil, err
 	}
 	return &vzList.Items[0], nil
 }
