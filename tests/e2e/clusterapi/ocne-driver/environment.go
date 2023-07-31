@@ -184,7 +184,7 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		log.Errorf("yaml unmarshalling error: %s", err)
 		return err
 	}
-	if len(mapToContents) != 1 {
+	if len(mapToContents) < 1 {
 		err = fmt.Errorf("data inside %s ConfigMap not formatted as expcted", ocneMetadataCMName)
 		log.Error(err)
 		return err
