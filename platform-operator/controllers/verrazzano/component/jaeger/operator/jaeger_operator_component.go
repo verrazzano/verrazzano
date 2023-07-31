@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -111,11 +112,25 @@ func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, vzapi.ComponentAvailability) {
-	deploys, err := getAllComponentDeployments(ctx)
+	deploys := getJaegerOperatorDeployments()
+	errMsg, availability := (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
+	if errMsg != "" {
+		return errMsg, availability
+	}
+	// Check if Jaeger instance is configured
+	jaegerCREnabled, err := isJaegerCREnabled(ctx)
 	if err != nil {
 		return err.Error(), vzapi.ComponentUnavailable
 	}
-	return (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
+	// If there is no Jaeger instance configured, return Jaeger Operator availability
+	if jaegerCREnabled == false {
+		return errMsg, availability
+	}
+	listOptions, err := jaegerListOptions()
+	if err != nil {
+		return err.Error(), vzapi.ComponentUnavailable
+	}
+	return (&ready.AvailabilityObjects{DeploymentSelectors: []clipkg.ListOption{listOptions}}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
@@ -254,11 +269,12 @@ func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 	if !installed {
 		return err
 	}
-	created, err := createOrUpdateMCJaeger(ctx.Client())
-	if created || err != nil {
+	_, err = createOrUpdateMCJaeger(ctx.Client())
+	if err != nil {
 		return err
 	}
-	// create the local cluster Jaeger instance if we did not create the managed cluster instance
+	// create the local cluster Jaeger instance if it is not managed cluster or if the Jaeger instance creation setting
+	// is explicitly enabled in VZ CR
 	if err := createJaegerSecrets(ctx); err != nil {
 		return err
 	}
