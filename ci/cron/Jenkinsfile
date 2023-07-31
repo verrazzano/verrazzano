@@ -78,7 +78,7 @@ pipeline {
             steps {
                 script {
                     echo("Running periodics with commit ${SHORT_COMMIT_HASH}")
-                    //build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
+                    build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
                 }
             }
         }
