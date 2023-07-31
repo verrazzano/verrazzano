@@ -69,6 +69,8 @@ const (
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
 	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
+	k8sInstanceNameLabel  = "app.kubernetes.io/instance"
+	instanceName          = deploymentName + "-" + jaegerHostName
 	jaegerCertificateName = "jaeger-tls"
 	openSearchURL         = globalconst.DefaultJaegerOSURL
 	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring:9090"
@@ -137,12 +139,28 @@ type jaegerData struct {
 }
 
 func isJaegerReady(ctx spi.ComponentContext) bool {
-	deploys, err := getAllComponentDeployments(ctx)
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	// Check if Jaeger Operator is ready
+	jaegerOperatorReady := ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerOperatorDeployments(), 1, prefix)
+	if !jaegerOperatorReady {
+		return jaegerOperatorReady
+	}
+	// Check if Jaeger instance is configured
+	jaegerCREnabled, err := isJaegerCREnabled(ctx)
 	if err != nil {
 		return false
 	}
-	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploys, 1, prefix)
+	// If there is no Jaeger instance configured, return true
+	if jaegerCREnabled == false {
+		return true
+	}
+	// Check if Jaeger instance is ready
+	listOptions, err := jaegerListOptions()
+	if err != nil {
+		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
+		return false
+	}
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, listOptions)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -485,7 +503,17 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 	if jaegerCreateOverride != nil {
 		return jaegerCreateOverride.(bool), nil
 	}
-	return false, nil
+	// Fetch the registration secret
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return false, err
+	}
+	// If there is a registration secret, then it is a managed cluster and the Jaeger instance using Verrazzano CR is
+	// not created unless it is explicitly enabled in the Verrazzano CR
+	if registrationSecret != nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
@@ -684,18 +712,6 @@ func getJaegerComponentDeployments() []types.NamespacedName {
 	}
 }
 
-func getAllComponentDeployments(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
-	defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	deploys := getJaegerOperatorDeployments()
-	if defaultJaegerEnabled && canUseVZOpenSearchStorage(ctx) {
-		deploys = append(deploys, getJaegerComponentDeployments()...)
-	}
-	return deploys, nil
-}
-
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
 // jaeger helm chart
 func GetHelmManagedResources() []common.HelmManagedResource {
@@ -838,4 +854,19 @@ func newScheme() *runtime.Scheme {
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = clientgoscheme.AddToScheme(scheme)
 	return scheme
+}
+
+func jaegerListOptions() (*clipkg.ListOptions, error) {
+	selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			k8sInstanceNameLabel: instanceName,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &clipkg.ListOptions{
+		Namespace:     ComponentNamespace,
+		LabelSelector: selector,
+	}, nil
 }
