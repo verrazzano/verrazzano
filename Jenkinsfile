@@ -1,9 +1,12 @@
 // Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+import groovy.transform.Field
+
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
+@Field
 def SUSPECT_LIST = ""
 def VERRAZZANO_DEV_VERSION = ""
 def VZ_BASE_IMAGE = ""
