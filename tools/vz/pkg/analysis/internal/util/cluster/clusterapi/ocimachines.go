@@ -75,6 +75,6 @@ func analyzeOCIMachine(clusterRoot string, ociMachine ociMachine, issueReporter 
 
 	if len(messages) > 0 {
 		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", ociMachinesResource, ociMachine.Name, ociMachine.Namespace)}, messages...)
-		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterIssues, clusterRoot, messages, []string{})
 	}
 }

@@ -62,7 +62,7 @@ var RunbookLinks = map[string][]string{
 	NginxIngressPrivateSubnet:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/nginxloadbalancercreation"},
 	ExternalDNSConfigureIssue:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/externaldnsconfiguration"},
 	KeycloakDataMigrationFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/keycloakdatamigrationfailure"},
-	ClusterAPIClusterNotReady:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/clusterapiclusternotready"},
+	ClusterAPIClusterIssues:      {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/clusterapiclusterissues"},
 	RancherIssues:                {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/rancherissues"},
 }
 
@@ -88,7 +88,7 @@ var KnownActions = map[string]Action{
 	NginxIngressPrivateSubnet:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[NginxIngressPrivateSubnet][0])},
 	ExternalDNSConfigureIssue:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ExternalDNSConfigureIssue][0])},
 	KeycloakDataMigrationFailure: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[KeycloakDataMigrationFailure][0])},
-	ClusterAPIClusterNotReady:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ClusterAPIClusterNotReady][0])},
+	ClusterAPIClusterIssues:      {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ClusterAPIClusterIssues][0])},
 	RancherIssues:                {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[RancherIssues][0])},
 }
 
