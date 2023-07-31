@@ -256,51 +256,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				//Change this line to get all of the tokens for that user
 				// Then next step delete all the tokens
 				//Double check that they are all deleted, cannot access and then trigger update
-				//listOfTokenNamesToDelete, err := pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
-				//if err != nil {
-				//	pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
-				//	return err
-				//}
-				return err
-
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
-		})
-		t.It("All of the tokens that correspond to the vz-argoCD-user in the cluster should eventually be deleted", func() {
-			Eventually(func() error {
-				argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
-				if err != nil {
-					return err
-				}
-				rancherConfigForArgoCD, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, argoCDUsernameForRancher, argoCDPasswordForRancher)
-				if err != nil {
-					pkg.Log(pkg.Error, "Error occurred when created a Rancher Config for ArgoCD")
-					return err
-				}
-				client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
-				if err != nil {
-					pkg.Log(pkg.Error, "Error creating the client set used by the cluster operator")
-					return err
-				}
-				managedCluster, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
-				if err != nil {
-					pkg.Log(pkg.Error, "Error getting the current managed cluster resource")
-					return err
-				}
-				clusterID := managedCluster.Status.RancherRegistration.ClusterID
-				if clusterID == "" {
-					pkg.Log(pkg.Error, "The managed cluster does not have a clusterID value")
-					err := fmt.Errorf("ClusterID value is not yet populated for the managed cluster")
-					return err
-				}
-				httpClientForRancher, err := pkg.GetVerrazzanoHTTPClient(adminKubeconfig)
-				if err != nil {
-					pkg.Log(pkg.Error, "Error getting the Verrazzano http client")
-					return err
-				}
-				//Change this line to get all of the tokens for that user
-				// Then next step delete all the tokens
-				//Double check that they are all deleted, cannot access and then trigger update
-				listOfTokenNamesToDelete, err := pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
+				_, err = pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
 				if err != nil {
 					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
 					return err
@@ -309,6 +265,50 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
 		})
+		//t.It("All of the tokens that correspond to the vz-argoCD-user in the cluster should eventually be deleted", func() {
+		//	Eventually(func() error {
+		//		argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
+		//		if err != nil {
+		//			return err
+		//		}
+		//		rancherConfigForArgoCD, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, argoCDUsernameForRancher, argoCDPasswordForRancher)
+		//		if err != nil {
+		//			pkg.Log(pkg.Error, "Error occurred when created a Rancher Config for ArgoCD")
+		//			return err
+		//		}
+		//		client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
+		//		if err != nil {
+		//			pkg.Log(pkg.Error, "Error creating the client set used by the cluster operator")
+		//			return err
+		//		}
+		//		managedCluster, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+		//		if err != nil {
+		//			pkg.Log(pkg.Error, "Error getting the current managed cluster resource")
+		//			return err
+		//		}
+		//		clusterID := managedCluster.Status.RancherRegistration.ClusterID
+		//		if clusterID == "" {
+		//			pkg.Log(pkg.Error, "The managed cluster does not have a clusterID value")
+		//			err := fmt.Errorf("ClusterID value is not yet populated for the managed cluster")
+		//			return err
+		//		}
+		//		httpClientForRancher, err := pkg.GetVerrazzanoHTTPClient(adminKubeconfig)
+		//		if err != nil {
+		//			pkg.Log(pkg.Error, "Error getting the Verrazzano http client")
+		//			return err
+		//		}
+		//		//Change this line to get all of the tokens for that user
+		//		// Then next step delete all the tokens
+		//		//Double check that they are all deleted, cannot access and then trigger update
+		//		listOfTokenNamesToDelete, err := pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
+		//		if err != nil {
+		//			pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
+		//			return err
+		//		}
+		//		return err
+		//
+		//	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
+		//})
 		//This evenutally block delete the cluster
 
 	})
