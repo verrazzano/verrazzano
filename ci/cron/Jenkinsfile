@@ -53,7 +53,7 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
         LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
-        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+//         LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
     }
