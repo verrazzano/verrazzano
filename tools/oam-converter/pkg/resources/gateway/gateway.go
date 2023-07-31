@@ -167,8 +167,8 @@ func CreateGatewaySecret(conversionComponents []*types.ConversionComponents, hos
 	var secrets []string
 	for _, conversionComponent := range conversionComponents {
 		var secretName string
-		if conversionComponent.IngressTrait == nil{
-			secrets = append(secrets,"")
+		if conversionComponent.IngressTrait == nil {
+			secrets = append(secrets, "")
 			continue
 		}
 		if conversionComponent.IngressTrait.Spec.TLS != (vzapi.IngressSecurity{}) {

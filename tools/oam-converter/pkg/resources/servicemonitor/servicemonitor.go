@@ -14,17 +14,20 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
+
 func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*promoperapi.ServiceMonitor, error) {
-	var ctx context.Context
 	var log vzlog.VerrazzanoLogger
-	var cli client.Client
 	var traitDefaults *vzapi.MetricsTraitSpec
+	cfg, _ := config.GetConfig()
+	cli, _ := client.New(cfg, client.Options{})
 	trait := conversionComponent.MetricsTrait
 
-	serviceMonitor := promoperapi.ServiceMonitor{}
+	//TODO:Fix namespace with servicemonitor name and if trait uses Istio
 
 	// Creating a service monitor with name and namespace
+	serviceMonitor := promoperapi.ServiceMonitor{}
 	pmName, err := utils.CreateServiceMonitorName(trait, conversionComponent.AppName, conversionComponent.ComponentName, 0)
 	if err != nil {
 		return &serviceMonitor, err
@@ -36,24 +39,33 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	if conversionComponent.Helidonworkload != nil {
 		workload = conversionComponent.Helidonworkload
 		traitDefaults, err = utils.NewTraitDefaultsForGenericWorkload()
+		if err != nil {
+			return &serviceMonitor, err
+		}
 	}
 	if conversionComponent.Coherenceworkload != nil {
 		workload = conversionComponent.Coherenceworkload
 		traitDefaults, err = utils.NewTraitDefaultsForCOHWorkload(workload)
+		if err != nil {
+			return &serviceMonitor, err
+		}
 	}
 	if conversionComponent.Weblogicworkload != nil {
 		workload = conversionComponent.Weblogicworkload
 		traitDefaults, err = utils.NewTraitDefaultsForWLSDomainWorkload(workload)
+		if err != nil {
+			return &serviceMonitor, err
+		}
 	}
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := utils.FetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, cli)
+	secret, err := utils.FetchSourceCredentialsSecretIfRequired(context.TODO(), trait, traitDefaults, workload, cli)
 	if err != nil {
 		return &serviceMonitor, err
 	}
 
 	//fetch if trait uses Istio
-	useHTTPS, err := utils.UseHTTPSForScrapeTarget(ctx, cli, trait)
+	useHTTPS, err := utils.UseHTTPSForScrapeTarget(context.TODO(), cli, trait)
 	if err != nil {
 		return &serviceMonitor, err
 	}

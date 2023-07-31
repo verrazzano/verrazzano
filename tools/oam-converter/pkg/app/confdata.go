@@ -72,9 +72,9 @@ func ConfData() error {
 				return errors.New("component api version doesn't exist or not found in the specified type")
 			}
 			//Check the kind od each component and apiVersion
-			if compKind == "Component" && compAPIVersion == consts.CompApiVersion {
+			if compKind == "Component" && compAPIVersion == consts.CompAPIVersion {
 				components = append(components, component)
-			} else if compKind == "ApplicationConfiguration" && compAPIVersion == consts.CompApiVersion {
+			} else if compKind == "ApplicationConfiguration" && compAPIVersion == consts.CompAPIVersion {
 				appData = append(appData, component)
 			} else {
 				k8sResources = append(k8sResources, component)
@@ -128,7 +128,7 @@ func writeToDirectory(outputDirectory string, index any) error {
 	var object any
 
 	//check to find out what resource is being manipulated and printed
-	switch index.(type) {
+	switch _ := index.(type) {
 	case map[string]interface{}:
 		object = index.(map[string]interface{})
 		fileName = "gateway.yaml"
@@ -159,7 +159,7 @@ func writeToDirectory(outputDirectory string, index any) error {
 	writeToFile(filePath, object)
 	return nil
 }
-func writeToFile(filePath string, object any) error{
+func writeToFile(filePath string, object any) error {
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -180,6 +180,7 @@ func writeToFile(filePath string, object any) error{
 
 	return nil
 }
+
 // Iterate over input directory
 func iterateDirectory(path string) ([]string, error) {
 	var files []string
