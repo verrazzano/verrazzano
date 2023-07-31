@@ -369,14 +369,6 @@ pipeline {
         failure {
             script {
                 failedOrAborted()
-<<<<<<< HEAD
-=======
-            }
-        }
-        aborted {
-            script {
-                failedOrAborted()
->>>>>>> 3528d4947... Tvlatas/abort alerting (#6664)
             }
         }
         aborted {
@@ -551,7 +543,6 @@ def getSuspectList(commitList, userMappings) {
     echo "returning suspect list: ${retValue}"
     return retValue
 }
-<<<<<<< HEAD
 
 def metricJobName(stageName) {
     job = env.JOB_NAME.split("/")[0]
@@ -597,5 +588,3 @@ def metricBuildDuration() {
         }
     }
 }
-=======
->>>>>>> 3528d4947... Tvlatas/abort alerting (#6664)
