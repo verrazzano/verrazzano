@@ -109,7 +109,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			upgradeContext.upgradeState = compStateUpgrade
 
 		case compStateUpgrade:
-			compLog.Progressf("Component %s upgrade running", compName)
+			compLog.Infof("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
 					compLog.ErrorfThrottled("Failed upgrading component %s, will retry: %v", compName, err)
@@ -123,10 +123,10 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 
 		case compStateUpgradeWaitReady:
 			if !comp.IsReady(compContext) {
-				compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
+				compLog.Infof("Component %s has been upgraded. Waiting for the component to be ready", compName)
 				return newRequeueWithDelay(), nil
 			}
-			compLog.Progressf("Component %s is ready after being upgraded", compName)
+			compLog.Infof("Component %s is ready after being upgraded", compName)
 			upgradeContext.upgradeState = compStatePostUpgrade
 
 		case compStatePostUpgrade:

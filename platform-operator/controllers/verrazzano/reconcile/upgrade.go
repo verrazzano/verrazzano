@@ -111,7 +111,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			tracker.vzState = vzStateWaitPostUpgradeDone
 
 		case vzStateWaitPostUpgradeDone:
-			log.Progress("Post-upgrade is waiting for all components to be ready")
+			log.Infof("Post-upgrade is waiting for all components to be ready")
 			// Check installed enabled component and make sure it is ready
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
@@ -121,7 +121,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 					return ctrl.Result{}, err
 				}
 				if installed && !comp.IsReady(compContext) {
-					log.Progressf("Waiting for component %s to be ready after post-upgrade", compName)
+					log.Infof("Waiting for component %s to be ready after post-upgrade", compName)
 					return newRequeueWithDelay(), nil
 				}
 				log.Oncef("Component %s is ready after post-upgrade", compName)
