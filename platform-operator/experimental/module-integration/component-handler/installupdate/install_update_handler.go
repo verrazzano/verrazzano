@@ -73,6 +73,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	if res.ShouldRequeue() {
 		return res
 	}
+
 	// Update the module status
 	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
@@ -92,8 +93,10 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 
 	// Do the pre-install
 	if err := comp.PreInstall(compCtx); err != nil {
+		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+	h.updateReadyConditionStartedOrFailed(ctx, "", false)
 	return result.NewResult()
 }
 
@@ -110,8 +113,10 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 	}
 
 	if err := comp.Install(compCtx); err != nil {
+		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+	h.updateReadyConditionStartedOrFailed(ctx, "", false)
 	return result.NewResult()
 }
 
@@ -138,8 +143,10 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	if err := comp.PostInstall(compCtx); err != nil {
+		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+	h.updateReadyConditionStartedOrFailed(ctx, "", false)
 	return result.NewResult()
 }
 
@@ -178,4 +185,22 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 
 	// Update the module status
 	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+}
+
+// updateReadyConditionReconcilingOrFailed updates the ready condition
+func (h ComponentHandler) updateReadyConditionStartedOrFailed(ctx handlerspi.HandlerContext, msg string, failed bool) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+	var reason moduleapi.ModuleConditionReason
+
+	if h.action == InstallAction {
+		reason = moduleapi.ReadyReasonInstallStarted
+	} else {
+		reason = moduleapi.ReadyReasonUpdateStarted
+	}
+
+	// Update the module status
+	if failed {
+		return modulestatus.UpdateReadyConditionFailed(ctx, module, reason, msg)
+	}
+	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
