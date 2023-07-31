@@ -28,6 +28,7 @@ var (
 	DockerCredsPassword    string
 	ImageName              string
 	ImageTag               string
+	OCNEK8sVersion         string
 )
 
 func ensureCAPIVarsInitialized() {
@@ -51,4 +52,5 @@ func ensureCAPIVarsInitialized() {
 	DockerCredsPassword = os.Getenv("DOCKER_CREDS_PSW")
 	ImageName = os.Getenv("VPO_IMAGE")
 	ImageTag = os.Getenv("VPO_TAG")
+	OCNEK8sVersion = os.Getenv("KUBERNETES_VERSION")
 }
