@@ -77,6 +77,6 @@ func analyzeOCNEConfig(clusterRoot string, ocneConfig ocneConfig, issueReporter 
 
 	if len(messages) > 0 {
 		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", ocneConfigsResource, ocneConfig.Name, ocneConfig.Namespace)}, messages...)
-		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterIssues, clusterRoot, messages, []string{})
 	}
 }

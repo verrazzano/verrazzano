@@ -119,7 +119,7 @@ const (
 	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
 	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
 	RancherIssues                = "RancherIssues"
-	ClusterAPIClusterNotReady    = "ClusterAPIClusterNotReady"
+	ClusterAPIClusterIssues      = "ClusterAPIClusterIssues"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -150,7 +150,7 @@ var knownIssues = map[string]Issue{
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
 	RancherIssues:                {Type: RancherIssues, Summary: "Rancher resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherIssues]}},
-	ClusterAPIClusterNotReady:    {Type: ClusterAPIClusterNotReady, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterNotReady]}},
+	ClusterAPIClusterIssues:      {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

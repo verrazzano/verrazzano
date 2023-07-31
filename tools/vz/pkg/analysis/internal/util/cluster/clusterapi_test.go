@@ -155,7 +155,7 @@ func TestAnalyzeClusterAPI(t *testing.T) {
 		} else {
 			assert.Len(t, reportedIssues, test.ExpectedIssues)
 			if len(reportedIssues) != 0 {
-				assert.Equal(t, "ClusterAPIClusterNotReady", reportedIssues[0].Type)
+				assert.Equal(t, "ClusterAPIClusterIssues", reportedIssues[0].Type)
 			}
 		}
 	}

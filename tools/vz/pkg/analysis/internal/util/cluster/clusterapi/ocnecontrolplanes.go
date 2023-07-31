@@ -103,6 +103,6 @@ func analyzeOCNEControlPlane(clusterRoot string, ocneControlPlane ocneControlPla
 
 	if len(messages) > 0 {
 		messages = append([]string{fmt.Sprintf("%q resource %q in namespace %q", ocneControlPlanesResource, ocneControlPlane.Name, ocneControlPlane.Namespace)}, messages...)
-		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterNotReady, clusterRoot, messages, []string{})
+		issueReporter.AddKnownIssueMessagesFiles(report.ClusterAPIClusterIssues, clusterRoot, messages, []string{})
 	}
 }
