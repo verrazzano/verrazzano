@@ -5,11 +5,10 @@ package overrides
 
 import (
 	"context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	"time"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -79,6 +78,9 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
+	if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, r.log); err != nil {
+		return newRequeueWithDelay(), nil
+	}
 	if vz.Namespace == req.Namespace {
 		if err := r.Get(ctx, req.NamespacedName, configMap); err != nil {
 			// Do not reconcile if the ConfigMap was deleted
