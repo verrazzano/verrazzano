@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"strings"
 )
+
 func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, portNum int) (string, error) {
 	sname, err := createJobOrServiceMonitorName(trait, appName, compName, portNum)
 	if err != nil {
@@ -19,7 +20,7 @@ func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compNam
 }
 func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, portNum int) (string, error) {
 	namespace := operator.GetNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
-	if(types.InputArgs.Namespace != ""){
+	if types.InputArgs.Namespace != "" {
 		namespace = types.InputArgs.Namespace
 	}
 	portStr := ""
@@ -37,4 +38,3 @@ func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, appName string, co
 	}
 	return finalName, nil
 }
-

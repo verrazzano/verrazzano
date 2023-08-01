@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/yaml"
 	"strings"
 )
+
 func ConfData() error {
 	//used to store app file data
 	var appData []map[string]interface{}
@@ -154,7 +155,8 @@ func writeToDirectory(outputDirectory string, index any) error {
 	writeToFile(filePath, object)
 	return nil
 }
-//TODO: Add functionality to write below file aswell
+
+// TODO: Add functionality to write below file aswell
 func writeToFile(filePath string, object any) error {
 	f, err := os.Create(filePath)
 	if err != nil {

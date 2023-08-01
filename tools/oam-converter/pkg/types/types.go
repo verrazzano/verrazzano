@@ -18,10 +18,12 @@ type ConversionComponents struct {
 	Coherenceworkload *unstructured.Unstructured
 	Weblogicworkload  *unstructured.Unstructured
 }
+
 var InputArgs ConversionInput
-type ConversionInput struct{
+
+type ConversionInput struct {
 	InputDirectory  string
 	OutputDirectory string
-	Namespace    string
-	IstioEnabled bool
+	Namespace       string
+	IstioEnabled    bool
 }

@@ -29,7 +29,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 
 		appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
 		if !found || err != nil {
-			if types.InputArgs.Namespace == ""{
+			if types.InputArgs.Namespace == "" {
 				return nil, errors.New("namespace key doesn't exist, please enter in the YAML or CLI args")
 			}
 			appNamespace = types.InputArgs.Namespace
