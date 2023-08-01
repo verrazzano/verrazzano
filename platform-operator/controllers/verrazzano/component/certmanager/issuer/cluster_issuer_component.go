@@ -186,6 +186,10 @@ func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
 }
 
+// ShouldUseModule returns true if component is implemented using a Module, default false
+func (c clusterIssuerComponent) ShouldUseModule() bool {
+	return false
+}
 func (c clusterIssuerComponent) GetDependencies() []string {
 	return []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName}
 }

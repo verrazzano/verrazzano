@@ -48,7 +48,6 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak"},
 	{Namespace: vzconst.KeycloakNamespace, Name: keycloakMySQLNetPolicyName},
 	{Namespace: vzconst.MySQLOperatorNamespace, Name: "mysql-operator"},
-	{Namespace: vzconst.RancherSystemNamespace, Name: "cattle-cluster-agent"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher-webhook"},
 	{Namespace: vzconst.VerrazzanoMonitoringNamespace, Name: "jaeger-collector"},
@@ -71,6 +70,14 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 	{Namespace: vzconst.ArgoCDNamespace, Name: "argocd"},
 	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "clusterAPI"},
+}
+
+// List of network policies from which we should remove the Helm release of this component,
+// because they have been moved elsewhere
+var netPolsRemoveHelmRelease = []types.NamespacedName{
+	// Moved to Rancher code managed cluster template by this commit:
+	// https://github.com/verrazzano/verrazzano/commit/c298cbf062c85441a418aef0babc34a3deb4138f
+	{Namespace: vzconst.RancherSystemNamespace, Name: "cattle-cluster-agent"},
 }
 
 var (
@@ -147,9 +154,10 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	return nil
 }
 
-// removeResourcePolicyFromHelm associates network policies, that used to be verrazzano helm resources,
-// to the verrazzano-network-policies release
-func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
+// updateNetworkPoliciesHelmRelease updates the helm release of network policies in one of 2 ways:
+// 1. Network policies that used to be verrazzano helm resources, to the verrazzano-network-policies release
+// 2. Remove helm release from network policies that were formerly in verrazzano-network-policies and now no longer.
+func updateNetworkPoliciesHelmRelease(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
 
@@ -158,7 +166,7 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 
 	ensureIngressNGINXNamespace(ctx.EffectiveCR().ObjectMeta)
 
-	// Loop through the all the network policies
+	// Loop through the all the network policies to add Helm release to
 	for _, nsn := range netpolNamespaceNames {
 		// Get the policy
 		netpol := netv1.NetworkPolicy{}
@@ -181,6 +189,24 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 		objs := []clipkg.Object{&netpol}
 		if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, true); err != nil {
 			return log.ErrorfNewErr("Failed associating NetworkPolicy %s:%s from verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
+		}
+	}
+
+	// Loop through the all the network policies to remove Helm release from
+	for _, nsn := range netPolsRemoveHelmRelease {
+		// Get the policy
+		netpol := netv1.NetworkPolicy{}
+		err := cli.Get(context.TODO(), nsn, &netpol)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return log.ErrorfNewErr("Error getting NetworkPolicy %v: %v", nsn, err)
+		}
+		// Disassociate the policy from the verrazzano-network-policies helm chart
+		log.Progressf("Disassociating NetworkPolicy %v from the verrazzano-network-policies Helm release", nsn)
+		if _, err := common.DisassociateHelmObject(cli, &netpol, nsn, true, false); err != nil {
+			return log.ErrorfNewErr("Failed disassociating NetworkPolicy %s:%s from verrazzano-network-policies Helm release: %v", netpol.Namespace, netpol.Name, err)
 		}
 	}
 	return nil

@@ -109,22 +109,22 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
 		}
-	} else {
-		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-		reconciler := reconcile.Reconciler{
-			Client:            mgr.GetClient(),
-			Scheme:            mgr.GetScheme(),
-			DryRun:            vzconfig.DryRun,
-			WatchedComponents: map[string]bool{},
-			WatchMutex:        &sync.RWMutex{},
-			StatusUpdater:     statusUpdater,
-		}
-		if err = reconciler.SetupWithManager(mgr); err != nil {
-			return errors.Wrap(err, "Failed to setup controller")
-		}
-		if vzconfig.HealthCheckPeriodSeconds > 0 {
-			healthCheck.Start()
-		}
+	}
+
+	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+	reconciler := reconcile.Reconciler{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		DryRun:            vzconfig.DryRun,
+		WatchedComponents: map[string]bool{},
+		WatchMutex:        &sync.RWMutex{},
+		StatusUpdater:     statusUpdater,
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
+		return errors.Wrap(err, "Failed to setup controller")
+	}
+	if vzconfig.HealthCheckPeriodSeconds > 0 {
+		healthCheck.Start()
 	}
 
 	// Setup secrets reconciler
@@ -246,7 +246,7 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 
 		// init controller
 		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
-			log.Errorf("Failed to start the Calico controller", err)
+			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
 			return err
 		}
 	}

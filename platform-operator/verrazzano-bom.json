@@ -153,17 +153,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230717131935-d2ee60180",
+              "dashboard": "v2.7.2-20230731205738-a19122312",
               "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.22.0",
-              "ocneDriverChecksum": "f219cbae68b73d41c41b078a12a2de02bbe26b46dbf66f942028af72823fa216",
-              "tag": "v2.7.3-20230728050034-92ef766dd",
+              "ocneDriverVersion": "v0.23.0",
+              "ocneDriverChecksum": "e410fd9b7ac5533b656277e82f1a321a995a5cd5e0329c2e79091e26e2516313",
+              "tag": "v2.7.3-20230731220304-92ef766dd",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230728050034-92ef766dd"
+              "tag": "v2.7.3-20230731220304-92ef766dd"
             }
           ]
         },
@@ -233,7 +233,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v1.6.1",
+      "version": "v1.7.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -241,11 +241,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.6.1-20230713001831-abc04fb"
+              "tag": "v1.7.0-20230728161919-ffd7110"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.6.1-20230713001831-abc04fb"
+              "tag": "v1.7.0-20230728161919-ffd7110"
             }
           ]
         }
@@ -930,5 +930,9 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0"]
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0"
+  ]
 }

@@ -615,9 +615,8 @@ func TestUninstallComplete(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 2)
 			return nil
-		})
+		}).AnyTimes()
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -641,6 +640,7 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
+	metricsexporter.Init()
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -765,6 +765,8 @@ func setFakeComponentsDisabled() {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
+	metricsexporter.Init()
+
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
