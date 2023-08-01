@@ -65,10 +65,12 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	}
 
 	//fetch if trait uses Istio
-	useHTTPS, err := operator.UseHTTPSForScrapeTarget(context.TODO(), cli, trait)
-	if err != nil {
-		return &serviceMonitor, err
-	}
+	useHTTPS := types.InputArgs.IstioEnabled
+
+	//useHTTPS, err := operator.UseHTTPSForScrapeTarget(context.TODO(), cli, trait)
+	//if err != nil {
+	//	return &serviceMonitor, err
+	//}
 	//fetch if workload is WebLogic
 	wlsWorkload, err := operator.IsWLSWorkload(workload)
 	if err != nil {

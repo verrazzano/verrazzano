@@ -11,6 +11,7 @@ import (
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"io/ioutil"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -20,20 +21,7 @@ import (
 	"sigs.k8s.io/yaml"
 	"strings"
 )
-
 func ConfData() error {
-
-	var inputDirectory string
-	var outputDirectory string
-
-	//Check the length of args
-	if len(os.Args) != 3 {
-		return errors.New("OAM Converter cannot be launched due to insufficient command-line inputs. Please make your arguments using the absolute path to your input files and the directory where you want the files to be printed.")
-	}
-
-	inputDirectory = os.Args[1]
-	outputDirectory = os.Args[2]
-
 	//used to store app file data
 	var appData []map[string]interface{}
 
@@ -44,7 +32,7 @@ func ConfData() error {
 	var k8sResources []any
 
 	//iterate through user inputted directory
-	files, err := iterateDirectory(inputDirectory)
+	files, err := iterateDirectory(types.InputArgs.InputDirectory)
 	if err != nil {
 		fmt.Println("Error in iterating over directory", err)
 	}
@@ -55,7 +43,6 @@ func ConfData() error {
 			return errors.New("error in unmarshalling the components")
 		}
 		datastr := string(data)
-
 		//Split the objects using "---" delimiter
 		objects := strings.Split(datastr, "---")
 
@@ -104,12 +91,12 @@ func ConfData() error {
 	}
 
 	//Write the K8s child resources to the file
-	err = writeKubeResources(outputDirectory, outputResources)
+	err = writeKubeResources(types.InputArgs.OutputDirectory, outputResources)
 	if err != nil {
 		return err
 	}
 	//write the nonOAM resources to the file
-	err = writeKubeResources(outputDirectory, k8sResources)
+	err = writeKubeResources(types.InputArgs.OutputDirectory, k8sResources)
 	if err != nil {
 		return err
 	}

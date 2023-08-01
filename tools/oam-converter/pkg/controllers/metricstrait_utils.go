@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	operator "github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"strings"
 )
 func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, portNum int) (string, error) {
@@ -18,6 +19,9 @@ func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compNam
 }
 func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, portNum int) (string, error) {
 	namespace := operator.GetNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
+	if(types.InputArgs.Namespace != ""){
+		namespace = types.InputArgs.Namespace
+	}
 	portStr := ""
 	if portNum > 0 {
 		portStr = fmt.Sprintf("_%d", portNum)
