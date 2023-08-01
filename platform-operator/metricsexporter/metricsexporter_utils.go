@@ -286,8 +286,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 		}
 		found, component := registry.FindComponent(componentName)
 		if !found {
-			log.Errorf("No component %s found", componentName)
-			return
+			continue
 		}
 		componentJSONName := component.GetJSONName()
 		if installStartTime != "" && installCompletionTime != "" {
