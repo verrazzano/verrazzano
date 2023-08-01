@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	OciImageVersion   = "v0.8.1"
-	CoreImageTag      = "v1.3.3-20230427222746-876fe3dc9"
-	TestHelmConfigDir = "../../../../helm_config"
+	OciImageVersion         = "v0.8.1"
+	CoreImageTag            = "v1.3.3-20230427222746-876fe3dc9"
+	TestHelmConfigDir       = "../../../../helm_config"
+	TestBomHostPortFilePath = "../../testdata/test_bom_host_port.json"
 )
 
 // TestBomOverrides tests getting the override values for the Cluster API component from the BOM
@@ -310,21 +311,26 @@ func TestOverridesInterface(t *testing.T) {
 
 	assert.Equal(t, "ghcr.io", tc.GetGlobalRegistry())
 
+	capiRoot := "/verrazzano/platform-operator/capi"
 	assert.Equal(t, "myreg.io/verrazzano", tc.GetOCNEBootstrapRepository())
 	assert.Equal(t, "v1.0", tc.GetOCNEBootstrapTag())
 	assert.Equal(t, "/test/bootstrap.yaml", tc.GetOCNEBootstrapURL())
+	assert.Equal(t, "myreg.io/verrazzano/"+clusterAPIOCNEBoostrapControllerImage+":v1.0", tc.GetOCNEBootstrapControllerFullImagePath())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetOCNEControlPlaneRepository())
 	assert.Equal(t, "v1.1", tc.GetOCNEControlPlaneTag())
-	assert.Equal(t, "/verrazzano/capi/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
+	assert.Equal(t, capiRoot+"/control-plane-ocne/v0.1.0/control-plane-components.yaml", tc.GetOCNEControlPlaneURL())
+	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIOCNEControlPLaneControllerImage+":v1.1", tc.GetOCNEControlPlaneControllerFullImagePath())
 
 	assert.Equal(t, "ghcr.io/verrazzano", tc.GetClusterAPIRepository())
 	assert.Equal(t, CoreImageTag, tc.GetClusterAPITag())
-	assert.Equal(t, "/verrazzano/capi/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
+	assert.Equal(t, capiRoot+"/cluster-api/v1.3.3/core-components.yaml", tc.GetClusterAPIURL())
+	assert.Equal(t, "ghcr.io/verrazzano/"+clusterAPIControllerImage+":v1.3.3-20230427222746-876fe3dc9", tc.GetClusterAPIControllerFullImagePath())
 
 	assert.Equal(t, "myreg2.io/oci-repo", tc.GetOCIRepository())
 	assert.Equal(t, "v0.8.2", tc.GetOCITag())
 	assert.Equal(t, "https://github.com/oci-repo/cluster-api-provider-oci/releases/v0.8.2/infrastructure-components.yaml", tc.GetOCIURL())
+	assert.Equal(t, "myreg2.io/oci-repo/"+clusterAPIOCIControllerImage+":v0.8.2", tc.GetOCIControllerFullImagePath())
 
 }
 
@@ -357,4 +363,154 @@ func TestOverridesPrivateRegistry(t *testing.T) {
 	assert.Equal(t, expectedRepo, tc.GetClusterAPIRepository())
 	expectedRepo = fmt.Sprintf("%s/%s/oracle", privateRegistry, privateRepo)
 	assert.Equal(t, expectedRepo, tc.GetOCIRepository())
+}
+
+// TestBomOverridesWithPortInHost tests getting the override values for the Cluster API component from the BOM
+// GIVEN a call to createOverrides, where the registry contains the optional port number
+//
+//	WHEN no user overrides have been specified
+//	THEN check expected values returned from the BOM
+func TestBomOverridesWithPortInHost(t *testing.T) {
+	config.SetDefaultBomFilePath(TestBomHostPortFilePath)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	config.TestHelmConfigDir = TestHelmConfigDir
+
+	overrides, err := createOverrides(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, overrides)
+
+	// Check that expected values are loaded into the struct
+	assert.Equal(t, "wcc01-o:5000", overrides.Global.Registry)
+
+	bootstrap := overrides.DefaultProviders.OCNEBootstrap
+	assert.Equal(t, "v8o/oracle", bootstrap.Image.Repository)
+	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", bootstrap.Image.Tag)
+	assert.Equal(t, "", bootstrap.Image.Registry)
+	assert.Equal(t, "v0.1.0", bootstrap.Image.BomVersion)
+	assert.Equal(t, "", bootstrap.Version)
+	assert.Equal(t, "", bootstrap.URL)
+
+	controlPlane := overrides.DefaultProviders.OCNEControlPlane
+	assert.Equal(t, "v8o/oracle", controlPlane.Image.Repository)
+	assert.Equal(t, "v0.1.0-20230427222244-4ef1141", controlPlane.Image.Tag)
+	assert.Equal(t, "", controlPlane.Image.Registry)
+	assert.Equal(t, "v0.1.0", controlPlane.Image.BomVersion)
+	assert.Equal(t, "", controlPlane.Version)
+	assert.Equal(t, "", controlPlane.URL)
+
+	core := overrides.DefaultProviders.Core
+	assert.Equal(t, "v8o/oracle", core.Image.Repository)
+	assert.Equal(t, CoreImageTag, core.Image.Tag)
+	assert.Equal(t, "", core.Image.Registry)
+	assert.Equal(t, "v1.3.3", core.Image.BomVersion)
+	assert.Equal(t, "", core.Version)
+	assert.Equal(t, "", core.URL)
+
+	oci := overrides.DefaultProviders.OCI
+	assert.Equal(t, "oracle", oci.Image.Repository)
+	assert.Equal(t, OciImageVersion, oci.Image.Tag)
+	assert.Equal(t, "", oci.Image.Registry)
+	assert.Equal(t, OciImageVersion, oci.Image.BomVersion)
+	assert.Equal(t, "", oci.Version)
+	assert.Equal(t, "", oci.URL)
+}
+
+// TestUserOverridesRegistryWithPort tests getting the override values for the Cluster API component, with registry in the
+// BOM containing the port
+// GIVEN a set of user overrides in the VZ custom resource
+//
+//	WHEN the user supplies overrides for ClusterAPI
+//	THEN verify they are applied correctly
+func TestUserOverridesRegistryWithPort(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	const capiOverrides = `
+{
+  "global": {
+    "registry": "myreg.io"
+  },
+  "defaultProviders": {
+    "ocneBootstrap": {
+      "image": {
+        "tag": "v1.0"
+      }
+    },
+    "ocneControlPlane": {
+      "image": {
+        "tag": "v1.0"
+      }
+    },
+    "oci": {
+      "image": {
+        "repository": "repo",
+        "registry": "air-gap-test:8080"
+      }
+    },
+    "core": {
+      "version": "v1.1"
+    }
+  }
+}`
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+	config.TestHelmConfigDir = TestHelmConfigDir
+
+	overrides, err := createOverrides(compContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, overrides)
+
+	// Check that expected values are loaded into the struct
+	assert.Equal(t, "myreg.io", overrides.Global.Registry)
+
+	bootstrap := overrides.DefaultProviders.OCNEBootstrap
+	assert.Equal(t, "", bootstrap.Image.Registry)
+	assert.Equal(t, "verrazzano", bootstrap.Image.Repository)
+	assert.Equal(t, "v1.0", bootstrap.Image.Tag)
+	assert.Equal(t, "", bootstrap.Version)
+	assert.Equal(t, "", bootstrap.URL)
+
+	controlPlane := overrides.DefaultProviders.OCNEControlPlane
+	assert.Equal(t, "", controlPlane.Image.Registry)
+	assert.Equal(t, "verrazzano", controlPlane.Image.Repository)
+	assert.Equal(t, "v1.0", controlPlane.Image.Tag)
+	assert.Equal(t, "", controlPlane.Version)
+	assert.Equal(t, "", controlPlane.URL)
+
+	core := overrides.DefaultProviders.Core
+	assert.Equal(t, "", core.Image.Registry)
+	assert.Equal(t, "verrazzano", core.Image.Repository)
+	assert.Equal(t, CoreImageTag, core.Image.Tag)
+	assert.Equal(t, "v1.1", core.Version)
+	assert.Equal(t, "", core.URL)
+
+	oci := overrides.DefaultProviders.OCI
+	assert.Equal(t, "air-gap-test:8080", oci.Image.Registry)
+	assert.Equal(t, "repo", oci.Image.Repository)
+	assert.Equal(t, "v0.8.1", oci.Image.Tag)
+	assert.Equal(t, "", oci.Version)
+	assert.Equal(t, "", oci.URL)
 }

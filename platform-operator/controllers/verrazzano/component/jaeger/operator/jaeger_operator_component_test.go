@@ -10,6 +10,8 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -374,7 +376,7 @@ func TestPreUpgrade(t *testing.T) {
 			err := NewComponent().PreUpgrade(ctx)
 			if tt.expectError {
 				assert.NotNil(t, err)
-				//assert.Contains(t, err.Error(), tt.expectErrMsg)
+				// assert.Contains(t, err.Error(), tt.expectErrMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -504,7 +506,7 @@ func TestIsAvailable(t *testing.T) {
 			expectTrue: false,
 			dryRun:     false,
 		},
-		//0XX
+		// 0XX
 		{
 			// GIVEN Jaeger operator, collector and query have no available pods,
 			// WHEN we call IsAvailable,
@@ -553,7 +555,7 @@ func TestIsAvailable(t *testing.T) {
 			expectTrue: false,
 			dryRun:     true,
 		},
-		//1XX
+		// 1XX
 		{
 			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
 			// WHEN we call IsAvailable,
@@ -679,7 +681,7 @@ func TestIsReady(t *testing.T) {
 			expectTrue: false,
 			dryRun:     false,
 		},
-		//0XX
+		// 0XX
 		{
 			// GIVEN Jaeger operator, collector and query have no available pods,
 			// WHEN we call IsReady,
@@ -728,7 +730,7 @@ func TestIsReady(t *testing.T) {
 			expectTrue: false,
 			dryRun:     true,
 		},
-		//1XX
+		// 1XX
 		{
 			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
 			// WHEN we call IsReady,
@@ -849,6 +851,40 @@ func TestPostInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestPostUninstall tests that the Jaeger ingress is deleted if present, and there is no error
+// if the ingress is not present.
+func TestPostUninstall(t *testing.T) {
+	tests := []struct {
+		name    string
+		ingress *v1.Ingress
+	}{
+		{"Jaeger ingress exists", &v1.Ingress{ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress}}},
+		{"Jaeger ingress does not exist", nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var fakeClient client.Client
+			if tt.ingress != nil {
+				fakeClient = createFakeClient(tt.ingress)
+			} else {
+				fakeClient = createFakeClient()
+			}
+			ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, true)
+
+			assert.NoError(t, NewComponent().PostUninstall(ctx))
+
+			// Jaeger ingress should not exist after calling PostUninstall
+			ing := v1.Ingress{}
+			err := fakeClient.Get(context.TODO(),
+				types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+				&ing)
+			assert.True(t, errors.IsNotFound(err))
+
+		})
+	}
+
 }
 
 // TestGetIngressAndCertificateNames tests getting Jaeger ingress names and certificate names

@@ -87,6 +87,7 @@ func getScheme() *runtime.Scheme {
 	_ = rbacv1.AddToScheme(scheme)
 	_ = v12.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
+	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind), &unstructured.Unstructured{})
 	return scheme
 }
 
@@ -684,4 +685,57 @@ func getFakeRancherUser(userName string, principal string) *unstructured.Unstruc
 	data[UserAttributeDescription] = caser.String(UserVerrazzanoDescription)
 	data[UserAttributePrincipalIDs] = []interface{}{principal, UserPrincipalLocalPrefix + userName}
 	return resource
+}
+
+// TestGetSettingValue tests the getSettingValue func
+// GIVEN func call to getSettingValue(
+// THEN the value is returned if the setting is present, or an error if the field is not found but the setting exists
+func TestGetSettingValue(t *testing.T) {
+	tests := []struct {
+		name            string
+		settingName     string
+		expectedValue   string
+		objDoesNotExist bool
+		fieldNotPresent bool
+	}{
+		{
+			name:          "cacerts not empty",
+			settingName:   "cacerts",
+			expectedValue: "mycacert",
+		},
+		{
+			name:            "cacerts not present",
+			settingName:     "cacerts",
+			expectedValue:   "",
+			objDoesNotExist: true,
+		},
+		{
+			name:            "cacerts not present",
+			settingName:     "cacerts",
+			expectedValue:   "",
+			fieldNotPresent: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expectedSetting := &unstructured.Unstructured{}
+
+			expectedSetting.SetGroupVersionKind(common.GVKSetting)
+			expectedSetting.SetName(tt.settingName)
+			unstructuredContent := expectedSetting.UnstructuredContent()
+
+			clientBuilder := fake.NewClientBuilder().WithScheme(getScheme())
+			if !tt.fieldNotPresent {
+				unstructuredContent["value"] = tt.expectedValue
+			}
+			if !tt.objDoesNotExist {
+				clientBuilder.WithRuntimeObjects(expectedSetting)
+			}
+			cli := clientBuilder.Build()
+
+			value, err := getSettingValue(cli, tt.settingName)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedValue, value)
+		})
+	}
 }

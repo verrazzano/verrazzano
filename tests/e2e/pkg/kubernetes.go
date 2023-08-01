@@ -1073,17 +1073,14 @@ func IsRancherBackupEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
-// IsClusterAPIEnabled returns false if the ClusterAPI component is not set, or the value of its Enabled field otherwise
+// IsClusterAPIEnabled returns true if the ClusterAPI component is not set, or the value of its Enabled field otherwise
 func IsClusterAPIEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
 		return false
 	}
-	if vz.Spec.Components.ClusterAPI == nil || vz.Spec.Components.ClusterAPI.Enabled == nil {
-		return false
-	}
-	return *vz.Spec.Components.ClusterAPI.Enabled
+	return vz.Spec.Components.ClusterAPI == nil || vz.Spec.Components.ClusterAPI.Enabled == nil || *vz.Spec.Components.ClusterAPI.Enabled
 }
 
 // IsArgoCDEnabled returns false if the Argocd component is not set, or the value of its Enabled field otherwise
@@ -1945,4 +1942,15 @@ func createServiceAccountTokenSecret(serviceAccount string, namespace string) er
 		return err
 	}
 	return nil
+}
+
+func VzReadyV1beta1() (bool, error) {
+	cr, err := GetVerrazzanoV1beta1()
+	if err != nil {
+		return false, err
+	}
+	if cr.Status.State == v1beta1.VzStateReady {
+		return true, nil
+	}
+	return false, fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 }

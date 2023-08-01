@@ -111,6 +111,9 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	if err := captureCapiNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureRancherNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -1,0 +1,28 @@
+{
+  "apiVersion": "infrastructure.cluster.x-k8s.io/v1beta2",
+  "items": [
+    {
+      "apiVersion": "infrastructure.cluster.x-k8s.io/v1beta2",
+      "kind": "OCIMachine",
+      "metadata": {
+        "name": "bob-dsfrv-mwmxd",
+        "namespace": "c-pzd2r"
+      },
+      "status": {
+        "conditions": [
+          {
+            "reason": "WaitingForBootstrapData",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "WaitingForBootstrapData",
+            "status": "False",
+            "type": "InstanceReady"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "OCIMachineList"
+}

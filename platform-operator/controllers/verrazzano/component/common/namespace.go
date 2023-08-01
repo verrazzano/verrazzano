@@ -6,7 +6,6 @@ package common
 import (
 	"context"
 	"fmt"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -28,8 +27,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
+	if vzcr.IsClusterOperatorEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
+			return err
+		}
 	}
 
 	// Set istio injection flag.  This will be false if Istio disabled or injections explictiy disabled
@@ -43,8 +44,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 
 	IngressNGINXNamespace := nginxutil.IngressNGINXNamespace()
-	if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateIngressNginxNamespace(ctx.Client(), istioInject, IngressNGINXNamespace); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", IngressNGINXNamespace, err)
+		}
 	}
 
 	if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
@@ -82,8 +85,10 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.RancherSystemNamespace, err)
 	}
 
-	if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client(), istioInject); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
+	if isAnyMonitoringComponentEnabled(ctx) {
+		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client(), istioInject); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
+		}
 	}
 
 	if vzcr.IsVeleroEnabled(ctx.EffectiveCR()) {
@@ -93,6 +98,15 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+func isAnyMonitoringComponentEnabled(ctx spi.ComponentContext) bool {
+	if vzcr.IsKubeStateMetricsEnabled(ctx.EffectiveCR()) || vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) ||
+		vzcr.IsPrometheusAdapterEnabled(ctx.EffectiveCR()) || vzcr.IsPrometheusPushgatewayEnabled(ctx.EffectiveCR()) ||
+		vzcr.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) || vzcr.IsPrometheusNodeExporterEnabled(ctx.EffectiveCR()) {
+		return true
+	}
+	return false
 }
 
 // LabelKubeSystemNamespace adds the label needed by network polices to kube-system

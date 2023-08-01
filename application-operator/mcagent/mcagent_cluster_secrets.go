@@ -161,9 +161,6 @@ func (s *Syncer) syncLocalClusterCA() error {
 	if err != nil {
 		return err
 	}
-	if len(localCASecretData) == 0 {
-		return nil
-	}
 
 	// Get the managed cluster CA secret from the admin cluster
 	vmc := clustersapi.VerrazzanoManagedCluster{}

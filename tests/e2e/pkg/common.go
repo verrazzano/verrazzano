@@ -272,6 +272,74 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 	return len(missing) == 0, nil
 }
 
+// PodsRunningInClusterWithClient checks if all the pods identified by namePrefixes are ready and running in the given cluster
+func PodsRunningInClusterWithClient(namespace string, namePrefixes []string, client *kubernetes.Clientset) (bool, error) {
+	pods, err := ListPodsInCluster(namespace, client)
+	if err != nil {
+		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
+		return false, fmt.Errorf(podListingErrorFmt, namespace, err)
+	}
+	missing, err := notRunning(pods.Items, namePrefixes...)
+	if err != nil {
+		return false, err
+	}
+
+	if len(missing) > 0 {
+		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+			}
+		}
+	}
+	return len(missing) == 0, nil
+}
+
+// SpecificPodsRunningInClusterWithClient checks if all the pods identified by labels and are ready and running in the given cluster
+func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *kubernetes.Clientset) (bool, error) {
+	pods, err := ListPodsWithLabelsInCluster(namespace, labels, client)
+	if err != nil {
+		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
+		return false, fmt.Errorf(podListingErrorFmt, namespace, err)
+	}
+
+	missing, err := notRunning(pods.Items, "")
+	if err != nil {
+		return false, err
+	}
+
+	if len(missing) > 0 {
+		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+			}
+		}
+	}
+	return len(missing) == 0, nil
+}
+
+// SpecificPodsPodsNotRunningInClusterWithClient returns true if all pods in namePrefixes are not running
+func SpecificPodsPodsNotRunningInClusterWithClient(namespace string, clientset *kubernetes.Clientset, namePrefixes []string) (bool, error) {
+	allPods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
+		return false, err
+	}
+	terminatedPods, _ := notRunning(allPods.Items, namePrefixes...)
+	if len(terminatedPods) != len(namePrefixes) {
+		runningPods := areRunning(allPods.Items, namePrefixes...)
+		Log(Info, fmt.Sprintf("Pods %v were RUNNING in %v", runningPods, namespace))
+		return false, nil
+	}
+	Log(Info, fmt.Sprintf("ALL pods %v were TERMINATED in %v", terminatedPods, namespace))
+	return true, nil
+}
+
 // SpecificPodsRunningInCluster checks if all the pods identified by labels and are ready and running in the given cluster
 func SpecificPodsRunningInCluster(namespace, labels string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
@@ -458,6 +526,38 @@ func GetRequiredEnvVarOrFail(name string) string {
 		ginkgo.Fail(fmt.Sprintf("Environment variable '%s' required.", name))
 	}
 	return value
+}
+
+// GetEnvFallback returns the value of the desired environment variable,
+// but returns a fallback value if the environment variable is not set
+func GetEnvFallback(envVar, fallback string) string {
+	value := os.Getenv(envVar)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+// GetEnvFallbackBool returns the value of the desired boolean environment variable,
+// but returns a fallback value if the environment variable is not set or isn't a bool value
+func GetEnvFallbackBool(envVar string, fallback bool) bool {
+	value := os.Getenv(envVar)
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return boolValue
+}
+
+// GetEnvFallbackInt returns the value of the desired integer environment variable,
+// but returns a fallback value if the environment variable is not set or isn't an int value
+func GetEnvFallbackInt(envVar string, fallback int) int {
+	value := os.Getenv(envVar)
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return intValue
 }
 
 // SlicesContainSameStrings compares two slices and returns true if they contain the same strings in any order
@@ -771,4 +871,36 @@ func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []st
 		return false, nil
 	}
 	return true, err
+}
+
+// Gets the number of nodes in the cluster specified by kubeconfigPath.
+// If an error occurs, returns 0 for the number of nodes.
+func GetNodeCountInCluster(kubeconfigPath string) (int, error) {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
+		return 0, fmt.Errorf(clientSetErrorFmt, err)
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("failed to list nodes: %v", err))
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return len(nodes.Items), nil
+}
+
+// DoesNamespaceHasVerrazzanoLabel checks whether the namespace has the verrazzano.io/namespace label
+func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
+	namespace, err := GetNamespace(ns)
+	if err != nil {
+		return false, err
+	}
+	if namespace.Labels[constants.LabelVerrazzanoNamespace] != ns {
+		return false, fmt.Errorf("Namespace %s has the incorrect value for for the label %s: %s", ns, constants.LabelVerrazzanoNamespace, namespace.Labels[constants.LabelVerrazzanoNamespace])
+	}
+	return true, nil
 }
