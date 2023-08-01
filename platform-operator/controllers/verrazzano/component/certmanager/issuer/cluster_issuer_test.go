@@ -5,6 +5,8 @@ package issuer
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	"testing"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
@@ -640,6 +642,257 @@ func TestUninstallCleanup(t *testing.T) {
 	for _, obj := range objsToIgnore {
 		getObj := obj.DeepCopyObject().(clipkg.Object)
 		assertFound(t, cli, obj.GetName(), obj.GetNamespace(), getObj)
+	}
+}
+
+// TestGetPrivateBundleData tests the getPrivateBundleData function
+// GIVEN a call to getPrivateBundleData
+// WHEN based on the Issuer configuration
+// THEN the appropriate CA bundle data is returned
+func TestGetPrivateBundleData(t *testing.T) {
+	log := vzlog.DefaultLogger()
+
+	getLetsEncryptStagingBundleFunc = func() ([]byte, error) {
+		return []byte{}, nil
+	}
+	defer func() { getLetsEncryptStagingBundleFunc = certs.CreateLetsEncryptStagingBundle }()
+
+	selfSignedCAData := []byte("self-signed CA")
+	customCAData := []byte("custom CA")
+	leStagingBundleData := []byte("LE Staging Bundle")
+
+	type args struct {
+		c             clipkg.Client
+		clusterIssuer *vzapi.ClusterIssuerComponent
+		leStagingFunc getLetsEncryptStagingBundleFuncType
+	}
+	emailAddress := "foo@bar.com"
+	stagingEnv := "staging"
+	prodEnv := "production"
+
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "privateCA",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).
+					WithObjects(
+						&v1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      constants.DefaultVerrazzanoCASecretName,
+								Namespace: constants.CertManagerNamespace,
+							},
+							Data: map[string][]byte{
+								constants.CACertKey: selfSignedCAData,
+							},
+						},
+					).
+					Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: constants.CertManagerNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: constants.DefaultVerrazzanoCASecretName,
+						},
+					},
+				},
+			},
+			want:    selfSignedCAData,
+			wantErr: assert.NoError,
+		},
+		{
+			name: "privateCASecretNotFOund",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: constants.CertManagerNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: constants.DefaultVerrazzanoCASecretName,
+						},
+					},
+				},
+			},
+			want:    []byte{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "customCA",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).
+					WithObjects(
+						&v1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: secretNamespace,
+							},
+							Data: map[string][]byte{
+								constants.CustomCACertKey: customCAData,
+							},
+						},
+					).
+					Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: secretName,
+						},
+					},
+				},
+			},
+			want:    customCAData,
+			wantErr: assert.NoError,
+		},
+		{
+			name: "customCABadKey",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).
+					WithObjects(
+						&v1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: secretNamespace,
+							},
+							Data: map[string][]byte{
+								"badkey": customCAData,
+							},
+						},
+					).
+					Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: secretName,
+						},
+					},
+				},
+			},
+			want:    []byte{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "leStagingIssuer",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+							EmailAddress: emailAddress,
+							Environment:  stagingEnv,
+						},
+					},
+				},
+				leStagingFunc: func() ([]byte, error) {
+					return leStagingBundleData, nil
+				},
+			},
+			want:    leStagingBundleData,
+			wantErr: assert.NoError,
+		},
+		{
+			name: "leStagingIssuerError",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+							EmailAddress: emailAddress,
+							Environment:  stagingEnv,
+						},
+					},
+				},
+				leStagingFunc: func() ([]byte, error) {
+					return []byte{}, fmt.Errorf("an unexpected error occurred")
+				},
+			},
+			want:    []byte{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "leStagingIssuerCustomCAStillExists",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).
+					WithObjects(
+						&v1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: secretNamespace,
+							},
+							Data: map[string][]byte{
+								constants.CustomCACertKey: customCAData,
+							},
+						},
+					).
+					Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+							EmailAddress: emailAddress,
+							Environment:  stagingEnv,
+						},
+					},
+				},
+				leStagingFunc: func() ([]byte, error) {
+					return leStagingBundleData, nil
+				},
+			},
+			want:    leStagingBundleData,
+			wantErr: assert.NoError,
+		},
+		{
+			name: "leProdIssuer",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+							EmailAddress: emailAddress,
+							Environment:  prodEnv,
+						},
+					},
+				},
+			},
+			want:    []byte{},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "implicitLEProdIssuer",
+			args: args{
+				c: fake.NewClientBuilder().WithScheme(testScheme).Build(),
+				clusterIssuer: &vzapi.ClusterIssuerComponent{
+					ClusterResourceNamespace: secretNamespace,
+					IssuerConfig: vzapi.IssuerConfig{
+						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{
+							EmailAddress: emailAddress,
+						},
+					},
+				},
+			},
+			want:    []byte{},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.leStagingFunc != nil {
+				getLetsEncryptStagingBundleFunc = tt.args.leStagingFunc
+			}
+			got, err := getPrivateBundleData(log, tt.args.c, tt.args.clusterIssuer)
+			if !tt.wantErr(t, err, fmt.Sprintf("getPrivateBundleData(%v, %v, %v)", log, tt.args.c, tt.args.clusterIssuer)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "getPrivateBundleData(%v, %v, %v)", log, tt.args.c, tt.args.clusterIssuer)
+		})
 	}
 }
 
