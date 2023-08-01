@@ -284,8 +284,10 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 				upgradeCompletionTime = status.LastTransitionTime
 			}
 		}
-		component, _ := registry.FindComponent(componentName)
-
+		found, component := registry.FindComponent(componentName)
+		if !found {
+			continue
+		}
 		componentJSONName := component.GetJSONName()
 		if installStartTime != "" && installCompletionTime != "" {
 			metricParserHelperFunction(log, componentJSONName, installStartTime, installCompletionTime, constants.InstallOperation)
