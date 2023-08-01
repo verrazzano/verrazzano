@@ -74,6 +74,8 @@ func ShouldLogKubernetesAPIError(err error) bool {
 	return true
 }
 
+// IsK8sAPIServerError returns false if the error is not due to Kubernetes API server load or too many requests rate limit.
+// The goal is to reduce log noise in platform operator and provide meaningful information
 func IsK8sAPIServerError(err error) (bool, string) {
 	if err == nil {
 		return false, ""
