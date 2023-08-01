@@ -1,0 +1,155 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+import groovy.transform.Field
+
+@Field
+def LAST_PERIODIC_COMMIT = ""
+
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
+
+// Non Fields
+def branchSpecificSchedule = getCronSchedule()
+
+pipeline {
+    options {
+        timeout(time: 12, unit: 'HOURS')
+        skipDefaultCheckout true
+        disableConcurrentBuilds()
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
+        }
+    }
+
+    triggers {
+        cron(branchSpecificSchedule)
+    }
+
+    parameters {
+            booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
+        }
+
+    environment {
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+
+        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+
+        OCI_OS_REGION="us-phoenix-1"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+                steps {
+                    script {
+                        cleanWorkspaceAndCheckout()
+                    }
+                }
+        }
+
+        stage('Get most recent periodic commit') {
+            steps {
+                getLastPeriodicRunCommit()
+                echo("Last periodic commit: ${LAST_PERIODIC_COMMIT}")
+            }
+        }
+
+        stage ('Run Periodic Test Suite') {
+            when {
+                allOf {
+                    expression { return runPipeline() }
+                    expression { !params.DRY_RUN }
+                }
+            }
+
+            steps {
+                script {
+                    echo("Running periodics with commit ${SHORT_COMMIT_HASH}")
+                    build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
+                }
+            }
+        }
+    }
+}
+
+def cleanWorkspaceAndCheckout() {
+    scmCheckout()
+    def props = readProperties file: '.verrazzano-development-version'
+    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+    // update the description with some meaningful info
+    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+}
+
+// Returns the last run commit for the periodics, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
+def getLastPeriodicRunCommit() {
+    lastPeriodicCommitCommandOutput = sh (
+        label: "Get last clean periodic commit ID",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file ${LAST_PERIODIC_LOCATION} 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastPeriodicCommitCommandOutput}"
+    if (lastPeriodicCommitCommandOutput.length() > 0) {
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastPeriodicCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f ${LAST_PERIODIC_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last periodic run commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
+    }
+    // Get the commit ID for the last known clean pass of the Periodic tests
+    def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
+    LAST_PERIODIC_COMMIT = lastPeriodicsCommitProps['git-commit']
+}
+
+def scmCheckout() {
+    echo "${NODE_LABELS}"
+    echo "Specific GIT commit was not specified, use current head"
+    def scmInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: env.BRANCH_NAME]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+}
+
+// Checks if the commit has changed since last run
+def runPipeline() {
+  return LAST_PERIODIC_COMMIT != SHORT_COMMIT_HASH
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        // scheduled for every 6 hours
+        return "0 */6 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-")) {
+        return "0 */6 * * *"
+    }
+    return ""
+}
