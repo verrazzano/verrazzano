@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -157,7 +156,7 @@ func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) b
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
-	localCASecretData, err := s.getLocalClusterCASecretData()
+	localCASecretData, err := certs.GetLocalClusterCABundleData(s.Log, s.LocalClient, s.Context)
 	if err != nil {
 		return err
 	}
@@ -196,63 +195,6 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	return nil
-}
-
-// getLocalClusterCASecret gets the local cluster CA bundle data from one of the known/expected sources within Verrazzano
-//
-// Sources, in order of precedence
-// - "cacerts.pem" data field in the verrazzano-system/verrazzano-tls-ca secret
-// - "cacerts.pem" data field in the cattle-system/tls-ca-additional secret
-// - "ca.crt" data field in the verrazzano-system/verrazzano-tls secret
-func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
-	// TODO: Move this helper to the pkg/certs dir for sharing?
-	secretsList := []struct {
-		types.NamespacedName
-		caKey string
-	}{
-		{
-			NamespacedName: types.NamespacedName{Namespace: globalconst.VerrazzanoSystemNamespace, Name: globalconst.PrivateCABundle},
-			caKey:          globalconst.CABundleKey,
-		},
-		{
-			NamespacedName: types.NamespacedName{Namespace: globalconst.RancherSystemNamespace, Name: globalconst.AdditionalTLS},
-			caKey:          globalconst.AdditionalTLSCAKey,
-		},
-		{
-			NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret},
-			caKey:          mcconstants.CaCrtKey,
-		},
-	}
-	for _, sourceSecretInfo := range secretsList {
-		s.Log.Infof("checking secret %s", sourceSecretInfo.NamespacedName)
-		bundleData, found, err := s.getBundleDataFromSecret(sourceSecretInfo.NamespacedName, sourceSecretInfo.caKey)
-		if err != nil {
-			s.Log.Errorf("Error retrieving bundle data from secret %s", sourceSecretInfo.NamespacedName)
-			return nil, err
-		}
-		if found {
-			s.Log.Infof("Using bundle data from secret %s", sourceSecretInfo.NamespacedName)
-			return bundleData, nil
-		}
-	}
-	s.Log.Infof("No bundle data found")
-	return nil, nil
-}
-
-// getBundleDataFromSecret Obtains bundle data from secret using provided key; returns the data and "true" if the data was found, or nil/false otherwise
-func (s *Syncer) getBundleDataFromSecret(name types.NamespacedName, caKey string) (bundleData []byte, found bool, err error) {
-	sourceSecret := corev1.Secret{}
-	err = s.LocalClient.Get(s.Context, client.ObjectKey{
-		Namespace: name.Namespace,
-		Name:      name.Name,
-	}, &sourceSecret)
-	if client.IgnoreNotFound(err) != nil {
-		return nil, false, err
-	}
-	if err == nil {
-		return sourceSecret.Data[caKey], true, nil
-	}
-	return nil, false, nil
 }
 
 func byteSlicesEqualTrimmedWhitespace(byteSlice1, byteSlice2 []byte) bool {

@@ -32,8 +32,8 @@ import (
 const (
 	registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 	cattleAgentHashData       = "cattle-agent-hash" // the data field name for the cattleAgentHash in the agent state configmap
-	requeueDelayMinSeconds    = 5
-	requeueDelayMaxSeconds    = 10
+	requeueDelayMinSeconds    = 50
+	requeueDelayMaxSeconds    = 70
 )
 
 // Name of config map that stores mc agent state
