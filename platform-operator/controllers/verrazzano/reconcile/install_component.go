@@ -158,7 +158,12 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running pre-install for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
 				}
 
@@ -176,7 +181,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 					compLog.Debugf("Error running Install for component %s: %v", compName, err)
 					compLog.ErrorfThrottled(errorMessage)
 				}
-				if !(ctrlerrors.IsRetryableError(err) && IsK8sAPIServerError) {
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
 				}
 
@@ -197,7 +202,12 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 		case compStatePostInstall:
 			compLog.Oncef("Component %s post-install running", compName)
 			if err := comp.PostInstall(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running PostInstall for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Error running PostInstall for component %s: %v", compName, err)
 				}
 
