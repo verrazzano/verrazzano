@@ -487,7 +487,7 @@ func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (i istioComponent) ShouldUseModule() bool {
-	return false
+	return config.Get().ModuleIntegration
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
