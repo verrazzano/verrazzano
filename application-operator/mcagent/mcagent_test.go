@@ -303,10 +303,15 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 	localRegistrationSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}
 	adminCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
 	adminRegSecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getRegistrationSecretName(testClusterName)}
-	localIngressTLSSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret}
+	localIngressTLSSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconstants.VerrazzanoIngressTLSSecret}
 
 	// Managed Cluster - expect call to get the tls-ca-additional secret. Return not found since it
 	// is ok for it to be not present.
+	localMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconstants.VerrazzanoSystemNamespace, Name: vzconstants.PrivateCABundle}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
+		})
 	localMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: vzconstants.RancherSystemNamespace, Name: vzconstants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {

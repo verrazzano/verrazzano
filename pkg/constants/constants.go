@@ -116,11 +116,14 @@ const AdditionalTLSCAKey = "ca-additional.pem"
 // PrivateCABundle is an optional tls secret that contains private CAs used to issue/validate Verrazzano certificates
 const PrivateCABundle = "verrazzano-tls-ca"
 
+const CABundleKey = "cacerts.pem"
+
+// VerrazzanoIngressTLSSecret is the name of the secret in a cluster that contains the cluster's ca bundle
+const VerrazzanoIngressTLSSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+
 const CACertKey = "ca.crt"
 
 const CustomCACertKey = "tls.crt"
-
-const CABundleKey = "cacerts.pem"
 
 // VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
 const VMCAgentPollingTimeInterval = 60 * time.Second

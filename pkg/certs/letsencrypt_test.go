@@ -4,6 +4,7 @@
 package certs
 
 import (
+	"bytes"
 	"errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
@@ -86,123 +87,64 @@ func TestBuildLetsEncryptChain(t *testing.T) {
 	assert.Equal(t, "certcertcert", string(builder.cert))
 }
 
-// TestProcessAdditionalCertificatesRancherDisabled verifies no error when SetupLetsEncryptStagingCABundle is called and Rancher is disabled
-//func TestProcessAdditionalCertificatesRancherDisabled(t *testing.T) {
-//	disabled := false
-//	vz := &v1alpha1.Verrazzano{
-//		Spec: v1alpha1.VerrazzanoSpec{
-//			Components: v1alpha1.ComponentSpec{
-//				Rancher: &v1alpha1.RancherComponent{
-//					Enabled: &disabled,
-//				},
-//			},
-//		},
-//	}
-//	mock := gomock.NewController(t)
-//	client := mocks.NewMockClient(mock)
-//	ctx := spi.NewFakeContext(client, vz, nil, false)
-//	err := SetupLetsEncryptStagingCABundle(ctx.Log(), client, vz)
-//	assert.NoError(t, err)
-//}
+// TestCreateLetsEncryptStagingBundle tests CreateLetsEncryptStagingBundle
+// GIVEN a call to CreateLetsEncryptStagingBundle
+//
+//	WHEN CreateLetsEncryptStagingBundle is called
+//	THEN CreateLetsEncryptStagingBundle should download the LE staging bundles if there is no error
+func TestCreateLetsEncryptStagingBundle(t *testing.T) {
+	var tests = []struct {
+		testName string
+		httpDo   common.HTTPDoSig
+		bundle   []byte
+		isErr    bool
+	}{
+		{
+			"should be able to download staging bundles",
+			func(hc *http.Client, req *http.Request) (*http.Response, error) {
+				bundleData := ""
+				switch req.URL.Path[len(req.URL.Path)-15:] {
+				case "-stg-int-r3.pem":
+					bundleData = "intR3PEM\n"
+				case "-stg-int-e1.pem":
+					bundleData = "intE1PEM\n"
+				case "stg-root-x1.pem":
+					bundleData = "rootX1PEM\n"
+				}
+				return &http.Response{
+					Body:       io.NopCloser(strings.NewReader(bundleData)),
+					StatusCode: http.StatusOK,
+				}, nil
+			},
+			[]byte("intR3PEM\nintE1PEM\nrootX1PEM"),
+			false,
+		},
+		{
+			"should fail to download a cert when the request fails",
+			func(hc *http.Client, req *http.Request) (*http.Response, error) {
+				return nil, errors.New("boom")
+			},
+			[]byte{},
+			true,
+		},
+	}
 
-// TestProcessAdditionalCertificates verifies building the LetsEncrypt staging certificate chain
-// GIVEN a logger, client and Verrazzano CR with valid Certmanager spec
-//
-//	WHEN SetupLetsEncryptStagingCABundle is called
-//	THEN SetupLetsEncryptStagingCABundle should process the additional certs successfully with no error
-//func TestProcessAdditionalCertificates(t *testing.T) {
-//	mock := gomock.NewController(t)
-//	client := mocks.NewMockClient(mock)
-//	a := true
-//	vz := v1alpha1.Verrazzano{
-//		Spec: v1alpha1.VerrazzanoSpec{
-//			Components: v1alpha1.ComponentSpec{
-//				CertManager: &v1alpha1.CertManagerComponent{
-//					Enabled:     &a,
-//					Certificate: v1alpha1.Certificate{Acme: v1alpha1.Acme{Environment: "staging"}},
-//				},
-//			},
-//		},
-//	}
-//
-//	tlsAdditionalSecret := &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace: common.CattleSystem,
-//			Name:      constants.AdditionalTLS,
-//		}}
-//
-//	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
-//	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-//	client.EXPECT().Delete(gomock.Any(), tlsAdditionalSecret, gomock.Any()).Times(0)
-//
-//	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
-//	// convert the CertManager config to the ClusterIssuer config
-//	ctx := spi.NewFakeContext(client, &vz, nil, false, common.profileDir)
-//	err := SetupLetsEncryptStagingCABundle(ctx.Log(), client, ctx.EffectiveCR())
-//	assert.Nil(t, err)
-//}
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			common.HTTPDo = tt.httpDo
+			bundleData, err := CreateLetsEncryptStagingBundle()
+			byteSlicesEqualTrimmedWhitespace(t, tt.bundle, bundleData)
+			if tt.isErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
 
-// TestProcessAdditionalCertificatesLetsEncryptDefaultProdEnv verifies building the LetsEncrypt staging certificate chain
-// GIVEN a call to SetupLetsEncryptStagingCABundle
-//
-//	WHEN  is LetsEncrypt production env is enabled implicitly
-//	THEN SetupLetsEncryptStagingCABundle should process the additional certs successfully with no error
-//func TestProcessAdditionalCertificatesLetsEncryptDefaultProdEnv(t *testing.T) {
-//	mock := gomock.NewController(t)
-//	client := mocks.NewMockClient(mock)
-//	a := true
-//	vz := v1alpha1.Verrazzano{
-//		Spec: v1alpha1.VerrazzanoSpec{
-//			Components: v1alpha1.ComponentSpec{
-//				CertManager: &v1alpha1.CertManagerComponent{
-//					Enabled: &a,
-//					Certificate: v1alpha1.Certificate{Acme: v1alpha1.Acme{
-//						Provider: v1alpha1.LetsEncrypt,
-//					}},
-//				},
-//			},
-//		},
-//	}
-//
-//	tlsAdditionalSecret := &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace: common.CattleSystem,
-//			Name:      constants.AdditionalTLS,
-//		}}
-//
-//	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).Times(0)
-//	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(0)
-//	client.EXPECT().Delete(gomock.Any(), tlsAdditionalSecret, gomock.Not(gomock.Nil())).Return(nil)
-//
-//	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
-//	// convert the CertManager config to the ClusterIssuer config
-//	ctx := spi.NewFakeContext(client, &vz, nil, false, common.profileDir)
-//	err := SetupLetsEncryptStagingCABundle(ctx.Log(), client, ctx.EffectiveCR())
-//	assert.Nil(t, err)
-//}
-
-// TestProcessAdditionalCertificatesFailure verifies building the LetsEncrypt staging certificate chain
-// GIVEN a logger, client and vz instance with no Certmanager spec defined
-//
-//	WHEN SetupLetsEncryptStagingCABundle is called
-//	THEN SetupLetsEncryptStagingCABundle function call does not fail and attempts to clean up the tls-ca-additional secret
-//func TestProcessAdditionalCertificatesFailure(t *testing.T) {
-//	mock := gomock.NewController(t)
-//	client := mocks.NewMockClient(mock)
-//	vz := v1alpha1.Verrazzano{}
-//	client.EXPECT().Delete(gomock.Any(), &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace: common.CattleSystem,
-//			Name:      constants.AdditionalTLS,
-//		},
-//	}, gomock.Not(gomock.Nil())).Return(nil)
-//	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).Times(0)
-//	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(0)
-//
-//	// Create a fake ComponentContext with the profiles dir to create an EffectiveCR; this is required to
-//	// convert the CertManager config to the ClusterIssuer config
-//	ctx := spi.NewFakeContext(client, &vz, nil, false, common.profileDir)
-//	err := SetupLetsEncryptStagingCABundle(ctx.Log(), client, ctx.EffectiveCR())
-//	assert.Nil(t, err)
-//
-//}
+func byteSlicesEqualTrimmedWhitespace(t *testing.T, byteSlice1, byteSlice2 []byte) bool {
+	a := bytes.Trim(byteSlice1, " \t\n\r")
+	b := bytes.Trim(byteSlice2, " \t\n\r")
+	return assert.Equal(t, a, b)
+}
