@@ -712,6 +712,10 @@ func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.Comp
 		return err
 	}
 
+	if len(bundleData) == 0 {
+		return nil
+	}
+
 	privateCASecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconst.VerrazzanoSystemNamespace,
