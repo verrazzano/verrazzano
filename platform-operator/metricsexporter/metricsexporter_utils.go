@@ -284,6 +284,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 				upgradeCompletionTime = status.LastTransitionTime
 			}
 		}
+		component, _ := registry.FindComponent(componentName)
 
 		componentJSONName := component.GetJSONName()
 		if installStartTime != "" && installCompletionTime != "" {
