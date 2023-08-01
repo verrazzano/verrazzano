@@ -7,7 +7,7 @@ import (
 	"errors"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
-	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationrule"
 	serviceDestination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/services"
 	"google.golang.org/protobuf/types/known/durationpb"
 	istionet "istio.io/api/networking/v1alpha3"

@@ -1,5 +1,5 @@
-// // Copyright (c) 2023, Oracle and/or its affiliates.
-// // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package workloads
 
 import (
@@ -54,10 +54,10 @@ func TestCreateDestinationRuleFromWorkload(t *testing.T) {
 	// Assert that there is no error
 	assert.NoError(t, err)
 
-	// Assert that the destinationRule is not nil
+	// Assert that the destinationrule is not nil
 	assert.NotNil(t, destinationRule)
 
-	// Assert that the destinationRule has the correct APIVersion and Kind
+	// Assert that the destinationrule has the correct APIVersion and Kind
 	assert.Equal(t, "networking.istio.io/v1beta13", destinationRule.APIVersion)
 	assert.Equal(t, "DestinationRule", destinationRule.Kind)
 

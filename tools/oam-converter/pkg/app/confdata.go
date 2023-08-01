@@ -120,6 +120,8 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			if err != nil {
 				return err
 			}
+			defer f.Close()
+
 			r, err := json.Marshal(virtualService)
 			if err != nil {
 				return err
@@ -128,7 +130,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+
 			_, err = f.WriteString(string(output))
 			if err != nil {
 				return err
@@ -147,7 +149,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		if err != nil {
 			return err
 		}
-
+		defer f.Close()
 		gatewayYaml, err := yaml.Marshal(outputResources.Gateway)
 		if err != nil {
 			return fmt.Errorf("failed to marshal YAML: %w", err)
@@ -157,7 +159,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		if err != nil {
 			return fmt.Errorf("failed to write YAML to file: %w", err)
 		}
-		defer f.Close()
+
 	}
 
 	//Write down destination rules to files
@@ -172,6 +174,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
+				defer f.Close()
 				r, err := json.Marshal(destinationRule)
 				if err != nil {
 					return err
@@ -180,7 +183,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
-				defer f.Close()
+
 				_, err2 := f.WriteString(string(output))
 				if err2 != nil {
 					return err2
@@ -201,6 +204,8 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
+				defer f.Close()
+
 				r, err := json.Marshal(authPolicy)
 				if err != nil {
 					return err
@@ -209,7 +214,6 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
-				defer f.Close()
 				_, err2 := f.WriteString(string(output))
 				if err2 != nil {
 					return err2
@@ -226,6 +230,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		for _, servicemonitor := range outputResources.ServiceMonitors {
 			r, err := json.Marshal(servicemonitor)
 			if err != nil {
@@ -237,7 +242,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			}
 			output = output + "---\n" + string(out)
 		}
-		defer f.Close()
+
 		_, err2 := f.WriteString(string(output))
 		if err2 != nil {
 			return err2

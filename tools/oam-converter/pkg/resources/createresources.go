@@ -7,7 +7,7 @@ import (
 	"fmt"
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
-	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationrule"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
 	vs "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/virtualservice"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/workloads"
