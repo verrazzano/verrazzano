@@ -203,7 +203,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					}
 					Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
 					Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
-					Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
+					Expect(ingressURLs).To(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s not found", opensearchIngress))
 					Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
 					Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 					assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
@@ -276,14 +276,20 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				t.It("endpoint is accessible", Label("f:mesh.ingress",
 					"f:observability.logging.kibana"), func() {
 					osdPodsRunning := func() bool {
-						result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+						podName := "vmi-system-osd"
+						podNamespace := verrazzanoNamespace
+						if elastic.OperatorManaged {
+							podName = "opensearch-dashboards"
+							podNamespace = "verrazzano-logging"
+						}
+						result, err := pkg.PodsRunning(podNamespace, []string{podName})
 						if err != nil {
 							AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
 						}
 						return result
 					}
 					Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
-					Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
+					Expect(ingressURLs).To(HaveKey(osdIngress), fmt.Sprintf("Ingress %s not found", osdIngress))
 					assertOidcIngressByName(osdIngress, vz, opensearchdashboards.ComponentName)
 					Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
 				})
