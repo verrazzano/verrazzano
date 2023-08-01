@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"io"
 	"net/http"
 	"os"
@@ -153,11 +154,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	elastic = vmi.GetOpensearch("system")
+	ok, _ := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+	elastic = vmi.GetOpensearch("system", ok)
 	if verrazzanoSecretRequired(vz) {
 		creds = pkg.EventuallyGetSystemVMICredentials()
 	}
-
+	opensearchIngress = elastic.GetOSIngressName()
+	osdIngress = elastic.GetOSDIngressName()
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -175,7 +178,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 	}
 
 	t.Context("Check that OpenSearch", func() {
-		if vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) {
+		if vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) || vzcr.IsComponentStatusEnabled(vz, opensearchoperator.ComponentName) {
 			t.It("VMI is created successfully", func() {
 				Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 					vmiCRD, err = verrazzanoMonitoringInstanceCRD()
@@ -186,7 +189,13 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			if ingressEnabled(vz) {
 				t.It("endpoint is accessible", Label("f:mesh.ingress"), func() {
 					elasticPodsRunning := func() bool {
-						result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
+						podName := "vmi-system-es-master"
+						podNamespace := verrazzanoNamespace
+						if elastic.OperatorManaged {
+							podName = "opensearch-es-master"
+							podNamespace = "verrazzano-logging"
+						}
+						result, err := pkg.PodsRunning(podNamespace, []string{podName})
 						if err != nil {
 							AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
 						}
@@ -262,7 +271,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 	})
 
 	t.Context("Check that OpenSearch-Dashboards", func() {
-		if vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) {
+		if vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) || vzcr.IsComponentStatusEnabled(vz, opensearchoperator.ComponentName) {
 			if ingressEnabled(vz) {
 				t.It("endpoint is accessible", Label("f:mesh.ingress",
 					"f:observability.logging.kibana"), func() {
@@ -603,7 +612,8 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 		vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) ||
-		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
+		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName) ||
+		vzcr.IsComponentStatusEnabled(vz, opensearchoperator.ComponentName)
 }
 
 func grafanaDefaultDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
