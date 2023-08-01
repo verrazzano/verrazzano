@@ -14,6 +14,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,28 +40,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/yaml"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -56,9 +52,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
@@ -153,7 +149,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// CreateOrUpdateEffectiveConfigCM will store our Effective CR in the configmap
-	err = r.createOrUpdateEffectiveConfigCM(ctx, vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, log)
 	if err != nil {
 		errorCounterMetricObject.Inc()
 		log.Errorf("Failed to Create/Update the effective-config ConfigMap: %v", err)
@@ -1098,49 +1094,4 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	r.WatchMutex.RLock()
 	defer r.WatchMutex.RUnlock()
 	return r.WatchedComponents[compName]
-}
-
-// CreateOrUpdateEffectiveConfigCM takes in the Actual CR, retrieves the Effective CR,
-// converts it into YAML and stores it in a configmap If no configmap exists,
-// it will create one, otherwise it updates the configmap with the effective CR
-func (r *Reconciler) createOrUpdateEffectiveConfigCM(ctx context.Context, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
-
-	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
-	v1beta1ActualCR := &v1beta1.Verrazzano{}
-	err := vz.ConvertTo(v1beta1ActualCR)
-	if err != nil {
-		return fmt.Errorf("failed Converting v1alpha1 Verrazzano to v1beta1: %v", err)
-	}
-
-	effCR, err := transform.GetEffectiveV1beta1CR(v1beta1ActualCR)
-	if err != nil {
-		return fmt.Errorf("failed retrieving the Effective CR: %v", err)
-	}
-
-	// Marshal Indent it to format the Effective CR Specs into YAML
-	effCRSpecs, err := yaml.Marshal(effCR.Spec)
-	if err != nil {
-		return fmt.Errorf("failed to convert effective CR into YAML: %v", err)
-	}
-
-	// Create a Configmap Object that stores the Effective CR Specs
-	effCRConfigmap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      (vz.ObjectMeta.Name + effConfigSuffix),
-			Namespace: (vz.ObjectMeta.Namespace),
-		},
-	}
-
-	// Update the configMap if a ConfigMap already exists
-	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
-	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, effCRConfigmap, func() error {
-
-		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to Create or Update the configmap: %v", err)
-	}
-
-	return nil
 }
