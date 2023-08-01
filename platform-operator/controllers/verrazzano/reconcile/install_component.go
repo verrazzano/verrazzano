@@ -171,7 +171,12 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running Install for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) && IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
 				}
 
