@@ -18,9 +18,9 @@ import (
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 )
-
+//array that stores all kubernetes resources being outputed by the converter
+var kubeResources []any
 func CreateResources(conversionComponents []*types.ConversionComponents) ([]any, error) {
-	kubeResources := []any{}
 
 	gateway, allHostsForTrait, err := gw.CreateGatewayResource(conversionComponents)
 	if err != nil {
@@ -45,39 +45,43 @@ func CreateResources(conversionComponents []*types.ConversionComponents) ([]any,
 		if conversionComponent.Weblogicworkload != nil {
 
 			virtualService, destinationRule, authzPolicy, err := createChildResources(conversionComponent, gateway, allHostsForTrait)
-			kubeResources = append(kubeResources, virtualService)
-			kubeResources = append(kubeResources, destinationRule)
-			kubeResources = append(kubeResources, authzPolicy)
 			if err != nil {
 				return nil, errors.New("failed to create Child resources from Weblogic workload")
 
 			}
+			addResourcesToKubeResources(virtualService, destinationRule, authzPolicy)
 		}
 		if conversionComponent.Coherenceworkload != nil {
 			virtualService, destinationRule, authzPolicy, err := createChildResources(conversionComponent, gateway, allHostsForTrait)
-			kubeResources = append(kubeResources, virtualService)
-			kubeResources = append(kubeResources, destinationRule)
-			kubeResources = append(kubeResources, authzPolicy)
 			if err != nil {
 				return nil, errors.New("failed to create Child resources from Coherence workload")
 
 			}
+			addResourcesToKubeResources(virtualService, destinationRule, authzPolicy)
 		}
 		if conversionComponent.Helidonworkload != nil {
 			virtualService, destinationRule, authzPolicy, err := helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent, gateway, allHostsForTrait)
-			kubeResources = append(kubeResources, virtualService)
-			kubeResources = append(kubeResources, destinationRule)
-			kubeResources = append(kubeResources, authzPolicy)
 			if err != nil {
 				return nil, errors.New("failed to create Child resources from Helidon workload")
 
 			}
+			addResourcesToKubeResources(virtualService, destinationRule, authzPolicy)
 		}
 	}
 
 	return kubeResources, nil
 }
-
+func addResourcesToKubeResources(virtualService []*vsapi.VirtualService, destinationRule []*istioclient.DestinationRule, authzPolicy []*clisecurity.AuthorizationPolicy){
+	for _,index := range virtualService {
+		kubeResources = append(kubeResources, index)
+	}
+	for _,index := range destinationRule {
+		kubeResources = append(kubeResources, index)
+	}
+	for _,index := range authzPolicy {
+		kubeResources = append(kubeResources, index)
+	}
+}
 func createChildResources(conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
 	if conversionComponent.IngressTrait != nil {
 		rules := conversionComponent.IngressTrait.Spec.Rules

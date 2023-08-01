@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
