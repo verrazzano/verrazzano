@@ -341,7 +341,7 @@ func (r *Reconciler) runRancherPostUninstall(ctx spi.ComponentContext) error {
 	if found, comp := registry.FindComponent(rancher.ComponentName); found {
 		err := comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
 		if err != nil {
-			ctx.Log().Info("Waiting for Rancher post-uninstall cleanup to be done")
+			ctx.Log().Once("Waiting for Rancher post-uninstall cleanup to be done")
 			return err
 		}
 	}

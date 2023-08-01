@@ -156,7 +156,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 			if !registry.ComponentDependenciesMet(comp, compContext) {
 				return ctrl.Result{Requeue: true}
 			}
-			compLog.Infof("Component %s pre-install is running ", compName)
+			compLog.Oncef("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
 					compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
@@ -182,7 +182,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 		case compStateInstallWaitReady:
 			if !comp.IsReady(compContext) {
-				compLog.Infof("Component %s has been installed. Waiting for the component to be ready", compName)
+				compLog.Oncef("Component %s has been installed. Waiting for the component to be ready", compName)
 				return ctrl.Result{Requeue: true}
 			}
 			compLog.Oncef("Component %s successfully installed", comp.Name())
