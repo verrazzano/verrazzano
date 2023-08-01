@@ -102,14 +102,14 @@ func Test_getNamespaceFromObjectMetaOrDefault(t *testing.T) {
 	// GIVEN metadata with a blank namespace name
 	// WHEN the namespace name is retrieved
 	// THEN verify the "default" namespace name is returned
-	name = getNamespaceFromObjectMetaOrDefault(meta)
+	name = GetNamespaceFromObjectMetaOrDefault(meta)
 	assert.Equal("default", name)
 
 	// GIVEN metadata with a non-blank namespace name
 	// WHEN the namespace name is retrieved
 	// THEN verify the correct namespace name is returned
 	meta = metav1.ObjectMeta{Namespace: "test-namespace-1"}
-	name = getNamespaceFromObjectMetaOrDefault(meta)
+	name = GetNamespaceFromObjectMetaOrDefault(meta)
 	assert.Equal("test-namespace-1", name)
 }
 

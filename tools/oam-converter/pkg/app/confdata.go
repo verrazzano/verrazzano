@@ -28,7 +28,7 @@ func ConfData() error {
 
 	//Check the length of args
 	if len(os.Args) != 3 {
-		return errors.New("Not enough args to run tool")
+		return errors.New("OAM Converter cannot be launched due to insufficient command-line inputs. Please make your arguments using the absolute path to your input files and the directory where you want the files to be printed.")
 	}
 
 	inputDirectory = os.Args[1]
@@ -50,7 +50,10 @@ func ConfData() error {
 	}
 	//Read each file from the input directory
 	for _, input := range files {
-		data, _ := ioutil.ReadFile(input)
+		data, err := ioutil.ReadFile(input)
+		if err != nil {
+			return errors.New("error in unmarshalling the components")
+		}
 		datastr := string(data)
 
 		//Split the objects using "---" delimiter
@@ -157,13 +160,14 @@ func writeToDirectory(outputDirectory string, index any) error {
 		fileName = "output.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
 	default:
-		return fmt.Errorf("Wrong data type%v", val)
+		return fmt.Errorf("Unsupported datq type%v", val)
 	}
 
 	//print resources in respective files
 	writeToFile(filePath, object)
 	return nil
 }
+//TODO: Add functionality to write below file aswell
 func writeToFile(filePath string, object any) error {
 	f, err := os.Create(filePath)
 	if err != nil {

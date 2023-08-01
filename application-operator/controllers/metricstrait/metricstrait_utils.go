@@ -73,10 +73,10 @@ func writeYAMLString(c *gabs.Container) (string, error) {
 	return string(bytes), nil
 }
 
-// getNamespaceFromObjectMetaOrDefault extracts the namespace name from object metadata.
+// GetNamespaceFromObjectMetaOrDefault extracts the namespace name from object metadata.
 // meta is the object metadata to extract the namespace name from.
 // Returns the namespace name of "default" if the namespace is the empty string.
-func getNamespaceFromObjectMetaOrDefault(meta metav1.ObjectMeta) string {
+func GetNamespaceFromObjectMetaOrDefault(meta metav1.ObjectMeta) string {
 	name := meta.Namespace
 	if name == "" {
 		return "default"
@@ -129,7 +129,7 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 // createJobOrServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
 func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
-	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
+	namespace := GetNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[oam.LabelAppName]
 	if !found {
 		return "", fmt.Errorf("metrics trait missing application name label")
@@ -165,8 +165,8 @@ func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, e
 	return strings.Replace(sname, "_", "-", -1), nil
 }
 
-// getPortSpecs returns a complete set of port specs from the trait and the trait defaults
-func getPortSpecs(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) []vzapi.PortSpec {
+// GetPortSpecs returns a complete set of port specs from the trait and the trait defaults
+func GetPortSpecs(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) []vzapi.PortSpec {
 	ports := trait.Spec.Ports
 	if len(ports) == 0 {
 		// create a port spec from the existing port
@@ -193,8 +193,8 @@ func isEnabled(trait *vzapi.MetricsTrait) bool {
 	return trait.Spec.Enabled == nil || *trait.Spec.Enabled
 }
 
-// useHTTPSForScrapeTarget returns true if https with Istio certs should be used for scrape target. Otherwise return false, use http
-func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
+// UseHTTPSForScrapeTarget returns true if https with Istio certs should be used for scrape target. Otherwise return false, use http
+func UseHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
 	if trait.Spec.WorkloadReference.Kind == "VerrazzanoCoherenceWorkload" || trait.Spec.WorkloadReference.Kind == "Coherence" {
 		return false, nil
 	}
@@ -210,8 +210,8 @@ func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.
 	return false, nil
 }
 
-// fetchSourceCredentialsSecretIfRequired fetches the metrics endpoint authentication credentials if a secret is provided.
-func fetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured, cli client.Client) (*k8score.Secret, error) {
+// FetchSourceCredentialsSecretIfRequired fetches the metrics endpoint authentication credentials if a secret is provided.
+func FetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured, cli client.Client) (*k8score.Secret, error) {
 	secretName := trait.Spec.Secret
 	// If no secret name explicitly provided use the default secret name.
 	if secretName == nil && traitDefaults != nil {
@@ -239,8 +239,8 @@ func fetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.Me
 	return &secretObj, nil
 }
 
-// isWLSWorkload returns true if the unstructured object is a Weblogic Workload
-func isWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
+// IsWLSWorkload returns true if the unstructured object is a Weblogic Workload
+func IsWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
 	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
 	if err != nil {
 		return false, err

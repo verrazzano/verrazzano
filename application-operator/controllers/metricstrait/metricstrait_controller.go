@@ -489,7 +489,7 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	rel := vzapi.QualifiedResourceRelation{APIVersion: deployment.APIVersion, Kind: deployment.Kind, Name: deployment.Name, Namespace: deployment.Namespace, Role: scraperRole}
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, r.Client)
+	secret, err := FetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, r.Client)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, err
 	}
@@ -820,7 +820,7 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			vzClusterNameHolder: clusters.GetClusterName(ctx, c)}
 
 		var configTemplate string
-		https, err := useHTTPSForScrapeTarget(ctx, c, trait)
+		https, err := UseHTTPSForScrapeTarget(ctx, c, trait)
 		if err != nil {
 			return "", nil, err
 		}
@@ -830,7 +830,7 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 		}
 		configTemplate = prometheusScrapeConfigTemplate
 
-		wlsWorkload, err := isWLSWorkload(workload)
+		wlsWorkload, err := IsWLSWorkload(workload)
 		if err != nil {
 			return "", nil, err
 		}

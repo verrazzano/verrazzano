@@ -8,6 +8,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	operator "github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	metrics "github.com/verrazzano/verrazzano/pkg/metrics"
 	utils "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/controllers"
@@ -32,7 +33,6 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	if err != nil {
 		return &serviceMonitor, err
 	}
-
 	// Fetch workload resource as well as trait defaults using information from the trait
 	var workload *unstructured.Unstructured
 
@@ -59,18 +59,18 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	}
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := utils.FetchSourceCredentialsSecretIfRequired(context.TODO(), trait, traitDefaults, workload, cli)
+	secret, err := operator.FetchSourceCredentialsSecretIfRequired(context.TODO(), trait, traitDefaults, workload, cli)
 	if err != nil {
 		return &serviceMonitor, err
 	}
 
 	//fetch if trait uses Istio
-	useHTTPS, err := utils.UseHTTPSForScrapeTarget(context.TODO(), cli, trait)
+	useHTTPS, err := operator.UseHTTPSForScrapeTarget(context.TODO(), cli, trait)
 	if err != nil {
 		return &serviceMonitor, err
 	}
 	//fetch if workload is WebLogic
-	wlsWorkload, err := utils.IsWLSWorkload(workload)
+	wlsWorkload, err := operator.IsWLSWorkload(workload)
 	if err != nil {
 		return &serviceMonitor, err
 	}
@@ -79,7 +79,7 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 
 	//populate servicemonitor scrape info
 	scrapeInfo := metrics.ScrapeInfo{
-		Ports:              len(utils.GetPortSpecs(trait, traitDefaults)),
+		Ports:              len(operator.GetPortSpecs(trait, traitDefaults)),
 		BasicAuthSecret:    secret,
 		IstioEnabled:       &useHTTPS,
 		VZPrometheusLabels: &vzPromLabels,

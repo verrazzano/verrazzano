@@ -679,19 +679,19 @@ func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
 		})
 
 	mtrait.Spec.WorkloadReference.Kind = "VerrazzanoCoherenceWorkload"
-	https, _ := useHTTPSForScrapeTarget(context.TODO(), nil, &mtrait)
+	https, _ := UseHTTPSForScrapeTarget(context.TODO(), nil, &mtrait)
 	// Expect https to be false for scrape target of Kind VerrazzanoCoherenceWorkload
 	assert.False(https, "Expected https to be false for Workload of Kind VerrazzanoCoherenceWorkload")
 
 	mtrait.Spec.WorkloadReference.Kind = "Coherence"
-	https, _ = useHTTPSForScrapeTarget(context.TODO(), nil, &mtrait)
+	https, _ = UseHTTPSForScrapeTarget(context.TODO(), nil, &mtrait)
 	// Expect https to be false for scrape target of Kind Coherence
 	assert.False(https, "Expected https to be false for Workload of Kind Coherence")
 
 	reconciler := newMetricsTraitReconciler(mock)
 
 	mtrait.Spec.WorkloadReference.Kind = ""
-	https, _ = useHTTPSForScrapeTarget(context.TODO(), reconciler.Client, &mtrait)
+	https, _ = UseHTTPSForScrapeTarget(context.TODO(), reconciler.Client, &mtrait)
 	// Expect https to be false for namespaces NOT labeled for istio-injection
 	assert.False(https, "Expected https to be false for namespace NOT labeled for istio injection")
 	mocker.Finish()
@@ -736,7 +736,7 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 		"istio-injection": "enabled",
 	}
 	testNamespace.ObjectMeta.Labels = labels
-	https, _ := useHTTPSForScrapeTarget(context.TODO(), reconciler.Client, &mtrait)
+	https, _ := UseHTTPSForScrapeTarget(context.TODO(), reconciler.Client, &mtrait)
 	// Expect https to be true for namespaces labeled for istio-injection
 	assert.True(https, "Expected https to be true for namespaces labeled for Istio injection")
 	mocker.Finish()

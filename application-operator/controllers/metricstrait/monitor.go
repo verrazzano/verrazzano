@@ -10,8 +10,8 @@ import (
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metrics"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -33,18 +33,18 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	}
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, r.Client)
+	secret, err := FetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, r.Client)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to fetch metrics source credentials: %v", err)
 	}
 
 	// Determine whether Istio is enabled for the workload
-	useHTTPS, err := useHTTPSForScrapeTarget(ctx, r.Client, trait)
+	useHTTPS, err := UseHTTPSForScrapeTarget(ctx, r.Client, trait)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to determine if Istio was enabled for the target: %v", err)
 	}
 
-	wlsWorkload, err := isWLSWorkload(workload)
+	wlsWorkload, err := IsWLSWorkload(workload)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to determine if workload %s/&s was of type WLS: %v", workload.GetNamespace(), workload.GetName(), err)
 	}
@@ -52,7 +52,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 
 	log.Debugf("Creating or updating the Service Monitor for workload %s/%s", workload.GetNamespace(), workload.GetName())
 	scrapeInfo := metrics.ScrapeInfo{
-		Ports:              len(getPortSpecs(trait, traitDefaults)),
+		Ports:              len(GetPortSpecs(trait, traitDefaults)),
 		BasicAuthSecret:    secret,
 		IstioEnabled:       &useHTTPS,
 		VZPrometheusLabels: &vzPromLabels,
