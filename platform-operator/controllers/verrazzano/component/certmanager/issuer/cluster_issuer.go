@@ -136,6 +136,10 @@ type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, e
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
 
+type getLetsEncryptStagingBundleFuncType func() ([]byte, error)
+
+var getLetsEncryptStagingBundleFunc getLetsEncryptStagingBundleFuncType = certs.CreateLetsEncryptStagingBundle
+
 // GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 	cfg, err := k8sutil.GetConfigFromController()
@@ -759,7 +763,7 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c crtclient.Client, cluste
 		isLetsEncryptStagingEnv = vzcr.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
 	}
 
-	var bundleData []byte
+	bundleData := []byte{}
 	if isCAIssuer {
 		log.Infof("Getting private CA bundle for Rancher")
 		if bundleData, err = createPrivateCABundle(log, c, clusterIssuer); err != nil {
@@ -767,7 +771,7 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c crtclient.Client, cluste
 		}
 	} else if isLetsEncryptStagingEnv {
 		log.Infof("Getting Let's Encrypt Staging CA bundle for Rancher")
-		if bundleData, err = certs.CreateLetsEncryptStagingBundle(); err != nil {
+		if bundleData, err = getLetsEncryptStagingBundleFunc(); err != nil {
 			return []byte{}, err
 		}
 	}

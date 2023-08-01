@@ -130,7 +130,7 @@ func TestVerrazzanoManagedClusterReconcilerGetAdminCaBundle(t *testing.T) {
 				log:    log,
 			}
 			got, err := r.getAdminCaBundle()
-			if !tt.wantErr(t, err, fmt.Sprintf("getAdminCaBundle()")) {
+			if !tt.wantErr(t, err, fmt.Sprintf("getAdminCaBundle(): %v", err)) {
 				return
 			}
 			assert.Equalf(t, tt.want, got, "getAdminCaBundle()")
