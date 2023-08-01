@@ -240,8 +240,8 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 	}
 
 	// Append the CA bundle from the ingress vzIngressSecret if it exists and is not already present in the bundle
-	vzIngressSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, "verrazzano-tls", true)
-	if err != nil {
+	vzIngressSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoIngressTLSSecret, true)
+	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
 	tlsIngressCA, found := vzIngressSecret.Data[mcconstants.CaCrtKey]
