@@ -117,13 +117,6 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(ctx cont
 	return ctrl.Result{}, nil
 }
 
-//func (r *VerrazzanoSecretsReconciler) isLetsEncryptStaging(effectiveCR *vzapi.Verrazzano) bool {
-//	if isLEConfig, _ := vzcr.IsLetsEncryptConfig(effectiveCR); isLEConfig {
-//		return vzcr.IsLetsEncryptStagingEnv(*effectiveCR.Spec.Components.ClusterIssuer.LetsEncrypt)
-//	}
-//	return false
-//}
-
 func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string, destCAKey string,
 	sourceCAKey string, sourceSecret corev1.Secret, isCreateAllowed bool) (controllerutil.OperationResult, error) {
 	// Get the secret
