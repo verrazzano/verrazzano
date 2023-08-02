@@ -5,12 +5,8 @@ package namespacewatch
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,12 +60,11 @@ func (nw *NamespacesWatcher) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes namespaces update
-				rancherSystemProjectID := getRancherSystemProjectID(nw)
+				rancherSystemProjectID := nw.getRancherSystemProjectID()
 				err := nw.MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID)
 				if err != nil {
 					nw.log.Errorf("%v", err)
 				}
-
 			case <-nw.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()
@@ -84,29 +79,16 @@ func (nw *NamespacesWatcher) Start() {
 // And that does not have a label "management.cattle.io/system-namespace"
 // "management.cattle.io/system-namespace" namespace label indicates it is managed by Rancher
 func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID string) error {
-	var rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
-	namespaceList := &v1.NamespaceList{}
-	err := nw.client.List(context.TODO(), namespaceList, &clipkg.ListOptions{})
-	if err != nil {
-		return err
-	}
 
-	vz, err := getVerrazzanoResource(nw.client)
-	if err != nil {
-		return fmt.Errorf("failed to get Verrazzano resource: %v", err)
-	}
+	if nw.IsRancherReady() {
+		var rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
 
-	logger, err := newLogger(vz)
-	if err != nil {
-		return fmt.Errorf("failed to get Verrazzano resource logger: %v", err)
-	}
-	ctx, err := spi.NewContext(logger, nw.client, vz, nil, true)
-	if err != nil {
-		return err
-	}
-	_, rancherComponent := registry.FindComponent(common.RancherName)
-	isEnabled := rancherComponent.IsEnabled(ctx.EffectiveCR())
-	if isEnabled && rancherComponent.IsReady(ctx) {
+		namespaceList := &v1.NamespaceList{}
+		err := nw.client.List(context.TODO(), namespaceList, &clipkg.ListOptions{})
+		if err != nil {
+			return err
+		}
+
 		for i := range namespaceList.Items {
 			if namespaceList.Items[i].Labels == nil {
 				namespaceList.Items[i].Labels = map[string]string{}
@@ -119,7 +101,7 @@ func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherS
 				nw.log.Infof("Updating the Labels and Annotations of a Namespace %v with Rancher System Project ID %v", namespaceList.Items[i].Namespace, rancherSystemProjectID)
 				namespaceList.Items[i].Annotations[RancherProjectIDLabelKey] = rancherSystemProjectIDAnnotation
 				namespaceList.Items[i].Labels[RancherProjectIDLabelKey] = rancherSystemProjectID
-				if err := nw.client.Update(context.TODO(), &(namespaceList.Items[i]), &clipkg.UpdateOptions{}); err != nil {
+				if err = nw.client.Update(context.TODO(), &(namespaceList.Items[i]), &clipkg.UpdateOptions{}); err != nil {
 					return err
 				}
 			}

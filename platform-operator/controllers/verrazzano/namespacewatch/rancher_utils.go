@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,7 +32,12 @@ func getRancherProjectList(dynClient dynamic.Interface) (*unstructured.Unstructu
 }
 
 // getRancherSystemProjectID returns the ID of Rancher system project
-func getRancherSystemProjectID(nw *NamespacesWatcher) string {
+func (nw *NamespacesWatcher) getRancherSystemProjectID() string {
+
+	if !nw.IsRancherReady() {
+		nw.log.Errorf("rancher is not enabled or ready")
+		return ""
+	}
 	dynClient, err := getDynamicClient()
 	if err != nil {
 		nw.log.Errorf("%v", err)
@@ -69,4 +76,23 @@ func getDynamicClient() (dynamic.Interface, error) {
 		return nil, err
 	}
 	return dynamicClient, nil
+}
+
+func (nw *NamespacesWatcher) IsRancherReady() bool {
+	vz, err := getVerrazzanoResource(nw.client)
+	if err != nil {
+		nw.log.Errorf("failed to get Verrazzano resource: %v", err)
+	}
+
+	logger, err := newLogger(vz)
+	if err != nil {
+		nw.log.Errorf("failed to get Verrazzano resource logger: %v", err)
+	}
+	ctx, err := spi.NewContext(logger, nw.client, vz, nil, true)
+	if err != nil {
+		nw.log.Errorf("error creating a component context %v", err)
+	}
+	_, rancherComponent := registry.FindComponent(common.RancherName)
+	isEnabled := rancherComponent.IsEnabled(ctx.EffectiveCR())
+	return isEnabled && rancherComponent.IsReady(ctx)
 }
