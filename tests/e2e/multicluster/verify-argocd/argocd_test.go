@@ -256,6 +256,9 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				//Change this line to get all of the tokens for that user
 				// Then next step delete all the tokens
 				//Double check that they are all deleted, cannot access and then trigger update
+				// Would delete the other tokens except the one I am currently using for Get tokens names for logged in user
+				// Evenutally {delete my token} (Look for success response back from delete call in this case), eventually {wait for secret annotation to be updated}
+				// It might be token admin
 				_, err = pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
 				if err != nil {
 					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
