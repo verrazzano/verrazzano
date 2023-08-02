@@ -36,8 +36,8 @@ require (
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.10.3
-	istio.io/api v0.0.0-20221208152505-d807bc07da6a
-	istio.io/client-go v1.15.4
+	istio.io/api v0.0.0-20230712174848-a2b2de508c88
+	istio.io/client-go v1.17.4
 	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.27.2
@@ -174,8 +174,8 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220926220553-6981cbe3cfce // indirect
-	google.golang.org/grpc v1.49.0 // indirect
+	google.golang.org/genproto v0.0.0-20221018160656-63c7b68cfc55 // indirect
+	google.golang.org/grpc v1.50.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
