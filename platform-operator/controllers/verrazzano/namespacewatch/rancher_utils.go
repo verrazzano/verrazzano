@@ -32,28 +32,29 @@ func getRancherProjectList(dynClient dynamic.Interface) (*unstructured.Unstructu
 }
 
 // getRancherSystemProjectID returns the ID of Rancher system project
-func (nw *NamespacesWatcher) getRancherSystemProjectID() string {
+func (nw *NamespacesWatcher) getRancherSystemProjectID() (string, error) {
 
 	if !nw.IsRancherReady() {
-		nw.log.Errorf("rancher is not enabled or ready")
-		return ""
+		nw.log.Debugf("rancher is not enabled or ready")
+		return "", nil
 	}
 	dynClient, err := getDynamicClient()
 	if err != nil {
-		nw.log.Errorf("%v", err)
+		return "", fmt.Errorf("%v", err)
 	}
 	rancherProjectList, err := getRancherProjectList(dynClient)
 	if err != nil {
-		nw.log.Errorf("%v", err)
+		return "", fmt.Errorf("%v", err)
 	}
 	var projectID string
 	for _, rancherProject := range rancherProjectList.Items {
 		projectName := rancherProject.UnstructuredContent()["spec"].(map[string]interface{})["displayName"].(string)
 		if projectName == "System" {
 			projectID = rancherProject.UnstructuredContent()["metadata"].(map[string]interface{})["name"].(string)
+			return projectID, nil
 		}
 	}
-	return projectID
+	return "", nil
 }
 
 // GetRancherMgmtAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind

@@ -60,10 +60,15 @@ func (nw *NamespacesWatcher) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes namespaces update
-				rancherSystemProjectID := nw.getRancherSystemProjectID()
-				err := nw.MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID)
+				rancherSystemProjectID, err := nw.getRancherSystemProjectID()
 				if err != nil {
 					nw.log.Errorf("%v", err)
+				}
+				if rancherSystemProjectID != "" {
+					err = nw.MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID)
+					if err != nil {
+						nw.log.Errorf("%v", err)
+					}
 				}
 			case <-nw.shutdown:
 				// shutdown event causes termination
