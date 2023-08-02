@@ -5,6 +5,7 @@ package namespacewatch
 
 import (
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -36,7 +37,7 @@ func getVerrazzanoResource(client clipkg.Client) (*vzapi.Verrazzano, error) {
 		return nil, err
 	}
 	if len(vzList.Items) != 1 {
-		return nil, err
+		return nil, fmt.Errorf("verrazzano resource list is not equal to 1")
 	}
 	return &vzList.Items[0], nil
 }
