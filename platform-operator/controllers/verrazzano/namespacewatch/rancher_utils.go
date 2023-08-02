@@ -38,7 +38,7 @@ func (nw *NamespacesWatcher) getRancherSystemProjectID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if isRancherReady {
+	if !isRancherReady {
 		nw.log.Debugf("rancher is not enabled or ready")
 		return "", nil
 	}
