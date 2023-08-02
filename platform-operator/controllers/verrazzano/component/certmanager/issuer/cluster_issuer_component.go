@@ -218,12 +218,7 @@ func (c clusterIssuerComponent) IsOperatorInstallSupported() bool {
 }
 
 func (c clusterIssuerComponent) PostInstall(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager-config PreInstall dry run")
-		return nil
-	}
-	return c.createOrUpdatePrivateCABundleSecret(compContext)
+	return c.postInstallOrUpgrade(compContext)
 }
 
 func (c clusterIssuerComponent) IsOperatorUninstallSupported() bool {
@@ -239,6 +234,10 @@ func (c clusterIssuerComponent) PostUninstall(context spi.ComponentContext) erro
 }
 
 func (c clusterIssuerComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	return c.postInstallOrUpgrade(compContext)
+}
+
+func (c clusterIssuerComponent) postInstallOrUpgrade(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("cert-manager-config PreInstall dry run")

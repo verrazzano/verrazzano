@@ -26,6 +26,7 @@ import (
 
 type testUpdater struct{}
 
+// Update test impl for reconciler unit tests
 func (t *testUpdater) Update(event *healthcheck.UpdateEvent) {}
 
 // TestReconcileVerrazzanoTLS tests the reconcileVerrazzanoTLS method keeping the VZ CA secret in sync when rotated
