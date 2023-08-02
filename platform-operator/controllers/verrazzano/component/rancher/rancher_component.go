@@ -920,6 +920,7 @@ func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
 	return restartRancherDeployment(ctx.Log(), ctx.Client())
 }
 
+// isRancherDeploymentUpdateInProgress Checks only the cattle-system/rancher deployment is in progress or not
 func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentContext) bool {
 	rancherDeployment := []types.NamespacedName{
 		{
@@ -966,6 +967,7 @@ func (r rancherComponent) getCurrentCABundleSecretsValue(ctx spi.ComponentContex
 	return strings.TrimSpace(string(currentCACerts)), true, nil
 }
 
+// restartRancherDeployment Performs a rolling restart of the Rancher deployment
 func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error {
 	deployment := appsv1.Deployment{}
 	if err := c.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
