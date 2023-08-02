@@ -79,6 +79,8 @@ const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
+const istioRevisionMutatingWebhook = "istio-revision-tag-default"
+
 var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
 const (
@@ -450,7 +452,8 @@ func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 		}
 	}
 	// Upgrading Istio may result in a duplicate mutating webhook configuration. Istioctl will recreate the webhook during upgrade.
-	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), istioSidecarMutatingWebhook)
+	webhooks := []string{istioSidecarMutatingWebhook, istioRevisionMutatingWebhook}
+	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks)
 }
 
 func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
