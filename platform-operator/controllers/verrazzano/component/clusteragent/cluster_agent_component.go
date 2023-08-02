@@ -43,6 +43,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			UseModule:                 config.Get().ModuleIntegration,
 			AppendOverridesFunc:       AppendClusterAgentOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, oam.ComponentName, istio.ComponentName},

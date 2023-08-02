@@ -8,6 +8,7 @@ import (
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	vzerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -92,7 +93,7 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	}
 
 	// Do the pre-install
-	if err := comp.PreInstall(compCtx); err != nil {
+	if err := comp.PreInstall(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
 		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -112,7 +113,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := comp.Install(compCtx); err != nil {
+	if err := comp.Install(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
 		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -142,7 +143,7 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := comp.PostInstall(compCtx); err != nil {
+	if err := comp.PostInstall(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
 		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
