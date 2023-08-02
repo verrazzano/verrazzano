@@ -29,6 +29,8 @@ import (
 const rancherDeploymentName = "rancher"
 const mcCABundleKey = "ca-bundle"
 
+var fetchSecretFailureTemplate = "Failed to fetch secret %s/%s: %v"
+
 // reconcileVerrazzanoTLS Updates the verrazzano-tls-ca CA bundle when the CA cert in verrazzano-system/verrazzano-tls is rotated
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request, vz *vzapi.Verrazzano) (ctrl.Result, error) {
 
@@ -46,7 +48,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 			return ctrl.Result{}, nil
 		}
 		// Secret should never be not found, unless we're running while installation is still underway
-		zap.S().Errorf("Failed to fetch secret %s/%s: %v",
+		zap.S().Errorf(fetchSecretFailureTemplate,
 			req.Namespace, req.Name, err)
 		return newRequeueWithDelay(), nil
 	}
@@ -84,7 +86,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(ctx cont
 			return ctrl.Result{}, nil
 		}
 		// Secret should never be not found, unless we're running while installation is still underway
-		zap.S().Errorf("Failed to fetch secret %s/%s: %v",
+		zap.S().Errorf(fetchSecretFailureTemplate,
 			req.Namespace, req.Name, err)
 		return newRequeueWithDelay(), nil
 	}
@@ -127,7 +129,7 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	}, &secret)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			r.log.Errorf("Failed to fetch secret %s/%s: %v", namespace, name, err)
+			r.log.Errorf(fetchSecretFailureTemplate, namespace, name, err)
 			return controllerutil.OperationResultNone, err
 		}
 		if !isCreateAllowed {
