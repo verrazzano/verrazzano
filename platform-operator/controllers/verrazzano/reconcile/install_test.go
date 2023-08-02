@@ -6,15 +6,17 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"net/url"
-	"strings"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -105,6 +107,7 @@ func TestStartUpdate(t *testing.T) {
 // THEN ensure a Ready State
 func TestCompleteUpdateReadyComponent(t *testing.T) {
 	initUnitTesing()
+	metricsexporter.Init()
 	status := vzapi.VerrazzanoStatus{
 		State:   vzapi.VzStateReconciling,
 		Version: statusVer,

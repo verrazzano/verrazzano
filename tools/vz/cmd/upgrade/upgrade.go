@@ -90,12 +90,26 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
 	}
 
+	skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
+	if errConfirm != nil {
+		return errConfirm
+	}
+
+	// If the Verrazzano resource is already Reconciling, confirm with user that they would like to
+	// proceed with an upgrade
+	if vz.Status.State == v1beta1.VzStateReconciling {
+		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nVerrazzano is already in the middle of an install/update. Continue with upgrade anyway?", err.Error()), skipConfirm)
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Operation canceled.")
+			return nil
+		}
+	}
+
 	// Validate any existing private registry settings against new ones and get confirmation from the user
 	if err := cmdhelpers.ValidatePrivateRegistry(cmd, client); err != nil {
-		skipConfirm, errConfirm := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
-		if errConfirm != nil {
-			return errConfirm
-		}
 		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nProceed to upgrade with new settings?", err.Error()), skipConfirm)
 		if err != nil {
 			return err
