@@ -106,6 +106,7 @@ func TestStartUpdate(t *testing.T) {
 // THEN ensure a Ready State
 func TestCompleteUpdateReadyComponent(t *testing.T) {
 	initUnitTesing()
+	metricsexporter.Init()
 	status := vzapi.VerrazzanoStatus{
 		State:   vzapi.VzStateReconciling,
 		Version: statusVer,

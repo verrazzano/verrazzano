@@ -39,6 +39,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -2549,4 +2550,85 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vztest)
 	assert.NoError(t, err)
+}
+
+// TestReconcilerProcReconcilingState tests ProcReconciling state
+// GIVEN a Verrazzano in Reconciling state with status version == spec version
+// WHEN ProcReconcilingState is called
+// THEN it proceeds with reconcile
+// GIVEN a Verrazzano in Reconciling state with status version != spec version
+// WHEN ProcReconcilingState is called
+// THEN it updates the VZ status to Upgrading returns a requeue
+func TestReconcilerProcReconcilingState(t *testing.T) {
+	vzNoSpecVersion := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "nospecver"},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateReconciling,
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "1.6.3",
+		},
+	}
+	// spec and status versions are equal
+	vzVersionsSame := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "same-versions"},
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.6.3",
+		},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateReconciling,
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "1.6.3",
+		},
+	}
+	// spec and status versions are different
+	vzVersionsDifferent := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "diff-versions"},
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.6.3",
+		},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateReconciling,
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "1.5.3",
+		},
+	}
+	tests := []struct {
+		name        string
+		vz          vzapi.Verrazzano
+		wantVZState vzapi.VzStateType
+		wantRequeue bool
+	}{
+		{"VZ with no spec version", vzNoSpecVersion, vzapi.VzStateReconciling, false},
+		{"VZ with same spec and status version", vzVersionsSame, vzapi.VzStateReconciling, false},
+		{"VZ with different spec and status version", vzVersionsDifferent, vzapi.VzStateUpgrading, true},
+	}
+	getCompFunc := func() []spi.Component {
+		return []spi.Component{}
+	}
+	initUnitTesing()
+	origSkipReconcile := unitTestSkipReconcile
+	// don't test reconcile
+	unitTestSkipReconcile = true
+
+	defer func() { unitTestSkipReconcile = origSkipReconcile }()
+	metricsexporter.Init()
+	defer registry.ResetGetComponentsFn()
+	registry.OverrideGetComponentsFn(getCompFunc)
+	defer func() { config.TestProfilesDir = "" }()
+	config.TestProfilesDir = relativeProfilesDir
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sClient := fakes.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&tt.vz).Build()
+			r := newVerrazzanoReconciler(k8sClient)
+			vzCtx, err := vzContext.NewVerrazzanoContext(vzlog.DefaultLogger(), k8sClient, &tt.vz, true)
+			assert.NoError(t, err)
+			result, err := r.ProcReconcilingState(vzCtx)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantRequeue, result.Requeue)
+			vz := vzapi.Verrazzano{}
+			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: tt.vz.Namespace, Name: tt.vz.Name}, &vz)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantVZState, vz.Status.State)
+		})
+	}
 }
