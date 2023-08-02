@@ -81,7 +81,7 @@ func IsK8sAPIServerError(err error) (bool, string) {
 		return false, ""
 	}
 	var message string
-	if errors.IsServiceUnavailable(err) {
+	if errors.IsServiceUnavailable(err) || strings.Contains(err.Error(), "the server is currently unable to handle the request") {
 		message = "KubernetesAPIServerError: the server is currently unable to handle the request"
 		return true, message
 	}
@@ -91,9 +91,5 @@ func IsK8sAPIServerError(err error) (bool, string) {
 		return true, message
 	}
 
-	if strings.Contains(err.Error(), "the server is currently unable to handle the request") {
-		message = "KubernetesAPIServerError: the server is currently unable to handle the request"
-		return true, message
-	}
 	return false, message
 }
