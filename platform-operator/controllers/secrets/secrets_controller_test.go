@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
@@ -659,6 +660,7 @@ func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
 	_ = vzapi.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
 	return scheme
 }
 

@@ -65,11 +65,22 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 
-		// We care about the CA secret for the cluster - this can come from the verrazzano ingress
-		// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
-		// cattle-system NS (used in the Let's Encrypt staging cert case)
-		if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
+		// The next 2 blocks ensure that we keep the copies of any private CA bundles in play in sync with the source(s);
+		// verrazzano-system/verrazzano-tls-ca is created/updated during VZ reconcile, but in the self-signed case that
+		// can be rotated based on the cert duration.  So we keep verrazzano-system/verrazzano-tls-ca
+		// in sync with any rotation updates, and then keep any upstream copies from that in sync when that
+		// reconciles
+
+		// Ingress secret was updated, if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
+		// a reconcile of that secret which should have us come through and update those copies
+		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret
+		if isVerrazzanoIngressSecretName(req.NamespacedName) {
 			return r.reconcileVerrazzanoTLS(ctx, req, vz)
+		}
+
+		// verrazzano-tls-ca was updated, update any upstream copies
+		if isVerrazzanoPrivateCABundle(req.NamespacedName) {
+			return r.reconcileVerrazzanoCABundleCopies(ctx, req, vz)
 		}
 
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
@@ -101,12 +112,16 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
-	return secretName.Name == vzconst.AdditionalTLS && secretName.Namespace == vzconst.RancherSystemNamespace
-}
+//func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
+//	return secretName.Name == vzconst.AdditionalTLS && secretName.Namespace == vzconst.RancherSystemNamespace
+//}
 
 func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
 	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
+}
+
+func isVerrazzanoPrivateCABundle(secretName types.NamespacedName) bool {
+	return secretName.Name == vzconst.PrivateCABundle && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
