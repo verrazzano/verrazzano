@@ -85,7 +85,11 @@ func (nw *NamespacesWatcher) Start() {
 // "management.cattle.io/system-namespace" namespace label indicates it is managed by Rancher
 func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID string) error {
 
-	if nw.IsRancherReady() {
+	isRancherReady, err := nw.IsRancherReady()
+	if err != nil {
+		return err
+	}
+	if isRancherReady {
 		var rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
 
 		namespaceList := &v1.NamespaceList{}

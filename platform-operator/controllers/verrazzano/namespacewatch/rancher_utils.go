@@ -34,17 +34,21 @@ func getRancherProjectList(dynClient dynamic.Interface) (*unstructured.Unstructu
 // getRancherSystemProjectID returns the ID of Rancher system project
 func (nw *NamespacesWatcher) getRancherSystemProjectID() (string, error) {
 
-	if !nw.IsRancherReady() {
+	isRancherReady, err := nw.IsRancherReady()
+	if err != nil {
+		return "", err
+	}
+	if isRancherReady {
 		nw.log.Debugf("rancher is not enabled or ready")
 		return "", nil
 	}
 	dynClient, err := getDynamicClient()
 	if err != nil {
-		return "", fmt.Errorf("%v", err)
+		return "", err
 	}
 	rancherProjectList, err := getRancherProjectList(dynClient)
 	if err != nil {
-		return "", fmt.Errorf("%v", err)
+		return "", err
 	}
 	var projectID string
 	for _, rancherProject := range rancherProjectList.Items {
@@ -79,21 +83,21 @@ func getDynamicClient() (dynamic.Interface, error) {
 	return dynamicClient, nil
 }
 
-func (nw *NamespacesWatcher) IsRancherReady() bool {
+func (nw *NamespacesWatcher) IsRancherReady() (bool, error) {
 	vz, err := getVerrazzanoResource(nw.client)
 	if err != nil {
-		nw.log.Errorf("failed to get Verrazzano resource: %v", err)
+		return false, fmt.Errorf("failed to get Verrazzano resource: %v", err)
 	}
 
 	logger, err := newLogger(vz)
 	if err != nil {
-		nw.log.Errorf("failed to get Verrazzano resource logger: %v", err)
+		return false, fmt.Errorf("failed to get Verrazzano resource logger: %v", err)
 	}
 	ctx, err := spi.NewContext(logger, nw.client, vz, nil, true)
 	if err != nil {
-		nw.log.Errorf("error creating a component context %v", err)
+		return false, fmt.Errorf("error creating a component context %v", err)
 	}
 	_, rancherComponent := registry.FindComponent(common.RancherName)
 	isEnabled := rancherComponent.IsEnabled(ctx.EffectiveCR())
-	return isEnabled && rancherComponent.IsReady(ctx)
+	return isEnabled && rancherComponent.IsReady(ctx), nil
 }
