@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"strings"
 	"testing"
 
@@ -110,11 +111,11 @@ func createRootCASecret() v1.Secret {
 func createCASecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: defaultSecretNamespace,
-			Name:      defaultVerrazzanoName,
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.PrivateCABundle,
 		},
 		Data: map[string][]byte{
-			caCert: []byte("blahblah"),
+			constants.CABundleKey: []byte("blahblah"),
 		},
 	}
 }
