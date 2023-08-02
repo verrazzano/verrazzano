@@ -189,7 +189,7 @@
             },
             {
               "image": "rancher-gitjob-jenkins",
-              "tag": "20230801155843-a21b51f"
+              "tag": "20230802211914-ae15069"
             },
             {
               "image": "rancher-cleanup",
