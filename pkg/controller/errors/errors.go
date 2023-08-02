@@ -91,7 +91,7 @@ func IsK8sAPIServerError(err error) (bool, string) {
 		return true, message
 	}
 
-	if !strings.Contains(err.Error(), "the server is currently unable to handle the request") {
+	if strings.Contains(err.Error(), "the server is currently unable to handle the request") {
 		message = "KubernetesAPIServerError: the server is currently unable to handle the request"
 		return true, message
 	}
