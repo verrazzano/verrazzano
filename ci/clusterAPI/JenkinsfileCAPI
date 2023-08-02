@@ -62,7 +62,7 @@ pipeline {
         choice (description: 'Number of OCNE worker nodes', name: 'NODE_MACHINE_COUNT', choices: ["3","2","1"])
         string (name: 'NODE_OCPU',defaultValue: '4',description: 'Number of OCPUs for worker nodes with shape VM.Standard.E4.Flex',trim: true)
         string (name: 'MEMORY_GBS',defaultValue: '80',description: 'Amount of memory assigned to nodes with shape VM.Standard.E4.Flex',trim: true)
-        string (name: 'ORACLE_LINUX_NAME',defaultValue: 'Oracle-Linux-8.7-2023',description: 'Oracle Linux Display Name',trim: true)
+        string (name: 'ORACLE_LINUX_NAME',defaultValue: 'Oracle-Linux-8',description: 'Oracle Linux Display Name',trim: true)
         string (name: 'OPERATING_SYSTEM',defaultValue: 'Oracle Linux',description: 'Operating system filter used to fetch stock images',trim: true)
         string (name: 'OPERATING_SYSTEM_VERSION',defaultValue: '8',description: 'Version of Operating system to fetch',trim: true)
 

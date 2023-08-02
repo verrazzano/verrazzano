@@ -61,7 +61,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 
 	// Copy Secret overrides to new secret and add info to the module ValuesFrom
 	if overrides.SecretRef != nil {
-		secretName := getConfigResourceName(module.Name, overrides.SecretRef.Name)
+		secretName := getConfigResourceName(module.Spec.ModuleName, overrides.SecretRef.Name)
 		if err := r.copySecret(overrides.SecretRef, secretName, module, effectiveCR.Namespace); err != nil {
 			log.ErrorfThrottled("Failed to create values secret for module %s: %v", module.Name, err)
 			return err
@@ -79,7 +79,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 
 	// Copy ConfigMap overrides to new CM and add info to the module ValuesFrom
 	if overrides.ConfigMapRef != nil {
-		cmName := getConfigResourceName(module.Name, overrides.ConfigMapRef.Name)
+		cmName := getConfigResourceName(module.Spec.ModuleName, overrides.ConfigMapRef.Name)
 
 		if err := r.copyConfigMap(overrides.ConfigMapRef, cmName, module, effectiveCR.Namespace); err != nil {
 			log.ErrorfThrottled("Failed to create values configmap for module %s: %v", module.Name, err)

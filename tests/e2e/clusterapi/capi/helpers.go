@@ -417,9 +417,13 @@ func (c CAPITestImpl) EnsureMachinesAreProvisioned(namespace, clusterName string
 	writer.Flush()
 
 	if checkAll(healthTracker) {
+		log.Infof("All machines for cluster '%s' in namesapce '%s' are in 'Running' state", clusterName, namespace)
 		return nil
 	}
-	return fmt.Errorf("All machines are not in 'Running' state")
+
+	msg := fmt.Sprintf("Not all machines for cluster '%s' in namesapce '%s' are in 'Running' state", clusterName, namespace)
+	log.Errorf(msg)
+	return fmt.Errorf(msg)
 }
 
 func (c CAPITestImpl) MonitorCapiClusterDeletion(clusterName string, log *zap.SugaredLogger) error {
@@ -487,17 +491,29 @@ func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.Su
 		ocneCP.Metadata.Name, ocneCP.Metadata.Labels.ClusterXK8SIoClusterName, ocneCP.Status.Initialized, ocneCP.Status.Replicas,
 		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas, time.Until(ocneCP.Metadata.CreationTimestamp).Abs()))
 	writer.Flush()
+
 	err = c.EnsureMachinesAreProvisioned(OCNENamespace, clusterName, log)
 	if err != nil {
 		return err
 	}
 
 	// OCNE cluster is ready when both control plane and worker nodes are up
-	if klusterData.Status.ControlPlaneReady && klusterData.Status.InfrastructureReady {
-		log.Infof("Cluster '%s' phase is => '%s'. All machines are also in '%s' state.", clusterName, klusterData.Status.Phase, klusterData.Status.Phase)
-		return nil
+	switch OCNEK8sVersion {
+	case "1.25.7", "1.25.11":
+		if klusterData.Status.ControlPlaneReady && klusterData.Status.InfrastructureReady {
+			log.Infof("Cluster '%s' phase is => '%s'. All machines are also in '%s' state.", clusterName, klusterData.Status.Phase, klusterData.Status.Phase)
+			return nil
+		}
+	default:
+		if klusterData.Status.InfrastructureReady {
+			log.Infof("Cluster '%s' phase is => '%s'. All machines are also in '%s' state.", clusterName, klusterData.Status.Phase, klusterData.Status.Phase)
+			return nil
+		}
 	}
-	return fmt.Errorf("cluster '%s' phase is => '%s'", clusterName, klusterData.Status.Phase)
+
+	msg := fmt.Sprintf("cluster '%s' not ready. cluster phase is in '%s' state.", clusterName, klusterData.Status.Phase)
+	log.Errorf(msg)
+	return fmt.Errorf(msg)
 }
 
 func (c CAPITestImpl) TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error {

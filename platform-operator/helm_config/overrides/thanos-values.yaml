@@ -108,7 +108,7 @@ ruler:
     # Turn off hostname to disable auto-generated backend
     hostname: ""
   alertmanagers:
-    - https://prometheus-operator-kube-p-alertmanager:9093
+    - http://prometheus-operator-kube-p-alertmanager:9093
 
 receive:
   podSecurityContext:
@@ -122,6 +122,12 @@ receive:
 
 metrics:
   enabled: true
+  prometheusRule:
+    enabled: true
+    default:
+      create: true
+    additionalLabels:
+      release: prometheus-operator
   serviceMonitor:
     enabled: true
     labels:

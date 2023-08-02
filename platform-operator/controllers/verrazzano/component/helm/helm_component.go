@@ -169,7 +169,8 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module, default false
 func (h HelmComponent) ShouldUseModule() bool {
-	return h.UseModule
+	// return h.UseModule
+	return config.Get().ModuleIntegration
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD

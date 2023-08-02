@@ -119,6 +119,7 @@ func appendReloaderSidecarOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue
 	kvs = append(kvs, []bom.KeyValue{
 		{Key: fmt.Sprintf("%s.image", sidecarPrefix), Value: imageString},
 		{Key: fmt.Sprintf("%s.name", sidecarPrefix), Value: configReloaderSubcomponentName},
+		{Key: fmt.Sprintf("%s.command[0]", sidecarPrefix), Value: "/bin/prometheus-config-reloader"},
 		{Key: fmt.Sprintf("%s.args[0]", sidecarPrefix), Value: "--listen-address=:8080"},
 		{Key: fmt.Sprintf("%s.args[1]", sidecarPrefix), Value: "--reload-url=http://127.0.0.1:10902/-/reload"},
 		{Key: fmt.Sprintf("%s.args[2]", sidecarPrefix), Value: "--watched-dir=/conf/rules/"},

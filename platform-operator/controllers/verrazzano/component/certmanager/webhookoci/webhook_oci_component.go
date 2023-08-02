@@ -56,6 +56,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			UseModule:                 config.Get().ModuleIntegration,
 			InstallBeforeUpgrade:      true,
 			GetInstallOverridesFunc:   GetOverrides,
 			AppendOverridesFunc:       appendOCIDNSOverrides,
