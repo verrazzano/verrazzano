@@ -232,20 +232,23 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 }
 
 // initModuleControllers creates a controller for every module
+// The controller uses the module name (i.e. component name) as a predicate, so that each controller only processes Module CRs for the
+// respective component.
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-
 	// Temp hack to prevent module controller from looking up helm info
 	module.IgnoreHelmInfo()
 
 	for _, comp := range registry.GetComponents() {
-		// TODO
-		// Add function to component SPI to get WatchDescriptors
-		// Pass the descriptors to the InitController so that each component can watch whatever it wants
-		// and react
-		// END TODO
-
+		if !comp.ShouldUseModule() {
+			continue
+		}
 		// init controller
-		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
+		if err := module.InitController(module.ModuleControllerConfig{
+			ControllerManager: mgr,
+			ModuleHandlerInfo: modulehandler.NewModuleHandlerInfo(),
+			ModuleClass:       moduleapi.ModuleClassType(comp.Name()),
+			WatchDescriptors:  comp.GetWatchDescriptors(),
+		}); err != nil {
 			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
 			return err
 		}

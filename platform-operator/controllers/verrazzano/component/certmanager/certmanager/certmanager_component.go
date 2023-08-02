@@ -63,7 +63,6 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			UseModule:                 config.Get().ModuleIntegration,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
