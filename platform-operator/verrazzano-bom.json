@@ -176,7 +176,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "1.4.6",
+      "version": "1.4.7",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -216,7 +216,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.4.6",
+      "version": "1.4.7",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -298,7 +298,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "1.4.6",
+      "version": "1.4.7",
       "subcomponents": [
         {
           "repository": "verrazzano",
