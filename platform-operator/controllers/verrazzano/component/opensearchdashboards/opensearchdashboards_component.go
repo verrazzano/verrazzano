@@ -5,6 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -53,7 +54,7 @@ func (d opensearchDashboardsComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (d opensearchDashboardsComponent) ShouldUseModule() bool {
-	return false
+	return config.Get().ModuleIntegration
 }
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
