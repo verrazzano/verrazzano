@@ -19,7 +19,7 @@ import (
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 )
 
-// array that stores all kubernetes resources being outputed by the converter
+// array that stores all kubernetes resources being outputted by the converter
 var kubeResources []any
 
 func CreateResources(conversionComponents []*types.ConversionComponents) ([]any, error) {
