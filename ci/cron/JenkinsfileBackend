@@ -220,9 +220,9 @@ def runPipeline() {
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
         // scheduled for every 6 hours
-        return "0 */6 * * *"
+        return "H */6 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-")) {
-        return "0 */6 * * *"
+        return "@daily"
     }
     return ""
 }
