@@ -96,7 +96,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 		})
 		if err != nil {
 			if !errors.IsConflict(err) {
-				log.Errorf("Failed createOrUpdate module %s: %v", module.Name, err)
+				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
 			}
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
@@ -126,10 +126,10 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 
 // shouldCreateOrUpdateModule returns true if the Module should be created or updated
 func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, comp spi.Component) (bool, error) {
-	if !comp.ShouldUseModule() {
+	if !comp.IsEnabled(effectiveCR) {
 		return false, nil
 	}
-	if !comp.IsEnabled(effectiveCR) {
+	if !comp.ShouldUseModule() {
 		return false, nil
 	}
 

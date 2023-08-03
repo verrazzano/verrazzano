@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"path/filepath"
 	"strings"
 
@@ -491,6 +492,11 @@ func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
 // ShouldUseModule returns true if component is implemented using a Module
 func (i istioComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (i istioComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
