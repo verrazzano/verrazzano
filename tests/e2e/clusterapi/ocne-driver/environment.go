@@ -220,12 +220,12 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		}
 		// finding the minimum kubernetes version to install a OCNE cluster
 		if ocneMetadataItemToInstall == nil || ocneMetadataItemToInstall.KubernetesVersion == nil ||
-			ocneMetadataItemToInstall.KubernetesVersion.LessThan(k8sSemVer) {
+			k8sSemVer.LessThan(ocneMetadataItemToInstall.KubernetesVersion) {
 			ocneMetadataItemToInstall = &OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
 		}
 		// finding the maximum kubernetes version to update the OCNE cluster
 		if ocneMetadataItemToUpgrade == nil || ocneMetadataItemToUpgrade.KubernetesVersion == nil ||
-			ocneMetadataItemToUpgrade.KubernetesVersion.GreaterThan(k8sSemVer) {
+			k8sSemVer.GreaterThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
 			ocneMetadataItemToUpgrade = &OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
 		}
 	}
