@@ -52,6 +52,9 @@ const (
 	controlPlane        = "control-plane"
 	controllerManager   = "controller-manager"
 	providerLabel       = "cluster.x-k8s.io/provider"
+	osClusterLabel      = "opster.io/opensearch-cluster"
+	osdLabel            = "opensearch.cluster.dashboards"
+	osClusterName       = "opensearch"
 )
 
 // accessCheckConfig is the configuration used for the NetworkPolicy access check
@@ -281,9 +284,9 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test istio-egressgateway ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Test vmi-system-es-master ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
+				t.Logs.Info("Test opensearch ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osClusterLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, envoyStatsMetricsPort, true, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test opensearch ingress rules failed: reason = %s", err))
 				/* TODO:
 				The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
 				dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
@@ -330,11 +333,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 
 			},
 			func() {
-				t.Logs.Info("Test vmi-system-osd ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": kibanaSys}}, vzconst.VerrazzanoSystemNamespace, 5601, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-osd ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": kibanaSys}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-osd ingress rules failed: reason = %s", err))
+				t.Logs.Info("Test opensearch-dashboards ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 5601, true, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test opensearch-dashboards ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, envoyStatsMetricsPort, true, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test opensearch-dashboards ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Test prometheus ingress rules")
@@ -461,9 +464,9 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Negative test vmi-system-es-master ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, vzconst.VerrazzanoSystemNamespace, 9200, false, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
+				t.Logs.Info("Negative test opensearch ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{osClusterLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 9200, true, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test opensearch ingress rules failed: reason = %s", err))
 			},
 			/* TODO:
 			The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
@@ -485,9 +488,9 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Negative test vmi-system-osd ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": kibanaSys}}, vzconst.VerrazzanoSystemNamespace, 5601, false, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-osd ingress rules failed: reason = %s", err))
+				t.Logs.Info("Negative test opensearch-dashboards ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 5601, true, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test opensearch-dashboards ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Negative test prometheus ingress rules")
