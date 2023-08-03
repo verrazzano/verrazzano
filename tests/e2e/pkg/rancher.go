@@ -307,7 +307,7 @@ func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, ku
 	return tokenPostResponse.Created, nil
 }
 
-func GetTokenNamesForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, userAccessToken string, log zap.SugaredLogger) ([]string, error) {
+func GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, userAccessToken string, log zap.SugaredLogger) ([]string, error) {
 	api, err := GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
 		log.Errorf("API Endpoint not successfully received based on KubeConfig Path")
@@ -320,12 +320,12 @@ func GetTokenNamesForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPa
 	}
 	reqURL := rancherURL + "/v3/tokens"
 
-	req, err := retryablehttp.NewRequest("GET", reqURL, nil)
+	getReq, err := retryablehttp.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Content-Type": {"application/json"}}
-	response, err := httpClient.Do(req)
+	getReq.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Content-Type": {"application/json"}, "Accept": {"application/json"}}
+	response, err := httpClient.Do(getReq)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,6 @@ func GetTokenNamesForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPa
 	if err != nil {
 		return nil, err
 	}
-	//Need to come up with struct
 	var listOfTokenOutputFromRancher = ListOfTokenOutputFromRancher{}
 	err = json.Unmarshal(responseBody, &listOfTokenOutputFromRancher)
 	if err != nil {
@@ -349,54 +348,33 @@ func GetTokenNamesForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPa
 
 	for _, token := range listOfTokens {
 		//Check if token is valid, if it is token that we want than append it
-		if token.ClusterID == token.ClusterID {
+		if token.ClusterID == clusterID {
 			listOfTokensToReturn = append(listOfTokensToReturn, token.Name)
 		}
 
 	}
+	for _, tokenName := range listOfTokensToReturn {
+		//Check that it is not the same name as the user access token
+		if tokenName == userAccessToken {
+			continue
+		}
+		deleteSingleTokenURL := reqURL + "/" + tokenName
+		deleteReq, err := retryablehttp.NewRequest("DELETE", deleteSingleTokenURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		deleteReq.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Accept": {"application/json"}}
+		response, err := httpClient.Do(deleteReq)
+		if err != nil {
+			return nil, err
+		}
+		err = httputil.ValidateResponseCode(response, http.StatusNoContent)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return listOfTokensToReturn, nil
-
-}
-func DeleteTokensForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, userAccessToken string, log zap.SugaredLogger) (string, error) {
-	api, err := GetAPIEndpoint(kubeconfigPath)
-	if err != nil {
-		log.Errorf("API Endpoint not successfully received based on KubeConfig Path")
-		return "", err
-	}
-	rancherURL, err := GetURLForIngress(&log, api, "cattle-system", "rancher", "https")
-	if err != nil {
-		log.Errorf("URL For Rancher not successfully found")
-		return "", err
-	}
-	reqURL := rancherURL + "/v3/tokens"
-
-	req, err := retryablehttp.NewRequest("GET", reqURL, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header = map[string][]string{"Authorization": {"Bearer " + userAccessToken}, "Content-Type": {"application/json"}}
-	response, err := httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	fmt.Println(response.Body)
-	responseBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	err = httputil.ValidateResponseCode(response, http.StatusOK)
-	if err != nil {
-		return "", err
-	}
-	//Need to come up with struct
-	var listOfTokenOutputFromRancher = ListOfTokenOutputFromRancher{}
-	err = json.Unmarshal(responseBody, &listOfTokenOutputFromRancher)
-
-	fmt.Println(listOfTokenOutputFromRancher.Data)
-	if err != nil {
-		return "", err
-	}
-	return "test", nil
 
 }
 
