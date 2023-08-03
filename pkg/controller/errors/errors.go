@@ -5,7 +5,6 @@ package spi
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -81,12 +80,12 @@ func IsK8sAPIServerError(err error) (bool, string) {
 		return false, ""
 	}
 	var message string
-	if errors.IsServiceUnavailable(err) || strings.Contains(err.Error(), "the server is currently unable to handle the request") {
+	if strings.Contains(err.Error(), "the server is currently unable to handle the request") {
 		message = "KubernetesAPIServerError: the server is currently unable to handle the request"
 		return true, message
 	}
 
-	if errors.IsTooManyRequests(err) {
+	if strings.Contains(err.Error(), "too many requests and has asked us to try again") {
 		message = "KubernetesAPIServerError: the server has received too many requests and has asked us to try again later"
 		return true, message
 	}
