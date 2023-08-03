@@ -8,8 +8,11 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -72,9 +75,18 @@ func TestCreateIngressChildResourcesFromHelidon(t *testing.T) {
 
 	gateway := &vsapi.Gateway{}
 	allHostsForTrait := []string{"example.com"}
-
+	ingress := k8net.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-ingress",
+			Namespace: "verrazzano-system",
+			Annotations: map[string]string{
+				"external-dns.alpha.kubernetes.io/target": "test.nip.io",
+			},
+		},
+	}
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build()
 	// Call the function with the sample inputs
-	virtualServices, _, _, err := CreateIngressChildResourcesFromWorkload(conversionComponent, gateway, allHostsForTrait)
+	virtualServices, _, _, err := CreateIngressChildResourcesFromWorkload(cli, conversionComponent, gateway, allHostsForTrait)
 
 	// Verify the output
 	assert.NoError(t, err, "Expected no error")

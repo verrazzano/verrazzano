@@ -11,8 +11,11 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"math/big"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -215,9 +218,18 @@ func TestCreateGatewayResource(t *testing.T) {
 
 		conversionComponent,
 	}
-
+	ingress := k8net.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-ingress",
+			Namespace: "verrazzano-system",
+			Annotations: map[string]string{
+				"external-dns.alpha.kubernetes.io/target": "test.nip.io",
+			},
+		},
+	}
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build()
 	// Call the function with the sample conversion components
-	gateway, _, err := CreateGatewayResource(conversionComponents)
+	gateway, _, err := CreateGatewayResource(cli, conversionComponents)
 
 	// Check if the function returns an error (if any)
 	assert.NoError(t, err, "Unexpected error returned")
