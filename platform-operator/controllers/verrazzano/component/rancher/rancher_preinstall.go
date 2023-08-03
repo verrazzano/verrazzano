@@ -83,7 +83,7 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 			return err
 		}
 		log.Progressf("Private CA bundle secret not found, retrying...")
-		return spi.RetryableError{}
+		return spi.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	bundleData, found := privateCASecret.Data[vzconst.CABundleKey]

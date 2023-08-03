@@ -486,7 +486,7 @@ func TestIsEnabled(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	caSecret := createCASecret()
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
-	ctx := spi.NewFakeContext(c, &vzDefaultCA, nil, false)
+	ctx := spi.NewFakeContext(c, &vzDefaultCA, nil, false, profilesRelativePath)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
 
@@ -558,8 +558,9 @@ func TestPreUpgrade(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.rancherDeployment).Build()
-			fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+			caSecret := createCASecret()
+			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.rancherDeployment, &caSecret).Build()
+			fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false, profilesRelativePath)
 			err := NewComponent().PreUpgrade(fakeCtx)
 			if tt.wantErr {
 				asserts.Equal(err, ctrlerrors.RetryableError{Source: ComponentName})

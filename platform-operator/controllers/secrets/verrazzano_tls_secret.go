@@ -29,6 +29,7 @@ const mcCABundleKey = "ca-bundle"
 var fetchSecretFailureTemplate = "Failed to fetch secret %s/%s: %v"
 
 // reconcileVerrazzanoTLS Updates the related CA bundle copies when the CA cert in verrazzano-system/verrazzano-tls is rotated
+// or the CA bundle in verrazzano-system/verrazzano-tls-ca is updated
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request, vz *vzapi.Verrazzano) (ctrl.Result, error) {
 
 	// Get the secret
