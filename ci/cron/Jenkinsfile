@@ -128,7 +128,7 @@ def preliminaryChecks() {
     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
     echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
 
-    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
+    LAST_CLEAN_PERIODIC_COMMIT=getLastPeriodicRunCommit()
     echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
     if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
