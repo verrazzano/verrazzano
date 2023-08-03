@@ -4,7 +4,17 @@
 import groovy.transform.Field
 
 @Field
-def LAST_PERIODIC_COMMIT = ""
+def GIT_COMMIT_TO_USE = ""
+@Field
+def LAST_CLEAN_PERIODIC_COMMIT = ""
+@Field
+def LAST_PERIODIC_RUN_COMMIT = ""
+@Field
+def VERRAZZANO_DEV_VERSION = ""
+@Field
+def periodicsUpToDate              = false // If true, indicates that the periodics already passed at the latest commit
+@Field
+def periodicsUpToDateFailed        = false // If true, indicates that the periodics already ran and failed at the latest commit
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
@@ -45,14 +55,38 @@ pipeline {
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
-        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
-        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
+        CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
+
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
+        CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
     }
 
     stages {
+        stage('Check last clean periodic') {
+                steps {
+                    sh """
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
+                    """
+
+                    script {
+                        // Check if there is already a clean periodic run at this commit already, and set the display name if
+                        // it already is tested, or if doing a special run type (dry run, etc...)
+                        preliminaryChecks()
+                    }
+                }
+            }
+
         stage('Clean workspace and checkout') {
+            when {
+                allOf {
+                    expression { return runPipeline() }
+                }
+            }
                 steps {
                     script {
                         cleanWorkspaceAndCheckout()
@@ -60,24 +94,16 @@ pipeline {
                 }
         }
 
-        stage('Get most recent periodic commit') {
-            steps {
-                getLastPeriodicRunCommit()
-                echo("Last periodic commit: ${LAST_PERIODIC_COMMIT}")
-            }
-        }
-
         stage ('Run Periodic Test Suite') {
             when {
                 allOf {
                     expression { return runPipeline() }
-                    expression { !params.DRY_RUN }
                 }
             }
 
             steps {
                 script {
-                    echo("Running periodics with commit ${SHORT_COMMIT_HASH}")
+                    echo("Running periodics with commit ${GIT_COMMIT_TO_USE}")
                     build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
                 }
             }
@@ -95,12 +121,33 @@ def cleanWorkspaceAndCheckout() {
     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
 }
 
-// Returns the last run commit for the periodics, or null if the commit file does not exist yet.
+// Preliminary job checks and display updates
+def preliminaryChecks() {
+    // Get the last stable commit ID to pass the triggered tests
+    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
+
+    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
+    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
+
+    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
+        // If we had a clean periodic run and the commit hasn't changed
+        periodicsUpToDate = true
+    } else {
+        // Check if we are still at the same commit previously run (if so we know it wasn't clean and it failed in some way)
+        LAST_PERIODIC_RUN_COMMIT=getLastPeriodicRunCommit()
+        if (LAST_PERIODIC_RUN_COMMIT != null && LAST_PERIODIC_RUN_COMMIT == GIT_COMMIT_TO_USE) {
+            periodicsUpToDateFailed = true
+        }
+    }
+
+// Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
-def getLastPeriodicRunCommit() {
+def getLastCleanPeriodicCommit() {
     lastPeriodicCommitCommandOutput = sh (
         label: "Get last clean periodic commit ID",
-        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file ${LAST_PERIODIC_LOCATION} 2>&1 || true",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION} 2>&1 || true",
         returnStdout: true
         ).trim()
     echo "command out: ${lastPeriodicCommitCommandOutput}"
@@ -112,16 +159,16 @@ def getLastPeriodicRunCommit() {
         } else {
             // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
             sh """
-                if [ ! -f ${LAST_PERIODIC_LOCATION} ]; then
-                    echo "An unexpected error occurred getting last periodic run commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                if [ ! -f ${CLEAN_PERIODIC_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last clean periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
                     exit 1
                 fi
             """
         }
     }
     // Get the commit ID for the last known clean pass of the Periodic tests
-    def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
-    LAST_PERIODIC_COMMIT = lastPeriodicsCommitProps['git-commit']
+    def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
+    return cleanPeriodicsCommitProps['git-commit']
 }
 
 def scmCheckout() {
@@ -139,9 +186,9 @@ def scmCheckout() {
     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 }
 
-// Checks if the commit has changed since last run
+// Checks all the conditions gating test execution and collates the result
 def runPipeline() {
-  return LAST_PERIODIC_COMMIT != SHORT_COMMIT_HASH
+  return ! periodicsUpToDate && ! periodicsUpToDateFailed && ! params.DRY_RUN
 }
 
 def getCronSchedule() {
