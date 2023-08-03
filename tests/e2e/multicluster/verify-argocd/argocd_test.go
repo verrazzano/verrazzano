@@ -253,71 +253,71 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 					pkg.Log(pkg.Error, "Error getting the Verrazzano http client")
 					return err
 				}
-				//Change this line to get all of the tokens for that user
-				// Then next step delete all the tokens
-				//Double check that they are all deleted, cannot access and then trigger update
-				// Would delete the other tokens except the one I am currently using for Get tokens names for logged in user
-				// Evenutally {delete my token} (Look for success response back from delete call in this case), eventually {wait for secret annotation to be updated}
-				// It might be token admin
-				listOfTokenNames, err := pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
+				_, err = pkg.GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
 				if err != nil {
 					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
 					return err
-					fmt.Println("List Of Token Names Not Found")
 				}
-				fmt.Println(listOfTokenNames)
 				return err
 
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected for all the tokens with the same clusterID to be deleted ")
+		})
+		t.It("The secret can be successfully altered to trigger an update locally and sent through the client after all of the tokens with the corresponding cluster ID have been deleted", func() {
+			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
+			Eventually(func() error {
+				secretToTriggerUpdate, err := pkg.GetSecret(argoCDNamespace, secretName)
+				if err != nil {
+					pkg.Log(pkg.Error, "Unable to find the secret in the cluster after token creation has occurred")
+					return err
+				}
+				delete(secretToTriggerUpdate.Annotations, "verrazzano.io/expires-at-timestamp")
+				clientSetForCluster, err := pkg.GetKubernetesClientsetForCluster(adminKubeconfig)
+				if err != nil {
+					pkg.Log(pkg.Error, "Unable to get admin client set")
+				}
+				editedSecret, err := clientSetForCluster.CoreV1().Secrets(argoCDNamespace).Update(context.TODO(), secretToTriggerUpdate, metav1.UpdateOptions{})
+				if err != nil {
+					pkg.Log(pkg.Error, "Error editing the secret through the client")
+					return err
+				}
+				_, ok := editedSecret.Annotations["verrazzano.io/expires-at-timestamp"]
+				if ok {
+					pkg.Log(pkg.Error, "The client was successful, but the secret was not successful edited")
+					return fmt.Errorf("The client was successful, but the secret was not successful edited")
+				}
+				return err
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to be able to edit the secret locally and send the update request through the cluster")
+		})
+		t.It("The secret has gone through an update and eventually has an expires at annotation and the created Timestamp of the most recently created token after the deletion has happened after all of the tokens with the corresponding cluster ID have been deleted", func() {
+			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
+			Eventually(func() error {
+				updatedSecret, err := pkg.GetSecret(argoCDNamespace, secretName)
+				if err != nil {
+					pkg.Log(pkg.Error, "Failed to query the edited secret")
+					return err
+				}
+				_, ok := updatedSecret.Annotations["verrazzano.io/expires-at-timestamp"]
+				if !ok {
+					pkg.Log(pkg.Error, "Failed to add an expires-at-timestamp to the secret based on a new token that is created")
+					return fmt.Errorf("The secret was not successfully edited, as it does not have an expired timestamp")
+				}
+				createdTimestampCurrentlyOnUpdatedSecret, ok := updatedSecret.Annotations["verrazzano.io/create-timestamp"]
+				if !ok {
+					pkg.Log(pkg.Error, "Failed to successfully update the secret with a created time-stamp at all ")
+					return fmt.Errorf("The created-at timestamp of the secret was not created at all, based on the new token that was created")
+				}
+				timeOfPriorTimesStamp, _ := time.Parse(time.RFC3339, createdTimeStampForNewTokenCreated)
+				timeOfCurrentTimeStamp, _ := time.Parse(time.RFC3339, createdTimestampCurrentlyOnUpdatedSecret)
+				if !(timeOfCurrentTimeStamp.After(timeOfPriorTimesStamp)) {
+					pkg.Log(pkg.Error, "A created timestamp was created on the secret, but it is not based on the most current token")
+					return fmt.Errorf("The created-at timestamp of the secret was not correctly updated with the created timestamp of the most recently created token")
+				}
+				return err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
 		})
-		//t.It("All of the tokens that correspond to the vz-argoCD-user in the cluster should eventually be deleted", func() {
-		//	Eventually(func() error {
-		//		argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
-		//		if err != nil {
-		//			return err
-		//		}
-		//		rancherConfigForArgoCD, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, argoCDUsernameForRancher, argoCDPasswordForRancher)
-		//		if err != nil {
-		//			pkg.Log(pkg.Error, "Error occurred when created a Rancher Config for ArgoCD")
-		//			return err
-		//		}
-		//		client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
-		//		if err != nil {
-		//			pkg.Log(pkg.Error, "Error creating the client set used by the cluster operator")
-		//			return err
-		//		}
-		//		managedCluster, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
-		//		if err != nil {
-		//			pkg.Log(pkg.Error, "Error getting the current managed cluster resource")
-		//			return err
-		//		}
-		//		clusterID := managedCluster.Status.RancherRegistration.ClusterID
-		//		if clusterID == "" {
-		//			pkg.Log(pkg.Error, "The managed cluster does not have a clusterID value")
-		//			err := fmt.Errorf("ClusterID value is not yet populated for the managed cluster")
-		//			return err
-		//		}
-		//		httpClientForRancher, err := pkg.GetVerrazzanoHTTPClient(adminKubeconfig)
-		//		if err != nil {
-		//			pkg.Log(pkg.Error, "Error getting the Verrazzano http client")
-		//			return err
-		//		}
-		//		//Change this line to get all of the tokens for that user
-		//		// Then next step delete all the tokens
-		//		//Double check that they are all deleted, cannot access and then trigger update
-		//		listOfTokenNamesToDelete, err := pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
-		//		if err != nil {
-		//			pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
-		//			return err
-		//		}
-		//		return err
-		//
-		//	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
-		//})
-		//This evenutally block delete the cluster
 
 	})
-
+	//This eventually block delete the cluster
 	//t.Context("Delete resources", func() {
 	//	t.BeforeEach(func() {
 	//		os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
