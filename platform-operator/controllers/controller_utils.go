@@ -111,7 +111,7 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
 
-	fmt.Println("current vz conditon", currentCondition)
+	log.Debug("current vz condition", currentCondition)
 	if currentCondition == installv1alpha1.CondUninstallComplete || currentCondition == installv1alpha1.CondUninstallStarted {
 		log.Debug("verrazzano uninstalling, skipping the effective config map creation")
 		return nil
@@ -150,7 +150,7 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
-	fmt.Println("respone from", res)
+	log.Debug("respone from", res)
 	if k8error.IsAlreadyExists(err) {
 		return nil
 	}
