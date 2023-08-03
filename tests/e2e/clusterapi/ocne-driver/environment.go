@@ -5,6 +5,7 @@ package ocnedriver
 
 import (
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"strings"
 
@@ -68,6 +69,9 @@ var (
 	rancherURL        string
 	httpClient        *retryablehttp.Client
 	cloudCredentialID string
+
+	ocneMetadataItemToInstall *OCNEMetadataItem
+	ocneMetadataItemToUpgrade *OCNEMetadataItem
 )
 
 // Verify required Environment Variables are set
@@ -189,6 +193,7 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		log.Error(err)
 		return err
 	}
+
 	for k8sVersion, contents := range mapToContents {
 		// Retrieve the Kubernetes version
 		kubernetesFallback = k8sVersion
@@ -207,6 +212,22 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		coreDNSFallback = contentStruct.ContainerImages.Coredns
 		etcdFallback = contentStruct.ContainerImages.Etcd
 		tigeraFallback = contentStruct.ContainerImages.TigeraOperator
+
+		k8sSemVer, err := semver.NewVersion(k8sVersion)
+		if err != nil {
+			log.Errorf("kubernetes version parsing error: %s", err)
+			return err
+		}
+		// finding the minimum kubernetes version to install a OCNE cluster
+		if ocneMetadataItemToInstall == nil || ocneMetadataItemToInstall.KubernetesVersion == nil ||
+			ocneMetadataItemToInstall.KubernetesVersion.LessThan(k8sSemVer) {
+			ocneMetadataItemToInstall = &OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
+		}
+		// finding the maximum kubernetes version to update the OCNE cluster
+		if ocneMetadataItemToUpgrade == nil || ocneMetadataItemToUpgrade.KubernetesVersion == nil ||
+			ocneMetadataItemToUpgrade.KubernetesVersion.GreaterThan(k8sSemVer) {
+			ocneMetadataItemToUpgrade = &OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
+		}
 	}
 
 	// Initialize values

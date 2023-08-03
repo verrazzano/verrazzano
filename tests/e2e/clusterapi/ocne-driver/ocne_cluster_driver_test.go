@@ -235,4 +235,60 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeInvalid))
 		})
 	})
+
+	// Cluster 4. Create with a single node with the minimum OCNE supported Kubernetes version and related info.
+	// Later, update the cluster with the maximum OCNE supported Kubernetes version and related info.
+	if ocneMetadataItemToInstall.KubernetesVersion != ocneMetadataItemToUpgrade.KubernetesVersion {
+		t.Context("OCNE cluster creation with single node", Ordered, func() {
+			var clusterConfig RancherOCNECluster
+
+			t.It("create OCNE cluster with the minimum OCNE supported Kubernetes version and related info", func() {
+				// Create the cluster
+				mutateFn := func(config *RancherOCNECluster) {
+					// setting an invalid kubernetes version
+					config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToInstall.KubernetesVersion.Original()
+					config.OciocneEngineConfig.EtcdImageTag = ocneMetadataItemToInstall.ContainerImages.Etcd
+					config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToInstall.ContainerImages.Coredns
+					config.OciocneEngineConfig.TigeraImageTag = ocneMetadataItemToInstall.ContainerImages.TigeraOperator
+					config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToInstall.ContainerImages.Coredns
+				}
+				Eventually(func() error {
+					return createClusterAndFillConfig(clusterNameSingleNode, &clusterConfig, t.Logs, mutateFn)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+			})
+
+			t.It("check OCNE cluster is active with the minimum OCNE supported Kubernetes version and related info", func() {
+				// Verify the cluster is active
+				Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode, t.Logs) }, waitTimeout, pollingInterval).Should(
+					BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
+				// Verify that the cluster is configured correctly
+				Eventually(func() error {
+					return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
+			})
+
+			// Update - decrease resource usage
+			t.It("update OCNE cluster with the maximum OCNE supported Kubernetes version and related info", func() {
+
+				Eventually(func() error {
+					mutateFn := func(config *RancherOCNECluster) {
+						// setting an invalid kubernetes version
+						config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToUpgrade.KubernetesVersion.Original()
+						config.OciocneEngineConfig.EtcdImageTag = ocneMetadataItemToUpgrade.ContainerImages.Etcd
+						config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToUpgrade.ContainerImages.Coredns
+						config.OciocneEngineConfig.TigeraImageTag = ocneMetadataItemToUpgrade.ContainerImages.TigeraOperator
+						config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToUpgrade.ContainerImages.Coredns
+					}
+					return updateConfigAndCluster(&clusterConfig, mutateFn, t.Logs)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+			})
+			t.It("check the OCNE cluster updated with the maximum OCNE supported Kubernetes version and related info", func() {
+				Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
+					BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
+				Eventually(func() error {
+					return verifyCluster(clusterNameNodePool, 1, activeClusterState, transitioningFlagNo, t.Logs)
+				}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
+			})
+		})
+	}
 })
