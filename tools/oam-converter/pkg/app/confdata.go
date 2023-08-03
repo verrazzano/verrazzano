@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
@@ -93,8 +95,10 @@ func ConfData() error {
 		return errors.New("error in extracting workload")
 	}
 
+	cfg, _ := config.GetConfig()
+	cli, _ := client.New(cfg, client.Options{})
 	//Create child resources
-	outputResources, err := resources.CreateResources(conversionComponents)
+	outputResources, err := resources.CreateResources(cli, conversionComponents)
 	if err != nil {
 		return err
 	}

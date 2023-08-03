@@ -11,10 +11,11 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CreateIngressChildResourcesFromHelidon create child resources from workload
-func CreateIngressChildResourcesFromWorkload(conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
+func CreateIngressChildResourcesFromWorkload(cli client.Client, conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
 	var virtualServices []*vsapi.VirtualService
 	var destinationRules []*istioclient.DestinationRule
 	var authzPolicies []*clisecurity.AuthorizationPolicy
@@ -22,7 +23,7 @@ func CreateIngressChildResourcesFromWorkload(conversionComponent *types.Conversi
 		rules := conversionComponent.IngressTrait.Spec.Rules
 		for index, rule := range rules {
 
-			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(cli, rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 
 			if err != nil {
 				print(err)

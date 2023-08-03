@@ -11,7 +11,11 @@ import (
 	reader "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/testdata"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
+	k8net "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -85,9 +89,18 @@ func TestCreateResources(t *testing.T) {
 			Helidonworkload: helidonWorkload,
 		},
 	}
-
+	ingress := k8net.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-ingress",
+			Namespace: "verrazzano-system",
+			Annotations: map[string]string{
+				"external-dns.alpha.kubernetes.io/target": "test.nip.io",
+			},
+		},
+	}
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build()
 	// Call the method being tested
-	kubeResources, err := CreateResources(conversionComponents)
+	kubeResources, err := CreateResources(cli, conversionComponents)
 
 	// Check for errors
 	assert.NoError(t, err, "Error occurred")
@@ -171,9 +184,9 @@ func TestCreateChildResources(t *testing.T) {
 	// Mock the necessary dependencies (e.g., gateway, allHostsForTrait) if needed.
 	gateway := &vsapi.Gateway{}
 	allHostsForTrait := []string{"example.com"}
-
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	// Call the method being tested
-	virtualServices, destinationRules, authzPolicies, err := createChildResources(conversionComponent, gateway, allHostsForTrait)
+	virtualServices, destinationRules, authzPolicies, err := createChildResources(cli, conversionComponent, gateway, allHostsForTrait)
 
 	// Check for errors
 	assert.NoError(t, err, "Error occurred")
