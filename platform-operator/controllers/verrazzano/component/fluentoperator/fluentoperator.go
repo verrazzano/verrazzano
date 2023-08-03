@@ -22,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
@@ -98,10 +99,14 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	args := make(map[string]interface{})
 	args["clusterName"] = adminClusterName
+	args["enableInput"] = false
 	if registrationSecret != nil {
 		args["isManagedCluster"] = true
 		args["clusterName"] = string(registrationSecret.Data[constants.ClusterNameData])
 		args["secretName"] = constants.MCRegistrationSecret
+	}
+	if ctx.ActualCR().Status.Components[fluentbitosoutput.ComponentName] != nil && ctx.ActualCR().Status.Components[fluentbitosoutput.ComponentName].State == v1alpha1.CompStateReady {
+		args["enableInput"] = true
 	}
 	overridesFileName, err := generateOverrideFile(filepath.Join(config.GetHelmOverridesDir(), fluentOperatorOverrideFile), args)
 	if err != nil {
