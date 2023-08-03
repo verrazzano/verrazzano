@@ -39,7 +39,7 @@ const (
 	webhookName                  = "rancher.cattle.io"
 	controllerCMName             = "cattle-controllers"
 	lockCMName                   = "rancher-controller-lock"
-	rancherSysNS                 = "management.cattle.io/system-namespace"
+	RancherSysNS                 = "management.cattle.io/system-namespace"
 	rancherCleanupImage          = "rancher-cleanup"
 	defaultRancherCleanupJobYaml = "/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName        = "cleanup-job"
@@ -575,7 +575,7 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 	if ns.Annotations == nil {
 		return false
 	}
-	if val, ok := ns.Annotations[rancherSysNS]; ok && val == "true" {
+	if val, ok := ns.Annotations[RancherSysNS]; ok && val == "true" {
 		return true
 	}
 	return false
