@@ -123,7 +123,7 @@ func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, 
 		return err.Error(), vzapi.ComponentUnavailable
 	}
 	// If there is no Jaeger instance configured, return Jaeger Operator availability
-	if jaegerCREnabled == false {
+	if !jaegerCREnabled {
 		return errMsg, availability
 	}
 	listOptions, err := jaegerListOptions()
