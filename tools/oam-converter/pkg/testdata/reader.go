@@ -26,7 +26,7 @@ func ReadFromYAMLTemplate(template string) (map[string]interface{}, error) {
 func readTemplate(template string) ([]byte, error) {
 	bytes, err := os.ReadFile("../../" + template)
 	if err != nil {
-		return nil, err
+		bytes, err = os.ReadFile("../" + template)
 	}
 
 	return bytes, nil
