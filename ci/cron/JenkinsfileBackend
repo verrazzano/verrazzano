@@ -45,8 +45,8 @@ pipeline {
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
-        LAST_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-backend-run-commit.txt"
-        LAST_BACKEND_LOCATION = "${WORKSPACE}/last-backend-run-commit.txt"
+        LAST_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-clean-backend-commit.txt"
+        LAST_BACKEND_LOCATION = "${WORKSPACE}/last-clean-backend-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
     }
