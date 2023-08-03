@@ -101,7 +101,12 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running pre-upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Failed pre-upgrade for component %s: %v", compName, err)
 				}
 				return ctrl.Result{}, err
@@ -111,7 +116,12 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStateUpgrade:
 			compLog.Progressf("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Failed upgrading component %s, will retry: %v", compName, err)
 				}
 				// check to see whether this is due to a pending upgrade
@@ -132,7 +142,12 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running post-upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Failed post-upgrade for component %s: %v", compName, err)
 				}
 				return ctrl.Result{}, err

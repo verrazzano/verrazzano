@@ -6,6 +6,7 @@ package helm
 import (
 	ctx "context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/namespace"
 	"os"
 	"sort"
@@ -33,8 +34,19 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ModuleIntegrationConfig specifies Module integration configuration
+type ModuleIntegrationConfig struct {
+	// UseModule if component should be implmemented by a Module, default false
+	UseModule bool
+	// WatchDescriptors contains the WatchDescriptor this the component
+	WatchDescriptors []controllerspi.WatchDescriptor
+}
+
 // HelmComponent struct needed to implement a component
 type HelmComponent struct {
+	// ModuleIntegrationConfig contains the configuration needed for Module integraiton
+	ModuleIntegrationConfig
+
 	// ReleaseName is the helm chart release name
 	ReleaseName string
 
@@ -61,9 +73,6 @@ type HelmComponent struct {
 
 	// InstallBeforeUpgrade if component can be installed before upgade is done, default false
 	InstallBeforeUpgrade bool
-
-	// UseModule if component should be implmemented by a Module, default false
-	UseModule bool
 
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
@@ -169,8 +178,12 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module, default false
 func (h HelmComponent) ShouldUseModule() bool {
-	// return h.UseModule
 	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (h HelmComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return h.WatchDescriptors
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD
