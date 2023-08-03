@@ -257,7 +257,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				}
 				_, err = pkg.GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
 				if err != nil {
-					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
+					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that existing user")
 					return err
 				}
 				return err
