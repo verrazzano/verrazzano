@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"path"
 	"strconv"
 	"strings"
@@ -358,6 +359,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
 	}
 
+	// Add override to switch on and off the Prometheus Alerting if Thanos is enabled
+	// This should avoid duplicate alerts coming from Prometheus and Thanos Ruler
+	kvs, err = appendAlertmanagerIntegrationOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
+
 	return kvs, nil
 }
 
@@ -541,6 +549,49 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
 
 	return kvs, nil
+}
+
+// appendAlertmanagerIntegrationOverrides disables the Alertmanager integration with Prometheus if Thanos Ruler is enabled
+func appendAlertmanagerIntegrationOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	rulerEnabled, err := isThanosRulerEnabled(ctx)
+	integrationKey := "prometheus.integrateAlertmanager"
+	if err != nil {
+		return kvs, err
+	}
+	return append(kvs, bom.KeyValue{Key: integrationKey, Value: strconv.FormatBool(!rulerEnabled)}), nil
+}
+
+// isThanosRulerEnabled returns true if the Helm value to enable Thanos Ruler is set to true, otherwise it returns false.
+// This is used to alternate the alerting configuration if Thanos Ruler is enabled.
+func isThanosRulerEnabled(ctx spi.ComponentContext) (bool, error) {
+	var overrideStrings []string
+	var err error
+	vz := ctx.EffectiveCR()
+
+	if vz == nil || vz.Spec.Components.Thanos == nil || (vz.Spec.Components.Thanos.Enabled != nil && !*vz.Spec.Components.Thanos.Enabled) || vz.Spec.Components.Thanos.ValueOverrides == nil {
+		return false, nil
+	}
+
+	overrideStrings, err = override.GetInstallOverridesYAML(ctx, vz.Spec.Components.Thanos.ValueOverrides)
+	if err != nil {
+		return false, ctx.Log().ErrorfNewErr("Failed to read install overrides: %v", err)
+	}
+
+	if len(overrideStrings) == 0 {
+		return false, nil
+	}
+
+	for _, overrideYaml := range overrideStrings {
+		if strings.Contains(overrideYaml, "ruler:") {
+			value, err := override.ExtractValueFromOverrideString(overrideYaml, "ruler.enabled")
+			if err != nil {
+				return false, ctx.Log().ErrorfNewErr("Failed to read value for ruler.enabled from overrides: %v", err)
+			}
+			return value.(bool), nil
+		}
+	}
+
+	return false, nil
 }
 
 // applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system

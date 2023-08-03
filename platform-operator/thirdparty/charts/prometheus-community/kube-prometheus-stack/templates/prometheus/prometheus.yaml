@@ -12,7 +12,7 @@ metadata:
 {{ toYaml .Values.prometheus.annotations | indent 4 }}
 {{- end }}
 spec:
-{{- if or .Values.prometheus.prometheusSpec.alertingEndpoints .Values.alertmanager.enabled }}
+{{- if and (or .Values.prometheus.prometheusSpec.alertingEndpoints .Values.alertmanager.enabled) .Values.prometheus.integrateAlertmanager}}
   alerting:
     alertmanagers:
 {{- if .Values.prometheus.prometheusSpec.alertingEndpoints }}
