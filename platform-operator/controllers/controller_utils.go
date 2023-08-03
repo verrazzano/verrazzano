@@ -108,12 +108,12 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 	//when the vz status is either uninstalling or uninstall completely then do not create anything
 	var currentCondition installv1alpha1.ConditionType
 	if len(vz.Status.Conditions) > 0 {
-		log.Debug("inside if block,")
+		log.Info("inside if block,")
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
-		log.Debug("inside if block", currentCondition)
+		log.Info("inside if block", currentCondition)
 	}
 	if currentCondition == installv1alpha1.CondUninstallComplete || currentCondition == installv1alpha1.CondUninstallStarted {
-		log.Debug("verrazzano uninstalling, skipping the effective config map creation")
+		log.Info("verrazzano uninstalling, skipping the effective config map creation")
 		return nil
 	}
 	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
@@ -150,7 +150,7 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
-	log.Debug("response from", res)
+	log.Info("response from", res)
 	if k8error.IsAlreadyExists(err) {
 		return nil
 	}

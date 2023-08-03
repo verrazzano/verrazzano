@@ -80,6 +80,7 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 	configMap := &corev1.ConfigMap{}
 	var currentCondition installv1alpha1.ConditionType
 	if len(vz.Status.Conditions) > 0 {
+		r.log.Info("inside if block")
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
 	if currentCondition == installv1alpha1.CondInstallComplete || currentCondition == installv1alpha1.CondUpgradeComplete {
