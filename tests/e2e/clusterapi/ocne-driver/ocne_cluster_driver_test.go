@@ -242,11 +242,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		t.Context("OCNE cluster creation with single node", Ordered, func() {
 			var clusterConfig RancherOCNECluster
 
+			// Create the cluster
 			t.It("create OCNE cluster with the minimum OCNE supported Kubernetes version and related info", func() {
-				// Create the cluster
 				mutateFn := func(config *RancherOCNECluster) {
 					// setting an invalid kubernetes version
 					config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToInstall.KubernetesVersion.Original()
+					config.OciocneEngineConfig.OcneVersion = ocneMetadataItemToInstall.Release
 					config.OciocneEngineConfig.EtcdImageTag = ocneMetadataItemToInstall.ContainerImages.Etcd
 					config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToInstall.ContainerImages.Coredns
 					config.OciocneEngineConfig.TigeraImageTag = ocneMetadataItemToInstall.ContainerImages.TigeraOperator
@@ -267,13 +268,13 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
 			})
 
-			// Update - decrease resource usage
+			// Update the cluster
 			t.It("update OCNE cluster with the maximum OCNE supported Kubernetes version and related info", func() {
-
 				Eventually(func() error {
 					mutateFn := func(config *RancherOCNECluster) {
 						// setting an invalid kubernetes version
 						config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToUpgrade.KubernetesVersion.Original()
+						config.OciocneEngineConfig.OcneVersion = ocneMetadataItemToUpgrade.Release
 						config.OciocneEngineConfig.EtcdImageTag = ocneMetadataItemToUpgrade.ContainerImages.Etcd
 						config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToUpgrade.ContainerImages.Coredns
 						config.OciocneEngineConfig.TigeraImageTag = ocneMetadataItemToUpgrade.ContainerImages.TigeraOperator
@@ -282,6 +283,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 					return updateConfigAndCluster(&clusterConfig, mutateFn, t.Logs)
 				}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 			})
+
 			t.It("check the OCNE cluster updated with the maximum OCNE supported Kubernetes version and related info", func() {
 				Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
 					BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
