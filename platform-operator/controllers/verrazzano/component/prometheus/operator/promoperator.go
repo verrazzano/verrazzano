@@ -554,11 +554,10 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 // appendAlertmanagerIntegrationOverrides disables the Alertmanager integration with Prometheus if Thanos Ruler is enabled
 func appendAlertmanagerIntegrationOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	rulerEnabled, err := isThanosRulerEnabled(ctx)
-	integrationKey := "prometheus.integrateAlertmanager"
 	if err != nil {
 		return kvs, err
 	}
-	return append(kvs, bom.KeyValue{Key: integrationKey, Value: strconv.FormatBool(!rulerEnabled)}), nil
+	return append(kvs, bom.KeyValue{Key: "prometheus.integrateAlertmanager", Value: strconv.FormatBool(!rulerEnabled)}), nil
 }
 
 // isThanosRulerEnabled returns true if the Helm value to enable Thanos Ruler is set to true, otherwise it returns false.
