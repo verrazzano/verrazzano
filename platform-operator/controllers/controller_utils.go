@@ -150,7 +150,7 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
-	log.Debug("respone from", res)
+	log.Debug("response from", res)
 	if k8error.IsAlreadyExists(err) {
 		return nil
 	}
