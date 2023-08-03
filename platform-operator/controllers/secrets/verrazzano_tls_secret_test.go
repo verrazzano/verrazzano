@@ -27,30 +27,50 @@ import (
 type testUpdater struct{}
 
 // Update test impl for reconciler unit tests
-func (t *testUpdater) Update(event *healthcheck.UpdateEvent) {}
+func (t *testUpdater) Update(_ *healthcheck.UpdateEvent) {}
 
 // TestReconcileVerrazzanoTLS tests the reconcileVerrazzanoTLS method keeping the VZ CA secret in sync when rotated
-// GIVEN a call to reconcileVerrazzanoTLS to reconcile the verrazzano-tls
+// GIVEN a call to reconcileVerrazzanoTLS to reconcile the verrazzano-tls secret update
 // WHEN the Verrazzano ingress secret CA bundle exists and has been updated
-// THEN the verrazzano-tls-ca secret bundle is updated
+// THEN the reconcileVerrazzanoTLS can extract the request and call the function to update the copies, unless a VZ reconcile is in progress
 func TestReconcileVerrazzanoTLS(t *testing.T) {
 
 	scheme := newScheme()
 	log := vzlog.DefaultLogger()
 	updater := &testUpdater{}
 
-	updatedBundleData := []byte("bundleupdate")
-	originalBundleData := []byte("original bundle data")
-
 	vzTLSName := types.NamespacedName{Name: vzconst.VerrazzanoIngressTLSSecret, Namespace: vzconst.VerrazzanoSystemNamespace}
 	privateCABundleName := types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}
+	rancherTLSCATestSecret := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: vzconst.RancherTLSCA}
+	multiclusterCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
 
 	defaultReq := controllerruntime.Request{
 		NamespacedName: vzTLSName,
 	}
 
 	defaultWantErr := assert.NoError
-	defaultBundleWantErr := assert.NoError
+
+	ingressTLSSecret := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
+	}
+	privateCASecret := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+	}
+	defaultObjsList := []runtime.Object{
+		&corev1.Secret{
+			ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
+		},
+		&corev1.Secret{
+			ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
+		},
+		privateCASecret,
+		&corev1.Namespace{
+			ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
+		},
+	}
 
 	vzReady := vzapi.Verrazzano{
 		Status: vzapi.VerrazzanoStatus{
@@ -63,72 +83,28 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 		vz  *vzapi.Verrazzano
 	}
 	tests := []struct {
-		name                string
-		cli                 client.Client
-		args                args
-		requeueRequired     bool
-		wantErr             assert.ErrorAssertionFunc
-		expectedBundleData  []byte
-		bundleSecretWantErr assert.ErrorAssertionFunc
+		name            string
+		cli             client.Client
+		args            args
+		requeueRequired bool
+		wantErr         assert.ErrorAssertionFunc
 	}{
 		{
 			name: "verrazzano-tls-update",
-			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: vzconst.VerrazzanoIngressTLSSecret, Namespace: vzconst.VerrazzanoSystemNamespace},
-					Data: map[string][]byte{
-						vzconst.CACertKey: updatedBundleData,
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace},
-					Data: map[string][]byte{
-						vzconst.CABundleKey: originalBundleData,
-					},
-				},
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+				append(defaultObjsList, ingressTLSSecret)...,
 			).Build(),
-			expectedBundleData: updatedBundleData,
 		},
 		{
 			name: "verrazzano-tls-does-not-exist",
-			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace},
-					Data: map[string][]byte{
-						vzconst.CABundleKey: originalBundleData,
-					},
-				},
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+				defaultObjsList...,
 			).Build(),
-			expectedBundleData: originalBundleData,
-		},
-		{
-			name: "verrazzano-tls-ca-does-not-exist",
-			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: vzconst.VerrazzanoIngressTLSSecret, Namespace: vzconst.VerrazzanoSystemNamespace},
-					Data: map[string][]byte{
-						vzconst.CACertKey: updatedBundleData,
-					},
-				},
-			).Build(),
-			bundleSecretWantErr: assert.Error,
-			expectedBundleData:  []byte{},
 		},
 		{
 			name: "verrazzano-tls-vz-not-ready",
-			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: vzconst.VerrazzanoIngressTLSSecret, Namespace: vzconst.VerrazzanoSystemNamespace},
-					Data: map[string][]byte{
-						vzconst.CACertKey: updatedBundleData,
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace},
-					Data: map[string][]byte{
-						vzconst.CABundleKey: originalBundleData,
-					},
-				},
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+				append(defaultObjsList, ingressTLSSecret)...,
 			).Build(),
 			args: args{
 				vz: &vzapi.Verrazzano{
@@ -137,8 +113,7 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 					},
 				},
 			},
-			expectedBundleData: originalBundleData,
-			requeueRequired:    true,
+			requeueRequired: true,
 		},
 	}
 	for _, tt := range tests {
@@ -152,11 +127,6 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 			wantErr := defaultWantErr
 			if tt.wantErr != nil {
 				wantErr = tt.wantErr
-			}
-
-			bundleSecretWantErr := defaultBundleWantErr
-			if tt.wantErr != nil {
-				bundleSecretWantErr = tt.bundleSecretWantErr
 			}
 
 			vz := &vzReady
@@ -175,21 +145,13 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 				return
 			}
 			assert.Equal(t, got.Requeue, tt.requeueRequired, "Did not get expected result")
-
-			// check that the VZ private CA bundle secret was updated if necessary
-			bundleSecret := &corev1.Secret{}
-			err = tt.cli.Get(ctx, privateCABundleName, bundleSecret)
-			if err = client.IgnoreNotFound(err); err == nil {
-				byteSlicesEqualTrimmedWhitespace(t, tt.expectedBundleData, bundleSecret.Data[vzconst.CABundleKey], "CA bundle copies did not match")
-			}
-			bundleSecretWantErr(t, err, fmt.Sprintf("Bundle secret get err %v", err))
 		})
 	}
 }
 
 // TestReconcileVerrazzanoCABundleCopies tests the reconcileVerrazzanoCABundleCopies method keeping upstream copies in sync
-// GIVEN a call to reconcileVerrazzanoCABundleCopies to reconcile the verrazzano-tls-ca secret
-// WHEN the verrazzano-tls-ca secret CA bundle exists and has been updated
+// GIVEN a call to reconcileVerrazzanoCABundleCopies to reconcile the verrazzano-tls secret
+// WHEN the verrazzano-tls secret CA bundle exists and has been updated
 // THEN the upstream copies are updated and any required actions are taken
 func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 	scheme := newScheme()
@@ -198,25 +160,46 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 
 	updatedBundleData := []byte("bundleupdate")
 	originalBundleData := []byte("original bundle data")
+	letsEncryptStagingBundleData := []byte("letsencrypt staging bundle data")
 
 	privateCABundleName := types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}
 	rancherTLSCATestSecret := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: vzconst.RancherTLSCA}
 	multiclusterCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
-	rancherDeployment := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: rancherDeploymentName}
-
-	defaultReq := controllerruntime.Request{
-		NamespacedName: privateCABundleName,
-	}
+	rancherDeploymentNSName := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: rancherDeploymentName}
 
 	defaultWantErr := assert.NoError
 	defaultBundleWantErr := assert.NoError
 
-	vzReady := vzapi.Verrazzano{
-		Status: vzapi.VerrazzanoStatus{
-			State: vzapi.VzStateReady,
+	ingressLeafCertOnly := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
+		Data: map[string][]byte{
+			"tls.crt": []byte("leaf-cert"),
+			"tls.key": []byte("leaf-cert-key"),
+		},
+	}
+	ingressTLSSecretPrivateCA := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
+		Data: map[string][]byte{
+			vzconst.CACertKey: updatedBundleData,
+			"tls.crt":         []byte("leaf-cert"),
+			"tls.key":         []byte("leaf-cert-key"),
+		},
+	}
+	ingressTLSSecretPrivateCANotUpdated := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
+		Data: map[string][]byte{
+			vzconst.CACertKey: originalBundleData,
+			"tls.crt":         []byte("leaf-cert"),
+			"tls.key":         []byte("leaf-cert-key"),
 		},
 	}
 
+	privateCASecret := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+		Data: map[string][]byte{
+			vzconst.CABundleKey: originalBundleData,
+		},
+	}
 	defaultObjsList := []runtime.Object{
 		&corev1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
@@ -230,101 +213,191 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				mcCABundleKey: originalBundleData,
 			},
 		},
-		&corev1.Secret{
-			ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
-			Data: map[string][]byte{
-				vzconst.CABundleKey: updatedBundleData,
-			},
-		},
+		privateCASecret,
+		ingressTLSSecretPrivateCA,
+		// verrazzano-mc namespace exists
 		&corev1.Namespace{
 			ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 		},
+		// Rancher deployment to detect when we have/haven't issued a restart
 		&appsv1.Deployment{
 			ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 		},
 	}
 
-	type args struct {
-		req *controllerruntime.Request
-		vz  *vzapi.Verrazzano
-	}
 	tests := []struct {
-		name                       string
-		description                string
-		cli                        client.Client
-		args                       args
-		requeueRequired            bool
-		wantErr                    assert.ErrorAssertionFunc
-		mcExpectedBundleData       []byte
-		mcBundleSecretWantErr      assert.ErrorAssertionFunc
-		rancherExpectedBundleData  []byte
-		rancherBundleSecretWantErr assert.ErrorAssertionFunc
-		rancherRestartRequired     bool
+		name                         string
+		description                  string
+		cli                          client.Client
+		requeueRequired              bool
+		wantErr                      assert.ErrorAssertionFunc
+		sourceSecret                 *corev1.Secret
+		privateCAExpectedBundleData  []byte
+		privateCABundleSecretWantErr assert.ErrorAssertionFunc
+		mcExpectedBundleData         []byte
+		mcBundleSecretWantErr        assert.ErrorAssertionFunc
+		rancherExpectedBundleData    []byte
+		rancherBundleSecretWantErr   assert.ErrorAssertionFunc
+		rancherRestartRequired       bool
 	}{
 		{
-			name:                      "verrazzano-tls-ca-update",
-			description:               `Basic case where the CA bundle has been updated and the MC and Rancher copies exist `,
-			cli:                       fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultObjsList...).Build(),
-			mcExpectedBundleData:      updatedBundleData,
-			rancherExpectedBundleData: updatedBundleData,
-			rancherRestartRequired:    true,
+			name:                        "self-signed-ca",
+			description:                 `Basic case where the verrazzano-tls CA bundle has been updated and the MC and Rancher copies exist `,
+			cli:                         fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultObjsList...).Build(),
+			privateCAExpectedBundleData: updatedBundleData,
+			mcExpectedBundleData:        updatedBundleData,
+			rancherExpectedBundleData:   updatedBundleData,
+			rancherRestartRequired:      true,
 		},
 		{
 			name:        "verrazzano-tls-ca-does-not-exist",
 			description: `TLS CA bundle does not exist, the target copies should not be updated; likely a case where the secret was deleted, but should not happen`,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
+					Data: map[string][]byte{
+						mcCABundleKey: originalBundleData,
+					},
+				},
+				ingressLeafCertOnly,
+				&corev1.Namespace{
+					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
+				},
+				// Rancher deployment to detect when we have/haven't issued a restart
+				&appsv1.Deployment{
+					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
+				},
+			).Build(),
+			sourceSecret:                 ingressLeafCertOnly,
+			privateCABundleSecretWantErr: assert.Error,
+			rancherBundleSecretWantErr:   assert.Error,
+			mcExpectedBundleData:         []byte(nil),
+		},
+		{
+			name: "lets-encrypt-staging-update-scenario",
+			description: "ACME/Let's encrypt staging case, TLS CA bundle-key does not exist in ingress secret but the leaf cert has been rotated.  " +
+				"The target copies should not be updated, preserving the staging CA root bundle",
+			sourceSecret: ingressLeafCertOnly,
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
+					Data: map[string][]byte{
+						vzconst.RancherTLSCAKey: letsEncryptStagingBundleData,
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
+					Data: map[string][]byte{
+						mcCABundleKey: originalBundleData,
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+					Data: map[string][]byte{
+						vzconst.CABundleKey: letsEncryptStagingBundleData,
+					},
+				},
+				ingressLeafCertOnly,
+				&corev1.Namespace{
+					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
+				},
+				&appsv1.Deployment{
+					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
+				},
+			).Build(),
+			privateCAExpectedBundleData: letsEncryptStagingBundleData,
+			mcExpectedBundleData:        letsEncryptStagingBundleData,
+			rancherExpectedBundleData:   letsEncryptStagingBundleData,
+		},
+		{
+			name: "lets-encrypt-staging-to-production",
+			description: "ACME/Let's encrypt staging-to-production case; VZ and Rancher TLS CA bundle-key do not exist," +
+				"leaf cert has no CA bundle, but the ingress secret but the leaf cert has been rotated.  Only the" +
+				"multi-cluster copy should be updated with an empty value, and the other copies should not exist",
+			sourceSecret: ingressLeafCertOnly,
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
+					Data: map[string][]byte{
+						mcCABundleKey: letsEncryptStagingBundleData,
+					},
+				},
+				ingressLeafCertOnly,
+				&corev1.Namespace{
+					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
+				},
+				&appsv1.Deployment{
+					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
+				},
+			).Build(),
+			privateCABundleSecretWantErr: assert.Error,
+			rancherBundleSecretWantErr:   assert.Error,
+			mcExpectedBundleData:         []byte(nil),
+		},
+		{
+			name: "lets-encrypt-staging-to-self-signed-rotated",
+			description: "System has been updated from LE staging to self-signed; verrazzano-tls-ca and tls-ca are " +
+				"using private CA with old data, verrazzano-local-ca-bundle has LE staging data.  verrazzano-tls updated" +
+				"with new bundle data.  All secrets should be updated with new bundle data.",
+			sourceSecret: ingressTLSSecretPrivateCA,
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
+					Data: map[string][]byte{
+						mcCABundleKey: letsEncryptStagingBundleData,
+					},
+				},
+				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
 					Data: map[string][]byte{
 						vzconst.RancherTLSCAKey: originalBundleData,
 					},
 				},
-				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
-					Data: map[string][]byte{
-						mcCABundleKey: originalBundleData,
-					},
-				},
+				privateCASecret,
+				ingressTLSSecretPrivateCA,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
-			).Build(),
-			mcExpectedBundleData:      originalBundleData,
-			rancherExpectedBundleData: originalBundleData,
-		},
-		{
-			name:        "verrazzano-tls-vz-not-ready",
-			description: `TLS CA bundle updated, but VZ is reconciling; requeue until VZ is in Ready state`,
-			cli:         fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultObjsList...).Build(),
-			args: args{
-				vz: &vzapi.Verrazzano{
-					Status: vzapi.VerrazzanoStatus{
-						State: vzapi.VzStateReconciling,
-					},
+				&appsv1.Deployment{
+					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 				},
-			},
-			mcExpectedBundleData:      originalBundleData,
-			rancherExpectedBundleData: originalBundleData,
-			requeueRequired:           true,
+			).Build(),
+			rancherRestartRequired:      true,
+			privateCAExpectedBundleData: updatedBundleData,
+			rancherExpectedBundleData:   updatedBundleData,
+			mcExpectedBundleData:        updatedBundleData,
 		},
 		{
-			name: "rancher-tls-ca-does-not-exist",
-			description: `TLS CA bundle updated, Rancher TLS CA does not exist; the Rancher secret should not be 
-							created and only the MC bundle should be updated`,
-			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+			name: "lets-encrypt-staging-to-self-signed-not-rotated",
+			description: "System has been updated from LE staging to self-signed; verrazzano-tls-ca and tls-ca are " +
+				"using up-to-date private CA data, verrazzano-local-ca-bundle has stale LE staging data.  verrazzano-tls updated" +
+				"with new bundle data.  All secrets should be updated with new bundle data.",
+			sourceSecret: ingressTLSSecretPrivateCANotUpdated,
+			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
 					Data: map[string][]byte{
-						mcCABundleKey: originalBundleData,
+						mcCABundleKey: letsEncryptStagingBundleData,
 					},
 				},
+				&corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
+					Data: map[string][]byte{
+						vzconst.RancherTLSCAKey: originalBundleData,
+					},
+				},
+				privateCASecret,
+				ingressTLSSecretPrivateCANotUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
+				&appsv1.Deployment{
+					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
+				},
 			).Build(),
-			mcBundleSecretWantErr:      assert.NoError,
-			rancherBundleSecretWantErr: assert.Error,
-			mcExpectedBundleData:       originalBundleData,
+			privateCAExpectedBundleData: originalBundleData,
+			rancherExpectedBundleData:   originalBundleData,
+			mcExpectedBundleData:        originalBundleData,
 		},
 		{
 			name:        "mc-namespace-does-not-exist",
@@ -348,14 +421,16 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 						vzconst.CABundleKey: updatedBundleData,
 					},
 				},
+				ingressTLSSecretPrivateCA,
 				&appsv1.Deployment{
 					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 				},
 			).Build(),
-			requeueRequired:           true,
-			mcExpectedBundleData:      originalBundleData,
-			rancherExpectedBundleData: updatedBundleData,
-			rancherRestartRequired:    true,
+			requeueRequired:             true,
+			privateCAExpectedBundleData: updatedBundleData,
+			mcExpectedBundleData:        originalBundleData,
+			rancherExpectedBundleData:   updatedBundleData,
+			rancherRestartRequired:      true,
 		},
 		{
 			name:        "mc-bundle-secret-does-not-exist",
@@ -370,9 +445,10 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
 					Data: map[string][]byte{
-						vzconst.CABundleKey: updatedBundleData,
+						vzconst.CABundleKey: originalBundleData,
 					},
 				},
+				ingressTLSSecretPrivateCA,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
@@ -380,9 +456,10 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 				},
 			).Build(),
-			mcExpectedBundleData:      updatedBundleData,
-			rancherExpectedBundleData: updatedBundleData,
-			rancherRestartRequired:    true,
+			privateCAExpectedBundleData: updatedBundleData,
+			mcExpectedBundleData:        updatedBundleData,
+			rancherExpectedBundleData:   updatedBundleData,
+			rancherRestartRequired:      true,
 		},
 	}
 	for _, tt := range tests {
@@ -398,6 +475,11 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				wantErr = tt.wantErr
 			}
 
+			privateCABundleSecretWantErr := defaultBundleWantErr
+			if tt.privateCABundleSecretWantErr != nil {
+				privateCABundleSecretWantErr = tt.privateCABundleSecretWantErr
+			}
+
 			mcBundleSecretWantErr := defaultBundleWantErr
 			if tt.mcBundleSecretWantErr != nil {
 				mcBundleSecretWantErr = tt.mcBundleSecretWantErr
@@ -408,31 +490,25 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				rancherBundleSecretWantErr = tt.rancherBundleSecretWantErr
 			}
 
-			vz := &vzReady
-			if tt.args.vz != nil {
-				vz = tt.args.vz
+			sourceSecret := ingressTLSSecretPrivateCA
+			if tt.sourceSecret != nil {
+				sourceSecret = tt.sourceSecret
 			}
 
-			req := defaultReq
-			if tt.args.req != nil {
-				req = *tt.args.req
-			}
-
-			ctx := context.TODO()
-
-			got, err := r.reconcileVerrazzanoCABundleCopies(ctx, req, vz)
-			if !wantErr(t, err, fmt.Sprintf("reconcileVerrazzanoCABundleCopies(%v, %v, %v)", ctx, req, vz)) {
+			got, err := r.reconcileVerrazzanoCABundleCopies(sourceSecret)
+			if !wantErr(t, err, "reconcileVerrazzanoCABundleCopies did not get expected error result") {
 				return
 			}
 			assert.Equal(t, tt.requeueRequired, got.Requeue, "Did not get expected result")
 
-			if tt.rancherRestartRequired {
-				deployment := &appsv1.Deployment{}
-				assert.NoError(t, tt.cli.Get(context.TODO(), rancherDeployment, deployment))
-				_, foundRestartAnnotation := deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation]
-				assert.True(t, foundRestartAnnotation, "Expected Rancher deployment to be restarted")
-			}
+			//if tt.rancherRestartRequired {
+			deployment := &appsv1.Deployment{}
+			assert.NoError(t, tt.cli.Get(context.TODO(), rancherDeploymentNSName, deployment))
+			_, foundRestartAnnotation := deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation]
+			assert.Equal(t, tt.rancherRestartRequired, foundRestartAnnotation, "Rancher restart check failed, expected %v", tt.rancherRestartRequired)
+			//}
 			// check that the VZ private CA bundle secret was updated if necessary
+			assertTargetCopy(t, tt.cli, privateCABundleName, vzconst.CABundleKey, tt.privateCAExpectedBundleData, privateCABundleSecretWantErr)
 			assertTargetCopy(t, tt.cli, multiclusterCASecret, mcCABundleKey, tt.mcExpectedBundleData, mcBundleSecretWantErr)
 			assertTargetCopy(t, tt.cli, rancherTLSCATestSecret, vzconst.RancherTLSCAKey, tt.rancherExpectedBundleData, rancherBundleSecretWantErr)
 		})

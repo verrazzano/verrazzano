@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -78,11 +77,6 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return r.reconcileVerrazzanoTLS(ctx, req, vz)
 		}
 
-		// verrazzano-tls-ca was updated, update any upstream copies
-		if isVerrazzanoPrivateCABundle(req.NamespacedName) {
-			return r.reconcileVerrazzanoCABundleCopies(ctx, req, vz)
-		}
-
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
 		if err != nil {
 			zap.S().Errorf("Failed to reconcile Secret: %v", err)
@@ -112,16 +106,8 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-//func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
-//	return secretName.Name == vzconst.AdditionalTLS && secretName.Namespace == vzconst.RancherSystemNamespace
-//}
-
 func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
 	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
-}
-
-func isVerrazzanoPrivateCABundle(secretName types.NamespacedName) bool {
-	return secretName.Name == vzconst.PrivateCABundle && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {

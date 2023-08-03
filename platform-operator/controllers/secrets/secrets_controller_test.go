@@ -480,6 +480,15 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 			return nil
 		}).MinTimes(1)
 
+	// Expect a call to get the verrazzano-tls secret
+	mock.EXPECT().
+		Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+			secret.Name = vzTLSSecret.Name
+			secret.Namespace = vzTLSSecret.Namespace
+			return nil
+		}).MinTimes(1)
+
 	mock.EXPECT().
 		Get(gomock.Any(), rancherTLSCASecret, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
@@ -489,7 +498,7 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 		}).MinTimes(1)
 
 	// Create and make the request
-	request := newRequest(vzPrivateCABundleSecret.Namespace, vzPrivateCABundleSecret.Name)
+	request := newRequest(vzTLSSecret.Namespace, vzTLSSecret.Name)
 	reconciler := newSecretsReconciler(mock)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 
