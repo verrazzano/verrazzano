@@ -176,6 +176,27 @@ def getLastBackendRunCommit() {
     return lastBackendCommitProps['git-commit']
 }
 
+// Preliminary job checks and display updates
+def preliminaryChecks() {
+    // Get the last stable commit ID to pass the triggered tests
+    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
+
+    LAST_CLEAN_BACKEND_COMMIT=getLastCleanBackendCommit()
+    echo "Last clean backend commit: ${LAST_CLEAN_BACKEND_COMMIT}"
+
+    if (LAST_CLEAN_BACKEND_COMMIT == GIT_COMMIT_TO_USE) {
+        backendTestsUpToDate = true
+    } else {
+        // Check if we are still at the same commit previously run (if so we know it wasn't clean and it failed in some way)
+        LAST_BACKEND_RUN_COMMIT=getLastBackendRunCommit()
+        if (LAST_BACKEND_RUN_COMMIT != null && LAST_BACKEND_RUN_COMMIT == GIT_COMMIT_TO_USE) {
+            backendTestsUpToDateFailed = true
+        }
+    }
+}
+
 def scmCheckout() {
     echo "${NODE_LABELS}"
     echo "Specific GIT commit was not specified, use current head"
