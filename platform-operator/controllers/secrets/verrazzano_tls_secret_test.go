@@ -101,20 +101,6 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 				defaultObjsList...,
 			).Build(),
 		},
-		{
-			name: "verrazzano-tls-vz-not-ready",
-			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
-				append(defaultObjsList, ingressTLSSecret)...,
-			).Build(),
-			args: args{
-				vz: &vzapi.Verrazzano{
-					Status: vzapi.VerrazzanoStatus{
-						State: vzapi.VzStateReconciling,
-					},
-				},
-			},
-			requeueRequired: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

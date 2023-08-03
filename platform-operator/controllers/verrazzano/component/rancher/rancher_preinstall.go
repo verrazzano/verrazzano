@@ -5,6 +5,8 @@ package rancher
 
 import (
 	"context"
+	spi "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -58,6 +60,18 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 		return err
 	}
 
+	if isPrivateIssuer, _ := vzcr.IsPrivateIssuer(vz.Spec.Components.ClusterIssuer); !isPrivateIssuer {
+		// If we drop through to this point we are not using a private CA bundle and should clean up the secret
+		log.Debugf("Private CA bundle not in use, cleaning up Rancher private CA secret %s", rancherTLSCASecretName)
+		return vzresource.Resource{
+			Namespace: common.CattleSystem,
+			Name:      rancherTLSCASecretName,
+			Client:    c,
+			Object:    &v1.Secret{},
+			Log:       log,
+		}.Delete()
+	}
+
 	privateCASecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconst.VerrazzanoSystemNamespace,
@@ -68,15 +82,8 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 		if client.IgnoreNotFound(err) != nil {
 			return err
 		}
-		// If we drop through to this point we are not using a private CA bundle and should clean up the secret
-		log.Debugf("Private CA bundle not in use, cleaning up Rancher private CA secret %s", client.ObjectKeyFromObject(privateCASecret))
-		return vzresource.Resource{
-			Namespace: common.CattleSystem,
-			Name:      rancherTLSCASecretName,
-			Client:    c,
-			Object:    &v1.Secret{},
-			Log:       log,
-		}.Delete()
+		log.Progressf("Private CA bundle secret not found, retrying...")
+		return spi.RetryableError{}
 	}
 
 	bundleData, found := privateCASecret.Data[vzconst.CABundleKey]

@@ -7,9 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,11 +30,6 @@ var fetchSecretFailureTemplate = "Failed to fetch secret %s/%s: %v"
 
 // reconcileVerrazzanoTLS Updates the related CA bundle copies when the CA cert in verrazzano-system/verrazzano-tls is rotated
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request, vz *vzapi.Verrazzano) (ctrl.Result, error) {
-
-	if vz.Status.State != vzapi.VzStateReady {
-		vzlog.DefaultLogger().Progressf("Verrazzano state is %s, CA secrets reconciling paused", vz.Status.State)
-		return vzctrl.NewRequeueWithDelay(10, 30, time.Second), nil
-	}
 
 	// Get the secret
 	caSecret := corev1.Secret{}
@@ -75,16 +68,20 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 //
 // These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(tlsSecret *corev1.Secret) (ctrl.Result, error) {
-	// Update the Verrazzano private CA bundle first; source of truth from a VZ perspective
-	_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
-		vzconst.CABundleKey, vzconst.CACertKey, tlsSecret, false)
-	if err != nil {
-		return newRequeueWithDelay(), nil
+	if isVerrazzanoIngressSecretName(client.ObjectKeyFromObject(tlsSecret)) {
+		// Update the Verrazzano private CA bundle first; source of truth from a VZ perspective
+		_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
+			vzconst.CABundleKey, vzconst.CACertKey, tlsSecret, false)
+		if err != nil {
+			return newRequeueWithDelay(), nil
+		}
 	}
+
+	// Drop through in all cases to update the copies
 
 	// Use private bundle secret to update copies from here
 	privateBundleSecret := &corev1.Secret{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
 	if otherErr := client.IgnoreNotFound(err); otherErr != nil {
 		return newRequeueWithDelay(), otherErr
 	}

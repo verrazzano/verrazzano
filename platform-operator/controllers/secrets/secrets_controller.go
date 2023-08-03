@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -73,7 +74,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// Ingress secret was updated, if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
 		// a reconcile of that secret which should have us come through and update those copies
 		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret
-		if isVerrazzanoIngressSecretName(req.NamespacedName) {
+		if isVerrazzanoIngressSecretName(req.NamespacedName) || isVerrazzanoPrivateCABundle(req.NamespacedName) {
 			return r.reconcileVerrazzanoTLS(ctx, req, vz)
 		}
 
@@ -108,6 +109,10 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 
 func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
 	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
+}
+
+func isVerrazzanoPrivateCABundle(secretName types.NamespacedName) bool {
+	return secretName.Name == vzconst.PrivateCABundle && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {

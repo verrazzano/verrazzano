@@ -85,6 +85,50 @@ func TestCreateCABundle(t *testing.T) {
 				return nil
 			})
 
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: constants2.PrivateCABundle, Namespace: constants2.VerrazzanoSystemNamespace}, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.ListOption) error {
+				secret.Name = constants2.PrivateCABundle
+				secret.Namespace = constants2.VerrazzanoSystemNamespace
+				return nil
+			}).AnyTimes()
+
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: rancherTLSCASecret.Name, Namespace: rancherTLSCASecret.Namespace}, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.ListOption) error {
+				secret.Name = rancherTLSCASecret.Name
+				secret.Namespace = rancherTLSCASecret.Namespace
+				return nil
+			}).AnyTimes()
+
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: vzLocalCaBundleSecret.Name, Namespace: vzLocalCaBundleSecret.Namespace}, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.ListOption) error {
+				secret.Name = vzLocalCaBundleSecret.Name
+				secret.Namespace = vzLocalCaBundleSecret.Namespace
+				return nil
+			}).AnyTimes()
+
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: constants2.VerrazzanoMultiClusterNamespace}, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.ListOption) error {
+				ns.Name = constants2.VerrazzanoMultiClusterNamespace
+				return nil
+			}).AnyTimes()
+
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: tt.secretName, Namespace: tt.secretNS}, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.ListOption) error {
+				secret.Name = tt.secretName
+				secret.Namespace = tt.secretNS
+				secret.Data = map[string][]byte{
+					tt.secretKey: []byte(tt.secretData),
+				}
+				return nil
+			})
+
+		mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 		// Create and make the request
 		request := newRequest(tt.secretNS, tt.secretName)
 		reconciler := newSecretsReconciler(mock)
