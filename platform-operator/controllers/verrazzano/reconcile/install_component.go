@@ -63,7 +63,7 @@ type componentTrackerContext struct {
 
 // installComponents will install the components as required
 func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
-	spiCtx.Log().Progress("Installing components")
+	spiCtx.Log().Once("Installing components")
 
 	var requeue bool
 
@@ -156,7 +156,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 			if !registry.ComponentDependenciesMet(comp, compContext) {
 				return ctrl.Result{Requeue: true}
 			}
-			compLog.Progressf("Component %s pre-install is running ", compName)
+			compLog.Oncef("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
 				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
 				if IsK8sAPIServerError {
@@ -192,7 +192,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 		case compStateInstallWaitReady:
 			if !comp.IsReady(compContext) {
-				compLog.Progressf("Component %s has been installed. Waiting for the component to be ready", compName)
+				compLog.Oncef("Component %s has been installed. Waiting for the component to be ready", compName)
 				return ctrl.Result{Requeue: true}
 			}
 			compLog.Oncef("Component %s successfully installed", comp.Name())
@@ -353,7 +353,7 @@ func skipComponentFromDisabledState(compContext spi.ComponentContext, comp spi.C
 	// Only check for min VPO version if this is not the PreUpgrade case
 	if !preUpgrade && !isVersionOk(compContext.Log(), comp.GetMinVerrazzanoVersion(), compContext.ActualCR().Status.Version) {
 		// User needs to do upgrade before this component can be installed
-		compContext.Log().Progressf("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
+		compContext.Log().Oncef("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 			comp.Name(), comp.GetMinVerrazzanoVersion())
 		return true
 	}
