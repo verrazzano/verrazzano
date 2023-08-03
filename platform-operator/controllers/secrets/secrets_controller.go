@@ -119,7 +119,7 @@ func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
 	if !apierrors.IsNotFound(err) {
 		r.log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
 	}
-	r.log.Progressf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
+	r.log.Debugf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
 	return false
 }
 

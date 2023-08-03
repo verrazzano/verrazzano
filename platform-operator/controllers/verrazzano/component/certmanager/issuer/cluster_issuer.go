@@ -713,6 +713,11 @@ func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.Comp
 	}
 
 	if len(bundleData) == 0 {
+		// There's no private bundle data, clean it up if it exists
+		ctx.Log().Infof("Cleaning up private CA bundle secret")
+		if err := deleteObject(ctx.Log(), ctx.Client(), vzconst.PrivateCABundle, vzconst.VerrazzanoSystemNamespace, &v1.Secret{}); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -814,6 +819,11 @@ func (c clusterIssuerComponent) uninstallVerrazzanoCertManagerResources(compCont
 	if err != nil {
 		return err
 	}
+
+	if err := deleteObject(compContext.Log(), compContext.Client(), vzconst.PrivateCABundle, vzconst.VerrazzanoSystemNamespace, &v1.Secret{}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
