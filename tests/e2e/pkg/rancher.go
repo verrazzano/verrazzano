@@ -35,39 +35,6 @@ type TokenPostResponse struct {
 	Created string `json:"created"`
 }
 
-//
-//type Token struct {
-//	AuthProvider string      `json:"authProvider"`
-//	BaseType     string      `json:"baseType"`
-//	ClusterID    string      `json:"clusterId"`
-//	Created      string      `json:"created"`
-//	CreatedTS    int64       `json:"createdTS"`
-//	CreatorID    interface{} `json:"creatorId"`
-//	Current      bool        `json:"current"`
-//	Description  string      `json:"description"`
-//	Enabled      bool        `json:"enabled"`
-//	Expired      bool        `json:"expired"`
-//	ExpiresAt    string      `json:"expiresAt"`
-//	ID           string      `json:"id"`
-//	IsDerived    bool        `json:"isDerived"`
-//	Labels       struct {
-//		AuthnManagementCattleIoTokenUserID string `json:"authn.management.cattle.io/token-userId"`
-//		CattleIoCreator                    string `json:"cattle.io/creator"`
-//	} `json:"labels"`
-//	LastUpdateTime string `json:"lastUpdateTime"`
-//	Links          struct {
-//		Remove string `json:"remove"`
-//		Self   string `json:"self"`
-//		Update string `json:"update"`
-//	} `json:"links"`
-//	Name          string `json:"name"`
-//	TTL           int    `json:"ttl"`
-//	Type          string `json:"type"`
-//	UserID        string `json:"userId"`
-//	UserPrincipal string `json:"userPrincipal"`
-//	UUID          string `json:"uuid"`
-//}
-
 type ListOfTokenOutputFromRancher struct {
 	Type  string `json:"type"`
 	Links struct {
@@ -256,6 +223,7 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 	return token, nil
 }
 
+// This function adds an access token to Rancher gven that a ttl and clusterID string is provided
 func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, ttl string, userAccessToken string, log zap.SugaredLogger) (string, error) {
 	api, err := GetAPIEndpoint(kubeconfigPath)
 	if err != nil {
@@ -307,6 +275,8 @@ func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, ku
 	return tokenPostResponse.Created, nil
 }
 
+// This function returns the list of token names that correspond to the cluster ID and this user before when this is called
+// If no error occurs, this means that these tokens were found and deleted in Rancher
 func GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, userAccessToken string, log zap.SugaredLogger) ([]string, error) {
 	api, err := GetAPIEndpoint(kubeconfigPath)
 	if err != nil {

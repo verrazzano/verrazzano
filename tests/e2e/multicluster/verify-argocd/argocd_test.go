@@ -124,6 +124,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, adminKubeconfig)
 		})
+		// Checks that the secret corresponding to the managed-secret in the cluster has both createdAt and ExpiredAt annotations
 		t.It("The expected secret currently contains both the createdAt and ExpiredAt annotations", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 			Eventually(func() error {
@@ -135,6 +136,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				return err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find both Created and Expired At Annotations "+secretName)
 		})
+		// Tests that a new ArgoCD token is able to be created
 		t.It("A new ArgoCD token is able to be created through the Rancher API", func() {
 			Eventually(func() error {
 				argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
@@ -176,6 +178,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to Be Able To Create a Token through the API")
 		})
+		// Tests that a secret can be triggered to begin an update
 		t.It("The secret can be successfully altered to trigger an update locally and sent through the client", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 			Eventually(func() error {
@@ -202,6 +205,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				return err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to be able to edit the secret locally and send the update request through the cluster")
 		})
+		// Tests that the update completes and that the secret now has the timestamps of the old token
 		t.It("The secret has gone through an update and eventually has an expires at annotation and the created Timestamp of the most recently created token", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 			Eventually(func() error {
@@ -223,6 +227,8 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				return err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
 		})
+		// Tests that the name of the tokens that have the same cluster ID as the cluster can be fetched from Rancher and that they can be deleted
+		// This checks that if no valid tokens are present when an upgrade happens, a new token is created
 		t.It("All of the tokens that belong to this user should be retrieved in the cluster without any errors", func() {
 			Eventually(func() error {
 				argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
@@ -264,6 +270,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected for all the tokens with the same clusterID to be deleted ")
 		})
+		// This triggers another update in the secret
 		t.It("The secret can be successfully altered to trigger an update locally and sent through the client after all of the tokens with the corresponding cluster ID have been deleted", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 			Eventually(func() error {
@@ -290,6 +297,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				return err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to be able to edit the secret locally and send the update request through the cluster")
 		})
+		// This checks that the secret's timestamps were successfully updated with the new token
 		t.It("The secret has gone through an update and eventually has an expires at annotation and the created Timestamp of the most recently created token after the deletion has happened after all of the tokens with the corresponding cluster ID have been deleted", func() {
 			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 			Eventually(func() error {
@@ -393,6 +401,8 @@ func findServerName(namespace, name string) (bool, error) {
 	}
 	return string(decodeServerName) != managedClusterName, nil
 }
+
+// This function checks that a create-timestamp value and an expires-at-timestamp value currently exist on the secret's annotations
 func verifyCreatedAtAndExpiresAtTimestampsExist(namespace, name string) (bool, error) {
 	s, err := pkg.GetSecret(namespace, name)
 	if err != nil {
@@ -411,6 +421,7 @@ func verifyCreatedAtAndExpiresAtTimestampsExist(namespace, name string) (bool, e
 	return true, nil
 }
 
+// This function retrieves the ArgoCD password to log into rancher, based on the provided name and namespace of a secret that holds this information
 func retrieveArgoCDPassword(namespace, name string) (string, error) {
 	s, err := pkg.GetSecret(namespace, name)
 	if err != nil {
