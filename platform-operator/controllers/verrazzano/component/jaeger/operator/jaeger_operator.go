@@ -151,7 +151,7 @@ func isJaegerReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	// If there is no Jaeger instance configured, return true
-	if jaegerCREnabled == false {
+	if !jaegerCREnabled {
 		return true
 	}
 	// Check if Jaeger instance is ready
