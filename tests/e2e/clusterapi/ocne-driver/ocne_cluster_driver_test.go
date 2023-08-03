@@ -106,7 +106,7 @@ var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchroni
 // Part of SynchronizedAfterSuite, run by only one process
 func synchronizedAfterSuiteProcess1Func() {
 	// Delete the clusters concurrently
-	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeInvalid}
+	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeOCNEUpgrade, clusterNameSingleNodeInvalid}
 	var wg sync.WaitGroup
 	for _, clusterName := range clusterNames {
 		if clusterName != "" {
