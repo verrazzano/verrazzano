@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math/rand"
 	"testing"
-	"time"
 )
 
 func TestBuildCertificateSecretName(t *testing.T) {
@@ -42,7 +41,7 @@ func getRandomString() string {
 }
 
 func TestBuildCertificateName(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
+
 	trait := &vzapi.IngressTrait{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "my-trait",
@@ -134,9 +133,10 @@ func TestCreateGatewayCertificate(t *testing.T) {
 	}
 
 	hostsForTrait := []string{"example.com"}
-	appNamespace := "my-app-namespace"
 
-	expectedSecretName := "my-app-namespace-my-trait-cert-secret"
+	appNamespace := getRandomString()
+
+	expectedSecretName := fmt.Sprintf("%s-%s-cert-secret", appNamespace, trait.Name)
 
 	secretName := createGatewayCertificate(trait, hostsForTrait, appNamespace)
 
