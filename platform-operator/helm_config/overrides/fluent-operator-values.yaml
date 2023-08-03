@@ -35,12 +35,12 @@ fluentbit:
       fluentbit.verrazzano.io/namespace-config: verrazzano
   input:
     tail:
-      enable: {{ enableInput }}
+      enable: {{ .enableInput }}
       readFromHead: true
       storageType: filesystem
       pauseOnChunksOverlimit: "on"
     systemd:
-      enable: {{ enableInput }}
+      enable: {{ .enableInput }}
       path: "/run/log/journal"
       stripUnderscores: "on"
       systemdFilter:
