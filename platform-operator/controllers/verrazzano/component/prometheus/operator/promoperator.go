@@ -6,7 +6,6 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"path"
 	"strconv"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	securityv1beta1 "istio.io/api/security/v1beta1"
@@ -568,7 +568,7 @@ func isThanosRulerEnabled(ctx spi.ComponentContext) (bool, error) {
 	var err error
 	vz := ctx.EffectiveCR()
 
-	if vz == nil || vz.Spec.Components.Thanos == nil || (vz.Spec.Components.Thanos.Enabled != nil && !*vz.Spec.Components.Thanos.Enabled) || vz.Spec.Components.Thanos.ValueOverrides == nil {
+	if !vzcr.IsThanosEnabled(vz) || vz.Spec.Components.Thanos.ValueOverrides == nil {
 		return false, nil
 	}
 
@@ -590,7 +590,6 @@ func isThanosRulerEnabled(ctx spi.ComponentContext) (bool, error) {
 			return value.(bool), nil
 		}
 	}
-
 	return false, nil
 }
 
