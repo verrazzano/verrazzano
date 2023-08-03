@@ -146,5 +146,5 @@ func TestCreateVirtualService(t *testing.T) {
 	expectedVirtualService.Spec.Hosts = []string{"example.com"}
 	expectedVirtualService.Spec.Http = route
 	assert.Nil(t, err, "Unexpected error returned from CreateVirtualService")
-	assert.Equal(t, expectedVirtualService.Spec, virtualService.Spec, "Unexpected VirtualService returned")
+	assert.Equal(t, expectedVirtualService, virtualService, "Unexpected VirtualService returned")
 }

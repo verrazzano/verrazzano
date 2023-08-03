@@ -4,13 +4,16 @@
 package gateway
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestBuildCertificateSecretName(t *testing.T) {
@@ -19,38 +22,53 @@ func TestBuildCertificateSecretName(t *testing.T) {
 			Name: "my-trait",
 		},
 	}
-	appNamespace := "my-namespace"
+	appNamespace := getRandomString()
 
-	expected := "my-namespace-my-trait-cert-secret"
+	expectedSecretName := fmt.Sprintf("%s-%s-cert-secret", appNamespace, trait.Name)
+
 	result := buildCertificateSecretName(trait, appNamespace)
 
-	assert.Equal(t, expected, result, "Incorrect certificate secret name")
+	assert.Equal(t, expectedSecretName, result, "Incorrect certificate secret name")
+}
+
+// Helper function to generate a random string
+func getRandomString() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 10)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }
 
 func TestBuildCertificateName(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
 	trait := &vzapi.IngressTrait{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "my-trait",
 		},
 	}
-	appNamespace := "my-namespace"
+	appNamespace := getRandomString()
 
-	expected := "my-namespace-my-trait-cert"
+	expectedSecretName := fmt.Sprintf("%s-%s-cert", appNamespace, trait.Name)
+
 	result := buildCertificateName(trait, appNamespace)
 
-	assert.Equal(t, expected, result, "Incorrect certificate name")
+	assert.Equal(t, expectedSecretName, result, "Incorrect certificate name")
 }
 
 func TestBuildLegacyCertificateName(t *testing.T) {
+
 	trait := &vzapi.IngressTrait{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "my-trait",
 		},
 	}
-	appNamespace := "my-namespace"
-	appName := "my-app"
+	appNamespace := getRandomString()
 
-	expected := "my-namespace-my-trait-cert"
+	expected := fmt.Sprintf("%s-%s-cert", appNamespace, trait.Name)
+
+	appName := "my-app"
 	result := buildLegacyCertificateName(trait, appNamespace, appName)
 
 	assert.Equal(t, expected, result, "Incorrect legacy certificate name")
@@ -62,10 +80,13 @@ func TestBuildLegacyCertificateSecretName(t *testing.T) {
 			Name: "my-trait",
 		},
 	}
-	appNamespace := "my-namespace"
+
 	appName := "my-app"
 
-	expected := "my-namespace-my-trait-cert-secret"
+	appNamespace := getRandomString()
+
+	expected := fmt.Sprintf("%s-%s-cert-secret", appNamespace, trait.Name)
+
 	result := buildLegacyCertificateSecretName(trait, appNamespace, appName)
 
 	assert.Equal(t, expected, result, "Incorrect legacy certificate secret name")

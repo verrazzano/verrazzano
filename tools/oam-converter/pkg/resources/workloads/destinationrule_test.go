@@ -28,13 +28,12 @@ func TestCreateDestinationRuleFromWorkload(t *testing.T) {
 			},
 		},
 	}
-	compMaps := []map[string]interface{}{}
 
 	compConf, err := reader.ReadFromYAMLTemplate("testdata/template/helidon_workload.yaml")
 	if err != nil {
 		t.Fatalf("error in reading yaml file : %v", err)
 	}
-	compMaps = append(compMaps, compConf)
+
 	compSpec, found, err := unstructured.NestedMap(compConf, "spec")
 	if !found || err != nil {
 		t.Fatalf("component spec doesn't exist or not found in specified type: %v", err)

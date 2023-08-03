@@ -5,8 +5,6 @@ package workloads
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
@@ -25,23 +23,20 @@ func TestExtractWorkload(t *testing.T) {
 		return
 	}
 	compMaps = append(compMaps, compConf)
-
-	appMaps := []map[string]interface{}{}
-
 	appConf, err := reader.ReadFromYAMLTemplate("testdata/template/app_conf.yaml")
 	if err != nil {
 		return
 	}
-	appMaps = append(appMaps, appConf)
+
 	spec, found, err := unstructured.NestedMap(appConf, "spec")
 	if !found || err != nil {
-		errors.New("app components doesn't exist")
+		t.Fatalf("spec doesn't exist or not in the specified type")
 	}
 
 	appComponents, found, err := unstructured.NestedSlice(spec, "components")
 
 	if !found || err != nil {
-		errors.New("app components doesn't exist")
+		t.Fatalf("app components doesn't exist or not in the specified type")
 	}
 	ingressData := make(map[string]interface{})
 	for _, component := range appComponents {
@@ -52,7 +47,7 @@ func TestExtractWorkload(t *testing.T) {
 				traitMap := trait.(map[string]interface{})
 				ingressData, found, err = unstructured.NestedMap(traitMap, "trait")
 				if !found || err != nil {
-					fmt.Errorf("trait spec doesn't exist")
+					t.Fatalf("ingress trait doesn't exist or not in the specified type")
 
 				}
 
@@ -60,9 +55,14 @@ func TestExtractWorkload(t *testing.T) {
 		}
 	}
 	jsonData, err := json.Marshal(ingressData)
+	if err != nil {
+		t.Fatalf("error in marshaling data %v", err)
+	}
 	ingressTrait := &vzapi.IngressTrait{}
 	err = json.Unmarshal(jsonData, &ingressTrait)
-
+	if err != nil {
+		t.Fatalf("error in unmarshalling data %v", err)
+	}
 	// Test data: conversionComponents array
 	conversionComponents := []*types.ConversionComponents{
 		{
@@ -81,11 +81,11 @@ func TestExtractWorkload(t *testing.T) {
 
 	compSpec, found, err := unstructured.NestedMap(compConf, "spec")
 	if !found || err != nil {
-		errors.New("spec key in a component doesn't exist or not found in the specified type")
+		t.Fatalf("component spec doesn't exist or not in the specified type")
 	}
 	compWorkload, found, err := unstructured.NestedMap(compSpec, "workload")
 	if !found || err != nil {
-		errors.New("workload in a component doesn't exist or not found in the specified type")
+		t.Fatalf("component workload doesn't exist or not in the specified type")
 	}
 	expectedHelidonWorkload := &unstructured.Unstructured{
 		Object: compWorkload,

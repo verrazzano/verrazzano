@@ -17,13 +17,11 @@ import (
 
 func TestCreateResources(t *testing.T) {
 
-	appMaps := []map[string]interface{}{}
-
 	appConf, err := reader.ReadFromYAMLTemplate("testdata/template/app_conf.yaml")
 	if err != nil {
 		t.Fatalf("Failed to read yaml file: %v", err)
 	}
-	appMaps = append(appMaps, appConf)
+
 	spec, found, err := unstructured.NestedMap(appConf, "spec")
 	if !found || err != nil {
 		t.Fatalf("Spec component doesn't exist or not found in the specified type: %v", err)
@@ -51,18 +49,20 @@ func TestCreateResources(t *testing.T) {
 		}
 	}
 	jsonData, err := json.Marshal(ingressData)
+	if err != nil {
+		t.Fatalf("error in marshalling ingress trait : %v", err)
+	}
 	ingressTrait := &vzapi.IngressTrait{}
 	err = json.Unmarshal(jsonData, &ingressTrait)
 	if err != nil {
 		t.Fatalf("error in unmarshalling ingress trait : %v", err)
 	}
-	compMaps := []map[string]interface{}{}
 
 	compConf, err := reader.ReadFromYAMLTemplate("testdata/template/helidon_workload.yaml")
 	if err != nil {
 		t.Fatalf("error in reading yaml file : %v", err)
 	}
-	compMaps = append(compMaps, compConf)
+
 	compSpec, found, err := unstructured.NestedMap(compConf, "spec")
 	if !found || err != nil {
 		t.Fatalf("component spec doesn't exist or not found in specified type: %v", err)
@@ -135,6 +135,9 @@ func TestCreateChildResources(t *testing.T) {
 	}
 
 	jsonData, err := json.Marshal(ingressData)
+	if err != nil {
+		t.Fatalf("error in marshalling ingress trait: %v", err)
+	}
 	ingressTrait := &vzapi.IngressTrait{}
 	err = json.Unmarshal(jsonData, &ingressTrait)
 	if err != nil {
