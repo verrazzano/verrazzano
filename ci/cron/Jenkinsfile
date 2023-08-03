@@ -143,12 +143,12 @@ def preliminaryChecks() {
     }
 }
 
-// Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
+// Returns the last run commit for the periodics, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
-def getLastCleanPeriodicCommit() {
+def getLastPeriodicRunCommit() {
     lastPeriodicCommitCommandOutput = sh (
         label: "Get last clean periodic commit ID",
-        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION} 2>&1 || true",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file ${LAST_PERIODIC_LOCATION} 2>&1 || true",
         returnStdout: true
         ).trim()
     echo "command out: ${lastPeriodicCommitCommandOutput}"
@@ -160,16 +160,16 @@ def getLastCleanPeriodicCommit() {
         } else {
             // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
             sh """
-                if [ ! -f ${CLEAN_PERIODIC_LOCATION} ]; then
-                    echo "An unexpected error occurred getting last clean periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                if [ ! -f ${LAST_PERIODIC_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last periodic run commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
                     exit 1
                 fi
             """
         }
     }
     // Get the commit ID for the last known clean pass of the Periodic tests
-    def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
-    return cleanPeriodicsCommitProps['git-commit']
+    def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
+    return lastPeriodicsCommitProps['git-commit']
 }
 
 def scmCheckout() {
