@@ -83,6 +83,9 @@ type OperatorConfig struct {
 	// MySQLCheckPeriodSeconds period for MySQL check background task in seconds; a value of 0 disables MySQL checks
 	MySQLCheckPeriodSeconds int64
 
+	// NamespacePeriodSeconds period to watch Namespaces in seconds; a value of 0 disables Namespace watcher
+	NamespacePeriodSeconds int64
+
 	// MySQLRepairTimeoutSeconds is the amount of time the MySQL check background thread will allow to transpire between
 	// detecting a possible condition to repair, and initiating the repair logic.
 	MySQLRepairTimeoutSeconds int64
@@ -110,6 +113,7 @@ var instance = OperatorConfig{
 	VerrazzanoRootDir:              rootDir,
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
+	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
 	ExperimentalModules:            false,
 	ModuleIntegration:              false,
