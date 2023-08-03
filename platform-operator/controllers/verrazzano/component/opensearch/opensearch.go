@@ -25,12 +25,14 @@ const (
 
 // doesOSExist is the IsInstalled check
 func doesOSExist(ctx spi.ComponentContext) bool {
-	sts := []types.NamespacedName{{
+	sts := types.NamespacedName{
 		Name:      esMasterStatefulset,
 		Namespace: ComponentNamespace,
-	}}
-	// FIXME: works, but is this as desired?
-	exists, _ := ready.DoesStatefulsetExist(ctx.Client(), sts[0])
+	}
+	exists, err := ready.DoesStatefulsetExist(ctx.Client(), sts)
+	if err != nil {
+		ctx.Log().Errorf("component %s failed getting statefulset %v: %v", ctx.GetComponent(), sts, err)
+	}
 	return exists
 }
 
