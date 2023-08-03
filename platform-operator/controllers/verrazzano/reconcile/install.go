@@ -231,7 +231,7 @@ func (r *Reconciler) waitForModulesReady(compContext spi.ComponentContext) (ctrl
 			continue
 		}
 		if !comp.IsReady(compContext) {
-			compContext.Log().Progressf("Waiting for the module %s to be ready", comp.Name())
+			compContext.Log().Oncef("Waiting for the module %s to be ready", comp.Name())
 			return newRequeueWithDelay(), nil
 		}
 	}

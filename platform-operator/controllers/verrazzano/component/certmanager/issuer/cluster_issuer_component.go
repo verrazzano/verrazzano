@@ -4,6 +4,7 @@
 package issuer
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -191,6 +192,12 @@ func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 func (c clusterIssuerComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
 }
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
+}
+
 func (c clusterIssuerComponent) GetDependencies() []string {
 	return []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName}
 }

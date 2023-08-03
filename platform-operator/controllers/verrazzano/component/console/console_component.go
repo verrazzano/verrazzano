@@ -47,7 +47,6 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			UseModule:                 config.Get().ModuleIntegration,
 			Dependencies:              []string{networkpolicies.ComponentName, authproxy.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
