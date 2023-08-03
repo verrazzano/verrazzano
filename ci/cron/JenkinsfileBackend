@@ -44,11 +44,11 @@ pipeline {
         }
 
     environment {
-        OCI_CLI_AUTH="instance_principal"
+        OCI_CLI_AUTH = "instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
 
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_BUCKET = "verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET = "verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
         STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
@@ -59,7 +59,7 @@ pipeline {
         LAST_BACKEND_LOCATION = "${WORKSPACE}/last-backend-run-commit.txt"
         CLEAN_BACKEND_LOCATION = "${WORKSPACE}/last-clean-backend-commit.txt"
 
-        OCI_OS_REGION="us-phoenix-1"
+        OCI_OS_REGION = "us-phoenix-1"
     }
 
     stages {
