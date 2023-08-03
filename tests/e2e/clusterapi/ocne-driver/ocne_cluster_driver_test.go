@@ -28,9 +28,10 @@ const (
 var (
 	t = framework.NewTestFramework("capi-ocne-driver")
 
-	clusterNameSingleNode        string
-	clusterNameNodePool          string
-	clusterNameSingleNodeInvalid string
+	clusterNameSingleNode            string
+	clusterNameNodePool              string
+	clusterNameSingleNodeOCNEUpgrade string
+	clusterNameSingleNodeInvalid     string
 )
 
 // Part of SynchronizedBeforeSuite, run by only one process
@@ -97,6 +98,7 @@ func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
+	clusterNameSingleNodeOCNEUpgrade = fmt.Sprintf("strudel-single-ocne-upgrade-%s", ocneClusterNameSuffix)
 }
 
 var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchronizedBeforeSuiteAllProcessesFunc)
@@ -257,7 +259,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				config.OciocneEngineConfig.CorednsImageTag = ocneMetadataItemToInstall.ContainerImages.Coredns
 			}
 			Eventually(func() error {
-				return createClusterAndFillConfig(clusterNameSingleNode, &clusterConfig, t.Logs, mutateFn)
+				return createClusterAndFillConfig(clusterNameSingleNodeOCNEUpgrade, &clusterConfig, t.Logs, mutateFn)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 		})
 
@@ -266,12 +268,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				Skip(skipOCNEUpgradeMessage)
 			}
 			// Verify the cluster is active
-			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNode, t.Logs) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNode))
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeOCNEUpgrade, t.Logs) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNodeOCNEUpgrade))
 			// Verify that the cluster is configured correctly
 			Eventually(func() error {
-				return verifyCluster(clusterNameSingleNode, 1, activeClusterState, transitioningFlagNo, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNode))
+				return verifyCluster(clusterNameSingleNodeOCNEUpgrade, 1, activeClusterState, transitioningFlagNo, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeOCNEUpgrade))
 		})
 
 		// Update the cluster
@@ -297,11 +299,11 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			if ocneMetadataItemToInstall.KubernetesVersion == ocneMetadataItemToUpgrade.KubernetesVersion {
 				Skip(skipOCNEUpgradeMessage)
 			}
-			Eventually(func() (bool, error) { return isClusterActive(clusterNameNodePool, t.Logs) }, waitTimeout, pollingInterval).Should(
-				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameNodePool))
+			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeOCNEUpgrade, t.Logs) }, waitTimeout, pollingInterval).Should(
+				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNodeOCNEUpgrade))
 			Eventually(func() error {
-				return verifyCluster(clusterNameNodePool, 1, activeClusterState, transitioningFlagNo, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameNodePool))
+				return verifyCluster(clusterNameSingleNodeOCNEUpgrade, 1, activeClusterState, transitioningFlagNo, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), fmt.Sprintf("could not verify cluster %s", clusterNameSingleNodeOCNEUpgrade))
 		})
 	})
 })
