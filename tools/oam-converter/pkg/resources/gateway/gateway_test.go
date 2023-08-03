@@ -4,6 +4,7 @@
 package gateway
 
 import (
+	"crypto/rand"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -11,7 +12,7 @@ import (
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math/rand"
+	"math/big"
 	"testing"
 )
 
@@ -34,8 +35,14 @@ func TestBuildCertificateSecretName(t *testing.T) {
 func getRandomString() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 10)
+	max := big.NewInt(int64(len(charset)))
 	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+		n, err := rand.Int(rand.Reader, max)
+		if err != nil {
+
+			return ""
+		}
+		b[i] = charset[n.Int64()]
 	}
 	return string(b)
 }
