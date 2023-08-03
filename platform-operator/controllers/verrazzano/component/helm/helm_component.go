@@ -202,8 +202,8 @@ func (h HelmComponent) ShouldSecretEventTriggerReconcile(obj clipkg.Object, even
 	if event == controllerspi.Deleted {
 		return false
 	}
-	service := obj.(*v1.Secret)
-	return doesModuleOwnResource(service.Labels, h.Name())
+	secret := obj.(*v1.Secret)
+	return doesModuleOwnResource(secret.Labels, h.Name())
 }
 
 // ShouldConfigmapEventTriggerReconcile returns true if reconcile should be done in response to a Configmap lifecycle event
@@ -211,8 +211,8 @@ func (h HelmComponent) ShouldConfigmapEventTriggerReconcile(obj clipkg.Object, e
 	if event == controllerspi.Deleted {
 		return false
 	}
-	service := obj.(*v1.ConfigMap)
-	return doesModuleOwnResource(service.Labels, h.Name())
+	cm := obj.(*v1.ConfigMap)
+	return doesModuleOwnResource(cm.Labels, h.Name())
 }
 
 // doesModuleOwnResource returns true if the resource module owner label matches component
