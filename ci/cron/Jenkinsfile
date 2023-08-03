@@ -141,6 +141,7 @@ def preliminaryChecks() {
             periodicsUpToDateFailed = true
         }
     }
+}
 
 // Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
