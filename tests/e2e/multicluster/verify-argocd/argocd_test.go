@@ -330,7 +330,7 @@ func retrieveArgoCDPassword(namespace, name string) (string, error) {
 }
 
 // This function gets the necessary information required to access the token API resources in Rancher for ArgoCD
-func getRequiredInfoToPreformTokenOperationsInRancherForArgoCD() (error, *retryablehttp.Client, string, string) {
+func getRequiredInfoToPreformTokenOperationsInRancherForArgoCD() (*retryablehttp.Client, string, string, error) {
 	argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
 	if err != nil {
 		return err, nil, "", ""
