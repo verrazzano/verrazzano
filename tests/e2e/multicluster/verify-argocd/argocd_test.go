@@ -221,7 +221,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				return err
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
 		})
-		t.It("All of the tokens that belong to this user should be deleted in the cluster without any errors", func() {
+		t.It("All of the tokens that belong to this user should be retrieved in the cluster without any errors", func() {
 			Eventually(func() error {
 				argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
 				if err != nil {
@@ -259,11 +259,13 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 				// Would delete the other tokens except the one I am currently using for Get tokens names for logged in user
 				// Evenutally {delete my token} (Look for success response back from delete call in this case), eventually {wait for secret annotation to be updated}
 				// It might be token admin
-				_, err = pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
+				listOfTokenNames, err := pkg.GetTokenNamesForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, rancherConfigForArgoCD.APIAccessToken, *t.Logs)
 				if err != nil {
 					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that exisitng user")
 					return err
+					fmt.Println("List Of Token Names Not Found")
 				}
+				fmt.Println(listOfTokenNames)
 				return err
 
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to have the secret reflect the created timestamp of the new token that was created")
