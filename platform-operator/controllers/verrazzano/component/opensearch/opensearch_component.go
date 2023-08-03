@@ -4,6 +4,7 @@
 package opensearch
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -51,7 +52,7 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (o opensearchComponent) ShouldUseModule() bool {
-	return false
+	return config.Get().ModuleIntegration
 }
 
 // GetDependencies returns the dependencies of the OpenSearch component

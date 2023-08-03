@@ -129,6 +129,28 @@ spec:
       ports:
         - port: 10902
           protocol: TCP
+    # allow query to talk to the Store API on Thanos Ruler
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: query
+      ports:
+        - port: 10901
+          protocol: TCP
+    # allow Prometheus to scrape from Thanos Ruler
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 10902
+          protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: {{ include "common.names.fullname" . }}

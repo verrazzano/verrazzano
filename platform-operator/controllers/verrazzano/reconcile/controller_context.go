@@ -3,40 +3,29 @@
 
 package reconcile
 
-import "sync"
+import (
+	"sync/atomic"
+)
 
-var vzControllerContextMutex sync.Mutex
-var vzControllerContext *VerrazzanoControllerContext
+var vzControllerContext VerrazzanoControllerContext
 
 // VerrazzanoControllerContext is used to synchronize the two Verrazzano controllers, the legacy controller and
 // the module-based controller.  This will be removed when we finally have a single controller.
 type VerrazzanoControllerContext struct {
-	ModuleUninstallDone bool
+	ModuleUninstallDone atomic.Bool
 }
 
 // SetModuleUninstallDone returns true if the Module uninstall is not done
 func SetModuleUninstallDone() {
-	vzControllerContextMutex.Lock()
-	defer vzControllerContextMutex.Unlock()
-	if vzControllerContext == nil {
-		vzControllerContext = &VerrazzanoControllerContext{}
-	}
-	vzControllerContext.ModuleUninstallDone = true
+	vzControllerContext.ModuleUninstallDone.Store(true)
 }
 
 // IsModuleUninstallDone returns true if the Module uninstall is done
 func IsModuleUninstallDone() bool {
-	vzControllerContextMutex.Lock()
-	defer vzControllerContextMutex.Unlock()
-	if vzControllerContext == nil {
-		vzControllerContext = &VerrazzanoControllerContext{}
-	}
-	return vzControllerContext.ModuleUninstallDone
+	return vzControllerContext.ModuleUninstallDone.Load()
 }
 
 // ClearControllerContext clears the controller context
 func ClearControllerContext() {
-	vzControllerContextMutex.Lock()
-	defer vzControllerContextMutex.Unlock()
-	vzControllerContext = nil
+	vzControllerContext.ModuleUninstallDone.Store(false)
 }

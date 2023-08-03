@@ -780,6 +780,18 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 	return err
 }
 
+// deleteJaegerIngress deletes the Jaeger ingress during uninstall
+func deleteJaegerIngress(ctx spi.ComponentContext, namespace string) error {
+	ingress := networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: constants.JaegerIngress, Namespace: namespace},
+	}
+	err := clipkg.IgnoreNotFound(ctx.Client().Delete(context.TODO(), &ingress))
+	if ctrlerrors.ShouldLogKubernetesAPIError(err) {
+		return ctx.Log().ErrorfNewErr("Failed delete Jaeger ingress: %v", err)
+	}
+	return err
+}
+
 // createJaegerSecrets create or update Jaeger resources depending on if running a managed cluster, or local cluster
 // with the default Jaeger instance.
 func createJaegerSecrets(ctx spi.ComponentContext) error {

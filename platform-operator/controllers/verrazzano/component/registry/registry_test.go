@@ -885,7 +885,7 @@ func (f fakeComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if a module should be used for lifecycle management
 func (f fakeComponent) ShouldUseModule() bool {
-	return false
+	return config.Get().ModuleIntegration
 }
 
 func (f fakeComponent) GetJSONName() string {

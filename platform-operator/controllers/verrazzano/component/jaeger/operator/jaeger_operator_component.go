@@ -159,6 +159,15 @@ func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return c.createOrUpdateJaegerResources(ctx)
 }
 
+// PostUninstall Jaeger Operator post-uninstall processing, delete the Jaeger ingress ingress
+func (c jaegerOperatorComponent) PostUninstall(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("%s post-uninstall", ComponentName)
+	if err := c.HelmComponent.PostUninstall(ctx); err != nil {
+		return err
+	}
+	return c.deleteJaegerResources(ctx)
+}
+
 // ValidateInstall validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	convertedVZ := installv1beta1.Verrazzano{}
@@ -223,7 +232,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
 		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, globalconst.JaegerInstanceName, err)
 	}
-	//if installed is false then component is not installed by helm
+	// if installed is false then component is not installed by helm
 	if !installed {
 		err = removeOldJaegerResources(ctx)
 		if err != nil {
@@ -309,4 +318,8 @@ func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.Component
 		}
 	}
 	return nil
+}
+
+func (c jaegerOperatorComponent) deleteJaegerResources(ctx spi.ComponentContext) error {
+	return deleteJaegerIngress(ctx, constants.VerrazzanoSystemNamespace)
 }

@@ -184,7 +184,7 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		log.Errorf("yaml unmarshalling error: %s", err)
 		return err
 	}
-	if len(mapToContents) != 1 {
+	if len(mapToContents) < 1 {
 		err = fmt.Errorf("data inside %s ConfigMap not formatted as expcted", ocneMetadataCMName)
 		log.Error(err)
 		return err
@@ -229,7 +229,7 @@ func fillOCNEVersion(log *zap.SugaredLogger) error {
 		return err
 	}
 	versionList := response.Children()
-	if len(versionList) != 1 {
+	if len(versionList) < 1 {
 		err = fmt.Errorf("response to OCNE versions request does not have expected length")
 		log.Error(err)
 		return err
@@ -284,7 +284,7 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 		return err
 	}
 	responseMap := response.ChildrenMap()
-	if len(responseMap) != 1 {
+	if len(responseMap) < 1 {
 		err = fmt.Errorf("response to Verrazzano versions request does not have expected length")
 		log.Error(err)
 		return err

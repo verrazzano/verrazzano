@@ -312,7 +312,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceEntry(name, ho
 
 func populateServiceEntry(se *istioclinet.ServiceEntry, host string, port uint32) {
 	se.Spec.Hosts = []string{host}
-	se.Spec.Ports = []*istionet.Port{
+	se.Spec.Ports = []*istionet.ServicePort{
 		{
 			Name:       "grpc",
 			Number:     port,
