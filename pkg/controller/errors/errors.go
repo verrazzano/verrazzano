@@ -72,3 +72,23 @@ func ShouldLogKubernetesAPIError(err error) bool {
 	}
 	return true
 }
+
+// IsK8sAPIServerError returns false if the error is not due to Kubernetes API server load or too many requests rate limit.
+// The goal is to reduce log noise in platform operator and provide meaningful information
+func IsK8sAPIServerError(err error) (bool, string) {
+	if err == nil {
+		return false, ""
+	}
+	var message string
+	if strings.Contains(err.Error(), "the server is currently unable to handle the request") {
+		message = "KubernetesAPIServerError: the server is currently unable to handle the request"
+		return true, message
+	}
+
+	if strings.Contains(err.Error(), "too many requests and has asked us to try again") {
+		message = "KubernetesAPIServerError: the server has received too many requests and has asked us to try again later"
+		return true, message
+	}
+
+	return false, message
+}
