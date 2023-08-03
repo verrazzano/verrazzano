@@ -184,7 +184,16 @@ func TestCreateChildResources(t *testing.T) {
 	// Mock the necessary dependencies (e.g., gateway, allHostsForTrait) if needed.
 	gateway := &vsapi.Gateway{}
 	allHostsForTrait := []string{"example.com"}
-	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ingress := k8net.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-ingress",
+			Namespace: "verrazzano-system",
+			Annotations: map[string]string{
+				"external-dns.alpha.kubernetes.io/target": "test.nip.io",
+			},
+		},
+	}
+	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build()
 	// Call the method being tested
 	virtualServices, destinationRules, authzPolicies, err := createChildResources(cli, conversionComponent, gateway, allHostsForTrait)
 
