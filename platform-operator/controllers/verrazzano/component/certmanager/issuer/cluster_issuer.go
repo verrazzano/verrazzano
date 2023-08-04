@@ -394,7 +394,7 @@ func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client,
 
 	// Verify the acme environment and set the server
 	acmeServer := letsEncryptProdEndpoint
-	if vzcr.IsLetsEncryptStagingEnv(*vzCertAcme) {
+	if certs.IsLetsEncryptStagingEnv(*vzCertAcme) {
 		acmeServer = letsEncryptStageEndpoint
 	}
 
@@ -556,7 +556,7 @@ func getACMEIssuerName(acme *vzapi.LetsEncryptACMEIssuer) ([]string, error) {
 	if acme == nil {
 		return []string{}, fmt.Errorf("Illegal state, LetsEncrypt issuer not configured")
 	}
-	if vzcr.IsLetsEncryptProductionEnv(*acme) {
+	if certs.IsLetsEncryptProductionEnv(*acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
@@ -769,7 +769,7 @@ func getPrivateBundleData(log vzlog.VerrazzanoLogger, c crtclient.Client, cluste
 	}
 	var isLetsEncryptStagingEnv bool
 	if clusterIssuer.LetsEncrypt != nil {
-		isLetsEncryptStagingEnv = vzcr.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
+		isLetsEncryptStagingEnv = certs.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
 	}
 
 	bundleData := []byte{}

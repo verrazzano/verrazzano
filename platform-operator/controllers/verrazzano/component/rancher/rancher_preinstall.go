@@ -5,10 +5,9 @@ package rancher
 
 import (
 	"context"
-	spi "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	spi "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -60,7 +59,7 @@ func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi
 		return err
 	}
 
-	if isPrivateIssuer, _ := vzcr.IsPrivateIssuer(vz.Spec.Components.ClusterIssuer); !isPrivateIssuer {
+	if isPrivateIssuer, _ := certs.IsPrivateIssuer(vz.Spec.Components.ClusterIssuer); !isPrivateIssuer {
 		// If we drop through to this point we are not using a private CA bundle and should clean up the secret
 		log.Debugf("Private CA bundle not in use, cleaning up Rancher private CA secret %s", rancherTLSCASecretName)
 		return vzresource.Resource{

@@ -6,7 +6,6 @@ package issuer
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/certs"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"testing"
 
@@ -427,7 +426,7 @@ auth:
 	assert.NoError(t, err)
 
 	wantErr := assert.Error
-	if vzcr.IsLetsEncryptStagingEnv(ctx.EffectiveCR().Spec.Components.ClusterIssuer) {
+	if certs.IsLetsEncryptStagingEnv(ctx.EffectiveCR().Spec.Components.ClusterIssuer) {
 		wantErr = assert.NoError
 		leStagingBundleBytes = []byte("lestaging bundle")
 	}

@@ -65,15 +65,11 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 
-		// The next 2 blocks ensure that we keep the copies of any private CA bundles in play in sync with the source(s);
-		// verrazzano-system/verrazzano-tls-ca is created/updated during VZ reconcile, but in the self-signed case that
-		// can be rotated based on the cert duration.  So we keep verrazzano-system/verrazzano-tls-ca
-		// in sync with any rotation updates, and then keep any upstream copies from that in sync when that
-		// reconciles
-
-		// Ingress secret was updated, if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
-		// a reconcile of that secret which should have us come through and update those copies
-		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret
+		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
+		// a reconcile which will update any upstream copies
+		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
+		//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
+		// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
 		if isVerrazzanoIngressSecretName(req.NamespacedName) || isVerrazzanoPrivateCABundle(req.NamespacedName) {
 			return r.reconcileVerrazzanoTLS(ctx, req, vz)
 		}

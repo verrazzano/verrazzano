@@ -43,7 +43,7 @@ func GetLocalClusterCABundleData(log *zap.SugaredLogger, cli client.Client, ctx 
 		log.Debugf("checking secret %s", sourceSecretInfo.NamespacedName)
 		bundleData, found, err := getBundleDataFromSecret(cli, ctx, sourceSecretInfo.NamespacedName, sourceSecretInfo.caKey)
 		if err != nil {
-			log.Errorf("Error retrieving bundle data from secret %s", sourceSecretInfo.NamespacedName)
+			log.Errorf("Failed retrieving bundle data from secret %s", sourceSecretInfo.NamespacedName)
 			return nil, err
 		}
 		if found {

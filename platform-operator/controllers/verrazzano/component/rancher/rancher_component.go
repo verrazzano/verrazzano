@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -275,7 +276,7 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	}
 
 	// Configure private issuer bundle if necessary
-	if isPrivateIssuer, _ := vzcr.IsPrivateIssuer(cm); isPrivateIssuer {
+	if isPrivateIssuer, _ := certs.IsPrivateIssuer(cm); isPrivateIssuer {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
