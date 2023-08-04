@@ -213,18 +213,18 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		etcdFallback = contentStruct.ContainerImages.Etcd
 		tigeraFallback = contentStruct.ContainerImages.TigeraOperator
 
-		k8sSemVer, err := semver.NewVersion(k8sVersion)
+		k8sSemVerFallback, err := semver.NewVersion(k8sVersion)
 		if err != nil {
 			log.Errorf("kubernetes version parsing error: %s", err)
 			return err
 		}
 		// finding the minimum kubernetes version to install a OCNE cluster
-		if ocneMetadataItemToInstall.KubernetesVersion == nil || k8sSemVer.LessThan(ocneMetadataItemToInstall.KubernetesVersion) {
-			ocneMetadataItemToInstall = OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
+		if ocneMetadataItemToInstall.KubernetesVersion == nil || k8sSemVerFallback.LessThan(ocneMetadataItemToInstall.KubernetesVersion) {
+			ocneMetadataItemToInstall = OCNEMetadataItem{KubernetesVersion: k8sSemVerFallback, OCNEMetadataContents: contentStruct}
 		}
 		// finding the maximum kubernetes version to update the OCNE cluster
-		if ocneMetadataItemToUpgrade.KubernetesVersion == nil || k8sSemVer.GreaterThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
-			ocneMetadataItemToUpgrade = OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
+		if ocneMetadataItemToUpgrade.KubernetesVersion == nil || k8sSemVerFallback.GreaterThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
+			ocneMetadataItemToUpgrade = OCNEMetadataItem{KubernetesVersion: k8sSemVerFallback, OCNEMetadataContents: contentStruct}
 		}
 	}
 
