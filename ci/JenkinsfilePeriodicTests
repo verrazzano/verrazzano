@@ -45,7 +45,7 @@ def periodicsUpToDate              = false // If true, indicates that the period
 def periodicsUpToDateFailed        = false // If true, indicates that the periodics already ran and failed at the latest commit
 
 // Non Fields
-def branchSpecificSchedule = getCronSchedule()
+// def branchSpecificSchedule = getCronSchedule()
 
 // File containing the links to download the Verrazzano distributions
 @Field
@@ -74,27 +74,27 @@ pipeline {
         }
     }
 
-    triggers {
-        URLTrigger(
-            cronTabSpec: branchSpecificSchedule,
-            entries: [
-                URLTriggerEntry(
-                    url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
-                    checkETag: false,
-                    checkStatus: true,
-                    statusCode: 403,
-                    checkLastModificationDate: true,
-                    timeout: 200,
-                    requestHeaders: [
-                        RequestHeader( headerName: "Accept" , headerValue: "application/json" )
-                    ],
-                    contentTypes: [
-                        MD5Sum()
-                    ]
-                )
-            ]
-        )
-    }
+//     triggers {
+//         URLTrigger(
+//             cronTabSpec: branchSpecificSchedule,
+//             entries: [
+//                 URLTriggerEntry(
+//                     url: "https://objectstorage.${ociOsRegion}.oraclecloud.com/n/${OS_NAMESPACE_URL_TRIGGER}/b/${ociOsBucket}/o/${urlTriggerBranchName}/${lastStableCommitFile}",
+//                     checkETag: false,
+//                     checkStatus: true,
+//                     statusCode: 403,
+//                     checkLastModificationDate: true,
+//                     timeout: 200,
+//                     requestHeaders: [
+//                         RequestHeader( headerName: "Accept" , headerValue: "application/json" )
+//                     ],
+//                     contentTypes: [
+//                         MD5Sum()
+//                     ]
+//                 )
+//             ]
+//         )
+//     }
 
     parameters {
         string (name: 'TAGGED_TESTS',
@@ -662,7 +662,7 @@ def dockerLogins() {
             """
         }
     }
-    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         try {
             sh """
                 echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
@@ -784,14 +784,14 @@ def getLastPeriodicRunCommit() {
     return lastPeriodicsCommitProps['git-commit']
 }
 
-// Checks all the conditions gating test execution and coallates the result
+// Checks all the conditions gating test execution and collates the result
 def runTests() {
   return params.FORCE || ( ! periodicsUpToDate && ! periodicsUpToDateFailed && ! params.DRY_RUN )
 }
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         echo "Alert notifications enabled for ${env.BRANCH_NAME}"
         return true
     }
@@ -821,14 +821,14 @@ def isPagerDutyEnabled() {
     return false
 }
 
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */6 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
-    return ""
-}
+//  def getCronSchedule() {
+//      if (env.BRANCH_NAME.equals("master")) {
+//          return "H */6 * * *"
+//      } else if (env.BRANCH_NAME.startsWith("release-")) {
+//          return "@daily"
+//      }
+//      return ""
+//  }
 
 // Called in Stage Clean workspace and checkout steps
 def getCommitListFromGitLog(lastClean, currentStable) {
