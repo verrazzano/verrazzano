@@ -286,7 +286,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 			}
 			Eventually(func() error {
 				mutateFn := func(config *RancherOCNECluster) {
-					// setting an invalid kubernetes version
 					config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToUpgrade.KubernetesVersion.Original()
 					config.OciocneEngineConfig.OcneVersion = ocneMetadataItemToUpgrade.Release
 					config.OciocneEngineConfig.EtcdImageTag = ocneMetadataItemToUpgrade.ContainerImages.Etcd
