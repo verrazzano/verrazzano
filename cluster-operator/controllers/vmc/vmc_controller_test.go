@@ -1853,7 +1853,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 		})
 
 	if rancherEnabled {
-		// Expect a call to get the tls-ca-additional secret, return the secret as not found
+		// Expect a call to get the tls-ca secret, return the secret as not found
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.RancherTLSCA}, gomock.Not(gomock.Nil()), gomock.Any()).
 			Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.RancherTLSCA))
@@ -1991,7 +1991,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
-	// Expect a call to get the tls-ca-additional secret, return the secret as not found
+	// Expect a call to get the tls-ca secret, return the secret as not found
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.RancherTLSCA}, gomock.Not(gomock.Nil()), gomock.Any()).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.RancherTLSCA))

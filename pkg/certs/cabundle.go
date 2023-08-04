@@ -5,6 +5,7 @@ package certs
 
 import (
 	ctx "context"
+
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
@@ -23,10 +24,6 @@ var secretsList = []struct {
 		caKey:          globalconst.CABundleKey,
 	},
 	{
-		NamespacedName: types.NamespacedName{Namespace: globalconst.RancherSystemNamespace, Name: globalconst.AdditionalTLS},
-		caKey:          globalconst.AdditionalTLSCAKey,
-	},
-	{
 		NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: globalconst.VerrazzanoIngressTLSSecret},
 		caKey:          mcconstants.CaCrtKey,
 	},
@@ -36,7 +33,6 @@ var secretsList = []struct {
 //
 // Sources, in order of precedence
 // - "cacerts.pem" data field in the verrazzano-system/verrazzano-tls-ca secret
-// - "ca-additional.pem" data field in the cattle-system/tls-ca-additional secret (deprecated)
 // - "ca.crt" data field in the verrazzano-system/verrazzano-tls secret
 func GetLocalClusterCABundleData(log *zap.SugaredLogger, cli client.Client, ctx ctx.Context) ([]byte, error) {
 	for _, sourceSecretInfo := range secretsList {

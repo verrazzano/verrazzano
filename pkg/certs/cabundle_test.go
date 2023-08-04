@@ -6,6 +6,8 @@ package certs
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -15,7 +17,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var testScheme = runtime.NewScheme()
@@ -27,7 +28,6 @@ func init() {
 func TestGetLocalClusterCABundleData(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	privateCABundleData := []byte("verrazzano-tls-ca-bundle")
-	tlsCAAdditionalBundleData := []byte("tls-ca-additional-bundle")
 	vzTLSBundleData := []byte("verrazzano-tls-bundle")
 	tests := []struct {
 		name    string
@@ -75,106 +75,6 @@ func TestGetLocalClusterCABundleData(t *testing.T) {
 					},
 					Data: map[string][]byte{
 						constants.CACertKey: vzTLSBundleData,
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.PrivateCABundle,
-						Namespace: constants.VerrazzanoSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.CABundleKey: privateCABundleData,
-					},
-				},
-			).Build(),
-			want:    privateCABundleData,
-			wantErr: assert.NoError,
-		},
-		{
-			name: "verrazzano-tls-ca-and-verrazzano-tls-and-tls-ca-additional",
-			cli: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.VerrazzanoIngressTLSSecret,
-						Namespace: constants.VerrazzanoSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.CACertKey: vzTLSBundleData,
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.AdditionalTLS,
-						Namespace: constants.RancherSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.AdditionalTLSCAKey: tlsCAAdditionalBundleData,
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.PrivateCABundle,
-						Namespace: constants.VerrazzanoSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.CABundleKey: privateCABundleData,
-					},
-				},
-			).Build(),
-			want:    privateCABundleData,
-			wantErr: assert.NoError,
-		},
-		{
-			name: "verrazzano-tls-and-tls-ca-additional",
-			cli: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.AdditionalTLS,
-						Namespace: constants.RancherSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.AdditionalTLSCAKey: tlsCAAdditionalBundleData,
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.VerrazzanoIngressTLSSecret,
-						Namespace: constants.VerrazzanoSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.CACertKey: vzTLSBundleData,
-					},
-				},
-			).Build(),
-			want:    tlsCAAdditionalBundleData,
-			wantErr: assert.NoError,
-		},
-		{
-			name: "tls-ca-additional-only",
-			cli: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.AdditionalTLS,
-						Namespace: constants.RancherSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.AdditionalTLSCAKey: tlsCAAdditionalBundleData,
-					},
-				},
-			).Build(),
-			want:    tlsCAAdditionalBundleData,
-			wantErr: assert.NoError,
-		},
-		{
-			name: "verrazzano-tls-ca-and-tls-ca-additional",
-			cli: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.AdditionalTLS,
-						Namespace: constants.RancherSystemNamespace,
-					},
-					Data: map[string][]byte{
-						constants.AdditionalTLSCAKey: tlsCAAdditionalBundleData,
 					},
 				},
 				&corev1.Secret{

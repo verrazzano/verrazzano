@@ -76,8 +76,8 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 	return secret.Data[RancherCACert], nil
 }
 
-// GetAdditionalCA fetches the Rancher additional CA secret
-// returns empty byte array of the secret tls-ca-additional is not found
+// GetAdditionalCA fetches the Rancher tls-cA secret
+// returns empty byte array of the secret tls-ca is not found
 func GetAdditionalCA(c client.Reader) []byte {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
