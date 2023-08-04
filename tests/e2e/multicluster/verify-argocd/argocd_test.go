@@ -320,8 +320,8 @@ func testIfUpdateSuccessfullyTriggeredForArgoCD(secretName string) error {
 	}
 	_, ok := editedSecret.Annotations[expiresAtTimeStamp]
 	if ok {
-		pkg.Log(pkg.Error, "The client was successful, but the secret was not successfuly edited")
-		return fmt.Errorf("The client was successful, but the secret was not successfuly edited")
+		pkg.Log(pkg.Error, "The client was successful, but the secret was not successfully edited")
+		return fmt.Errorf("The client was successful, but the secret was not successfully edited")
 	}
 	return err
 }
