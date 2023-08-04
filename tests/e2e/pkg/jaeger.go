@@ -55,8 +55,7 @@ var (
 
 	// services that are common plus the ones unique to admin cluster
 	adminClusterSystemServiceNames = append(managedClusterSystemServiceNames,
-		"jaeger.verrazzano-monitoring",
-		"opensearch-es-master.verrazzano-logging")
+		"jaeger.verrazzano-monitoring")
 )
 
 type JaegerTraceData struct {

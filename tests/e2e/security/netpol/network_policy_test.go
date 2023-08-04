@@ -285,7 +285,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test opensearch ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osClusterLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, envoyStatsMetricsPort, true, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osClusterLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 9200, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test opensearch ingress rules failed: reason = %s", err))
 				/* TODO:
 				The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
@@ -336,7 +336,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Test opensearch-dashboards ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 5601, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test opensearch-dashboards ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, envoyStatsMetricsPort, true, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 5601, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test opensearch-dashboards ingress rules failed: reason = %s", err))
 			},
 			func() {
