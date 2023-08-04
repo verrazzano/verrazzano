@@ -82,7 +82,8 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 		if comp.Name() == fluentbitosoutput.ComponentName {
 			isFluentOperatorExists, fluentOperatorComp := registry.FindComponent(fluentbitosoutput.ComponentName)
 			if isFluentOperatorExists {
-				if result := r.installSingleComponent(spiCtx, tracker.getComponentInstallContext(fluentOperatorComp.Name()), fluentOperatorComp, preUpgrade); result.Requeue {
+				compContext := spiCtx.Init(fluentOperatorComp.Name()).Operation(vzconst.InstallOperation)
+				if err := fluentOperatorComp.Upgrade(compContext); err != nil {
 					requeue = true
 				}
 			}
