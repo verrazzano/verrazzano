@@ -91,13 +91,6 @@ pipeline {
                 }
         }
 
-        stage('Get most recent backend commit') {
-            steps {
-                getLastBackendRunCommit()
-                echo("Last backend commit: ${LAST_BACKEND_COMMIT}")
-            }
-        }
-
         stage ('Run Backend Test Suite') {
             when {
                 allOf {
