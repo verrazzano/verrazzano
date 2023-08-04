@@ -4,7 +4,6 @@
 package virtualservice
 
 import (
-	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 
@@ -89,14 +88,12 @@ func mutateVirtualService(virtualService *vsapi.VirtualService, rule vzapi.Ingre
 
 	if err != nil {
 
-
 		return nil, err
 	}
 	route := istio.HTTPRoute{
 		Match: matches,
 		Route: []*istio.HTTPRouteDestination{dest}}
 	virtualService.Spec.Http = []*istio.HTTPRoute{&route}
-
 
 	return virtualService, nil
 }
