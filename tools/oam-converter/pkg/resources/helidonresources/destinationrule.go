@@ -7,7 +7,7 @@ import (
 	"errors"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
-	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationrule"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"google.golang.org/protobuf/types/known/durationpb"

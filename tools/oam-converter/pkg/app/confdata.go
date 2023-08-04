@@ -26,7 +26,6 @@ func ConfData() error {
 	var inputDirectory string
 	var outputDirectory string
 
-
 	//Check the length of args
 	if len(os.Args) != 3 {
 
@@ -44,7 +43,6 @@ func ConfData() error {
 
 	//used to store non-oam file data
 	//	var k8sResources unstructured.Unstructured
-
 
 	//iterate through user inputted directory
 	files, err := iterateDirectory(inputDirectory)
@@ -105,7 +103,6 @@ func ConfData() error {
 		return errors.New("error in extracting workload")
 	}
 
-
 	cfg, _ := config.GetConfig()
 	cli, _ := client.New(cfg, client.Options{})
 	//Create child resources
@@ -123,10 +120,8 @@ func ConfData() error {
 	return nil
 }
 
-
 // writeKubeResources Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources *types.KubeResources) (err error) {
-
 
 	//Write virtual services to files
 	if outputResources.VirtualServices != nil {
@@ -151,7 +146,6 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				return err
 			}
 
-
 			_, err = f.WriteString(string(output))
 			if err != nil {
 				return err
@@ -169,7 +163,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		f, err := os.Create(filePath)
 		if err != nil {
 			return err
-
+		}
 		defer f.Close()
 		gatewayYaml, err := yaml.Marshal(outputResources.Gateway)
 		if err != nil {
@@ -270,7 +264,6 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			output = output + "---\n" + string(out)
 		}
 
-
 		_, err2 := f.WriteString(string(output))
 		if err2 != nil {
 			return err2
@@ -282,22 +275,6 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 }
 
 // iterateDirectory Iterate over input directory
-func iterateDirectory(path string) ([]string, error) {
-	var files []string
-
-	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if strings.Contains(info.Name(), "yaml") || strings.Contains(info.Name(), "yml") {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, nil
-}
-
-// Iterate over input directory
 func iterateDirectory(path string) ([]string, error) {
 	var files []string
 

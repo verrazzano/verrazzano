@@ -11,7 +11,6 @@ import (
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 )
 
 // ExtractTrait - Extract traits from the app map
@@ -21,7 +20,6 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 		appMetadata, found, err := unstructured.NestedMap(appMap, "metadata")
 		if !found || err != nil {
 			return nil, errors.New("app metadata doesn't exist")
-
 
 		}
 		appName, found, err := unstructured.NestedString(appMetadata, "name")

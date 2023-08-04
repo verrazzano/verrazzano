@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
 
 // The function createGatewayCertificate generates a certificate that the cert manager can use to generate a certificate
@@ -114,10 +113,8 @@ func updateGatewayServersList(servers []*istio.Server, server *istio.Server) []*
 	return servers
 }
 
-
 func CreateGatewayResource(cli client.Client, conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
 	gateway, allHostsForTrait, err := CreateCertificateAndSecretGateway(cli, conversionComponents)
-
 
 	if err != nil {
 		return nil, nil, err
@@ -129,7 +126,6 @@ func CreateGatewayResource(cli client.Client, conversionComponents []*types.Conv
 
 func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
 
-
 	var gateway *vsapi.Gateway
 	var allHostsForTrait []string
 	var err error
@@ -139,7 +135,6 @@ func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents [
 		if err != nil {
 			return nil, nil, err
 
-
 		}
 
 	}
@@ -148,17 +143,13 @@ func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents [
 		gwName, err := BuildGatewayName(conversionComponents[0].AppNamespace)
 		if err != nil {
 
-
 			return nil, nil, err
-
 
 		}
 		gateway, err = CreateGateway(conversionComponents, allHostsForTrait, gwName, secretNames)
 		if err != nil {
 
-
 			return nil, nil, err
-
 
 		}
 	}

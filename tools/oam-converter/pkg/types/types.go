@@ -24,9 +24,7 @@ type ConversionComponents struct {
 	Coherenceworkload *unstructured.Unstructured
 	Weblogicworkload  *unstructured.Unstructured
 
-
 	Service *corev1.Service
-
 }
 
 type KubeResources struct {
