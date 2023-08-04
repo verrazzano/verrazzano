@@ -557,7 +557,10 @@ func appendAlertmanagerIntegrationOverrides(ctx spi.ComponentContext, kvs []bom.
 	if err != nil {
 		return kvs, err
 	}
-	return append(kvs, bom.KeyValue{Key: "prometheus.integrateAlertmanager", Value: strconv.FormatBool(!rulerEnabled)}), nil
+	return append(kvs, []bom.KeyValue{
+		{Key: "prometheus.integrateAlertmanager", Value: strconv.FormatBool(!rulerEnabled)},
+		{Key: "defaultRules.disabled.PrometheusNotConnectedToAlertmanagers", Value: strconv.FormatBool(rulerEnabled)},
+	}...), nil
 }
 
 // isThanosRulerEnabled returns true if the Helm value to enable Thanos Ruler is set to true, otherwise it returns false.
