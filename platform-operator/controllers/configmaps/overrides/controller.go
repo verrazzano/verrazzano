@@ -79,7 +79,10 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
 	var currentCondition installv1alpha1.ConditionType
-	r.log.Info("print status", vz.Status)
+	if vz != nil {
+		r.log.Info("checking print status", vz)
+	}
+	r.log.Info("print status", vz)
 	if vz.Status.Conditions != nil {
 		r.log.Infof("printing the length", len(vz.Status.Conditions))
 	}
