@@ -253,7 +253,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 				Skip(skipOCNEUpgradeMessage)
 			}
 			mutateFn := func(config *RancherOCNECluster) {
-				// setting an invalid kubernetes version
 				config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToInstall.KubernetesVersion.Original()
 				config.OciocneEngineConfig.OcneVersion = ocneMetadataItemToInstall.Release
 				config.OciocneEngineConfig.EtcdImageTag = ocneMetadataItemToInstall.ContainerImages.Etcd
