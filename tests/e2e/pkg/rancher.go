@@ -168,7 +168,7 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 
 // This function adds an access token to Rancher gven that a ttl and clusterID string is provided
 func AddAccessTokenToRancherForLoggedInUser(httpClient *retryablehttp.Client, kubeconfigPath string, clusterID string, ttl string, userAccessToken string, log zap.SugaredLogger) (string, error) {
-	responseBody, _, err := tokenRequestForRancherWithExistingToken("GET", httpClient, kubeconfigPath, clusterID, userAccessToken, log, ttl)
+	responseBody, _, err := tokenRequestForRancherWithExistingToken("POST", httpClient, kubeconfigPath, clusterID, userAccessToken, log, ttl)
 	if err != nil {
 		return "", err
 	}
@@ -459,7 +459,7 @@ func tokenRequestForRancherWithExistingToken(requestType string, httpClient *ret
 			return nil, reqURL, err
 		}
 		err = httputil.ValidateResponseCode(response, http.StatusCreated)
-		if err != nil {
+		if err == nil {
 			return responseBody, reqURL, err
 		}
 
@@ -479,7 +479,7 @@ func tokenRequestForRancherWithExistingToken(requestType string, httpClient *ret
 			return nil, reqURL, err
 		}
 		err = httputil.ValidateResponseCode(response, http.StatusOK)
-		if err != nil {
+		if err == nil {
 			return responseBody, reqURL, err
 		}
 	}
