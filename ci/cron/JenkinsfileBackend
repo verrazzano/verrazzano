@@ -4,7 +4,6 @@
 import groovy.transform.Field
 
 @Field
-<<<<<<< HEAD
 def GIT_COMMIT_TO_USE = ""
 @Field
 def LAST_CLEAN_BACKEND_COMMIT = ""
@@ -12,9 +11,6 @@ def LAST_CLEAN_BACKEND_COMMIT = ""
 def backendTestsUpToDate = false // If true, indicates that the backend tests already passed at the latest commit
 @Field
 def backendTestsUpToDateFailed = false // If true, indicates that the backend tests already ran and failed at the latest commit
-=======
-def LAST_BACKEND_COMMIT = ""
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
@@ -48,7 +44,6 @@ pipeline {
         }
 
     environment {
-<<<<<<< HEAD
         OCI_CLI_AUTH = "instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
 
@@ -89,23 +84,6 @@ pipeline {
                     expression { return runPipeline() }
                 }
             }
-=======
-        OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
-
-        LAST_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-backend-run-commit.txt"
-        LAST_BACKEND_LOCATION = "${WORKSPACE}/last-backend-run-commit.txt"
-
-        OCI_OS_REGION="us-phoenix-1"
-    }
-
-    stages {
-        stage('Clean workspace and checkout') {
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                 steps {
                     script {
                         cleanWorkspaceAndCheckout()
@@ -113,8 +91,6 @@ pipeline {
                 }
         }
 
-<<<<<<< HEAD
-=======
         stage('Get most recent backend commit') {
             steps {
                 getLastBackendRunCommit()
@@ -122,25 +98,16 @@ pipeline {
             }
         }
 
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
         stage ('Run Backend Test Suite') {
             when {
                 allOf {
                     expression { return runPipeline() }
-<<<<<<< HEAD
-=======
-                    expression { !params.DRY_RUN }
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                 }
             }
 
             steps {
                 script {
-<<<<<<< HEAD
                     echo("Running backend suite with commit ${GIT_COMMIT_TO_USE}")
-=======
-                    echo("Running backend suite with commit ${SHORT_COMMIT_HASH}")
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                     build job: "/verrazzano-backend-tests/${CLEAN_BRANCH_NAME}", wait: true
                 }
             }
@@ -158,7 +125,6 @@ def cleanWorkspaceAndCheckout() {
     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
 }
 
-<<<<<<< HEAD
 // Returns the last clean commit for the backends, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
 def getLastCleanBackendCommit() {
@@ -193,13 +159,6 @@ def getLastCleanBackendCommit() {
 def getLastBackendRunCommit() {
     lastBackendCommitCommandOutput = sh (
         label: "Get last clean backend commit ID",
-=======
-// Returns the last run commit for the backend suite, or null if the commit file does not exist yet.
-// - fails the pipeline if any error other than 404 is returned by the OCI CLI
-def getLastBackendRunCommit() {
-    lastBackendCommitCommandOutput = sh (
-        label: "Get last clean backend suite commit ID",
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
         script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_BACKEND_OS_LOCATION} --file ${LAST_BACKEND_LOCATION} 2>&1 || true",
         returnStdout: true
         ).trim()
@@ -208,26 +167,17 @@ def getLastBackendRunCommit() {
         // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
         if (lastBackendCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
             // If we think we had a status: NNN, we ignore 404 and fail for others
-<<<<<<< HEAD
             assert lastBackendCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last backend commit from ObjectStore: ${lastBackendCommitCommandOutput}"
-=======
-            assert lastBackendCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last backend suite commit from ObjectStore: ${lastBackendCommitCommandOutput}"
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
         } else {
             // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
             sh """
                 if [ ! -f ${LAST_BACKEND_LOCATION} ]; then
-<<<<<<< HEAD
                     echo "An unexpected error occurred getting last backend run commit from ObjectStore: ${lastBackendCommitCommandOutput}"
-=======
-                    echo "An unexpected error occurred getting last backend suite run commit from ObjectStore: ${lastBackendCommitCommandOutput}"
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                     exit 1
                 fi
             """
         }
     }
-<<<<<<< HEAD
     // Get the commit ID for the last known clean pass of the Backend tests
     def lastBackendCommitProps = readProperties file: "${LAST_BACKEND_LOCATION}"
     return lastBackendCommitProps['git-commit']
@@ -252,11 +202,6 @@ def preliminaryChecks() {
             backendTestsUpToDateFailed = true
         }
     }
-=======
-    // Get the commit ID for the last known clean pass of the backend tests
-    def lastBackendCommitProps = readProperties file: "${LAST_BACKEND_LOCATION}"
-    LAST_BACKEND_COMMIT = lastBackendCommitProps['git-commit']
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 }
 
 def scmCheckout() {
@@ -274,29 +219,17 @@ def scmCheckout() {
     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 }
 
-<<<<<<< HEAD
 // Checks all the conditions gating test execution and collates the result
 def runPipeline() {
   return ! backendTestsUpToDate && ! backendTestsUpToDateFailed && ! params.DRY_RUN
-=======
-// Checks if the commit has changed since last run
-def runPipeline() {
-  return LAST_BACKEND_COMMIT != SHORT_COMMIT_HASH
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 }
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
         // scheduled for every 6 hours
-<<<<<<< HEAD
         return "H */6 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-")) {
         return "@daily"
-=======
-        return "0 */6 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-")) {
-        return "0 */6 * * *"
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
     }
     return ""
 }
