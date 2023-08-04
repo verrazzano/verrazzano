@@ -124,7 +124,7 @@ spec:
     - from:
         - source:
             namespaces:
-              - verrazzano-system
+              - verrazzano-monitoring
             principals:
               - cluster.local/ns/verrazzano-monitoring/sa/thanos-query
       to:
