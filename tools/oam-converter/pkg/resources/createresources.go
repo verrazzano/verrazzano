@@ -4,7 +4,6 @@
 package resources
 
 import (
-
 	"fmt"
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
@@ -21,7 +20,6 @@ import (
 
 func CreateResources(cli client.Client, conversionComponents []*types.ConversionComponents) (*types.KubeResources, error) {
 
-
 	var virtualServices []*vsapi.VirtualService
 	var destinationRules []*istioclient.DestinationRule
 	var authzPolicies []*clisecurity.AuthorizationPolicy
@@ -30,9 +28,7 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 	var authzPolicy []*clisecurity.AuthorizationPolicy
 	outputResources := types.KubeResources{}
 
-
 	gateway, allHostsForTrait, err := gw.CreateGatewayResource(cli, conversionComponents)
-
 
 	if err != nil {
 		return nil, err
@@ -43,7 +39,6 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 	}
 
 	for _, conversionComponent := range conversionComponents {
-
 
 		if conversionComponent.Weblogicworkload != nil || conversionComponent.Coherenceworkload != nil {
 
@@ -67,7 +62,6 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 			destinationRules = append(destinationRules, destinationRule...)
 			authzPolicies = append(authzPolicies, authzPolicy...)
 
-
 		}
 	}
 	//Appending it to Kube Resources to print the output
@@ -80,7 +74,6 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 
 func createChildResources(cli client.Client, conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
 
-
 	if conversionComponent.IngressTrait != nil {
 		rules := conversionComponent.IngressTrait.Spec.Rules
 		var virtualServices []*vsapi.VirtualService
@@ -90,9 +83,7 @@ func createChildResources(cli client.Client, conversionComponent *types.Conversi
 
 			// Find the services associated with the trait in the application configuration.
 
-
 			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(cli, rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
-
 
 			if err != nil {
 				print(err)
@@ -120,7 +111,6 @@ func createChildResources(cli client.Client, conversionComponent *types.Conversi
 		}
 		return virtualServices, destinationRules, authzPolicies, nil
 	}
-
 
 	return nil, nil, nil, fmt.Errorf("ingress Trait is empty")
 
