@@ -70,8 +70,8 @@ var (
 	httpClient        *retryablehttp.Client
 	cloudCredentialID string
 
-	ocneMetadataItemToInstall *OCNEMetadataItem
-	ocneMetadataItemToUpgrade *OCNEMetadataItem
+	ocneMetadataItemToInstall OCNEMetadataItem
+	ocneMetadataItemToUpgrade OCNEMetadataItem
 )
 
 // Verify required Environment Variables are set
@@ -219,14 +219,12 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 			return err
 		}
 		// finding the minimum kubernetes version to install a OCNE cluster
-		if ocneMetadataItemToInstall == nil || ocneMetadataItemToInstall.KubernetesVersion == nil ||
-			k8sSemVer.LessThan(ocneMetadataItemToInstall.KubernetesVersion) {
-			ocneMetadataItemToInstall = &OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
+		if ocneMetadataItemToInstall.KubernetesVersion == nil || k8sSemVer.LessThan(ocneMetadataItemToInstall.KubernetesVersion) {
+			ocneMetadataItemToInstall = OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
 		}
 		// finding the maximum kubernetes version to update the OCNE cluster
-		if ocneMetadataItemToUpgrade == nil || ocneMetadataItemToUpgrade.KubernetesVersion == nil ||
-			k8sSemVer.GreaterThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
-			ocneMetadataItemToUpgrade = &OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
+		if ocneMetadataItemToUpgrade.KubernetesVersion == nil || k8sSemVer.GreaterThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
+			ocneMetadataItemToUpgrade = OCNEMetadataItem{KubernetesVersion: k8sSemVer, OCNEMetadataContents: contentStruct}
 		}
 	}
 

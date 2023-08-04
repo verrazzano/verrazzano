@@ -22,7 +22,7 @@ const (
 	shortPollingInterval   = 10 * time.Second
 	waitTimeout            = 45 * time.Minute
 	pollingInterval        = 30 * time.Second
-	skipOCNEUpgradeMessage = "Skipping test since the kubernetes version is same for install and update operations for OCNE cluster"
+	skipOCNEUpgradeMessage = "Skipping test since the kubernetes version is same for install and update operations for OCNE cluster upgrade"
 )
 
 var (
@@ -95,6 +95,9 @@ func synchronizedBeforeSuiteAllProcessesFunc(credentialIDBytes []byte) {
 	err = ensureOCNEDriverVarsInitialized(t.Logs)
 	Expect(err).ShouldNot(HaveOccurred())
 
+	t.Logs.Infof("Min k8s version: %s", ocneMetadataItemToInstall.KubernetesVersion.Original())
+	t.Logs.Infof("Max k8s version: %s", ocneMetadataItemToUpgrade.KubernetesVersion.Original())
+
 	clusterNameSingleNode = fmt.Sprintf("strudel-single-%s", ocneClusterNameSuffix)
 	clusterNameNodePool = fmt.Sprintf("strudel-pool-%s", ocneClusterNameSuffix)
 	clusterNameSingleNodeInvalid = fmt.Sprintf("strudel-single-invalid-k8s-%s", ocneClusterNameSuffix)
@@ -106,7 +109,7 @@ var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchroni
 // Part of SynchronizedAfterSuite, run by only one process
 func synchronizedAfterSuiteProcess1Func() {
 	// Delete the clusters concurrently
-	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeOCNEUpgrade, clusterNameSingleNodeInvalid}
+	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeInvalid, clusterNameSingleNodeOCNEUpgrade}
 	var wg sync.WaitGroup
 	for _, clusterName := range clusterNames {
 		if clusterName != "" {
@@ -241,12 +244,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 	// Cluster 4. Create with a single node with the minimum OCNE supported Kubernetes version and related info.
 	// Later, update the cluster with the maximum OCNE supported Kubernetes version and related info.
-	t.Context("OCNE cluster creation with single node", Ordered, func() {
+	t.Context("OCNE cluster creation with single node with OCNE cluster upgrade", Ordered, func() {
 		var clusterConfig RancherOCNECluster
 
 		// Create the cluster
 		t.It("create OCNE cluster with the minimum OCNE supported Kubernetes version and related info", func() {
-			if ocneMetadataItemToInstall.KubernetesVersion == ocneMetadataItemToUpgrade.KubernetesVersion {
+			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
 				Skip(skipOCNEUpgradeMessage)
 			}
 			mutateFn := func(config *RancherOCNECluster) {
@@ -264,7 +267,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 
 		t.It("check OCNE cluster is active with the minimum OCNE supported Kubernetes version and related info", func() {
-			if ocneMetadataItemToInstall.KubernetesVersion == ocneMetadataItemToUpgrade.KubernetesVersion {
+			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
 				Skip(skipOCNEUpgradeMessage)
 			}
 			// Verify the cluster is active
@@ -278,7 +281,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 		// Update the cluster
 		t.It("update OCNE cluster with the maximum OCNE supported Kubernetes version and related info", func() {
-			if ocneMetadataItemToInstall.KubernetesVersion == ocneMetadataItemToUpgrade.KubernetesVersion {
+			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
 				Skip(skipOCNEUpgradeMessage)
 			}
 			Eventually(func() error {
@@ -296,7 +299,7 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 
 		t.It("check the OCNE cluster updated with the maximum OCNE supported Kubernetes version and related info", func() {
-			if ocneMetadataItemToInstall.KubernetesVersion == ocneMetadataItemToUpgrade.KubernetesVersion {
+			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
 				Skip(skipOCNEUpgradeMessage)
 			}
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeOCNEUpgrade, t.Logs) }, waitTimeout, pollingInterval).Should(
