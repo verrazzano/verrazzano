@@ -459,9 +459,10 @@ func tokenRequestForRancherWithExistingToken(requestType string, httpClient *ret
 			return nil, reqURL, err
 		}
 		err = httputil.ValidateResponseCode(response, http.StatusCreated)
-		if err == nil {
-			return responseBody, reqURL, err
+		if err != nil {
+			return nil, reqURL, err
 		}
+		return responseBody, reqURL, err
 
 	}
 	if requestType == "GET" {
@@ -479,9 +480,10 @@ func tokenRequestForRancherWithExistingToken(requestType string, httpClient *ret
 			return nil, reqURL, err
 		}
 		err = httputil.ValidateResponseCode(response, http.StatusOK)
-		if err == nil {
-			return responseBody, reqURL, err
+		if err != nil {
+			return nil, reqURL, err
 		}
+		return responseBody, reqURL, err
 	}
 	return nil, "", fmt.Errorf("Only GET and POST requests are supported")
 }
