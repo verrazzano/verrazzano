@@ -1,21 +1,21 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonresources
+package workloads
 
 import (
 	"fmt"
-	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
-	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
-
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// CreateIngressChildResourcesFromHelidon create child resources from helidon workload
-func CreateIngressChildResourcesFromHelidon(conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
+// CreateIngressChildResourcesFromWorkload create child resources from workload
+func CreateIngressChildResourcesFromWorkload(cli client.Client, conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
 	var virtualServices []*vsapi.VirtualService
 	var destinationRules []*istioclient.DestinationRule
 	var authzPolicies []*clisecurity.AuthorizationPolicy
@@ -23,7 +23,7 @@ func CreateIngressChildResourcesFromHelidon(conversionComponent *types.Conversio
 		rules := conversionComponent.IngressTrait.Spec.Rules
 		for index, rule := range rules {
 
-			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(cli, rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 
 			if err != nil {
 				print(err)
@@ -33,12 +33,12 @@ func CreateIngressChildResourcesFromHelidon(conversionComponent *types.Conversio
 			vsName := fmt.Sprintf("%s-rule-%d-vs", conversionComponent.IngressTrait.Name, index)
 			drName := fmt.Sprintf("%s-rule-%d-dr", conversionComponent.ComponentName, index)
 			authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", conversionComponent.ComponentName, index)
-			virtualService, err := createVirtualServiceFromHelidonWorkload(conversionComponent.AppNamespace, rule, vsHosts, vsName, gateway, conversionComponent.Helidonworkload)
+			virtualService, err := createVirtualServiceFromWorkload(conversionComponent.AppNamespace, rule, vsHosts, vsName, gateway, conversionComponent.Helidonworkload, conversionComponent.Service)
 			if err != nil {
 				return nil, nil, nil, err
 			}
 			virtualServices = append(virtualServices, virtualService)
-			destinationRule, err := createDestinationRuleFromHelidonWorkload(conversionComponent.IngressTrait, rule, drName, conversionComponent.Helidonworkload)
+			destinationRule, err := createDestinationRuleFromWorkload(conversionComponent.IngressTrait, rule, drName, conversionComponent.Helidonworkload, conversionComponent.Service)
 			if err != nil {
 				return nil, nil, nil, err
 			}

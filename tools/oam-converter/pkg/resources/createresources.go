@@ -4,21 +4,22 @@
 package resources
 
 import (
-	"errors"
 	"fmt"
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	azp "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/authorizationpolicy"
-	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationRule"
+	destination "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/destinationrule"
 	gw "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/gateway"
-	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/helidonresources"
 	vs "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/virtualservice"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/workloads"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateResources(conversionComponents []*types.ConversionComponents) (*types.KubeResources, error) {
+func CreateResources(cli client.Client, conversionComponents []*types.ConversionComponents) (*types.KubeResources, error) {
+
 	var virtualServices []*vsapi.VirtualService
 	var destinationRules []*istioclient.DestinationRule
 	var authzPolicies []*clisecurity.AuthorizationPolicy
@@ -27,7 +28,8 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 	var authzPolicy []*clisecurity.AuthorizationPolicy
 	outputResources := types.KubeResources{}
 
-	gateway, allHostsForTrait, err := gw.CreateGatewayResource(conversionComponents)
+	gateway, allHostsForTrait, err := gw.CreateGatewayResource(cli, conversionComponents)
+
 	if err != nil {
 		return nil, err
 	}
@@ -37,36 +39,29 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 	}
 
 	for _, conversionComponent := range conversionComponents {
-		if conversionComponent.Weblogicworkload != nil {
 
-			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
+		if conversionComponent.Weblogicworkload != nil || conversionComponent.Coherenceworkload != nil {
+
+			virtualService, destinationRule, authzPolicy, err = createChildResources(cli, conversionComponent, gateway, allHostsForTrait)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Child resources from Weblogic workload %w", err)
+
+			}
 			virtualServices = append(virtualServices, virtualService...)
 			destinationRules = append(destinationRules, destinationRule...)
 			authzPolicies = append(authzPolicies, authzPolicy...)
-			if err != nil {
-				return nil, errors.New("failed to create Child resources from Weblogic workload")
 
-			}
 		}
-		if conversionComponent.Coherenceworkload != nil {
-			virtualService, destinationRule, authzPolicy, err = createChildResources(conversionComponent, gateway, allHostsForTrait)
+		if conversionComponent.Helidonworkload != nil || conversionComponent.Service != nil {
+			virtualService, destinationRule, authzPolicy, err = workloads.CreateIngressChildResourcesFromWorkload(cli, conversionComponent, gateway, allHostsForTrait)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Child resources from workload %w", err)
+
+			}
 			virtualServices = append(virtualServices, virtualService...)
 			destinationRules = append(destinationRules, destinationRule...)
 			authzPolicies = append(authzPolicies, authzPolicy...)
-			if err != nil {
-				return nil, errors.New("failed to create Child resources from Coherence workload")
 
-			}
-		}
-		if conversionComponent.Helidonworkload != nil {
-			virtualService, destinationRule, authzPolicy, err = helidonresources.CreateIngressChildResourcesFromHelidon(conversionComponent, gateway, allHostsForTrait)
-			virtualServices = append(virtualServices, virtualService...)
-			destinationRules = append(destinationRules, destinationRule...)
-			authzPolicies = append(authzPolicies, authzPolicy...)
-			if err != nil {
-				return nil, errors.New("failed to create Child resources from Helidon workload")
-
-			}
 		}
 	}
 	//Appending it to Kube Resources to print the output
@@ -77,7 +72,8 @@ func CreateResources(conversionComponents []*types.ConversionComponents) (*types
 	return &outputResources, nil
 }
 
-func createChildResources(conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
+func createChildResources(cli client.Client, conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
+
 	if conversionComponent.IngressTrait != nil {
 		rules := conversionComponent.IngressTrait.Spec.Rules
 		var virtualServices []*vsapi.VirtualService
@@ -86,7 +82,8 @@ func createChildResources(conversionComponent *types.ConversionComponents, gatew
 		for index, rule := range rules {
 
 			// Find the services associated with the trait in the application configuration.
-			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+
+			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(cli, rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 
 			if err != nil {
 				print(err)
@@ -114,5 +111,7 @@ func createChildResources(conversionComponent *types.ConversionComponents, gatew
 		}
 		return virtualServices, destinationRules, authzPolicies, nil
 	}
-	return nil, nil, nil, errors.New("ingress Trait is empty")
+
+	return nil, nil, nil, fmt.Errorf("ingress Trait is empty")
+
 }
