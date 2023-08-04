@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
@@ -77,7 +78,15 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 		if result := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade); result.Requeue {
 			requeue = true
 		}
-
+		// WA to reinstall the Fluent Operator with enabled input after FluentbitOpensearchOutput is installed.
+		if comp.Name() == fluentbitosoutput.ComponentName {
+			isFluentOperatorExists, fluentOperatorComp := registry.FindComponent(fluentbitosoutput.ComponentName)
+			if isFluentOperatorExists {
+				if result := r.installSingleComponent(spiCtx, tracker.getComponentInstallContext(fluentOperatorComp.Name()), fluentOperatorComp, preUpgrade); result.Requeue {
+					requeue = true
+				}
+			}
+		}
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil
