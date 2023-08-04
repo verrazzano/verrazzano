@@ -15,7 +15,6 @@ import (
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	corev1 "k8s.io/api/core/v1"
-	k8error "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -107,11 +106,8 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 	//In the case of verrazzano uninstall,the reconciler re-creates the config map
 	//when the vz status is either uninstalling or uninstall completely then do not create anything
 	var currentCondition installv1alpha1.ConditionType
-	log.Infof("printing the length", len(vz.Status.Conditions))
 	if len(vz.Status.Conditions) > 0 {
-		log.Info("inside if block,")
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
-		log.Info("inside if block", currentCondition)
 	}
 	if currentCondition == installv1alpha1.CondUninstallComplete || currentCondition == installv1alpha1.CondUninstallStarted {
 		log.Info("verrazzano uninstalling, skipping the effective config map creation")
@@ -128,7 +124,6 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 	if err != nil {
 		return fmt.Errorf("failed retrieving the Effective CR: %v", err)
 	}
-	fmt.Println("current vz conditon", currentCondition)
 
 	// Marshal Indent it to format the Effective CR Specs into YAML
 	effCRSpecs, err := yaml.Marshal(effCR.Spec)
@@ -143,18 +138,16 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 			Namespace: (vz.ObjectMeta.Namespace),
 		},
 	}
-	var res controllerutil.OperationResult
 
 	// Update the configMap if a ConfigMap already exists
 	// In case, there's no ConfigMap, the IsNotFound() func will return true and then it will create one.
-	res, err = controllerutil.CreateOrUpdate(ctx, c, effCRConfigmap, func() error {
+	_, err = controllerutil.CreateOrUpdate(ctx, c, effCRConfigmap, func() error {
 		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
-	log.Info("response from", res)
-	if k8error.IsAlreadyExists(err) {
-		return nil
-	}
+	//if k8error.IsAlreadyExists(err) {
+	//	return nil
+	//}
 	if err != nil {
 		return fmt.Errorf("failed to Create or Update the configmap: %v", err)
 	}

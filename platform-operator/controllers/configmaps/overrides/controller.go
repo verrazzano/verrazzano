@@ -59,7 +59,6 @@ func (r *OverridesConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl.
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), err
 	}
-
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
 		res, err := r.reconcileInstallOverrideConfigMap(ctx, req, vz)
@@ -79,19 +78,11 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
 	var currentCondition installv1alpha1.ConditionType
-	if vz != nil {
-		r.log.Info("checking print status", vz)
-	}
-	r.log.Info("print status", vz)
-	if vz.Status.Conditions != nil {
-		r.log.Infof("printing the length", len(vz.Status.Conditions))
-	}
 	if len(vz.Status.Conditions) > 0 {
-		r.log.Info("inside if block")
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
 	if currentCondition == installv1alpha1.CondInstallComplete || currentCondition == installv1alpha1.CondUpgradeComplete {
-		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, r.log); err != nil {
+		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, vzlog.DefaultLogger()); err != nil {
 			return newRequeueWithDelay(), nil
 		}
 	}
