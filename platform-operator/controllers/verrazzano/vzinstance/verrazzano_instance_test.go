@@ -6,6 +6,10 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -42,6 +46,7 @@ func TestGetInstanceInfo(t *testing.T) {
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
 	const thanosRulerURL = "thanos-ruler." + dnsDomain
+	const jaegerURL = "jaeger." + dnsDomain
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
@@ -112,10 +117,24 @@ func TestGetInstanceInfo(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: jaegerURL},
+						},
+					},
+				},
 			}
 			return nil
 		})
-
+	// Expect a call to get the managed cluster registration secret by Jaeger component code, return not found
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.MCRegistrationSecret,
+			Namespace: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret, opts ...client.GetOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCRegistrationSecret)
+		})
 	enabled := true
 	vz := &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
@@ -124,6 +143,9 @@ func TestGetInstanceInfo(t *testing.T) {
 					Enabled: &enabled,
 				},
 				Thanos: &v1alpha1.ThanosComponent{
+					Enabled: &enabled,
+				},
+				JaegerOperator: &v1alpha1.JaegerOperatorComponent{
 					Enabled: &enabled,
 				},
 			},
@@ -141,6 +163,7 @@ func TestGetInstanceInfo(t *testing.T) {
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
 	assert.Equal(t, "https://"+thanosRulerURL, *instanceInfo.ThanosRulerURL)
+	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
@@ -160,6 +183,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	const promURL = "prometheus." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
+	const jaegerURL = "jaeger." + dnsDomain
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
@@ -198,11 +222,40 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: jaegerURL},
+						},
+					},
+				},
 			}
 			return nil
 		})
-
-	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, nil, false))
+	// Expect a call to get the managed cluster registration secret by Jaeger component code, return secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.MCRegistrationSecret,
+			Namespace: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret,
+			opts ...client.GetOption) error {
+			secret.Name = constants.MCRegistrationSecret
+			secret.Namespace = constants.VerrazzanoSystemNamespace
+			secret.Data = map[string][]byte{constants.ClusterNameData: []byte("managed1")}
+			secret.ResourceVersion = "840"
+			return nil
+		})
+	enabled := true
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				JaegerOperator: &v1alpha1.JaegerOperatorComponent{
+					Enabled: &enabled,
+				},
+			},
+		},
+	}
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, nil, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -212,6 +265,8 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	assert.Nil(t, instanceInfo.GrafanaURL)
 	assert.Nil(t, instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	// VZ CR Jaeger instance does not get created for managed cluster by default
+	assert.Nil(t, instanceInfo.JaegerURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
