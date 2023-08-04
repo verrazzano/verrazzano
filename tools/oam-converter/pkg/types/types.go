@@ -5,6 +5,7 @@ package types
 
 import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -18,6 +19,7 @@ type ConversionComponents struct {
 	Coherenceworkload *unstructured.Unstructured
 	Weblogicworkload  *unstructured.Unstructured
 	Genericworkload   *unstructured.Unstructured
+	Service *corev1.Service
 }
 
 var InputArgs ConversionInput

@@ -129,17 +129,19 @@ func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents [
 	var gateway *vsapi.Gateway
 	var allHostsForTrait []string
 	var err error
+	var ingressCount int
 	for _, conversionComponent := range conversionComponents {
+		if(conversionComponent.IngressTrait != nil){
+			ingressCount = ingressCount + 1
+			allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(cli, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+			if err != nil {
+				return nil, nil, err
 
-		allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(cli, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
-		if err != nil {
-			return nil, nil, err
-
+			}
 		}
-
 	}
 	secretNames := CreateGatewaySecret(conversionComponents, allHostsForTrait)
-	if len(secretNames) == len(conversionComponents) && secretNames != nil {
+	if len(secretNames) == ingressCount && secretNames != nil {
 		gwName, err := BuildGatewayName(conversionComponents[0].AppNamespace)
 		if err != nil {
 
@@ -158,17 +160,19 @@ func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents [
 func CreateGatewaySecret(conversionComponents []*types.ConversionComponents, hostsForTrait []string) []string {
 	var secrets []string
 	for _, conversionComponent := range conversionComponents {
-		var secretName string
-		if conversionComponent.IngressTrait.Spec.TLS != (vzapi.IngressSecurity{}) {
-			secretName = validateConfiguredSecret(conversionComponent.IngressTrait)
-		} else {
+		if(conversionComponent.IngressTrait != nil){
+			var secretName string
+			if conversionComponent.IngressTrait.Spec.TLS != (vzapi.IngressSecurity{}) {
+				secretName = validateConfiguredSecret(conversionComponent.IngressTrait)
+			} else {
 
-			buildLegacyCertificateName(conversionComponent.IngressTrait, conversionComponent.AppNamespace, conversionComponent.AppName)
-			buildLegacyCertificateSecretName(conversionComponent.IngressTrait, conversionComponent.AppNamespace, conversionComponent.AppName)
-			secretName = createGatewayCertificate(conversionComponent.IngressTrait, hostsForTrait, conversionComponent.AppNamespace)
+				buildLegacyCertificateName(conversionComponent.IngressTrait, conversionComponent.AppNamespace, conversionComponent.AppName)
+				buildLegacyCertificateSecretName(conversionComponent.IngressTrait, conversionComponent.AppNamespace, conversionComponent.AppName)
+				secretName = createGatewayCertificate(conversionComponent.IngressTrait, hostsForTrait, conversionComponent.AppNamespace)
 
+			}
+			secrets = append(secrets, secretName)
 		}
-		secrets = append(secrets, secretName)
 	}
 
 	return secrets
@@ -197,22 +201,26 @@ func CreateGateway(conversionComponents []*types.ConversionComponents, hostsForT
 
 // mutate Gateway mutates or changes gateway according to the trait configuration
 func mutateGateway(conversionComponents []*types.ConversionComponents, gateway *vsapi.Gateway, hostsForTrait []string, secretNames []string) (*vsapi.Gateway, error) {
+	ingressCount := 0
 	for i := range conversionComponents {
-		// perform an operation
-		server := &istio.Server{
-			Name:  conversionComponents[i].IngressTrait.Name,
-			Hosts: hostsForTrait,
-			Port: &istio.Port{
-				Name:     formatGatewayServerPortName(conversionComponents[i].IngressTrait.Name),
-				Number:   443,
-				Protocol: consts.HTTPSProtocol,
-			},
-			Tls: &istio.ServerTLSSettings{
-				Mode:           istio.ServerTLSSettings_SIMPLE,
-				CredentialName: secretNames[i],
-			},
+		if conversionComponents[i].IngressTrait != nil {
+			// perform an operation
+			server := &istio.Server{
+				Name:  conversionComponents[i].IngressTrait.Name,
+				Hosts: hostsForTrait,
+				Port: &istio.Port{
+					Name:     formatGatewayServerPortName(conversionComponents[i].IngressTrait.Name),
+					Number:   443,
+					Protocol: consts.HTTPSProtocol,
+				},
+				Tls: &istio.ServerTLSSettings{
+					Mode:           istio.ServerTLSSettings_SIMPLE,
+					CredentialName: secretNames[ingressCount],
+				},
+			}
+			gateway.Spec.Servers = updateGatewayServersList(gateway.Spec.Servers, server)
+			ingressCount = ingressCount + 1
 		}
-		gateway.Spec.Servers = updateGatewayServersList(gateway.Spec.Servers, server)
 	}
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 	return gateway, nil

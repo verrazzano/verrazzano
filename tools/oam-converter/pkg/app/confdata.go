@@ -11,11 +11,13 @@ import (
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
-	"io/ioutil"
+	workload "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/workloads"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
@@ -28,18 +30,22 @@ func ConfData() error {
 	var components []map[string]interface{}
 
 	//used to store non-oam file data
+
 	var k8sResources []any
 
 	//iterate through user inputted directory
 	files, err := iterateDirectory(types.InputArgs.InputDirectory)
 	if err != nil {
-		fmt.Println("Error in iterating over directory", err)
+
+		return fmt.Errorf("error in iterating over directory %w", err)
 	}
+
+
 	//Read each file from the input directory
 	for _, input := range files {
-		data, err := ioutil.ReadFile(input)
+		data, err := os.ReadFile(input)
 		if err != nil {
-			return errors.New("error in unmarshalling the components")
+			return fmt.Errorf("error in reading file %w", err)
 		}
 		datastr := string(data)
 		//Split the objects using "---" delimiter
@@ -78,13 +84,18 @@ func ConfData() error {
 		return errors.New("failed extracting traits from app")
 	}
 	//Extract workloads from app file
-	conversionComponents, err = traits.ExtractWorkload(components, conversionComponents)
+
+	conversionComponents, err = workload.ExtractWorkload(components, conversionComponents)
+
 	if err != nil {
 		return errors.New("error in extracting workload")
 	}
 
+	cfg, _ := config.GetConfig()
+	cli, _ := client.New(cfg, client.Options{})
 	//Create child resources
-	outputResources, err := resources.CreateResources(conversionComponents)
+	outputResources, err := resources.CreateResources(cli, conversionComponents)
+
 	if err != nil {
 		return err
 	}
@@ -101,11 +112,11 @@ func ConfData() error {
 	err = writeKubeResources(types.InputArgs.OutputDirectory, byteResources)
 	if err != nil {
 		return err
+
 	}
 	//write the nonOAM resources to the file
 	return nil
 }
-
 // Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources []unstructured.Unstructured) error {
 	for index := range outputResources {
@@ -183,9 +194,10 @@ func writeToFile(filePath string, object any) error {
 	defer f.Close()
 
 	return nil
+
 }
 
-// Iterate over input directory
+// iterateDirectory Iterate over input directory
 func iterateDirectory(path string) ([]string, error) {
 	var files []string
 
