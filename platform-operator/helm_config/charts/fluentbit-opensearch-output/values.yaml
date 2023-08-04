@@ -44,4 +44,24 @@ system:
     enabled: false
   templateFile: "/fluent-bit/etc/opensearch-config/opensearch-template-verrazzano.json"
 
-
+input:
+  tail:
+    enable: true
+    refreshIntervalSeconds: 10
+    memBufLimit: 5MB
+    path: "/var/log/containers/*.log"
+    skipLongLines: true
+    readFromHead: true
+    # Use storageType as "filesystem" if you want to use filesystem as the buffering mechanism for tail input.
+    storageType: filesystem
+    pauseOnChunksOverlimit: "on"
+  systemd:
+    enable: true
+    systemdFilter:
+      enable: false
+    stripUnderscores: "on"
+    path: "/run/log/journal"
+    includeKubelet: true
+    # Use storageType as "filesystem" if you want to use filesystem as the buffering mechanism for systemd input.
+    storageType: filesystem
+    pauseOnChunksOverlimit: "on"
