@@ -19,6 +19,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// additionalTLS is an optional tls secret that contains additional CA
+const additionalTLS = "tls-ca-additional"
+
 // createCattleSystemNamespace creates the cattle-system namespace if it does not exist
 func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) error {
 	namespace := &v1.Namespace{
@@ -47,10 +50,10 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 //
 // If private CAs are not in use, we will clean up the cattle-system/tls-ca secret if it exists
 func copyPrivateCABundles(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
-	log.Debugf("Cleaning up legacy Rancher additional CA secret %s/%s if it exists", common.CattleSystem, vzconst.AdditionalTLS)
+	log.Debugf("Cleaning up legacy Rancher additional CA secret %s/%s if it exists", common.CattleSystem, additionalTLS)
 	err := vzresource.Resource{
 		Namespace: common.CattleSystem,
-		Name:      vzconst.AdditionalTLS,
+		Name:      additionalTLS,
 		Client:    c,
 		Object:    &v1.Secret{},
 		Log:       log,

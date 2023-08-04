@@ -107,12 +107,6 @@ const RancherTLSCA = "tls-ca"
 // RancherTLSCAKey is the key containing the CA in the secret specified by the RancherTLSCA constant
 const RancherTLSCAKey = "cacerts.pem"
 
-// AdditionalTLS is an optional tls secret that contains additional CA
-const AdditionalTLS = "tls-ca-additional"
-
-// AdditionalTLSCAKey is the key containing the CA in the secret specified by the AdditionalTLS constant
-const AdditionalTLSCAKey = "ca-additional.pem"
-
 // PrivateCABundle is an optional tls secret that contains private CAs used to issue/validate Verrazzano certificates
 const PrivateCABundle = "verrazzano-tls-ca"
 
