@@ -230,21 +230,21 @@ func TestMoveSystemNamespaces(t *testing.T) {
 	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(vzCR,
-		newReplicaSet("cattle-system", "rancher"),
-		newReplicaSet("cattle-system", "rancher-webhook"),
-		newReplicaSet("cattle-fleet-system", "gitjob"),
-		newReplicaSet("cattle-fleet-system", "fleet-controller"),
-		newReplicaSet("cattle-fleet-local-system", "fleet-agent"),
-		newPod("cattle-system", "rancher"),
-		newPod("cattle-system", "rancher-webhook"),
-		newPod("cattle-fleet-system", "gitjob"),
-		newPod("cattle-fleet-system", "fleet-controller"),
-		newPod("cattle-fleet-local-system", "fleet-agent"),
-		newReadyDeployment("cattle-system", "rancher"),
-		newReadyDeployment("cattle-system", "rancher-webhook"),
-		newReadyDeployment("cattle-fleet-system", "gitjob"),
-		newReadyDeployment("cattle-fleet-system", "fleet-controller"),
-		newReadyDeployment("cattle-fleet-local-system", "fleet-agent"), namespace1).Build()
+		newReplicaSet(rancher.ComponentNamespace, "rancher"),
+		newReplicaSet(rancher.ComponentNamespace, "rancher-webhook"),
+		newReplicaSet(rancher.FleetSystemNamespace, "gitjob"),
+		newReplicaSet(rancher.FleetSystemNamespace, "fleet-controller"),
+		newReplicaSet(rancher.FleetLocalSystemNamespace, "fleet-agent"),
+		newPod(rancher.ComponentNamespace, "rancher"),
+		newPod(rancher.ComponentNamespace, "rancher-webhook"),
+		newPod(rancher.FleetSystemNamespace, "gitjob"),
+		newPod(rancher.FleetSystemNamespace, "fleet-controller"),
+		newPod(rancher.FleetLocalSystemNamespace, "fleet-agent"),
+		newReadyDeployment(rancher.ComponentNamespace, "rancher"),
+		newReadyDeployment(rancher.ComponentNamespace, "rancher-webhook"),
+		newReadyDeployment(rancher.FleetSystemNamespace, "gitjob"),
+		newReadyDeployment(rancher.FleetSystemNamespace, "fleet-controller"),
+		newReadyDeployment(rancher.FleetLocalSystemNamespace, "fleet-agent"), namespace1).Build()
 	ctx := spi.NewFakeContext(client, vzCR, nil, false)
 	namespaceWatcher = NewNamespaceWatcher(ctx.Client(), period)
 	projectID := "p-47cnm"
