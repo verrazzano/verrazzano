@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/namespace"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sort"
 	"strings"
 
@@ -183,49 +182,8 @@ func (h HelmComponent) ShouldUseModule() bool {
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-// Always for secrets and configmaps since they may contain module configuration
 func (h HelmComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return []controllerspi.WatchDescriptor{
-		{
-			WatchKind:           source.Kind{Type: &v1.Secret{}},
-			FuncShouldReconcile: h.ShouldSecretEventTriggerReconcile,
-		},
-		{
-			WatchKind:           source.Kind{Type: &v1.ConfigMap{}},
-			FuncShouldReconcile: h.ShouldConfigmapEventTriggerReconcile,
-		},
-	}
-}
-
-// ShouldSecretEventTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
-func (h HelmComponent) ShouldSecretEventTriggerReconcile(obj clipkg.Object, event controllerspi.WatchEvent) bool {
-	if event == controllerspi.Deleted {
-		return false
-	}
-	secret := obj.(*v1.Secret)
-	return doesModuleOwnResource(secret.Labels, h.Name())
-}
-
-// ShouldConfigmapEventTriggerReconcile returns true if reconcile should be done in response to a Configmap lifecycle event
-func (h HelmComponent) ShouldConfigmapEventTriggerReconcile(obj clipkg.Object, event controllerspi.WatchEvent) bool {
-	if event == controllerspi.Deleted {
-		return false
-	}
-	cm := obj.(*v1.ConfigMap)
-	return doesModuleOwnResource(cm.Labels, h.Name())
-}
-
-// doesModuleOwnResource returns true if the resource module owner label matches component
-func doesModuleOwnResource(labels map[string]string, moduleName string) bool {
-	if labels == nil {
-		return false
-	}
-	owner, ok := labels[constants.VerrazzanoModuleOwnerLabel]
-	if !ok {
-		return false
-	}
-	// return true if this resource has the module owner label that matches this component.
-	return owner == moduleName
+	return h.WatchDescriptors
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD
@@ -242,7 +200,6 @@ func (h HelmComponent) GetOverrides(cr runtime.Object) interface{} {
 		return []v1beta1.Overrides{}
 	}
 	return []v1alpha1.Overrides{}
-
 }
 
 // GetDependencies returns the Dependencies of this component
