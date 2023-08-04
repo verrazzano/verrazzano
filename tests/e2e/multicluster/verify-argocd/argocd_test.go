@@ -8,13 +8,12 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -136,20 +135,14 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		})
 		// Tests that a new ArgoCD token is able to be created
 		t.It("A new ArgoCD token is able to be created through the Rancher API", func() {
-			Eventually(func() error {
-				httpClientForRancher, clusterID, APIAccessToken, err := getRequiredInfoToPreformTokenOperationsInRancherForArgoCD()
-				if err != nil {
-					pkg.Log(pkg.Error, "Error getting the required information to preform Token Operations in Rancher")
-					return err
-				}
-				createdTimeStampForNewTokenCreated, err = pkg.AddAccessTokenToRancherForLoggedInUser(httpClientForRancher, adminKubeconfig, clusterID, ttl, APIAccessToken, *t.Logs)
+			Eventually(func() (string, error) {
+				createdTimeStampForNewTokenCreated, err := pkg.AddAccessTokenToRancherForLoggedInUser(t.Logs, adminKubeconfig, managedClusterName, argoCDUsernameForRancher, ttl)
 				if err != nil {
 					pkg.Log(pkg.Error, "Error creating New Token")
-					return err
 				}
-				return err
+				return createdTimeStampForNewTokenCreated, err
 
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to Be Able To Create a Token through the API")
+			}, waitTimeout, pollingInterval).ShouldNot(BeEmpty(), "Expected to Be Able To Create a Token through the API")
 		})
 		// Pre-set up occurs to trigger the update in the secret
 		// Tests that the update completes and that the secret now has the timestamps of the old token
@@ -174,12 +167,7 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		// This checks that if no valid tokens are present when an upgrade happens, a new token is created
 		t.It("All of the tokens that belong to this user should be retrieved in the cluster without any errors", func() {
 			Eventually(func() error {
-				httpClientForRancher, clusterID, APIAccessToken, err := getRequiredInfoToPreformTokenOperationsInRancherForArgoCD()
-				if err != nil {
-					pkg.Log(pkg.Error, "Error getting the required information to preform Token Operations in Rancher")
-					return err
-				}
-				err = pkg.GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(httpClientForRancher, adminKubeconfig, clusterID, APIAccessToken, *t.Logs)
+				err := pkg.GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(t.Logs, adminKubeconfig, managedClusterName, argoCDUsernameForRancher)
 				if err != nil {
 					pkg.Log(pkg.Error, "Error querying the list of ArgoCD API Access tokens for that existing user")
 				}
@@ -240,13 +228,13 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 
 })
 
-//var afterSuite = t.AfterSuiteFunc(func() {
-//	if failed || !beforeSuitePassed {
-//		dump.ExecuteBugReport(testNamespace)
-//	}
-//})
-//
-//var _ = AfterSuite(afterSuite)
+var afterSuite = t.AfterSuiteFunc(func() {
+	if failed || !beforeSuitePassed {
+		dump.ExecuteBugReport(testNamespace)
+	}
+})
+
+var _ = AfterSuite(afterSuite)
 
 func deleteArgoCDApplication(kubeconfigPath string) error {
 	start := time.Now()
@@ -313,56 +301,6 @@ func verifyCreatedAtAndExpiresAtTimestampsExist(namespace, name string) (bool, e
 	return true, nil
 }
 
-// This function retrieves the ArgoCD password to log into rancher, based on the provided name and namespace of a secret that holds this information
-func retrieveArgoCDPassword(namespace, name string) (string, error) {
-	s, err := pkg.GetSecret(namespace, name)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
-		return "", err
-	}
-	argoCDPasswordForSecret, ok := s.Data["password"]
-	if !ok {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to find password value in ArgoCD secret %s in namespace %s", name, namespace))
-		return "", fmt.Errorf("Failed to find password value in ArgoCD secret %s in namespace %s", name, namespace)
-	}
-	return string(argoCDPasswordForSecret), nil
-}
-
-// This function gets the necessary information required to access the token API resources in Rancher for ArgoCD
-func getRequiredInfoToPreformTokenOperationsInRancherForArgoCD() (*retryablehttp.Client, string, string, error) {
-	argoCDPasswordForRancher, err := retrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
-	if err != nil {
-		return nil, "", "", err
-	}
-	rancherConfigForArgoCD, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, argoCDUsernameForRancher, argoCDPasswordForRancher)
-	if err != nil {
-		pkg.Log(pkg.Error, "Error occurred when created a Rancher Config for ArgoCD")
-		return nil, "", "", err
-	}
-	client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
-	if err != nil {
-		pkg.Log(pkg.Error, "Error creating the client set used by the cluster operator")
-		return nil, "", "", err
-	}
-	managedCluster, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
-	if err != nil {
-		pkg.Log(pkg.Error, "Error getting the current managed cluster resource")
-		return nil, "", "", err
-	}
-	clusterID := managedCluster.Status.RancherRegistration.ClusterID
-	if clusterID == "" {
-		pkg.Log(pkg.Error, "The managed cluster does not have a clusterID value")
-		err := fmt.Errorf("ClusterID value is not yet populated for the managed cluster")
-		return nil, "", "", err
-	}
-	httpClientForRancher, err := pkg.GetVerrazzanoHTTPClient(adminKubeconfig)
-	if err != nil {
-		pkg.Log(pkg.Error, "Error getting the Verrazzano http client")
-		return nil, "", "", err
-	}
-	return httpClientForRancher, clusterID, rancherConfigForArgoCD.APIAccessToken, nil
-}
-
 // This function tests if the ArgoCD secret was successfully updated
 func testIfUpdateSuccessfullyTriggeredForArgoCD(secretName string) error {
 	secretToTriggerUpdate, err := pkg.GetSecret(argoCDNamespace, secretName)
@@ -382,8 +320,8 @@ func testIfUpdateSuccessfullyTriggeredForArgoCD(secretName string) error {
 	}
 	_, ok := editedSecret.Annotations[expiresAtTimeStamp]
 	if ok {
-		pkg.Log(pkg.Error, "The client was successful, but the secret was not successful edited")
-		return fmt.Errorf("The client was successful, but the secret was not successful edited")
+		pkg.Log(pkg.Error, "The client was successful, but the secret was not successfuly edited")
+		return fmt.Errorf("The client was successful, but the secret was not successfuly edited")
 	}
 	return err
 }
