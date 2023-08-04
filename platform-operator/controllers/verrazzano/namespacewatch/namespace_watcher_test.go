@@ -8,6 +8,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,7 +23,10 @@ import (
 	"time"
 )
 
-const reldir = "../../../manifests/profiles"
+const (
+	reldir       = "../../../manifests/profiles"
+	cattleSystem = "cattle-system"
+)
 
 var period = time.Duration(10) * time.Second
 var testScheme = runtime.NewScheme()
@@ -93,8 +97,8 @@ func TestNotToMoveSystemNamespacesWhenRancherNotReady(t *testing.T) {
 	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(vzCR,
-		newReplicaSet("cattle-system", "rancher"),
-		newReplicaSet("cattle-system", "rancher-webhook"),
+		newReplicaSet(cattleSystem, "rancher"),
+		newReplicaSet(cattleSystem, "rancher-webhook"),
 		newReplicaSet("cattle-fleet-system", "gitjob"),
 		newReplicaSet("cattle-fleet-system", "fleet-controller"),
 		newReplicaSet("cattle-fleet-local-system", "fleet-agent"),
@@ -102,7 +106,7 @@ func TestNotToMoveSystemNamespacesWhenRancherNotReady(t *testing.T) {
 	ctx := spi.NewFakeContext(client, vzCR, nil, false)
 	namespaceWatcher = NewNamespaceWatcher(ctx.Client(), period)
 	projectID := "p-47cnm"
-	err := namespaceWatcher.MoveSystemNamespacesToRancherSystemProject(projectID)
+	err := namespaceWatcher.MoveSystemNamespacesToRancherSystemProject(projectID, "")
 	asserts.NoError(t, err)
 	ns := v1.Namespace{}
 	asserts.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "verrazzano-system"}, &ns))
@@ -152,29 +156,30 @@ func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(vzCR,
-		newReplicaSet("cattle-system", "rancher"),
-		newReplicaSet("cattle-system", "rancher-webhook"),
-		newReplicaSet("cattle-fleet-system", "gitjob"),
-		newReplicaSet("cattle-fleet-system", "fleet-controller"),
-		newReplicaSet("cattle-fleet-local-system", "fleet-agent"),
-		newPod("cattle-system", "rancher"),
-		newPod("cattle-system", "rancher-webhook"),
-		newPod("cattle-fleet-system", "gitjob"),
-		newPod("cattle-fleet-system", "fleet-controller"),
-		newPod("cattle-fleet-local-system", "fleet-agent"),
-		newReadyDeployment("cattle-system", "rancher"),
-		newReadyDeployment("cattle-system", "rancher-webhook"),
-		newReadyDeployment("cattle-fleet-system", "gitjob"),
-		newReadyDeployment("cattle-fleet-system", "fleet-controller"),
-		newReadyDeployment("cattle-fleet-local-system", "fleet-agent"), namespace1).Build()
+		newReplicaSet(rancher.ComponentNamespace, "rancher"),
+		newReplicaSet(rancher.ComponentNamespace, "rancher-webhook"),
+		newReplicaSet(rancher.FleetSystemNamespace, "gitjob"),
+		newReplicaSet(rancher.FleetSystemNamespace, "fleet-controller"),
+		newReplicaSet(rancher.FleetLocalSystemNamespace, "fleet-agent"),
+		newPod(rancher.ComponentNamespace, "rancher"),
+		newPod(rancher.ComponentNamespace, "rancher-webhook"),
+		newPod(rancher.FleetSystemNamespace, "gitjob"),
+		newPod(rancher.FleetSystemNamespace, "fleet-controller"),
+		newPod(rancher.FleetLocalSystemNamespace, "fleet-agent"),
+		newReadyDeployment(rancher.ComponentNamespace, "rancher"),
+		newReadyDeployment(rancher.ComponentNamespace, "rancher-webhook"),
+		newReadyDeployment(rancher.FleetSystemNamespace, "gitjob"),
+		newReadyDeployment(rancher.FleetSystemNamespace, "fleet-controller"),
+		newReadyDeployment(rancher.FleetLocalSystemNamespace, "fleet-agent"), namespace1).Build()
 	ctx := spi.NewFakeContext(client, vzCR, nil, false)
 	namespaceWatcher = NewNamespaceWatcher(ctx.Client(), period)
 	projectID := "p-47cnm"
-	err := namespaceWatcher.MoveSystemNamespacesToRancherSystemProject(projectID)
+	clusterName := "local"
+	err := namespaceWatcher.MoveSystemNamespacesToRancherSystemProject(projectID, clusterName)
 	asserts.NoError(t, err)
 	ns := v1.Namespace{}
 	asserts.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "verrazzano-system"}, &ns))
-	asserts.NotEqual(t, ns.Annotations[RancherProjectIDLabelKey], "local:"+projectID)
+	asserts.NotEqual(t, ns.Annotations[RancherProjectIDLabelKey], clusterName+":"+projectID)
 }
 
 // TestMoveSystemNamespaces tests the following cases
@@ -243,11 +248,12 @@ func TestMoveSystemNamespaces(t *testing.T) {
 	ctx := spi.NewFakeContext(client, vzCR, nil, false)
 	namespaceWatcher = NewNamespaceWatcher(ctx.Client(), period)
 	projectID := "p-47cnm"
-	err := namespaceWatcher.MoveSystemNamespacesToRancherSystemProject(projectID)
+	clusterName := "local"
+	err := namespaceWatcher.MoveSystemNamespacesToRancherSystemProject(projectID, clusterName)
 	asserts.NoError(t, err)
 	ns := v1.Namespace{}
 	asserts.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "verrazzano-system"}, &ns))
-	asserts.Equal(t, ns.Annotations[RancherProjectIDLabelKey], "local:"+projectID)
+	asserts.Equal(t, ns.Annotations[RancherProjectIDLabelKey], clusterName+":"+projectID)
 }
 
 func newPod(namespace string, name string) *v1.Pod {
