@@ -4,6 +4,7 @@
 package issuer
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -184,6 +186,16 @@ func (c clusterIssuerComponent) GetJSONName() string {
 
 func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
+}
+
+// ShouldUseModule returns true if component is implemented using a Module, default false
+func (c clusterIssuerComponent) ShouldUseModule() bool {
+	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
 
 func (c clusterIssuerComponent) GetDependencies() []string {

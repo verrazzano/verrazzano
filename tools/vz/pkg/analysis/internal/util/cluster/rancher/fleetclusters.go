@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -33,9 +34,14 @@ type fleetClusterStatus struct {
 }
 
 // AnalyzeFleetClusters - analyze the status of Rancher fleet clusters resources
-func AnalyzeFleetClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeFleetClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &fleetClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", fleetClusterResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", fleetClusterResource), list)
 	if err != nil {
 		return err
 	}
@@ -76,25 +82,23 @@ func analyzeFleetCluster(clusterRoot string, cluster fleetCluster, issueReporter
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s%s%s", fleetClusterResource, cluster.Name, cluster.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s%s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if !cluster.Status.AgentMigrated {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s agent not migrated", fleetClusterResource, cluster.Name, cluster.Namespace)
-		messages = append([]string{message}, messages...)
+		messages = append([]string{"\tagent not migrated"}, messages...)
 	}
 	if !cluster.Status.AgentNamespaceMigrated {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s agent namespace not migrated", fleetClusterResource, cluster.Name, cluster.Namespace)
-		messages = append([]string{message}, messages...)
+		messages = append([]string{"\tagent namespace not migrated"}, messages...)
 	}
 	if !cluster.Status.CattleNamespaceMigrated {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s cattle namespace not migrated", fleetClusterResource, cluster.Name, cluster.Namespace)
-		messages = append([]string{message}, messages...)
+		messages = append([]string{"\tcattle namespace not migrated"}, messages...)
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %s", fleetClusterResource, cluster.Name, cluster.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

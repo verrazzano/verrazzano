@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"reflect"
 	"testing"
 
@@ -880,6 +881,16 @@ func (f fakeComponent) Namespace() string {
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
 func (f fakeComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
+}
+
+// ShouldUseModule returns true if a module should be used for lifecycle management
+func (f fakeComponent) ShouldUseModule() bool {
+	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (f fakeComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
 
 func (f fakeComponent) GetJSONName() string {

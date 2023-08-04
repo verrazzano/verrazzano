@@ -203,6 +203,21 @@ func TestAppendOverrides(t *testing.T) {
 	}
 	externalDNSZone := "mydomain.com"
 
+	reloaderSidecarKVS := map[string]string{
+		"ruler.sidecars[0].image":                                    `ghcr.io/verrazzano/prometheus-config-reloader:v\d+\.\d+\.\d+-.+-.+`,
+		"ruler.sidecars[0].name":                                     configReloaderSubcomponentName,
+		"ruler.sidecars[0].command[0]":                               "/bin/prometheus-config-reloader",
+		"ruler.sidecars[0].args[0]":                                  "--listen-address=:8080",
+		"ruler.sidecars[0].args[1]":                                  "--reload-url=http://127.0.0.1:10902/-/reload",
+		"ruler.sidecars[0].args[2]":                                  "--watched-dir=/conf/rules/",
+		"ruler.sidecars[0].volumeMounts[0].mountPath":                "/conf/rules/",
+		"ruler.sidecars[0].volumeMounts[0].name":                     "ruler-config",
+		"ruler.existingConfigmap":                                    "prometheus-prometheus-operator-kube-p-prometheus-rulefiles-0",
+		"ruler.sidecars[0].securityContext.privileged":               "false",
+		"ruler.sidecars[0].securityContext.allowPrivilegeEscalation": "false",
+		"ruler.sidecars[0].securityContext.capabilities.drop[0]":     "ALL",
+	}
+
 	tests := []struct {
 		name     string
 		vz       *v1alpha1.Verrazzano
@@ -306,6 +321,9 @@ func TestAppendOverrides(t *testing.T) {
 
 			expectedKVS := map[string]string{}
 			for k, v := range imageKVS {
+				expectedKVS[k] = v
+			}
+			for k, v := range reloaderSidecarKVS {
 				expectedKVS[k] = v
 			}
 			for k, v := range tt.extraKVS {

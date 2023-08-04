@@ -41,6 +41,7 @@ type coherenceComponent struct {
 }
 
 func NewComponent() spi.Component {
+	useModule := config.Get().ModuleIntegration
 	return coherenceComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
@@ -50,6 +51,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			ModuleIntegrationConfig:   helm.ModuleIntegrationConfig{UseModule: useModule},
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName},
@@ -112,7 +114,8 @@ func (c coherenceComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := webhook.DeleteValidatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-validating-webhook-configuration"); err != nil {
 		return err
 	}
-	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-mutating-webhook-configuration"); err != nil {
+	webhooks := []string{"coherence-operator-mutating-webhook-configuration"}
+	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks); err != nil {
 		return err
 	}
 	return nil

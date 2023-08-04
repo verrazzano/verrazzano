@@ -5,6 +5,7 @@ package ocnedriver
 
 import (
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"strings"
 
@@ -68,6 +69,9 @@ var (
 	rancherURL        string
 	httpClient        *retryablehttp.Client
 	cloudCredentialID string
+
+	ocneMetadataItemToInstall OCNEMetadataItem
+	ocneMetadataItemToUpgrade OCNEMetadataItem
 )
 
 // Verify required Environment Variables are set
@@ -184,11 +188,12 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		log.Errorf("yaml unmarshalling error: %s", err)
 		return err
 	}
-	if len(mapToContents) != 1 {
+	if len(mapToContents) < 1 {
 		err = fmt.Errorf("data inside %s ConfigMap not formatted as expcted", ocneMetadataCMName)
 		log.Error(err)
 		return err
 	}
+
 	for k8sVersion, contents := range mapToContents {
 		// Retrieve the Kubernetes version
 		kubernetesFallback = k8sVersion
@@ -207,6 +212,20 @@ func fillOCNEMetadata(log *zap.SugaredLogger) error {
 		coreDNSFallback = contentStruct.ContainerImages.Coredns
 		etcdFallback = contentStruct.ContainerImages.Etcd
 		tigeraFallback = contentStruct.ContainerImages.TigeraOperator
+
+		k8sSemVerFallback, err := semver.NewVersion(k8sVersion)
+		if err != nil {
+			log.Errorf("kubernetes version parsing error: %s", err)
+			return err
+		}
+		// finding the minimum kubernetes version to install a OCNE cluster
+		if ocneMetadataItemToInstall.KubernetesVersion == nil || k8sSemVerFallback.LessThan(ocneMetadataItemToInstall.KubernetesVersion) {
+			ocneMetadataItemToInstall = OCNEMetadataItem{KubernetesVersion: k8sSemVerFallback, OCNEMetadataContents: contentStruct}
+		}
+		// finding the maximum kubernetes version to update the OCNE cluster
+		if ocneMetadataItemToUpgrade.KubernetesVersion == nil || k8sSemVerFallback.GreaterThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
+			ocneMetadataItemToUpgrade = OCNEMetadataItem{KubernetesVersion: k8sSemVerFallback, OCNEMetadataContents: contentStruct}
+		}
 	}
 
 	// Initialize values
@@ -229,7 +248,7 @@ func fillOCNEVersion(log *zap.SugaredLogger) error {
 		return err
 	}
 	versionList := response.Children()
-	if len(versionList) != 1 {
+	if len(versionList) < 1 {
 		err = fmt.Errorf("response to OCNE versions request does not have expected length")
 		log.Error(err)
 		return err
@@ -284,7 +303,7 @@ func fillVerrazzanoVersions(log *zap.SugaredLogger) error {
 		return err
 	}
 	responseMap := response.ChildrenMap()
-	if len(responseMap) != 1 {
+	if len(responseMap) < 1 {
 		err = fmt.Errorf("response to Verrazzano versions request does not have expected length")
 		log.Error(err)
 		return err

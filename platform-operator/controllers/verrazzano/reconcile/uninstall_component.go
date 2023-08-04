@@ -49,13 +49,21 @@ func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha
 	// Loop through the Verrazzano components in uninstall order, and Uninstall each one.
 	// Don't block uninstalling the next component if the current one has an error.
 	// It is normal for a component to return an error if it is waiting for some condition.
-	for _, comp := range registry.GetComponentsForUninstall() {
-		UninstallContext := tracker.getComponentUninstallContext(comp.Name())
-		result, err := r.uninstallSingleComponent(spiCtx, UninstallContext, comp)
+	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Requeue until the module is gone
+			if !IsModuleUninstallDone() {
+				requeue = true
+			}
+			// Ignore if this component is being handled by a Module
+			continue
+		}
+
+		uninstallContext := tracker.getComponentUninstallContext(comp.Name())
+		result, err := r.uninstallSingleComponent(spiCtx, uninstallContext, comp)
 		if err != nil || result.Requeue {
 			requeue = true
 		}
-
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil
@@ -114,7 +122,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			UninstallContext.uninstallState = compStateUninstall
 
 		case compStateUninstall:
-			compLog.Progressf("Component %s is calling uninstall", compName)
+			compLog.Oncef("Component %s is calling uninstall", compName)
 			if err := comp.Uninstall(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
 					compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
@@ -130,10 +138,10 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				return newRequeueWithDelay(), nil
 			}
 			if installed {
-				compLog.Progressf("Waiting for component %s to be uninstalled", compName)
+				compLog.Oncef("Waiting for component %s to be uninstalled", compName)
 				return newRequeueWithDelay(), nil
 			}
-			compLog.Progressf("Component %s has been uninstalled, running post-uninstall", compName)
+			compLog.Oncef("Component %s has been uninstalled, running post-uninstall", compName)
 			if err := comp.PostUninstall(compContext); err != nil {
 				if !ctrlerrors.IsRetryableError(err) {
 					compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)

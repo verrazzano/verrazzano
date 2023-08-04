@@ -121,7 +121,7 @@
     },
     {
       "name": "istio",
-      "version": "1.15.3",
+      "version": "1.17.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -129,12 +129,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.17.2-20230627214838-887ef0a0",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.17.2-20230627214838-887ef0a0",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -153,17 +153,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230717131935-d2ee60180",
-              "rancherUI": "v2.7.2-10/release-2.7.2",
-              "ocneDriverVersion": "v0.21.0",
-              "ocneDriverChecksum": "ef300103b9b593a49006636dfc873147dcbb46d646f84ebe66af7037b3efa4d4",
-              "tag": "v2.7.3-20230725135145-51373799e",
+              "dashboard": "v2.7.2-20230731205738-a19122312",
+              "rancherUI": "v2.7.2-11/release-2.7.2",
+              "ocneDriverVersion": "v0.23.0",
+              "ocneDriverChecksum": "e410fd9b7ac5533b656277e82f1a321a995a5cd5e0329c2e79091e26e2516313",
+              "tag": "v2.7.3-20230731220304-92ef766dd",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230725135145-51373799e"
+              "tag": "v2.7.3-20230731220304-92ef766dd"
             }
           ]
         },
@@ -233,7 +233,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v1.6.1",
+      "version": "v1.7.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -241,11 +241,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.6.1-20230713001831-abc04fb"
+              "tag": "v1.7.0-20230728161919-ffd7110"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.6.1-20230713001831-abc04fb"
+              "tag": "v1.7.0-20230728161919-ffd7110"
             }
           ]
         }
@@ -261,7 +261,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.17.2-20230627214838-887ef0a0",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -307,7 +307,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.15.3-20230209181608-900a5c7b",
+              "tag": "1.17.2-20230627214838-887ef0a0",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -473,7 +473,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230725071427-8e93dbe",
+              "tag": "v2.2.0-20230801115338-052953d",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
@@ -930,5 +930,9 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0"]
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0"
+  ]
 }

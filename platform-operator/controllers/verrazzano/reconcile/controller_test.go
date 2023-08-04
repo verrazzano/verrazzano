@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"reflect"
+	"sigs.k8s.io/yaml"
 	"sync"
 	"testing"
 	"time"
@@ -23,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -61,7 +63,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/yaml"
 )
 
 // For unit testing
@@ -200,7 +201,7 @@ func TestInstall(t *testing.T) {
 
 			// Expect a call to get the ingressList
 			expectGetIngressListExists(mock)
-
+			//expectGetVerrazzanoCondition(mock, verrazzanoToUse, namespace, name)
 			// Expect a call to update the finalizers - return success
 			mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 			if test.finalizer != finalizerName {
@@ -605,9 +606,6 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Expecting a call to get effective-config ConfigMap
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
-
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -615,9 +613,8 @@ func TestUninstallComplete(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 2)
 			return nil
-		})
+		}).AnyTimes()
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -641,6 +638,7 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
+	metricsexporter.Init()
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -715,9 +713,6 @@ func TestUninstallStarted(t *testing.T) {
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
-	// Expecting a call to get effective-config ConfigMap
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
-
 	// Expect a call to update the job - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
@@ -765,6 +760,8 @@ func setFakeComponentsDisabled() {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
+	metricsexporter.Init()
+
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -2494,7 +2491,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		Bom:               nil,
 		StatusUpdater:     nil,
 	}
-	err := r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
+	err := vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz, log)
 	assert.NoError(t, err)
 	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + effConfigSuffix, Namespace: (vz.ObjectMeta.Namespace)}, cm)
 	assert.NoError(t, err)
@@ -2528,7 +2525,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.NewNotFound(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
-	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz, log)
 	assert.Error(t, err)
 
 	// GIVEN verrazzano CR with an already existing EffectiveConfigCM
@@ -2537,7 +2534,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
-	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz, log)
 	assert.Error(t, err)
 
 	// GIVEN verrazzano CR with an existing EffectiveConfigCM
@@ -2552,6 +2549,6 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	// Expects a mock call for updating, which returns no error
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	err = r.createOrUpdateEffectiveConfigCM(context.TODO(), vztest, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vztest, log)
 	assert.NoError(t, err)
 }

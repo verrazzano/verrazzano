@@ -14,11 +14,13 @@ import (
 	"strings"
 )
 
+
 func CoallateAllHostsForTrait(cli client.Client, trait *vzapi.IngressTrait, appName string, appNamespace string) ([]string, error) {
 	allHosts := []string{}
 	var err error
 	for _, rule := range trait.Spec.Rules {
 		if allHosts, err = CreateHostsFromIngressTraitRule(cli, rule, trait, appName, appNamespace, allHosts...); err != nil {
+
 			print(err)
 			return nil, err
 		}
@@ -26,7 +28,9 @@ func CoallateAllHostsForTrait(cli client.Client, trait *vzapi.IngressTrait, appN
 	return allHosts, nil
 }
 
+
 func CreateHostsFromIngressTraitRule(cli client.Client, rule vzapi.IngressRule, trait *vzapi.IngressTrait, appName string, appNamespace string, toList ...string) ([]string, error) {
+
 	validHosts := toList
 	useDefaultHost := true
 	for _, h := range rule.Hosts {
@@ -51,7 +55,9 @@ func CreateHostsFromIngressTraitRule(cli client.Client, rule vzapi.IngressRule, 
 
 	// Generate a default hostname
 
+
 	hostName, err := buildAppFullyQualifiedHostName(cli, trait, appName, appNamespace)
+
 	if err != nil {
 		return nil, err
 	}
@@ -69,9 +75,11 @@ func CreateHostsFromIngressTraitRule(cli client.Client, rule vzapi.IngressRule, 
 //	namespace is the namespace of the OAM application
 //	dns-subdomain is The DNS subdomain name
 
+
 func buildAppFullyQualifiedHostName(cli client.Client, trait *vzapi.IngressTrait, appName string, appNamespace string) (string, error) {
 
 	domainName, err := buildNamespacedDomainName(cli, trait, appNamespace)
+
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +93,9 @@ func buildAppFullyQualifiedHostName(cli client.Client, trait *vzapi.IngressTrait
 //	namespace is the namespace of the OAM application
 //	dns-subdomain is The DNS subdomain name
 
+
 func buildNamespacedDomainName(cli client.Client, trait *vzapi.IngressTrait, appNamespace string) (string, error) {
+
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 

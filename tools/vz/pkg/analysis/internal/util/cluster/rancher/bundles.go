@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -32,9 +33,14 @@ type bundleStatus struct {
 }
 
 // AnalyzeBundles - analyze the status of Bundle objects
-func AnalyzeBundles(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeBundles(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &bundleList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", bundleResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", bundleResource), list)
 	if err != nil {
 		return err
 	}
@@ -73,21 +79,22 @@ func analyzeBundle(clusterRoot string, bundle bundle, issueReporter *report.Issu
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q %s %s%s", bundleResource, bundle.Name, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if bundle.Status.Unavailable > 0 {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s has %d unavailable", bundleResource, bundle.Name, bundle.Namespace, bundle.Status.Unavailable)
+		message := fmt.Sprintf("\thas %d unavailable", bundle.Status.Unavailable)
 		messages = append([]string{message}, messages...)
 	}
 	if bundle.Status.UnavailablePartitions > 0 {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s has %d unavailable partitions", bundleResource, bundle.Name, bundle.Namespace, bundle.Status.UnavailablePartitions)
+		message := fmt.Sprintf("\thas %d unavailable partitions", bundle.Status.UnavailablePartitions)
 		messages = append([]string{message}, messages...)
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q", bundleResource, bundle.Name)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

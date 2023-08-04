@@ -651,7 +651,7 @@ func TestIsRancherNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 			Annotations: map[string]string{
-				rancherSysNS: "true",
+				RancherSysNS: "true",
 			},
 		},
 	}))
@@ -659,7 +659,7 @@ func TestIsRancherNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "local",
 			Annotations: map[string]string{
-				rancherSysNS: "false",
+				RancherSysNS: "false",
 			},
 		},
 	}))
@@ -667,7 +667,7 @@ func TestIsRancherNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 			Annotations: map[string]string{
-				rancherSysNS: "false",
+				RancherSysNS: "false",
 			},
 		},
 	}))

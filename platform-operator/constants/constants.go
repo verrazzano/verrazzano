@@ -167,6 +167,9 @@ const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
 // InstallOperation indicates that an install operation being executed by a component
 const InstallOperation = "install"
 
+// UpdateOperation indicates that an update operation being executed by a component
+const UpdateOperation = "update"
+
 // UpgradeOperation indicates that an upgrade operation being executed by a component
 const UpgradeOperation = "upgrade"
 
@@ -271,13 +274,19 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
 
 // VerrazzanoCRNameAnnotation is the annotation for the verrazzano CR name
-const VerrazzanoCRNameAnnotation = "verrazzano.io/vz-cr-name"
+const VerrazzanoCRNameAnnotation = "module.verrazzano.io/vz-cr-name"
 
 // VerrazzanoCRNamespaceAnnotation is the annotation for the verrazzano CR namespace
-const VerrazzanoCRNamespaceAnnotation = "verrazzano.io/vz-cr-namespace"
+const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
 
-// VerrazzanoObservedGeneration is the annotation for the verrazzano CR observed generation
-const VerrazzanoObservedGeneration = "verrazzano.io/vz-cr-observed-generation"
+// VerrazzanoObservedGenerationAnnotation is the annotation for the verrazzano CR observed generation
+const VerrazzanoObservedGenerationAnnotation = "module.verrazzano.io/vz-cr-observed-generation"
+
+// VerrazzanoVersionAnnotation is the annotation for the verrazzano CR version
+const VerrazzanoVersionAnnotation = "module.verrazzano.io/vz-cr-version"
+
+// VerrazzanoModuleOwnerLabel is the label for the module that owns the resource
+const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
 
 // AlertmanagerIngress is the name of the ingress for Alertmanager
 const AlertmanagerIngress = "alertmanager"

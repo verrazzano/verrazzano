@@ -17,6 +17,7 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def runExamples = env.JOB_NAME.contains('-examples')
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
@@ -229,6 +230,9 @@ pipeline {
                 println("agentlabel: ${agentLabel}")
                 sh """
                     echo "${NODE_LABELS}"
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
 
                 script {
@@ -468,6 +472,7 @@ pipeline {
         }
 
         stage('acceptance-tests') {
+            when { expression { return !runExamples } }
             parallel {
                 stage('system component metrics') {
                     steps {
@@ -559,6 +564,78 @@ pipeline {
                 }
             }
         }
+
+        stage('Run Example Acceptance Tests') {
+            when { expression { return runExamples } }
+            parallel {
+                stage('examples todo') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                    }
+                    steps {
+                        runGinkgoEx('examples/todo')
+                    }
+                }
+                stage('examples socks') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                    }
+                    steps {
+                        runSocksVariant('helidon')
+                        runSocksVariant('micronaut')
+                        runSocksVariant('spring')
+                    }
+                }
+                stage('examples springboot') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                    }
+                    steps {
+                        runGinkgoEx('examples/springboot')
+                    }
+                }
+                stage('examples helidon 1') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-1"
+                    }
+                    steps {
+                        runGinkgoEx('examples/helidon')
+                    }
+                }
+                stage('examples helidon 2') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-2"
+                    }
+                    steps {
+                        runGinkgoEx('examples/helidon')
+                    }
+                }
+                stage('examples helidon-config') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                    }
+                    steps {
+                        runGinkgoEx('examples/helidonconfig')
+                    }
+                }
+                stage('examples bobs books') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                    }
+                    steps {
+                        runGinkgoEx('examples/bobsbooks')
+                    }
+                }
+                stage('examples weblogic cluster') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-cluster"
+                    }
+                    steps {
+                        runGinkgoEx('workloads/weblogic-cluster')
+                    }
+                }
+            }
+        }
     }
     post {
         always {
@@ -612,6 +689,15 @@ pipeline {
     }
 }
 
+def runSocksVariant(variant) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+          cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+          SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
+        """
+    }
+}
+
 def getTestClusterType(testEnv) {
     if("kind".equalsIgnoreCase(testEnv)) {
         return "KIND"
@@ -625,6 +711,15 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${WORKSPACE}/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoEx(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }

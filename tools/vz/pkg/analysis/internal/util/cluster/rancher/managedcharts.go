@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -27,9 +28,14 @@ type managedChart struct {
 }
 
 // AnalyzeManagedCharts - analyze the status of ManagedCharts objects
-func AnalyzeManagedCharts(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeManagedCharts(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &managedChartsList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", managedChartResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", managedChartResource), list)
 	if err != nil {
 		return err
 	}
@@ -70,12 +76,13 @@ func analyzeManagedChart(clusterRoot string, managedChart managedChart, issueRep
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q in namespace %q %s %s%s", managedChartResource, managedChart.Name, managedChart.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s %s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %q", managedChartResource, managedChart.Name, managedChart.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

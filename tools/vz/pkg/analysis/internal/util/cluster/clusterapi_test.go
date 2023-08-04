@@ -36,6 +36,102 @@ var capiTestCases = []capiTestCase{
 		Namespaced:     true,
 		ExpectedIssues: 1,
 	},
+	{
+		Function:       capi.AnalyzeOCIClusters,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeOCIClusters,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeOCNEControlPlanes,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeOCNEControlPlanes,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeMachines,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeMachines,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeMachineDeployments,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeMachineDeployments,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeOCNEConfigs,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeOCNEConfigs,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeOCIMachines,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeOCIMachines,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeMachineSets,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeMachineSets,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
+	{
+		Function:       capi.AnalyzeClusterResourceSets,
+		ClusterRoot:    clusterAPIReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 0,
+	},
+	{
+		Function:       capi.AnalyzeClusterResourceSets,
+		ClusterRoot:    clustersAPINotReadySnapshot,
+		Namespaced:     true,
+		ExpectedIssues: 1,
+	},
 }
 
 // Test analyze Cluster API resources with different cluster snapshots.
@@ -59,7 +155,7 @@ func TestAnalyzeClusterAPI(t *testing.T) {
 		} else {
 			assert.Len(t, reportedIssues, test.ExpectedIssues)
 			if len(reportedIssues) != 0 {
-				assert.Equal(t, "ClusterAPIClusterNotReady", reportedIssues[0].Type)
+				assert.Equal(t, "ClusterAPIClusterIssues", reportedIssues[0].Type)
 			}
 		}
 	}

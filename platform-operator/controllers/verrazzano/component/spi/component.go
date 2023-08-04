@@ -1,9 +1,10 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package spi
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -12,7 +13,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ComponentContext Defines the context objects required for Component operations
+// ComponentContext interface defines the context objects required for Component operations
 type ComponentContext interface {
 	// Log returns the logger for the context
 	Log() vzlog.VerrazzanoLogger
@@ -120,6 +121,14 @@ type ComponentValidator interface {
 	ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error
 }
 
+// ModuleIntegration interface defines methods needed to integreate VPO with modules
+type ModuleIntegration interface {
+	// ShouldUseModule returns true if component is implemented using a Module, default false
+	ShouldUseModule() bool
+	// GetWatchDescriptors returns the list of WatchDescriptor for objects being watched by the component
+	GetWatchDescriptors() []controllerspi.WatchDescriptor
+}
+
 // Generate mocs for the spi.Component interface for use in tests.
 //go:generate mockgen -destination=../../../../mocks/component_mock.go -package=mocks -copyright_file=../../../../hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi Component
 
@@ -130,6 +139,7 @@ type Component interface {
 	ComponentUninstaller
 	ComponentUpgrader
 	ComponentValidator
+	ModuleIntegration
 
 	Reconcile(ctx ComponentContext) error
 }

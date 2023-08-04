@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	testNS     = "default"
-	testCMName = "po-val"
-	testVZName = "test-vz"
+	testNS       = "default"
+	testCMName   = "po-val"
+	testVZName   = "test-vz"
+	testVZConfig = "test-vz-effective-config"
 )
 
 var compStatusMap = makeVerrazzanoComponentStatusMap()

@@ -130,5 +130,12 @@ func cleanupRancherResources(ctx context.Context, c client.Client) error {
 			return err
 		}
 	}
+
+	// Delete the system-library catalog which is no longer installed/supported.
+	err = di.Resource(catalogGVR).Delete(ctx, "system-library", metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
 	return nil
 }

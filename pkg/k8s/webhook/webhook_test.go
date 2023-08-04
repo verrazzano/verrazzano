@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhook
@@ -96,7 +96,7 @@ func TestDeleteMutating(t *testing.T) {
 	asserts.NoError(err)
 
 	// Delete the webhook
-	err = DeleteMutatingWebhookConfiguration(vzlog.DefaultLogger(), c, name)
+	err = DeleteMutatingWebhookConfiguration(vzlog.DefaultLogger(), c, []string{name})
 
 	// Validate that webhook is deleted
 	asserts.NoError(err)
@@ -124,6 +124,6 @@ func TestDeleteMutatingNotExists(t *testing.T) {
 	asserts.True(errors.IsNotFound(err))
 
 	// Delete the webhook
-	err = DeleteMutatingWebhookConfiguration(vzlog.DefaultLogger(), c, name)
+	err = DeleteMutatingWebhookConfiguration(vzlog.DefaultLogger(), c, []string{name})
 	asserts.NoError(err)
 }

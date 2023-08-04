@@ -50,9 +50,17 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		return newRequeueWithDelay(), err
 	}
 
-	// Loop through all of the Verrazzano components and upgrade each one.
+	// Loop through all the Verrazzano components and upgrade each one.
 	// Don't move to the next component until the current one has been succcessfully upgraded
 	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Ignore if this component is being handled by a Module
+			continue
+		}
+		if !comp.IsEnabled(spiCtx.EffectiveCR()) {
+			// Ignore if this component is disabled
+			continue
+		}
 		upgradeContext := tracker.getComponentUpgradeContext(comp.Name())
 		result, err := r.upgradeSingleComponent(spiCtx, upgradeContext, comp)
 		if err != nil || result.Requeue {
@@ -93,7 +101,12 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running pre-upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Failed pre-upgrade for component %s: %v", compName, err)
 				}
 				return ctrl.Result{}, err
@@ -101,9 +114,14 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			upgradeContext.upgradeState = compStateUpgrade
 
 		case compStateUpgrade:
-			compLog.Progressf("Component %s upgrade running", compName)
+			compLog.Oncef("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Failed upgrading component %s, will retry: %v", compName, err)
 				}
 				// check to see whether this is due to a pending upgrade
@@ -115,16 +133,21 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 
 		case compStateUpgradeWaitReady:
 			if !comp.IsReady(compContext) {
-				compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
+				compLog.Oncef("Component %s has been upgraded. Waiting for the component to be ready", compName)
 				return newRequeueWithDelay(), nil
 			}
-			compLog.Progressf("Component %s is ready after being upgraded", compName)
+			compLog.Oncef("Component %s is ready after being upgraded", compName)
 			upgradeContext.upgradeState = compStatePostUpgrade
 
 		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
-				if !ctrlerrors.IsRetryableError(err) {
+				IsK8sAPIServerError, errorMessage := ctrlerrors.IsK8sAPIServerError(err)
+				if IsK8sAPIServerError {
+					compLog.Debugf("Error running post-upgrade for component %s: %v", compName, err)
+					compLog.ErrorfThrottled(errorMessage)
+				}
+				if !(ctrlerrors.IsRetryableError(err) || IsK8sAPIServerError) {
 					compLog.ErrorfThrottled("Failed post-upgrade for component %s: %v", compName, err)
 				}
 				return ctrl.Result{}, err

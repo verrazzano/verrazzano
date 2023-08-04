@@ -133,9 +133,11 @@ const (
 	SettingAuthResyncCron             = "auth-user-info-resync-cron"
 	SettingAuthMaxAge                 = "auth-user-info-max-age-seconds"
 	SettingAuthTTL                    = "auth-user-session-ttl-minutes"
+	SettingKubeDefaultTokenTTL        = "kubeconfig-default-token-ttl-minutes" //nolint:gosec //#gosec G101
 	SettingAuthResyncCronValue        = "*/15 * * * *"
 	SettingAuthMaxAgeValue            = "600"
 	SettingAuthTTLValue               = "540"
+	SettingKubeDefaultTokenTTLValue   = "540"
 )
 
 // auth config
@@ -251,6 +253,12 @@ var nodeDriverGVR = schema.GroupVersionResource{
 	Group:    "management.cattle.io",
 	Version:  "v3",
 	Resource: "nodedrivers",
+}
+
+var catalogGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "catalogs",
 }
 
 var dynamicSchemaGVR = schema.GroupVersionResource{

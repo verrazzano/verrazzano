@@ -22,7 +22,7 @@
   "editable": true,
   "gnetId": 12937,
   "graphTooltip": 0,
-  "iteration": 1680875522826,
+  "iteration": 1690831605934,
   "links": [],
   "panels": [
     {
@@ -195,7 +195,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 12,
         "x": 0,
         "y": 6
       },
@@ -317,8 +317,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 10,
+        "w": 12,
+        "x": 12,
         "y": 6
       },
       "id": 12,
@@ -356,63 +356,6 @@
       ],
       "title": "Memory Usage v. Limit",
       "type": "timeseries"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 20,
-        "y": 6
-      },
-      "id": 26,
-      "links": [],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {},
-        "textMode": "auto"
-      },
-      "pluginVersion": "7.5.17",
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "kube_pod_container_status_last_terminated_reason{pod=~\"thanos-query.*\", verrazzano_cluster=~\"$vzcluster\"} != 0",
-          "interval": "",
-          "legendFormat": "{{reason}} - {{pod}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Last Terminated Reason",
-      "type": "stat"
     },
     {
       "collapsed": false,
@@ -511,7 +454,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 12,
         "x": 0,
         "y": 15
       },
@@ -633,8 +576,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 10,
+        "w": 12,
+        "x": 12,
         "y": 15
       },
       "id": 30,
@@ -671,61 +614,6 @@
       ],
       "title": "Memory Usage v. Limit",
       "type": "timeseries"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 20,
-        "y": 15
-      },
-      "id": 31,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {},
-        "textMode": "auto"
-      },
-      "pluginVersion": "7.5.17",
-      "targets": [
-        {
-          "expr": "kube_pod_container_status_last_terminated_reason{pod=~\"thanos-query-frontend.*\", verrazzano_cluster=~\"$vzcluster\"} != 0",
-          "interval": "",
-          "legendFormat": "{{reason}} - {{pod}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Last Terminated Reason",
-      "type": "stat"
     },
     {
       "datasource": null,
@@ -822,7 +710,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 12,
         "x": 0,
         "y": 24
       },
@@ -844,13 +732,15 @@
       "pluginVersion": "8.3.3",
       "targets": [
         {
-          "expr": "sum(container_spec_cpu_shares{container=\"thanos-compact\", verrazzano_cluster=~\"$vzcluster\"}) by (pod) / 1000",
+          "exemplar": true,
+          "expr": "sum(container_spec_cpu_shares{container=\"compactor\", verrazzano_cluster=~\"$vzcluster\"}) by (pod) / 1000",
           "interval": "",
           "legendFormat": "{{pod}} limit",
           "refId": "A"
         },
         {
-          "expr": "sum(irate(container_cpu_usage_seconds_total{container=\"thanos-compact\", verrazzano_cluster=~\"$vzcluster\"}[$__interval])) by (container)",
+          "exemplar": true,
+          "expr": "sum(irate(container_cpu_usage_seconds_total{container=\"compactor\", verrazzano_cluster=~\"$vzcluster\"}[$__interval])) by (container)",
           "interval": "",
           "legendFormat": "{{container}}",
           "refId": "B"
@@ -942,8 +832,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 10,
+        "w": 12,
+        "x": 12,
         "y": 24
       },
       "id": 16,
@@ -973,7 +863,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{container=~\"thanos-compact\", verrazzano_cluster=~\"$vzcluster\"}[$__interval])) by (pod)",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{container=~\"compactor\", verrazzano_cluster=~\"$vzcluster\"}[$__interval])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "B"
@@ -986,6 +876,155 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/limit/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 44,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "max(thanos_compact_blocks_cleaned_total{verrazzano_cluster=\"$vzcluster\"})",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "blocks deleted",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "max(thanos_compact_blocks_marked_total{verrazzano_cluster=\"$vzcluster\"})",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "total blocks",
+          "refId": "B"
+        }
+      ],
+      "title": "Total Blocks Deleted",
+      "type": "timeseries"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -999,44 +1038,346 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/limit/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
-        "w": 4,
-        "x": 20,
-        "y": 24
+        "w": 12,
+        "x": 12,
+        "y": 32
       },
-      "id": 28,
+      "id": 45,
+      "interval": "1m",
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
         },
-        "text": {},
-        "textMode": "auto"
+        "tooltip": {
+          "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
       },
-      "pluginVersion": "7.5.17",
+      "pluginVersion": "8.3.3",
       "targets": [
         {
           "exemplar": true,
-          "expr": "kube_pod_container_status_last_terminated_reason{pod=~\"thanos-compact.*\", verrazzano_cluster=~\"$vzcluster\"} != 0",
+          "expr": "max(thanos_compact_garbage_collected_blocks_total{verrazzano_cluster=\"$vzcluster\"})",
+          "instant": false,
           "interval": "",
-          "legendFormat": "{{reason}} - {{pod}}",
+          "legendFormat": "blocks marked for deletion",
           "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "max(thanos_compact_blocks_marked_total{verrazzano_cluster=\"$vzcluster\"})",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "total blocks",
+          "refId": "B"
         }
       ],
-      "title": "Last Terminated Reason",
-      "type": "stat"
+      "title": "Total Blocks Marked for Deletion",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 42,
+      "panels": [],
+      "title": "Thanos / Ruler",
+      "type": "row"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/limit/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "id": 40,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(container_spec_cpu_shares{container=\"ruler\", verrazzano_cluster=~\"$vzcluster\"}) by (pod) / 1000",
+          "interval": "",
+          "legendFormat": "{{pod}} limit",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(irate(container_cpu_usage_seconds_total{container=\"ruler\", verrazzano_cluster=~\"$vzcluster\"}[$__interval])) by (container)",
+          "interval": "",
+          "legendFormat": "{{container}}",
+          "refId": "B"
+        }
+      ],
+      "title": "CPU Core Usage vs. Requested",
+      "type": "timeseries"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/limit/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "id": 43,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "tooltipOptions": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "max(container_spec_memory_limit_bytes{pod=~\"thanos-ruler.*\", verrazzano_cluster=~\"$vzcluster\"}) by (pod)",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{pod}} (limit)",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{container=~\"ruler\", verrazzano_cluster=~\"$vzcluster\"}[$__interval])) by (pod)",
+          "interval": "",
+          "legendFormat": "{{pod}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Memory Usage v. Limit",
+      "type": "timeseries"
     },
     {
       "datasource": null,
@@ -1044,7 +1385,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 49
       },
       "id": 6,
       "title": "Thanos / Store",
@@ -1133,9 +1474,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 12,
         "x": 0,
-        "y": 33
+        "y": 50
       },
       "id": 17,
       "interval": "1m",
@@ -1255,9 +1596,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 10,
-        "y": 33
+        "w": 12,
+        "x": 12,
+        "y": 50
       },
       "id": 18,
       "interval": "1m",
@@ -1294,62 +1635,6 @@
       ],
       "title": "Memory Usage v. Limit",
       "type": "timeseries"
-    },
-    {
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 20,
-        "y": 33
-      },
-      "id": 27,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {},
-        "textMode": "auto"
-      },
-      "pluginVersion": "7.5.17",
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "kube_pod_container_status_last_terminated_reason{pod=~\"thanos-storegateway.*\", verrazzano_cluster=~\"$vzcluster\"} != 0",
-          "interval": "",
-          "legendFormat": "{{reason}} - {{pod}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Last Terminated Reason",
-      "type": "stat"
     },
     {
       "datasource": null,
@@ -1403,7 +1688,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 41
+        "y": 58
       },
       "id": 37,
       "options": {
@@ -1483,7 +1768,7 @@
         "h": 8,
         "w": 7,
         "x": 8,
-        "y": 41
+        "y": 58
       },
       "id": 35,
       "options": {
@@ -1563,7 +1848,7 @@
         "h": 8,
         "w": 9,
         "x": 15,
-        "y": 41
+        "y": 58
       },
       "id": 39,
       "options": {
@@ -1652,5 +1937,5 @@
   "timezone": "",
   "title": "Thanos / Overview",
   "uid": "WiNXV2LVk",
-  "version": 1
+  "version": 2
 }

@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -31,9 +32,14 @@ type provisioningStatus struct {
 }
 
 // AnalyzeProvisioningClusters - analyze the status of Rancher provisioning clusters resources
-func AnalyzeProvisioningClusters(clusterRoot string, issueReporter *report.IssueReporter) error {
+func AnalyzeProvisioningClusters(clusterRoot string, namespace string, issueReporter *report.IssueReporter) error {
+	resourceRoot := clusterRoot
+	if len(namespace) != 0 {
+		resourceRoot = filepath.Join(clusterRoot, namespace)
+	}
+
 	list := &provisioningClusterList{}
-	err := files.UnmarshallFileInClusterRoot(clusterRoot, fmt.Sprintf("%s.json", provisioningClusterResource), list)
+	err := files.UnmarshallFileInClusterRoot(resourceRoot, fmt.Sprintf("%s.json", provisioningClusterResource), list)
 	if err != nil {
 		return err
 	}
@@ -106,17 +112,17 @@ func analyzeProvisioningCluster(clusterRoot string, cluster provisioningCluster,
 			if len(condition.Message) > 0 {
 				msg = fmt.Sprintf(", message is %q", condition.Message)
 			}
-			message := fmt.Sprintf("Rancher %s resource %q in namespace %s %s%s%s", provisioningClusterResource, cluster.Name, cluster.Namespace, subMessage, reason, msg)
+			message := fmt.Sprintf("\t%s%s%s", subMessage, reason, msg)
 			messages = append([]string{message}, messages...)
 		}
 	}
 
 	if !cluster.Status.Ready {
-		message := fmt.Sprintf("Rancher %s resource %q in namespace %s is not ready", provisioningClusterResource, cluster.Name, cluster.Namespace)
-		messages = append([]string{message}, messages...)
+		messages = append([]string{"\tis not ready"}, messages...)
 	}
 
 	if len(messages) > 0 {
+		messages = append([]string{fmt.Sprintf("Rancher %s resource %q in namespace %s", provisioningClusterResource, cluster.Name, cluster.Namespace)}, messages...)
 		issueReporter.AddKnownIssueMessagesFiles(report.RancherIssues, clusterRoot, messages, []string{})
 	}
 

@@ -887,6 +887,7 @@ func TestHelmComponent(t *testing.T) {
 		JSONName:                  compJSONName,
 		Dependencies:              compDependencies,
 		SupportsOperatorUninstall: enabled,
+		ModuleIntegrationConfig:   ModuleIntegrationConfig{UseModule: enabled},
 		Certificates:              compCertificates,
 		MinVerrazzanoVersion:      comVersion,
 		SkipUpgrade:               true,
@@ -895,6 +896,7 @@ func TestHelmComponent(t *testing.T) {
 	a.Equal(compNamespace, comp.Namespace(), "Wrong component namespace")
 	a.Equal(compJSONName, comp.GetJSONName(), "Wrong component jsonName")
 	a.True(comp.ShouldInstallBeforeUpgrade(), "ShouldInstallBeforeUpgrade must be true")
+	a.False(comp.ShouldUseModule(), "ShouldUseModule must be true")
 	a.ElementsMatch(compDependencies, comp.Dependencies, "Wrong component dependencies")
 	a.True(comp.IsOperatorUninstallSupported(), "SupportsOperatorUninstall must be true")
 	a.ElementsMatch(compCertificates, comp.GetCertificateNames(nil), "Wrong component certificates")

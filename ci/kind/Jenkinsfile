@@ -99,6 +99,7 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         ENABLE_THANOS_STORE_GATEWAY = true
         ENABLE_THANOS_COMPACTOR = true
+        ENABLE_THANOS_RULER = true
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test

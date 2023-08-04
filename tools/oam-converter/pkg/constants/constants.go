@@ -14,9 +14,11 @@ const (
 	VerrazzanoClusterIssuer   = "verrazzano-cluster-issuer"
 	CertificateAPIVersion     = "cert-manager.io/v1"
 	CompAPIVersion            = "core.oam.dev/v1alpha2"
+
 )
 
 var (
 	WeblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
 		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
+
 )

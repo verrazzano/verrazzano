@@ -26,6 +26,7 @@ func ConfData() error {
 	var inputDirectory string
 	var outputDirectory string
 
+
 	//Check the length of args
 	if len(os.Args) != 3 {
 
@@ -44,9 +45,11 @@ func ConfData() error {
 	//used to store non-oam file data
 	//	var k8sResources unstructured.Unstructured
 
+
 	//iterate through user inputted directory
 	files, err := iterateDirectory(inputDirectory)
 	if err != nil {
+
 		return fmt.Errorf("error in iterating over directory %w", err)
 	}
 
@@ -56,6 +59,7 @@ func ConfData() error {
 		if err != nil {
 			return fmt.Errorf("error in reading file %w", err)
 		}
+
 		datastr := string(data)
 
 		//Split the objects using "---" delimiter
@@ -76,12 +80,14 @@ func ConfData() error {
 			if !found || err != nil {
 				return errors.New("component api version doesn't exist or not found in the specified type")
 			}
+
 			//Check the kind of each component and apiVersion
 			if compKind == "Component" && compVersion == consts.CompAPIVersion {
 				components = append(components, component)
 			} else if compKind == "ApplicationConfiguration" && compVersion == consts.CompAPIVersion {
 				appData = append(appData, component)
 			}
+
 		}
 	}
 
@@ -92,15 +98,19 @@ func ConfData() error {
 		return errors.New("failed extracting traits from app")
 	}
 	//Extract workloads from app file
+
 	conversionComponents, err = workload.ExtractWorkload(components, conversionComponents)
+
 	if err != nil {
 		return errors.New("error in extracting workload")
 	}
+
 
 	cfg, _ := config.GetConfig()
 	cli, _ := client.New(cfg, client.Options{})
 	//Create child resources
 	outputResources, err := resources.CreateResources(cli, conversionComponents)
+
 	if err != nil {
 		return err
 	}
@@ -113,8 +123,10 @@ func ConfData() error {
 	return nil
 }
 
+
 // writeKubeResources Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources *types.KubeResources) (err error) {
+
 
 	//Write virtual services to files
 	if outputResources.VirtualServices != nil {
@@ -127,6 +139,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			if err != nil {
 				return err
 			}
+
 			defer f.Close()
 
 			r, err := json.Marshal(virtualService)
@@ -137,6 +150,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			if err != nil {
 				return err
 			}
+
 
 			_, err = f.WriteString(string(output))
 			if err != nil {
@@ -155,7 +169,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		f, err := os.Create(filePath)
 		if err != nil {
 			return err
-		}
+
 		defer f.Close()
 		gatewayYaml, err := yaml.Marshal(outputResources.Gateway)
 		if err != nil {
@@ -181,7 +195,9 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
+
 				defer f.Close()
+
 				r, err := json.Marshal(destinationRule)
 				if err != nil {
 					return err
@@ -190,7 +206,6 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
-
 				_, err2 := f.WriteString(string(output))
 				if err2 != nil {
 					return err2
@@ -211,8 +226,8 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
-				defer f.Close()
 
+				defer f.Close()
 				r, err := json.Marshal(authPolicy)
 				if err != nil {
 					return err
@@ -221,6 +236,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 				if err != nil {
 					return err
 				}
+
 				_, err2 := f.WriteString(string(output))
 				if err2 != nil {
 					return err2
@@ -228,6 +244,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			}
 		}
 	}
+
 	//Write down Service Monitors to files
 	if outputResources.ServiceMonitors != nil {
 		var output string
@@ -237,11 +254,14 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		if err != nil {
 			return err
 		}
+
 		defer f.Close()
+
 		for _, servicemonitor := range outputResources.ServiceMonitors {
 			r, err := json.Marshal(servicemonitor)
 			if err != nil {
 				return err
+
 			}
 			out, err := yaml.JSONToYAML(r)
 			if err != nil {
@@ -250,16 +270,34 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 			output = output + "---\n" + string(out)
 		}
 
+
 		_, err2 := f.WriteString(string(output))
 		if err2 != nil {
 			return err2
 		}
+
 	}
 	return nil
 
 }
 
 // iterateDirectory Iterate over input directory
+func iterateDirectory(path string) ([]string, error) {
+	var files []string
+
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.Contains(info.Name(), "yaml") || strings.Contains(info.Name(), "yml") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, nil
+}
+
+// Iterate over input directory
 func iterateDirectory(path string) ([]string, error) {
 	var files []string
 

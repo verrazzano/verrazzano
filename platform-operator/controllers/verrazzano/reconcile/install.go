@@ -29,6 +29,9 @@ const (
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
 
+	// vzStateWaitModulesReady wait for components installed using Modules to be ready
+	vzStateWaitModulesReady reconcileState = "vzWaitModulesReady"
+
 	// vzStatePostInstall is the global PostInstall state
 	vzStatePostInstall reconcileState = "vzPostInstall"
 
@@ -143,6 +146,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err != nil || res.Requeue {
 				return res, err
 			}
+			tracker.vzState = vzStateWaitModulesReady
+
+		case vzStateWaitModulesReady:
+			res, err := r.waitForModulesReady(spiCtx)
+			if err != nil || res.Requeue {
+				return res, err
+			}
 			tracker.vzState = vzStatePostInstall
 
 		case vzStatePostInstall:
@@ -165,6 +175,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 // checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Ignore if this component is being handled by a Module
+			continue
+		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) {
 			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 			if !ok {
@@ -186,6 +200,11 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
+		if comp.ShouldUseModule() {
+			// Ignore if this component is being handled by a Module
+			continue
+		}
+
 		spiCtx.Log().Debugf("Reconciling watched component %s", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {
@@ -200,4 +219,21 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
+}
+func (r *Reconciler) waitForModulesReady(compContext spi.ComponentContext) (ctrl.Result, error) {
+	// Loop through all the Verrazzano components being handled by Modules and check if ready
+	for _, comp := range registry.GetComponents() {
+		if !comp.ShouldUseModule() {
+			// Ignore if this component is NOT being handled by a Module
+			continue
+		}
+		if !comp.IsEnabled(compContext.EffectiveCR()) {
+			continue
+		}
+		if !comp.IsReady(compContext) {
+			compContext.Log().Oncef("Waiting for the module %s to be ready", comp.Name())
+			return newRequeueWithDelay(), nil
+		}
+	}
+	return ctrl.Result{}, nil
 }
