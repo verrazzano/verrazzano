@@ -4,7 +4,6 @@
 import groovy.transform.Field
 
 @Field
-<<<<<<< HEAD
 def GIT_COMMIT_TO_USE = ""
 @Field
 def LAST_CLEAN_PERIODIC_COMMIT = ""
@@ -16,9 +15,6 @@ def VERRAZZANO_DEV_VERSION = ""
 def periodicsUpToDate              = false // If true, indicates that the periodics already passed at the latest commit
 @Field
 def periodicsUpToDateFailed        = false // If true, indicates that the periodics already ran and failed at the latest commit
-=======
-def LAST_PERIODIC_COMMIT = ""
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
@@ -52,7 +48,6 @@ pipeline {
         }
 
     environment {
-<<<<<<< HEAD
         OCI_CLI_AUTH = "instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
 
@@ -92,23 +87,6 @@ pipeline {
                     expression { return runPipeline() }
                 }
             }
-=======
-        OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
-
-        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
-        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
-
-        OCI_OS_REGION="us-phoenix-1"
-    }
-
-    stages {
-        stage('Clean workspace and checkout') {
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                 steps {
                     script {
                         cleanWorkspaceAndCheckout()
@@ -116,34 +94,16 @@ pipeline {
                 }
         }
 
-<<<<<<< HEAD
-=======
-        stage('Get most recent periodic commit') {
-            steps {
-                getLastPeriodicRunCommit()
-                echo("Last periodic commit: ${LAST_PERIODIC_COMMIT}")
-            }
-        }
-
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
         stage ('Run Periodic Test Suite') {
             when {
                 allOf {
                     expression { return runPipeline() }
-<<<<<<< HEAD
-=======
-                    expression { !params.DRY_RUN }
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                 }
             }
 
             steps {
                 script {
-<<<<<<< HEAD
                     echo("Running periodics with commit ${GIT_COMMIT_TO_USE}")
-=======
-                    echo("Running periodics with commit ${SHORT_COMMIT_HASH}")
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
                     build job: "/verrazzano-periodic-triggered-tests/${CLEAN_BRANCH_NAME}", wait: true
                 }
             }
@@ -161,7 +121,6 @@ def cleanWorkspaceAndCheckout() {
     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
 }
 
-<<<<<<< HEAD
 // Preliminary job checks and display updates
 def preliminaryChecks() {
     // Get the last stable commit ID to pass the triggered tests
@@ -184,8 +143,6 @@ def preliminaryChecks() {
     }
 }
 
-=======
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 // Returns the last run commit for the periodics, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
 def getLastPeriodicRunCommit() {
@@ -212,11 +169,7 @@ def getLastPeriodicRunCommit() {
     }
     // Get the commit ID for the last known clean pass of the Periodic tests
     def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
-<<<<<<< HEAD
     return lastPeriodicsCommitProps['git-commit']
-=======
-    LAST_PERIODIC_COMMIT = lastPeriodicsCommitProps['git-commit']
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 }
 
 def scmCheckout() {
@@ -234,29 +187,17 @@ def scmCheckout() {
     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 }
 
-<<<<<<< HEAD
 // Checks all the conditions gating test execution and collates the result
 def runPipeline() {
   return ! periodicsUpToDate && ! periodicsUpToDateFailed && ! params.DRY_RUN
-=======
-// Checks if the commit has changed since last run
-def runPipeline() {
-  return LAST_PERIODIC_COMMIT != SHORT_COMMIT_HASH
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
 }
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
         // scheduled for every 6 hours
-<<<<<<< HEAD
         return "H */6 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-")) {
         return "H */6 * * *"
-=======
-        return "0 */6 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-")) {
-        return "0 */6 * * *"
->>>>>>> 193ab1b1d... VZ-10259 URL Trigger is not working as we expect (#6672)
     }
     return ""
 }
