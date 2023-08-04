@@ -10,6 +10,7 @@ import (
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -21,7 +22,8 @@ type ConversionComponents struct {
 	Helidonworkload   *unstructured.Unstructured
 	Coherenceworkload *unstructured.Unstructured
 	Weblogicworkload  *unstructured.Unstructured
-	Service           *corev1.Service
+
+	Service *corev1.Service
 }
 
 type KubeResources struct {

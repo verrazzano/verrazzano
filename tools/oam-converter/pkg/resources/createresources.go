@@ -19,6 +19,7 @@ import (
 )
 
 func CreateResources(cli client.Client, conversionComponents []*types.ConversionComponents) (*types.KubeResources, error) {
+
 	var virtualServices []*vsapi.VirtualService
 	var destinationRules []*istioclient.DestinationRule
 	var authzPolicies []*clisecurity.AuthorizationPolicy
@@ -28,6 +29,7 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 	outputResources := types.KubeResources{}
 
 	gateway, allHostsForTrait, err := gw.CreateGatewayResource(cli, conversionComponents)
+
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +39,7 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 	}
 
 	for _, conversionComponent := range conversionComponents {
+
 		if conversionComponent.Weblogicworkload != nil || conversionComponent.Coherenceworkload != nil {
 
 			virtualService, destinationRule, authzPolicy, err = createChildResources(cli, conversionComponent, gateway, allHostsForTrait)
@@ -70,6 +73,7 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 }
 
 func createChildResources(cli client.Client, conversionComponent *types.ConversionComponents, gateway *vsapi.Gateway, allHostsForTrait []string) ([]*vsapi.VirtualService, []*istioclient.DestinationRule, []*clisecurity.AuthorizationPolicy, error) {
+
 	if conversionComponent.IngressTrait != nil {
 		rules := conversionComponent.IngressTrait.Spec.Rules
 		var virtualServices []*vsapi.VirtualService
@@ -78,6 +82,7 @@ func createChildResources(cli client.Client, conversionComponent *types.Conversi
 		for index, rule := range rules {
 
 			// Find the services associated with the trait in the application configuration.
+
 			vsHosts, err := coallateHosts.CreateHostsFromIngressTraitRule(cli, rule, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 
 			if err != nil {
@@ -106,5 +111,7 @@ func createChildResources(cli client.Client, conversionComponent *types.Conversi
 		}
 		return virtualServices, destinationRules, authzPolicies, nil
 	}
+
 	return nil, nil, nil, fmt.Errorf("ingress Trait is empty")
+
 }

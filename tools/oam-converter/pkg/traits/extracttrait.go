@@ -20,6 +20,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 		appMetadata, found, err := unstructured.NestedMap(appMap, "metadata")
 		if !found || err != nil {
 			return nil, errors.New("app metadata doesn't exist")
+
 		}
 		appName, found, err := unstructured.NestedString(appMetadata, "name")
 		if !found || err != nil {
@@ -85,4 +86,5 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 	}
 
 	return conversionComponents, nil
+
 }

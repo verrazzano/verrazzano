@@ -28,7 +28,9 @@ func ConfData() error {
 
 	//Check the length of args
 	if len(os.Args) != 3 {
+
 		return errors.New("not enough args to run tool. Add input directory path and output directory path as args")
+
 	}
 	inputDirectory = os.Args[1]
 	outputDirectory = os.Args[2]
@@ -106,6 +108,7 @@ func ConfData() error {
 	err = writeKubeResources(outputDirectory, outputResources)
 	if err != nil {
 		return err
+
 	}
 	return nil
 }
@@ -253,6 +256,7 @@ func writeKubeResources(outputDirectory string, outputResources *types.KubeResou
 		}
 	}
 	return nil
+
 }
 
 // iterateDirectory Iterate over input directory

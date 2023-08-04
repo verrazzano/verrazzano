@@ -85,6 +85,7 @@ func mutateVirtualService(virtualService *vsapi.VirtualService, rule vzapi.Ingre
 	dest, err := destination.CreateDestinationFromRule(rule)
 
 	if err != nil {
+
 		return nil, err
 	}
 	route := istio.HTTPRoute{
