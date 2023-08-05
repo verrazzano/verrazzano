@@ -407,7 +407,7 @@ func ExecuteGetRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig,
 		return nil, err
 	}
 	getReq.Header = map[string][]string{"Content-Type": {"application/json"}, "Accept": {"application/json"}}
-	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, getReq, http.StatusOK, "v3/tokens")
+	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, getReq, http.StatusOK, "/v3/tokens")
 }
 
 func ExecutePostRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, ttl string) ([]byte, error) {
@@ -429,7 +429,7 @@ func ExecutePostRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig
 		return nil, err
 	}
 	postReq.Header = map[string][]string{"Content-Type": {"application/json"}}
-	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, postReq, http.StatusCreated, "v3/tokens")
+	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, postReq, http.StatusCreated, "/v3/tokens")
 }
 
 func ExecuteDeleteRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, tokenName string) error {
@@ -438,7 +438,7 @@ func ExecuteDeleteRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconf
 		return err
 	}
 	deleteReq.Header = map[string][]string{"Accept": {"application/json"}}
-	_, err = sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, deleteReq, http.StatusNoContent, "v3/tokens/"+tokenName)
+	_, err = sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, deleteReq, http.StatusNoContent, "/v3/tokens/"+tokenName)
 	return err
 }
 
