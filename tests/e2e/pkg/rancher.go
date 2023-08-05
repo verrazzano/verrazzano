@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	urlpkg "net/url"
 	"strconv"
 	"strings"
 
@@ -458,7 +459,11 @@ func sendTokenRequestToRancher(log *zap.SugaredLogger, adminKubeconfig, managedC
 		return nil, err
 	}
 	reqURL := rancherURL + requestPath
-	requestObject.RequestURI = reqURL
+	URLForRequest, err := urlpkg.Parse(reqURL)
+	if err != nil {
+		return nil, err
+	}
+	requestObject.URL = URLForRequest
 	requestObject.Header["Authorization"] = []string{"Bearer " + APIAccessToken}
 	response, err := httpClient.Do(requestObject)
 	if err != nil {

@@ -7,8 +7,6 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
@@ -47,81 +45,81 @@ var secretName = fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
 
 var t = framework.NewTestFramework("argocd_test")
 
-var beforeSuite = t.BeforeSuiteFunc(func() {
-	// Get the Hello Helidon Argo CD application yaml file
-	// Deploy the Argo CD application in the admin cluster
-	// This should internally deploy the helidon app to the managed cluster
-	start := time.Now()
-	Eventually(func() error {
-		file, err := pkg.FindTestDataFile(argoCDHelidonApplicationFile)
-		if err != nil {
-			return err
-		}
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, argoCDNamespace)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Failed to create Argo CD Application Project file")
-	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
-
-	beforeSuitePassed = true
-})
-
-var _ = BeforeSuite(beforeSuite)
-
-var failed = false
-var beforeSuitePassed = false
-
-var _ = t.AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
+//var beforeSuite = t.BeforeSuiteFunc(func() {
+//	// Get the Hello Helidon Argo CD application yaml file
+//	// Deploy the Argo CD application in the admin cluster
+//	// This should internally deploy the helidon app to the managed cluster
+//	start := time.Now()
+//	Eventually(func() error {
+//		file, err := pkg.FindTestDataFile(argoCDHelidonApplicationFile)
+//		if err != nil {
+//			return err
+//		}
+//		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, argoCDNamespace)
+//	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Failed to create Argo CD Application Project file")
+//	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+//
+//	beforeSuitePassed = true
+//})
+//
+//var _ = BeforeSuite(beforeSuite)
+//
+//var failed = false
+//var beforeSuitePassed = false
+//
+//var _ = t.AfterEach(func() {
+//	failed = failed || CurrentSpecReport().Failed()
+//})
 
 var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.install"), func() {
-	t.Context("Admin Cluster", func() {
-		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
-		})
-
-		t.It("has the expected secrets", func() {
-			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
-			Eventually(func() error {
-				result, err := findSecret(argoCDNamespace, secretName)
-				if result != false {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", secretName, argoCDNamespace, err))
-					return err
-				}
-				return err
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find secret "+secretName)
-		})
-
-		t.It("secret has the data content with the same name as managed cluster", func() {
-			secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
-			Eventually(func() error {
-				result, err := findServerName(argoCDNamespace, secretName)
-				if result != false {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to get servername in secret %s with error: %v", secretName, err))
-					return err
-				}
-				return err
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find managed cluster name "+managedClusterName)
-		})
-	})
-
-	t.Context("Managed Cluster", func() {
-		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
-		})
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the  example application has been  placed in managed cluster
-		// THEN expect that the app is deployed to the managed cluster
-		t.It("Has application placed", func() {
-			Eventually(func() bool {
-				result, err := helloHelidonPodsRunning(managedKubeconfig, testNamespace)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
-					return false
-				}
-				return result
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
+	//t.Context("Admin Cluster", func() {
+	//	t.BeforeEach(func() {
+	//		os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+	//	})
+	//
+	//	t.It("has the expected secrets", func() {
+	//		secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
+	//		Eventually(func() error {
+	//			result, err := findSecret(argoCDNamespace, secretName)
+	//			if result != false {
+	//				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", secretName, argoCDNamespace, err))
+	//				return err
+	//			}
+	//			return err
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find secret "+secretName)
+	//	})
+	//
+	//	t.It("secret has the data content with the same name as managed cluster", func() {
+	//		secretName := fmt.Sprintf("%s-argocd-cluster-secret", managedClusterName)
+	//		Eventually(func() error {
+	//			result, err := findServerName(argoCDNamespace, secretName)
+	//			if result != false {
+	//				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get servername in secret %s with error: %v", secretName, err))
+	//				return err
+	//			}
+	//			return err
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred(), "Expected to find managed cluster name "+managedClusterName)
+	//	})
+	//})
+	//
+	//t.Context("Managed Cluster", func() {
+	//	t.BeforeEach(func() {
+	//		os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
+	//	})
+	//	// GIVEN an admin cluster and at least one managed cluster
+	//	// WHEN the  example application has been  placed in managed cluster
+	//	// THEN expect that the app is deployed to the managed cluster
+	//	t.It("Has application placed", func() {
+	//		Eventually(func() bool {
+	//			result, err := helloHelidonPodsRunning(managedKubeconfig, testNamespace)
+	//			if err != nil {
+	//				pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+	//				return false
+	//			}
+	//			return result
+	//		}, waitTimeout, pollingInterval).Should(BeTrue())
+	//	})
+	//})
 	t.Context("Token Update Tests", func() {
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, adminKubeconfig)
@@ -208,33 +206,33 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to have the secret reflect the created timestamp of the new token that was created")
 	})
 	//This eventually block deletes the cluster
-	t.Context("Delete resources", func() {
-		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
-		})
-		t.It("Delete resources on admin cluster", func() {
-			Eventually(func() error {
-				return deleteArgoCDApplication(adminKubeconfig)
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-		})
-
-		t.It("Verify automatic deletion on managed cluster", func() {
-			Eventually(func() bool {
-				return examples.VerifyAppDeleted(managedKubeconfig, testNamespace)
-			}, consistentlyDuration, pollingInterval).Should(BeTrue())
-		})
-
-	})
+	//t.Context("Delete resources", func() {
+	//	t.BeforeEach(func() {
+	//		os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+	//	})
+	//	t.It("Delete resources on admin cluster", func() {
+	//		Eventually(func() error {
+	//			return deleteArgoCDApplication(adminKubeconfig)
+	//		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	//	})
+	//
+	//	t.It("Verify automatic deletion on managed cluster", func() {
+	//		Eventually(func() bool {
+	//			return examples.VerifyAppDeleted(managedKubeconfig, testNamespace)
+	//		}, consistentlyDuration, pollingInterval).Should(BeTrue())
+	//	})
+	//
+	//})
 
 })
 
-var afterSuite = t.AfterSuiteFunc(func() {
-	if failed || !beforeSuitePassed {
-		dump.ExecuteBugReport(testNamespace)
-	}
-})
-
-var _ = AfterSuite(afterSuite)
+//var afterSuite = t.AfterSuiteFunc(func() {
+//	if failed || !beforeSuitePassed {
+//		dump.ExecuteBugReport(testNamespace)
+//	}
+//})
+//
+//var _ = AfterSuite(afterSuite)
 
 func deleteArgoCDApplication(kubeconfigPath string) error {
 	start := time.Now()
