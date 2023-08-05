@@ -152,7 +152,7 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 
 // This function adds an access token to Rancher gven that a ttl and clusterID string is provided
 func AddAccessTokenToRancherForLoggedInUser(log *zap.SugaredLogger, adminKubeConfig, managedClusterName, usernameForRancher, ttl string) (string, error) {
-	responseBody, err := ExecutePostRequestToReturnAllTokens(log, adminKubeConfig, managedClusterName, usernameForRancher, ttl)
+	responseBody, err := ExecutePostRequestToAddAToken(log, adminKubeConfig, managedClusterName, usernameForRancher, ttl)
 	if err != nil {
 		return "", err
 	}
@@ -190,7 +190,7 @@ func GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(log *zap.SugaredLogge
 		if token.ClusterID != clusterID {
 			continue
 		}
-		err = ExecuteDeleteRequestToReturnAllTokens(log, adminKubeConfig, managedClusterName, usernameForRancher, token.Name)
+		err = ExecuteDeleteRequestForToken(log, adminKubeConfig, managedClusterName, usernameForRancher, token.Name)
 		if err != nil {
 			return err
 		}
@@ -401,6 +401,7 @@ func GetClusterKubeconfig(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(responseBody), "config", "")
 }
 
+// This function is a wrapper function that executes a GET Request to return all tokens in Rancher for a given user
 func ExecuteGetRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher string) ([]byte, error) {
 	getReq, err := retryablehttp.NewRequest("GET", "", nil)
 	if err != nil {
@@ -410,7 +411,8 @@ func ExecuteGetRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig,
 	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, getReq, http.StatusOK, "/v3/tokens")
 }
 
-func ExecutePostRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, ttl string) ([]byte, error) {
+// This function is a wrapper function that executes a POST Request to add a token in Rancher for a given user
+func ExecutePostRequestToAddAToken(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, ttl string) ([]byte, error) {
 	clusterID, err := getClusterIDForManagedCluster(adminKubeconfig, managedClusterName)
 	if err != nil {
 		return nil, err
@@ -432,7 +434,8 @@ func ExecutePostRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig
 	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, postReq, http.StatusCreated, "/v3/tokens")
 }
 
-func ExecuteDeleteRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, tokenName string) error {
+// This function is a wrapper function to delete a given token for a specified user in Rancher
+func ExecuteDeleteRequestForToken(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, tokenName string) error {
 	deleteReq, err := retryablehttp.NewRequest("DELETE", "", nil)
 	if err != nil {
 		return err
@@ -442,7 +445,8 @@ func ExecuteDeleteRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconf
 	return err
 }
 
-// This expects that the HTTP request
+// This function is a helper function that sends a Token Request to Rancher for a specified user
+// This function expects a retryable HTTP Request object
 func sendTokenRequestToRancher(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher string, requestObject *retryablehttp.Request, expectedReturnCode int, requestPath string) ([]byte, error) {
 	httpClient, APIAccessToken, err := getRequiredInfoToPreformTokenOperationsInRancherForArgoCD(log, adminKubeconfig, managedClusterName, usernameForRancher)
 	if err != nil {
