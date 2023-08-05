@@ -36,7 +36,8 @@ var mcNamespace = types.NamespacedName{Name: constants.VerrazzanoMultiClusterNam
 var vzTLSSecret = types.NamespacedName{Name: constants.VerrazzanoIngressSecret, Namespace: constants.VerrazzanoSystemNamespace}
 var vzPrivateCABundleSecret = types.NamespacedName{Name: constants2.PrivateCABundle, Namespace: constants.VerrazzanoSystemNamespace}
 var rancherTLSCASecret = types.NamespacedName{Name: constants2.RancherTLSCA, Namespace: constants2.RancherSystemNamespace}
-var additionalTLSSecret = types.NamespacedName{Name: constants2.AdditionalTLS, Namespace: constants2.RancherSystemNamespace}
+
+var additionalTLSSecret = types.NamespacedName{Name: "tls-ca-additional", Namespace: constants2.RancherSystemNamespace}
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
 var rancherDeployment = types.NamespacedName{Name: rancherDeploymentName, Namespace: constants2.RancherSystemNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
@@ -150,6 +151,11 @@ func TestIgnoresOtherSecrets(t *testing.T) {
 		secretName string
 		secretNS   string
 	}{
+		// Additional TLS secret no longer watched
+		{
+			secretName: additionalTLSSecret.Name,
+			secretNS:   additionalTLSSecret.Namespace,
+		},
 		// VZ TLS secret name in wrong NS
 		{
 			secretName: vzTLSSecret.Name,
