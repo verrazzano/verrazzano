@@ -134,7 +134,8 @@ var _ = t.Describe("Multi Cluster Argo CD Validation", Label("f:platform-lcm.ins
 		// Tests that a new ArgoCD token is able to be created
 		t.It("A new ArgoCD token is able to be created through the Rancher API", func() {
 			Eventually(func() (string, error) {
-				createdTimeStampForNewTokenCreated, err := pkg.AddAccessTokenToRancherForLoggedInUser(t.Logs, adminKubeconfig, managedClusterName, argoCDUsernameForRancher, ttl)
+				createdTimeStampForNewTokenCreatedValue, err := pkg.AddAccessTokenToRancherForLoggedInUser(t.Logs, adminKubeconfig, managedClusterName, argoCDUsernameForRancher, ttl)
+				createdTimeStampForNewTokenCreated = createdTimeStampForNewTokenCreatedValue
 				if err != nil {
 					pkg.Log(pkg.Error, "Error creating New Token")
 				}
