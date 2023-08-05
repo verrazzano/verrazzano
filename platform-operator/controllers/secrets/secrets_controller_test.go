@@ -143,7 +143,7 @@ func TestCreateCABundle(t *testing.T) {
 }
 
 // TestIgnoresOtherSecrets tests the Reconcile method for the following use case
-// GIVEN a request to reconcile a secret other than verrazzano TLS secret or additional TLS secret
+// GIVEN a request to reconcile the additional TLS secret or a secret other than verrazzano TLS secret
 // WHEN any conditions
 // THEN the request is ignored
 func TestIgnoresOtherSecrets(t *testing.T) {
