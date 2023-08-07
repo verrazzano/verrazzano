@@ -202,3 +202,18 @@ func CreateArgoCDGitApplication() error {
 
 	return nil
 }
+
+// This function retrieves the ArgoCD password to log into rancher, based on the provided name and namespace of a secret that holds this information
+func RetrieveArgoCDPassword(namespace, name string) (string, error) {
+	s, err := GetSecret(namespace, name)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get secret %s in namespace %s with error: %v", name, namespace, err))
+		return "", err
+	}
+	argoCDPasswordForSecret, ok := s.Data["password"]
+	if !ok {
+		Log(Error, fmt.Sprintf("Failed to find password value in ArgoCD secret %s in namespace %s", name, namespace))
+		return "", fmt.Errorf("Failed to find password value in ArgoCD secret %s in namespace %s", name, namespace)
+	}
+	return string(argoCDPasswordForSecret), nil
+}
