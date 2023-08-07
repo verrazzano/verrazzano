@@ -1,10 +1,10 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package certs
 
 import (
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,17 +17,17 @@ import (
 // WHEN an LetsEncrypt configuration is passed in
 // THEN the function returns true if the LetsEncrypt environment is for the LE production env
 func TestIsLetsEncryptProductionEnv(t *testing.T) {
-	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{Environment: cmconstants.LetsEncryptProduction}))
+	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{Environment: constants.LetsEncryptProduction}))
 	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{}))
-	assert.False(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{Environment: cmconstants.LetsEncryptStaging}))
-	assert.True(t, IsLetsEncryptProductionEnv(v1beta1.LetsEncryptACMEIssuer{Environment: cmconstants.LetsEncryptProduction}))
+	assert.False(t, IsLetsEncryptProductionEnv(v1alpha1.LetsEncryptACMEIssuer{Environment: constants.LetsEncryptStaging}))
+	assert.True(t, IsLetsEncryptProductionEnv(v1beta1.LetsEncryptACMEIssuer{Environment: constants.LetsEncryptProduction}))
 	assert.True(t, IsLetsEncryptProductionEnv(v1beta1.LetsEncryptACMEIssuer{}))
-	assert.False(t, IsLetsEncryptProductionEnv(v1beta1.LetsEncryptACMEIssuer{Environment: cmconstants.LetsEncryptStaging}))
-	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{Environment: cmconstants.LetsEncryptProduction}))
+	assert.False(t, IsLetsEncryptProductionEnv(v1beta1.LetsEncryptACMEIssuer{Environment: constants.LetsEncryptStaging}))
+	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{Environment: constants.LetsEncryptProduction}))
 	assert.True(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{}))
-	assert.False(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{Environment: cmconstants.LetsEncryptStaging}))
-	assert.True(t, IsLetsEncryptProductionEnv(v1beta1.Acme{Environment: cmconstants.LetsEncryptProduction}))
-	assert.False(t, IsLetsEncryptProductionEnv(v1beta1.Acme{Environment: cmconstants.LetsEncryptStaging}))
+	assert.False(t, IsLetsEncryptProductionEnv(v1alpha1.Acme{Environment: constants.LetsEncryptStaging}))
+	assert.True(t, IsLetsEncryptProductionEnv(v1beta1.Acme{Environment: constants.LetsEncryptProduction}))
+	assert.False(t, IsLetsEncryptProductionEnv(v1beta1.Acme{Environment: constants.LetsEncryptStaging}))
 	assert.True(t, IsLetsEncryptProductionEnv(v1beta1.Acme{}))
 }
 
@@ -38,12 +38,12 @@ func TestIsLetsEncryptProductionEnv(t *testing.T) {
 func TestIsLetsEncryptStagingEnv(t *testing.T) {
 	assert.True(t, IsLetsEncryptStagingEnv(
 		v1alpha1.LetsEncryptACMEIssuer{
-			Environment: cmconstants.LetsEncryptStaging,
+			Environment: constants.LetsEncryptStaging,
 		},
 	))
 	assert.False(t, IsLetsEncryptStagingEnv(
 		v1alpha1.LetsEncryptACMEIssuer{
-			Environment: cmconstants.LetsEncryptProduction,
+			Environment: constants.LetsEncryptProduction,
 		},
 	))
 	assert.False(t, IsLetsEncryptStagingEnv(
@@ -58,12 +58,12 @@ func TestIsLetsEncryptStagingEnv(t *testing.T) {
 	))
 	assert.True(t, IsLetsEncryptStagingEnv(
 		v1alpha1.Acme{
-			Environment: cmconstants.LetsEncryptStaging,
+			Environment: constants.LetsEncryptStaging,
 		},
 	))
 	assert.False(t, IsLetsEncryptStagingEnv(
 		v1alpha1.Acme{
-			Environment: cmconstants.LetsEncryptProduction,
+			Environment: constants.LetsEncryptProduction,
 		},
 	))
 	assert.False(t, IsLetsEncryptStagingEnv(

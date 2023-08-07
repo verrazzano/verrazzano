@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -21,6 +20,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
@@ -105,7 +106,7 @@ func preUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMon
 // returns or requeue accordingly.
 func postUninstall(ctx spi.ComponentContext, monitor monitor.BackgroundProcessMonitor) error {
 	if monitor.IsCompleted() {
-		ctx.Log().Progress("Cleaning up Rancher resources remaining after component clean up")
+		ctx.Log().Once("Cleaning up Rancher resources remaining after component clean up")
 		err := cleanupRemainingResources(ctx)
 		if err != nil {
 			return err
@@ -155,6 +156,15 @@ func cleanupRemainingResources(ctx spi.ComponentContext) error {
 		if err != nil {
 			return err
 		}
+
+		// Clean up the tls-ca secret if it exists
+		resource.Resource{
+			Namespace: common.CattleSystem,
+			Name:      rancherTLSCASecretName,
+			Client:    ctx.Client(),
+			Object:    &corev1.Secret{},
+			Log:       ctx.Log(),
+		}.Delete()
 
 		// Delete the remaining Rancher ConfigMaps
 		err = resource.Resource{

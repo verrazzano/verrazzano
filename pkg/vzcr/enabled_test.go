@@ -5,12 +5,12 @@ package vzcr
 import (
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-
+	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -243,10 +243,21 @@ func TestIsClusterIssuerEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 	asserts.False(IsClusterIssuerEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+				CertManager: &vzapi.CertManagerComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -259,9 +270,20 @@ func TestIsClusterIssuerEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsClusterIssuerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 	asserts.False(IsClusterIssuerEnabled(
 		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
 			Components: installv1beta1.ComponentSpec{
+				CertManager: &installv1beta1.CertManagerComponent{
+					Enabled: &falseValue,
+				},
 				ClusterIssuer: &installv1beta1.ClusterIssuerComponent{
 					Enabled: &falseValue,
 				},

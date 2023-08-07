@@ -9,8 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"text/template"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -19,7 +17,8 @@ import (
 	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	cmclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/certs"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -30,10 +29,12 @@ import (
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -134,6 +135,10 @@ type CertIssuerType string
 type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, error)
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
+
+type getLetsEncryptStagingBundleFuncType func() ([]byte, error)
+
+var getLetsEncryptStagingBundleFunc getLetsEncryptStagingBundleFuncType = certs.CreateLetsEncryptStagingBundle
 
 // GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
@@ -246,7 +251,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 			log.Oncef("Skip renewal of CA certificate")
 			continue
 		}
-		if currentCert.Spec.IssuerRef.Name != constants.VerrazzanoClusterIssuerName {
+		if currentCert.Spec.IssuerRef.Name != vzconst.VerrazzanoClusterIssuerName {
 			log.Oncef("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
@@ -331,13 +336,13 @@ func (c clusterIssuerComponent) verrazzanoCertManagerResourcesReady(ctx spi.Comp
 	logger := ctx.Log()
 
 	exists, err := vzresource.Resource{
-		Name:   constants.VerrazzanoClusterIssuerName,
+		Name:   vzconst.VerrazzanoClusterIssuerName,
 		Client: ctx.Client(),
 		Object: &certv1.ClusterIssuer{},
 		Log:    logger,
 	}.Exists()
 	if err != nil {
-		logger.ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", constants.VerrazzanoClusterIssuerName, err)
+		logger.ErrorfThrottled("Error checking for ClusterIssuer %s existence: %v", vzconst.VerrazzanoClusterIssuerName, err)
 	}
 
 	return exists
@@ -389,13 +394,13 @@ func createACMEIssuerObject(log vzlog.VerrazzanoLogger, client crtclient.Client,
 
 	// Verify the acme environment and set the server
 	acmeServer := letsEncryptProdEndpoint
-	if common.IsLetsEncryptStagingEnv(*vzCertAcme) {
+	if certs.IsLetsEncryptStagingEnv(*vzCertAcme) {
 		acmeServer = letsEncryptStageEndpoint
 	}
 
 	// Create the buffer and the cluster issuer data struct
 	clusterIssuerData := templateData{
-		ClusterIssuerName: constants.VerrazzanoClusterIssuerName,
+		ClusterIssuerName: vzconst.VerrazzanoClusterIssuerName,
 		AcmeSecretName:    caAcmeSecretName,
 		Email:             vzCertAcme.EmailAddress,
 		Server:            acmeServer,
@@ -514,7 +519,7 @@ func createOrUpdateCAResources(log vzlog.VerrazzanoLogger, crtClient crtclient.C
 	log.Debug("Applying ClusterIssuer")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoClusterIssuerName,
+			Name: vzconst.VerrazzanoClusterIssuerName,
 		},
 	}
 
@@ -551,7 +556,7 @@ func getACMEIssuerName(acme *vzapi.LetsEncryptACMEIssuer) ([]string, error) {
 	if acme == nil {
 		return []string{}, fmt.Errorf("Illegal state, LetsEncrypt issuer not configured")
 	}
-	if common.IsLetsEncryptProductionEnv(*acme) {
+	if certs.IsLetsEncryptProductionEnv(*acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
@@ -605,7 +610,7 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 	// leave resources abandoned in the Verrazzano cert-manager namespace; take a second pass and clean those up if
 	// our Cert-Manager is in play
 	if vzcr.IsCertManagerEnabled(effectiveCR) {
-		if err := cleanupUnusedResourcesForNamespace(compContext, constants.CertManagerNamespace, clusterIssuer, isCAValue); err != nil {
+		if err := cleanupUnusedResourcesForNamespace(compContext, vzconst.CertManagerNamespace, clusterIssuer, isCAValue); err != nil {
 			return err
 		}
 	}
@@ -617,12 +622,12 @@ func cleanupUnusedResourcesForNamespace(compContext spi.ComponentContext, cluste
 	log := compContext.Log()
 	defaultCANotUsed := func() bool {
 		// We're not using the default CA if we're either configured for ACME or it's a Customer-provided CA
-		return !isCAValue || clusterIssuer.CA.SecretName != constants.DefaultVerrazzanoCASecretName
+		return !isCAValue || clusterIssuer.CA.SecretName != vzconst.DefaultVerrazzanoCASecretName
 	}
 	if isCAValue {
 		log.Oncef("Clean up ACME issuer secret")
 		// clean up ACME secret if present
-		if err := deleteObject(client, caAcmeSecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
+		if err := deleteObject(log, client, caAcmeSecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
 	}
@@ -632,13 +637,13 @@ func cleanupUnusedResourcesForNamespace(compContext spi.ComponentContext, cluste
 		// - self-signed CA certificate
 		// - self-signed secret object
 		log.Oncef("Clean up Verrazzano self-signed issuer resources")
-		if err := deleteObject(client, caSelfSignedIssuerName, clusterResourceNamespace, &certv1.Issuer{}); err != nil {
+		if err := deleteObject(log, client, caSelfSignedIssuerName, clusterResourceNamespace, &certv1.Issuer{}); err != nil {
 			return err
 		}
-		if err := deleteObject(client, caCertificateName, clusterResourceNamespace, &certv1.Certificate{}); err != nil {
+		if err := deleteObject(log, client, caCertificateName, clusterResourceNamespace, &certv1.Certificate{}); err != nil {
 			return err
 		}
-		if err := deleteObject(client, constants.DefaultVerrazzanoCASecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
+		if err := deleteObject(log, client, vzconst.DefaultVerrazzanoCASecretName, clusterResourceNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
 	}
@@ -690,6 +695,98 @@ func (c clusterIssuerComponent) createOrUpdateClusterIssuer(compContext spi.Comp
 	return nil
 }
 
+func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	cli := ctx.Client()
+
+	clusterIssuer := ctx.EffectiveCR().Spec.Components.ClusterIssuer
+	if clusterIssuer == nil {
+		// Not necessarily an error, since CM and the ClusterIssuer could be disabled
+		log.Progressf("No cluster issuer found, skipping CA certificate bundle configuration")
+		return nil
+	}
+
+	var bundleData []byte
+	var err error
+	if bundleData, err = getPrivateBundleData(log, cli, clusterIssuer); err != nil {
+		return err
+	}
+
+	if len(bundleData) == 0 {
+		// There's no private bundle data, clean it up if it exists
+		ctx.Log().Infof("Cleaning up private CA bundle secret")
+		if err := deleteObject(ctx.Log(), ctx.Client(), vzconst.PrivateCABundle, vzconst.VerrazzanoSystemNamespace, &v1.Secret{}); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	privateCASecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconst.VerrazzanoSystemNamespace,
+			Name:      vzconst.PrivateCABundle,
+		},
+	}
+
+	_, err = controllerruntime.CreateOrUpdate(context.TODO(), cli, privateCASecret, func() error {
+		if len(privateCASecret.Data) == 0 {
+			privateCASecret.Data = make(map[string][]byte)
+		}
+		privateCASecret.Data[vzconst.CABundleKey] = bundleData
+		return nil
+	})
+	return err
+}
+
+// createPrivateCABundle Obtains the private CA bundle for the self-signed/customer-provided CA configuration
+func createPrivateCABundle(log vzlog.VerrazzanoLogger, c crtclient.Client, clusterIssuer *vzapi.ClusterIssuerComponent) ([]byte, error) {
+	caSecretNamespace := clusterIssuer.ClusterResourceNamespace
+	caSecretName := clusterIssuer.CA.SecretName
+	namespacedName := types.NamespacedName{
+		Namespace: caSecretNamespace,
+		Name:      caSecretName,
+	}
+	certKey := vzconst.CACertKey
+	if isDefault, _ := clusterIssuer.IsDefaultIssuer(); !isDefault {
+		certKey = vzconst.CustomCACertKey
+	}
+	caSecret := &v1.Secret{}
+	if err := c.Get(context.TODO(), namespacedName, caSecret); err != nil {
+		return []byte{}, err
+	}
+	if len(caSecret.Data[certKey]) < 1 {
+		return nil, log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s",
+			caSecretNamespace,
+			caSecretName, certKey)
+	}
+	return caSecret.Data[certKey], nil
+}
+
+func getPrivateBundleData(log vzlog.VerrazzanoLogger, c crtclient.Client, clusterIssuer *vzapi.ClusterIssuerComponent) ([]byte, error) {
+	isCAIssuer, err := clusterIssuer.IsCAIssuer()
+	if err != nil {
+		return []byte{}, err
+	}
+	var isLetsEncryptStagingEnv bool
+	if clusterIssuer.LetsEncrypt != nil {
+		isLetsEncryptStagingEnv = certs.IsLetsEncryptStagingEnv(*clusterIssuer.LetsEncrypt)
+	}
+
+	bundleData := []byte{}
+	if isCAIssuer {
+		log.Infof("Getting private CA bundle for Rancher")
+		if bundleData, err = createPrivateCABundle(log, c, clusterIssuer); err != nil {
+			return []byte{}, err
+		}
+	} else if isLetsEncryptStagingEnv {
+		log.Infof("Getting Let's Encrypt Staging CA bundle for Rancher")
+		if bundleData, err = getLetsEncryptStagingBundleFunc(); err != nil {
+			return []byte{}, err
+		}
+	}
+	return bundleData, nil
+}
+
 // uninstallVerrazzanoCertManagerResources is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
 func (c clusterIssuerComponent) uninstallVerrazzanoCertManagerResources(compContext spi.ComponentContext) error {
@@ -701,7 +798,7 @@ func (c clusterIssuerComponent) uninstallVerrazzanoCertManagerResources(compCont
 	}
 
 	err := vzresource.Resource{
-		Name:      constants.DefaultVerrazzanoCASecretName,
+		Name:      vzconst.DefaultVerrazzanoCASecretName,
 		Namespace: issuerConfig.ClusterResourceNamespace,
 		Client:    compContext.Client(),
 		Object:    &v1.Secret{},
@@ -722,6 +819,11 @@ func (c clusterIssuerComponent) uninstallVerrazzanoCertManagerResources(compCont
 	if err != nil {
 		return err
 	}
+
+	if err := deleteObject(compContext.Log(), compContext.Client(), vzconst.PrivateCABundle, vzconst.VerrazzanoSystemNamespace, &v1.Secret{}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -729,7 +831,7 @@ func (c clusterIssuerComponent) deleteCertManagerIssuerResources(log vzlog.Verra
 
 	// Delete the ClusterIssuer created by Verrazzano
 	err := vzresource.Resource{
-		Name:   constants.VerrazzanoClusterIssuerName,
+		Name:   vzconst.VerrazzanoClusterIssuerName,
 		Client: client,
 		Object: &certv1.ClusterIssuer{},
 		Log:    log,
@@ -763,11 +865,14 @@ func (c clusterIssuerComponent) deleteCertManagerIssuerResources(log vzlog.Verra
 	return nil
 }
 
-func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
+func deleteObject(log vzlog.VerrazzanoLogger, client crtclient.Client, name string, namespace string, object crtclient.Object) error {
 	object.SetName(name)
 	object.SetNamespace(namespace)
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err == nil {
-		return client.Delete(context.TODO(), object)
-	}
-	return nil
+	return vzresource.Resource{
+		Name:      name,
+		Namespace: namespace,
+		Client:    client,
+		Object:    object,
+		Log:       log,
+	}.Delete()
 }

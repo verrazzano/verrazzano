@@ -107,11 +107,20 @@ const RancherTLSCA = "tls-ca"
 // RancherTLSCAKey is the key containing the CA in the secret specified by the RancherTLSCA constant
 const RancherTLSCAKey = "cacerts.pem"
 
-// AdditionalTLS is an optional tls secret that contains additional CA
-const AdditionalTLS = "tls-ca-additional"
+// PrivateCABundle is an optional tls secret that contains private CAs used to issue/validate Verrazzano certificates
+const PrivateCABundle = "verrazzano-tls-ca"
 
-// AdditionalTLSCAKey is the key containing the CA in the secret specified by the AdditionalTLS constant
-const AdditionalTLSCAKey = "ca-additional.pem"
+// CABundleKey is the key for the CA bundle in the PrivateCABundle secret
+const CABundleKey = "cacerts.pem"
+
+// VerrazzanoIngressTLSSecret is the name of the secret in a cluster that contains the cluster's ca bundle
+const VerrazzanoIngressTLSSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+
+// CACertKey is the key for the CA bundle Cert-Manager issued leaf-certificate secrets, if it not from a public issuer
+const CACertKey = "ca.crt"
+
+// CustomCACertKey is the key for the public certificate in Cert-Manager issued certificate secrets
+const CustomCACertKey = "tls.crt"
 
 // VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
 const VMCAgentPollingTimeInterval = 60 * time.Second

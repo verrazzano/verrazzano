@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -58,7 +59,7 @@ const (
 	FleetSystemNamespace      = "cattle-fleet-system"
 	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
-	rancherTLSSecretName      = "tls-ca"
+	rancherTLSCASecretName    = "tls-ca"
 	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
 	fleetAgentDeployment      = "fleet-agent"
 	fleetControllerDeployment = "fleet-controller"
@@ -97,8 +98,8 @@ const (
 	letsEncryptTLSSource       = "letsEncrypt"
 	caTLSSource                = "secret"
 	caCertsPem                 = "cacerts.pem"
-	caCert                     = "ca.crt"
-	customCACertKey            = "tls.crt"
+	caCert                     = vzconst.CACertKey
+	customCACertKey            = vzconst.CustomCACertKey
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
