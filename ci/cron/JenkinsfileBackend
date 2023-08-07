@@ -4,7 +4,13 @@
 import groovy.transform.Field
 
 @Field
-def LAST_BACKEND_COMMIT = ""
+def GIT_COMMIT_TO_USE = ""
+@Field
+def LAST_CLEAN_BACKEND_COMMIT = ""
+@Field
+def backendTestsUpToDate = false // If true, indicates that the backend tests already passed at the latest commit
+@Field
+def backendTestsUpToDateFailed = false // If true, indicates that the backend tests already ran and failed at the latest commit
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
@@ -38,21 +44,46 @@ pipeline {
         }
 
     environment {
-        OCI_CLI_AUTH="instance_principal"
+        OCI_CLI_AUTH = "instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
 
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_BUCKET = "verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET = "verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
+        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
         LAST_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-backend-run-commit.txt"
-        LAST_BACKEND_LOCATION = "${WORKSPACE}/last-backend-run-commit.txt"
+        CLEAN_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-backend-test/verrazzano_backend-commit.txt"
 
-        OCI_OS_REGION="us-phoenix-1"
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        LAST_BACKEND_LOCATION = "${WORKSPACE}/last-backend-run-commit.txt"
+        CLEAN_BACKEND_LOCATION = "${WORKSPACE}/last-clean-backend-commit.txt"
+
+        OCI_OS_REGION = "us-phoenix-1"
     }
 
     stages {
+
+        stage('Check last clean backend') {
+            steps {
+                sh """
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
+                """
+
+                script {
+                    // Check if there is already a clean backend run at this commit already, and set the display name if
+                    // it already is tested, or if doing a special run type (dry run, etc...)
+                    preliminaryChecks()
+                }
+            }
+        }
+
         stage('Clean workspace and checkout') {
+            when {
+                allOf {
+                    expression { return runPipeline() }
+                }
+            }
                 steps {
                     script {
                         cleanWorkspaceAndCheckout()
@@ -60,24 +91,16 @@ pipeline {
                 }
         }
 
-        stage('Get most recent backend commit') {
-            steps {
-                getLastBackendRunCommit()
-                echo("Last backend commit: ${LAST_BACKEND_COMMIT}")
-            }
-        }
-
         stage ('Run Backend Test Suite') {
             when {
                 allOf {
                     expression { return runPipeline() }
-                    expression { !params.DRY_RUN }
                 }
             }
 
             steps {
                 script {
-                    echo("Running backend suite with commit ${SHORT_COMMIT_HASH}")
+                    echo("Running backend suite with commit ${GIT_COMMIT_TO_USE}")
                     build job: "/verrazzano-backend-tests/${CLEAN_BRANCH_NAME}", wait: true
                 }
             }
@@ -95,11 +118,40 @@ def cleanWorkspaceAndCheckout() {
     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
 }
 
-// Returns the last run commit for the backend suite, or null if the commit file does not exist yet.
+// Returns the last clean commit for the backends, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
+def getLastCleanBackendCommit() {
+    lastBackendCommitCommandOutput = sh (
+        label: "Get last clean backend commit ID",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BACKEND_OS_LOCATION} --file ${CLEAN_BACKEND_LOCATION} 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastBackendCommitCommandOutput}"
+    if (lastBackendCommitCommandOutput.length() > 0) {
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastBackendCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastBackendCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last backend commit from ObjectStore: ${lastBackendCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f ${CLEAN_BACKEND_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last backend commit from ObjectStore: ${lastBackendCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
+    }
+    // Get the commit ID for the last known clean pass of the Backend tests
+    def cleanBackendsCommitProps = readProperties file: "${CLEAN_BACKEND_LOCATION}"
+    return cleanBackendsCommitProps['git-commit']
+}
+
+// Returns the last run commit for the Backend, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
 def getLastBackendRunCommit() {
     lastBackendCommitCommandOutput = sh (
-        label: "Get last clean backend suite commit ID",
+        label: "Get last clean backend commit ID",
         script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_BACKEND_OS_LOCATION} --file ${LAST_BACKEND_LOCATION} 2>&1 || true",
         returnStdout: true
         ).trim()
@@ -108,20 +160,41 @@ def getLastBackendRunCommit() {
         // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
         if (lastBackendCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
             // If we think we had a status: NNN, we ignore 404 and fail for others
-            assert lastBackendCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last backend suite commit from ObjectStore: ${lastBackendCommitCommandOutput}"
+            assert lastBackendCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last backend commit from ObjectStore: ${lastBackendCommitCommandOutput}"
         } else {
             // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
             sh """
                 if [ ! -f ${LAST_BACKEND_LOCATION} ]; then
-                    echo "An unexpected error occurred getting last backend suite run commit from ObjectStore: ${lastBackendCommitCommandOutput}"
+                    echo "An unexpected error occurred getting last backend run commit from ObjectStore: ${lastBackendCommitCommandOutput}"
                     exit 1
                 fi
             """
         }
     }
-    // Get the commit ID for the last known clean pass of the backend tests
+    // Get the commit ID for the last known clean pass of the Backend tests
     def lastBackendCommitProps = readProperties file: "${LAST_BACKEND_LOCATION}"
-    LAST_BACKEND_COMMIT = lastBackendCommitProps['git-commit']
+    return lastBackendCommitProps['git-commit']
+}
+
+// Preliminary job checks and display updates
+def preliminaryChecks() {
+    // Get the last stable commit ID to pass the triggered tests
+    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
+
+    LAST_CLEAN_BACKEND_COMMIT=getLastCleanBackendCommit()
+    echo "Last clean backend commit: ${LAST_CLEAN_BACKEND_COMMIT}"
+
+    if (LAST_CLEAN_BACKEND_COMMIT == GIT_COMMIT_TO_USE) {
+        backendTestsUpToDate = true
+    } else {
+        // Check if we are still at the same commit previously run (if so we know it wasn't clean and it failed in some way)
+        LAST_BACKEND_RUN_COMMIT=getLastBackendRunCommit()
+        if (LAST_BACKEND_RUN_COMMIT != null && LAST_BACKEND_RUN_COMMIT == GIT_COMMIT_TO_USE) {
+            backendTestsUpToDateFailed = true
+        }
+    }
 }
 
 def scmCheckout() {
@@ -139,17 +212,17 @@ def scmCheckout() {
     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 }
 
-// Checks if the commit has changed since last run
+// Checks all the conditions gating test execution and collates the result
 def runPipeline() {
-  return LAST_BACKEND_COMMIT != SHORT_COMMIT_HASH
+  return ! backendTestsUpToDate && ! backendTestsUpToDateFailed && ! params.DRY_RUN
 }
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
         // scheduled for every 6 hours
-        return "0 */6 * * *"
+        return "H */6 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-")) {
-        return "0 */6 * * *"
+        return "@daily"
     }
     return ""
 }

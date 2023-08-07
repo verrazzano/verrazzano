@@ -54,6 +54,10 @@ prometheus:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+  thanosService:
+    enabled: true
+  thanosServiceMonitor:
+    enabled: true
 
 alertmanager:
   enabled: false

@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonresources
+package workloads
 
 import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -9,12 +9,13 @@ import (
 	vs "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources/virtualservice"
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func createVirtualServiceFromHelidonWorkload(appNamespace string, rule vzapi.IngressRule,
-	allHostsForTrait []string, name string, gateway *vsapi.Gateway, helidonWorkload *unstructured.Unstructured) (*vsapi.VirtualService, error) {
+func createVirtualServiceFromWorkload(appNamespace string, rule vzapi.IngressRule,
+	allHostsForTrait []string, name string, gateway *vsapi.Gateway, helidonWorkload *unstructured.Unstructured, service *corev1.Service) (*vsapi.VirtualService, error) {
 	virtualService := &vsapi.VirtualService{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: consts.VirtualServiceAPIVersion,
@@ -25,11 +26,11 @@ func createVirtualServiceFromHelidonWorkload(appNamespace string, rule vzapi.Ing
 			Name:      name,
 		},
 	}
-	return mutateVirtualServiceFromHelidonWorkload(virtualService, rule, allHostsForTrait, gateway, helidonWorkload)
+	return mutateVirtualServiceFromWorkload(virtualService, rule, allHostsForTrait, gateway, helidonWorkload, service)
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func mutateVirtualServiceFromHelidonWorkload(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, gateway *vsapi.Gateway, helidonWorkload *unstructured.Unstructured) (*vsapi.VirtualService, error) {
+func mutateVirtualServiceFromWorkload(virtualService *vsapi.VirtualService, rule vzapi.IngressRule, allHostsForTrait []string, gateway *vsapi.Gateway, helidonWorkload *unstructured.Unstructured, service *corev1.Service) (*vsapi.VirtualService, error) {
 	virtualService.Spec.Gateways = []string{gateway.Name}
 	virtualService.Spec.Hosts = allHostsForTrait
 	matches := []*istio.HTTPMatchRequest{}
@@ -38,7 +39,7 @@ func mutateVirtualServiceFromHelidonWorkload(virtualService *vsapi.VirtualServic
 		matches = append(matches, &istio.HTTPMatchRequest{
 			Uri: vs.CreateVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest, err := createDestinationFromRuleOrHelidonWorkload(rule, helidonWorkload)
+	dest, err := createDestinationFromRuleOrService(rule, helidonWorkload, service)
 	if err != nil {
 		print(err)
 		return nil, err

@@ -6,10 +6,9 @@ package mcagent
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -157,7 +156,7 @@ func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) b
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
-	localCASecretData, err := s.getLocalClusterCASecretData()
+	localCASecretData, err := certs.GetLocalClusterCABundleData(s.Log, s.LocalClient, s.Context)
 	if err != nil {
 		return err
 	}
@@ -196,33 +195,6 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	return nil
-}
-
-// getLocalClusterCASecret gets the local cluster CA secret and returns the CA data in the secret
-// This could be in the Additional TLS secret in Rancher NS (for Let's Encrypt staging CA) or
-// the Verrazzano ingress TLS secret in Verrazzano System NS for other cases
-func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
-	localCASecret := corev1.Secret{}
-	errAddlTLS := s.LocalClient.Get(s.Context, client.ObjectKey{
-		Namespace: globalconst.RancherSystemNamespace,
-		Name:      globalconst.AdditionalTLS,
-	}, &localCASecret)
-	if client.IgnoreNotFound(errAddlTLS) != nil {
-		return nil, errAddlTLS
-	}
-
-	if errAddlTLS == nil {
-		return localCASecret.Data[globalconst.AdditionalTLSCAKey], nil
-	}
-	// additional TLS secret not found, check for Verrazzano TLS secret
-	err := s.LocalClient.Get(s.Context, client.ObjectKey{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.VerrazzanoIngressTLSSecret,
-	}, &localCASecret)
-	if client.IgnoreNotFound(err) != nil {
-		return nil, err
-	}
-	return localCASecret.Data[mcconstants.CaCrtKey], nil
 }
 
 func byteSlicesEqualTrimmedWhitespace(byteSlice1, byteSlice2 []byte) bool {

@@ -83,15 +83,15 @@ type OperatorConfig struct {
 	// MySQLCheckPeriodSeconds period for MySQL check background task in seconds; a value of 0 disables MySQL checks
 	MySQLCheckPeriodSeconds int64
 
+	// NamespacePeriodSeconds period to watch Namespaces in seconds; a value of 0 disables Namespace watcher
+	NamespacePeriodSeconds int64
+
 	// MySQLRepairTimeoutSeconds is the amount of time the MySQL check background thread will allow to transpire between
 	// detecting a possible condition to repair, and initiating the repair logic.
 	MySQLRepairTimeoutSeconds int64
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
-
-	// ExperimentalModules toggles the VPO to use the experimental modules feature
-	ExperimentalModules bool
 
 	// Module Itegration feature flag toggles the VPO to use the new Verrazzano controllers with modules
 	ModuleIntegration bool
@@ -110,8 +110,8 @@ var instance = OperatorConfig{
 	VerrazzanoRootDir:              rootDir,
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
+	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ExperimentalModules:            false,
 	ModuleIntegration:              false,
 }
 

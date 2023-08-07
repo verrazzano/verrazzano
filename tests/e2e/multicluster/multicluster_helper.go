@@ -398,8 +398,8 @@ func (c *Cluster) GetSecretDataAsString(ns, name, key string) string {
 }
 
 func (c *Cluster) getCacrt() ([]byte, error) {
-	// cattle-system get secret tls-ca-additional
-	data, err := c.GetSecretData(constants.RancherSystemNamespace, "tls-ca-additional", "ca-additional.pem")
+	// cattle-system get secret tls-ca
+	data, err := c.GetSecretData(constants.RancherSystemNamespace, constants.RancherTLSCA, constants.RancherTLSCAKey)
 	if len(data) != 0 {
 		return data, err
 	}

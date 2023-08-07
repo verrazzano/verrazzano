@@ -4,13 +4,13 @@
 package issuer
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -40,7 +40,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager-config is enabled, which is the default
 func (c clusterIssuerComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzcr.IsClusterIssuerEnabled(effectiveCR) || vzcr.IsCertManagerEnabled(effectiveCR)
+	return vzcr.IsClusterIssuerEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -62,14 +62,6 @@ func (c clusterIssuerComponent) IsInstalled(ctx spi.ComponentContext) (bool, err
 
 // PreInstall runs before cert-manager-config component is executed
 func (c clusterIssuerComponent) PreInstall(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager-config PreInstall dry run")
-		return nil
-	}
-	if err := common.ProcessAdditionalCertificates(compContext.Log(), compContext.Client(), compContext.EffectiveCR()); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -191,6 +183,12 @@ func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 func (c clusterIssuerComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
 }
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
+}
+
 func (c clusterIssuerComponent) GetDependencies() []string {
 	return []string{networkpolicies.ComponentName, cmconstants.CertManagerComponentName}
 }
@@ -226,8 +224,8 @@ func (c clusterIssuerComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (c clusterIssuerComponent) PostInstall(context spi.ComponentContext) error {
-	return nil
+func (c clusterIssuerComponent) PostInstall(compContext spi.ComponentContext) error {
+	return c.postInstallOrUpgrade(compContext)
 }
 
 func (c clusterIssuerComponent) IsOperatorUninstallSupported() bool {
@@ -242,8 +240,17 @@ func (c clusterIssuerComponent) PostUninstall(context spi.ComponentContext) erro
 	return nil
 }
 
-func (c clusterIssuerComponent) PostUpgrade(context spi.ComponentContext) error {
-	return nil
+func (c clusterIssuerComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	return c.postInstallOrUpgrade(compContext)
+}
+
+func (c clusterIssuerComponent) postInstallOrUpgrade(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager-config PreInstall dry run")
+		return nil
+	}
+	return c.createOrUpdatePrivateCABundleSecret(compContext)
 }
 
 func (c clusterIssuerComponent) Reconcile(ctx spi.ComponentContext) error {

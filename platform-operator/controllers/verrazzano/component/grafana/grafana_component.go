@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,6 +67,11 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 // ShouldUseModule returns true if component is implemented using a Module
 func (g grafanaComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
 
 // GetDependencies returns the dependencies of the Grafana component

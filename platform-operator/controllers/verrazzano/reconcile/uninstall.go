@@ -341,7 +341,7 @@ func (r *Reconciler) runRancherPostUninstall(ctx spi.ComponentContext) error {
 	if found, comp := registry.FindComponent(rancher.ComponentName); found {
 		err := comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
 		if err != nil {
-			ctx.Log().Progress("Waiting for Rancher post-uninstall cleanup to be done")
+			ctx.Log().Once("Waiting for Rancher post-uninstall cleanup to be done")
 			return err
 		}
 	}
@@ -405,14 +405,14 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 			continue
 		}
 		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
-			log.Progressf("Cert-Manager not enabled, skip namespace cleanup")
+			log.Oncef("Cert-Manager not enabled, skip namespace cleanup")
 			continue
 		}
 		nsSet[comp.Namespace()] = true
 	}
 	for i, ns := range sharedNamespaces {
 		if ns == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
-			log.Progressf("Cert-Manager not enabled, skip namespace cleanup")
+			log.Oncef("Cert-Manager not enabled, skip namespace cleanup")
 			continue
 		}
 		nsSet[sharedNamespaces[i]] = true
@@ -447,10 +447,10 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 			return ctrl.Result{}, err
 		}
 		waiting = true
-		log.Progressf("Waiting for namespace %s to terminate", ns)
+		log.Oncef("Waiting for namespace %s to terminate", ns)
 	}
 	if waiting {
-		log.Progressf("Namespace terminations still in progress")
+		log.Oncef("Namespace terminations still in progress")
 		return newRequeueWithDelay(), nil
 	}
 	log.Once("Namespaces terminated successfully")

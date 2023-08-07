@@ -5,6 +5,7 @@ package issuer
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"testing"
 
@@ -60,7 +61,7 @@ func TestSimpleMethods(t *testing.T) {
 	asserts.True(c.IsOperatorInstallSupported())
 	asserts.NoError(c.PreUninstall(nil))
 	asserts.NoError(c.PostUninstall(nil))
-	asserts.NoError(c.PostUpgrade(nil))
+	//asserts.NoError(c.PostUpgrade(nil))
 	asserts.NoError(c.Reconcile(nil))
 }
 
@@ -165,10 +166,24 @@ func runIsReadyTest(t *testing.T, expectedReady bool, objs ...clipkg.Object) {
 //	WHEN the cert type is CA
 //	THEN no error is returned
 func TestPostInstallCA(t *testing.T) {
+	runPostInstallCA(t, true)
+}
+
+// TestPostUpgradeCA tests the PostInstall function
+// GIVEN a call to PostUpgrade
+//
+//	WHEN the cert type is CA
+//	THEN no error is returned
+func TestPostUpgradeCA(t *testing.T) {
+	runPostInstallCA(t, false)
+}
+
+func runPostInstallCA(t *testing.T, isInstall bool) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
-	cmcommon.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
+	cn := "defaultVZConfig-cn"
+	cmcommon.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, cn)
 	defer func() { cmcommon.ResetCoreV1ClientFunc() }()
 
 	defer func() { getCMClientFunc = GetCertManagerClientset }()
@@ -177,26 +192,34 @@ func TestPostInstallCA(t *testing.T) {
 		return cmClient.CertmanagerV1(), nil
 	}
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
+	secret, _ := createCertSecretNoParent(ca.SecretName, ca.ClusterResourceNamespace, cn)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(secret).Build()
+	var err error
+	if isInstall {
+		err = fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	} else {
+		err = fakeComponent.PostUpgrade(spi.NewFakeContext(client, localvz, nil, false, profileDir))
+	}
 	assert.NoError(t, err)
+
+	verifyPrivateCABundleExists(t, client, assert.NoError, secret.Data[constants2.CustomCACertKey])
 }
 
-// TestPostUpgradeUpdateCA tests the PostUpgrade function
+// TestUpgradeUpdateCA tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
 //
 //	WHEN the type is CA and the CA is updated
 //	THEN the ClusterIssuer is updated correctly and no error is returned
-func TestPostUpgradeUpdateCA(t *testing.T) {
+func TestUpgradeUpdateCA(t *testing.T) {
 	runCAUpdateTest(t, true)
 }
 
-// TestPostInstallUpdateCA tests the PostInstall function
+// TestInstallUpdateCA tests the PostInstall function
 // GIVEN a call to PostInstall
 //
 //	WHEN the type is CA and the CA is updated
 //	THEN the ClusterIssuer is updated correctly and no error is returned
-func TestPostInstallUpdateCA(t *testing.T) {
+func TestInstallUpdateCA(t *testing.T) {
 	runCAUpdateTest(t, false)
 }
 
@@ -211,7 +234,8 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 	updatedVZ.Spec.Components.CertManager.Certificate.CA = newCA
 
-	cmcommon.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
+	cn := "defaultVZConfig-cn"
+	cmcommon.GetClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, cn)
 	defer func() { cmcommon.ResetCoreV1ClientFunc() }()
 
 	defer func() { getCMClientFunc = GetCertManagerClientset }()
@@ -255,6 +279,13 @@ func TestPostInstallAcme(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	leStagingBundleBytes := []byte("lestaging bundle")
+	getLetsEncryptStagingBundleFunc = func() ([]byte, error) {
+		return leStagingBundleBytes, nil
+	}
+	defer func() { getLetsEncryptStagingBundleFunc = certs.CreateLetsEncryptStagingBundle }()
+
 	// set OCI DNS secret value and create secret
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
@@ -268,8 +299,10 @@ func TestPostInstallAcme(t *testing.T) {
 			Namespace: ComponentNamespace,
 		},
 	})
-	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
+	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.NoError(t, err)
+
+	verifyPrivateCABundleExists(t, client, assert.NoError, leStagingBundleBytes)
 }
 
 // TestPostUpgradeAcmeUpdate tests the PostUpgrade function
@@ -378,6 +411,12 @@ auth:
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
 	ctx := spi.NewFakeContext(client, updatedVz, nil, false, profileDir)
 
+	leStagingBundleBytes := []byte(nil)
+	getLetsEncryptStagingBundleFunc = func() ([]byte, error) {
+		return leStagingBundleBytes, nil
+	}
+	defer func() { getLetsEncryptStagingBundleFunc = certs.CreateLetsEncryptStagingBundle }()
+
 	var err error
 	if upgrade {
 		err = fakeComponent.PostUpgrade(ctx)
@@ -386,10 +425,25 @@ auth:
 	}
 	assert.NoError(t, err)
 
+	wantErr := assert.Error
+	if certs.IsLetsEncryptStagingEnv(ctx.EffectiveCR().Spec.Components.ClusterIssuer) {
+		wantErr = assert.NoError
+		leStagingBundleBytes = []byte("lestaging bundle")
+	}
+	verifyPrivateCABundleExists(t, ctx.Client(), wantErr, leStagingBundleBytes)
+
 	actualIssuer, err := createACMEIssuerObject(ctx.Log(), ctx.Client(), ctx.EffectiveCR(), ctx.EffectiveCR().Spec.Components.ClusterIssuer)
 	assert.NoError(t, err)
 	assert.NotNil(t, actualIssuer)
 	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
+}
+
+func verifyPrivateCABundleExists(t *testing.T, client clipkg.Client, wantErr assert.ErrorAssertionFunc, bundleBytes []byte) {
+	// Verify the private CA bundle contains the LE staging data
+	secret := corev1.Secret{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: constants2.PrivateCABundle, Namespace: constants2.VerrazzanoSystemNamespace}, &secret)
+	wantErr(t, err)
+	assert.Equal(t, bundleBytes, secret.Data[constants2.CABundleKey])
 }
 
 // TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
