@@ -122,7 +122,7 @@ spec:
           image: {{ .Values.image }}
           args:
             - --zap-log-level=info
-            - --run-webhook-init=true}
+            - --run-webhook-init=true
             {{ if .Values.experimentalFeatures.moduleIntegration.enabled }}
             - --module-integration=true
             {{ end }}
