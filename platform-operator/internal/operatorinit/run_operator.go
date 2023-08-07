@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/factory"
 	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/controllers/verrazzano"
@@ -109,22 +110,22 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
 		}
-	}
-
-	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-	reconciler := reconcile.Reconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		DryRun:            vzconfig.DryRun,
-		WatchedComponents: map[string]bool{},
-		WatchMutex:        &sync.RWMutex{},
-		StatusUpdater:     statusUpdater,
-	}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller")
-	}
-	if vzconfig.HealthCheckPeriodSeconds > 0 {
-		healthCheck.Start()
+	} else {
+		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+		reconciler := reconcile.Reconciler{
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			DryRun:            vzconfig.DryRun,
+			WatchedComponents: map[string]bool{},
+			WatchMutex:        &sync.RWMutex{},
+			StatusUpdater:     statusUpdater,
+		}
+		if err = reconciler.SetupWithManager(mgr); err != nil {
+			return errors.Wrap(err, "Failed to setup controller")
+		}
+		if vzconfig.HealthCheckPeriodSeconds > 0 {
+			healthCheck.Start()
+		}
 	}
 
 	// Setup secrets reconciler
@@ -151,6 +152,12 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return errors.Wrap(err, "Failed starting MySQLChecker")
 	}
 	mysqlCheck.Start()
+
+	// Setup Namespaces watcher
+	watchNamespace := namespacewatch.NewNamespaceWatcher(mgr.GetClient(), time.Duration(vzconfig.NamespacePeriodSeconds)*time.Second)
+	if vzconfig.NamespacePeriodSeconds > 0 {
+		watchNamespace.Start()
+	}
 
 	// Setup stacks reconciler
 	if err = (&components.ComponentConfigMapReconciler{
@@ -232,20 +239,23 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 }
 
 // initModuleControllers creates a controller for every module
+// The controller uses the module name (i.e. component name) as a predicate, so that each controller only processes Module CRs for the
+// respective component.
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-
 	// Temp hack to prevent module controller from looking up helm info
 	module.IgnoreHelmInfo()
 
 	for _, comp := range registry.GetComponents() {
-		// TODO
-		// Add function to component SPI to get WatchDescriptors
-		// Pass the descriptors to the InitController so that each component can watch whatever it wants
-		// and react
-		// END TODO
-
+		if !comp.ShouldUseModule() {
+			continue
+		}
 		// init controller
-		if err := module.InitController(mgr, modulehandler.NewModuleHandlerInfo(), moduleapi.ModuleClassType(comp.Name())); err != nil {
+		if err := module.InitController(module.ModuleControllerConfig{
+			ControllerManager: mgr,
+			ModuleHandlerInfo: modulehandler.NewModuleHandlerInfo(),
+			ModuleClass:       moduleapi.ModuleClassType(comp.Name()),
+			WatchDescriptors:  comp.GetWatchDescriptors(),
+		}); err != nil {
 			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
 			return err
 		}

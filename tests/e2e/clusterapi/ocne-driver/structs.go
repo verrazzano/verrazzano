@@ -4,6 +4,7 @@
 package ocnedriver
 
 import (
+	"github.com/Masterminds/semver/v3"
 	"time"
 )
 
@@ -207,4 +208,9 @@ type OCNEMetadataContents struct {
 		Kubectl string `yaml:"kubectl"`
 		Kubelet string `yaml:"kubelet"`
 	} `yaml:"packages"`
+}
+
+type OCNEMetadataItem struct {
+	KubernetesVersion *semver.Version
+	OCNEMetadataContents
 }

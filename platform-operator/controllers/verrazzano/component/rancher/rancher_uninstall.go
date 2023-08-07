@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -39,7 +40,7 @@ const (
 	webhookName                  = "rancher.cattle.io"
 	controllerCMName             = "cattle-controllers"
 	lockCMName                   = "rancher-controller-lock"
-	rancherSysNS                 = "management.cattle.io/system-namespace"
+	RancherSysNS                 = "management.cattle.io/system-namespace"
 	rancherCleanupImage          = "rancher-cleanup"
 	defaultRancherCleanupJobYaml = "/rancher-cleanup/rancher-cleanup.yaml"
 	rancherCleanupJobName        = "cleanup-job"
@@ -149,6 +150,15 @@ func cleanupRemainingResources(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+
+	// Clean up the tls-ca secret if it exists
+	resource.Resource{
+		Namespace: common.CattleSystem,
+		Name:      rancherTLSCASecretName,
+		Client:    ctx.Client(),
+		Object:    &corev1.Secret{},
+		Log:       ctx.Log(),
+	}.Delete()
 
 	// Delete the remaining Rancher ConfigMaps
 	err = resource.Resource{
@@ -575,7 +585,7 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 	if ns.Annotations == nil {
 		return false
 	}
-	if val, ok := ns.Annotations[rancherSysNS]; ok && val == "true" {
+	if val, ok := ns.Annotations[RancherSysNS]; ok && val == "true" {
 		return true
 	}
 	return false

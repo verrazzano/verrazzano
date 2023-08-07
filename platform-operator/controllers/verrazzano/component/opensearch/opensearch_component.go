@@ -5,6 +5,8 @@ package opensearch
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -53,7 +55,12 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (o opensearchComponent) ShouldUseModule() bool {
-	return false
+	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (o opensearchComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
 
 // GetDependencies returns the dependencies of the OpenSearch component

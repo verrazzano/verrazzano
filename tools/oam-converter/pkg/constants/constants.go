@@ -16,3 +16,8 @@ const (
 	CompAPIVersion            = "core.oam.dev/v1alpha2"
 	MetricsTrait              = "MetricsTrait"
 )
+
+var (
+	WeblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
+		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
+)

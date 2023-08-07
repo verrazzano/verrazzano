@@ -29,7 +29,7 @@ def backendTestsUpToDate              = false // If true, indicates that the bac
 def backendTestsUpToDateFailed        = false // If true, indicates that the backend tests already ran and failed at the latest commit
 
 // Non Fields
-def branchSpecificSchedule = getCronSchedule()
+// def branchSpecificSchedule = getCronSchedule()
 
 // File containing the links to download the Verrazzano distributions
 @Field
@@ -58,8 +58,8 @@ pipeline {
         }
     }
 
-    triggers {
-        cron(branchSpecificSchedule)
+    //  triggers {
+    //      cron(branchSpecificSchedule)
 
     // There is an issue with URLTrigger for backend tests where the polling URL maintains a global state that does not work with specific jobs.
     // Therefore, the below code is disabled until the global state issue is fixed.
@@ -87,7 +87,7 @@ pipeline {
     //                )
     //            ]
     //        )
-    }
+    //    }
 
     parameters {
         string (name: 'TAGGED_TESTS',
@@ -363,7 +363,7 @@ def dockerLogins() {
             """
         }
     }
-    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         try {
             sh """
                 echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
@@ -480,14 +480,14 @@ def getLastBackendRunCommit() {
     return lastBackendCommitProps['git-commit']
 }
 
-// Checks all the conditions gating test execution and coallates the result
+// Checks all the conditions gating test execution and collates the result
 def runTests() {
   return params.FORCE || ( ! backendTestsUpToDate && ! backendTestsUpToDateFailed && ! params.DRY_RUN )
 }
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_BACKEND_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+    if (NOTIFY_BACKEND_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
         echo "Alert notifications enabled for ${env.BRANCH_NAME}"
         return true
     }
@@ -503,14 +503,14 @@ def isPagerDutyEnabled() {
     return false
 }
 
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "@weekly"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@weekly"
-    }
-    return ""
-}
+//  def getCronSchedule() {
+//      if (env.BRANCH_NAME.equals("master")) {
+//          return "@weekly"
+//      } else if (env.BRANCH_NAME.startsWith("release-")) {
+//          return "@weekly"
+//      }
+//      return ""
+//  }
 
 // Called in Stage Clean workspace and checkout steps
 def getCommitListFromGitLog(lastClean, currentStable) {

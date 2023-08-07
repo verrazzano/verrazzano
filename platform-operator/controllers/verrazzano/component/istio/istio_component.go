@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"path/filepath"
 	"strings"
 
@@ -78,6 +79,8 @@ const istioReaderIstioSystem = "istio-reader-istio-system"
 const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
+
+const istioRevisionMutatingWebhook = "istio-revision-tag-default"
 
 var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
@@ -450,7 +453,8 @@ func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 		}
 	}
 	// Upgrading Istio may result in a duplicate mutating webhook configuration. Istioctl will recreate the webhook during upgrade.
-	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), istioSidecarMutatingWebhook)
+	webhooks := []string{istioSidecarMutatingWebhook, istioRevisionMutatingWebhook}
+	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks)
 }
 
 func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
@@ -487,7 +491,12 @@ func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (i istioComponent) ShouldUseModule() bool {
-	return false
+	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (i istioComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {

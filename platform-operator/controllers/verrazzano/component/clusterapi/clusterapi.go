@@ -206,9 +206,9 @@ func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.Verraz
 
 // isImageOutOfDate returns true if the container image is not as expected (out of date)
 func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expectedImage string) ImageCheckResult {
-	log.Infof("Checking if the image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
 	if strings.Contains(actualImage, imageName) {
 		if 0 != strings.Compare(actualImage, expectedImage) {
+			log.Infof("Image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
 			return OutOfDate
 		}
 		return UpToDate

@@ -661,8 +661,8 @@ github.com/verrazzano/fluent-operator/v2 v2.2.0 h1:rsKzccy5Di5SdbIJW31AdbWqET7cH
 github.com/verrazzano/fluent-operator/v2 v2.2.0/go.mod h1:v/q0zLEOWP6MKHP7xvrhtASZTwlrk4LcCne/kgPQ7J0=
 github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3 h1:bxHzLJ7CtPOQ8RKVEGbxb3q1Zoq7wMH60AF6vSEXdEo=
 github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3/go.mod h1:yw2g1lpW2qcQPPVI/0pcgmnRQL2KU9CucT06laPlG24=
-github.com/verrazzano/verrazzano-modules v0.0.0-20230725180422-12e34aafc597 h1:1lb6qg21StJv2/4kolpvLks6HdeUUNDR/GkTI9HCNuI=
-github.com/verrazzano/verrazzano-modules v0.0.0-20230725180422-12e34aafc597/go.mod h1:CVq6IMZE0jH+h6j+TiClWnN9oxV174HG19XdJNxxrBc=
+github.com/verrazzano/verrazzano-modules v0.0.0-20230802213211-affca69c3395 h1:x3kx37C9fwCHAZKu5V7x2xeX3WDgrE7nz1UQ708sv8g=
+github.com/verrazzano/verrazzano-modules v0.0.0-20230802213211-affca69c3395/go.mod h1:CVq6IMZE0jH+h6j+TiClWnN9oxV174HG19XdJNxxrBc=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595 h1:+4buE2SAKOJbTavB6zJhNd95wkfQ22NY95SvBJF0YlQ=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595/go.mod h1:xvQSMEAZ4XsURzSfWOiadnGRIFTRfBUaNXckZO0UeWw=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=
@@ -1106,8 +1106,8 @@ google.golang.org/genproto v0.0.0-20220518221133-4f43b3371335/go.mod h1:RAyBrSAP
 google.golang.org/genproto v0.0.0-20220523171625-347a074981d8/go.mod h1:RAyBrSAP7Fh3Nc84ghnVLDPuV51xc9agzmm4Ph6i0Q4=
 google.golang.org/genproto v0.0.0-20220608133413-ed9918b62aac/go.mod h1:KEWEmljWE5zPzLBa/oHl6DaEt9LmfH6WtH1OHIvleBA=
 google.golang.org/genproto v0.0.0-20220616135557-88e70c0c3a90/go.mod h1:KEWEmljWE5zPzLBa/oHl6DaEt9LmfH6WtH1OHIvleBA=
-google.golang.org/genproto v0.0.0-20220926220553-6981cbe3cfce h1:+2ye9vAK4F9F/LCex8dT2cDk0VnTAwUL8uRgX/6nAMU=
-google.golang.org/genproto v0.0.0-20220926220553-6981cbe3cfce/go.mod h1:woMGP53BroOrRY3xTxlbr8Y3eB/nzAvvFM83q7kG2OI=
+google.golang.org/genproto v0.0.0-20221018160656-63c7b68cfc55 h1:U1u4KB2kx6KR/aJDjQ97hZ15wQs8ZPvDcGcRynBhkvg=
+google.golang.org/genproto v0.0.0-20221018160656-63c7b68cfc55/go.mod h1:45EK0dUbEZ2NHjCeAd2LXmyjAgGUGrpGROgjhC3ADck=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiqXj38=
 google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
@@ -1140,8 +1140,8 @@ google.golang.org/grpc v1.45.0/go.mod h1:lN7owxKUQEqMfSyQikvvk5tf/6zMPsrK+ONuO11
 google.golang.org/grpc v1.46.0/go.mod h1:vN9eftEi1UMyUsIF80+uQXhHjbXYbm0uXoFCACuMGWk=
 google.golang.org/grpc v1.46.2/go.mod h1:vN9eftEi1UMyUsIF80+uQXhHjbXYbm0uXoFCACuMGWk=
 google.golang.org/grpc v1.47.0/go.mod h1:vN9eftEi1UMyUsIF80+uQXhHjbXYbm0uXoFCACuMGWk=
-google.golang.org/grpc v1.49.0 h1:WTLtQzmQori5FUH25Pq4WT22oCsv8USpQ+F6rqtsmxw=
-google.golang.org/grpc v1.49.0/go.mod h1:ZgQEeidpAuNRZ8iRrlBKXZQP1ghovWIVhdJRyCDK+GI=
+google.golang.org/grpc v1.50.1 h1:DS/BukOZWp8s6p4Dt/tOaJaTQyPyOoCcrjroHuCeLzY=
+google.golang.org/grpc v1.50.1/go.mod h1:ZgQEeidpAuNRZ8iRrlBKXZQP1ghovWIVhdJRyCDK+GI=
 google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0/go.mod h1:6Kw0yEErY5E/yWrBtf03jp27GLLJujG4z/JK95pnjjw=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=
 google.golang.org/protobuf v0.0.0-20200221191635-4d8936d0db64/go.mod h1:kwYJMbMJ01Woi6D6+Kah6886xMZcty6N08ah7+eCXa0=
@@ -1196,10 +1196,10 @@ honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
 honnef.co/go/tools v0.0.1-2020.1.3/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
-istio.io/api v0.0.0-20221208152505-d807bc07da6a h1:iDZ1DnoyKfuMBRyNs7VFmk3H2WO1t0VkLo6guqrl4bk=
-istio.io/api v0.0.0-20221208152505-d807bc07da6a/go.mod h1:hQkF0Q19MCmfOTre/Sg4KvrwwETq45oaFplnBm2p4j8=
-istio.io/client-go v1.15.4 h1:egG65oKORRfkMJvLEcC83AhpJCD3Y6c0MYFozPr/jkk=
-istio.io/client-go v1.15.4/go.mod h1:3zv8ew5I7DS8cZwTzNSuUF5Shv80wDYRzFRtQ/c/M4c=
+istio.io/api v0.0.0-20230712174848-a2b2de508c88 h1:w7lSk+XcYNzGC5xtHBFvaV7QTBMQC5nM4l8xxFslGgk=
+istio.io/api v0.0.0-20230712174848-a2b2de508c88/go.mod h1:owGDRg9uqMob8CN1gxaOzk6nJxnbT8wrP7PmggpJHHY=
+istio.io/client-go v1.17.4 h1:BFVO3q4/qT3vwd30T+a8LdvW+vM7psqebluXiXsSWCI=
+istio.io/client-go v1.17.4/go.mod h1:994/wFLmyN7Th6Cat2pACSwvp6VaGYlonm3mpuRAOq8=
 k8s.io/api v0.25.4 h1:3YO8J4RtmG7elEgaWMb4HgmpS2CfY1QlaOz9nwB+ZSs=
 k8s.io/api v0.25.4/go.mod h1:IG2+RzyPQLllQxnhzD8KQNEu4c4YvyDTpSMztf4A0OQ=
 k8s.io/apiextensions-apiserver v0.25.4 h1:7hu9pF+xikxQuQZ7/30z/qxIPZc2J1lFElPtr7f+B6U=

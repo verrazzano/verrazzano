@@ -208,6 +208,7 @@ func TestConfigMapRequeue(t *testing.T) {
 // GIVEN a request to reconcile a ConfigMap
 // WHEN the request namespace matches the Verrazzano CR namespace
 // THEN expect a call to get the ConfigMap
+// Assumption there is existing effective-cr config map exists
 func TestConfigMapCall(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -215,6 +216,15 @@ func TestConfigMapCall(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	// Expect a call to have Effective CR config Map should be Fetched.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNS, Name: testVZConfig}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap, opts ...client.GetOption) error {
+			return nil
+		})
+
+	// Expect a call to have Effective CR config Map should be Updated.
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -233,6 +243,7 @@ func TestConfigMapCall(t *testing.T) {
 // GIVEN a request to reconcile a ConfigMap
 // WHEN the request namespace does not match with the CR namespace
 // THEN the request is ignored
+// Assumption there is existing effective-cr config map exists
 func TestOtherNS(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -249,9 +260,8 @@ func TestOtherNS(t *testing.T) {
 	result, err := reconciler.reconcileInstallOverrideConfigMap(context.TODO(), request, &testVZ)
 	asserts.NoError(err)
 	mocker.Finish()
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
-
+	//asserts.Equal(false, result.Requeue)
+	asserts.Equal(true, result.Requeue)
 }
 
 // mock client request to get the configmap

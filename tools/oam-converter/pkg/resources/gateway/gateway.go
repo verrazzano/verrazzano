@@ -7,7 +7,6 @@ import (
 	"fmt"
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	coallateHosts "github.com/verrazzano/verrazzano/pkg/ingresstrait"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
@@ -15,6 +14,8 @@ import (
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // The function createGatewayCertificate generates a certificate that the cert manager can use to generate a certificate
@@ -58,25 +59,12 @@ func buildCertificateName(trait *vzapi.IngressTrait, appNamespace string) string
 
 // buildLegacyCertificateName will generate a cert name
 func buildLegacyCertificateName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
-
-	_, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return ""
-	}
-
 	return fmt.Sprintf("%s-%s-cert", appNamespace, trait.Name)
 }
 
 // buildLegacyCertificateSecretName will generate a cert secret name
 func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait, appNamespace string, appName string) string {
-
-	_, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return ""
-	}
-
 	return fmt.Sprintf("%s-%s-cert-secret", appNamespace, trait.Name)
-
 }
 
 // validateConfiguredSecret ensures that a secret is specified and the trait rules specify a "hosts" setting.  The
@@ -125,8 +113,9 @@ func updateGatewayServersList(servers []*istio.Server, server *istio.Server) []*
 	return servers
 }
 
-func CreateGatewayResource(conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
-	gateway, allHostsForTrait, err := CreateCertificateAndSecretGateway(conversionComponents)
+func CreateGatewayResource(cli client.Client, conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
+	gateway, allHostsForTrait, err := CreateCertificateAndSecretGateway(cli, conversionComponents)
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,30 +123,33 @@ func CreateGatewayResource(conversionComponents []*types.ConversionComponents) (
 	return gateway, allHostsForTrait, nil
 
 }
-func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
+
+func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
+
 	var gateway *vsapi.Gateway
 	var allHostsForTrait []string
 	var err error
 	for _, conversionComponent := range conversionComponents {
-		if conversionComponent.IngressTrait != nil {
-			allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
-			if err != nil {
-				print(err)
 
-			}
+		allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(cli, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+		if err != nil {
+			return nil, nil, err
+
 		}
+
 	}
 	secretNames := CreateGatewaySecret(conversionComponents, allHostsForTrait)
-
 	if len(secretNames) == len(conversionComponents) && secretNames != nil {
 		gwName, err := BuildGatewayName(conversionComponents[0].AppNamespace)
 		if err != nil {
-			print(err)
+
+			return nil, nil, err
 
 		}
 		gateway, err = CreateGateway(conversionComponents, allHostsForTrait, gwName, secretNames)
 		if err != nil {
-			print(err)
+
+			return nil, nil, err
 
 		}
 	}
@@ -167,10 +159,6 @@ func CreateGatewaySecret(conversionComponents []*types.ConversionComponents, hos
 	var secrets []string
 	for _, conversionComponent := range conversionComponents {
 		var secretName string
-		if conversionComponent.IngressTrait == nil {
-			secrets = append(secrets, "")
-			continue
-		}
 		if conversionComponent.IngressTrait.Spec.TLS != (vzapi.IngressSecurity{}) {
 			secretName = validateConfiguredSecret(conversionComponent.IngressTrait)
 		} else {
@@ -211,22 +199,20 @@ func CreateGateway(conversionComponents []*types.ConversionComponents, hostsForT
 func mutateGateway(conversionComponents []*types.ConversionComponents, gateway *vsapi.Gateway, hostsForTrait []string, secretNames []string) (*vsapi.Gateway, error) {
 	for i := range conversionComponents {
 		// perform an operation
-		if conversionComponents[i].IngressTrait != nil {
-			server := &istio.Server{
-				Name:  conversionComponents[i].IngressTrait.Name,
-				Hosts: hostsForTrait,
-				Port: &istio.Port{
-					Name:     formatGatewayServerPortName(conversionComponents[i].IngressTrait.Name),
-					Number:   443,
-					Protocol: consts.HTTPSProtocol,
-				},
-				Tls: &istio.ServerTLSSettings{
-					Mode:           istio.ServerTLSSettings_SIMPLE,
-					CredentialName: secretNames[i],
-				},
-			}
-			gateway.Spec.Servers = updateGatewayServersList(gateway.Spec.Servers, server)
+		server := &istio.Server{
+			Name:  conversionComponents[i].IngressTrait.Name,
+			Hosts: hostsForTrait,
+			Port: &istio.Port{
+				Name:     formatGatewayServerPortName(conversionComponents[i].IngressTrait.Name),
+				Number:   443,
+				Protocol: consts.HTTPSProtocol,
+			},
+			Tls: &istio.ServerTLSSettings{
+				Mode:           istio.ServerTLSSettings_SIMPLE,
+				CredentialName: secretNames[i],
+			},
 		}
+		gateway.Spec.Servers = updateGatewayServersList(gateway.Spec.Servers, server)
 	}
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 	return gateway, nil

@@ -9,6 +9,7 @@
 package mocks
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -433,6 +434,7 @@ func (mr *MockComponentInfoMockRecorder) ShouldUseModule() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldUseModule", reflect.TypeOf((*MockComponentInfo)(nil).ShouldUseModule))
 }
 
+
 // MockComponentInstaller is a mock of ComponentInstaller interface.
 type MockComponentInstaller struct {
 	ctrl     *gomock.Controller
@@ -697,6 +699,20 @@ func (m *MockComponent) GetOverrides(arg0 runtime.Object) interface{} {
 func (mr *MockComponentMockRecorder) GetOverrides(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOverrides", reflect.TypeOf((*MockComponent)(nil).GetOverrides), arg0)
+}
+
+// GetWatchDescriptors mocks base method.
+func (m *MockComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWatchDescriptors")
+	ret0, _ := ret[0].([]controllerspi.WatchDescriptor)
+	return ret0
+}
+
+// GetWatchDescriptors indicates an expected call of GetOverrides.
+func (mr *MockComponentMockRecorder) GetWatchDescriptors() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWatchDescriptors", reflect.TypeOf((*MockComponent)(nil).GetWatchDescriptors))
 }
 
 // Install mocks base method.
