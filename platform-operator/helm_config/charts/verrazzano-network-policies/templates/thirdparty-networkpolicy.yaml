@@ -317,6 +317,10 @@ spec:
           matchLabels:
             verrazzano.io/namespace: cattle-system
     - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: cattle-fleet-system
+    - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
