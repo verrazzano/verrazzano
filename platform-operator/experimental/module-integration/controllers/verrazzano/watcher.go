@@ -1,3 +1,6 @@
+// Copyright (c) 2023, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package verrazzano
 
 import (
@@ -12,7 +15,7 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 // Always for secrets and configmaps since they may contain module configuration
-func (r *Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return []controllerspi.WatchDescriptor{
 		{
 			WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
@@ -26,28 +29,29 @@ func (r *Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 }
 
 // ShouldSecretTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
-func (r *Reconciler) ShouldSecretTriggerReconcile(vzNSN types.NamespacedName, secret client.Object, _ controllerspi.WatchEvent) bool {
+func (r Reconciler) ShouldSecretTriggerReconcile(vzNSN types.NamespacedName, secret client.Object, _ controllerspi.WatchEvent) bool {
 	if secret.GetNamespace() != vzNSN.Namespace {
 		return false
 	}
-	return r.shouldReconcile(vzNSN, secret.GetName(), "")
-}
-
-// ShouldConfigMapTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
-func (r *Reconciler) ShouldConfigMapTriggerReconcile(vzNSN types.NamespacedName, cm client.Object, _ controllerspi.WatchEvent) bool {
-	if cm.GetNamespace() != vzNSN.Namespace {
-		return false
-	}
-	return r.shouldReconcile(vzNSN, cm.GetName(), "")
-}
-
-// shouldReconcile returns true if reconcile should be done in response to a Secret or ConfigMap lifecycle event
-// Only reconcile if this module has those secret or configmap names in the module spec
-func (r *Reconciler) shouldReconcile(vzNSN types.NamespacedName, secretName string, cmName string) bool {
 	vzcr := vzapi.Verrazzano{}
 	if err := r.Client.Get(context.TODO(), vzNSN, &vzcr); err != nil {
 		return false
 	}
+	secretNames := getOverrideResourceNames(&vzcr, secretType)
+	_, ok := secretNames[secret.GetName()]
+	return ok
+}
 
-	return false
+// ShouldConfigMapTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
+func (r Reconciler) ShouldConfigMapTriggerReconcile(vzNSN types.NamespacedName, cm client.Object, _ controllerspi.WatchEvent) bool {
+	if cm.GetNamespace() != vzNSN.Namespace {
+		return false
+	}
+	vzcr := vzapi.Verrazzano{}
+	if err := r.Client.Get(context.TODO(), vzNSN, &vzcr); err != nil {
+		return false
+	}
+	names := getOverrideResourceNames(&vzcr, configMapType)
+	_, ok := names[cm.GetName()]
+	return ok
 }
