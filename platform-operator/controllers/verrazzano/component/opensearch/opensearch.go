@@ -31,7 +31,7 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 	}
 	exists, err := ready.DoesStatefulsetExist(ctx.Client(), sts)
 	if err != nil {
-		ctx.Log().Errorf("component %s failed getting statefulset %v: %v", ctx.GetComponent(), sts, err)
+		ctx.Log().Errorf("Component %s failed getting statefulset %v: %v", ctx.GetComponent(), sts, err)
 	}
 	return exists
 }
