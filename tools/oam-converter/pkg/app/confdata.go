@@ -7,15 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	consts "github.com/verrazzano/verrazzano/tools/oam-converter/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/resources"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/traits"
 	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
 	"io/ioutil"
-	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
-	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
@@ -90,22 +88,26 @@ func ConfData() error {
 	if err != nil {
 		return err
 	}
+	var byteResources []unstructured.Unstructured
 
+	for _, obj := range outputResources {
+		resource, err := ToUnstructured(obj)
+		if err != nil {
+			print("Null obj")
+		}
+		byteResources = append(byteResources, resource...)
+	}
 	//Write the K8s child resources to the file
-	err = writeKubeResources(types.InputArgs.OutputDirectory, outputResources)
+	err = writeKubeResources(types.InputArgs.OutputDirectory, byteResources)
 	if err != nil {
 		return err
 	}
 	//write the nonOAM resources to the file
-	err = writeKubeResources(types.InputArgs.OutputDirectory, k8sResources)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 // Write the kube resources to the files in output directory
-func writeKubeResources(outputDirectory string, outputResources []any) error {
+func writeKubeResources(outputDirectory string, outputResources []unstructured.Unstructured) error {
 	for index := range outputResources {
 		err := writeToDirectory(outputDirectory, outputResources[index])
 		if err != nil {
@@ -115,48 +117,52 @@ func writeKubeResources(outputDirectory string, outputResources []any) error {
 	return nil
 }
 
-func writeToDirectory(outputDirectory string, index any) error {
-	//fileName := "" + index.TypeMeta.Kind + ".yaml"
+func writeToDirectory(outputDirectory string, index unstructured.Unstructured) error {
 	var fileName string
 	var filePath string
-	var object any
-
 	//check to find out what resource is being manipulated and printed
-	switch val := index.(type) {
-	case map[string]interface{}:
-		object = index.(map[string]interface{})
+	switch index.GetKind() {
+	case "Gateway":
 		fileName = "gateway.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
-	case []*vsapi.VirtualService:
-		object = index
+	case "VirtualService":
 		fileName = "virtualservice.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
-	case []*vsapi.DestinationRule:
-		object = index
+	case "DestinationRule":
 		fileName = "destinationrule.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
-	case []*clisecurity.AuthorizationPolicy:
-		object = index
+	case "AuthorizationPolicy":
 		fileName = "authorizationpolicy.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
-	case *promoperapi.ServiceMonitor:
-		object = index
+	case "ServiceMonitor":
 		fileName = "servicemonitor.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
-	case []any:
-		object = index
-		fileName = "output.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
 	default:
-		return fmt.Errorf("Unsupported datq type%v", val)
+		return fmt.Errorf("Unsupported datq type%v")
 	}
 
 	//print resources in respective files
-	writeToFile(filePath, object)
+	writeToFile(filePath, index)
 	return nil
 }
+func ToUnstructured(o any) ([]unstructured.Unstructured, error) {
+	j, err := json.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, j)
+	if err != nil {
+		return nil, err
+	}
+	if u, ok := obj.(*unstructured.Unstructured); ok {
+		return []unstructured.Unstructured{*u}, nil
+	}
+	if us, ok := obj.(*unstructured.UnstructuredList); ok {
+		return us.Items, nil
+	}
 
-// TODO: Add functionality to write below file aswell
+	return nil, errors.New("unknown object type during unstructured serialization")
+}
 func writeToFile(filePath string, object any) error {
 	f, err := os.Create(filePath)
 	if err != nil {

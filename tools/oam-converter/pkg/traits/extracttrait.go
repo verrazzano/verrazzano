@@ -68,12 +68,15 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 
 						if err != nil {
 							fmt.Printf("Failed to marshal trait: %v", err)
+							return nil, err
+
 						}
 
 						err = json.Unmarshal(traitJSON, ingressTrait)
 
 						if err != nil {
 							fmt.Printf("Failed to unmarshal trait: %v", err)
+							return nil, err
 						}
 
 						conversionComponents = append(conversionComponents, &types.ConversionComponents{
@@ -89,12 +92,14 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 
 						if err != nil {
 							fmt.Printf("Failed to marshal trait: %v", err)
+							return nil, err
 						}
 
 						err = json.Unmarshal(traitJSON, metricsTrait)
 
 						if err != nil {
 							fmt.Printf("Failed to unmarshal trait: %v", err)
+							return nil, err
 						}
 
 						conversionComponents = append(conversionComponents, &types.ConversionComponents{
@@ -169,6 +174,7 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 					conversionComponents[i].Weblogicworkload = weblogicMap
 
 				case "VerrazzanoHelidonWorkload":
+
 					//Appending the helidon workloads in the helidon workload array
 					helidonWorkload := &unstructured.Unstructured{}
 					workloadJSON, err := json.Marshal(workload)
@@ -199,8 +205,23 @@ func ExtractWorkload(components []map[string]interface{}, conversionComponents [
 
 					}
 					conversionComponents[i].Coherenceworkload = coherenceWorkload
-				}
+				default:
 
+					//Appending the generic workloads in the generic workload array
+					genericWorkload := &unstructured.Unstructured{}
+					workloadJSON, err := json.Marshal(workload)
+
+					if err != nil {
+						log.Fatalf("Failed to marshal trait: %v", err)
+					}
+
+					err = json.Unmarshal(workloadJSON, &genericWorkload)
+					if err != nil {
+						fmt.Printf("Failed to unmarshal: %v\n", err)
+
+					}
+					conversionComponents[i].Genericworkload = genericWorkload
+				}
 			}
 		}
 	}

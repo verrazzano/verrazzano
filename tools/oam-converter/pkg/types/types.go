@@ -17,6 +17,7 @@ type ConversionComponents struct {
 	Helidonworkload   *unstructured.Unstructured
 	Coherenceworkload *unstructured.Unstructured
 	Weblogicworkload  *unstructured.Unstructured
+	Genericworkload   *unstructured.Unstructured
 }
 
 var InputArgs ConversionInput

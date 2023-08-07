@@ -42,17 +42,21 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 		if err != nil {
 			return &serviceMonitor, err
 		}
-	}
-	if conversionComponent.Coherenceworkload != nil {
+	} else if conversionComponent.Coherenceworkload != nil {
 		workload = conversionComponent.Coherenceworkload
 		traitDefaults, err = utils.NewTraitDefaultsForCOHWorkload(workload)
 		if err != nil {
 			return &serviceMonitor, err
 		}
-	}
-	if conversionComponent.Weblogicworkload != nil {
+	} else if conversionComponent.Weblogicworkload != nil {
 		workload = conversionComponent.Weblogicworkload
 		traitDefaults, err = utils.NewTraitDefaultsForWLSDomainWorkload(workload)
+		if err != nil {
+			return &serviceMonitor, err
+		}
+	} else {
+		workload = conversionComponent.Genericworkload
+		traitDefaults, err = utils.NewTraitDefaultsForGenericWorkload()
 		if err != nil {
 			return &serviceMonitor, err
 		}
@@ -67,10 +71,6 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	//fetch if trait uses Istio
 	useHTTPS := types.InputArgs.IstioEnabled
 
-	//useHTTPS, err := operator.UseHTTPSForScrapeTarget(context.TODO(), cli, trait)
-	//if err != nil {
-	//	return &serviceMonitor, err
-	//}
 	//fetch if workload is WebLogic
 	wlsWorkload, err := operator.IsWLSWorkload(workload)
 	if err != nil {
