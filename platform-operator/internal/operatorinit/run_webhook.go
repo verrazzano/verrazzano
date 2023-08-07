@@ -5,7 +5,6 @@ package operatorinit
 
 import (
 	"fmt"
-	moduleswebhooks "github.com/verrazzano/verrazzano/platform-operator/apis/modules/webhooks"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -190,13 +189,6 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 	log.Debug("Updating MySQL install values webhook configuration")
 	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
-	}
-
-	if operatorConfig.ModuleIntegration {
-		log.Debug("Updating module webhook configuration")
-		if err := updateValidatingWebhookConfiguration(kubeClient, moduleswebhooks.ValidateModulesWebhookPath); err != nil {
-			return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
-		}
 	}
 
 	return nil
