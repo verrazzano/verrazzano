@@ -8,13 +8,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -107,12 +107,16 @@ func BuildNodePoolOverrides(cr *v1alpha1.Verrazzano) []v1alpha1.Overrides {
 		return mergedOverrides
 	}
 
+	resourceRequest, err := common.FindStorageOverride(cr)
+	if err != nil {
+		return mergedOverrides
+	}
 	var existingOSConfig []NodePool
 	if cr.Spec.Components.Elasticsearch != nil {
-		existingOSConfig = convertOSNodesToNodePools(cr.Spec.Components.Elasticsearch.Nodes)
+		existingOSConfig = convertOSNodesToNodePools(cr.Spec.Components.Elasticsearch.Nodes, resourceRequest)
 	}
 
-	mergedYaml, err := MergeNodePoolOverrides(cr, client, existingOSConfig)
+	mergedYaml, err := MergeNodePoolOverrides(cr, client, existingOSConfig, resourceRequest)
 	if err != nil {
 		return mergedOverrides
 	}
@@ -139,11 +143,15 @@ func Buildv1beta1NodePoolOverrides(cr *v1beta1.Verrazzano) []v1beta1.Overrides {
 		return mergedOverrides
 	}
 
+	resourceRequest, err := common.FindStorageOverrideV1Beta1(cr)
+	if err != nil {
+		return mergedOverrides
+	}
 	var existingOSConfig []NodePool
 	if cr.Spec.Components.OpenSearch != nil {
-		existingOSConfig = convertv1beta1OSNodesToNodePools(cr.Spec.Components.OpenSearch.Nodes)
+		existingOSConfig = convertv1beta1OSNodesToNodePools(cr.Spec.Components.OpenSearch.Nodes, resourceRequest)
 	}
-	mergedYaml, err := MergeNodePoolOverrides(cr, client, existingOSConfig)
+	mergedYaml, err := MergeNodePoolOverrides(cr, client, existingOSConfig, resourceRequest)
 	if err != nil {
 		return mergedOverrides
 	}
@@ -170,7 +178,7 @@ func Buildv1beta1NodePoolOverrides(cr *v1beta1.Verrazzano) []v1beta1.Overrides {
 // 1. User provided overrides
 // 2. Configuration from current OpenSearch and OpenSearchDashboards components
 // 3. Default configuration from the base profiles
-func MergeNodePoolOverrides(object runtime.Object, client client.Client, existingOSConfig []NodePool) (string, error) {
+func MergeNodePoolOverrides(object runtime.Object, client client.Client, existingOSConfig []NodePool, resourceRequest *common.ResourceRequestValues) (string, error) {
 
 	var overridesYaml []string
 	var err error
@@ -196,8 +204,9 @@ func MergeNodePoolOverrides(object runtime.Object, client client.Client, existin
 	// So this extra step won't be required here
 
 	defaultOverrides := overridesYaml[len(overridesYaml)-1] // Default overrides are last in the list
-	var existingOSYaml []byte
+	defaultOverrides = MergeDefaultVolumeSource(defaultOverrides, resourceRequest)
 
+	var existingOSYaml []byte
 	if len(existingOSConfig) > 0 {
 		existingOSYaml, err = yaml.Marshal(OpenSearch{
 			OpenSearchCluster{NodePools: existingOSConfig},
@@ -214,13 +223,38 @@ func MergeNodePoolOverrides(object runtime.Object, client client.Client, existin
 
 	// Merge the rest of user provided overrides
 	for i := len(overridesYaml) - 2; i >= 0; i-- {
-		mergedNodePools, err = vzyaml.StrategicMerge(OpenSearch{}, mergedNodePools, overridesYaml[i])
+		overrideWithDefaultVolumeSource := MergeDefaultVolumeSource(overridesYaml[i], resourceRequest)
+		mergedNodePools, err = vzyaml.StrategicMerge(OpenSearch{}, mergedNodePools, overrideWithDefaultVolumeSource)
 		if err != nil {
 			return "", err
 		}
 	}
 
 	return mergedNodePools, nil
+}
+
+func MergeDefaultVolumeSource(override string, resourceRequest *common.ResourceRequestValues) string {
+	var os OpenSearch
+	_ = yaml.Unmarshal([]byte(override), &os)
+
+	for _, node := range os.NodePools {
+		if len(node.DiskSize) > 0 || node.Persistence != nil {
+			continue
+		}
+		if resourceRequest != nil {
+			if len(resourceRequest.Storage) > 0 {
+				node.DiskSize = resourceRequest.Storage
+			} else {
+				node.Persistence = &PersistenceConfig{
+					PersistenceSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				}
+			}
+		}
+	}
+	mergedOverride, _ := yaml.Marshal(os)
+	return string(mergedOverride)
 }
 
 // AppendOverrides appends the additional overrides for install
@@ -395,7 +429,7 @@ func appendOSIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain
 }
 
 // convertOSNodesToNodePools converts OpenSearchNode to NodePool type
-func convertOSNodesToNodePools(nodes []v1alpha1.OpenSearchNode) []NodePool {
+func convertOSNodesToNodePools(nodes []v1alpha1.OpenSearchNode, resourceRequest *common.ResourceRequestValues) []NodePool {
 	var nodePools []NodePool
 	for _, node := range nodes {
 		nodePool := NodePool{
@@ -411,10 +445,16 @@ func convertOSNodesToNodePools(nodes []v1alpha1.OpenSearchNode) []NodePool {
 		if node.Storage != nil {
 			nodePool.DiskSize = node.Storage.Size
 		} else {
-			nodePool.Persistence = &PersistenceConfig{
-				PersistenceSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
+			if resourceRequest != nil {
+				if len(resourceRequest.Storage) > 0 {
+					nodePool.DiskSize = resourceRequest.Storage
+				} else {
+					nodePool.Persistence = &PersistenceConfig{
+						PersistenceSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					}
+				}
 			}
 		}
 		for _, role := range node.Roles {
@@ -426,7 +466,7 @@ func convertOSNodesToNodePools(nodes []v1alpha1.OpenSearchNode) []NodePool {
 }
 
 // convertv1beta1OSNodesToNodePools converts OpenSearchNode to NodePool type
-func convertv1beta1OSNodesToNodePools(nodes []v1beta1.OpenSearchNode) []NodePool {
+func convertv1beta1OSNodesToNodePools(nodes []v1beta1.OpenSearchNode, resourceRequest *common.ResourceRequestValues) []NodePool {
 	var nodePools []NodePool
 	for _, node := range nodes {
 		nodePool := NodePool{
@@ -442,10 +482,16 @@ func convertv1beta1OSNodesToNodePools(nodes []v1beta1.OpenSearchNode) []NodePool
 		if node.Storage != nil {
 			nodePool.DiskSize = node.Storage.Size
 		} else {
-			nodePool.Persistence = &PersistenceConfig{
-				PersistenceSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
+			if resourceRequest != nil {
+				if len(resourceRequest.Storage) > 0 {
+					nodePool.DiskSize = resourceRequest.Storage
+				} else {
+					nodePool.Persistence = &PersistenceConfig{
+						PersistenceSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					}
+				}
 			}
 		}
 		for _, role := range node.Roles {
