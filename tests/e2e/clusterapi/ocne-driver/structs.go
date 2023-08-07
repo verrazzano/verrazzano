@@ -4,6 +4,7 @@
 package ocnedriver
 
 import (
+	"github.com/Masterminds/semver/v3"
 	"time"
 )
 
@@ -30,7 +31,7 @@ type RancherOcicredentialConfig struct {
 	UserID             string `json:"userId"`
 }
 
-// Used for filling the body of the API request to create the OCNE cluster
+// Used for filling the body of the API request to create/update the OCNE cluster
 type RancherOCNECluster struct {
 	DockerRootDir           string               `json:"dockerRootDir"`
 	EnableClusterAlerting   bool                 `json:"enableClusterAlerting"`
@@ -39,6 +40,7 @@ type RancherOCNECluster struct {
 	WindowsPreferedCluster  bool                 `json:"windowsPreferedCluster"`
 	Type                    string               `json:"type"`
 	Name                    string               `json:"name"`
+	Description             string               `json:"description"`
 	OciocneEngineConfig     RancherOCIOCNEEngine `json:"ociocneEngineConfig"`
 	CloudCredentialID       string               `json:"cloudCredentialId"`
 	Labels                  struct {
@@ -88,8 +90,9 @@ type RancherOCIOCNEEngine struct {
 	ApplyYamls            []string `json:"applyYamls"`
 }
 
-// Fills in all the values of this RancherOCNECluster object according to the values taken from environment variables
-func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, credentialID string, nodePools []string) {
+// Fills in values of this RancherOCNECluster object according to the values taken from environment variables.
+// Other fields of the struct that are not filled by environment variables are not filled in.
+func (roc *RancherOCNECluster) fillCommonValues() {
 	roc.OciocneEngineConfig.ClusterCidr = clusterCidr
 	roc.OciocneEngineConfig.ControlPlaneMemoryGbs = controlPlaneMemoryGbs
 	roc.OciocneEngineConfig.ControlPlaneOcpus = controlPlaneOcpus
@@ -121,24 +124,18 @@ func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, cr
 	roc.OciocneEngineConfig.ClusterName = ""
 	roc.OciocneEngineConfig.NodeShape = nodeShape
 	roc.OciocneEngineConfig.NumWorkerNodes = numWorkerNodes
-	roc.OciocneEngineConfig.CloudCredentialID = credentialID
 	roc.OciocneEngineConfig.CompartmentID = compartmentID
 	roc.OciocneEngineConfig.ControlPlaneSubnet = controlPlaneSubnet
-	roc.OciocneEngineConfig.DisplayName = clusterName
 	roc.OciocneEngineConfig.LoadBalancerSubnet = loadBalancerSubnet
-	roc.OciocneEngineConfig.NodePublicKeyContents = nodePublicKeyContents
 	roc.OciocneEngineConfig.Region = region
 	roc.OciocneEngineConfig.VcnID = vcnID
 	roc.OciocneEngineConfig.WorkerNodeSubnet = workerNodeSubnet
-	roc.OciocneEngineConfig.NodePools = nodePools
 	if applyYAMLs == "" {
 		roc.OciocneEngineConfig.ApplyYamls = []string{}
 	} else {
 		roc.OciocneEngineConfig.ApplyYamls = []string{applyYAMLs}
 	}
 
-	roc.Name = clusterName
-	roc.CloudCredentialID = credentialID
 	roc.DockerRootDir = dockerRootDir
 	roc.EnableClusterAlerting = enableClusterAlerting
 	roc.EnableClusterMonitoring = enableClusterMonitoring
@@ -148,6 +145,7 @@ func (roc *RancherOCNECluster) fillValues(clusterName, nodePublicKeyContents, cr
 	roc.Labels = struct{}{}
 }
 
+// Represents the clusters.provisioning.cattle.io object
 type ProvisioningCluster struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
@@ -189,6 +187,7 @@ type ProvisioningCluster struct {
 	} `json:"status"`
 }
 
+// The data inside the ocne-metadata ConfigMap
 type OCNEMetadataContents struct {
 	Release         string `yaml:"Release"`
 	ContainerImages struct {
@@ -209,4 +208,9 @@ type OCNEMetadataContents struct {
 		Kubectl string `yaml:"kubectl"`
 		Kubelet string `yaml:"kubelet"`
 	} `yaml:"packages"`
+}
+
+type OCNEMetadataItem struct {
+	KubernetesVersion *semver.Version
+	OCNEMetadataContents
 }
