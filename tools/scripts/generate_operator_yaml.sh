@@ -51,8 +51,6 @@ if [ -n "${CLUSTER_OPERATOR_IMAGE}" ] && [[ "${CLUSTER_OPERATOR_IMAGE}" == *:* ]
 fi
 
 if [[ "$MODULE_INTEGRATION" == "true" ]]; then
-  echo "generating operator.yamo with module integration configured"
-
   wget https://raw.githubusercontent.com/verrazzano/verrazzano-modules/main/module-operator/manifests/charts/operators/verrazzano-module-operator/crds/platform.verrazzano.io_modules.yaml \
   -O $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
 
