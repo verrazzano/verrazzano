@@ -870,3 +870,19 @@ func jaegerListOptions() (*clipkg.ListOptions, error) {
 		LabelSelector: selector,
 	}, nil
 }
+
+// deleteIngress deletes Jaeger ingress
+func deleteIngress(ctx spi.ComponentContext) error {
+	ingress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.JaegerIngress,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	err := ctx.Client().Delete(context.TODO(), ingress)
+	if err != nil && !errors.IsNotFound(err) {
+		ctx.Log().Errorf("Error deleting ingress %s, %v", constants.JaegerIngress, err)
+		return err
+	}
+	return nil
+}

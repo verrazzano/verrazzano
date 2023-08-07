@@ -278,7 +278,10 @@ func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 	if err := createJaegerSecrets(ctx); err != nil {
 		return err
 	}
-	return c.Install(ctx)
+	if err := c.Install(ctx); err != nil {
+		return err
+	}
+	return c.createOrUpdateJaegerResources(ctx)
 }
 
 // IsInstalled checks if jaeger is installed
@@ -320,9 +323,8 @@ func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.Component
 		return err
 	}
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) && jaegerCREnabled {
-		if err := createOrUpdateJaegerIngress(ctx, constants.VerrazzanoSystemNamespace); err != nil {
-			return err
-		}
+		return createOrUpdateJaegerIngress(ctx, constants.VerrazzanoSystemNamespace)
 	}
-	return nil
+	// If NGINX or Jaeger instance creation is not enabled, delete any existing Jaeger ingress
+	return deleteIngress(ctx)
 }
