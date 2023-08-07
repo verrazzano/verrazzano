@@ -599,8 +599,8 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 	jvm[argsField] = args
 }
 
-// createOrUpdateDestinationRule creates or updates an Istio destinationRule required by Coherence.
-// The destinationRule is only created when the namespace has the label istio-injection=enabled.
+// createOrUpdateDestinationRule creates or updates an Istio destinationrule required by Coherence.
+// The destinationrule is only created when the namespace has the label istio-injection=enabled.
 func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log vzlog2.VerrazzanoLogger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
 	istioEnabled := false
 	value, ok := namespaceLabels["istio-injection"]
@@ -617,8 +617,8 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log vzlo
 		return errors.New("OAM app name label missing from metadata, unable to generate destination rule name")
 	}
 
-	// Create a destinationRule populating only name metadata.
-	// This is used as default if the destinationRule needs to be created.
+	// Create a destinationrule populating only name metadata.
+	// This is used as default if the destinationrule needs to be created.
 	destinationRule := &istioclient.DestinationRule{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: destinationRuleAPIVersion,
@@ -637,7 +637,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log vzlo
 	return err
 }
 
-// mutateDestinationRule mutates the output destinationRule.
+// mutateDestinationRule mutates the output destinationrule.
 func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, namespace string, appName string) error {
 	// Set the spec content.
 	destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)

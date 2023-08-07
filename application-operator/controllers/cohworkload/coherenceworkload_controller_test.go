@@ -1284,7 +1284,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to create the destinationRule and return success
+	// Expect a call to create the destinationrule and return success
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
@@ -1346,7 +1346,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to update the destinationRule and return success
+	// Expect a call to update the destinationrule and return success
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.UpdateOption) error {
