@@ -3,16 +3,18 @@
 package servicemonitor
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	metrics "github.com/verrazzano/verrazzano/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func TestPopulateServiceMonitor(t *testing.T) {
+func TestCreateServiceMonitor(t *testing.T) {
 	trueVal := true
 	falseVal := false
 
@@ -53,8 +55,16 @@ func TestPopulateServiceMonitor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			serviceMonitor := &promoperapi.ServiceMonitor{}
-			err := metrics.PopulateServiceMonitor(tt.info, serviceMonitor, vzlog.DefaultLogger())
+			metricsTrait := &vzapi.MetricsTrait{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-namespace",
+				},
+			}
+
+			//create conversion component to house metricstrait
+			var input *types.ConversionComponents
+			input.MetricsTrait = metricsTrait
+			serviceMonitor,err := CreateServiceMonitor(input)
 			if tt.expectError {
 				asserts.Error(t, err)
 			} else {
