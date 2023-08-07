@@ -6,7 +6,7 @@ package verrazzano
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/basecontroller"
-	spi "github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,7 +15,7 @@ import (
 )
 
 // Specify the SPI interfaces that this controller implements
-var _ spi.Reconciler = Reconciler{}
+var _ controllerspi.Reconciler = Reconciler{}
 
 type Reconciler struct {
 	Client        client.Client

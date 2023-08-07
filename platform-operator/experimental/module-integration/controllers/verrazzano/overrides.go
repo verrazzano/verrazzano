@@ -155,3 +155,7 @@ func getConfigResourceName(moduleName string, resourceName string) string {
 	// suffix this to the secret and configmap for the module config.
 	return fmt.Sprintf("%s-%s", moduleName, resourceName)
 }
+
+func getSecretAndConfigMapSets() {
+
+}
