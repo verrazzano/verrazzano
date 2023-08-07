@@ -1,7 +1,9 @@
 package verrazzano
 
 import (
+	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,18 +44,10 @@ func (r *Reconciler) ShouldConfigMapTriggerReconcile(vzNSN types.NamespacedName,
 // shouldReconcile returns true if reconcile should be done in response to a Secret or ConfigMap lifecycle event
 // Only reconcile if this module has those secret or configmap names in the module spec
 func (r *Reconciler) shouldReconcile(vzNSN types.NamespacedName, secretName string, cmName string) bool {
-	//vzcr := vzapi.Verrazzano{}
-	//if err := r.Client.Get(context.TODO(), vzNSN, &vzcr); err != nil {
-	//	return false
-	//}
-	//// Check if the secret is in the valuesFrom
-	//for _, vf := range vzcr.Spec. {
-	//	if vf.SecretRef != nil && secretName != "" && vf.SecretRef.Name == secretName {
-	//		return true
-	//	}
-	//	if vf.ConfigMapRef != nil && cmName != "" && vf.ConfigMapRef.Name == cmName {
-	//		return true
-	//	}
-	//}
+	vzcr := vzapi.Verrazzano{}
+	if err := r.Client.Get(context.TODO(), vzNSN, &vzcr); err != nil {
+		return false
+	}
+
 	return false
 }
