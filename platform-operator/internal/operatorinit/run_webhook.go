@@ -4,6 +4,7 @@
 package operatorinit
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -79,6 +80,13 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting webhook controller-runtime manager")
+	var runnable manager.RunnableFunc = func(ctx context.Context) error {
+
+		return nil
+	}
+	if err := mgr.Add(runnable); err != nil {
+		return err
+	}
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		return fmt.Errorf("Failed starting webhook controller-runtime manager: %v", err)
 	}
