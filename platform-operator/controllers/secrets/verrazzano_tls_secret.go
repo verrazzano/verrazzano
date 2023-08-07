@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"time"
-
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"go.uber.org/zap"
 
@@ -24,30 +24,24 @@ import (
 )
 
 const rancherDeploymentName = "rancher"
+const mcCABundleKey = "ca-bundle"
 
-// reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
-func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+var fetchSecretFailureTemplate = "Failed to fetch secret %s/%s: %v"
 
-	isVzIngressSecret := isVerrazzanoIngressSecretName(req.NamespacedName)
-	isAddnlTLSSecret := isAdditionalTLSSecretName(req.NamespacedName)
-
-	caKey := "ca.crt"
-	if isAddnlTLSSecret {
-		caKey = vzconst.AdditionalTLSCAKey
-	}
-
-	if isVzIngressSecret && r.additionalTLSSecretExists() {
-		// When the additional TLS secret exists, it is considered the source of truth - ignore
-		// reconciles for the VZ Ingress TLS secret in that case
-		return ctrl.Result{}, nil
-	}
+// reconcileVerrazzanoTLS Updates the related CA bundle copies when the CA cert in verrazzano-system/verrazzano-tls is rotated
+// or the CA bundle in verrazzano-system/verrazzano-tls-ca is updated
+func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request, vz *vzapi.Verrazzano) (ctrl.Result, error) {
 
 	// Get the secret
 	caSecret := corev1.Secret{}
-	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, &caSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			// Secret may have been deleted, skip reconcile
+			zap.S().Infof("Secret %s does not exist, skipping reconcile", req.NamespacedName)
+			return ctrl.Result{}, nil
+		}
 		// Secret should never be not found, unless we're running while installation is still underway
-		zap.S().Errorf("Failed to fetch secret %s/%s: %v",
+		zap.S().Errorf(fetchSecretFailureTemplate,
 			req.Namespace, req.Name, err)
 		return newRequeueWithDelay(), nil
 	}
@@ -58,35 +52,70 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		return result, err
 	}
 
+	// Update the copies
+	return r.reconcileVerrazzanoCABundleCopies(&caSecret)
+}
+
+// reconcileVerrazzanoCABundleCopies Reconciles the source verrazzano-system/verrazzano-tls-ca CA bundle against any update to the
+// CA bundle in verrazzano-system/verrazzano-tls, along with any copies that need to be maintained.
+//
+// If the ca.crt field in the verrazzano-tls secret does not exist, any data in the verrazzano-tls-ca and cattle-system/tls-ca secrets
+// are left untouched, as this is typically a Let's Encrypt staging scenario.  Certs issued from ACME issuers do not populate the
+// "ca.crt" field in leaf cert secrets.  In those scenarios those copies are set up once during VZ resource reconciliation until if/when
+// the VZ issuer configuration is chagned.
+//
+// - The cattle-system/tls-ca private bundle secret, if it already exists
+// - The verrazzano-mc/verrazzano-local-ca-bundle secret which maintains a copy of the local CA bundle to sync with remote clusters in the multi-cluster case
+//
+// These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
+func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(tlsSecret *corev1.Secret) (ctrl.Result, error) {
+	if isVerrazzanoIngressSecretName(client.ObjectKeyFromObject(tlsSecret)) {
+		// Update the Verrazzano private CA bundle first; source of truth from a VZ perspective
+		_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
+			vzconst.CABundleKey, vzconst.CACertKey, tlsSecret, false)
+		if err != nil {
+			return newRequeueWithDelay(), nil
+		}
+	}
+
+	// Drop through in all cases to update the copies
+
+	// Use private bundle secret to update copies from here
+	privateBundleSecret := &corev1.Secret{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
+	if otherErr := client.IgnoreNotFound(err); otherErr != nil {
+		return newRequeueWithDelay(), otherErr
+	}
+
+	// Update the Rancher TLS CA secret with the CA in verrazzano-tls-ca Secret
+	result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
+		vzconst.RancherTLSCAKey, vzconst.CABundleKey, privateBundleSecret, false)
+	if err != nil {
+		return newRequeueWithDelay(), nil
+	}
+
+	// Restart Rancher pod to have the updated TLS CA secret value reflected in the pod
+	if result == controllerutil.OperationResultUpdated {
+		if err := r.restartRancherPod(); err != nil {
+			return newRequeueWithDelay(), err
+		}
+	}
+
 	if !r.multiclusterNamespaceExists() {
 		// Multicluster namespace doesn't exist yet, nothing to do so requeue
 		return newRequeueWithDelay(), nil
 	}
 
-	// Update the Rancher TLS CA secret with the CA in Verrazzano TLS Secret
-	if isVzIngressSecret {
-		result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
-			vzconst.RancherTLSCAKey, caKey, caSecret, false)
-		if err != nil {
-			return newRequeueWithDelay(), nil
-		}
-		// Restart Rancher pod to have the updated TLS CA secret value reflected in the pod
-		if result == controllerutil.OperationResultUpdated {
-			if err := r.restartRancherPod(); err != nil {
-				return newRequeueWithDelay(), err
-			}
-		}
-	}
-	// Update the verrazzano-local-ca-bundle secret
+	// Always update the verrazzano-local-ca-bundle secret from the Verrazzano private CA bundle source
 	if _, err := r.updateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
-		"ca-bundle", caKey, caSecret, true); err != nil {
+		mcCABundleKey, vzconst.CABundleKey, privateBundleSecret, true); err != nil {
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil
 }
 
 func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string, destCAKey string,
-	sourceCAKey string, sourceSecret corev1.Secret, isCreate bool) (controllerutil.OperationResult, error) {
+	sourceCAKey string, sourceSecret *corev1.Secret, isCreateAllowed bool) (controllerutil.OperationResult, error) {
 	// Get the secret
 	secret := corev1.Secret{}
 	err := r.Get(context.TODO(), client.ObjectKey{
@@ -95,10 +124,10 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	}, &secret)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			r.log.Errorf("Failed to fetch secret %s/%s: %v", namespace, name, err)
+			r.log.Errorf(fetchSecretFailureTemplate, namespace, name, err)
 			return controllerutil.OperationResultNone, err
 		}
-		if !isCreate {
+		if !isCreateAllowed {
 			r.log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
 			return controllerutil.OperationResultNone, nil
 		}
@@ -109,12 +138,21 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	}
 
 	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		if secret.Data == nil {
-			secret.Data = make(map[string][]byte)
+		// We only want to update the target secret IFF the secret/key in the source secret/key exist;
+		// we are keeping private CA bundles in sync on rotation only, the modules manage the lifecycle
+		// of the target secrets on reconcile of the VZ CR
+		sourceBundle, exists := sourceSecret.Data[sourceCAKey]
+		if !exists && !isCreateAllowed {
+			zap.S().Debugf("Source key %s does not exist in secret %s/%s, nothing to do ", sourceCAKey,
+				sourceSecret.Namespace, sourceSecret.Name)
+			return nil
 		}
 		zap.S().Debugf("Updating CA secret with data from %s key of %s/%s secret ", sourceCAKey,
 			sourceSecret.Namespace, sourceSecret.Name)
-		secret.Data[destCAKey] = sourceSecret.Data[sourceCAKey]
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		secret.Data[destCAKey] = sourceBundle
 		return nil
 	})
 
@@ -149,7 +187,7 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().String()
 
 	if err := r.Update(context.TODO(), &deployment); err != nil {
-		return vzlog.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
+		return log.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
 	}
 	r.log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
 		deployment.Namespace, deployment.Name)

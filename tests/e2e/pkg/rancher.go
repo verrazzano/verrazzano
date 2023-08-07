@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -276,8 +276,8 @@ func CreateNewRancherConfigForUser(log *zap.SugaredLogger, kubeconfigPath string
 		return nil, fmt.Errorf("failed to get caCert: %v", err)
 	}
 
-	// the tls-ca-additional secret is optional
-	additionalCA, _ := GetCACertFromSecret(constants.AdditionalTLS, constants.RancherSystemNamespace, constants.AdditionalTLSCAKey, kubeconfigPath)
+	// the tls-ca secret is optional, and contains the private CA bundle configured for Rancher
+	additionalCA, _ := GetCACertFromSecret(constants.RancherTLSCA, constants.RancherSystemNamespace, constants.RancherTLSCAKey, kubeconfigPath)
 
 	httpClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {

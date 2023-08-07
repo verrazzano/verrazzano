@@ -192,8 +192,8 @@ func TestSyncCACertsAreDifferent(t *testing.T) {
 	assertRegistrationInfoEqual(t, localSecret, testClusterRegSecret)
 }
 
-// Test the case when managed cluster uses Let's Encrypt staging (i.e. tls-ca-additional secret
-// is present, and that should be preferred for sync even if verrazzano-tls is present.)
+// Test the case when managed cluster uses Let's Encrypt staging (i.e. the verrazzano-tls-ca secret
+// is present, and is preferred for sync even if verrazzano-tls is present.)
 func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 	assert := asserts.New(t)
 	log := zap.S().With("test")
@@ -213,7 +213,7 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 	assert.NoError(err, sampleMCTLSReadErrMsg)
 
 	// Managed cluster additional TLS secret is also present
-	testMCAdditionalTLSSecret, err := getSampleSecret("testdata/clusterca-mc-additionaltls-secret.yaml")
+	testMCAdditionalTLSSecret, err := getSampleSecret("testdata/clusterca-mc-verrazzanotls-secret.yaml")
 	assert.NoError(err, "failed to read sample MC additional TLS CA Secret")
 
 	testMCCASecret, err := getSampleSecret(mcCASecretPath)
@@ -223,8 +223,8 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 	assert.NoError(err, sampleVMCReadErrMsg)
 
 	newRegCA := testAdminCASecret.Data[mcconstants.AdminCaBundleKey]
-	// Managed cluster additional TLS secret is the one to sync to admin cluster
-	newMCCA := testMCAdditionalTLSSecret.Data[constants.AdditionalTLSCAKey]
+	// Managed cluster private CA bundle secret is the one to sync to admin cluster
+	newMCCA := testMCAdditionalTLSSecret.Data[constants.CABundleKey]
 
 	adminClient := fake.NewClientBuilder().
 		WithScheme(newClusterCAScheme()).
