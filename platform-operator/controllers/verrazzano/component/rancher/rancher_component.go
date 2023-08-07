@@ -6,7 +6,6 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/certs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -484,6 +484,16 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	}
 	log.Debugf("Patched Rancher ingress")
 
+	vz := ctx.EffectiveCR()
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+	}
+
+	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
+		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
+	}
+
 	return r.checkRestartRequired(ctx)
 }
 
@@ -525,20 +535,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
 	}
 
-	vz := ctx.EffectiveCR()
-	rancherHostName, err := getRancherHostname(c, vz)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
-	}
-
-	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
-		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
-	}
-
-	if err != nil {
-		return err
-	}
-
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
@@ -547,7 +543,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
 	// Create Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
-	if err = common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
 		return err
 	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
