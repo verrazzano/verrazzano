@@ -75,10 +75,9 @@ func (r *OverridesConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl.
 // reconcileInstallOverrideConfigMap looks through the Verrazzano CR for the ConfigMap
 // if the request is from the same namespace as the CR
 func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
-	if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, r.log); err != nil {
+	if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, vzlog.DefaultLogger()); err != nil {
 		return newRequeueWithDelay(), nil
 	}
 	if vz.Namespace == req.Namespace {
