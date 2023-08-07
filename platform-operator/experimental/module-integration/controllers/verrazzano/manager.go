@@ -33,6 +33,7 @@ func InitController(mgr ctrlruntime.Manager) error {
 	config := basecontroller.ControllerConfig{
 		Reconciler: &controller,
 		Finalizer:  &controller,
+		Watcher:    &controller,
 	}
 	baseController, err := basecontroller.CreateControllerAndAddItToManager(mgr, config)
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-// Always for secrets and configmaps since they may contain module configuration
+// Always watch for secrets and configmaps since they may contain module configuration
 func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return []controllerspi.WatchDescriptor{
 		{
@@ -29,7 +29,7 @@ func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 }
 
 // ShouldSecretTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
-func (r Reconciler) ShouldSecretTriggerReconcile(vzNSN types.NamespacedName, secret client.Object, _ controllerspi.WatchEvent) bool {
+func (r Reconciler) ShouldSecretTriggerReconcile(vzNSN types.NamespacedName, secret client.Object, _ controllerspi.WatchEventType) bool {
 	if secret.GetNamespace() != vzNSN.Namespace {
 		return false
 	}
@@ -42,8 +42,8 @@ func (r Reconciler) ShouldSecretTriggerReconcile(vzNSN types.NamespacedName, sec
 	return ok
 }
 
-// ShouldConfigMapTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
-func (r Reconciler) ShouldConfigMapTriggerReconcile(vzNSN types.NamespacedName, cm client.Object, _ controllerspi.WatchEvent) bool {
+// ShouldConfigMapTriggerReconcile returns true if reconcile should be done in response to a ConfigMap lifecycle event
+func (r Reconciler) ShouldConfigMapTriggerReconcile(vzNSN types.NamespacedName, cm client.Object, _ controllerspi.WatchEventType) bool {
 	if cm.GetNamespace() != vzNSN.Namespace {
 		return false
 	}

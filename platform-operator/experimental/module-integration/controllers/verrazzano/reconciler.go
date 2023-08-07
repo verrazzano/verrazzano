@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
 )
 
 // Reconcile reconciles the Verrazzano CR
@@ -111,8 +110,6 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	}
 	module.Annotations[constants.VerrazzanoCRNameAnnotation] = effectiveCR.Name
 	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
-	module.Annotations[constants.VerrazzanoObservedGenerationAnnotation] = strconv.FormatInt(effectiveCR.Generation, 10)
-	module.Annotations[constants.VerrazzanoVersionAnnotation] = vzVersion
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
@@ -141,12 +138,6 @@ func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, co
 			return true, nil
 		}
 		return false, err
-	}
-
-	// if module doesn't have the current VZ generation then return true
-	if module.Annotations != nil {
-		gen := module.Annotations[constants.VerrazzanoObservedGenerationAnnotation]
-		return gen != strconv.FormatInt(effectiveCR.Generation, 10), nil
 	}
 
 	return true, nil
