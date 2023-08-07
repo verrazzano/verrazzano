@@ -319,7 +319,10 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
-            verrazzano.io/namespace: cattle-fleet-system
+            kubernetes.io/metadata.name: cattle-fleet-system
+      - podSelector:
+          matchLabels:
+            app: fleet-controller
     - from:
       - namespaceSelector:
           matchLabels:
