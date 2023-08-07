@@ -180,7 +180,7 @@ webhooks:
       - v1beta1
       - v1
 ---
-{{ if .Values.experimentalFeatures.moduleAPI.enabled }}
+{{ if .Values.experimentalFeatures.moduleIntegration.enabled }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -199,7 +199,7 @@ webhooks:
         path: /validate-modules-v1alpha1-install-verrazzano-io
     rules:
       - apiGroups:
-          - install.verrazzano.io
+          - platform.verrazzano.io
         apiVersions:
           - v1alpha1
         operations:

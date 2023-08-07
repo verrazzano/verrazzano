@@ -10,8 +10,7 @@ import (
 )
 
 const (
-	ValidateModulesWebhookPath  = "verrazzano-modules"
-	ValidateModulesWebhooksPath = "/validate-modules-v1alpha1-install-verrazzano-io"
+	ValidateModulesWebhookPath = "verrazzano-modules"
 )
 
 type WebhookV1alpha1 struct{}

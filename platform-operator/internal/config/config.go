@@ -90,9 +90,6 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
-	// ExperimentalModules toggles the VPO to use the experimental modules feature
-	ExperimentalModules bool
-
 	// Module Itegration feature flag toggles the VPO to use the new Verrazzano controllers with modules
 	ModuleIntegration bool
 }
@@ -111,7 +108,6 @@ var instance = OperatorConfig{
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
 	MySQLRepairTimeoutSeconds:      120,
-	ExperimentalModules:            false,
 	ModuleIntegration:              false,
 }
 
