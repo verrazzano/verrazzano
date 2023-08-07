@@ -28,7 +28,8 @@ spec:
             memory:
               heapSize: 2g
             args:
-              - "-Djdk.serialFilter=*;!*"
+              - "-Dhelidon.serialFilter.pattern=*"
+              - "-Dhelidon.serialFilter.failure.action=WARN"
           coherence:
             logLevel: 9
             metrics:
@@ -75,7 +76,8 @@ spec:
             memory:
               heapSize: 2g
             args:
-              - "-Djdk.serialFilter=*;!*"
+              - "-Dhelidon.serialFilter.pattern=*"
+              - "-Dhelidon.serialFilter.failure.action=WARN"
           coherence:
             logLevel: 9
             metrics:
@@ -122,7 +124,8 @@ spec:
             memory:
               heapSize: 2g
             args:
-              - "-Djdk.serialFilter=*;!*"
+              - "-Dhelidon.serialFilter.pattern=*"
+              - "-Dhelidon.serialFilter.failure.action=WARN"
           coherence:
             logLevel: 9
             metrics:
@@ -169,7 +172,8 @@ spec:
             memory:
               heapSize: 2g
             args:
-              - "-Djdk.serialFilter=*;!*"
+              - "-Dhelidon.serialFilter.pattern=*"
+              - "-Dhelidon.serialFilter.failure.action=WARN"
           coherence:
             logLevel: 9
             metrics:
@@ -220,7 +224,8 @@ spec:
             memory:
               heapSize: 2g
             args:
-              - "-Djdk.serialFilter=*;!*"
+              - "-Dhelidon.serialFilter.pattern=*"
+              - "-Dhelidon.serialFilter.failure.action=WARN"
           coherence:
             logLevel: 9
             metrics:
@@ -271,7 +276,8 @@ spec:
             memory:
               heapSize: 2g
             args:
-              - "-Djdk.serialFilter=*;!*"
+              - "-Dhelidon.serialFilter.pattern=*"
+              - "-Dhelidon.serialFilter.failure.action=WARN"
           coherence:
             logLevel: 9
             metrics:
