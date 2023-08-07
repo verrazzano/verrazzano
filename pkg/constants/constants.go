@@ -235,3 +235,9 @@ const ThanosQueryIngress = "thanos-query-frontend"
 
 // ThanosQueryStoreIngress is the name of the ingress for the Thanos Query Store API
 const ThanosQueryStoreIngress = "thanos-query-store"
+
+// LetsEncryptProduction - LetsEncrypt production env
+const LetsEncryptProduction = "production"
+
+// LetsEncryptStaging - LetsEncrypt staging env
+const LetsEncryptStaging = "staging"
