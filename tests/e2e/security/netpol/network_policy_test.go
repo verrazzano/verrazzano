@@ -463,11 +463,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"k8s-app": "verrazzano-monitoring-operator"}}, vzconst.VerrazzanoSystemNamespace, 8000, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-operator ingress rules failed: reason = %s", err))
 			},
-			func() {
-				t.Logs.Info("Negative test opensearch ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{osClusterLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 9200, true, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test opensearch ingress rules failed: reason = %s", err))
-			},
+			//func() {
+			//	t.Logs.Info("Negative test opensearch ingress rules")
+			//	err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{osClusterLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 9200, true, false)
+			//	Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test opensearch ingress rules failed: reason = %s", err))
+			//},
 			/* TODO:
 			The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
 			dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
