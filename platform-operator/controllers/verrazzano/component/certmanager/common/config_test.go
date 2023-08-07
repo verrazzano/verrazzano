@@ -4,7 +4,7 @@
 package common
 
 import (
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
@@ -40,7 +40,7 @@ var defaultCA = vzapi.CA{
 var acmeTestConfig = vzapi.Acme{
 	Provider:     vzapi.LetsEncrypt,
 	EmailAddress: "testEmail@foo.com",
-	Environment:  cmconstants.LetsEncryptStaging,
+	Environment:  constants.LetsEncryptStaging,
 }
 
 // Default Verrazzano object

@@ -5,10 +5,6 @@ package rancher
 
 import (
 	"context"
-	"errors"
-	"io"
-	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -76,7 +72,7 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 	}{
 		{
 			"should not copy CA secret when not using the CA secret",
-			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&secret).Build(),
 			&vzAcmeDev,
 			false,
 		},
@@ -97,7 +93,7 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, tt.vz, nil, false, profilesRelativePath)
-			err := copyDefaultCACertificate(log, tt.c, ctx.EffectiveCR())
+			err := copyPrivateCABundles(log, tt.c, ctx.EffectiveCR())
 			if tt.isErr {
 				assert.NotNil(t, err)
 			} else {
@@ -157,64 +153,6 @@ func TestIsUsingDefaultCACertificate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			assert.Equal(t, tt.out, isUsingDefaultCACertificate(tt.ClusterIssuerComponent))
-		})
-	}
-}
-
-// TestCreateAdditionalCertificates verifies creation of additional certificates when they are necessary
-// GIVEN a Verrazzano CR
-//
-//	WHEN createAdditionalCertificates is called
-//	THEN createAdditionalCertificates should create additional certificates as necessary from the Verrazzano CR information
-func TestCreateAdditionalCertificates(t *testing.T) {
-	log := getTestLogger(t)
-	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
-	doOK := func(hc *http.Client, req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			Body:       io.NopCloser(strings.NewReader("cert")),
-			StatusCode: http.StatusOK,
-		}, nil
-	}
-	doFail := func(hc *http.Client, req *http.Request) (*http.Response, error) {
-		return nil, errors.New("boom")
-	}
-	var tests = []struct {
-		testName string
-		httpDo   common.HTTPDoSig
-		vz       *vzapi.Verrazzano
-		isErr    bool
-	}{
-		{
-			"should create additional CA Certificates when using Acme Dev",
-			doOK,
-			&vzAcmeDev,
-			false,
-		},
-		{
-			"should fail to download additional CA Certificates",
-			doFail,
-			&vzAcmeDev,
-			true,
-		},
-		{
-			"should not download additional CA Certificates when using a private CA",
-			doOK,
-			&vzDefaultCA,
-			false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			common.HTTPDo = tt.httpDo
-			ctx := spi.NewFakeContext(c, tt.vz, nil, false, profilesRelativePath)
-			err := common.ProcessAdditionalCertificates(log, c, ctx.EffectiveCR())
-			if tt.isErr {
-				assert.NotNil(t, err)
-				assert.True(t, strings.Contains(err.Error(), "boom"))
-			} else {
-				assert.Nil(t, err)
-			}
 		})
 	}
 }
