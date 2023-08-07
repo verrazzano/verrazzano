@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -31,6 +32,7 @@ const (
 	clusterSelectorFilePath = "/var/syncClusters/selector.yaml"
 	syncClustersEnvVarName  = "CLUSTER_SYNC_ENABLED"
 	cattleClustersCRDName   = "clusters.management.cattle.io"
+	capiClustersCRDName     = "clusters.cluster.x-k8s.io"
 )
 
 // StartClusterOperator Cluster operator execution entry point
@@ -57,7 +59,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 	}
 
 	apiextv1Client := apiextv1.NewForConfigOrDie(ctrlConfig)
-	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1Client)
+	crdInstalled, err := isCRDInstalled(apiextv1Client, cattleClustersCRDName)
 	if err != nil {
 		log.Error(err, "unable to determine if cattle CRD is installed")
 		os.Exit(1)
@@ -79,6 +81,25 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 			Scheme:             mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create Rancher cluster controller: %v", err)
+			os.Exit(1)
+		}
+	}
+
+	crdInstalled, err = isCRDInstalled(apiextv1Client, capiClustersCRDName)
+	if err != nil {
+		log.Error(err, "unable to determine if CAPI CRD is installed")
+		os.Exit(1)
+	}
+
+	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
+	if crdInstalled {
+		log.Infof("Starting CAPI Cluster controller")
+		if err = (&capi.CAPIClusterReconciler{
+			Client: mgr.GetClient(),
+			Log:    log,
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Errorf("Failed to create CAPI cluster controller: %v", err)
 			os.Exit(1)
 		}
 	}
@@ -149,9 +170,9 @@ func shouldSyncClusters(clusterSelectorFile string) (bool, *metav1.LabelSelector
 	return true, selector, err
 }
 
-// isCattleClustersCRDInstalled returns true if the clusters.management.cattle.io CRD is installed
-func isCattleClustersCRDInstalled(client apiextv1.ApiextensionsV1Interface) (bool, error) {
-	_, err := client.CustomResourceDefinitions().Get(context.TODO(), cattleClustersCRDName, metav1.GetOptions{})
+// isCRDInstalled returns true if the clusters.management.cattle.io CRD is installed
+func isCRDInstalled(client apiextv1.ApiextensionsV1Interface, crdName string) (bool, error) {
+	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -168,7 +189,7 @@ func isCattleClustersCRDInstalled(client apiextv1.ApiextensionsV1Interface) (boo
 func watchCattleClustersCRD(cancel context.CancelFunc, client apiextv1.ApiextensionsV1Interface, crdInstalled bool, log *zap.SugaredLogger) {
 	log.Infof("Watching for CRD %s to be installed or uninstalled", cattleClustersCRDName)
 	for {
-		installed, err := isCattleClustersCRDInstalled(client)
+		installed, err := isCRDInstalled(client, cattleClustersCRDName)
 		if err != nil {
 			log.Debugf("Unable to determine if CRD %s is installed: %v", cattleClustersCRDName, err)
 			continue
