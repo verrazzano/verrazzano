@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -75,11 +74,10 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
-		createOrUpdate, err := r.shouldCreateOrUpdateModule(effectiveCR, comp)
-		if err != nil {
-			return result.NewResultShortRequeueDelayWithError(err)
+		if !comp.IsEnabled(effectiveCR) {
+			continue
 		}
-		if !createOrUpdate {
+		if !comp.ShouldUseModule() {
 			continue
 		}
 
@@ -119,26 +117,4 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 		return err
 	}
 	return nil
-}
-
-// shouldCreateOrUpdateModule returns true if the Module should be created or updated
-func (r Reconciler) shouldCreateOrUpdateModule(effectiveCR *vzapi.Verrazzano, comp spi.Component) (bool, error) {
-	if !comp.IsEnabled(effectiveCR) {
-		return false, nil
-	}
-	if !comp.ShouldUseModule() {
-		return false, nil
-	}
-
-	// get the module
-	module := &moduleapi.Module{}
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: comp.Name()}, module); err != nil {
-		if errors.IsNotFound(err) {
-			// module doesn't exist, need to create it
-			return true, nil
-		}
-		return false, err
-	}
-
-	return true, nil
 }
