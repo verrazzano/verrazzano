@@ -4,6 +4,7 @@
 package certmanager
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -252,5 +253,49 @@ func getSingleOverrideCR() *vzapi.Verrazzano {
 				},
 			},
 		},
+	}
+}
+
+func TestGetModuleSpec(t *testing.T) {
+	trueValue := true
+	tests := []struct {
+		name        string
+		effectiveCR *vzapi.Verrazzano
+		want        string
+		wantErr     assert.ErrorAssertionFunc
+	}{
+		{
+			name: "BasicCertManagerConfig",
+			effectiveCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: &trueValue,
+							Certificate: vzapi.Certificate{
+								CA: vzapi.CA{
+									SecretName:               secretName,
+									ClusterResourceNamespace: secretNamespace,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: assert.NoError,
+			want:    `{"verrazzanoSpec":{"certificate":{"acme":{"provider":""},"ca":{"clusterResourceNamespace":"ns","secretName":"newsecret"}},"enabled":true}}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent().(certManagerComponent)
+			got, err := c.GetModuleSpec(tt.effectiveCR)
+			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleSpec(%v)", tt.effectiveCR)) {
+				return
+			}
+			wantJSON := &apiextensionsv1.JSON{
+				Raw: []byte(tt.want),
+			}
+			assert.Equalf(t, wantJSON, got, "GetModuleSpec(%v)", tt.effectiveCR)
+		})
 	}
 }

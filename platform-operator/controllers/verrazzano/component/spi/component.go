@@ -129,7 +129,7 @@ type ModuleIntegration interface {
 	// GetWatchDescriptors returns the list of WatchDescriptor for objects being watched by the component
 	GetWatchDescriptors() []controllerspi.WatchDescriptor
 	// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-	GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) *apiextensionsv1.JSON
+	GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error)
 }
 
 // Generate mocs for the spi.Component interface for use in tests.

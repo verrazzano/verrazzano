@@ -501,8 +501,8 @@ func (i istioComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 }
 
 // GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (i istioComponent) GetModuleSpec(_ *vzapi.Verrazzano) *apiextensionsv1.JSON {
-	return nil
+func (i istioComponent) GetModuleSpec(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
+	return nil, nil
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
