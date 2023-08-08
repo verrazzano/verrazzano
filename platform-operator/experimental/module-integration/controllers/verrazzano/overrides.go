@@ -167,45 +167,6 @@ func getConfigResourceName(moduleName string, resourceName string) string {
 	return fmt.Sprintf("%s-%s", moduleName, resourceName)
 }
 
-// getVzConfigSecretAndConfigMapSets returns the configuration secrets and configMaps used by the vz cr
-func getVzConfigSecretAndConfigMapSets(effectiveCR *vzapi.Verrazzano) (secrets map[string]bool, configMaps map[string]bool) {
-	secrets = make(map[string]bool)
-	configMaps = make(map[string]bool)
-
-	for _, comp := range registry.GetComponents() {
-		if !comp.ShouldUseModule() {
-			continue
-		}
-		if !comp.IsEnabled(effectiveCR) {
-			continue
-		}
-		compOverrideList := comp.GetOverrides(effectiveCR)
-		switch castType := compOverrideList.(type) {
-		case []vzapi.Overrides:
-			overrideList := castType
-			for _, o := range overrideList {
-				if o.SecretRef != nil {
-					secrets[o.SecretRef.Name] = true
-				}
-				if o.ConfigMapRef != nil {
-					configMaps[o.ConfigMapRef.Name] = true
-				}
-			}
-		case []vzapibeta1.Overrides:
-			overrideList := castType
-			for _, o := range overrideList {
-				if o.SecretRef != nil {
-					secrets[o.SecretRef.Name] = true
-				}
-				if o.ConfigMapRef != nil {
-					configMaps[o.ConfigMapRef.Name] = true
-				}
-			}
-		}
-	}
-	return
-}
-
 // getOverrideResourceNames returns the configuration override configMap or secret names used by the vz cr
 func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType) map[string]bool {
 	names := make(map[string]bool)
