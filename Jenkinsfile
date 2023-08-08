@@ -314,7 +314,6 @@ pipeline {
                         }
                     }
                 }
-            }
             stage('Verrazzano development version check') {
                 when { not { buildingTag() } }
                 steps {
@@ -336,6 +335,7 @@ pipeline {
             }
 
         }
+    }
 
         stage('Scan Image') {
             when {
