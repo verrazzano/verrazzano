@@ -17,7 +17,7 @@ spec:
     alertmanagers:
 {{- if .Values.prometheus.prometheusSpec.alertingEndpoints }}
 {{ toYaml .Values.prometheus.prometheusSpec.alertingEndpoints | indent 6 }}
-{{- else if .Values.alertmanager.enabled and .Values.prometheus.enableDefaultAlertingEndpoint }}
+{{- else if and .Values.alertmanager.enabled .Values.prometheus.enableDefaultAlertingEndpoint }}
       - namespace: {{ template "kube-prometheus-stack.namespace" . }}
         name: {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
         port: {{ .Values.alertmanager.alertmanagerSpec.portName }}
