@@ -558,7 +558,10 @@ func appendAlertmanagerIntegrationOverrides(ctx spi.ComponentContext, kvs []bom.
 		return kvs, err
 	}
 	return append(kvs, []bom.KeyValue{
+		// Turn off default alerting endpoint in Prometheus when Thanos ruler is enabled
 		{Key: "prometheus.enableDefaultAlertingEndpoint", Value: strconv.FormatBool(!rulerEnabled)},
+		// When Thanos Ruler is enabled, turn off the alerting rule that fires when Prometheus doesn't have an
+		// alertmanager endpoint configured
 		{Key: "defaultRules.disabled.PrometheusNotConnectedToAlertmanagers", Value: strconv.FormatBool(rulerEnabled)},
 	}...), nil
 }

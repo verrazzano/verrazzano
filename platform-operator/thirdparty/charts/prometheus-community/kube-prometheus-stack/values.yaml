@@ -3454,7 +3454,7 @@ prometheus:
     ##
     # podMetricsEndpoints: []
 
-  ## Allow the default Alertmanager endpoint for Prometheus.
+  ## Enable the default Alertmanager endpoint for Prometheus.
   ##
   enableDefaultAlertingEndpoint: true
 
