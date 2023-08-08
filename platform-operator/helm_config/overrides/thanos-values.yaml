@@ -125,8 +125,16 @@ metrics:
   prometheusRule:
     enabled: true
     default:
-      create: true
+      # Enable all rules except for the absent rules
+      create: false
       absent_rules: false
+      compaction: true
+      query: true
+      receive: true
+      replicate: true
+      ruler: true
+      sidecar: true
+      store_gateway: true
     additionalLabels:
       release: prometheus-operator
   serviceMonitor:
