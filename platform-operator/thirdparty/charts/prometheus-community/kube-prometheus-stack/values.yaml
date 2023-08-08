@@ -3454,6 +3454,10 @@ prometheus:
     ##
     # podMetricsEndpoints: []
 
+  ## Allow the default Alertmanager endpoint for Prometheus.
+  ##
+  enableDefaultAlertingEndpoint: true
+
 ## Configuration for thanosRuler
 ## ref: https://thanos.io/tip/components/rule.md/
 ##

@@ -558,7 +558,7 @@ func appendAlertmanagerIntegrationOverrides(ctx spi.ComponentContext, kvs []bom.
 		return kvs, err
 	}
 	return append(kvs, []bom.KeyValue{
-		{Key: "prometheus.integrateAlertmanager", Value: strconv.FormatBool(!rulerEnabled)},
+		{Key: "prometheus.enableDefaultAlertingEndpoint", Value: strconv.FormatBool(!rulerEnabled)},
 		{Key: "defaultRules.disabled.PrometheusNotConnectedToAlertmanagers", Value: strconv.FormatBool(rulerEnabled)},
 	}...), nil
 }
@@ -584,13 +584,14 @@ func isThanosRulerEnabled(ctx spi.ComponentContext) (bool, error) {
 	}
 
 	for _, overrideYaml := range overrideStrings {
-		if strings.Contains(overrideYaml, "ruler:") {
-			value, err := override.ExtractValueFromOverrideString(overrideYaml, "ruler.enabled")
-			if err != nil {
-				return false, ctx.Log().ErrorfNewErr("Failed to read value for ruler.enabled from overrides: %v", err)
-			}
-			return value.(bool), nil
+		if !strings.Contains(overrideYaml, "ruler:") {
+			continue
 		}
+		value, err := override.ExtractValueFromOverrideString(overrideYaml, "ruler.enabled")
+		if err != nil {
+			return false, ctx.Log().ErrorfNewErr("Failed to read value for ruler.enabled from overrides: %v", err)
+		}
+		return value.(bool), nil
 	}
 	return false, nil
 }

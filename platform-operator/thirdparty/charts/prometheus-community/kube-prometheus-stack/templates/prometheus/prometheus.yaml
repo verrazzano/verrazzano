@@ -12,12 +12,12 @@ metadata:
 {{ toYaml .Values.prometheus.annotations | indent 4 }}
 {{- end }}
 spec:
-{{- if and (or .Values.prometheus.prometheusSpec.alertingEndpoints .Values.alertmanager.enabled) .Values.prometheus.integrateAlertmanager}}
+{{- if or .Values.prometheus.prometheusSpec.alertingEndpoints .Values.alertmanager.enabled }}
   alerting:
     alertmanagers:
 {{- if .Values.prometheus.prometheusSpec.alertingEndpoints }}
 {{ toYaml .Values.prometheus.prometheusSpec.alertingEndpoints | indent 6 }}
-{{- else if .Values.alertmanager.enabled }}
+{{- else if .Values.alertmanager.enabled and .Values.prometheus.enableDefaultAlertingEndpoint }}
       - namespace: {{ template "kube-prometheus-stack.namespace" . }}
         name: {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
         port: {{ .Values.alertmanager.alertmanagerSpec.portName }}
