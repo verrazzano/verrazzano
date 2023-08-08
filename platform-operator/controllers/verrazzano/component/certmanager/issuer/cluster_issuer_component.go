@@ -191,7 +191,7 @@ func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescr
 }
 
 // GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (c clusterIssuerComponent) GetModuleSpec() *apiextensionsv1.JSON {
+func (c clusterIssuerComponent) GetModuleSpec(_ *v1alpha1.Verrazzano) *apiextensionsv1.JSON {
 	return nil
 }
 

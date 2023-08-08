@@ -672,17 +672,17 @@ func (mr *MockComponentMockRecorder) GetMinVerrazzanoVersion() *gomock.Call {
 }
 
 // GetModuleSpec mocks base method
-func (m *MockComponent) GetModuleSpec() *v1.JSON {
+func (m *MockComponent) GetModuleSpec(arg0 *v1alpha1.Verrazzano) *v1.JSON {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetModuleSpec")
+	ret := m.ctrl.Call(m, "GetModuleSpec", arg0)
 	ret0, _ := ret[0].(*v1.JSON)
 	return ret0
 }
 
 // GetModuleSpec indicates an expected call of GetModuleSpec
-func (mr *MockComponentMockRecorder) GetModuleSpec() *gomock.Call {
+func (mr *MockComponentMockRecorder) GetModuleSpec(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModuleSpec", reflect.TypeOf((*MockComponent)(nil).GetModuleSpec))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModuleSpec", reflect.TypeOf((*MockComponent)(nil).GetModuleSpec), arg0)
 }
 
 // GetOverrides mocks base method

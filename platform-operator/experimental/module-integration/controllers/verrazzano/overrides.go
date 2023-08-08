@@ -68,7 +68,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 // Set the module values or valuesFrom for a single override struct
 func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzapibeta1.Overrides, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) error {
 
-	if err := r.mergedModuleOverrides(module, overrides); err != nil {
+	if err := r.mergedModuleValuesOverrides(module, overrides); err != nil {
 		return err
 	}
 
@@ -112,7 +112,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 	return nil
 }
 
-func (r Reconciler) mergedModuleOverrides(module *moduleapi.Module, overrides vzapibeta1.Overrides) error {
+func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzapibeta1.Overrides) error {
 	if overrides.Values == nil {
 		return nil
 	}
