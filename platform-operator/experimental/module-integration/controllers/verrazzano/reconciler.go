@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -14,7 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,7 +90,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			// TODO For now have the module version match the VZ version
-			return r.mutateModule(log, effectiveCR, &module, comp, version, version)
+			return r.mutateModule(log, effectiveCR, &module, comp, version)
 		})
 		if err != nil {
 			if !errors.IsConflict(err) {
@@ -102,7 +103,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 }
 
 // mutateModule mutates the module for the create or update callback
-func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component, vzVersion string, moduleVersion string) error {
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
@@ -113,8 +114,50 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	module.Spec.TargetNamespace = comp.Namespace()
 
 	module.Spec.Version = moduleVersion
+
+	// If the component is already installed and the module doesn't exist then
+	// special handling needs to get done
+	if err := r.handleNonModuleAlreadyInstalled(effectiveCR, module, comp); err != nil {
+		return err
+	}
+
 	if err := r.setModuleValues(log, effectiveCR, module, comp); err != nil {
 		return err
 	}
+	return nil
+}
+
+// Handle the case where Verrazzano has already installed the component without modules, but not using modules.
+// If that is the case, then the module.Status must get updated with installed component condition, version, etc
+// so that it appears that it was installed by the module controller.
+func (r Reconciler) handleNonModuleAlreadyInstalled(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component) error {
+	// If conditions exist then the module is being or has been reconciled.
+	if module.Status.Conditions != nil {
+		return nil
+	}
+	compCtx, err := componentspi.NewContext(vzlog.DefaultLogger(), r.Client, effectiveCR, nil, false)
+	if err != nil {
+		compCtx.Log().Errorf("Failed to create component context: %v", err)
+		return err
+	}
+
+	// Check if component is installed.  If not then status doesn't need to be updated.
+	compStatus, ok := effectiveCR.Status.Components[comp.Name()]
+	if !ok {
+		return nil
+	}
+	var installed bool
+	for _, compCond := range compStatus.Conditions {
+		if compCond.Type == vzapi.CondInstallComplete {
+			installed = true
+			break
+		}
+	}
+	if !installed {
+		return nil
+	}
+
+	// Set the module status condition, installed generation and installed version
+	modulestatus.SetModuleStatusToInstalled(&module.Status, effectiveCR.Status.Version, compStatus.LastReconciledGeneration)
 	return nil
 }
