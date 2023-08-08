@@ -4,6 +4,10 @@ Component version updates:
 
 - Istio v1.17.2
 
+Fixes:
+
+- Fixed Rancher CA bundle handling for Let's Encrypt Staging certs
+
 ### v1.6.1
 Features:
 
