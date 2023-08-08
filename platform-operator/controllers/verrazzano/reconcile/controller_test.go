@@ -2468,7 +2468,6 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		},
 	}
 
-	log := vzlog.DefaultLogger()
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
