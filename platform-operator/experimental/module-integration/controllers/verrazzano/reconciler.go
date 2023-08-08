@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
-	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -115,49 +114,8 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 
 	module.Spec.Version = moduleVersion
 
-	// If the component is already installed and the module doesn't exist then
-	// special handling needs to get done
-	if err := r.handleNonModuleAlreadyInstalled(effectiveCR, module, comp); err != nil {
-		return err
-	}
-
 	if err := r.setModuleValues(log, effectiveCR, module, comp); err != nil {
 		return err
 	}
-	return nil
-}
-
-// Handle the case where Verrazzano has already installed the component without modules, but not using modules.
-// If that is the case, then the module.Status must get updated with installed component condition, version, etc
-// so that it appears that it was installed by the module controller.
-func (r Reconciler) handleNonModuleAlreadyInstalled(effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component) error {
-	// If conditions exist then the module is being or has been reconciled.
-	if module.Status.Conditions != nil {
-		return nil
-	}
-	compCtx, err := componentspi.NewContext(vzlog.DefaultLogger(), r.Client, effectiveCR, nil, false)
-	if err != nil {
-		compCtx.Log().Errorf("Failed to create component context: %v", err)
-		return err
-	}
-
-	// Check if component is installed.  If not then status doesn't need to be updated.
-	compStatus, ok := effectiveCR.Status.Components[comp.Name()]
-	if !ok {
-		return nil
-	}
-	var installed bool
-	for _, compCond := range compStatus.Conditions {
-		if compCond.Type == vzapi.CondInstallComplete {
-			installed = true
-			break
-		}
-	}
-	if !installed {
-		return nil
-	}
-
-	// Set the module status condition, installed generation and installed version
-	modulestatus.SetModuleStatusToInstalled(&module.Status, effectiveCR.Status.Version, compStatus.LastReconciledGeneration)
 	return nil
 }
