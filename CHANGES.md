@@ -6,7 +6,7 @@ Component version updates:
 
 Fixes:
 
-- Fixed Rancher CA bundle handling for Let's Encrypt Staging certs
+- Fixed issue provisioning OCNE workload clusters via Rancher UI when using Let's Encrypt Staging certs 
 
 
 ### v1.6.1
