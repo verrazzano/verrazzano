@@ -13,15 +13,26 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapibeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// setModuleOverrides sets the Module values and valuesFrom fields.
+type overrideType string
+
+const (
+	secretType    overrideType = "secret"
+	configMapType overrideType = "configmap"
+)
+
+// setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
 func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
+	module.Spec.Values = nil
+	module.Spec.ValuesFrom = nil
+
 	// Get component override list (either v1alpha1 or v1beta1)
 	compOverrideList := comp.GetOverrides(effectiveCR)
 	switch castType := compOverrideList.(type) {
@@ -154,4 +165,42 @@ func (r Reconciler) copyConfigMap(cmRef *corev1.ConfigMapKeySelector, cmName str
 func getConfigResourceName(moduleName string, resourceName string) string {
 	// suffix this to the secret and configmap for the module config.
 	return fmt.Sprintf("%s-%s", moduleName, resourceName)
+}
+
+// getOverrideResourceNames returns the configuration override configMap or secret names used by the vz cr
+func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType) map[string]bool {
+	names := make(map[string]bool)
+
+	for _, comp := range registry.GetComponents() {
+		if !comp.ShouldUseModule() {
+			continue
+		}
+		if !comp.IsEnabled(effectiveCR) {
+			continue
+		}
+		compOverrideList := comp.GetOverrides(effectiveCR)
+		switch castType := compOverrideList.(type) {
+		case []vzapi.Overrides:
+			overrideList := castType
+			for _, o := range overrideList {
+				if o.SecretRef != nil && ovType == secretType {
+					names[o.SecretRef.Name] = true
+				}
+				if o.ConfigMapRef != nil && ovType == configMapType {
+					names[o.ConfigMapRef.Name] = true
+				}
+			}
+		case []vzapibeta1.Overrides:
+			overrideList := castType
+			for _, o := range overrideList {
+				if o.SecretRef != nil && ovType == secretType {
+					names[o.SecretRef.Name] = true
+				}
+				if o.ConfigMapRef != nil && ovType == configMapType {
+					names[o.ConfigMapRef.Name] = true
+				}
+			}
+		}
+	}
+	return names
 }
