@@ -83,7 +83,7 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
 	if currentCondition == installv1alpha1.CondInstallComplete || currentCondition == installv1alpha1.CondUpgradeComplete {
-		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, vzlog.DefaultLogger()); err != nil {
+		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, r.log); err != nil {
 			return newRequeueWithDelay(), nil
 		}
 	}
