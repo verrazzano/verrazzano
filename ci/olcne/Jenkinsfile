@@ -162,8 +162,9 @@ pipeline {
         TF_VAR_os_version="${params.OCNE_OS_VERSION}"
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
-        TF_VAR_instance_shape="VM.Standard2.4"
-        TF_VAR_boot_volume_size_in_gbs="88"
+        TF_VAR_instance_shape="{\"shape\":\"VM.Standard.E4.Flex\",\"ocpus\":\"4\",\"memory\":\"64\",\"boot_volume_size\":\"100\"}"
+        TF_VAR_bastion_shape="{\"shape\":\"VM.Standard.E4.Flex\",\"ocpus\":\"1\",\"memory\":\"4\",\"boot_volume_size\":\"50\"}"
+        TF_VAR_load_balancer_shape="{\"shape\":\"flexible\",\"flex_min\":\"10\",\"flex_max\":\"50\"}"
         TF_VAR_provision_mode="OCNE"
         TF_VAR_config_file_path="config-file_ociccm.yaml"
         TF_VAR_debug="true"
@@ -788,6 +789,9 @@ def createOCNECluster() {
     env.createdOCNECluster="true"
     sh """
         cd $TF_REPO_PATH
+        echo "TF_VAR_instance_shape: $TF_VAR_instance_shape"
+        echo "TF_VAR_bastion_shape: $TF_VAR_bastion_shape"
+        echo "TF_VAR_load_balancer_shape: $TF_VAR_load_balancer_shape"
         cat << EOF > config-file_ociccm.yaml
 environments:
   - environment-name: ${OCNE_ENVNAME}
