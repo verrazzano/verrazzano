@@ -2491,7 +2491,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		Bom:               nil,
 		StatusUpdater:     nil,
 	}
-	err := vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz, log)
+	err := vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz)
 	assert.NoError(t, err)
 	err = r.Get(context.TODO(), types.NamespacedName{Name: vz.ObjectMeta.Name + effConfigSuffix, Namespace: (vz.ObjectMeta.Namespace)}, cm)
 	assert.NoError(t, err)
@@ -2525,7 +2525,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.NewNotFound(schema.GroupResource{Group: vznamespace, Resource: "ConfigMap"}, "test-verrazzano-effective-config")).Times(1)
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
-	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz)
 	assert.Error(t, err)
 
 	// GIVEN verrazzano CR with an already existing EffectiveConfigCM
@@ -2534,7 +2534,7 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("Unexpected error")).Times(1)
-	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vz)
 	assert.Error(t, err)
 
 	// GIVEN verrazzano CR with an existing EffectiveConfigCM
@@ -2549,6 +2549,6 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 	// Expects a mock call for updating, which returns no error
 	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vztest, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(context.TODO(), r.Client, vztest)
 	assert.NoError(t, err)
 }
