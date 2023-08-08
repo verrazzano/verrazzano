@@ -4,40 +4,27 @@
 - values:
     opensearchCluster:
       nodePools:
-        - component: master
-          replicas: 3
-          resources: {}
-          roles:
-            - master
-          diskSize: 75G
-        - component: data-ingest
-          replicas: 3
-          resources: {}
-          diskSize: 75G
-          roles:
-            - ingest
-            - data
         - component: es-master
-          replicas: 0
-          diskSize: 50Gi
+          replicas: 3
+          diskSize: 2Gi
           resources:
             requests:
-              memory: "1503238553600m"
+              memory: 1503238553600m
           roles:
             - "master"
         - component: es-data
-          replicas: 0
-          diskSize: 50Gi
+          replicas: 3
+          diskSize: 2Gi
           resources:
             requests:
-              memory: "5153960755200m"
+              memory: 5153960755200m
           roles:
             - "data"
         - component: es-ingest
-          replicas: 0
+          replicas: 1
           resources:
             requests:
-              memory: "2560Mi"
+              memory: 2560Mi
           roles:
             - "ingest"
           persistence:

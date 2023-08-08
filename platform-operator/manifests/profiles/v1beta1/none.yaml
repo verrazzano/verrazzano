@@ -54,15 +54,6 @@ spec:
       enabled: false
     opensearch:
       enabled: false
-      nodes:
-        - name: es-master
-          replicas: 1
-          resources:
-            requests:
-              memory: 1G
-          roles:
-            - master
-            - data
     opensearchDashboards:
       enabled: false
     opensearchOperator:

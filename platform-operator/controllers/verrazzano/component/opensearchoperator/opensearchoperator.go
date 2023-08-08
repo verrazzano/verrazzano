@@ -5,6 +5,7 @@ package opensearchoperator
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -67,12 +68,16 @@ func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
 func GetMergedNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 	cr := ctx.EffectiveCR()
 
+	resourceRequest, err := common.FindStorageOverride(cr)
+	if err != nil {
+		return nil, err
+	}
 	var existingOSConfig []NodePool
 	if cr.Spec.Components.Elasticsearch != nil {
-		existingOSConfig = convertOSNodesToNodePools(cr.Spec.Components.Elasticsearch.Nodes)
+		existingOSConfig = convertOSNodesToNodePools(cr.Spec.Components.Elasticsearch.Nodes, resourceRequest)
 	}
 
-	mergedNodePoolYaml, err := MergeNodePoolOverrides(cr, ctx.Client(), existingOSConfig)
+	mergedNodePoolYaml, err := MergeNodePoolOverrides(cr, ctx.Client(), existingOSConfig, resourceRequest)
 	if err != nil {
 		return nil, ctx.Log().ErrorfNewErr("failed to get the effective nodepool list: %v", err)
 	}

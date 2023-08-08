@@ -6,16 +6,6 @@ spec:
   components:
     clusterAPI:
       enabled: true
-    elasticsearch:
-      nodes:
-        - name: es-master
-          replicas: 1
-          resources:
-            requests:
-              memory: 1G
-          roles:
-            - master
-            - data
     opensearchOperator:
       overrides:
         - values:
@@ -31,5 +21,3 @@ spec:
                   roles:
                     - "data"
                     - "master"
-                  persistence:
-                    emptyDir: { }

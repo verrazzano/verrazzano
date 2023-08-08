@@ -134,7 +134,7 @@ func TestMergeNodePoolOverrides(t *testing.T) {
 				return fakeClient, nil
 			}
 
-			mergedYaml, err := MergeNodePoolOverrides(fakeCtx.EffectiveCR(), fakeClient, []NodePool{})
+			mergedYaml, err := MergeNodePoolOverrides(fakeCtx.EffectiveCR(), fakeClient, []NodePool{}, nil)
 			a.NoError(err)
 			bYaml, err := os.ReadFile(filepath.Join(test.expectedYAML))
 			a.NoError(err)
@@ -162,6 +162,16 @@ func TestBuildNodePoolOverrides(t *testing.T) {
 			name:         "TestBasicUserOverrides-2",
 			expectedYAML: "testdata/expectedMergedValuesOverrides-2.yaml",
 			actualCR:     "testdata/userOverrides-2.yaml",
+		},
+		{
+			name:         "TestVolumeSourceConfigured-1",
+			expectedYAML: "testdata/expectedVolumeSourceOverrides-1.yaml",
+			actualCR:     "testdata/volumeSourceConfigured-1.yaml",
+		},
+		{
+			name:         "TestVolumeSourceConfigured-2",
+			expectedYAML: "testdata/expectedVolumeSourceOverrides-2.yaml",
+			actualCR:     "testdata/volumeSourceConfigured-2.yaml",
 		},
 	}
 

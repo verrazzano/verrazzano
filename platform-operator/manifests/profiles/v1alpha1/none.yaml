@@ -30,15 +30,6 @@ spec:
       enabled: false
     elasticsearch:
       enabled: false
-      nodes:
-        - name: es-master
-          replicas: 1
-          resources:
-            requests:
-              memory: 1G
-          roles:
-            - master
-            - data
     opensearchOperator:
       enabled: false
       overrides:

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -204,7 +205,6 @@ func MergeNodePoolOverrides(object runtime.Object, client client.Client, existin
 	// So this extra step won't be required here
 
 	defaultOverrides := overridesYaml[len(overridesYaml)-1] // Default overrides are last in the list
-	defaultOverrides = MergeDefaultVolumeSource(defaultOverrides, resourceRequest)
 
 	var existingOSYaml []byte
 	if len(existingOSConfig) > 0 {
@@ -223,28 +223,82 @@ func MergeNodePoolOverrides(object runtime.Object, client client.Client, existin
 
 	// Merge the rest of user provided overrides
 	for i := len(overridesYaml) - 2; i >= 0; i-- {
-		overrideWithDefaultVolumeSource := MergeDefaultVolumeSource(overridesYaml[i], resourceRequest)
-		mergedNodePools, err = vzyaml.StrategicMerge(OpenSearch{}, mergedNodePools, overrideWithDefaultVolumeSource)
+		mergedNodePools, err = vzyaml.StrategicMerge(OpenSearch{}, mergedNodePools, overridesYaml[i])
 		if err != nil {
 			return "", err
 		}
 	}
 
+	mergedNodePools = MergeDefaultVolumeSource(mergedNodePools, overridesYaml, resourceRequest, getNodeToStorageMap(mergedNodePools))
 	return mergedNodePools, nil
 }
 
-func MergeDefaultVolumeSource(override string, resourceRequest *common.ResourceRequestValues) string {
+func getNodeToStorageMap(mergedNodePools string) map[string]string {
 	var os OpenSearch
-	_ = yaml.Unmarshal([]byte(override), &os)
+	_ = yaml.Unmarshal([]byte(mergedNodePools), &os)
 
+	m := map[string]string{}
 	for _, node := range os.NodePools {
-		if len(node.DiskSize) > 0 || node.Persistence != nil {
+		m[node.Component] = ""
+		if len(node.DiskSize) > 0 {
+			m[node.Component] = node.DiskSize
+		}
+	}
+
+	return m
+}
+
+// MergeDefaultVolumeSource merges the default volume source defined in the VZ CR with the node storage
+// The defaultVolumeSource has higher priority than the default storage defined in the base profiles
+// But has lower priority than the user defined storage under opensearchOperator component
+func MergeDefaultVolumeSource(mergedNodePools string, overrides []string, resourceRequest *common.ResourceRequestValues, m map[string]string) string {
+	var os OpenSearch
+	if resourceRequest != nil {
+		for key, _ := range m {
+			if len(resourceRequest.Storage) > 0 {
+				m[key] = resourceRequest.Storage
+			} else {
+				m[key] = ""
+			}
+		}
+	}
+
+	// User overrides have higher precedence
+	for i := len(overrides) - 2; i >= 0; i-- {
+		err := yaml.Unmarshal([]byte(overrides[i]), &os)
+		if err != nil {
+			return ""
+		}
+		for _, node := range os.NodePools {
+			if len(node.DiskSize) > 0 {
+				m[node.Component] = node.DiskSize
+			} else if node.Persistence != nil && node.Persistence.EmptyDir != nil {
+				m[node.Component] = ""
+			}
+		}
+	}
+
+	err := yaml.Unmarshal([]byte(mergedNodePools), &os)
+	if err != nil {
+		return ""
+	}
+
+	for i := range os.NodePools {
+		node := &os.NodePools[i]
+
+		// Only configure defaultVolumeSource for master and data nodes
+		if !vzstring.SliceContainsString(node.Roles, "master") &&
+			!vzstring.SliceContainsString(node.Roles, "data") {
 			continue
 		}
-		if resourceRequest != nil {
-			if len(resourceRequest.Storage) > 0 {
-				node.DiskSize = resourceRequest.Storage
+		if actualStorage, ok := m[node.Component]; ok {
+			if len(actualStorage) > 0 {
+				node.DiskSize = actualStorage
+				if node.Persistence != nil && node.Persistence.EmptyDir != nil {
+					node.Persistence = nil
+				}
 			} else {
+				node.DiskSize = ""
 				node.Persistence = &PersistenceConfig{
 					PersistenceSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -444,17 +498,13 @@ func convertOSNodesToNodePools(nodes []v1alpha1.OpenSearchNode, resourceRequest 
 		}
 		if node.Storage != nil {
 			nodePool.DiskSize = node.Storage.Size
+		} else if resourceRequest != nil && len(resourceRequest.Storage) > 0 {
+			nodePool.DiskSize = resourceRequest.Storage
 		} else {
-			if resourceRequest != nil {
-				if len(resourceRequest.Storage) > 0 {
-					nodePool.DiskSize = resourceRequest.Storage
-				} else {
-					nodePool.Persistence = &PersistenceConfig{
-						PersistenceSource{
-							EmptyDir: &corev1.EmptyDirVolumeSource{},
-						},
-					}
-				}
+			nodePool.Persistence = &PersistenceConfig{
+				PersistenceSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
 			}
 		}
 		for _, role := range node.Roles {
@@ -481,17 +531,13 @@ func convertv1beta1OSNodesToNodePools(nodes []v1beta1.OpenSearchNode, resourceRe
 		}
 		if node.Storage != nil {
 			nodePool.DiskSize = node.Storage.Size
+		} else if resourceRequest != nil && len(resourceRequest.Storage) > 0 {
+			nodePool.DiskSize = resourceRequest.Storage
 		} else {
-			if resourceRequest != nil {
-				if len(resourceRequest.Storage) > 0 {
-					nodePool.DiskSize = resourceRequest.Storage
-				} else {
-					nodePool.Persistence = &PersistenceConfig{
-						PersistenceSource{
-							EmptyDir: &corev1.EmptyDirVolumeSource{},
-						},
-					}
-				}
+			nodePool.Persistence = &PersistenceConfig{
+				PersistenceSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
 			}
 		}
 		for _, role := range node.Roles {
