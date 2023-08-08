@@ -1,6 +1,6 @@
 # Third party chart hacks
 
-## [update_prometheus_rules.py](update_prometheus_rules.py)
+## [update_prometheus_rules.sh](update_prometheus_rules.sh)
 
 This script updates Prometheus alerting and recording rules by adding `verrazzano_cluster` to `on` and `by` clauses. `on` and `by` in
 Prometheus Rules result in all labels not in the `on` and `by` clauses being dropped from the alerts. Without the `verrazzano_cluster`
