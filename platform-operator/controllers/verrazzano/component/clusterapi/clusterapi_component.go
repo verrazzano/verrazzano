@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -105,6 +106,11 @@ func (c clusterAPIComponent) ShouldUseModule() bool {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c clusterAPIComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
+}
+
+// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (c clusterAPIComponent) GetModuleSpec() *apiextensionsv1.JSON {
 	return nil
 }
 

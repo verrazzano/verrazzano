@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -71,6 +72,11 @@ func (g grafanaComponent) ShouldUseModule() bool {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
+}
+
+// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (g grafanaComponent) GetModuleSpec() *apiextensionsv1.JSON {
 	return nil
 }
 

@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"testing"
 
@@ -890,6 +891,11 @@ func (f fakeComponent) ShouldUseModule() bool {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (f fakeComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
+}
+
+// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (f fakeComponent) GetModuleSpec() *apiextensionsv1.JSON {
 	return nil
 }
 

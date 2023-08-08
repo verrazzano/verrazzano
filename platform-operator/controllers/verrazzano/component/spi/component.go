@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -127,6 +128,8 @@ type ModuleIntegration interface {
 	ShouldUseModule() bool
 	// GetWatchDescriptors returns the list of WatchDescriptor for objects being watched by the component
 	GetWatchDescriptors() []controllerspi.WatchDescriptor
+	// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+	GetModuleSpec() *apiextensionsv1.JSON
 }
 
 // Generate mocs for the spi.Component interface for use in tests.
