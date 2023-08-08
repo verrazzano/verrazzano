@@ -2468,7 +2468,6 @@ func TestCreateOrUpdateEffectiveConfigCM(t *testing.T) {
 		},
 	}
 
-
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      (vz.ObjectMeta.Name + effConfigSuffix),
