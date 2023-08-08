@@ -6,9 +6,9 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -234,16 +234,30 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 
 // appendCAOverrides sets overrides for CA Issuers, LetsEncrypt or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
+
 	cm := ctx.EffectiveCR().Spec.Components.ClusterIssuer
 	if cm == nil {
 		return kvs, log.ErrorfThrottledNewErr("Failed to find clusterIssuer component in effective cr")
 	}
 
+	isLetsEncryptIssuer, err := cm.IsLetsEncryptIssuer()
+	if err != nil {
+		return kvs, err
+	}
+
+	// Always disable this as we're no longer using this helm value for Let's Encrypt staging anymore
+	kvs = append(kvs, bom.KeyValue{
+		Key: additionalTrustedCAsKey,
+		// by default disable this explicitly so upgrade works, as all untrusted CAs for Rancher SSO are
+		// managed via tls-ca; can still be overridden by users via custom Helm overrides
+		Value: "false",
+	})
+
 	// Configure CA Issuer KVs
-	if (cm.LetsEncrypt != nil && *cm.LetsEncrypt != vzapi.LetsEncryptACMEIssuer{}) {
+	if isLetsEncryptIssuer {
 		letsEncryptEnv := cm.LetsEncrypt.Environment
 		if len(letsEncryptEnv) == 0 {
-			letsEncryptEnv = cmconstants.LetsEncryptProduction
+			letsEncryptEnv = vzconst.LetsEncryptProduction
 		}
 		kvs = append(kvs,
 			bom.KeyValue{
@@ -258,11 +272,11 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
-			}, bom.KeyValue{
-				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(common.IsLetsEncryptStagingEnv(*cm.LetsEncrypt)),
 			})
-	} else { // Certificate issuer type is CA
+	}
+
+	// Configure private issuer bundle if necessary
+	if isPrivateIssuer, _ := certs.IsPrivateIssuer(cm); isPrivateIssuer {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   ingressTLSSourceKey,
 			Value: caTLSSource,
@@ -431,8 +445,8 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		log.ErrorfThrottledNewErr("Failed creating cattle-system namespace: %s", err.Error())
 		return err
 	}
-	if err := copyDefaultCACertificate(log, c, vz); err != nil {
-		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
+	if err := copyPrivateCABundles(log, c, vz); err != nil {
+		ctx.Log().ErrorfThrottledNewErr("Failed setting up private CA bundles for Rancher: %s", err.Error())
 		return err
 	}
 	return r.HelmComponent.PreInstall(ctx)
@@ -444,6 +458,10 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 */
 func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := chartsNotUpdatedWorkaround(ctx); err != nil {
+		return err
+	}
+	if err := copyPrivateCABundles(ctx.Log(), ctx.Client(), ctx.EffectiveCR()); err != nil {
+		ctx.Log().ErrorfThrottledNewErr("Failed setting up private CA bundles for Rancher: %s", err.Error())
 		return err
 	}
 	return r.HelmComponent.PreUpgrade(ctx)
@@ -903,6 +921,7 @@ func (r rancherComponent) checkRestartRequired(ctx spi.ComponentContext) error {
 	return restartRancherDeployment(ctx.Log(), ctx.Client())
 }
 
+// isRancherDeploymentUpdateInProgress Checks only the cattle-system/rancher deployment is in progress or not
 func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentContext) bool {
 	rancherDeployment := []types.NamespacedName{
 		{
@@ -917,7 +936,7 @@ func (r rancherComponent) isRancherDeploymentUpdateInProgress(ctx spi.ComponentC
 // in sync with the "cacerts" Settings object being used by pods; if they are not in sync it is an indicator that we
 // need to roll the Rancher deployment
 func (r rancherComponent) isPrivateCABundleInSync(ctx spi.ComponentContext) (bool, error) {
-	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSSecretName, caCertsPem)
+	currentCABundleInSecret, found, err := r.getCurrentCABundleSecretsValue(ctx, rancherTLSCASecretName, caCertsPem)
 	if err != nil {
 		return false, err
 	}
@@ -949,6 +968,7 @@ func (r rancherComponent) getCurrentCABundleSecretsValue(ctx spi.ComponentContex
 	return strings.TrimSpace(string(currentCACerts)), true, nil
 }
 
+// restartRancherDeployment Performs a rolling restart of the Rancher deployment
 func restartRancherDeployment(log vzlog.VerrazzanoLogger, c clipkg.Client) error {
 	deployment := appsv1.Deployment{}
 	if err := c.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,

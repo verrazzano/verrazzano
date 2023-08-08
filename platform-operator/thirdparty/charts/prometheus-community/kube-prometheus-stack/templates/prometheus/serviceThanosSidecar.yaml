@@ -1,4 +1,4 @@
-{{- if and .Values.prometheus.enabled .Values.prometheus.thanosService.enabled }}
+{{- if and .Values.prometheus.enabled .Values.prometheus.thanosService.enabled (eq .Values.prometheus.thanos.integration "sidecar") }}
 apiVersion: v1
 kind: Service
 metadata:

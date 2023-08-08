@@ -6,7 +6,6 @@ package namespacewatch
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/log"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,12 +59,12 @@ func (nw *NamespacesWatcher) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes namespaces update
-				rancherSystemProjectID, err := nw.getRancherSystemProjectID()
+				clusterName, rancherSystemProjectID, err := nw.getRancherSystemProjectID()
 				if err != nil {
 					nw.log.Errorf("%v", err)
 				}
-				if rancherSystemProjectID != "" {
-					err = nw.MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID)
+				if rancherSystemProjectID != "" && clusterName != "" {
+					err = nw.MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID, clusterName)
 					if err != nil {
 						nw.log.Errorf("%v", err)
 					}
@@ -83,14 +82,14 @@ func (nw *NamespacesWatcher) Start() {
 // For namespaces that have label "verrazzano.io/namespace"
 // And that does not have a label "management.cattle.io/system-namespace"
 // "management.cattle.io/system-namespace" namespace label indicates it is managed by Rancher
-func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID string) error {
+func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherSystemProjectID string, clusterName string) error {
 
 	isRancherReady, err := nw.IsRancherReady()
 	if err != nil {
 		return err
 	}
 	if isRancherReady {
-		var rancherSystemProjectIDAnnotation = constants.MCLocalCluster + ":" + rancherSystemProjectID
+		var rancherSystemProjectIDAnnotation = clusterName + ":" + rancherSystemProjectID
 
 		namespaceList := &v1.NamespaceList{}
 		err := nw.client.List(context.TODO(), namespaceList, &clipkg.ListOptions{})

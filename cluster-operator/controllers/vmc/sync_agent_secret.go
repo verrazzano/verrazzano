@@ -196,7 +196,7 @@ func (r *VerrazzanoManagedClusterReconciler) getRancherCACert() (string, error) 
 
 	err := r.Client.Get(context.TODO(), client.ObjectKey{
 		Namespace: vzconst.RancherSystemNamespace,
-		Name:      vzconst.AdditionalTLS,
+		Name:      vzconst.RancherTLSCA,
 	}, &ingressSecret)
 	if client.IgnoreNotFound(err) != nil {
 		return "", err
@@ -204,7 +204,7 @@ func (r *VerrazzanoManagedClusterReconciler) getRancherCACert() (string, error) 
 
 	var caData []byte
 	if err == nil {
-		caData = ingressSecret.Data[vzconst.AdditionalTLSCAKey]
+		caData = ingressSecret.Data[vzconst.RancherTLSCAKey]
 	} else {
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecret, Namespace: vzconst.RancherSystemNamespace}, &ingressSecret)
 		if err != nil {
