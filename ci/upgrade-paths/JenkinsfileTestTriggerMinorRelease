@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = "large_1_6"
 
 def listOfUpgradeJobs
 def upgradeJobsStageMapping
@@ -369,7 +369,7 @@ List extractReleaseTags(final String fileContent) {
     return releases
 }
 
-def getTipOfReleaseBranches(releaseNumber){ 
+def getTipOfReleaseBranches(releaseNumber){
     completeReleaseVersionCommit = "release-" + releaseNumber
     scmReleaseBranchInfo = checkout([
         $class: 'GitSCM',
