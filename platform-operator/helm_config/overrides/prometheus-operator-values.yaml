@@ -805,3 +805,13 @@ kubeScheduler:
         replacement: local
 
   sidecar.istio.io/inject: "false"
+
+# Disable "absent" rules by default
+defaultRules:
+  disabled:
+    KubeAPIDown: true
+    KubeletDown: true
+  rules:
+    kubeControllerManager: false
+    kubeProxy: false
+    kubeSchedulerAlerting: false

@@ -126,6 +126,7 @@ metrics:
     enabled: true
     default:
       create: true
+      absent_rules: false
     additionalLabels:
       release: prometheus-operator
   serviceMonitor:
