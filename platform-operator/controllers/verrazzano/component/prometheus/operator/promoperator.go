@@ -359,7 +359,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.tls.enabled", Value: "false"})
 	}
 
-	// Add override to switch on and off the Prometheus Alerting if Thanos is enabled
+	// Add override to switch off Prometheus alerting if Thanos is enabled
 	// This should avoid duplicate alerts coming from Prometheus and Thanos Ruler
 	kvs, err = appendAlertmanagerIntegrationOverrides(ctx, kvs)
 	if err != nil {
