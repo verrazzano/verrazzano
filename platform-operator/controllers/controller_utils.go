@@ -102,7 +102,7 @@ func ProcDeletedOverride(statusUpdater vzstatus.Updater, c client.Client, vz *in
 // CreateOrUpdateEffectiveConfigCM takes in the Actual CR, retrieves the Effective CR,
 // converts it into YAML and stores it in a configmap If no configmap exists,
 // it will create one, otherwise it updates the configmap with the effective CR
-func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *installv1alpha1.Verrazzano) error {
 
 	//In the case of verrazzano uninstall,the reconciler re-creates the config map
 	//when the vz status is either uninstalling or uninstall completely then do not create anything
@@ -111,7 +111,6 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
 	if currentCondition == installv1alpha1.CondUninstallComplete || currentCondition == installv1alpha1.CondUninstallStarted {
-		log.Debug("verrazzano uninstalling, skipping the effective config map creation")
 		return nil
 	}
 	// Get the Effective CR from the Verrazzano CR supplied and convert it into v1beta1
