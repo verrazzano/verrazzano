@@ -47,7 +47,5 @@ webhooks:
 # Configuration for experimental features that are under active development
 experimentalFeatures:
   # Experimental support for Module CRDs and controllers
-  moduleAPI:
-    enabled: false
   moduleIntegration:
     enabled: false

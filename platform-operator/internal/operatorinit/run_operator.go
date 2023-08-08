@@ -168,8 +168,8 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
 	}
 
-	if vzconfig.ExperimentalModules {
-		log.Infof("Experimental Modules API enabled")
+	if vzconfig.ModuleIntegration {
+		log.Infof("Module Integration enabled")
 	}
 
 	// +kubebuilder:scaffold:builder

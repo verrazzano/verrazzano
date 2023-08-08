@@ -25,12 +25,15 @@ const (
 
 // doesOSExist is the IsInstalled check
 func doesOSExist(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	sts := []types.NamespacedName{{
+	sts := types.NamespacedName{
 		Name:      esMasterStatefulset,
 		Namespace: ComponentNamespace,
-	}}
-	return ready.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
+	}
+	exists, err := ready.DoesStatefulsetExist(ctx.Client(), sts)
+	if err != nil {
+		ctx.Log().Errorf("Component %s failed getting statefulset %v: %v", ctx.GetComponent(), sts, err)
+	}
+	return exists
 }
 
 // IsSingleDataNodeCluster returns true if there is exactly 1 or 0 data nodes
