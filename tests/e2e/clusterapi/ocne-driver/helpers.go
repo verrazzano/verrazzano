@@ -117,6 +117,20 @@ func getCredential(credID string, log *zap.SugaredLogger) (*gabs.Container, erro
 
 type mutateRancherOCNEClusterFunc func(config *RancherOCNECluster)
 
+// This returns a mutateRancherOCNEClusterFunc, which edits a cluster config to have a node pool with the specified name and number of replicas.
+// Both the control plane and node pool nodes use the specified volume size, number of ocpus, and memory.
+func getMutateFnNodePoolsAndResourceUsage(nodePoolName string, poolReplicas, volumeSize, ocpus, memory int) mutateRancherOCNEClusterFunc {
+	return func(config *RancherOCNECluster) {
+		config.OciocneEngineConfig.ControlPlaneVolumeGbs = volumeSize
+		config.OciocneEngineConfig.ControlPlaneOcpus = ocpus
+		config.OciocneEngineConfig.ControlPlaneMemoryGbs = memory
+
+		config.OciocneEngineConfig.NodePools = []string{
+			getNodePoolSpec(nodePoolName, nodeShape, poolReplicas, memory, ocpus, volumeSize),
+		}
+	}
+}
+
 // Creates an OCNE Cluster, and returns an error if not successful. Creates a single node cluster by default.
 // `config` is expected to point to an empty RancherOCNECluster struct, which is populated with values by this function.
 // `mutateFn`, if not nil, can be used to make additional changes to the cluster config before the cluster creation request is made.
@@ -177,6 +191,41 @@ func deleteCluster(clusterName string, log *zap.SugaredLogger) error {
 	_, err = helpers.HTTPHelper(httpClient, "DELETE", requestURL, adminToken, "Bearer", http.StatusOK, nil, log)
 	if err != nil {
 		log.Errorf("error while deleting cluster: %v", err)
+		return err
+	}
+	return nil
+}
+
+// This function takes in the cluster config of an existing cluster, and changes the fields required to make the update.
+// Then, this triggers an update for the OCNE cluster.
+func updateConfigAndCluster(config *RancherOCNECluster, mutateFn mutateRancherOCNEClusterFunc, log *zap.SugaredLogger) error {
+	if mutateFn == nil {
+		err := fmt.Errorf("cannot provide a nil mutate function to update the cluster")
+		log.Error(err)
+		return err
+	}
+
+	clusterName := config.Name
+	mutateFn(config)
+	return updateCluster(clusterName, *config, log)
+}
+
+// Requests an update to the node pool configuration of the OCNE cluster
+// via a PUT request to the Rancher API
+func updateCluster(clusterName string, requestPayload RancherOCNECluster, log *zap.SugaredLogger) error {
+	clusterID, err := getClusterIDFromName(clusterName, log)
+	if err != nil {
+		log.Errorf("Could not fetch cluster ID from cluster name %s: %s", clusterName, err)
+	}
+	requestURL, adminToken := setupRequest(rancherURL, fmt.Sprintf("v3/clusters/%s?_replace=true", clusterID), log)
+	clusterBData, err := json.Marshal(requestPayload)
+	if err != nil {
+		log.Errorf("json marshalling error: %v", zap.Error(err))
+		return err
+	}
+	_, err = helpers.HTTPHelper(httpClient, "PUT", requestURL, adminToken, "Bearer", http.StatusOK, clusterBData, log)
+	if err != nil {
+		log.Errorf("error while retrieving http data: %v", zap.Error(err))
 		return err
 	}
 	return nil
@@ -476,6 +525,12 @@ func getClusterIDFromName(clusterName string, log *zap.SugaredLogger) (string, e
 	// Cache this value and return
 	clusterIDMapping[clusterName] = id
 	return id, nil
+}
+
+// Returns a string representing a node pool
+func getNodePoolSpec(name, shape string, replicas, memory, ocpus, volumeSize int) string {
+	return fmt.Sprintf("{\"name\":\"%s\",\"replicas\":%d,\"memory\":%d,\"ocpus\":%d,\"volumeSize\":%d,\"shape\":\"%s\"}",
+		name, replicas, memory, ocpus, volumeSize, shape)
 }
 
 // Generates the kubeconfig of the workload cluster with an ID of `clusterID`
