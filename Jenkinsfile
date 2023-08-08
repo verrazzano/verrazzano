@@ -318,7 +318,7 @@ pipeline {
                 when { not { buildingTag() } }
                 steps {
                     sh """
-                [[-z \$(git tag | awk '/v[0-9][.]/' | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
+                [[ -z \$(git tag | awk '/v[0-9][.]/' | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
 
 
             """
