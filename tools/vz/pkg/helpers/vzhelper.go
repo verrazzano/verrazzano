@@ -6,7 +6,6 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
 	"net/http"
 	"os"
@@ -131,7 +130,7 @@ func NewVerrazzanoForGroupVersion(groupVersion schema.GroupVersion) func() inter
 func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, error) {
 	vzList := v1beta1.VerrazzanoList{}
 	err := runtimeClient.List(context.TODO(), &vzList,
-		client.InNamespace(constants.VerrazzanoInstallNamespace))
+		client.InNamespace("default"))
 	if err != nil {
 		// If v1beta1 resource version doesn't exist, try v1alpha1
 		if meta.IsNoMatchError(err) {

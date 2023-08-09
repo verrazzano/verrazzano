@@ -669,7 +669,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Namespace: "default",
 			Name:      "verrazzano",
 		},
 		Status: v1beta1.VerrazzanoStatus{
@@ -707,7 +707,7 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Namespace: "default",
 			Name:      "verrazzano",
 		},
 		Status: v1beta1.VerrazzanoStatus{
