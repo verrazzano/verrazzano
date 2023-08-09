@@ -200,7 +200,6 @@ func (h HelmComponent) GetOverrides(cr runtime.Object) interface{} {
 		return []v1beta1.Overrides{}
 	}
 	return []v1alpha1.Overrides{}
-
 }
 
 // GetDependencies returns the Dependencies of this component

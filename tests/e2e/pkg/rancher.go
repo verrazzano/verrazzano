@@ -1,13 +1,16 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	urlpkg "net/url"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -23,6 +26,23 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+type Payload struct {
+	ClusterID string `json:"clusterID"`
+	TTL       int    `json:"ttl"`
+}
+
+type TokenPostResponse struct {
+	Token   string `json:"token"`
+	Created string `json:"created"`
+}
+
+type ListOfTokenOutputFromRancher struct {
+	Data []struct {
+		ClusterID string `json:"clusterId"`
+		Name      string `json:"name"`
+	} `json:"data"`
+}
 
 func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
 	ingressHost := EventuallyGetIngressHost(log, api, namespace, name)
@@ -123,11 +143,61 @@ func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clien
 
 	token, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "token", "unable to find token in Rancher response")
 	if err != nil {
-		log.Errorf("Failed to extra token from Rancher response: %v", err)
+		log.Errorf("Failed to extract token from Rancher response: %v", err)
 		return "", err
 	}
 
 	return token, nil
+}
+
+// This function adds an access token to Rancher gven that a ttl and clusterID string is provided
+func AddAccessTokenToRancherForLoggedInUser(log *zap.SugaredLogger, adminKubeConfig, managedClusterName, usernameForRancher, ttl string) (string, error) {
+	responseBody, err := ExecutePostRequestToAddAToken(log, adminKubeConfig, managedClusterName, usernameForRancher, ttl)
+	if err != nil {
+		return "", err
+	}
+	var tokenPostResponse TokenPostResponse
+	err = json.Unmarshal(responseBody, &tokenPostResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenPostResponse.Created, nil
+}
+
+// This function returns the list of token names that correspond to the cluster ID and this user before when this is called
+// If no error occurs, this means that these tokens were found and deleted in Rancher
+func GetAndDeleteTokenNamesForLoggedInUserBasedOnClusterID(log *zap.SugaredLogger, adminKubeConfig, managedClusterName, usernameForRancher string) error {
+	responseBody, err := ExecuteGetRequestToReturnAllTokens(log, adminKubeConfig, managedClusterName, usernameForRancher)
+	if err != nil {
+		return err
+	}
+	var listOfTokenOutputFromRancher = ListOfTokenOutputFromRancher{}
+	err = json.Unmarshal(responseBody, &listOfTokenOutputFromRancher)
+	if err != nil {
+		return err
+	}
+	listOfTokens := listOfTokenOutputFromRancher.Data
+
+	clusterID, err := getClusterIDForManagedCluster(adminKubeConfig, managedClusterName)
+
+	if err != nil {
+		return err
+	}
+
+	for _, token := range listOfTokens {
+		//Check that it is not the same name as the user access token and it has the same cluster ID
+		if token.ClusterID != clusterID {
+			continue
+		}
+		err = ExecuteDeleteRequestForToken(log, adminKubeConfig, managedClusterName, usernameForRancher, token.Name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 // VerifyRancherAccess verifies that Rancher is accessible.
@@ -276,8 +346,8 @@ func CreateNewRancherConfigForUser(log *zap.SugaredLogger, kubeconfigPath string
 		return nil, fmt.Errorf("failed to get caCert: %v", err)
 	}
 
-	// the tls-ca-additional secret is optional
-	additionalCA, _ := GetCACertFromSecret(constants.AdditionalTLS, constants.RancherSystemNamespace, constants.AdditionalTLSCAKey, kubeconfigPath)
+	// the tls-ca secret is optional, and contains the private CA bundle configured for Rancher
+	additionalCA, _ := GetCACertFromSecret(constants.RancherTLSCA, constants.RancherSystemNamespace, constants.RancherTLSCAKey, kubeconfigPath)
 
 	httpClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
@@ -329,4 +399,128 @@ func GetClusterKubeconfig(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 	}
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(responseBody), "config", "")
+}
+
+// This function is a wrapper function that executes a GET Request to return all tokens in Rancher for a given user
+func ExecuteGetRequestToReturnAllTokens(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher string) ([]byte, error) {
+	getReq, err := retryablehttp.NewRequest("GET", "", nil)
+	if err != nil {
+		return nil, err
+	}
+	getReq.Header = map[string][]string{"Content-Type": {"application/json"}, "Accept": {"application/json"}}
+	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, getReq, http.StatusOK, "/v3/tokens")
+}
+
+// This function is a wrapper function that executes a POST Request to add a token in Rancher for a given user
+func ExecutePostRequestToAddAToken(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, ttl string) ([]byte, error) {
+	clusterID, err := getClusterIDForManagedCluster(adminKubeconfig, managedClusterName)
+	if err != nil {
+		return nil, err
+	}
+	val, _ := strconv.Atoi(ttl)
+	payload := &Payload{
+		ClusterID: clusterID,
+		TTL:       val * 60000,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	postReq, err := retryablehttp.NewRequest("POST", "", data)
+	if err != nil {
+		return nil, err
+	}
+	postReq.Header = map[string][]string{"Content-Type": {"application/json"}}
+	return sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, postReq, http.StatusCreated, "/v3/tokens")
+}
+
+// This function is a wrapper function to delete a given token for a specified user in Rancher
+func ExecuteDeleteRequestForToken(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher, tokenName string) error {
+	deleteReq, err := retryablehttp.NewRequest("DELETE", "", nil)
+	if err != nil {
+		return err
+	}
+	deleteReq.Header = map[string][]string{"Accept": {"application/json"}}
+	_, err = sendTokenRequestToRancher(log, adminKubeconfig, managedClusterName, usernameForRancher, deleteReq, http.StatusNoContent, "/v3/tokens/"+tokenName)
+	return err
+}
+
+// This function is a helper function that sends a Token Request to Rancher for a specified user
+// This function expects a retryable HTTP Request object
+func sendTokenRequestToRancher(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, usernameForRancher string, requestObject *retryablehttp.Request, expectedReturnCode int, requestPath string) ([]byte, error) {
+	httpClient, APIAccessToken, err := getRequiredInfoToPreformTokenOperationsInRancherForArgoCD(log, adminKubeconfig, managedClusterName, usernameForRancher)
+	if err != nil {
+		return nil, err
+	}
+	api, err := GetAPIEndpoint(adminKubeconfig)
+	if err != nil {
+		log.Errorf("API Endpoint not successfully received based on KubeConfig Path")
+		return nil, err
+	}
+	rancherURL, err := GetURLForIngress(log, api, "cattle-system", "rancher", "https")
+	if err != nil {
+		log.Errorf("URL For Rancher not successfully found")
+		return nil, err
+	}
+	reqURL := rancherURL + requestPath
+	URLForRequest, err := urlpkg.Parse(reqURL)
+	if err != nil {
+		return nil, err
+	}
+	requestObject.URL = URLForRequest
+	requestObject.Header["Authorization"] = []string{"Bearer " + APIAccessToken}
+	response, err := httpClient.Do(requestObject)
+	if err != nil {
+		return nil, err
+	}
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = httputil.ValidateResponseCode(response, expectedReturnCode)
+	if err != nil {
+		return nil, err
+	}
+	return responseBody, err
+
+}
+
+// This function gets the necessary information required to access the token API resources in Rancher for ArgoCD
+func getRequiredInfoToPreformTokenOperationsInRancherForArgoCD(log *zap.SugaredLogger, adminKubeconfig, managedClusterName, argoCDUsernameForRancher string) (httpClient *retryablehttp.Client, APIAccessToken string, err error) {
+	argoCDPasswordForRancher, err := RetrieveArgoCDPassword("verrazzano-mc", "verrazzano-argocd-secret")
+	if err != nil {
+		return nil, "", err
+	}
+	rancherConfigForArgoCD, err := CreateNewRancherConfigForUser(log, adminKubeconfig, argoCDUsernameForRancher, argoCDPasswordForRancher)
+	if err != nil {
+		Log(Error, "Error occurred when created a Rancher Config for ArgoCD")
+		return nil, "", err
+	}
+	httpClientForRancher, err := GetVerrazzanoHTTPClient(adminKubeconfig)
+	if err != nil {
+		Log(Error, "Error getting the Verrazzano http client")
+		return nil, "", err
+	}
+	return httpClientForRancher, rancherConfigForArgoCD.APIAccessToken, nil
+}
+
+func getClusterIDForManagedCluster(adminKubeConfig, managedClusterName string) (string, error) {
+	client, err := GetClusterOperatorClientset(adminKubeConfig)
+	if err != nil {
+		Log(Error, "Error creating the client set used by the cluster operator")
+		return "", err
+	}
+	managedCluster, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, v1.GetOptions{})
+	if err != nil {
+		Log(Error, "Error getting the current managed cluster resource")
+		return "", err
+	}
+	clusterID := managedCluster.Status.RancherRegistration.ClusterID
+	if clusterID == "" {
+		Log(Error, "The managed cluster does not have a clusterID value")
+		err := fmt.Errorf("ClusterID value is not yet populated for the managed cluster")
+		return "", err
+	}
+	return clusterID, nil
+
 }

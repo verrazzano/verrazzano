@@ -96,8 +96,25 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
 
+	// Setup Verrazzano controllers
+	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+	reconciler := reconcile.Reconciler{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		DryRun:            vzconfig.DryRun,
+		WatchedComponents: map[string]bool{},
+		WatchMutex:        &sync.RWMutex{},
+		StatusUpdater:     statusUpdater,
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
+		return errors.Wrap(err, "Failed to setup controller")
+	}
+	if vzconfig.HealthCheckPeriodSeconds > 0 {
+		healthCheck.Start()
+	}
+
 	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
-	// Use the new controller if module integration is enabled, otherwise use the original verrazzano controller
+	// Use the new controller if module integration is enabled.  Also create the module controllers
 	if vzconfig.ModuleIntegration {
 		// init module controllers, one for each component
 		if err := initModuleControllers(log, mgr); err != nil {
@@ -109,22 +126,6 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		if err := verrazzanomodule.InitController(mgr); err != nil {
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
-		}
-	} else {
-		healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-		reconciler := reconcile.Reconciler{
-			Client:            mgr.GetClient(),
-			Scheme:            mgr.GetScheme(),
-			DryRun:            vzconfig.DryRun,
-			WatchedComponents: map[string]bool{},
-			WatchMutex:        &sync.RWMutex{},
-			StatusUpdater:     statusUpdater,
-		}
-		if err = reconciler.SetupWithManager(mgr); err != nil {
-			return errors.Wrap(err, "Failed to setup controller")
-		}
-		if vzconfig.HealthCheckPeriodSeconds > 0 {
-			healthCheck.Start()
 		}
 	}
 
@@ -168,8 +169,8 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		return errors.Wrap(err, "Failed to setup controller for Verrazzano Stacks")
 	}
 
-	if vzconfig.ExperimentalModules {
-		log.Infof("Experimental Modules API enabled")
+	if vzconfig.ModuleIntegration {
+		log.Infof("Module Integration enabled")
 	}
 
 	// +kubebuilder:scaffold:builder

@@ -1,13 +1,19 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
 
 import (
 	"context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"time"
 
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,14 +21,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
-	"go.uber.org/zap"
 )
 
 // VerrazzanoSecretsReconciler reconciles secrets.
@@ -67,11 +65,13 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 
-		// We care about the CA secret for the cluster - this can come from the verrazzano ingress
-		// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
-		// cattle-system NS (used in the Let's Encrypt staging cert case)
-		if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
-			return r.reconcileVerrazzanoTLS(ctx, req)
+		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
+		// a reconcile which will update any upstream copies
+		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
+		//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
+		// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
+		if isVerrazzanoIngressSecretName(req.NamespacedName) || isVerrazzanoPrivateCABundle(req.NamespacedName) {
+			return r.reconcileVerrazzanoTLS(ctx, req, vz)
 		}
 
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
@@ -103,24 +103,12 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoSecretsReconciler) additionalTLSSecretExists() bool {
-	sec := corev1.Secret{}
-	err := r.Get(context.TODO(), client.ObjectKey{
-		Namespace: vzconst.RancherSystemNamespace,
-		Name:      vzconst.AdditionalTLS,
-	}, &sec)
-	if err != nil && apierrors.IsNotFound(err) {
-		return false
-	}
-	return true
-}
-
-func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
-	return secretName.Name == vzconst.AdditionalTLS && secretName.Namespace == vzconst.RancherSystemNamespace
-}
-
 func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
 	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
+}
+
+func isVerrazzanoPrivateCABundle(secretName types.NamespacedName) bool {
+	return secretName.Name == vzconst.PrivateCABundle && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
@@ -132,7 +120,7 @@ func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
 	if !apierrors.IsNotFound(err) {
 		r.log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
 	}
-	r.log.Progressf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
+	r.log.Debugf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
 	return false
 }
 

@@ -82,11 +82,13 @@ func (r *OverridesConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx co
 	if len(vz.Status.Conditions) > 0 {
 		currentCondition = vz.Status.Conditions[len(vz.Status.Conditions)-1].Type
 	}
+
 	if currentCondition == installv1alpha1.CondInstallComplete || currentCondition == installv1alpha1.CondUpgradeComplete {
-		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, r.log); err != nil {
+		if err := controllers.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz); err != nil {
 			return newRequeueWithDelay(), nil
 		}
 	}
+
 	if vz.Namespace == req.Namespace {
 		if err := r.Get(ctx, req.NamespacedName, configMap); err != nil {
 			// Do not reconcile if the ConfigMap was deleted

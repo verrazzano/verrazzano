@@ -28,8 +28,6 @@ spec:
       enabled: false
     console:
       enabled: false
-    dns:
-      enabled: false
     fluentd:
       enabled: false
     fluentOperator:

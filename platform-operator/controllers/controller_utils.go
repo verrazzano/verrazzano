@@ -15,7 +15,6 @@ import (
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	corev1 "k8s.io/api/core/v1"
-	k8error "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -103,7 +102,7 @@ func ProcDeletedOverride(statusUpdater vzstatus.Updater, c client.Client, vz *in
 // CreateOrUpdateEffectiveConfigCM takes in the Actual CR, retrieves the Effective CR,
 // converts it into YAML and stores it in a configmap If no configmap exists,
 // it will create one, otherwise it updates the configmap with the effective CR
-func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *installv1alpha1.Verrazzano) error {
 
 	//In the case of verrazzano uninstall,the reconciler re-creates the config map
 	//when the vz status is either uninstalling or uninstall completely then do not create anything
@@ -147,9 +146,6 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
-	if k8error.IsAlreadyExists(err) {
-		return nil
-	}
 	if err != nil {
 		return fmt.Errorf("failed to Create or Update the configmap: %v", err)
 	}

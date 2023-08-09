@@ -6,8 +6,8 @@ package verrazzano
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/basecontroller"
-	spi "github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
@@ -15,7 +15,7 @@ import (
 )
 
 // Specify the SPI interfaces that this controller implements
-var _ spi.Reconciler = Reconciler{}
+var _ controllerspi.Reconciler = Reconciler{}
 
 type Reconciler struct {
 	Client        client.Client
@@ -33,6 +33,7 @@ func InitController(mgr ctrlruntime.Manager) error {
 	config := basecontroller.ControllerConfig{
 		Reconciler: &controller,
 		Finalizer:  &controller,
+		Watcher:    &controller,
 	}
 	baseController, err := basecontroller.CreateControllerAndAddItToManager(mgr, config)
 	if err != nil {
@@ -49,5 +50,5 @@ func InitController(mgr ctrlruntime.Manager) error {
 
 // GetReconcileObject returns the kind of object being reconciled
 func (r Reconciler) GetReconcileObject() client.Object {
-	return &vzapi.Verrazzano{}
+	return &vzapiv1beta1.Verrazzano{}
 }

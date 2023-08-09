@@ -1853,10 +1853,10 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 		})
 
 	if rancherEnabled {
-		// Expect a call to get the tls-ca-additional secret, return the secret as not found
+		// Expect a call to get the tls-ca secret, return the secret as not found
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
-			Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.RancherTLSCA}, gomock.Not(gomock.Nil()), gomock.Any()).
+			Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.RancherTLSCA))
 
 		// Expect a call to get the Rancher ingress tls secret, return the secret with the fields set
 		mock.EXPECT().
@@ -1991,10 +1991,10 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
-	// Expect a call to get the tls-ca-additional secret, return the secret as not found
+	// Expect a call to get the tls-ca secret, return the secret as not found
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.RancherTLSCA}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.RancherTLSCA))
 
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
@@ -2398,7 +2398,7 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		})
 
 	// Expect an HTTP request to fetch the Rancher TLS additional CA secret from the managed cluster and return an HTTP 404
-	managedClusterAdditionalTLSCAPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/cattle-system/secrets/tls-ca-additional", unitTestRancherClusterID)
+	managedClusterAdditionalTLSCAPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/cattle-system/secrets/tls-ca", unitTestRancherClusterID)
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(managedClusterAdditionalTLSCAPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -2611,8 +2611,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin 
 
 	// Expect a call to get the Rancher additional CA secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.RancherTLSCA}), gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.RancherTLSCA))
 }
 
 // expectMockCallsForDelete mocks expectations for the VMC deletion scenario. These are the common mock expectations across

@@ -1,4 +1,4 @@
-{{- if and .Values.prometheus.thanosService.enabled .Values.prometheus.thanosServiceMonitor.enabled }}
+{{- if and .Values.prometheus.thanosService.enabled .Values.prometheus.thanosServiceMonitor.enabled (eq .Values.prometheus.thanos.integration "sidecar") }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:

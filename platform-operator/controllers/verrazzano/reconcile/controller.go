@@ -149,7 +149,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// CreateOrUpdateEffectiveConfigCM will store our Effective CR in the configmap
-	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz)
 	if err != nil {
 		errorCounterMetricObject.Inc()
 		log.Errorf("Failed to Create/Update the effective-config ConfigMap: %v", err)
