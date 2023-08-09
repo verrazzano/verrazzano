@@ -130,7 +130,6 @@ func NewVerrazzanoForGroupVersion(groupVersion schema.GroupVersion) func() inter
 // FindVerrazzanoResource - find the single Verrazzano resource
 func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, error) {
 	vzList := v1beta1.VerrazzanoList{}
-	//err := checkListsForVerrazzanoResource(runtimeClient, &vzList)
 	err := runtimeClient.List(context.TODO(), &vzList,
 		client.InNamespace(constants.VerrazzanoInstallNamespace))
 	if err != nil {
@@ -376,9 +375,3 @@ func CheckAndRemoveBugReportExistsInDir(dir string) bool {
 	}
 	return false
 }
-
-// checkListsForVerrazzanoResource checks the vzList for the verrazzano-install namespace
-//func checkListsForVerrazzanoResource(runtimeClient client.Client, vzList client.ObjectList) error {
-//
-//	return nil
-//}
