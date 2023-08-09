@@ -11,6 +11,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
+func init() {
+	SchemeBuilder.Register(&VerrazzanoManagedCluster{}, &VerrazzanoManagedClusterList{}, &OCIOCNECluster{}, &OCIOCNEClusterList{})
+}
+
 var (
 	// SchemeGroupVersion is group version used to register these objects
 	SchemeGroupVersion = schema.GroupVersion{Group: "clusters.verrazzano.io", Version: "v1alpha1"}
