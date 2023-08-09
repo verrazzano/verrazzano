@@ -318,10 +318,7 @@ pipeline {
                 when { not { buildingTag() } }
                 steps {
                     sh """
-                cd ${workspace}
-                git tag | awk '/v[0-9][.]/' > VerrazzanoTagsForDevelopmentCheck.txt
-                cat VerrazzanoTagsForDevelopmentCheck.txt
-                [[ -z \$(git tag | awk '/v[0-9][.]/' | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
+                [[ -z \$(git ls-remote --tags origin | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
 
 
             """
