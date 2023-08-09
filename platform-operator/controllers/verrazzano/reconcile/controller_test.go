@@ -205,7 +205,7 @@ func TestInstall(t *testing.T) {
 
 			// Expect a call to get the ingressList
 			expectGetIngressListExists(mock)
-			//expectGetVerrazzanoCondition(mock, verrazzanoToUse, namespace, name)
+			// expectGetVerrazzanoCondition(mock, verrazzanoToUse, namespace, name)
 			// Expect a call to update the finalizers - return success
 			mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name + effConfigSuffix}, gomock.Any()).Return(nil).Times(1)
 			if test.finalizer != finalizerName {
@@ -2609,9 +2609,7 @@ func TestReconcilerProcReconcilingState(t *testing.T) {
 	origSkipReconcile := unitTestSkipReconcile
 	// don't test reconcile
 	unitTestSkipReconcile = true
-
 	defer func() { unitTestSkipReconcile = origSkipReconcile }()
-	metricsexporter.Init()
 	defer registry.ResetGetComponentsFn()
 	registry.OverrideGetComponentsFn(getCompFunc)
 	defer func() { config.TestProfilesDir = "" }()
