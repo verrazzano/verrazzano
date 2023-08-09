@@ -384,7 +384,6 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 
 	// Install certain components pre-upgrade, like network policies
 	if result, err := r.reconcileComponents(vzctx, true); err != nil {
-		log.Debugf("reconcileComponents before upgrade requeueing due to error: %v", err)
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
