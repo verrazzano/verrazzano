@@ -12,7 +12,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
 )
 
 type ActionType string
