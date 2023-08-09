@@ -172,23 +172,23 @@
           "name": "additional-rancher",
           "images": [
             {
-              "image": "rancher-shell-jenkins",
+              "image": "rancher-shell",
               "tag": "v0.1.18-20230403204343-4124528"
             },
             {
-              "image": "rancher-webhook-jenkins",
+              "image": "rancher-webhook",
               "tag": "v0.3.5-20230803175843-1a77563"
             },
             {
-              "image": "rancher-fleet-agent-jenkins",
+              "image": "rancher-fleet-agent",
               "tag": "v0.7.0-20230803175255-e6633a6d"
             },
             {
-              "image": "rancher-fleet-jenkins",
+              "image": "rancher-fleet",
               "tag": "v0.7.0-20230803175255-e6633a6d"
             },
             {
-              "image": "rancher-gitjob-jenkins",
+              "image": "rancher-gitjob",
               "tag": "v0.1.32-20230804152729-58582b0"
             },
             {
