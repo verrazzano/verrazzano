@@ -318,7 +318,7 @@ pipeline {
                 when { not { buildingTag() } }
                 steps {
                     sh """
-                git tag | awk '/v[0-9][.]/' | grep > VerrazzanoTagsForDevelopmentCheck.txt
+                git tag | awk '/v[0-9][.]/' > VerrazzanoTagsForDevelopmentCheck.txt
                 cat VerrazzanoTagsForDevelopmentCheck.txt
                 [[ -z \$(git tag | awk '/v[0-9][.]/' | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
 
