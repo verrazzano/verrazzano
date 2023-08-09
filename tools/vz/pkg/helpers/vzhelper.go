@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
 	"net/http"
 	"os"
@@ -127,13 +128,13 @@ func NewVerrazzanoForGroupVersion(groupVersion schema.GroupVersion) func() inter
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
-func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
+func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, error) {
 	vzList := v1beta1.VerrazzanoList{}
-	err := client.List(context.TODO(), &vzList)
+	err := checkListsForVerrazzanoResource(runtimeClient, &vzList)
 	if err != nil {
 		// If v1beta1 resource version doesn't exist, try v1alpha1
 		if meta.IsNoMatchError(err) {
-			return findVerazzanoResourceV1Alpha1(client)
+			return findVerazzanoResourceV1Alpha1(runtimeClient)
 		}
 		return nil, failedToFindResourceError(err)
 	}
@@ -372,4 +373,14 @@ func CheckAndRemoveBugReportExistsInDir(dir string) bool {
 		return true
 	}
 	return false
+}
+
+// checkListsForVerrazzanoResource checks the vzList for the verrazzano-install namespace
+func checkListsForVerrazzanoResource(runtimeClient client.Client, vzList client.ObjectList) error {
+	err := runtimeClient.List(context.TODO(), vzList,
+		client.InNamespace(constants.VerrazzanoInstallNamespace))
+	if err != nil {
+		return err
+	}
+	return nil
 }
