@@ -4,10 +4,18 @@
 package ocnedriver
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 )
+
+var runAllTests bool
+
+// init initializes variables from command line arguments
+func init() {
+	flag.BoolVar(&runAllTests, "runAllTests", false, "runAllTests toggles whether to run all cluster creation scenarios")
+}
 
 func TestOCNEClusterDriver(test *testing.T) {
 	t.RegisterFailHandler()
