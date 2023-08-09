@@ -631,6 +631,14 @@ func TestInstall(t *testing.T) {
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 3,
 		},
+	}, &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Setting",
+			"metadata": map[string]interface{}{
+				"name": "server-url",
+			},
+		},
 	})
 	cliMissingIngress := createFakeTestClient(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
