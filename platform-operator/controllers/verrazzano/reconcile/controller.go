@@ -98,6 +98,7 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	fmt.Println("===== beginning of Reconcile function =====")
 	if ctx == nil {
 		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
@@ -124,6 +125,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()
 	vz := &installv1alpha1.Verrazzano{}
+	fmt.Println("===== right before calling Get on vz =====")
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all of the finalizers have been removed,
@@ -134,6 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
+	fmt.Println("===== right after calling Get on vz =====")
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -194,12 +197,14 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		return result, err
 	}
 	if vzctrl.ShouldRequeue(result) {
+		fmt.Println("===== requeueing after initForVzResource =====")
 		return result, nil
 	}
 
 	// Init the state to Ready if this CR has never been processed
 	// Always requeue to update cache, ignore error since requeue anyway
 	if len(vz.Status.State) == 0 {
+		fmt.Println("===== initializing vz status.state =====")
 		r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		return reconcile.Result{Requeue: true}, nil
 	}
@@ -644,8 +649,10 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLo
 // SetupWithManager creates a new controller and adds it to the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
+	fmt.Println("===== Inside SetupWithManager for VPO Reconciler =====")
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		For(&installv1alpha1.Verrazzano{}).Build(r)
+	fmt.Println("===== returning from VPO SetupWithManger =====")
 	return err
 }
 
@@ -1053,13 +1060,16 @@ func createPredicate(f func(e event.CreateEvent) bool) predicate.Funcs {
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
 func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	fmt.Println("===== entered initForVzResource =====")
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
 		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
+		fmt.Println("===== Before Update in initForVzResource =====")
 		if err := r.Update(context.TODO(), vz); err != nil {
 			return newRequeueWithDelay(), err
 		}
+		fmt.Println("===== After Update in initForVzResource =====")
 	}
 
 	if unitTesting {
