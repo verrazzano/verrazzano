@@ -7,7 +7,7 @@ console:
   enabled: true
 elasticSearch:
   enabled: true
-  multiNodeCluster: true
+  multiNodeCluster: false
 externaldns:
   enabled: true
 logging:

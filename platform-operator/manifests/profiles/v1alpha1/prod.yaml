@@ -6,32 +6,6 @@ spec:
     clusterAPI:
       enabled: true
     elasticsearch:
-      nodes:
-        - name: es-master
-          replicas: 3
-          storage:
-            size: 50Gi
-          resources:
-            requests:
-              memory: 1.4Gi
-          roles:
-            - master
-        - name: es-data
-          replicas: 3
-          storage:
-            size: 50Gi
-          roles:
-            - data
-          resources:
-            requests:
-              memory: 4.8Gi
-        - name: es-ingest
-          replicas: 1
-          resources:
-            requests:
-              memory: 2.5Gi
-          roles:
-            - ingest
       enabled: true
     certManager:
       enabled: true

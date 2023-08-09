@@ -6,11 +6,13 @@
       nodePools:
         - component: master
           replicas: 3
+          resources: {}
           roles:
             - master
           diskSize: 75G
         - component: data-ingest
           replicas: 3
+          resources: {}
           diskSize: 75G
           roles:
             - ingest

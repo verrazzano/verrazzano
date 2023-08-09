@@ -28,8 +28,6 @@ spec:
       enabled: false
     console:
       enabled: false
-    dns:
-      enabled: false
     fluentd:
       enabled: false
     fluentOperator:
@@ -56,15 +54,6 @@ spec:
       enabled: false
     opensearch:
       enabled: false
-      nodes:
-        - name: es-master
-          replicas: 1
-          resources:
-            requests:
-              memory: 1G
-          roles:
-            - master
-            - data
     opensearchDashboards:
       enabled: false
     opensearchOperator:

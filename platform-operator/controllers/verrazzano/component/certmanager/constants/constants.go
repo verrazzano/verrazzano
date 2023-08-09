@@ -18,10 +18,4 @@ const (
 
 	// CertManagerWebhookOCIComponentName is the name of the OCI DNS webhook component
 	CertManagerWebhookOCIComponentName = "cert-manager-webhook-oci"
-
-	// LetsEncryptProduction - LetsEncrypt production env
-	LetsEncryptProduction = "production"
-
-	// LetsEncryptStaging - LetsEncrypt staging env
-	LetsEncryptStaging = "staging"
 )

@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strings"
 )
 
 const operatorOSIngress = "opensearch"
@@ -216,22 +217,34 @@ func (r *VerrazzanoManagedClusterReconciler) getSecret(namespace string, secretN
 // Get the CA bundle used by verrazzano ingress and the optional rancher-ca-additional secret
 func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) {
 	var caBundle []byte
-	secret, err := r.getSecret(constants.VerrazzanoSystemNamespace, "verrazzano-tls", true)
-	if err != nil {
-		return nil, err
-	}
-	caBundle = secret.Data[mcconstants.CaCrtKey]
 
-	// Append CA from additional-ca secret if it exists
-	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.AdditionalTLS, false)
+	// Append the CA bundle from tls-ca secret if it exists
+	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.RancherTLSCA, false)
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
 	if err == nil {
 		// Combine the two CA bundles
-		caBundle = make([]byte, len(secret.Data[mcconstants.CaCrtKey]))
-		copy(caBundle, secret.Data[mcconstants.CaCrtKey])
-		caBundle = append(caBundle, optSecret.Data[constants.AdditionalTLSCAKey]...)
+		tlsCABundle := optSecret.Data[constants.RancherTLSCAKey]
+		if len(tlsCABundle) > 0 {
+			r.log.Infof("Adding tls-ca bundle to Admin CA bundle")
+			caBundle = tlsCABundle
+		}
+	}
+
+	// Append the CA bundle from the ingress vzIngressSecret if it exists and is not already present in the bundle
+	vzIngressSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoIngressTLSSecret, true)
+	if err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	}
+	tlsIngressCA, found := vzIngressSecret.Data[mcconstants.CaCrtKey]
+	if found {
+		if !strings.Contains(strings.TrimSpace(string(caBundle)), strings.TrimSpace(string(tlsIngressCA))) {
+			r.log.Infof("Adding ingress CA cert bundle to Admin CA bundle")
+			caBundle = append(caBundle, tlsIngressCA...)
+		} else {
+			r.log.Infof("ingress CA bundle already present in bundle data, skipping")
+		}
 	}
 
 	return caBundle, nil

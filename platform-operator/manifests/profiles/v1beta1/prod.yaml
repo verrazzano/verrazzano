@@ -6,32 +6,6 @@ spec:
     clusterAPI:
       enabled: true
     opensearch:
-      nodes:
-        - name: es-data
-          replicas: 3
-          resources:
-            requests:
-              memory: 4.8Gi
-          roles:
-            - data
-          storage:
-            size: 50Gi
-        - name: es-ingest
-          replicas: 1
-          resources:
-            requests:
-              memory: 2.5Gi
-          roles:
-            - ingest
-        - name: es-master
-          replicas: 3
-          resources:
-            requests:
-              memory: 1.4Gi
-          roles:
-            - master
-          storage:
-            size: 50Gi
       enabled: true
     certManager:
       enabled: true
