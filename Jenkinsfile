@@ -226,6 +226,25 @@ pipeline {
                 }
             }
         }
+       stage('Verrazzano development version check') {
+                    when { not { buildingTag() } }
+                    steps {
+                        sh """
+                    [[ -z \$(git ls-remote --tags origin | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
+
+
+                """
+                    }
+                    post {
+                        failure {
+                            script {
+                                RELEASE_OWNERS = credentials('release-version-owners')
+                                SKIP_TRIGGERED_TESTS = true
+                                slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release,n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nReleaseOwners:\n ${PIPELINE_OWNERS}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}")
+                            }
+                        }
+                    }
+                }
 
         stage('Parallel Build, Test, and Compliance') {
             parallel {
@@ -314,25 +333,6 @@ pipeline {
                         }
                     }
                 }
-            stage('Verrazzano development version check') {
-                when { not { buildingTag() } }
-                steps {
-                    sh """
-                [[ -z \$(git ls-remote --tags origin | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
-
-
-            """
-                }
-                post {
-                    failure {
-                        script {
-                            RELEASE_OWNERS = credentials('release-version-owners')
-                            SKIP_TRIGGERED_TESTS = true
-                            slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release,n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nReleaseOwners:\n ${PIPELINE_OWNERS}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}")
-                        }
-                    }
-                }
-            }
 
         }
     }
