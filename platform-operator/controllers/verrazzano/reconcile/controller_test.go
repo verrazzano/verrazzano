@@ -2439,9 +2439,7 @@ func TestReconcilerProcReconcilingState(t *testing.T) {
 	origSkipReconcile := unitTestSkipReconcile
 	// don't test reconcile
 	unitTestSkipReconcile = true
-
 	defer func() { unitTestSkipReconcile = origSkipReconcile }()
-	metricsexporter.Init()
 	defer registry.ResetGetComponentsFn()
 	registry.OverrideGetComponentsFn(getCompFunc)
 	defer func() { config.TestProfilesDir = "" }()
