@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package capi
@@ -7,34 +7,62 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"os"
+	client2 "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	clusterctlcli "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
 const (
-	finalizerName           = "verrazzano.io/capi-cluster"
-	clusterProvisionerLabel = "cluster.verrazzano.io/provisioner"
-	clusterIdLabel          = "cluster.verrazzano.io/rancher-cluster-id"
+	finalizerName                = "verrazzano.io/capi-cluster"
+	clusterProvisionerLabel      = "cluster.verrazzano.io/provisioner"
+	clusterStatusSuffix          = "-cluster-status"
+	clusterIdKey                 = "clusterId"
+	clusterRegistrationStatusKey = "clusterRegistration"
+	registrationStarted          = "started"
+	registrationCompleted        = "completed"
 )
 
 type CAPIClusterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Log    *zap.SugaredLogger
+	Scheme             *runtime.Scheme
+	Log                *zap.SugaredLogger
+	RancherIngressHost string
+}
+
+type ClusterRegistrationFnType func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error)
+
+var clusterRegistrationFn ClusterRegistrationFnType = ensureRancherRegistration
+
+func SetClusterRegistrationFunction(f ClusterRegistrationFnType) {
+	clusterRegistrationFn = f
+}
+
+func SetDefaultClusterRegistrationFunction() {
+	clusterRegistrationFn = ensureRancherRegistration
 }
 
 var gvk = schema.GroupVersionKind{
@@ -58,7 +86,7 @@ func (r *CAPIClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile is the main controller reconcile function
 func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Debugf("Reconciling CAPI cluster: %v", req.NamespacedName)
+	r.Log.Infof("Reconciling CAPI cluster: %v", req.NamespacedName)
 
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
@@ -82,7 +110,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
-			if err := r.UnregisterRancherCluster(cluster); err != nil {
+			if err := r.UnregisterRancherCluster(ctx, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -90,17 +118,30 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if err := r.removeFinalizer(cluster); err != nil {
 			return ctrl.Result{}, err
 		}
+
+		// delete the cluster id secret
+		clusterRegistrationStatusSecret, err := r.getClusterRegistrationStatusSecret(ctx, cluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		err = r.Delete(ctx, clusterRegistrationStatusSecret)
+		if !errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
-	// add a finalizer to the Rancher cluster if it doesn't already exist
-	if err := r.ensureFinalizer(cluster); err != nil {
+	// add a finalizer to the CAPI cluster if it doesn't already exist
+	if err = r.ensureFinalizer(cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// ensure the VMC exists
-	if err = r.ensureRancherRegistration(cluster); err != nil {
-		return ctrl.Result{}, err
+	if registrationCompleted != r.getClusterRegistrationStatus(ctx, cluster) {
+		// wait for kubeconfig and complete registration on workload cluster
+		if result, err := clusterRegistrationFn(r, ctx, cluster); err != nil {
+			return result, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -128,68 +169,199 @@ func (r *CAPIClusterReconciler) removeFinalizer(cluster *unstructured.Unstructur
 	return nil
 }
 
-// getClusterDisplayName returns the displayName spec field from the Rancher cluster resource
-func (r *CAPIClusterReconciler) getClusterDisplayName(cluster *unstructured.Unstructured) (string, error) {
-	displayName, ok, err := unstructured.NestedString(cluster.Object, "spec", "displayName")
-	if err != nil {
-		return "", err
-	}
-	if !ok {
-		return "", fmt.Errorf("Could not find spec displayName field in Cattle Cluster resource: %s", cluster.GetName())
-	}
-	return displayName, nil
-}
-
 // ensureRancherRegistration ensures that the CAPI cluster is registered with Rancher.
-func (r *CAPIClusterReconciler) ensureRancherRegistration(cluster *unstructured.Unstructured) error {
+func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+	kubeconfig, err := r.getWorkloadClusterKubeconfig(ctx, cluster)
+	if err != nil {
+		// requeue since we're waiting for cluster
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+	}
+
 	rc, log, err := r.GetRancherAPIResources(cluster)
 	if err != nil {
-		return err
-	}
-	labels := cluster.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	clusterId, clusterIdExists := labels[clusterIdLabel]
-	registryYaml, clusterId, err := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterId, log)
-	// apply registration yaml to managed cluster
-	if err != nil {
-		log.Error(err, "failed to obtain registration manifest from Rancher")
-		return err
-	}
-	// get the cluster kubeconfig
-	kubeconfigSecret := &v1.Secret{}
-	err = r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: "default"}, kubeconfigSecret)
-	if err != nil {
-		log.Error(err, "failed to obtain cluster kubeconfig resource")
-		return err
-	}
-	kubeconfig, ok := kubeconfigSecret.Data["value"]
-	if !ok {
-		log.Error(err, "failed to read kubeconfig from resource")
-		return fmt.Errorf("Unable to read kubeconfig from retrieved cluster resource")
-	}
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
-	if err != nil {
-		return err
-	}
-	err = resource.CreateOrUpdateResourceFromBytesUsingConfig([]byte(registryYaml), restConfig)
-	if err != nil {
-		return err
+		r.Log.Infof("Failed getting rancher api resources")
+		return ctrl.Result{}, err
 	}
 
-	// Update the CAPI cluster status with the Rancher cluster ID
-	if !clusterIdExists {
-		r.Log.Debugf("Updating cluster %s labels with cluster id: %s", cluster.GetName(), clusterId)
-		labels[clusterIdLabel] = clusterId
-		cluster.SetLabels(labels)
-		if err := r.Update(context.TODO(), cluster); err != nil {
-			r.Log.Errorf("Unable to update clsuter %s labels: %v", cluster.GetName(), err)
-			return err
+	clusterId := r.getClusterId(ctx, cluster)
+	registryYaml, clusterId, registryErr := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterId, log)
+	// persist the cluster ID, if present, even if the registry yaml was not returned
+	err = r.persistClusterStatus(ctx, cluster, clusterId, registrationStarted)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// handle registry failure error
+	if registryErr != nil {
+		r.Log.Error(err, "failed to obtain registration manifest from Rancher")
+		return ctrl.Result{}, registryErr
+	}
+	// it appears that in some circumstances the registry yaml may be empty so need to re-queue to re-attempt retrieval
+	if len(registryYaml) == 0 {
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+	}
+	// create workload cluster client
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		r.Log.Warnf("Failed getting rest config from workload kubeconfig")
+		return ctrl.Result{}, err
+	}
+	workloadClient, err := r.getWorkloadClusterClient(restConfig)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// apply registration yaml to managed cluster
+	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
+	err = yamlApplier.ApplyS(registryYaml)
+	if err != nil {
+		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
+		return ctrl.Result{}, err
+	}
+	err = r.persistClusterStatus(ctx, cluster, clusterId, registrationCompleted)
+
+	return ctrl.Result{}, nil
+}
+
+func (r *CAPIClusterReconciler) getWorkloadClusterClient(restConfig *rest.Config) (client.Client, error) {
+	scheme := runtime.NewScheme()
+	_ = rbacv1.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
+	_ = netv1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
+func (r *CAPIClusterReconciler) getClusterId(ctx context.Context, cluster *unstructured.Unstructured) string {
+	clusterId := ""
+
+	regStatusSecret, err := r.getClusterRegistrationStatusSecret(ctx, cluster)
+	if err != nil {
+		return clusterId
+	}
+	clusterId = string(regStatusSecret.Data[clusterIdKey])
+
+	return clusterId
+}
+
+func (r *CAPIClusterReconciler) getClusterRegistrationStatus(ctx context.Context, cluster *unstructured.Unstructured) string {
+	clusterStatus := registrationStarted
+
+	regStatusSecret, err := r.getClusterRegistrationStatusSecret(ctx, cluster)
+	if err != nil {
+		return clusterStatus
+	}
+	clusterStatus = string(regStatusSecret.Data[clusterRegistrationStatusKey])
+
+	return clusterStatus
+}
+
+func (r *CAPIClusterReconciler) getClusterRegistrationStatusSecret(ctx context.Context, cluster *unstructured.Unstructured) (*v1.Secret, error) {
+	clusterIdSecret := &v1.Secret{}
+	secretName := types.NamespacedName{
+		Namespace: constants.VerrazzanoCAPINamespace,
+		Name:      cluster.GetName() + clusterStatusSuffix,
+	}
+	err := r.Get(ctx, secretName, clusterIdSecret)
+	if err != nil {
+		return nil, err
+	}
+	return clusterIdSecret, err
+}
+
+func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluster *unstructured.Unstructured, clusterId string, status string) error {
+	r.Log.Debugf("Persisting cluster %s cluster id: %s", cluster.GetName(), clusterId)
+	clusterRegistrationStatusSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName() + clusterStatusSuffix,
+			Namespace: constants.VerrazzanoCAPINamespace,
+		},
+	}
+	_, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, clusterRegistrationStatusSecret, func() error {
+		// Build the secret data
+		if clusterRegistrationStatusSecret.Data == nil {
+			clusterRegistrationStatusSecret.Data = make(map[string][]byte)
 		}
+		clusterRegistrationStatusSecret.Data[clusterIdKey] = []byte(clusterId)
+		clusterRegistrationStatusSecret.Data[clusterRegistrationStatusKey] = []byte(status)
+
+		return nil
+	})
+	if err != nil {
+		r.Log.Errorf("Unable to persist status for cluster %s: %v", cluster.GetName(), err)
+		return err
 	}
 
 	return nil
+}
+
+func (r *CAPIClusterReconciler) getWorkloadClusterKubeconfig(ctx context.Context, cluster *unstructured.Unstructured) ([]byte, error) {
+	restConfig := ctrl.GetConfigOrDie()
+	apiConfig, err := r.ConstructManagementKubeconfig(ctx, restConfig, "")
+	if err != nil {
+		return nil, err
+	}
+	kubeconfigPath := fmt.Sprintf("%s/management-kubeconfig", os.TempDir())
+
+	if err = clientcmd.WriteToFile(*apiConfig, kubeconfigPath); err != nil {
+		return nil, err
+	}
+
+	adminKubeconfig := &clusterctlcli.Kubeconfig{Path: kubeconfigPath, Context: apiConfig.CurrentContext}
+
+	c, err := client2.New("")
+	if err != nil {
+		return nil, err
+	}
+
+	options := client2.GetKubeconfigOptions{
+		Kubeconfig:          client2.Kubeconfig(*adminKubeconfig),
+		WorkloadClusterName: cluster.GetName(),
+		Namespace:           cluster.GetNamespace(),
+	}
+
+	kubeconfig, err := c.GetKubeconfig(options)
+
+	return []byte(kubeconfig), nil
+}
+
+func (r *CAPIClusterReconciler) ConstructManagementKubeconfig(ctx context.Context, restConfig *rest.Config, namespace string) (*clientcmdapi.Config, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	log.V(2).Info("Constructing kubeconfig file from rest.Config")
+
+	clusterName := "management-cluster"
+	userName := "default-user"
+	contextName := "default-context"
+	clusters := make(map[string]*clientcmdapi.Cluster)
+	clusters[clusterName] = &clientcmdapi.Cluster{
+		Server: restConfig.Host,
+		// Used in regular kubeconfigs.
+		CertificateAuthorityData: restConfig.CAData,
+		// Used in in-cluster configs.
+		CertificateAuthority: restConfig.CAFile,
+	}
+
+	contexts := make(map[string]*clientcmdapi.Context)
+	contexts[contextName] = &clientcmdapi.Context{
+		Cluster:   clusterName,
+		Namespace: namespace,
+		AuthInfo:  userName,
+	}
+
+	authInfos := make(map[string]*clientcmdapi.AuthInfo)
+	authInfos[userName] = &clientcmdapi.AuthInfo{
+		Token:                 restConfig.BearerToken,
+		ClientCertificateData: restConfig.TLSClientConfig.CertData,
+		ClientKeyData:         restConfig.TLSClientConfig.KeyData,
+	}
+
+	return &clientcmdapi.Config{
+		Kind:           "Config",
+		APIVersion:     "v1",
+		Clusters:       clusters,
+		Contexts:       contexts,
+		CurrentContext: contextName,
+		AuthInfos:      authInfos,
+	}, nil
 }
 
 func (r *CAPIClusterReconciler) GetRancherAPIResources(cluster *unstructured.Unstructured) (*rancherutil.RancherConfig, vzlog.VerrazzanoLogger, error) {
@@ -202,25 +374,23 @@ func (r *CAPIClusterReconciler) GetRancherAPIResources(cluster *unstructured.Uns
 		ControllerName: "capicluster",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for CAPI cluster controller", err)
+		r.Log.Errorf("Failed to create controller logger for CAPI cluster controller", err)
 		return nil, nil, err
 	}
 
 	// using direct rancher API to register cluster
-	ingressHost := rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
-	rc, err := rancherutil.NewAdminRancherConfig(r.Client, ingressHost, log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, log)
 	if err != nil {
-		log.Error(err, "failed to create Rancher API client")
+		r.Log.Error(err, "failed to create Rancher API client")
 		return nil, nil, err
 	}
 	return rc, log, nil
 }
 
-func (r *CAPIClusterReconciler) UnregisterRancherCluster(cluster *unstructured.Unstructured) error {
-	labels := cluster.GetLabels()
-	clusterId, ok := labels[clusterIdLabel]
-	if !ok {
-		// no cluster id label
+func (r *CAPIClusterReconciler) UnregisterRancherCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
+	clusterId := r.getClusterId(ctx, cluster)
+	if len(clusterId) == 0 {
+		// no cluster id found
 		return fmt.Errorf("No cluster ID found for cluster %s", cluster.GetName())
 	}
 	rc, log, err := r.GetRancherAPIResources(cluster)

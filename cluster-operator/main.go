@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	v1 "k8s.io/api/rbac/v1"
 	"os"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -42,6 +43,7 @@ func init() {
 
 	utilruntime.Must(clustersv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(v1beta1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

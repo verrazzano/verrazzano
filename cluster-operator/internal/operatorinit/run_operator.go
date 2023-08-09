@@ -91,21 +91,22 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		os.Exit(1)
 	}
 
+	if ingressHost == "" {
+		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
+	}
+
 	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
 	if crdInstalled {
 		log.Infof("Starting CAPI Cluster controller")
 		if err = (&capi.CAPIClusterReconciler{
-			Client: mgr.GetClient(),
-			Log:    log,
-			Scheme: mgr.GetScheme(),
+			Client:             mgr.GetClient(),
+			Log:                log,
+			Scheme:             mgr.GetScheme(),
+			RancherIngressHost: ingressHost,
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create CAPI cluster controller: %v", err)
 			os.Exit(1)
 		}
-	}
-
-	if ingressHost == "" {
-		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
