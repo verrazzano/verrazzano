@@ -111,7 +111,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	// Verifies that the CLI args are not set at the creation of a command
-	cmdhelpers.VerifyCLIArgsNil(cmd)
+	vzHelper.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }
