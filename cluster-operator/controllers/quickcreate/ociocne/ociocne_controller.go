@@ -20,13 +20,13 @@ const (
 	finalizerKey = "verrazzano.io/oci-ocne-cluster"
 )
 
-type OCIOCNEClusterReconciler struct {
+type ClusterReconciler struct {
 	clipkg.Client
 	Scheme *runtime.Scheme
 	Logger *zap.SugaredLogger
 }
 
-func (r *OCIOCNEClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	cluster := &vmcv1alpha1.OCIOCNECluster{}
 	err := r.Get(ctx, req.NamespacedName, cluster)
 	// if cluster not found, no work to be done
@@ -44,7 +44,7 @@ func (r *OCIOCNEClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r OCIOCNEClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
+func (r ClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
 	// If cluster is being deleted, handle delete
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		return r.delete(ctx, cluster)
@@ -56,7 +56,7 @@ func (r OCIOCNEClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1a
 	return r.syncCluster(ctx, cluster)
 }
 
-func (r *OCIOCNEClusterReconciler) delete(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
+func (r *ClusterReconciler) delete(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
 	if !vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerKey) {
 		return nil
 	}
@@ -68,7 +68,7 @@ func (r *OCIOCNEClusterReconciler) delete(ctx context.Context, cluster *vmcv1alp
 	return nil
 }
 
-func (r *OCIOCNEClusterReconciler) setFinalizer(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
+func (r *ClusterReconciler) setFinalizer(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
 	if finalizers, added := vzstring.SliceAddString(cluster.GetFinalizers(), finalizerKey); added {
 		cluster.SetFinalizers(finalizers)
 		if err := r.Update(ctx, cluster); err != nil {
@@ -78,8 +78,15 @@ func (r *OCIOCNEClusterReconciler) setFinalizer(ctx context.Context, cluster *vm
 	return nil
 }
 
-func (r *OCIOCNEClusterReconciler) syncCluster(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
+func (r *ClusterReconciler) syncCluster(ctx context.Context, cluster *vmcv1alpha1.OCIOCNECluster) error {
 	return nil
+}
+
+// SetupWithManager creates a new controller and adds it to the manager
+func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&vmcv1alpha1.OCIOCNECluster{}).
+		Complete(r)
 }
 
 func newRequeueWithDelay() ctrl.Result {

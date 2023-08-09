@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/ociocne"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -33,14 +34,25 @@ const (
 	cattleClustersCRDName   = "clusters.management.cattle.io"
 )
 
+type Properties struct {
+	Scheme                   *runtime.Scheme
+	CertificateDir           string
+	MetricsAddress           string
+	ProbeAddress             string
+	IngressHost              string
+	EnableLeaderElection     bool
+	EnableQuickCreateOCIOCNE bool
+}
+
 // StartClusterOperator Cluster operator execution entry point
-func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, ingressHost string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
+
 	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		Scheme:                 props.Scheme,
+		MetricsBindAddress:     props.MetricsAddress,
 		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: props.ProbeAddress,
+		LeaderElection:         props.EnableLeaderElection,
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
@@ -83,18 +95,28 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		}
 	}
 
-	if ingressHost == "" {
-		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
+	if props.IngressHost == "" {
+		props.IngressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&vmc.VerrazzanoManagedClusterReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
-		RancherIngressHost: ingressHost,
+		RancherIngressHost: props.IngressHost,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
 		os.Exit(1)
+	}
+	if props.EnableQuickCreateOCIOCNE {
+		if err = (&ociocne.ClusterReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Logger: log,
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

@@ -33,4 +33,31 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
+  - name: ociocnecluster.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}-webhook
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-ociocnecluster"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - ociocneclusters
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1
+      - v1alpha1
+
+
+
 

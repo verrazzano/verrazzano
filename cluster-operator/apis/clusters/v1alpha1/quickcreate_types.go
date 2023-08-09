@@ -21,6 +21,9 @@ type (
 	}
 
 	NodeConfig struct {
+		// +patchMergeKey=name
+		// +patchStrategy=merge,retainKeys
+		Name          string  `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
 		Shape         *string `json:"shape"`
 		OCPUs         *int    `json:"ocpus,omitempty"`
 		MemoryGbs     *int    `json:"memoryGbs,omitempty"`

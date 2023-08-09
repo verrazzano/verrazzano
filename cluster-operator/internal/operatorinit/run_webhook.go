@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -16,7 +15,7 @@ import (
 )
 
 // WebhookInit Webhook init container entry point
-func WebhookInit(certDir string, log *zap.SugaredLogger) error {
+func WebhookInit(log *zap.SugaredLogger, props Properties) error {
 	log.Debug("Creating certificates used by webhooks")
 
 	conf, err := k8sutil.GetConfigFromController()
@@ -30,25 +29,25 @@ func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 	}
 
 	// Create the webhook certificates and secrets
-	if err := certificate.CreateWebhookCertificates(log, kubeClient, certDir); err != nil {
+	if err := certificate.CreateWebhookCertificates(log, kubeClient, props.CertificateDir); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func StartWebhookServer(metricsAddr string, probeAddr string, enableLeaderElection bool, certDir string, scheme *runtime.Scheme, log *zap.SugaredLogger) error {
+func StartWebhookServer(log *zap.SugaredLogger, props Properties) error {
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		log.Errorf("Failed to get kubeconfig: %v", err)
 	}
 
 	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		Scheme:                 props.Scheme,
+		MetricsBindAddress:     props.MetricsAddress,
 		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: props.ProbeAddress,
+		LeaderElection:         props.EnableLeaderElection,
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
@@ -65,14 +64,26 @@ func StartWebhookServer(metricsAddr string, probeAddr string, enableLeaderElecti
 	}
 
 	log.Debug("Updating webhook configuration")
-	// VMC validating webhook
+	// Cluster Operator validating webhook
 	err = updateValidatingWebhookConfiguration(kubeClient, certificate.WebhookName)
 	if err != nil {
 		log.Errorf("Failed to update VerrazzanoManagedCluster validation webhook configuration: %v", err)
 		os.Exit(1)
 	}
+	// Cluster Operator mutating webhook
+	err = updateMutatingWebhookConfiguration(kubeClient, certificate.WebhookName)
+	if err != nil {
+		log.Errorf("Failed to update OCIOCNECluster validation webhook configuration: %v", err)
+		os.Exit(1)
+	}
 
 	// Set up the validation webhook for VMC
+	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
+	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Errorf("Failed to setup webhook with manager: %v", err)
+		os.Exit(1)
+	}
+	// Set up the mutating webhook for Cluster Operator
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Errorf("Failed to setup webhook with manager: %v", err)
@@ -90,7 +101,7 @@ func StartWebhookServer(metricsAddr string, probeAddr string, enableLeaderElecti
 		os.Exit(1)
 	}
 
-	mgr.GetWebhookServer().CertDir = certDir
+	mgr.GetWebhookServer().CertDir = props.CertificateDir
 
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {

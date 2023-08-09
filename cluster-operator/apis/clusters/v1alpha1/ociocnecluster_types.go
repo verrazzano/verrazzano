@@ -40,14 +40,14 @@ type (
 	}
 
 	OCI struct {
-		Region            string        `json:"region"`
-		Compartment       string        `json:"compartment"`
-		SSHPublicKey      *string       `json:"sshPublicKey,omitempty"`
-		ImageName         string        `json:"imageName"`
-		ControlPlane      *NodeConfig   `json:"controlPlane"`
-		Workers           []*NodeConfig `json:"workers,omitempty"`
-		Network           Network       `json:"network"`
-		CloudInitCommands []string      `json:"cloudInitCommands,omitempty"`
+		Region            string       `json:"region"`
+		Compartment       string       `json:"compartment"`
+		SSHPublicKey      *string      `json:"sshPublicKey,omitempty"`
+		ImageName         string       `json:"imageName"`
+		ControlPlane      *NodeConfig  `json:"controlPlane"`
+		Workers           []NodeConfig `json:"workers,omitempty"`
+		Network           Network      `json:"network"`
+		CloudInitCommands []string     `json:"cloudInitCommands,omitempty"`
 	}
 
 	Network struct {

@@ -151,13 +151,9 @@ func (in *OCI) DeepCopyInto(out *OCI) {
 	}
 	if in.Workers != nil {
 		in, out := &in.Workers, &out.Workers
-		*out = make([]*NodeConfig, len(*in))
+		*out = make([]NodeConfig, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(NodeConfig)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	in.Network.DeepCopyInto(&out.Network)
