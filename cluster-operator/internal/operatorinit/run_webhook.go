@@ -85,7 +85,7 @@ func StartWebhookServer(log *zap.SugaredLogger, props Properties) error {
 	}
 	// Set up the mutating webhook for Cluster Operator
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&clustersv1alpha1.OCIOCNECluster{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Errorf("Failed to setup webhook with manager: %v", err)
 		os.Exit(1)
 	}

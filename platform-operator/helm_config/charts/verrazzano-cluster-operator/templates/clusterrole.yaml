@@ -9,6 +9,7 @@ rules:
     - admissionregistration.k8s.io
     resources:
     - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
     verbs:
     - create
     - get
@@ -40,6 +41,8 @@ rules:
     resources:
       - verrazzanomanagedclusters
       - verrazzanomanagedclusters/status
+      - ociocneclusters
+      - ociocneclusters/status
     verbs:
       - create
       - update

@@ -101,5 +101,7 @@ func (o *OCIOCNECluster) ValidateDelete() error {
 }
 
 func (o *OCIOCNECluster) Default() {
-	o.Spec.KubernetesVersion = "FROBBER!"
+	if o.Spec.KubernetesVersion == "" {
+		o.Spec.KubernetesVersion = "FROBBER!"
+	}
 }
