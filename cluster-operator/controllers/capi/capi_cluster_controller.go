@@ -221,6 +221,7 @@ func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
+// getWorkloadClusterClient returns a controller runtime client configured for the workload cluster
 func (r *CAPIClusterReconciler) getWorkloadClusterClient(restConfig *rest.Config) (client.Client, error) {
 	scheme := runtime.NewScheme()
 	_ = rbacv1.AddToScheme(scheme)
@@ -230,6 +231,7 @@ func (r *CAPIClusterReconciler) getWorkloadClusterClient(restConfig *rest.Config
 	return client.New(restConfig, client.Options{Scheme: scheme})
 }
 
+// getClusterId returns the cluster ID assigned by Rancher for the given cluster
 func (r *CAPIClusterReconciler) getClusterId(ctx context.Context, cluster *unstructured.Unstructured) string {
 	clusterId := ""
 
@@ -242,6 +244,7 @@ func (r *CAPIClusterReconciler) getClusterId(ctx context.Context, cluster *unstr
 	return clusterId
 }
 
+// getClusterRegistrationStatus returns the Rancher registration status for the cluster
 func (r *CAPIClusterReconciler) getClusterRegistrationStatus(ctx context.Context, cluster *unstructured.Unstructured) string {
 	clusterStatus := registrationStarted
 
@@ -254,6 +257,7 @@ func (r *CAPIClusterReconciler) getClusterRegistrationStatus(ctx context.Context
 	return clusterStatus
 }
 
+// getClusterRegistrationStatusSecret returns the secret that stores cluster status information
 func (r *CAPIClusterReconciler) getClusterRegistrationStatusSecret(ctx context.Context, cluster *unstructured.Unstructured) (*v1.Secret, error) {
 	clusterIdSecret := &v1.Secret{}
 	secretName := types.NamespacedName{
@@ -267,6 +271,7 @@ func (r *CAPIClusterReconciler) getClusterRegistrationStatusSecret(ctx context.C
 	return clusterIdSecret, err
 }
 
+// persistClusterStatus stores the cluster status in the cluster status secret
 func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluster *unstructured.Unstructured, clusterId string, status string) error {
 	r.Log.Debugf("Persisting cluster %s cluster id: %s", cluster.GetName(), clusterId)
 	clusterRegistrationStatusSecret := &v1.Secret{
@@ -293,6 +298,7 @@ func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluste
 	return nil
 }
 
+// getWorkloadClusterKubeconfig returns a kubeconfig for accessing the workload cluster
 func (r *CAPIClusterReconciler) getWorkloadClusterKubeconfig(ctx context.Context, cluster *unstructured.Unstructured) ([]byte, error) {
 	restConfig := ctrl.GetConfigOrDie()
 	apiConfig, err := r.ConstructManagementKubeconfig(ctx, restConfig, "")
@@ -323,6 +329,7 @@ func (r *CAPIClusterReconciler) getWorkloadClusterKubeconfig(ctx context.Context
 	return []byte(kubeconfig), nil
 }
 
+// ConstructManagementKubeconfig constructs the kubeconfig for the management cluster
 func (r *CAPIClusterReconciler) ConstructManagementKubeconfig(ctx context.Context, restConfig *rest.Config, namespace string) (*clientcmdapi.Config, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -364,6 +371,7 @@ func (r *CAPIClusterReconciler) ConstructManagementKubeconfig(ctx context.Contex
 	}, nil
 }
 
+// GetRancherAPIResources returns the set of resources required for interacting with Rancher
 func (r *CAPIClusterReconciler) GetRancherAPIResources(cluster *unstructured.Unstructured) (*rancherutil.RancherConfig, vzlog.VerrazzanoLogger, error) {
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -387,6 +395,7 @@ func (r *CAPIClusterReconciler) GetRancherAPIResources(cluster *unstructured.Uns
 	return rc, log, nil
 }
 
+// UnregisterRancherCluster performs the operations required to de-register the cluster from Rancher
 func (r *CAPIClusterReconciler) UnregisterRancherCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
 	clusterId := r.getClusterId(ctx, cluster)
 	if len(clusterId) == 0 {
