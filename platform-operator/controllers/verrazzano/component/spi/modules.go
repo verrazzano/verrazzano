@@ -9,14 +9,26 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
-type moduleSpecValue struct {
-	VerrazzanoSpec interface{} `json:"verrazzanoSpec"`
+type ModuleValuesSection struct {
+	Spec interface{} `json:"spec,omitempty"`
 }
 
-// NewModuleSpecValue Creates the embedded JSON snippet to pass into a Module instance as a well-known Helm value
-func NewModuleSpecValue(specValue interface{}) (*apiextensionsv1.JSON, error) {
-	modSpec := &moduleSpecValue{
-		VerrazzanoSpec: specValue,
+type VerrazzanoValues struct {
+	Module ModuleValuesSection `json:"module,omitempty"`
+}
+
+type VerrazzanoValuesConfig struct {
+	Verrazzano VerrazzanoValues `json:"verrazzano"`
+}
+
+// NewModuleSpecValue Creates a JSON snippet to pass into a Module instance as a well-known Helm value
+func NewModuleSpecValue(configObject interface{}) (*apiextensionsv1.JSON, error) {
+	modSpec := &VerrazzanoValuesConfig{
+		Verrazzano: VerrazzanoValues{
+			Module: ModuleValuesSection{
+				Spec: configObject,
+			},
+		},
 	}
 	var jsonBytes []byte
 	var err error

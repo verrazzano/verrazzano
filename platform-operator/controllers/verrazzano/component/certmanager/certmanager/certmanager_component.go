@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
@@ -227,9 +226,4 @@ func checkExistingCertManager(_ runtime.Object) error {
 	}
 
 	return nil
-}
-
-// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (c certManagerComponent) GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
-	return spi.NewModuleSpecValue(effectiveCR.Spec.Components.CertManager)
 }
