@@ -16,8 +16,8 @@ type certManagerModuleConfig struct {
 	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
 }
 
-// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (c certManagerComponent) GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
 	// Convert the CertManager Verrazzano CR config to internal well-known Helm values
 	compConfig := effectiveCR.Spec.Components.CertManager
 	if compConfig == nil {
@@ -31,7 +31,7 @@ func (c certManagerComponent) GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) (*
 	if issuerConfig != nil {
 		clusterResourceNamespace = issuerConfig.ClusterResourceNamespace
 	}
-	return spi.NewModuleSpecValue(
+	return spi.NewModuleConfigHelmValuesWrapper(
 		certManagerModuleConfig{
 			//Certificate:              compConfig.Certificate,
 			ClusterResourceNamespace: clusterResourceNamespace,

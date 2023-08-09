@@ -21,8 +21,15 @@ type VerrazzanoValuesConfig struct {
 	Verrazzano VerrazzanoValues `json:"verrazzano"`
 }
 
-// NewModuleSpecValue Creates a JSON snippet to pass into a Module instance as a well-known Helm value
-func NewModuleSpecValue(configObject interface{}) (*apiextensionsv1.JSON, error) {
+// NewModuleConfigHelmValuesWrapper Creates a JSON snippet to pass into a Module instance as a well-known Helm value
+//
+// Takes any object and marshals it into a Helm values hierarchy under "verrazzano.module.spec".  This allows conversion
+// of any configuration in the Verrazzano CR needed by a module into a form consumable by that module.
+//
+// As a result only changes to the values in the passed-in structure should result in a reconile of the underlying
+// Module instance.  Eventually this wrapper can be used to divorce the Module impls from the Verrazzano CR and
+// Effective CR.
+func NewModuleConfigHelmValuesWrapper(configObject interface{}) (*apiextensionsv1.JSON, error) {
 	modSpec := &VerrazzanoValuesConfig{
 		Verrazzano: VerrazzanoValues{
 			Module: ModuleValuesSection{

@@ -187,8 +187,8 @@ func (h HelmComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return h.WatchDescriptors
 }
 
-// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (h HelmComponent) GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (h HelmComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
 
 	return nil, nil
 }

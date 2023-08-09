@@ -75,8 +75,8 @@ func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor 
 	return nil
 }
 
-// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (g grafanaComponent) GetModuleSpec(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
 	return nil, nil
 }
 

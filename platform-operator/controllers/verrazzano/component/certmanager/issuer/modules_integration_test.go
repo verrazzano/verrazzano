@@ -110,8 +110,8 @@ func TestGetModuleSpec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent().(clusterIssuerComponent)
-			got, err := c.GetModuleSpec(tt.effectiveCR)
-			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleSpec(%v)", tt.effectiveCR)) {
+			got, err := c.GetModuleConfigAsHelmValues(tt.effectiveCR)
+			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return
 			}
 			assert.JSONEq(t, tt.want, string(got.Raw))

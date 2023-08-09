@@ -671,19 +671,19 @@ func (mr *MockComponentMockRecorder) GetMinVerrazzanoVersion() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinVerrazzanoVersion", reflect.TypeOf((*MockComponent)(nil).GetMinVerrazzanoVersion))
 }
 
-// GetModuleSpec mocks base method
-func (m *MockComponent) GetModuleSpec(arg0 *v1alpha1.Verrazzano) (*v1.JSON, error) {
+// GetModuleConfigAsHelmValues mocks base method
+func (m *MockComponent) GetModuleConfigAsHelmValues(arg0 *v1alpha1.Verrazzano) (*v1.JSON, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetModuleSpec", arg0)
+	ret := m.ctrl.Call(m, "GetModuleConfigAsHelmValues", arg0)
 	ret0, _ := ret[0].(*v1.JSON)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetModuleSpec indicates an expected call of GetModuleSpec
-func (mr *MockComponentMockRecorder) GetModuleSpec(arg0 interface{}) *gomock.Call {
+// GetModuleConfigAsHelmValues indicates an expected call of GetModuleConfigAsHelmValues
+func (mr *MockComponentMockRecorder) GetModuleConfigAsHelmValues(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModuleSpec", reflect.TypeOf((*MockComponent)(nil).GetModuleSpec), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModuleConfigAsHelmValues", reflect.TypeOf((*MockComponent)(nil).GetModuleConfigAsHelmValues), arg0)
 }
 
 // GetOverrides mocks base method

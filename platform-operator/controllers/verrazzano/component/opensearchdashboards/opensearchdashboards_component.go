@@ -64,8 +64,8 @@ func (d opensearchDashboardsComponent) GetWatchDescriptors() []controllerspi.Wat
 	return nil
 }
 
-// GetModuleSpec returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (d opensearchDashboardsComponent) GetModuleSpec(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (d opensearchDashboardsComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
 	return nil, nil
 }
 

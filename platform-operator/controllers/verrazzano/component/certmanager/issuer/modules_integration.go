@@ -16,8 +16,8 @@ type issuerValuesConfig struct {
 	ClusterResourceNamespace string                 `json:"clusterResourceNamespace,omitempty"`
 }
 
-// GetModuleSpec returns an unstructured JSON issuerValuesConfig representing the portion of the Verrazzano CR that corresponds to the module
-func (c clusterIssuerComponent) GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
+// GetModuleConfigAsHelmValues returns an unstructured JSON issuerValuesConfig representing the portion of the Verrazzano CR that corresponds to the module
+func (c clusterIssuerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
 	if effectiveCR == nil {
 		return nil, nil
 	}
@@ -40,5 +40,5 @@ func (c clusterIssuerComponent) GetModuleSpec(effectiveCR *v1alpha1.Verrazzano) 
 		ClusterResourceNamespace: clusterIssuer.ClusterResourceNamespace,
 		IssuerConfig:             clusterIssuer.IssuerConfig,
 	}
-	return spi.NewModuleSpecValue(configSnippet)
+	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }

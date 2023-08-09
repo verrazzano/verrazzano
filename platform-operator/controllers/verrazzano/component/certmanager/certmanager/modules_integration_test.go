@@ -11,8 +11,8 @@ import (
 	"testing"
 )
 
-// TestGetModuleSpec tests the GetModuleSpec function impl for this component
-// GIVEN a call to GetModuleSpec
+// TestGetModuleSpec tests the GetModuleConfigAsHelmValues function impl for this component
+// GIVEN a call to GetModuleConfigAsHelmValues
 //
 //	WHEN for various Verrazzano CR configurations
 //	THEN the generated helm values JSON snippet is valid
@@ -128,8 +128,8 @@ func TestGetModuleSpec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent().(certManagerComponent)
-			got, err := c.GetModuleSpec(tt.effectiveCR)
-			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleSpec(%v)", tt.effectiveCR)) {
+			got, err := c.GetModuleConfigAsHelmValues(tt.effectiveCR)
+			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return
 			}
 			assert.JSONEq(t, tt.want, string(got.Raw))

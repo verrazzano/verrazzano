@@ -114,7 +114,7 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	module.Spec.Version = moduleVersion
 
 	var err error
-	module.Spec.Values, err = comp.GetModuleSpec(effectiveCR)
+	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
 	if err != nil {
 		return err
 	}
