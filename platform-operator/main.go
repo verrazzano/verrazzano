@@ -5,11 +5,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
-
 	"github.com/fluent/fluent-operator/v2/apis/fluentbit/v1alpha2"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	"os"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -43,7 +41,6 @@ var scheme = runtime.NewScheme()
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = vmov1.AddToScheme(scheme)
-	fmt.Println("===== adding v1alpha1 to scheme =====")
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = installv1beta1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
@@ -126,7 +123,6 @@ func main() {
 		internalconfig.SetDefaultBomFilePath(bomOverride)
 	}
 
-	fmt.Println("===== inside main(), about to log VZ version =====")
 	// Log the Verrazzano version
 	version, err := validators.GetCurrentBomVersion()
 	if err == nil {
@@ -138,13 +134,10 @@ func main() {
 	// This allows separation of webhooks and operator
 	var exitErr error
 	if config.RunWebhookInit {
-		fmt.Println("===== inside main(), before WebhookInit =====")
 		exitErr = operatorinit.WebhookInit(config, log)
 	} else if config.RunWebhooks {
-		fmt.Println("===== inside main(), before StartWebhookServers =====")
 		exitErr = operatorinit.StartWebhookServers(config, log, scheme)
 	} else {
-		fmt.Println("===== inside main(), before StartPlatformOperator =====")
 		exitErr = operatorinit.StartPlatformOperator(config, log, scheme)
 	}
 	if exitErr != nil {

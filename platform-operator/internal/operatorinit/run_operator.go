@@ -5,10 +5,6 @@ package operatorinit
 
 import (
 	"context"
-	"fmt"
-	"sync"
-	"time"
-
 	"github.com/pkg/errors"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module"
@@ -31,9 +27,7 @@ import (
 	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
-
-	"os"
-	"strings"
+	"sync"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -41,14 +35,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strings"
+	"time"
 )
 
 const vpoHelmChartConfigMapName = "vpo-helm-chart"
 
 // StartPlatformOperator Platform operator execution entry point
 func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
-	fmt.Println("===== entering StartPlatformOperator =====")
 	// Determine NGINX namespace before initializing components
 	ingressNGINXNamespace, err := nginxutil.DetermineNamespaceForIngressNGINX(vzlog.DefaultLogger())
 	if err != nil {
@@ -238,7 +234,6 @@ func addKeyForFileToConfigMap(dir string, key string, configMap *corev1.ConfigMa
 
 // createVPOHelmChartConfigMap creates/updates a config map containing the VPO helm chart
 func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *corev1.ConfigMap) error {
-	fmt.Println("===== inside createVPOHelmChartConfigMap =====")
 	_, err := kubeClient.CoreV1().ConfigMaps(constants.VerrazzanoInstallNamespace).Get(context.TODO(), configMap.Name, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
