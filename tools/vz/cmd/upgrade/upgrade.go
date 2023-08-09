@@ -98,7 +98,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// If the Verrazzano resource is already Reconciling, confirm with user that they would like to
 	// proceed with an upgrade
 	if vz.Status.State == v1beta1.VzStateReconciling {
-		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, fmt.Sprintf("%s\nVerrazzano is already in the middle of an install/update. Continue with upgrade anyway?", err.Error()), skipConfirm)
+		proceed, err := cmdhelpers.ConfirmWithUser(vzHelper, "Verrazzano is already in the middle of an install/update. Continue with upgrade anyway?", skipConfirm)
 		if err != nil {
 			return err
 		}
