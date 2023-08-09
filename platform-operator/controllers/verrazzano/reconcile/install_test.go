@@ -12,7 +12,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
