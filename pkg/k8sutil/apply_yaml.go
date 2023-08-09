@@ -79,7 +79,7 @@ func (y *YAMLApplier) ApplyD(directory string) error {
 }
 
 // ApplyDT applies a directory of file templates to Kubernetes
-func (y *YAMLApplier) ApplyDT(directory string, args map[string]interface{}) error {
+func (y *YAMLApplier) ApplyDT(directory string, args any) error {
 	files, err := os.ReadDir(directory)
 	if err != nil {
 		return err
@@ -104,12 +104,12 @@ func (y *YAMLApplier) ApplyF(filePath string) error {
 }
 
 // ApplyFT applies a file template spec (go text.template) to Kubernetes
-func (y *YAMLApplier) ApplyFT(filePath string, args map[string]interface{}) error {
+func (y *YAMLApplier) ApplyFT(filePath string, args any) error {
 	return y.doTemplatedFileAction(filePath, y.applyAction, args)
 }
 
 // ApplyFTDefaultConfig calls ApplyFT with rest client from the default config
-func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args map[string]interface{}) error {
+func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args any) error {
 	config, err := GetKubeConfig()
 	if err != nil {
 		return err
@@ -133,12 +133,12 @@ func (y *YAMLApplier) DeleteFWithDependents(filePath string) error {
 }
 
 // DeleteFT deletes a file template spec (go text.template) to Kubernetes
-func (y *YAMLApplier) DeleteFT(filePath string, args map[string]interface{}) error {
+func (y *YAMLApplier) DeleteFT(filePath string, args any) error {
 	return y.doTemplatedFileAction(filePath, y.deleteAction, args)
 }
 
 // DeleteFTDefaultConfig calls deleteFT with rest client from the default config
-func (y *YAMLApplier) DeleteFTDefaultConfig(filePath string, args map[string]interface{}) error {
+func (y *YAMLApplier) DeleteFTDefaultConfig(filePath string, args any) error {
 	config, err := GetKubeConfig()
 	if err != nil {
 		return err
@@ -296,7 +296,7 @@ func (y *YAMLApplier) doFileAction(filePath string, f action) error {
 }
 
 // doTemplatedFileAction runs the action against a template file
-func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args map[string]interface{}) error {
+func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args any) error {
 	templateName := path.Base(filePath)
 	tmpl, err := template.New(templateName).
 		Option("missingkey=error"). // Treat any missing keys as errors
