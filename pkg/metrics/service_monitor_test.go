@@ -1,36 +1,34 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package servicemonitor
+
+package metrics
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/oam-converter/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	asserts "github.com/stretchr/testify/assert"
-	metrics "github.com/verrazzano/verrazzano/pkg/metrics"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func TestCreateServiceMonitor(t *testing.T) {
+func TestPopulateServiceMonitor(t *testing.T) {
 	trueVal := true
 	falseVal := false
 
 	tests := []struct {
 		name        string
-		info        metrics.ScrapeInfo
+		info        ScrapeInfo
 		expectError bool
 	}{
 		{
 			name:        "empty info",
-			info:        metrics.ScrapeInfo{},
+			info:        ScrapeInfo{},
 			expectError: false,
 		},
 		{
 			name: "true value test",
-			info: metrics.ScrapeInfo{
+			info: ScrapeInfo{
 				Ports:              5,
 				BasicAuthSecret:    &corev1.Secret{},
 				IstioEnabled:       &trueVal,
@@ -42,7 +40,7 @@ func TestCreateServiceMonitor(t *testing.T) {
 		},
 		{
 			name: "false value test",
-			info: metrics.ScrapeInfo{
+			info: ScrapeInfo{
 				Ports:              3,
 				BasicAuthSecret:    &corev1.Secret{},
 				IstioEnabled:       &falseVal,
@@ -55,16 +53,8 @@ func TestCreateServiceMonitor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metricsTrait := &vzapi.MetricsTrait{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test-namespace",
-				},
-			}
-
-			//create conversion component to house metricstrait
-			var input *types.ConversionComponents
-			input.MetricsTrait = metricsTrait
-			serviceMonitor,err := CreateServiceMonitor(input)
+			serviceMonitor := &promoperapi.ServiceMonitor{}
+			err := PopulateServiceMonitor(tt.info, serviceMonitor, vzlog.DefaultLogger())
 			if tt.expectError {
 				asserts.Error(t, err)
 			} else {

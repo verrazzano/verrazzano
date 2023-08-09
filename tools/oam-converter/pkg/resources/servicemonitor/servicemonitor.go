@@ -25,8 +25,6 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	cli, _ := client.New(cfg, client.Options{})
 	trait := conversionComponent.MetricsTrait
 
-	//TODO:Fix namespace with servicemonitor name and if trait uses Istio
-
 	// Creating a service monitor with name and namespace
 	serviceMonitor := promoperapi.ServiceMonitor{}
 	pmName, err := utils.CreateServiceMonitorName(trait, conversionComponent.AppName, conversionComponent.ComponentName, 0)

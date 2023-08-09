@@ -8,6 +8,7 @@ const (
 	IngressTrait              = "IngressTrait"
 	GatewayAPIVersion         = "networking.istio.io/v1beta1"
 	VirtualServiceAPIVersion  = "networking.istio.io/v1beta1"
+	ServiceMonitorAPIVersion  = "monitoring.coreos.com/v1"
 	DestinationRuleAPIVersion = "networking.istio.io/v1beta13"
 	AuthorizationAPIVersion   = "security.istio.io/v1beta1"
 	HTTPSProtocol             = "HTTPS"

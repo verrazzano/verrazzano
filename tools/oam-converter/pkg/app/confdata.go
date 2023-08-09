@@ -31,7 +31,7 @@ func ConfData() error {
 
 	//used to store non-oam file data
 
-	var k8sResources []any
+	var otherResources []any
 
 	//iterate through user inputted directory
 	files, err := iterateDirectory(types.InputArgs.InputDirectory)
@@ -72,44 +72,59 @@ func ConfData() error {
 			} else if compKind == "ApplicationConfiguration" && compAPIVersion == consts.CompAPIVersion {
 				appData = append(appData, component)
 			} else {
-				k8sResources = append(k8sResources, component)
+				otherResources = append(otherResources, component)
 			}
 		}
 	}
-
 	//Extract traits from app file
 	conversionComponents, err := traits.ExtractTrait(appData)
-
 	if err != nil {
 		return errors.New("failed extracting traits from app")
 	}
+
 	//Extract workloads from app file
-
 	conversionComponents, err = workload.ExtractWorkload(components, conversionComponents)
-
 	if err != nil {
 		return errors.New("error in extracting workload")
 	}
 
 	cfg, _ := config.GetConfig()
 	cli, _ := client.New(cfg, client.Options{})
+
 	//Create child resources
 	outputResources, err := resources.CreateResources(cli, conversionComponents)
-
 	if err != nil {
 		return err
 	}
-	var byteResources []unstructured.Unstructured
 
+	//Convert OAM resources of []any to []unstructured to be printed
+	var OAMResources []unstructured.Unstructured
 	for _, obj := range outputResources {
 		resource, err := ToUnstructured(obj)
 		if err != nil {
 			print("Null obj")
 		}
-		byteResources = append(byteResources, resource...)
+		OAMResources = append(OAMResources, resource...)
 	}
-	//Write the K8s child resources to the file
-	err = writeKubeResources(types.InputArgs.OutputDirectory, byteResources)
+
+	//Convert non-OAM resources of []any to []unstructured to be printed
+	var nonOAMResources []unstructured.Unstructured
+	for _, obj := range otherResources {
+		resource, err := ToUnstructured(obj)
+		if err != nil {
+			print("Null obj")
+		}
+		nonOAMResources = append(nonOAMResources, resource...)
+	}
+
+	//Write the OAM K8s child resources to the file
+	err = writeKubeResources(types.InputArgs.OutputDirectory, OAMResources)
+	if err != nil {
+		return err
+
+	}
+	//Write the non-OAM K8 child resources to the file
+	err = writeKubeResources(types.InputArgs.OutputDirectory, nonOAMResources)
 	if err != nil {
 		return err
 
@@ -149,7 +164,8 @@ func writeToDirectory(outputDirectory string, index unstructured.Unstructured) e
 		fileName = "servicemonitor.yaml"
 		filePath = filepath.Join(outputDirectory, fileName)
 	default:
-		return fmt.Errorf("Unsupported datq type%v")
+		fileName = "nonOAM.yaml"
+		filePath = filepath.Join(outputDirectory, fileName)
 	}
 
 	//print resources in respective files

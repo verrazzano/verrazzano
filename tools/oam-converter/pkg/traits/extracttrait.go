@@ -52,7 +52,6 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 			if ok && len(componentTraits) > 0 {
 				for _, trait := range componentTraits {
 					traitMap := trait.(map[string]interface{})
-					//traitSpec := traitMap[consts.TraitComponent].(map[string]interface{})
 					traitSpec, found, err := unstructured.NestedMap(traitMap, "trait")
 					if !found || err != nil {
 						return nil, fmt.Errorf("trait spec doesn't exist")
