@@ -25,16 +25,16 @@ spec:
   - name: node.rules
     rules:
     - expr: |-
-        topk by(cluster, namespace, pod) (1,
-          max by (cluster, node, namespace, pod) (
+        topk by (cluster, namespace, pod, verrazzano_cluster) (1,
+          max by (cluster, node, namespace, pod, verrazzano_cluster) (
             label_replace(kube_pod_info{job="kube-state-metrics",node!=""}, "pod", "$1", "pod", "(.*)")
         ))
       record: 'node_namespace_pod:kube_pod_info:'
     - expr: |-
-        count by (cluster, node) (
+        count by (cluster, node, verrazzano_cluster) (
           node_cpu_seconds_total{mode="idle",job="node-exporter"}
-          * on (namespace, pod) group_left(node)
-          topk by(namespace, pod) (1, node_namespace_pod:kube_pod_info:)
+          * on (namespace, pod, verrazzano_cluster) group_left(node)
+          topk by (namespace, pod, verrazzano_cluster) (1, node_namespace_pod:kube_pod_info:)
         )
       record: node:node_num_cpu:sum
     - expr: |-
@@ -46,17 +46,17 @@ spec:
             node_memory_MemFree_bytes{job="node-exporter"} +
             node_memory_Slab_bytes{job="node-exporter"}
           )
-        ) by (cluster)
+        ) by (cluster, verrazzano_cluster)
       record: :node_memory_MemAvailable_bytes:sum
     - expr: |-
-        avg by (cluster, node) (
+        avg by (cluster, node, verrazzano_cluster) (
           sum without (mode) (
             rate(node_cpu_seconds_total{mode!="idle",mode!="iowait",mode!="steal",job="node-exporter"}[5m])
           )
         )
       record: node:node_cpu_utilization:ratio_rate5m
     - expr: |-
-        avg by (cluster) (
+        avg by (cluster, verrazzano_cluster) (
           node:node_cpu_utilization:ratio_rate5m
         )
       record: cluster:node_cpu:ratio_rate5m
