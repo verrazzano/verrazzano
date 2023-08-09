@@ -81,7 +81,7 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting webhook controller-runtime manager")
 	var runnable manager.RunnableFunc = func(ctx context.Context) error {
-
+		checkleader()
 		return nil
 	}
 	if err := mgr.Add(runnable); err != nil {
@@ -228,4 +228,12 @@ func createOrUpdateNetworkPolicies(conf *rest.Config, log *zap.SugaredLogger, ku
 		return fmt.Errorf("Failed to create or update network policies: %v", netPolErrors)
 	}
 	return nil
+}
+
+func checkleader() {
+	fmt.Println("This calls dervies from leader")
+}
+
+func checkelector() {
+	fmt.Println("This calls dervice from elector")
 }
