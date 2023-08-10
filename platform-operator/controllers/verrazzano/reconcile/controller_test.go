@@ -12,8 +12,9 @@ import (
 	"time"
 
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -1525,7 +1526,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1580,7 +1581,7 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1625,7 +1626,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1665,7 +1666,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1731,7 +1732,7 @@ func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "WrongNamespace",
 			Name:      "one-off-backup-20221018-201321",
-			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 		},
 	}
 	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
@@ -1750,7 +1751,7 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 	).Build()
@@ -1785,7 +1786,7 @@ func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: mysql.ComponentNamespace,
 			Name:      "one-off-backup-20221018-201321",
-			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 		},
 	}
 	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
@@ -2428,25 +2429,35 @@ func TestReconcilerProcReconcilingState(t *testing.T) {
 		wantVZState vzapi.VzStateType
 		wantRequeue bool
 	}{
-		{"VZ with no spec version", vzNoSpecVersion, vzapi.VzStateReconciling, false},
-		{"VZ with same spec and status version", vzVersionsSame, vzapi.VzStateReconciling, false},
+		{"VZ with no spec version", vzNoSpecVersion, vzapi.VzStateReady, false},
+		{"VZ with same spec and status version", vzVersionsSame, vzapi.VzStateReady, false},
 		{"VZ with different spec and status version", vzVersionsDifferent, vzapi.VzStateUpgrading, true},
 	}
 	getCompFunc := func() []spi.Component {
 		return []spi.Component{}
 	}
 	initUnitTesing()
-	origSkipReconcile := unitTestSkipReconcile
-	// don't test reconcile
-	unitTestSkipReconcile = true
-	defer func() { unitTestSkipReconcile = origSkipReconcile }()
 	defer registry.ResetGetComponentsFn()
 	registry.OverrideGetComponentsFn(getCompFunc)
 	defer func() { config.TestProfilesDir = "" }()
 	config.TestProfilesDir = relativeProfilesDir
+
+	// Keycloak mocking up for reconcileComponents
+	authConfig := createKeycloakAuthConfig()
+	kcSecret := keycloakutil.CreateTestKeycloakLoginSecret()
+	firstLoginSetting := createFirstLoginSetting()
+	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	keycloakPod := keycloakutil.CreateTestKeycloakPod()
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
+	addKeycloakPodExec()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k8sClient := fakes.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&tt.vz).Build()
+			k8sClient := fakes.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(
+				&tt.vz, &authConfig, kcSecret, &kcIngress, &firstLoginSetting, keycloakPod,
+				&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole).Build()
 			r := newVerrazzanoReconciler(k8sClient)
 			vzCtx, err := vzContext.NewVerrazzanoContext(vzlog.DefaultLogger(), k8sClient, &tt.vz, true)
 			assert.NoError(t, err)
