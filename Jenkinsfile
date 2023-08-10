@@ -85,6 +85,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RELEASE_OWNERS = credentials('release-version-owners')
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -238,9 +239,8 @@ pipeline {
                     post {
                         failure {
                             script {
-                                RELEASE_OWNERS = credentials('release-version-owners')
                                 SKIP_TRIGGERED_TESTS = true
-                                slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release,n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nReleaseOwners:\n ${RELEASE_OWNERS}\n")
+                                slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release,\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nReleaseOwners:\n ${RELEASE_OWNERS}\n")
                             }
                         }
                     }
