@@ -15,6 +15,8 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	log := vzlog.DefaultLogger()
+
 	cm := &corev1.ConfigMap{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, cm); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -22,9 +24,6 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResult()
 	}
 	ev := r.loadEvent(cm)
-
-	log := vzlog.DefaultLogger()
-
 	return r.applyIntegrationCharts(log, ev)
 }
 
@@ -40,7 +39,7 @@ func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev even
 	return result.NewResult()
 }
 
-func (r Reconciler) loadEvent(cm corev1.ConfigMap) event.LifecycleEvent {
+func (r Reconciler) loadEvent(cm *corev1.ConfigMap) event.LifecycleEvent {
 	ev := event.LifecycleEvent{}
 	if cm.Data == nil {
 		return ev
@@ -50,4 +49,8 @@ func (r Reconciler) loadEvent(cm corev1.ConfigMap) event.LifecycleEvent {
 	s, _ := cm.Data[string(event.ActionKey)]
 	ev.Action = event.Action(s)
 	return ev
+}
+
+func (r Reconciler) loadEvent(cm *corev1.ConfigMap) event.LifecycleEvent {
+
 }
