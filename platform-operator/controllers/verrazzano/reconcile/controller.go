@@ -341,12 +341,6 @@ func (r *Reconciler) ProcReconcilingState(vzctx vzcontext.VerrazzanoContext) (ct
 		return result, err
 	}
 
-	// if this is a unit test where we don't need to test reconcile,
-	// then just return
-	/*if unitTesting && unitTestSkipReconcile {
-		return ctrl.Result{}, nil
-	}*/
-
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
