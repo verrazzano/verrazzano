@@ -54,8 +54,9 @@ import (
 )
 
 const (
-	testBomFilePath      = "../../testdata/test_bom.json"
-	profilesRelativePath = "../../../../manifests/profiles"
+	testBomFilePath                  = "../../testdata/test_bom.json"
+	testBomAdditionalRancherFilePath = "../../testdata/test_bom_additional_rancher.json"
+	profilesRelativePath             = "../../../../manifests/profiles"
 
 	missingIssuerMessage = "Failed to find clusterIssuer component in effective cr"
 )
@@ -228,6 +229,25 @@ func TestAppendImageOverrides(t *testing.T) {
 	for key, val := range expectedImages {
 		a.True(val, fmt.Sprintf("Image %s was not found in the key value arguments:\n%v", key, expectedImages))
 	}
+}
+
+// TestInitializeImageEnvVars verifies the correct image mapping is created
+// GIVEN a Verrazzano BOM
+// AND the additional-rancher image names have suffixes added
+// WHEN initializeImageEnvVars is called
+// THEN confirm the correct image mappings were created
+func TestInitializeImageEnvVars(t *testing.T) {
+	a := assert.New(t)
+
+	config.SetDefaultBomFilePath(testBomAdditionalRancherFilePath)
+
+	err := initializeImageEnvVars()
+	a.NoError(err)
+	a.Equal("FLEET_AGENT_IMAGE", imageEnvVars["rancher-fleet-agent-test"])
+	a.Equal("FLEET_IMAGE", imageEnvVars["rancher-fleet-test"])
+	a.Equal("CATTLE_SHELL_IMAGE", imageEnvVars["rancher-shell-test"])
+	a.Equal("RANCHER_WEBHOOK_IMAGE", imageEnvVars["rancher-webhook-test"])
+	a.Equal("GITJOB_IMAGE", imageEnvVars["rancher-gitjob-test"])
 }
 
 // TestPSPEnabledOverrides verifies that pspEnabled override is added if K8s version is 1.25 or above
