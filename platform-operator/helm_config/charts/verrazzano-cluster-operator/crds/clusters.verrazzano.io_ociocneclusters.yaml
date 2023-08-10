@@ -51,16 +51,16 @@ spec:
                 type: string
               oci:
                 properties:
-                  cloudInitCommands:
-                    items:
-                      type: string
-                    type: array
                   compartment:
                     type: string
                   controlPlane:
                     properties:
                       bootVolumeGbs:
                         type: integer
+                      cloudInitCommands:
+                        items:
+                          type: string
+                        type: array
                       memoryGbs:
                         type: integer
                       name:
@@ -72,10 +72,7 @@ spec:
                       shape:
                         type: string
                     required:
-                    - bootVolumeGbs
                     - name
-                    - replicas
-                    - shape
                     type: object
                   imageName:
                     type: string
@@ -85,13 +82,6 @@ spec:
                         type: string
                       podCIDR:
                         type: string
-                      proxy:
-                        properties:
-                          server:
-                            type: string
-                        required:
-                        - server
-                        type: object
                       string:
                         type: string
                       subnets:
@@ -120,6 +110,10 @@ spec:
                       properties:
                         bootVolumeGbs:
                           type: integer
+                        cloudInitCommands:
+                          items:
+                            type: string
+                          type: array
                         memoryGbs:
                           type: integer
                         name:
@@ -131,10 +125,7 @@ spec:
                         shape:
                           type: string
                       required:
-                      - bootVolumeGbs
                       - name
-                      - replicas
-                      - shape
                       type: object
                     type: array
                 required:
@@ -146,10 +137,52 @@ spec:
                 type: object
               privateRegistry:
                 properties:
+                  credentialsSecret:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  server:
+                    type: string
+                required:
+                - credentialsSecret
+                - server
+                type: object
+              proxy:
+                properties:
                   server:
                     type: string
                 required:
                 - server
+                type: object
+              verrazzano:
+                properties:
+                  install:
+                    type: boolean
+                  resourceRef:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  tag:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - install
+                - resourceRef
+                - tag
+                - version
                 type: object
             required:
             - identityRef

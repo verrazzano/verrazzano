@@ -33,29 +33,23 @@ type OCIOCNEClusterList struct {
 
 type (
 	OCIOCNEClusterSpec struct {
-		KubernetesVersion string           `json:"kubernetesVersion"`
-		IdentityRef       IdentityRef      `json:"identityRef"`
-		PrivateRegistry   *PrivateRegistry `json:"privateRegistry,omitempty"`
-		OCI               OCI              `json:"oci"`
+		CommonClusterSpec `json:",inline"`
+		OCI               OCI `json:"oci"`
 	}
-
 	OCI struct {
-		Region            string       `json:"region"`
-		Compartment       string       `json:"compartment"`
-		SSHPublicKey      *string      `json:"sshPublicKey,omitempty"`
-		ImageName         string       `json:"imageName"`
-		ControlPlane      NodeConfig   `json:"controlPlane"`
-		Workers           []NodeConfig `json:"workers,omitempty"`
-		Network           Network      `json:"network"`
-		CloudInitCommands []string     `json:"cloudInitCommands,omitempty"`
+		Region       string       `json:"region"`
+		Compartment  string       `json:"compartment"`
+		SSHPublicKey *string      `json:"sshPublicKey,omitempty"`
+		ImageName    string       `json:"imageName"`
+		ControlPlane NodeConfig   `json:"controlPlane"`
+		Workers      []NodeConfig `json:"workers,omitempty"`
+		Network      Network      `json:"network"`
 	}
-
 	Network struct {
 		PodCIDR     string   `json:"podCIDR"`
 		ClusterCIDR string   `json:"clusterCIDR"`
 		VCN         *string  `json:"string,omitempty"`
 		Subnets     *Subnets `json:"subnets,omitempty"`
-		Proxy       *Proxy   `json:"proxy,omitempty"`
 	}
 	OCIOCNEClusterStatus struct {
 	}
