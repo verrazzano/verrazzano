@@ -240,7 +240,9 @@ pipeline {
                         failure {
                             script {
                                 SKIP_TRIGGERED_TESTS = true
-                                slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nRelease Owners:\n ${RELEASE_OWNERS}\n")
+                                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-*") {
+                                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nRelease Owners:\n ${RELEASE_OWNERS}\n")
+                                }
                             }
                         }
                     }
