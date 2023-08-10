@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package issuer
+package webhookoci
 
 import (
 	"fmt"
@@ -14,6 +14,8 @@ import (
 
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
+	const secretName = "ca-secret"
+	const secretNamespace = "ca-namespace"
 	tests := []struct {
 		name        string
 		effectiveCR *vzapi.Verrazzano
@@ -39,20 +41,14 @@ func TestGetModuleSpec(t *testing.T) {
 			},
 			wantErr: assert.NoError,
 			want: `{
-				  "verrazzano": {
-					"module": {
-					  "spec": {
-						"issuerConfig": {
-						  "ca": {
-							"secretName": "newsecret"
-						  }
-						},
-						"clusterResourceNamespace": "ns"
-					  }
-					}
+			  "verrazzano": {
+				"module": {
+				  "spec": {
+					"clusterResourceNamespace": "ca-namespace"
 				  }
 				}
-				`,
+			  }
+			}`,
 		},
 		{
 			name: "IssuerConfigWithOCIDNS",
@@ -82,29 +78,16 @@ func TestGetModuleSpec(t *testing.T) {
 			},
 			wantErr: assert.NoError,
 			want: `
-				{
-				  "verrazzano": {
-					"module": {
-					  "spec": {
-						"dns": {
-						  "oci": {
-							"dnsScope": "global",
-							"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-							"dnsZoneOCID": "ocid..zone.myzone",
-							"dnsZoneName": "myzone",
-							"ociConfigSecret": "oci"
+					{
+					  "verrazzano": {
+						"module": {
+						  "spec": {
+							"ociConfigSecret": "oci",
+							"clusterResourceNamespace": "ca-namespace"
 						  }
-						},
-						"issuerConfig": {
-						  "ca": {
-							"secretName": "newsecret"
-						  }
-						},
-						"clusterResourceNamespace": "ns"
+						}
 					  }
 					}
-				  }
-				}
 				`,
 		},
 		{
@@ -112,6 +95,15 @@ func TestGetModuleSpec(t *testing.T) {
 			effectiveCR: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							Enabled:                  &trueValue,
+							ClusterResourceNamespace: secretNamespace,
+							IssuerConfig: vzapi.IssuerConfig{
+								CA: &vzapi.CAIssuer{
+									SecretName: secretName,
+								},
+							},
+						},
 						Keycloak: &vzapi.KeycloakComponent{
 							Enabled: &trueValue,
 							InstallOverrides: vzapi.InstallOverrides{
@@ -123,57 +115,24 @@ func TestGetModuleSpec(t *testing.T) {
 							KeycloakInstallArgs: nil,
 							MySQL:               vzapi.MySQLComponent{},
 						},
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								DNSScope:               "global",
-								DNSZoneCompartmentOCID: "ocid..compartment.mycomp",
-								DNSZoneOCID:            "ocid..zone.myzone",
-								DNSZoneName:            "myzone",
-								OCIConfigSecret:        "oci",
-							},
-						},
-						ClusterIssuer: &vzapi.ClusterIssuerComponent{
-							Enabled:                  &trueValue,
-							ClusterResourceNamespace: secretNamespace,
-							IssuerConfig: vzapi.IssuerConfig{
-								CA: &vzapi.CAIssuer{
-									SecretName: secretName,
-								},
-							},
-						},
 					},
 				},
 			},
 			wantErr: assert.NoError,
-			want: `				{
+			want: `{
 				  "verrazzano": {
 					"module": {
 					  "spec": {
-						"dns": {
-						  "oci": {
-							"dnsScope": "global",
-							"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-							"dnsZoneOCID": "ocid..zone.myzone",
-							"dnsZoneName": "myzone",
-							"ociConfigSecret": "oci"
-						  }
-						},
-						"issuerConfig": {
-						  "ca": {
-							"secretName": "newsecret"
-						  }
-						},
-						"clusterResourceNamespace": "ns"
+						"clusterResourceNamespace": "ca-namespace"
 					  }
 					}
 				  }
-				}
-				`,
+				}`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent().(clusterIssuerComponent)
+			c := NewComponent().(certManagerWebhookOCIComponent)
 			got, err := c.GetModuleConfigAsHelmValues(tt.effectiveCR)
 			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return
