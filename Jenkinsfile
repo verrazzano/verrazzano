@@ -231,7 +231,7 @@ pipeline {
                     when { not { buildingTag() } }
                     steps {
                         sh """
-                    [[ -z \$(git ls-remote --tags origin | grep ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
+                    [[ -z \$(git ls-remote --tags origin | grep refs/tags/v${VERRAZZANO_DEV_VERSION}) ]] || exit 1
 
 
                 """
