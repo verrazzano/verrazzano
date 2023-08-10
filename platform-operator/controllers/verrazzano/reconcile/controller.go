@@ -78,20 +78,25 @@ type Reconciler struct {
 
 // Struct to unmarshall the ocne clusters list
 type ocneCluster struct {
-	APIVersion string `json:"apiVersion"`
-	Kind       string `json:"kind"`
-	Metadata   struct {
-		Name            string `json:"name"`
-		Namespace       string `json:"namespace"`
-		ResourceVersion string `json:"resourceVersion"`
-		UID             string `json:"uid"`
+	Metadata struct {
+		Name string `json:"name"`
 	} `json:"metadata"`
 	Spec struct {
-		controlPlaneRef struct {
-			Kind string `json:"kind"`
-		} `json:"controlPlaneRef"`
+		GenericEngineConfig struct {
+			CloudCredentialId string `json:"cloudCredentialId"`
+		} `json:"genericEngineConfig"`
 	} `json:"spec"`
 }
+
+const (
+	ociTenancyField              = "tenancy"
+	ociUserField                 = "user"
+	ociFingerprintField          = "fingerprint"
+	ociRegionField               = "region"
+	ociPassphraseField           = "passphrase"
+	ociKeyField                  = "key"
+	ociUseInstancePrincipalField = "useInstancePrincipal"
+)
 
 // Name of finalizer
 const finalizerName = "install.verrazzano.io"
@@ -991,7 +996,7 @@ func (r *Reconciler) watchRancherGlobalDataNamespace(namespace string, name stri
 }
 
 //Watch the cattle-global-data namespace (may need to be all namespaces) for changes to secrets.
-//If a modified secret is a cloud credential (there is some metadata in cc secrets to verify...), lookup the oci ocne clusters
+//If a modified secret is a cloud credential (metadata in cc secrets), lookup the oci ocne clusters
 //for each oci ocne cluster, check which cloud credential it is using
 //if that cluster is using the modified secret, update that cluster's copy of the cloud credential using the modified secret's data.
 
@@ -1002,20 +1007,20 @@ func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
 		// Reconcile if there is an event related to the registration secret
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
-				if r.isCloudCredential(e.Object) {
+				if r.isOCNECloudCredential(e.Object) {
 					// add watch
 					r.AddWatch(keycloak.ComponentJSONName)
 					// call a helper to get ocne clusters and then update cloud credentials if needed
-					udpateOCNEclusterCloudCreds(e.Object)
+					updateOCNEclusterCloudCreds(e.Object, r)
 				}
 				return false
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				if r.isCloudCredential(e.ObjectNew) {
+				if r.isOCNECloudCredential(e.ObjectNew) {
 					// add watch
 					r.AddWatch(keycloak.ComponentJSONName)
 					// call a helper to get ocne clusters and then update cloud credentials if needed
-					udpateOCNEclusterCloudCreds(e.ObjectNew)
+					updateOCNEclusterCloudCreds(e.ObjectNew, r)
 				}
 				return false
 			},
@@ -1023,7 +1028,29 @@ func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
 	)
 }
 
-func udpateOCNEclusterCloudCreds(o client.Object) error {
+// createOrUpdateCAPISecret updates CAPI secret in place with the new credentials
+func updateCAPISecret(r *Reconciler, updatedSecret *corev1.Secret, clusterSecret *corev1.Secret) error {
+	data := map[string][]byte{
+		ociTenancyField:              updatedSecret.Data["tenancy"],
+		ociUserField:                 updatedSecret.Data["user"],
+		ociFingerprintField:          updatedSecret.Data["fingerprint"],
+		ociRegionField:               updatedSecret.Data["region"],
+		ociPassphraseField:           updatedSecret.Data["private_keypassphrase"],
+		ociKeyField:                  updatedSecret.Data["private_keypassphrase"],
+		ociUseInstancePrincipalField: updatedSecret.Data["false"],
+	}
+
+	// update secret in place
+	clusterSecret.Data = data
+	err := r.Client.Update(context.TODO(), clusterSecret)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateOCNEclusterCloudCreds(o client.Object, r *Reconciler) error {
+	updatedSecret := o.(*corev1.Secret)
 	dynClient, err := getDynamicClient()
 	if err != nil {
 		return err
@@ -1038,16 +1065,17 @@ func udpateOCNEclusterCloudCreds(o client.Object) error {
 		if err = json.Unmarshal(clusterJSON, &ocneStruct); err != nil {
 			return err
 		}
-		// filter based on ocne kind plane
-		if ocneStruct.Spec.controlPlaneRef.Kind == "OCNEControlPlane" {
-			// get its cloud credential and check if it's using the modified one
-			secret := &corev1.Secret{}
-			err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: constants.ThanosInternalUserSecretName}, secret)
-			// if that cluster is using the modified secret, update that cluster's copy of the cloud credential using the modified secret's data.
-			//o.GetName() == cloudcredential.name {
-			//	update it ocne cluster's cc copy with the new one
-			//}
-			// If cluster name is "anders", then the copy will be stored in the "anders" namespace, in a secret named "anders-principal”
+		// if ocne cluster		//MAY NEED TO FIX IF KEY EXISTS
+		if ocneStruct.Spec.GenericEngineConfig.CloudCredentialId != "" {
+			clusterSecret := &corev1.Secret{}
+			// extract cloud cred from field - cc-s48n8 in my case , see if it matches object. if it does, get the copy and update the copy
+			// split the string at the colon and get the other secret
+
+			var name = ocneStruct.Metadata.Name + "-principal"
+			// look up secret and update all fields except region
+			err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: ocneStruct.Metadata.Name, Name: name}, clusterSecret)
+			// update fields
+			err = updateCAPISecret(r, updatedSecret, clusterSecret)
 
 		}
 	}
@@ -1068,8 +1096,8 @@ func getOCNEClustersList(dynClient dynamic.Interface) (*unstructured.Unstructure
 // GetOCNEClusterAPIGVRForResource returns a clusters.cluster.x-k8s.io GroupVersionResource structure for specified kind
 func GetOCNEClusterAPIGVRForResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    "cluster.x-k8s.io",
-		Version:  "v1beta1",
+		Group:    "management.cattle.io",
+		Version:  "v3",
 		Resource: resource,
 	}
 }
@@ -1087,10 +1115,11 @@ func getDynamicClient() (dynamic.Interface, error) {
 	return dynamicClient, nil
 }
 
-func (r *Reconciler) isCloudCredential(o client.Object) bool {
+func (r *Reconciler) isOCNECloudCredential(o client.Object) bool {
 	secret := o.(*corev1.Secret)
-	// if secret is a cloud credential
-	if secret.Data["private_key\""] != nil && secret.Data["fingerprint"] != nil && secret.Data["tenancy"] != nil {
+	ns := o.(*corev1.Namespace)
+	// if secret is a cloud credential in the cattle-global-data ns
+	if ns.Name != rancher.CattleGlobalDataNamespace && secret.Data["ocicredentialConfig-fingerprint"] != nil {
 		return true
 	}
 	// secret is not cloud credential
