@@ -12,6 +12,11 @@ import (
 	"testing"
 )
 
+// TestGetModuleSpec tests the GetModuleConfigAsHelmValues function impl for this component
+// GIVEN a call to GetModuleConfigAsHelmValues
+//
+//	WHEN for various Verrazzano CR configurations
+//	THEN the generated helm values JSON snippet is valid
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
 	const secretName = "ca-secret"
