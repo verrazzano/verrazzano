@@ -773,16 +773,16 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 		var err error
 		logoContent, stderr, err = k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
 		if err != nil {
-			return false, log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+			return false, fmt.Errorf("Failed execing into Rancher pod %s: %v", stderr, err)
 		}
 
 		if len(logoContent) == 0 {
-			return false, log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+			return false, fmt.Errorf("Invalid empty output from Rancher pod")
 		}
 
 		decodedLogo, err := base64.StdEncoding.DecodeString(logoContent)
 		if err != nil {
-			return false, log.ErrorfThrottledNewErr("Error while decoding logo: %v", err)
+			return false, fmt.Errorf("Error while decoding logo: %v", err)
 		}
 
 		if !(strings.HasSuffix(strings.TrimSpace(string(decodedLogo)), "</svg>")) {
