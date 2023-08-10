@@ -33,7 +33,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 // applyIntegrationCharts applies all the integration charts for components that are enabled
-func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev event.LifecycleEvent) result.Result {
+func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event.LifecycleEvent) result.Result {
 	var retError error
 
 	// Get the chart directories
@@ -57,7 +57,7 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev event.
 		}
 		var opts = &helm.HelmReleaseOpts{
 			ReleaseName:  getReleaseName(ev.ResourceNSN.Name),
-			Namespace:    ev.,
+			Namespace:    ev.TargetNamespace,
 			ChartPath:    chartDir,
 			ChartVersion: chartInfo.Version,
 			Overrides:    []helm.HelmOverrides{},

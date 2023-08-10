@@ -19,9 +19,10 @@ import (
 type PayloadKey string
 
 const (
-	ResourceNamespaceKey PayloadKey = "moduleNamespace"
-	ResourceNameKey      PayloadKey = "moduleName"
 	ActionKey            PayloadKey = "action"
+	ResourceNamespaceKey PayloadKey = "resourceNamespace"
+	ResourceNameKey      PayloadKey = "resourceName"
+	TargetNamespaceKey   PayloadKey = "targetNamespace"
 )
 
 type Action string
@@ -47,10 +48,11 @@ type EventCustomResource struct {
 // CreateModuleEvent creates a lifecycle event for a module
 func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
 	return CreateEvent(cli, LifecycleEvent{
-		Action:        action,
-		ResourceNSN:   types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
-		ModuleName:    module.Spec.ModuleName,
-		ModuleVersion: module.Spec.Version,
+		Action:          action,
+		ResourceNSN:     types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
+		ModuleName:      module.Spec.ModuleName,
+		ModuleVersion:   module.Spec.Version,
+		TargetNamespace: module.Spec.TargetNamespace,
 	})
 }
 
@@ -66,9 +68,10 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 		// Always replace existing event data for this module-action
 		cm.Labels[constants.VerrazzanoEventLabel] = ev.ModuleName
 		cm.Data = make(map[string]string)
+		cm.Data[string(ActionKey)] = string(ev.Action)
 		cm.Data[string(ResourceNamespaceKey)] = ev.ResourceNSN.Namespace
 		cm.Data[string(ResourceNameKey)] = ev.ResourceNSN.Name
-		cm.Data[string(ActionKey)] = string(ev.Action)
+		cm.Data[string(TargetNamespaceKey)] = ev.TargetNamespace
 		return nil
 	})
 	if err != nil {
@@ -83,10 +86,11 @@ func ConfigMapToEvent(cm *corev1.ConfigMap) *LifecycleEvent {
 	if cm.Data == nil {
 		return &ev
 	}
-	ev.ResourceNSN.Name, _ = cm.Data[string(ResourceNameKey)]
-	ev.ResourceNSN.Namespace, _ = cm.Data[string(ResourceNamespaceKey)]
 	s, _ := cm.Data[string(ActionKey)]
 	ev.Action = Action(s)
+	ev.ResourceNSN.Name, _ = cm.Data[string(ResourceNameKey)]
+	ev.ResourceNSN.Namespace, _ = cm.Data[string(ResourceNamespaceKey)]
+	ev.TargetNamespace, _ = cm.Data[string(TargetNamespaceKey)]
 	return &ev
 }
 
