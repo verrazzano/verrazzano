@@ -454,19 +454,19 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 }
 
 // putServerURL updates the server-url Setting
-func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
+func putServerURL(c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
 	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
 	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting server-url Setting: %s", err.Error())
+		return fmt.Errorf("waiting to get server-url setting: %s", err.Error())
 	}
 
 	serverURLSetting.UnstructuredContent()["value"] = serverURL
 	err = c.Update(context.Background(), &serverURLSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed updating server-url Setting: %s", err.Error())
+		return fmt.Errorf("Failed updating server-url setting: %s", err.Error())
 	}
 
 	return nil
