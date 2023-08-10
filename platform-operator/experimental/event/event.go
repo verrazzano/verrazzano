@@ -65,6 +65,9 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), cli, cm, func() error {
+		if cm.Labels == nil {
+			cm.Labels = make(map[string]string)
+		}
 		// Always replace existing event data for this module-action
 		cm.Labels[constants.VerrazzanoModuleEventLabel] = ev.ModuleName
 		cm.Data = make(map[string]string)
