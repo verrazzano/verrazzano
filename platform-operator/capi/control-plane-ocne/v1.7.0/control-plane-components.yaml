@@ -3179,7 +3179,7 @@ spec:
             fieldRef:
               fieldPath: metadata.uid
         image: ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:20230810213757-2dddd56
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
             path: /healthz
