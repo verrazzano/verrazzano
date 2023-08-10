@@ -1,0 +1,38 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+{{ if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $.Release.Name }}
+  namespace: {{ $.Release.Namespace }}
+  {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+      {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
+      {{- end }}
+  {{- end }}
+  labels:
+  {{- include "keycloak.labels" $ | nindent 4 }}
+  {{- range $key, $value := .labels }}
+  {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .namespaceSelector }}
+  namespaceSelector:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: http
+  endpoints:
+    - port: {{ .port }}
+      path: {{ tpl .path $ | quote }}
+      interval: {{ .interval }}
+      scrapeTimeout: {{ .scrapeTimeout }}
+  {{- end }}
+  {{- end }}
+  {{- end }}

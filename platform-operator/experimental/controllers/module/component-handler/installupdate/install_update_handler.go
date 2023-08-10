@@ -13,6 +13,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ActionType string
@@ -203,5 +205,16 @@ func (h ComponentHandler) updateReadyConditionStartedOrFailed(ctx handlerspi.Han
 	if failed {
 		return modulestatus.UpdateReadyConditionFailed(ctx, module, reason, msg)
 	}
-	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
+	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Create an event
+	return event.CreateEvent(ctx.Client, event.LifecycleEvent{
+		Action:        event.Installed,
+		ResourceNSN:   types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
+		ModuleName:    module.Spec.ModuleName,
+		ModuleVersion: module.Spec.Version,
+	})
 }
