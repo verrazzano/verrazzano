@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gertd/go-pluralize"
@@ -82,6 +83,7 @@ const clusterProvisioner = "cluster-provisioner"
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{}
+var imageEnvVarsMutex = &sync.Mutex{}
 
 var getKubernetesClusterVersion = getKubernetesVersion
 
@@ -175,9 +177,11 @@ func NewComponent() spi.Component {
 }
 
 // initializeImageEnvVars - initialize the translation table for image names to environment variables
-func initializeImageEnvVars() error {
-	// Only initialize once
-	if len(imageEnvVars) > 0 {
+func initializeImageEnvVars(imageEnvMap map[string]string) error {
+	// Synchronize so that map is only written once
+	imageEnvVarsMutex.Lock()
+	defer imageEnvVarsMutex.Unlock()
+	if len(imageEnvMap) > 0 {
 		return nil
 	}
 
@@ -193,15 +197,15 @@ func initializeImageEnvVars() error {
 
 	for _, image := range subcomponent.Images {
 		if strings.Contains(image.ImageName, "rancher-fleet-agent") {
-			imageEnvVars[image.ImageName] = "FLEET_AGENT_IMAGE"
+			imageEnvMap[image.ImageName] = "FLEET_AGENT_IMAGE"
 		} else if strings.Contains(image.ImageName, "rancher-fleet") {
-			imageEnvVars[image.ImageName] = "FLEET_IMAGE"
+			imageEnvMap[image.ImageName] = "FLEET_IMAGE"
 		} else if strings.Contains(image.ImageName, "rancher-shell") {
-			imageEnvVars[image.ImageName] = "CATTLE_SHELL_IMAGE"
+			imageEnvMap[image.ImageName] = "CATTLE_SHELL_IMAGE"
 		} else if strings.Contains(image.ImageName, "rancher-webhook") {
-			imageEnvVars[image.ImageName] = "RANCHER_WEBHOOK_IMAGE"
+			imageEnvMap[image.ImageName] = "RANCHER_WEBHOOK_IMAGE"
 		} else if strings.Contains(image.ImageName, "rancher-gitjob") {
-			imageEnvVars[image.ImageName] = "GITJOB_IMAGE"
+			imageEnvMap[image.ImageName] = "GITJOB_IMAGE"
 		}
 	}
 	return nil
@@ -332,7 +336,7 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	images := subcomponent.Images
 
 	var envList []envVar
-	if err := initializeImageEnvVars(); err != nil {
+	if err := initializeImageEnvVars(imageEnvVars); err != nil {
 		return kvs, err
 	}
 	for _, image := range images {

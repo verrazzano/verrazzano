@@ -241,13 +241,14 @@ func TestInitializeImageEnvVars(t *testing.T) {
 
 	config.SetDefaultBomFilePath(testBomAdditionalRancherFilePath)
 
-	err := initializeImageEnvVars()
+	var imageMap = map[string]string{}
+	err := initializeImageEnvVars(imageMap)
 	a.NoError(err)
-	a.Equal("FLEET_AGENT_IMAGE", imageEnvVars["rancher-fleet-agent-test"])
-	a.Equal("FLEET_IMAGE", imageEnvVars["rancher-fleet-test"])
-	a.Equal("CATTLE_SHELL_IMAGE", imageEnvVars["rancher-shell-test"])
-	a.Equal("RANCHER_WEBHOOK_IMAGE", imageEnvVars["rancher-webhook-test"])
-	a.Equal("GITJOB_IMAGE", imageEnvVars["rancher-gitjob-test"])
+	a.Equal("FLEET_AGENT_IMAGE", imageMap["rancher-fleet-agent-test"])
+	a.Equal("FLEET_IMAGE", imageMap["rancher-fleet-test"])
+	a.Equal("CATTLE_SHELL_IMAGE", imageMap["rancher-shell-test"])
+	a.Equal("RANCHER_WEBHOOK_IMAGE", imageMap["rancher-webhook-test"])
+	a.Equal("GITJOB_IMAGE", imageMap["rancher-gitjob-test"])
 }
 
 // TestPSPEnabledOverrides verifies that pspEnabled override is added if K8s version is 1.25 or above
