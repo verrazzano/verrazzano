@@ -32,9 +32,9 @@ spec:
         summary: Thanos Receive is failing to handle requests.
       expr: |
         (
-          sum by (job) (rate(http_requests_total{code=~"5..", job=~".*thanos-receive.*", handler="receive"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(http_requests_total{code=~"5..", job=~".*thanos-receive.*", handler="receive"}[5m]))
         /
-          sum by (job) (rate(http_requests_total{job=~".*thanos-receive.*", handler="receive"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(http_requests_total{job=~".*thanos-receive.*", handler="receive"}[5m]))
         ) * 100 > 5
       for: 5m
       labels:
@@ -54,9 +54,9 @@ spec:
         summary: Thanos Receive has high HTTP requests latency.
       expr: |
         (
-          histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~".*thanos-receive.*", handler="receive"}[5m]))) > 10
+          histogram_quantile(0.99, sum by (job, le, verrazzano_cluster) (rate(http_request_duration_seconds_bucket{job=~".*thanos-receive.*", handler="receive"}[5m]))) > 10
         and
-          sum by (job) (rate(http_request_duration_seconds_count{job=~".*thanos-receive.*", handler="receive"}[5m])) > 0
+          sum by (job, verrazzano_cluster) (rate(http_request_duration_seconds_count{job=~".*thanos-receive.*", handler="receive"}[5m])) > 0
         )
       for: 10m
       labels:
@@ -79,15 +79,15 @@ spec:
           and
         (
           (
-            sum by (job) (rate(thanos_receive_replications_total{result="error", job=~".*thanos-receive.*"}[5m]))
+            sum by (job, verrazzano_cluster) (rate(thanos_receive_replications_total{result="error", job=~".*thanos-receive.*"}[5m]))
           /
-            sum by (job) (rate(thanos_receive_replications_total{job=~".*thanos-receive.*"}[5m]))
+            sum by (job, verrazzano_cluster) (rate(thanos_receive_replications_total{job=~".*thanos-receive.*"}[5m]))
           )
           >
           (
-            max by (job) (floor((thanos_receive_replication_factor{job=~".*thanos-receive.*"}+1) / 2))
+            max by (job, verrazzano_cluster) (floor((thanos_receive_replication_factor{job=~".*thanos-receive.*"}+1) / 2))
           /
-            max by (job) (thanos_receive_hashring_nodes{job=~".*thanos-receive.*"})
+            max by (job, verrazzano_cluster) (thanos_receive_hashring_nodes{job=~".*thanos-receive.*"})
           )
         ) * 100
       for: 5m
@@ -108,9 +108,9 @@ spec:
         summary: Thanos Receive is failing to forward requests.
       expr: |
         (
-          sum by (job) (rate(thanos_receive_forward_requests_total{result="error", job=~".*thanos-receive.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_receive_forward_requests_total{result="error", job=~".*thanos-receive.*"}[5m]))
         /
-          sum by (job) (rate(thanos_receive_forward_requests_total{job=~".*thanos-receive.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_receive_forward_requests_total{job=~".*thanos-receive.*"}[5m]))
         ) * 100 > 20
       for: 5m
       labels:
@@ -130,9 +130,9 @@ spec:
         summary: Thanos Receive is failing to refresh hasring file.
       expr: |
         (
-          sum by (job) (rate(thanos_receive_hashrings_file_errors_total{job=~".*thanos-receive.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_receive_hashrings_file_errors_total{job=~".*thanos-receive.*"}[5m]))
         /
-          sum by (job) (rate(thanos_receive_hashrings_file_refreshes_total{job=~".*thanos-receive.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_receive_hashrings_file_refreshes_total{job=~".*thanos-receive.*"}[5m]))
         > 0
         )
       for: 15m
@@ -151,7 +151,7 @@ spec:
         description: Thanos Receive {{`{{`}} $labels.job {{`}}`}} has not been able to reload hashring configurations.
         runbook_url: https://github.com/thanos-io/thanos/tree/main/mixin/runbook.md#alert-name-thanosreceiveconfigreloadfailure
         summary: Thanos Receive has not been able to reload configuration.
-      expr: avg by (job) (thanos_receive_config_last_reload_successful{job=~".*thanos-receive.*"}) != 1
+      expr: avg by (job, verrazzano_cluster) (thanos_receive_config_last_reload_successful{job=~".*thanos-receive.*"}) != 1
       for: 5m
       labels:
         severity: warning
@@ -170,8 +170,8 @@ spec:
         summary: Thanos Receive has not uploaded latest data to object storage.
       expr: |
         (up{job=~".*thanos-receive.*"} - 1)
-        + on (job, instance) # filters to only alert on current instance last 3h
-        (sum by (job, instance) (increase(thanos_shipper_uploads_total{job=~".*thanos-receive.*"}[3h])) == 0)
+        + on (job, instance, verrazzano_cluster) # filters to only alert on current instance last 3h
+        (sum by (job, instance, verrazzano_cluster) (increase(thanos_shipper_uploads_total{job=~".*thanos-receive.*"}[3h])) == 0)
       for: 3h
       labels:
         severity: critical

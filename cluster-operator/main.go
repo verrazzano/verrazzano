@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	v1 "k8s.io/api/rbac/v1"
 	"os"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -26,14 +27,15 @@ import (
 var (
 	scheme = runtime.NewScheme()
 
-	metricsAddr              string
-	enableLeaderElection     bool
-	probeAddr                string
-	runWebhooks              bool
-	runWebhookInit           bool
-	certDir                  string
-	ingressHost              string
-	enableQuickCreateOCIOCNE bool
+	metricsAddr                   string
+	enableLeaderElection          bool
+	probeAddr                     string
+	runWebhooks                   bool
+	runWebhookInit                bool
+	certDir                       string
+	ingressHost                   string
+	enableQuickCreateOCIOCNE      bool
+	enableCAPIRancherRegistration bool
 )
 
 func init() {
@@ -43,6 +45,7 @@ func init() {
 
 	utilruntime.Must(clustersv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(v1beta1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -82,6 +85,8 @@ func handleFlags() operatorinit.Properties {
 	flag.BoolVar(&enableQuickCreateOCIOCNE, "quick-create-oci-ocne", false, "If true, enabled Quick Create OCI OCNE Clusters")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
+	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", false,
+		"Runs the webhook initialization code")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -91,12 +96,13 @@ func handleFlags() operatorinit.Properties {
 	vzlog.InitLogs(opts)
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts)))
 	return operatorinit.Properties{
-		Scheme:                   scheme,
-		CertificateDir:           certDir,
-		MetricsAddress:           metricsAddr,
-		ProbeAddress:             probeAddr,
-		IngressHost:              ingressHost,
-		EnableLeaderElection:     enableLeaderElection,
-		EnableQuickCreateOCIOCNE: enableQuickCreateOCIOCNE,
+		Scheme:                        scheme,
+		CertificateDir:                certDir,
+		MetricsAddress:                metricsAddr,
+		ProbeAddress:                  probeAddr,
+		IngressHost:                   ingressHost,
+		EnableLeaderElection:          enableLeaderElection,
+		EnableQuickCreateOCIOCNE:      enableQuickCreateOCIOCNE,
+		EnableCAPIRancherRegistration: enableCAPIRancherRegistration,
 	}
 }

@@ -23,6 +23,7 @@ const (
 	waitTimeout            = 45 * time.Minute
 	pollingInterval        = 30 * time.Second
 	skipOCNEUpgradeMessage = "Skipping test since the kubernetes version is same for install and update operations for OCNE cluster upgrade"
+	skipRunAllTestsMessage = "Skipping test since the runAllTests flag was set to false"
 )
 
 var (
@@ -109,7 +110,10 @@ var _ = t.SynchronizedBeforeSuite(synchronizedBeforeSuiteProcess1Func, synchroni
 // Part of SynchronizedAfterSuite, run by only one process
 func synchronizedAfterSuiteProcess1Func() {
 	// Delete the clusters concurrently
-	clusterNames := [...]string{clusterNameSingleNode, clusterNameNodePool, clusterNameSingleNodeInvalid, clusterNameSingleNodeOCNEUpgrade}
+	clusterNames := []string{clusterNameSingleNode}
+	if runAllTests {
+		clusterNames = append(clusterNames, clusterNameNodePool, clusterNameSingleNodeInvalid, clusterNameSingleNodeOCNEUpgrade)
+	}
 	var wg sync.WaitGroup
 	for _, clusterName := range clusterNames {
 		if clusterName != "" {
@@ -173,6 +177,10 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		var clusterConfig RancherOCNECluster
 
 		t.BeforeAll(func() {
+			if !runAllTests {
+				Skip(skipRunAllTestsMessage)
+			}
+
 			poolName = fmt.Sprintf("pool-%s", ocneClusterNameSuffix)
 			poolReplicas = 2
 			expectedNodeCount = poolReplicas + numControlPlaneNodes
@@ -218,6 +226,12 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 	t.Context("OCNE cluster creation with single node invalid kubernetes version", Ordered, func() {
 		var clusterConfig RancherOCNECluster
 
+		t.BeforeAll(func() {
+			if !runAllTests {
+				Skip(skipRunAllTestsMessage)
+			}
+		})
+
 		t.It("create OCNE cluster", func() {
 			// Create the cluster
 			Eventually(func() error {
@@ -247,11 +261,17 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 	t.Context("OCNE cluster creation with single node with OCNE cluster upgrade", Ordered, func() {
 		var clusterConfig RancherOCNECluster
 
-		// Create the cluster
-		t.It("create OCNE cluster with the minimum OCNE supported Kubernetes version and related info", func() {
+		t.BeforeAll(func() {
+			if !runAllTests {
+				Skip(skipRunAllTestsMessage)
+			}
 			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
 				Skip(skipOCNEUpgradeMessage)
 			}
+		})
+
+		// Create the cluster
+		t.It("create OCNE cluster with the minimum OCNE supported Kubernetes version and related info", func() {
 			mutateFn := func(config *RancherOCNECluster) {
 				config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToInstall.KubernetesVersion.Original()
 				config.OciocneEngineConfig.OcneVersion = ocneMetadataItemToInstall.Release
@@ -266,9 +286,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 
 		t.It("check OCNE cluster is active with the minimum OCNE supported Kubernetes version and related info", func() {
-			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
-				Skip(skipOCNEUpgradeMessage)
-			}
 			// Verify the cluster is active
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeOCNEUpgrade, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNodeOCNEUpgrade))
@@ -280,9 +297,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 
 		// Update the cluster
 		t.It("update OCNE cluster with the maximum OCNE supported Kubernetes version and related info", func() {
-			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
-				Skip(skipOCNEUpgradeMessage)
-			}
 			Eventually(func() error {
 				mutateFn := func(config *RancherOCNECluster) {
 					config.OciocneEngineConfig.KubernetesVersion = ocneMetadataItemToUpgrade.KubernetesVersion.Original()
@@ -297,9 +311,6 @@ var _ = t.Describe("OCNE Cluster Driver", Label("f:rancher-capi:ocne-cluster-dri
 		})
 
 		t.It("check the OCNE cluster updated with the maximum OCNE supported Kubernetes version and related info", func() {
-			if !ocneMetadataItemToInstall.KubernetesVersion.LessThan(ocneMetadataItemToUpgrade.KubernetesVersion) {
-				Skip(skipOCNEUpgradeMessage)
-			}
 			Eventually(func() (bool, error) { return isClusterActive(clusterNameSingleNodeOCNEUpgrade, t.Logs) }, waitTimeout, pollingInterval).Should(
 				BeTrue(), fmt.Sprintf("cluster %s is not active", clusterNameSingleNodeOCNEUpgrade))
 			Eventually(func() error {
