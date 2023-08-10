@@ -17,14 +17,11 @@ import (
 )
 
 func TestGetVerrazzanoV1Alpha1(t *testing.T) {
-	// FIXME: make it cleaner how I create this
-	vzExpected, err := loadV1Alpha1CR(testCaseBasic)
-	assert.NoError(t, err)
-
 	ctx := context.TODO()
 
+	// FIXME: are all of these needed?
 	scheme := runtime.NewScheme()
-	err = AddToScheme(scheme)
+	err := AddToScheme(scheme)
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
@@ -32,20 +29,27 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	// create the VZ resource
-	err = client.Create(ctx, vzExpected)
+	// FIXME: better way to get these VZs than these "load..." functions?
+	// create the VZ resource. Stored as v1beta1.
+	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
+	assert.NoError(t, err)
+	err = client.Create(ctx, vzStoredV1Beta1)
 	assert.NoError(t, err)
 
-	// get the v1alpha1 VZ resource
-	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, types.NamespacedName {
+	// the expected VZ resource returned should be v1alpha1
+	vzExpected, err := loadV1Alpha1CR(testCaseBasic)
+	assert.NoError(t, err)
+	name := types.NamespacedName {
 		Name: vzExpected.Name,
 		Namespace: vzExpected.Namespace,
-	})
+	}
+
+	// get the v1alpha1 VZ resource
+	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, name)
 	assert.NoError(t, err)
 
+	// FIXME: what are all the things that should be checked here?
 	// expected and actual v1alpha1 CRs must be equal
-	assert.EqualValues(t, vzExpected.TypeMeta, vzActual.TypeMeta)
-	assert.EqualValues(t, vzExpected.ObjectMeta, vzActual.ObjectMeta)
 	assert.EqualValues(t, vzExpected.Spec, vzActual.Spec)
 	assert.EqualValues(t, vzExpected.Status, vzActual.Status)
 }
@@ -53,6 +57,7 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 func TestGetVerrazzanoV1Alpha1NotFound(t *testing.T) {
 	ctx := context.TODO()
 
+	// FIXME: are all of these needed?
 	scheme := runtime.NewScheme()
 	err := AddToScheme(scheme)
 	assert.NoError(t, err)
