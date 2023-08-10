@@ -6,7 +6,7 @@ import groovy.transform.Field
 @Field
 def SUSPECT_LIST = ""
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
+def agentLabel = "small_1_6"
 
 pipeline {
     options {

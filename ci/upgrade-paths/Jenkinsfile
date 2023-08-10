@@ -10,7 +10,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = "large_1_6"
 
 def KUBECTL = "kubectl"
 def VZ_CLI = "vz cli"
@@ -996,7 +996,7 @@ def getPlatformOperatorForRelease(){
 
         if(params.VERSION_FOR_UPGRADE == "master"){
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
-        
+
         //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
         }else if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
@@ -1972,7 +1972,7 @@ def downloadCLI() {
     script {
         sh "echo Downloading VZ CLI from object storage"
         if(VERSION_FOR_UPGRADE_ENV == "master"){
-            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
         }else{
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
         }
@@ -2033,7 +2033,7 @@ def performSourceCodeCheckout() {
             def scmInfo = checkout scm
             env.GIT_COMMIT = scmInfo.GIT_COMMIT
             env.GIT_BRANCH = scmInfo.GIT_BRANCH
-        // The master branch is checked out specifically when the upgrade target branch is master. 
+        // The master branch is checked out specifically when the upgrade target branch is master.
         // This is done to ensure the master branch upgrade test suites are run after the upgrade is completed.
         // Since the target upgrade branch is the master, then the tests run after upgrade must also be from the master branch.
         // This is here to ensure that happens.

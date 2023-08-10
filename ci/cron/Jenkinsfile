@@ -16,7 +16,7 @@ def periodicsUpToDate              = false // If true, indicates that the period
 @Field
 def periodicsUpToDateFailed        = false // If true, indicates that the periodics already ran and failed at the latest commit
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
+def agentLabel = "small_1_6"
 
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
