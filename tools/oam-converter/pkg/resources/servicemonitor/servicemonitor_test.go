@@ -15,68 +15,142 @@ import (
 )
 
 func TestCreateServiceMonitor(t *testing.T) {
-	//Create Conversion Component to house MetricsTrait
-	var input types.ConversionComponents
-	input.AppName = "test-appconf"
-	input.ComponentName = "test-component"
-	scrape := "verrazzano-system/vmi-system-prometheus-0"
 	port := 7001
 	types.InputArgs.IstioEnabled = false
-
-	//Populate MetricsTrait
-	trait := &vzapi.MetricsTrait{
-		TypeMeta: k8smeta.TypeMeta{
-			APIVersion: "oam.verrazzano.io/v1alpha1",
-			Kind:       vzapi.MetricsTraitKind,
+	scrape := "verrazzano-system/vmi-system-prometheus-0"
+	tests := []struct {
+		name        string
+		input       types.ConversionComponents
+		istioEnabled bool
+		workload	unstructured.Unstructured
+	}{
+		{
+			name:        "empty",
+			input:        types.ConversionComponents{
+				AppName: "test-appconf",
+				ComponentName: "test-component",
+				MetricsTrait: &vzapi.MetricsTrait{
+					TypeMeta: k8smeta.TypeMeta{
+						APIVersion: "oam.verrazzano.io/v1alpha1",
+						Kind:       vzapi.MetricsTraitKind,
+					},
+					ObjectMeta: k8smeta.ObjectMeta{
+						Namespace: "test-namespace",
+						Name:      "test-trait-name",
+						Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
+					},
+					Spec: vzapi.MetricsTraitSpec{
+						Scraper: &scrape,
+						Port:    &port,
+					},
+				},
+				Weblogicworkload: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "oam.verrazzano.io/v1alpha1",
+						"kind":       "VerrazzanoWebLogicWorkload",
+					},
+				},
+			},
+			istioEnabled: false,
 		},
-		ObjectMeta: k8smeta.ObjectMeta{
-			Namespace: "test-namespace",
-			Name:      "test-trait-name",
-			Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
+		{
+			name:        "helidon input",
+			input:        types.ConversionComponents{
+				AppName: "test-appconf",
+				ComponentName: "test-component",
+				MetricsTrait: &vzapi.MetricsTrait{
+					TypeMeta: k8smeta.TypeMeta{
+						APIVersion: "oam.verrazzano.io/v1alpha1",
+						Kind:       vzapi.MetricsTraitKind,
+					},
+					ObjectMeta: k8smeta.ObjectMeta{
+						Namespace: "test-namespace",
+						Name:      "test-trait-name",
+						Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
+					},
+					Spec: vzapi.MetricsTraitSpec{
+						Scraper: &scrape,
+						Port:    &port,
+					},
+				},
+				Helidonworkload: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "oam.verrazzano.io/v1alpha1",
+						"kind":       "VerrazzanoHelidonWorkload",
+					},
+				},
+			},
+			istioEnabled: false,
 		},
-		Spec: vzapi.MetricsTraitSpec{
-			Scraper: &scrape,
-			Port:    &port,
+		{
+			name:        "hello helidon",
+			input:        types.ConversionComponents{
+				AppName: "test-appconf",
+				ComponentName: "test-component",
+				MetricsTrait: &vzapi.MetricsTrait{
+					TypeMeta: k8smeta.TypeMeta{
+						APIVersion: "oam.verrazzano.io/v1alpha1",
+						Kind:       vzapi.MetricsTraitKind,
+					},
+					ObjectMeta: k8smeta.ObjectMeta{
+						Namespace: "test-namespace",
+						Name:      "test-trait-name",
+						Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
+					},
+					Spec: vzapi.MetricsTraitSpec{
+						Scraper: &scrape,
+						Port:    &port,
+					},
+				},
+				Coherenceworkload: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "oam.verrazzano.io/v1alpha1",
+						"kind":       "VerrazzanoCoherenceWorkload",
+					},
+				},
+			},
+			istioEnabled: true,
 		},
 	}
-
-	workload := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "oam.verrazzano.io/v1alpha1",
-			"kind":       "VerrazzanoHelidonWorkload",
-		},
-	}
-
-	//Populate Conversion Component
-	input.MetricsTrait = trait
-	input.Helidonworkload = workload
 	// Call the function with the sample inputs
-	serviceMonitor, err := CreateServiceMonitor(&input)
-	assert.Nil(t, err, "Unexpected error returned from CreateServiceMonitor")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T){
+			serviceMonitor, err := CreateServiceMonitor(&tt.input)
+			assert.Nil(t, err, "Unexpected error returned from CreateServiceMonitor")
+			assert.Equal(t, 1, len(serviceMonitor.Spec.Endpoints))
+			if len(serviceMonitor.Spec.Endpoints) == 0 {
+				return
+			}
+			assert.Equal(t, 10, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
+			if types.InputArgs.IstioEnabled == false {
+				assert.Equal(t, "http", serviceMonitor.Spec.Endpoints[0].Scheme)
+			} else {
+				assert.Equal(t, "https", serviceMonitor.Spec.Endpoints[0].Scheme)
+			}
 
-	assert.Equal(t, 1, len(serviceMonitor.Spec.Endpoints))
-	if len(serviceMonitor.Spec.Endpoints) == 0 {
-		return
-	}
-	//assert.Equal(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[0].Replacement, tt.info.ClusterName)
-	assert.Equal(t, 10, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
-	//if tt.info.BasicAuthSecret != nil {
-	//	assert.NotNil(t, serviceMonitor.Spec.Endpoints[0].BasicAuth)
-	//}
-	if types.InputArgs.IstioEnabled == false {
-		assert.Equal(t, "http", serviceMonitor.Spec.Endpoints[0].Scheme)
-	} else {
-		assert.Equal(t, "https", serviceMonitor.Spec.Endpoints[0].Scheme)
-	}
-	wlsWorkload, err := operator.IsWLSWorkload(workload)
-	if wlsWorkload {
-		assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
-			promoperapi.LabelName("__meta_kubernetes_pod_annotation_prometheus_io_scrape"))
-		assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
-			promoperapi.LabelName("test"))
-	} else {
-		assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
-			promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled"))
+			//check type of workload
+			var workload *unstructured.Unstructured
+			if &tt.input.Helidonworkload != nil {
+				workload = tt.input.Helidonworkload
+			} else if &tt.input.Coherenceworkload != nil {
+				workload = tt.input.Coherenceworkload
+			} else if &tt.input.Weblogicworkload != nil {
+				workload = tt.input.Weblogicworkload
+			} else{
+				workload = tt.input.Genericworkload
+			}
 
+			//check if workload is WLR or not
+			wlsWorkload, err := operator.IsWLSWorkload(workload)
+			if wlsWorkload {
+				assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
+					promoperapi.LabelName("__meta_kubernetes_pod_annotation_prometheus_io_scrape"))
+				assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
+					promoperapi.LabelName("test"))
+			} else {
+				assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
+					promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled"))
+			}
+		})
 	}
 }

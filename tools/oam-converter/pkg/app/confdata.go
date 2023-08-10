@@ -97,25 +97,9 @@ func ConfData() error {
 		return err
 	}
 
-	//Convert OAM resources of []any to []unstructured to be printed
-	var OAMResources []unstructured.Unstructured
-	for _, obj := range outputResources {
-		resource, err := ToUnstructured(obj)
-		if err != nil {
-			print("Null obj")
-		}
-		OAMResources = append(OAMResources, resource...)
-	}
-
-	//Convert non-OAM resources of []any to []unstructured to be printed
-	var nonOAMResources []unstructured.Unstructured
-	for _, obj := range otherResources {
-		resource, err := ToUnstructured(obj)
-		if err != nil {
-			print("Null obj")
-		}
-		nonOAMResources = append(nonOAMResources, resource...)
-	}
+	//Convert OAM and non-OAM resources of []any to []unstructured to be printed
+	OAMResources := convertAnytoUnstructured(outputResources)
+	nonOAMResources := convertAnytoUnstructured(otherResources)
 
 	//Write the OAM K8s child resources to the file
 	err = writeKubeResources(types.InputArgs.OutputDirectory, OAMResources)
@@ -143,6 +127,17 @@ func writeKubeResources(outputDirectory string, outputResources []unstructured.U
 	return nil
 }
 
+func convertAnytoUnstructured(anyResources []any) []unstructured.Unstructured{
+	var unstructuredResources []unstructured.Unstructured
+	for _, obj := range anyResources {
+		resource, err := ToUnstructured(obj)
+		if err != nil {
+			print("Null obj")
+		}
+		unstructuredResources = append(unstructuredResources, resource...)
+	}
+	return unstructuredResources
+}
 func writeToDirectory(outputDirectory string, index unstructured.Unstructured) error {
 	var fileName string
 	var filePath string
