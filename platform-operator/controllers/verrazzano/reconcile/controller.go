@@ -78,6 +78,19 @@ type Reconciler struct {
 
 // Struct to unmarshall the ocne clusters list
 type ocneCluster struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		Name            string `json:"name"`
+		Namespace       string `json:"namespace"`
+		ResourceVersion string `json:"resourceVersion"`
+		UID             string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		controlPlaneRef struct {
+			Kind string `json:"kind"`
+		} `json:"controlPlaneRef"`
+	} `json:"spec"`
 }
 
 // Name of finalizer
@@ -977,6 +990,11 @@ func (r *Reconciler) watchRancherGlobalDataNamespace(namespace string, name stri
 	)
 }
 
+//Watch the cattle-global-data namespace (may need to be all namespaces) for changes to secrets.
+//If a modified secret is a cloud credential (there is some metadata in cc secrets to verify...), lookup the oci ocne clusters
+//for each oci ocne cluster, check which cloud credential it is using
+//if that cluster is using the modified secret, update that cluster's copy of the cloud credential using the modified secret's data.
+
 func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
 	return r.Controller.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
@@ -988,6 +1006,7 @@ func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
 					// add watch
 					r.AddWatch(keycloak.ComponentJSONName)
 					// call a helper to get ocne clusters and then update cloud credentials if needed
+					udpateOCNEclusterCloudCreds(e.Object)
 				}
 				return false
 			},
@@ -996,7 +1015,7 @@ func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
 					// add watch
 					r.AddWatch(keycloak.ComponentJSONName)
 					// call a helper to get ocne clusters and then update cloud credentials if needed
-					//udpateOCNEclusterCloudCreds()
+					udpateOCNEclusterCloudCreds(e.ObjectNew)
 				}
 				return false
 			},
@@ -1004,7 +1023,7 @@ func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
 	)
 }
 
-func udpateOCNEclusterCloudCreds() error {
+func udpateOCNEclusterCloudCreds(o client.Object) error {
 	dynClient, err := getDynamicClient()
 	if err != nil {
 		return err
@@ -1014,17 +1033,22 @@ func udpateOCNEclusterCloudCreds() error {
 		return err
 	}
 	for _, cluster := range ocneClustersList.Items {
-		var obj ocneCluster
-		cluster2, err := cluster.MarshalJSON()
-		//fix this structure
-		if err == nil {
-			err = json.Unmarshal(cluster2, &obj)
-			//fix this obj clsuter struct
-			// fill in struct
-			// filter based on ocne kind plane
-			// if it is ocne cluster
-			// need to already have the cc it's using can i put that in the struct?
+		var ocneStruct ocneCluster
+		clusterJSON, err := cluster.MarshalJSON()
+		if err = json.Unmarshal(clusterJSON, &ocneStruct); err != nil {
+			return err
+		}
+		// filter based on ocne kind plane
+		if ocneStruct.Spec.controlPlaneRef.Kind == "OCNEControlPlane" {
+			// get its cloud credential and check if it's using the modified one
+			secret := &corev1.Secret{}
+			err = ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoMonitoringNamespace, Name: constants.ThanosInternalUserSecretName}, secret)
 			// if that cluster is using the modified secret, update that cluster's copy of the cloud credential using the modified secret's data.
+			//o.GetName() == cloudcredential.name {
+			//	update it ocne cluster's cc copy with the new one
+			//}
+			// If cluster name is "anders", then the copy will be stored in the "anders" namespace, in a secret named "anders-principal”
+
 		}
 	}
 	return nil
@@ -1041,7 +1065,7 @@ func getOCNEClustersList(dynClient dynamic.Interface) (*unstructured.Unstructure
 	return ocneClustersList, nil
 }
 
-// GetOCNEClusterAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind
+// GetOCNEClusterAPIGVRForResource returns a clusters.cluster.x-k8s.io GroupVersionResource structure for specified kind
 func GetOCNEClusterAPIGVRForResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "cluster.x-k8s.io",
@@ -1066,7 +1090,7 @@ func getDynamicClient() (dynamic.Interface, error) {
 func (r *Reconciler) isCloudCredential(o client.Object) bool {
 	secret := o.(*corev1.Secret)
 	// if secret is a cloud credential
-	if secret.Namespace == constants.VerrazzanoCAPINamespace && secret.Data["fingerprint"] != nil && secret.Data["tenancy"] != nil {
+	if secret.Data["private_key\""] != nil && secret.Data["fingerprint"] != nil && secret.Data["tenancy"] != nil {
 		return true
 	}
 	// secret is not cloud credential
