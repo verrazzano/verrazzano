@@ -125,20 +125,20 @@ func TestShouldSyncClusters(t *testing.T) {
 	}
 }
 
-// TestIsCattleClustersCRDInstalled tests the isCattleClustersCRDInstalled function
+// TestIsCattleClustersCRDInstalled tests the isCRDInstalled function
 func TestIsCattleClustersCRDInstalled(t *testing.T) {
 	asserts := assert.New(t)
 
 	// GIVEN a cluster that does not have the cattle clusters CRD installed
-	// WHEN  a call is made to isCattleClustersCRDInstalled
+	// WHEN  a call is made to isCRDInstalled
 	// THEN  the function returns false
 	client := fake.NewSimpleClientset().ApiextensionsV1()
-	isInstalled, err := isCattleClustersCRDInstalled(client)
+	isInstalled, err := isCRDInstalled(client, cattleClustersCRDName)
 	asserts.NoError(err)
 	asserts.False(isInstalled)
 
 	// GIVEN a cluster that does have the cattle clusters CRD installed
-	// WHEN  a call is made to isCattleClustersCRDInstalled
+	// WHEN  a call is made to isCRDInstalled
 	// THEN  the function returns true
 	crd := &apiextv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -146,7 +146,7 @@ func TestIsCattleClustersCRDInstalled(t *testing.T) {
 		},
 	}
 	client = fake.NewSimpleClientset(crd).ApiextensionsV1()
-	isInstalled, err = isCattleClustersCRDInstalled(client)
+	isInstalled, err = isCRDInstalled(client, cattleClustersCRDName)
 	asserts.NoError(err)
 	asserts.True(isInstalled)
 }

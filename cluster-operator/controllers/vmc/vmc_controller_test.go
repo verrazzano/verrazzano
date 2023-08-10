@@ -1384,7 +1384,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
-	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
+	regYAML, _, err := RegisterManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1461,7 +1461,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
-	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
+	regYAML, _, err = RegisterManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1539,7 +1539,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
-	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
+	regYAML, _, err = RegisterManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
