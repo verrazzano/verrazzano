@@ -35,7 +35,8 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	}
 	// If conditions exist then the module is being or has been reconciled.
 	if module.Status.Conditions != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
+		// no status update needed
+		return result.NewResult()
 	}
 
 	// Check if component is installed.  If not then status doesn't need to be updated.
@@ -45,6 +46,7 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	}
 	compStatus, ok := vzcr.Status.Components[comp.Name()]
 	if !ok {
+		// no status update needed
 		return result.NewResult()
 	}
 	var installed bool
@@ -55,6 +57,7 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 		}
 	}
 	if !installed {
+		// no status update needed
 		return result.NewResult()
 	}
 

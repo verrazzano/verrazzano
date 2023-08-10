@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"path/filepath"
 	"strings"
 
@@ -497,6 +498,11 @@ func (i istioComponent) ShouldUseModule() bool {
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (i istioComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return nil
+}
+
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (i istioComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
+	return nil, nil
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
