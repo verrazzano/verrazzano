@@ -10,14 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -220,8 +219,8 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
 					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
 					verifySettingValue(rancher.SettingUIPL, rancher.SettingUIPLValueVerrazzano, k8sClient)
-					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightLogoFilePath, k8sClient)
-					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkLogoFilePath, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightFile, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkFile, k8sClient)
 
 				}
 
@@ -246,7 +245,7 @@ var _ = t.AfterEach(func() {})
 //	WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
 //	AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
 //	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
-func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dynamic.Interface) {
+func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient dynamic.Interface) {
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
 	Eventually(func() (bool, error) {
@@ -284,17 +283,22 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 			return false, err
 		}
 
-		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
+		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64 %s/%s", rancher.SettingUILogoFolder, logoFilename)}
 		stdout, stderr, err := k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
 		if err != nil {
-			t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
-			return false, err
+			// Try pre-Rancher 2.7.5 location
+			logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64 %s/%s", rancher.SettingUILogoFolderBeforeRancher275, logoFilename)}
+			stdout, stderr, err = k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
+			if err != nil {
+				t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
+				return false, err
+			}
 		}
 
 		// Strip out any extra carriage returns
 		stdout = strings.ReplaceAll(stdout, "\r\r", "\r")
 		if stdout != logoSVG {
-			t.Logs.Errorf("Setting %s unstructured %v", logoPath, clusterData.UnstructuredContent())
+			t.Logs.Errorf("Setting %s unstructured %v", logoFilename, clusterData.UnstructuredContent())
 			t.Logs.Errorf("Got %s for Rancher UI logo path, expected %s", stdout, logoSVG)
 			return false, nil
 		}
