@@ -160,6 +160,12 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		return err
 	}
 
+	// Delete previous verrazzano-platform-operator deployments when we have successfully downloaded new one.
+	// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+	if err = DeleteFunc(client); err != nil {
+		return err
+	}
+
 	// Apply the Verrazzano operator.yaml
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")

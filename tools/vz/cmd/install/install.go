@@ -7,6 +7,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -23,9 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kube-openapi/pkg/util/proto/validation"
 	"k8s.io/kubectl/pkg/util/openapi"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 const (
@@ -222,13 +223,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 		if continuePlatformOperatorReinstall {
-			// Delete leftover verrazzano-platform-operator deployments after an abort.
-			// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
-			err = cmdhelpers.DeleteFunc(client)
-			if err != nil {
-				return err
-			}
-
 			// Apply the Verrazzano operator.yaml.
 			err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 			if err != nil {
