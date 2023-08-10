@@ -34,7 +34,7 @@ func TestClusterRegistration(t *testing.T) {
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
-	SetClusterRegistrationFunction(func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+	SetClusterRegistrationFunction(func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) (ctrl.Result, error) {
 		r.persistClusterStatus(ctx, cluster, "capi1Id", registrationCompleted)
 		return ctrl.Result{}, nil
 	})
@@ -64,7 +64,7 @@ func TestClusterUnregistration(t *testing.T) {
 			Name:      clusterName + clusterStatusSuffix,
 			Namespace: constants.VerrazzanoCAPINamespace,
 		},
-		Data: map[string][]byte{clusterIdKey: []byte("capi1Id"), clusterRegistrationStatusKey: []byte(registrationCompleted)},
+		Data: map[string][]byte{clusterIDKey: []byte("capi1Id"), clusterRegistrationStatusKey: []byte(registrationCompleted)},
 	}
 
 	cluster := newCAPICluster(clusterName)
@@ -76,7 +76,7 @@ func TestClusterUnregistration(t *testing.T) {
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
-	SetClusterUnregistrationFunction(func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) error {
+	SetClusterUnregistrationFunction(func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) error {
 		return nil
 	})
 	defer SetDefaultClusterUnregistrationFunction()

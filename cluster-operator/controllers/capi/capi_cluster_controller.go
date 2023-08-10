@@ -36,7 +36,7 @@ const (
 	finalizerName                = "verrazzano.io/capi-cluster"
 	clusterProvisionerLabel      = "cluster.verrazzano.io/provisioner"
 	clusterStatusSuffix          = "-cluster-status"
-	clusterIdKey                 = "clusterId"
+	clusterIDKey                 = "clusterId"
 	clusterRegistrationStatusKey = "clusterRegistration"
 	registrationStarted          = "started"
 	registrationCompleted        = "completed"
@@ -49,7 +49,7 @@ type CAPIClusterReconciler struct {
 	RancherIngressHost string
 }
 
-type ClusterRegistrationFnType func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error)
+type ClusterRegistrationFnType func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) (ctrl.Result, error)
 
 var clusterRegistrationFn ClusterRegistrationFnType = ensureRancherRegistration
 
@@ -61,7 +61,7 @@ func SetDefaultClusterRegistrationFunction() {
 	clusterRegistrationFn = ensureRancherRegistration
 }
 
-type ClusterUnregistrationFnType func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) error
+type ClusterUnregistrationFnType func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) error
 
 var clusterUnregistrationFn ClusterUnregistrationFnType = UnregisterRancherCluster
 
@@ -127,7 +127,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
-			if err := clusterUnregistrationFn(r, ctx, cluster); err != nil {
+			if err := clusterUnregistrationFn(ctx, r, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -158,7 +158,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if registrationCompleted != r.getClusterRegistrationStatus(ctx, cluster) {
 		// wait for kubeconfig and complete registration on workload cluster
-		if result, err := clusterRegistrationFn(r, ctx, cluster); err != nil {
+		if result, err := clusterRegistrationFn(ctx, r, cluster); err != nil {
 			return result, err
 		}
 	}
@@ -189,7 +189,7 @@ func (r *CAPIClusterReconciler) removeFinalizer(cluster *unstructured.Unstructur
 }
 
 // ensureRancherRegistration ensures that the CAPI cluster is registered with Rancher.
-func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) (ctrl.Result, error) {
 	kubeconfig, err := r.getWorkloadClusterKubeconfig(ctx, cluster)
 	if err != nil {
 		// requeue since we're waiting for cluster
@@ -202,10 +202,10 @@ func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cl
 		return ctrl.Result{}, err
 	}
 
-	clusterId := r.getClusterId(ctx, cluster)
-	registryYaml, clusterId, registryErr := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterId, log)
+	clusterID := r.getClusterID(ctx, cluster)
+	registryYaml, clusterID, registryErr := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterID, log)
 	// persist the cluster ID, if present, even if the registry yaml was not returned
-	err = r.persistClusterStatus(ctx, cluster, clusterId, registrationStarted)
+	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationStarted)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -235,7 +235,11 @@ func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cl
 		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
 		return ctrl.Result{}, err
 	}
-	err = r.persistClusterStatus(ctx, cluster, clusterId, registrationCompleted)
+	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationCompleted)
+	if err != nil {
+		r.Log.Infof("Failed to perist cluster status")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -250,17 +254,17 @@ func (r *CAPIClusterReconciler) getWorkloadClusterClient(restConfig *rest.Config
 	return client.New(restConfig, client.Options{Scheme: scheme})
 }
 
-// getClusterId returns the cluster ID assigned by Rancher for the given cluster
-func (r *CAPIClusterReconciler) getClusterId(ctx context.Context, cluster *unstructured.Unstructured) string {
-	clusterId := ""
+// getClusterID returns the cluster ID assigned by Rancher for the given cluster
+func (r *CAPIClusterReconciler) getClusterID(ctx context.Context, cluster *unstructured.Unstructured) string {
+	clusterID := ""
 
 	regStatusSecret, err := r.getClusterRegistrationStatusSecret(ctx, cluster)
 	if err != nil {
-		return clusterId
+		return clusterID
 	}
-	clusterId = string(regStatusSecret.Data[clusterIdKey])
+	clusterID = string(regStatusSecret.Data[clusterIDKey])
 
-	return clusterId
+	return clusterID
 }
 
 // getClusterRegistrationStatus returns the Rancher registration status for the cluster
@@ -278,21 +282,21 @@ func (r *CAPIClusterReconciler) getClusterRegistrationStatus(ctx context.Context
 
 // getClusterRegistrationStatusSecret returns the secret that stores cluster status information
 func (r *CAPIClusterReconciler) getClusterRegistrationStatusSecret(ctx context.Context, cluster *unstructured.Unstructured) (*v1.Secret, error) {
-	clusterIdSecret := &v1.Secret{}
+	clusterIDSecret := &v1.Secret{}
 	secretName := types.NamespacedName{
 		Namespace: constants.VerrazzanoCAPINamespace,
 		Name:      cluster.GetName() + clusterStatusSuffix,
 	}
-	err := r.Get(ctx, secretName, clusterIdSecret)
+	err := r.Get(ctx, secretName, clusterIDSecret)
 	if err != nil {
 		return nil, err
 	}
-	return clusterIdSecret, err
+	return clusterIDSecret, err
 }
 
 // persistClusterStatus stores the cluster status in the cluster status secret
-func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluster *unstructured.Unstructured, clusterId string, status string) error {
-	r.Log.Debugf("Persisting cluster %s cluster id: %s", cluster.GetName(), clusterId)
+func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluster *unstructured.Unstructured, clusterID string, status string) error {
+	r.Log.Debugf("Persisting cluster %s cluster id: %s", cluster.GetName(), clusterID)
 	clusterRegistrationStatusSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.GetName() + clusterStatusSuffix,
@@ -304,7 +308,7 @@ func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluste
 		if clusterRegistrationStatusSecret.Data == nil {
 			clusterRegistrationStatusSecret.Data = make(map[string][]byte)
 		}
-		clusterRegistrationStatusSecret.Data[clusterIdKey] = []byte(clusterId)
+		clusterRegistrationStatusSecret.Data[clusterIDKey] = []byte(clusterID)
 		clusterRegistrationStatusSecret.Data[clusterRegistrationStatusKey] = []byte(status)
 
 		return nil
@@ -360,9 +364,9 @@ func (r *CAPIClusterReconciler) GetRancherAPIResources(cluster *unstructured.Uns
 }
 
 // UnregisterRancherCluster performs the operations required to de-register the cluster from Rancher
-func UnregisterRancherCluster(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) error {
-	clusterId := r.getClusterId(ctx, cluster)
-	if len(clusterId) == 0 {
+func UnregisterRancherCluster(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) error {
+	clusterID := r.getClusterID(ctx, cluster)
+	if len(clusterID) == 0 {
 		// no cluster id found
 		return fmt.Errorf("No cluster ID found for cluster %s", cluster.GetName())
 	}
@@ -370,7 +374,7 @@ func UnregisterRancherCluster(r *CAPIClusterReconciler, ctx context.Context, clu
 	if err != nil {
 		return err
 	}
-	_, err = vmc.DeleteClusterFromRancher(rc, clusterId, log)
+	_, err = vmc.DeleteClusterFromRancher(rc, clusterID, log)
 	if err != nil {
 		log.Errorf("Unable to unregister cluster %s from Rancher: %v", cluster.GetName(), err)
 		return err
