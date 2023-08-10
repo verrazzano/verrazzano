@@ -162,7 +162,7 @@ pipeline {
         TF_VAR_os_version="${params.OCNE_OS_VERSION}"
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
-        TF_VAR_instance_shape="{shape:\"VM.Standard.E4.Flex\",ocpus:4,memory:64,boot_volume_size:88}"
+        TF_VAR_instance_shape="{shape:\"VM.Standard.E4.Flex\",ocpus:4,memory:64,boot_volume_size:100}"
         TF_VAR_bastion_shape="{shape:\"VM.Standard.E4.Flex\",ocpus:1,memory:4,boot_volume_size:50}"
         TF_VAR_load_balancer_shape="{shape:\"flexible\",flex_min:10,flex_max:50}"
         TF_VAR_provision_mode="OCNE"
