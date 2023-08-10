@@ -5,11 +5,10 @@ package integration
 
 import (
 	"context"
-	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/basecontroller"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,18 +19,16 @@ var _ controllerspi.Reconciler = Reconciler{}
 
 type Reconciler struct {
 	*basecontroller.BaseReconciler
-	ModuleControllerConfig
+	IntegrationControllerConfig
 }
 
-type ModuleControllerConfig struct {
+type IntegrationControllerConfig struct {
 	ControllerManager ctrlruntime.Manager
 	ModuleHandlerInfo handlerspi.ModuleHandlerInfo
-	ModuleClass       moduleapi.ModuleClassType
-	WatchDescriptors  []controllerspi.WatchDescriptor
 }
 
 // InitController start the  controller
-func InitController(modConfig ModuleControllerConfig) error {
+func InitController(modConfig IntegrationControllerConfig) error {
 	controller := Reconciler{}
 
 	// The config MUST contain at least the BaseReconciler.  Other spi interfaces are optional.
@@ -47,7 +44,7 @@ func InitController(modConfig ModuleControllerConfig) error {
 	controller.BaseReconciler = baseReconciler
 
 	// init other controller fields
-	controller.ModuleControllerConfig = modConfig
+	controller.IntegrationControllerConfig = modConfig
 	return nil
 }
 
@@ -65,6 +62,6 @@ func (r Reconciler) HandlePredicateEvent(cli client.Client, object client.Object
 	if cm.Labels == nil {
 		return false
 	}
-	_, ok := cm.Labels[constants.VerrazzanoEventLabel]
+	_, ok := cm.Labels[constants.VerrazzanoModuleEventLabel]
 	return ok
 }

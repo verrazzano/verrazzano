@@ -8,7 +8,7 @@ import (
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -66,7 +66,7 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 	}
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), cli, cm, func() error {
 		// Always replace existing event data for this module-action
-		cm.Labels[constants.VerrazzanoEventLabel] = ev.ModuleName
+		cm.Labels[constants.VerrazzanoModuleEventLabel] = ev.ModuleName
 		cm.Data = make(map[string]string)
 		cm.Data[string(ActionKey)] = string(ev.Action)
 		cm.Data[string(ResourceNamespaceKey)] = ev.ResourceNSN.Namespace

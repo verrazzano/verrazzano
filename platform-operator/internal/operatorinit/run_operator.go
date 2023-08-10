@@ -20,8 +20,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
-	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
+	integrationcontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration"
+	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
+	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"
@@ -122,8 +123,16 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			return errors.Wrap(err, "Failed to setup controller for module controller for the components")
 		}
 
+		if err := integrationcontroller.InitController(integrationcontroller.IntegrationControllerConfig{
+			ControllerManager: mgr,
+			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
+		}); err != nil {
+			log.Errorf("Failed to start the integration controller:%v", err)
+			return err
+		}
+
 		// init verrazzano module controller
-		if err := verrazzanomodule.InitController(mgr); err != nil {
+		if err := verrazzancontroller.InitController(mgr); err != nil {
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
 		}
@@ -253,7 +262,7 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 		// init controller
 		if err := module.InitController(module.ModuleControllerConfig{
 			ControllerManager: mgr,
-			ModuleHandlerInfo: modulehandler.NewModuleHandlerInfo(),
+			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
 			ModuleClass:       moduleapi.ModuleClassType(comp.Name()),
 			WatchDescriptors:  comp.GetWatchDescriptors(),
 		}); err != nil {
