@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -32,7 +33,12 @@ const (
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
 func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
-	module.Spec.Values = nil
+	var err error
+	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
+	if err != nil {
+		return err
+	}
+
 	module.Spec.ValuesFrom = nil
 
 	// Get component override list (either v1alpha1 or v1beta1)
@@ -116,13 +122,23 @@ func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overri
 	if overrides.Values == nil {
 		return nil
 	}
-	var mergedValues, newValues map[string]interface{}
-	if err := json.Unmarshal(module.Spec.Values.Raw, &mergedValues); err != nil {
-		return err
+
+	if module.Spec.Values == nil {
+		module.Spec.Values = &apiextensionsv1.JSON{}
 	}
+
+	mergedValues := map[string]interface{}{}
+	if module.Spec.Values.Size() > 0 {
+		if err := json.Unmarshal(module.Spec.Values.Raw, &mergedValues); err != nil {
+			return err
+		}
+	}
+
+	newValues := map[string]interface{}{}
 	if err := json.Unmarshal(overrides.Values.Raw, &newValues); err != nil {
 		return err
 	}
+
 	if err := yaml.MergeMaps(mergedValues, newValues); err != nil {
 		return err
 	}
