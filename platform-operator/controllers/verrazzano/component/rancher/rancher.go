@@ -121,7 +121,7 @@ const (
 	SettingUIPLValueVerrazzano          = "Verrazzano"
 	SettingUILogoLight                  = "ui-logo-light"
 	SettingUILogoFolderBeforeRancher275 = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images"
-	SettingUILogoFolder                 = "usr/share/rancher/ui-dashboard/dashboard/img"
+	SettingUILogoFolder                 = "/usr/share/rancher/ui-dashboard/dashboard/img"
 	SettingUILogoLightPrefix            = "verrazzano-light"
 	SettingUILogoDark                   = "ui-logo-dark"
 	SettingUILogoDarkPrefix             = "verrazzano-dark"
