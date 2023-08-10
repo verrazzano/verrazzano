@@ -5,17 +5,20 @@ package verrazzano
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulehelm "github.com/verrazzano/verrazzano-modules/pkg/helm"
 	modulelog "github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapibeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -30,7 +33,12 @@ const (
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
 func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
-	module.Spec.Values = nil
+	var err error
+	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
+	if err != nil {
+		return err
+	}
+
 	module.Spec.ValuesFrom = nil
 
 	// Get component override list (either v1alpha1 or v1beta1)
@@ -65,9 +73,9 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 
 // Set the module values or valuesFrom for a single override struct
 func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzapibeta1.Overrides, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) error {
-	if overrides.Values != nil {
-		// TODO - need to combine with existing values
-		module.Spec.Values = overrides.Values
+
+	if err := r.mergedModuleValuesOverrides(module, overrides); err != nil {
+		return err
 	}
 
 	// Copy Secret overrides to new secret and add info to the module ValuesFrom
@@ -107,6 +115,38 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 		})
 	}
 
+	return nil
+}
+
+func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzapibeta1.Overrides) error {
+	if overrides.Values == nil {
+		return nil
+	}
+
+	if module.Spec.Values == nil {
+		module.Spec.Values = &apiextensionsv1.JSON{}
+	}
+
+	mergedValues := map[string]interface{}{}
+	if module.Spec.Values.Size() > 0 {
+		if err := json.Unmarshal(module.Spec.Values.Raw, &mergedValues); err != nil {
+			return err
+		}
+	}
+
+	newValues := map[string]interface{}{}
+	if err := json.Unmarshal(overrides.Values.Raw, &newValues); err != nil {
+		return err
+	}
+
+	if err := yaml.MergeMaps(mergedValues, newValues); err != nil {
+		return err
+	}
+	mergedBytes, err := json.Marshal(mergedValues)
+	if err != nil {
+		return err
+	}
+	module.Spec.Values.Raw = mergedBytes
 	return nil
 }
 
