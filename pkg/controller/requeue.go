@@ -21,6 +21,11 @@ func ShortRequeue() ctrl.Result {
 	return NewRequeueWithDelay(2, 3, time.Second)
 }
 
+// LongRequeue returns a new Result that will cause a reconcile requeue after a long delay (2 -3 minutes)
+func LongRequeue() ctrl.Result {
+	return NewRequeueWithDelay(2, 3, time.Minute)
+}
+
 // Return true if requeue is needed
 func ShouldRequeue(r ctrl.Result) bool {
 	return r.Requeue || r.RequeueAfter > 0

@@ -36,7 +36,7 @@ const (
 )
 
 // StartClusterOperator Cluster operator execution entry point
-func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, ingressHost string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, ingressHost string, rancherRegistrationEnabled bool, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -96,7 +96,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 	}
 
 	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
-	if crdInstalled {
+	if crdInstalled && rancherRegistrationEnabled {
 		log.Infof("Starting CAPI Cluster controller")
 		if err = (&capi.CAPIClusterReconciler{
 			Client:             mgr.GetClient(),

@@ -27,13 +27,14 @@ import (
 var (
 	scheme = runtime.NewScheme()
 
-	metricsAddr          string
-	enableLeaderElection bool
-	probeAddr            string
-	runWebhooks          bool
-	runWebhookInit       bool
-	certDir              string
-	ingressHost          string
+	metricsAddr                   string
+	enableLeaderElection          bool
+	probeAddr                     string
+	runWebhooks                   bool
+	runWebhookInit                bool
+	certDir                       string
+	ingressHost                   string
+	enableCAPIRancherRegistration bool
 )
 
 func init() {
@@ -62,7 +63,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		err := operatorinit.StartClusterOperator(metricsAddr, enableLeaderElection, probeAddr, ingressHost, log, scheme)
+		err := operatorinit.StartClusterOperator(metricsAddr, enableLeaderElection, probeAddr, ingressHost, enableCAPIRancherRegistration, log, scheme)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -82,6 +83,8 @@ func handleFlags() {
 		"Runs the webhook initialization code")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
+	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", false,
+		"Runs the webhook initialization code")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)

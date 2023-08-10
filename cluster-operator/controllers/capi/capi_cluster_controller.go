@@ -9,10 +9,12 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -94,9 +96,18 @@ func (r *CAPIClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log.Infof("Reconciling CAPI cluster: %v", req.NamespacedName)
 
+	// Is Rancher available
+	err := ready.DeploymentsAreAvailable(r.Client, []types.NamespacedName{{
+		Namespace: common.CattleSystem,
+		Name:      common.RancherName,
+	}})
+	if err != nil {
+		return vzctrl.LongRequeue(), nil
+	}
+
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
-	err := r.Get(context.TODO(), req.NamespacedName, cluster)
+	err = r.Get(context.TODO(), req.NamespacedName, cluster)
 	if err != nil && !errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -312,8 +323,7 @@ func (r *CAPIClusterReconciler) getWorkloadClusterKubeconfig(ctx context.Context
 	kubeconfigSecret := &v1.Secret{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: "default"}, kubeconfigSecret)
 	if err != nil {
-		r.Log.Warn(err, "failed to obtain workload "+
-			"cluster kubeconfig resource. Re-queuing...")
+		r.Log.Warn(err, "failed to obtain workload cluster kubeconfig resource. Re-queuing...")
 		return nil, err
 	}
 	kubeconfig, ok := kubeconfigSecret.Data["value"]
