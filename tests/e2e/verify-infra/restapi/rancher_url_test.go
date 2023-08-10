@@ -284,7 +284,8 @@ func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient 
 		}
 
 		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s/%s | base64", rancher.SettingUILogoFolder, logoFilename)}
-		stdout, stderr, err := k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
+		var stdout, stderr string
+		stdout, stderr, err = k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
 		if err != nil || strings.Contains(stdout, "No such file or directory") {
 			// Try pre-Rancher 2.7.5 location
 			logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("cat %s/%s | base64", rancher.SettingUILogoFolderBeforeRancher275, logoFilename)}
