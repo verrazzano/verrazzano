@@ -143,6 +143,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(ctx, log, vz)
+	if err != nil {
+		errorCounterMetricObject.Inc()
+	}
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -150,7 +153,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		errorCounterMetricObject.Inc()
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
