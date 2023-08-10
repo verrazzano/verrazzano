@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -146,6 +147,9 @@ func CreateOrUpdateEffectiveConfigCM(ctx context.Context, c client.Client, vz *i
 		effCRConfigmap.Data = map[string]string{effConfigKey: string(effCRSpecs)}
 		return nil
 	})
+	if k8serrors.IsAlreadyExists(err) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("failed to Create or Update the configmap: %v", err)
 	}
