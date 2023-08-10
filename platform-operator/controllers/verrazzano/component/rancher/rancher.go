@@ -105,40 +105,42 @@ const (
 )
 
 const (
-	CAPIMutatingWebhook               = "mutating-webhook-configuration"
-	CAPIValidatingWebhook             = "validating-webhook-configuration"
-	SettingServerURL                  = "server-url"
-	KontainerDriverOKE                = "oraclecontainerengine"
-	ClusterLocal                      = "local"
-	AuthConfigLocal                   = "local"
-	ClusterKind                       = "Cluster"
-	ProviderCattleIoLabel             = "provider.cattle.io"
-	UserVerrazzano                    = "u-verrazzano"
-	UsernameVerrazzano                = "verrazzano"
-	UserVerrazzanoDescription         = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzanoPrefix = "grb-"
-	SettingUIPL                       = "ui-pl"
-	SettingUIPLValueVerrazzano        = "Verrazzano"
-	SettingUILogoLight                = "ui-logo-light"
-	SettingUILogoLightLogoFilePath    = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
-	SettingUILogoDark                 = "ui-logo-dark"
-	SettingUILogoDarkLogoFilePath     = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
-	SettingUILogoValueprefix          = "data:image/svg+xml;base64,"
-	SettingUIPrimaryColor             = "ui-primary-color"
-	SettingUIPrimaryColorValue        = "rgb(48, 99, 142)"
-	SettingUILinkColor                = "ui-link-color"
-	SettingUILinkColorValue           = "rgb(49, 118, 217)"
-	SettingUIBrand                    = "ui-brand"
-	SettingUIBrandValue               = "verrazzano"
-	SettingCACerts                    = "cacerts"
-	SettingAuthResyncCron             = "auth-user-info-resync-cron"
-	SettingAuthMaxAge                 = "auth-user-info-max-age-seconds"
-	SettingAuthTTL                    = "auth-user-session-ttl-minutes"
-	SettingKubeDefaultTokenTTL        = "kubeconfig-default-token-ttl-minutes" //nolint:gosec //#gosec G101
-	SettingAuthResyncCronValue        = "*/15 * * * *"
-	SettingAuthMaxAgeValue            = "600"
-	SettingAuthTTLValue               = "540"
-	SettingKubeDefaultTokenTTLValue   = "540"
+	CAPIMutatingWebhook                 = "mutating-webhook-configuration"
+	CAPIValidatingWebhook               = "validating-webhook-configuration"
+	SettingServerURL                    = "server-url"
+	KontainerDriverOKE                  = "oraclecontainerengine"
+	ClusterLocal                        = "local"
+	AuthConfigLocal                     = "local"
+	ClusterKind                         = "Cluster"
+	ProviderCattleIoLabel               = "provider.cattle.io"
+	UserVerrazzano                      = "u-verrazzano"
+	UsernameVerrazzano                  = "verrazzano"
+	UserVerrazzanoDescription           = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzanoPrefix   = "grb-"
+	SettingUIPL                         = "ui-pl"
+	SettingUIPLValueVerrazzano          = "Verrazzano"
+	SettingUILogoLight                  = "ui-logo-light"
+	SettingUILogoFolderBeforeRancher275 = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images"
+	SettingUILogoFolder                 = "usr/share/rancher/ui-dashboard/dashboard/img"
+	SettingUILogoLightPrefix            = "verrazzano-light"
+	SettingUILogoDark                   = "ui-logo-dark"
+	SettingUILogoDarkPrefix             = "verrazzano-dark"
+	SettingUILogoValueprefix            = "data:image/svg+xml;base64,"
+	SettingUIPrimaryColor               = "ui-primary-color"
+	SettingUIPrimaryColorValue          = "rgb(48, 99, 142)"
+	SettingUILinkColor                  = "ui-link-color"
+	SettingUILinkColorValue             = "rgb(49, 118, 217)"
+	SettingUIBrand                      = "ui-brand"
+	SettingUIBrandValue                 = "verrazzano"
+	SettingCACerts                      = "cacerts"
+	SettingAuthResyncCron               = "auth-user-info-resync-cron"
+	SettingAuthMaxAge                   = "auth-user-info-max-age-seconds"
+	SettingAuthTTL                      = "auth-user-session-ttl-minutes"
+	SettingKubeDefaultTokenTTL          = "kubeconfig-default-token-ttl-minutes" //nolint:gosec //#gosec G101
+	SettingAuthResyncCronValue          = "*/15 * * * *"
+	SettingAuthMaxAgeValue              = "600"
+	SettingAuthTTLValue                 = "540"
+	SettingKubeDefaultTokenTTLValue     = "540"
 )
 
 // auth config
@@ -646,7 +648,7 @@ func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
 }
 
 // createOrUpdateUILogoSetting updates the ui-logo-* settings
-func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoPath string) error {
+func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoFilePrefix string) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
@@ -659,12 +661,22 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 		return err
 	}
 
-	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s", logoPath)}
-	// The api request to pod was seen to be returining only first few bytes of the logo content,
+	// The location of the logo files changed starting with Rancher 2.7.5.  First look for the logo file
+	// in the new location.  If not found there, check the old location.
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s*.svg", SettingUILogoFolder, logoFilePrefix)}
+	// The api request to pod was seen to be returning only first few bytes of the logo content,
 	// therefore we retry a few times until we get valid logo content which will be a svg
 	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
+
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoPath, err.Error())
+		// Try the pre-Rancher 2.7.5 location
+		logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s*.svg", SettingUILogoFolderBeforeRancher275, logoFilePrefix)}
+		// The api request to pod was seen to be returning only first few bytes of the logo content,
+		// therefore we retry a few times until we get valid logo content which will be a svg
+		logoContent, err = getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
+		if err != nil {
+			return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoFilePrefix, err.Error())
+		}
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, logoContent)})
