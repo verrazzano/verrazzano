@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,7 +27,7 @@ const (
 // GIVEN a CAPI cluster resource is created
 // WHEN  the reconciler runs
 // THEN  a rancher registration and associated artifacts are created
-func TestSuccessfulRegistration(t *testing.T) {
+func TestClusterRegistration(t *testing.T) {
 	asserts := assert.New(t)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName)).Build()
@@ -42,7 +43,6 @@ func TestSuccessfulRegistration(t *testing.T) {
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
 
-	// expect that a VMC was created and that the cluster id is set in the status
 	clusterRegistrationSecret := &v1.Secret{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, clusterRegistrationSecret)
 	asserts.Equal(registrationCompleted, string(clusterRegistrationSecret.Data[clusterRegistrationStatusKey]))
@@ -51,6 +51,46 @@ func TestSuccessfulRegistration(t *testing.T) {
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
 	asserts.Equal(finalizerName, cluster.GetFinalizers()[0])
 	asserts.NoError(err)
+}
+
+// GIVEN a CAPI cluster resource is deleted
+// WHEN  the reconciler runs
+// THEN  a rancher registration and associated artifacts are removed
+func TestClusterUnregistration(t *testing.T) {
+	asserts := assert.New(t)
+
+	clusterRegistrationSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName + clusterStatusSuffix,
+			Namespace: constants.VerrazzanoCAPINamespace,
+		},
+		Data: map[string][]byte{clusterIdKey: []byte("capi1Id"), clusterRegistrationStatusKey: []byte(registrationCompleted)},
+	}
+
+	cluster := newCAPICluster(clusterName)
+	now := metav1.Now()
+	cluster.SetDeletionTimestamp(&now)
+	cluster.SetFinalizers([]string{finalizerName})
+
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, clusterRegistrationSecret).Build()
+	reconciler := newCAPIClusterReconciler(fakeClient)
+	request := newRequest(clusterName)
+
+	SetClusterUnregistrationFunction(func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) error {
+		return nil
+	})
+	defer SetDefaultClusterUnregistrationFunction()
+
+	_, err := reconciler.Reconcile(context.TODO(), request)
+	asserts.NoError(err)
+
+	remainingSecret := &v1.Secret{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, remainingSecret)
+	asserts.Error(err)
+	deletedCluster := &unstructured.Unstructured{}
+	deletedCluster.SetGroupVersionKind(gvk)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, deletedCluster)
+	asserts.Error(err)
 }
 
 func newScheme() *runtime.Scheme {

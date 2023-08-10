@@ -59,6 +59,18 @@ func SetDefaultClusterRegistrationFunction() {
 	clusterRegistrationFn = ensureRancherRegistration
 }
 
+type ClusterUnregistrationFnType func(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) error
+
+var clusterUnregistrationFn ClusterUnregistrationFnType = UnregisterRancherCluster
+
+func SetClusterUnregistrationFunction(f ClusterUnregistrationFnType) {
+	clusterUnregistrationFn = f
+}
+
+func SetDefaultClusterUnregistrationFunction() {
+	clusterUnregistrationFn = UnregisterRancherCluster
+}
+
 var gvk = schema.GroupVersionKind{
 	Group:   "cluster.x-k8s.io",
 	Version: "v1beta1",
@@ -104,7 +116,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
-			if err := r.UnregisterRancherCluster(ctx, cluster); err != nil {
+			if err := clusterUnregistrationFn(r, ctx, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -119,8 +131,10 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 		err = r.Delete(ctx, clusterRegistrationStatusSecret)
-		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, err
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
 		}
 
 		return ctrl.Result{}, nil
@@ -336,7 +350,7 @@ func (r *CAPIClusterReconciler) GetRancherAPIResources(cluster *unstructured.Uns
 }
 
 // UnregisterRancherCluster performs the operations required to de-register the cluster from Rancher
-func (r *CAPIClusterReconciler) UnregisterRancherCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
+func UnregisterRancherCluster(r *CAPIClusterReconciler, ctx context.Context, cluster *unstructured.Unstructured) error {
 	clusterId := r.getClusterId(ctx, cluster)
 	if len(clusterId) == 0 {
 		// no cluster id found
