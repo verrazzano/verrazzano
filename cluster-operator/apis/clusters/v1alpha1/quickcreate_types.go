@@ -24,11 +24,11 @@ type (
 		// +patchMergeKey=name
 		// +patchStrategy=merge,retainKeys
 		Name          string  `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
-		Shape         *string `json:"shape"`
+		Shape         *string `json:"shape,omitempty"`
 		OCPUs         *int    `json:"ocpus,omitempty"`
 		MemoryGbs     *int    `json:"memoryGbs,omitempty"`
-		BootVolumeGbs *int    `json:"bootVolumeGbs"`
-		Replicas      *int    `json:"replicas"`
+		BootVolumeGbs *int    `json:"bootVolumeGbs,omitempty"`
+		Replicas      *int    `json:"replicas,omitempty"`
 	}
 
 	Subnets struct {
