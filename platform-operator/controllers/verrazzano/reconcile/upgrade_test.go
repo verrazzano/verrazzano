@@ -7,9 +7,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -23,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -45,6 +43,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -78,8 +77,6 @@ var jaegerEnabled = true
 // WHEN a verrazzano version is empty
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
-	metricsexporter.Init()
-
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -877,8 +874,6 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 // WHEN the component upgrades normally
 // THEN no error is returned and the correct spi.Component upgrade methods have been returned
 func TestUpgradeComponent(t *testing.T) {
-	metricsexporter.Init()
-
 	initUnitTesing()
 	// Need to use real component name since upgrade loops through registry
 	componentName := oam.ComponentName
@@ -991,8 +986,6 @@ func TestUpgradeComponent(t *testing.T) {
 // WHEN the component fails to upgrade since a status other than "deployed" exists
 // THEN the offending secret is deleted so the upgrade can proceed
 func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
-	metricsexporter.Init()
-
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -1090,8 +1083,6 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 // WHEN where one component is enabled and another is disabled
 // THEN the upgrade completes normally and the correct spi.Component upgrade methods have not been invoked for the disabled component
 func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
-	metricsexporter.Init()
-
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"

@@ -7,10 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"sync"
 	"testing"
 	"time"
@@ -26,7 +23,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -63,6 +62,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/yaml"
 )
 
 // For unit testing
@@ -92,6 +92,10 @@ func (nm nsMatcher) Matches(i interface{}) bool {
 
 func (nsMatcher) String() string {
 	return "namespace matcher"
+}
+
+func init() {
+	metricsexporter.Init()
 }
 
 // TestGetClusterRoleBindingName tests generating a ClusterRoleBinding name
@@ -132,7 +136,6 @@ func TestGetUninstallJobName(t *testing.T) {
 //
 //	ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
-	metricsexporter.Init()
 	tests := []struct {
 		namespace string
 		name      string
@@ -638,7 +641,6 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
-	metricsexporter.Init()
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -760,8 +762,6 @@ func setFakeComponentsDisabled() {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
-	metricsexporter.Init()
-
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
