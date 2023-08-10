@@ -23,6 +23,8 @@ const (
 	ResourceNamespaceKey PayloadKey = "resourceNamespace"
 	ResourceNameKey      PayloadKey = "resourceName"
 	TargetNamespaceKey   PayloadKey = "targetNamespace"
+	ModuleNameKey        PayloadKey = "moduleName"
+	ModuleVersionKey     PayloadKey = "moduleVersion"
 )
 
 type Action string
@@ -60,7 +62,7 @@ func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Actio
 func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getResourceName(ev.ResourceNSN.Name, string(ev.Action)),
+			Name:      getEventResourceName(ev.ResourceNSN.Name, string(ev.Action)),
 			Namespace: ev.ResourceNSN.Namespace,
 		},
 	}
@@ -72,6 +74,8 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 		cm.Labels[constants.VerrazzanoModuleEventLabel] = ev.ModuleName
 		cm.Data = make(map[string]string)
 		cm.Data[string(ActionKey)] = string(ev.Action)
+		cm.Data[string(ModuleNameKey)] = ev.ModuleName
+		cm.Data[string(ModuleVersionKey)] = ev.ModuleVersion
 		cm.Data[string(ResourceNamespaceKey)] = ev.ResourceNSN.Namespace
 		cm.Data[string(ResourceNameKey)] = ev.ResourceNSN.Name
 		cm.Data[string(TargetNamespaceKey)] = ev.TargetNamespace
@@ -91,12 +95,14 @@ func ConfigMapToEvent(cm *corev1.ConfigMap) *LifecycleEvent {
 	}
 	s, _ := cm.Data[string(ActionKey)]
 	ev.Action = Action(s)
+	ev.ModuleName, _ = cm.Data[string(ModuleNameKey)]
+	ev.ModuleVersion, _ = cm.Data[string(ModuleVersionKey)]
 	ev.ResourceNSN.Name, _ = cm.Data[string(ResourceNameKey)]
 	ev.ResourceNSN.Namespace, _ = cm.Data[string(ResourceNamespaceKey)]
 	ev.TargetNamespace, _ = cm.Data[string(TargetNamespaceKey)]
 	return &ev
 }
 
-func getResourceName(name string, action string) string {
-	return fmt.Sprintf("%s-%s", name, action)
+func getEventResourceName(name string, action string) string {
+	return fmt.Sprintf("event-%s-%s", name, action)
 }
