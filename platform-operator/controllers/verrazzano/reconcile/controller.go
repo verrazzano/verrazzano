@@ -93,9 +93,6 @@ var systemNamespaceLabels = map[string]string{
 // Set to true during unit testing
 var unitTesting bool
 
-// Set to true for a unit test that skips testing reconcileComponents
-var unitTestSkipReconcile bool
-
 // Reconcile the Verrazzano CR
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
@@ -346,9 +343,9 @@ func (r *Reconciler) ProcReconcilingState(vzctx vzcontext.VerrazzanoContext) (ct
 
 	// if this is a unit test where we don't need to test reconcile,
 	// then just return
-	if unitTesting && unitTestSkipReconcile {
+	/*if unitTesting && unitTestSkipReconcile {
 		return ctrl.Result{}, nil
-	}
+	}*/
 
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
