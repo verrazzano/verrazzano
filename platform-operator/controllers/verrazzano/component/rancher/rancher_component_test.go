@@ -1341,11 +1341,11 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
-			if strings.Contains(commands[2], fmt.Sprintf("base64 %s", SettingUILogoDarkLogoFilePath)) {
+			if strings.Contains(commands[2], fmt.Sprintf("base64 %s/%s*.svg", SettingUILogoFolder, SettingUILogoDarkPrefix)) {
 				return base64.StdEncoding.EncodeToString([]byte("<svg>dark</svg>")), "", nil
 			}
 
-			if strings.Contains(commands[2], fmt.Sprintf("base64 %s", SettingUILogoLightLogoFilePath)) {
+			if strings.Contains(commands[2], fmt.Sprintf("base64 %s/%s*.svg", SettingUILogoFolder, SettingUILogoLightPrefix)) {
 				return base64.StdEncoding.EncodeToString([]byte("<svg>light</svg>")), "", nil
 			}
 
