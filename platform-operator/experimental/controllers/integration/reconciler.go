@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"os"
-	"path/filepath"
+	"path"
 )
 
 // Reconcile reconciles the Verrazzano CR
@@ -37,14 +37,32 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 	var retError error
 
 	// Get the chart directories
-	chartDirs, err := getChartDirs(config.GetIntegrationChartsDir())
+	itegrationChartsDir := config.GetIntegrationChartsDir()
+
+	// Nothing to do if an integration chart doesn't exist for this module
+	moduleChartDir := path.Join(itegrationChartsDir, ev.ModuleName)
+	_, err := os.Stat(moduleChartDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return result.NewResult()
+		}
+		log.ErrorfThrottled("Failed to check if integration chart exists for module %s: %v", ev.ModuleName, err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Get the chart directories
+	chartDirs, err := os.ReadDir(itegrationChartsDir)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	// Do helm install of all integration charts
 	for _, chartDir := range chartDirs {
-		chartInfo, err := helm.GetChartInfo(chartDir)
+		if !chartDir.IsDir() {
+			continue
+		}
+		chartDirFull := path.Join(itegrationChartsDir, chartDir.Name())
+		chartInfo, err := helm.GetChartInfo(chartDirFull)
 		if err != nil {
 			log.ErrorfThrottled("Failed to read Chart.yaml for chart %s", chartDir)
 			return result.NewResultShortRequeueDelayWithError(err)
@@ -58,7 +76,7 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 		var opts = &helm.HelmReleaseOpts{
 			ReleaseName:  getReleaseName(ev.ResourceNSN.Name),
 			Namespace:    ev.TargetNamespace,
-			ChartPath:    chartDir,
+			ChartPath:    chartDirFull,
 			ChartVersion: chartInfo.Version,
 			Overrides:    []helm.HelmOverrides{},
 		}
@@ -77,27 +95,9 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 
 // deleteIntegrationRelease deletes the integration release
 func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev event.LifecycleEvent) result.Result {
-
 	return result.NewResult()
 }
 
-// getChartDirs returns the directory names of all the integration changes for files that match a regular expression.
-func getChartDirs(rootDirectory string) ([]string, error) {
-	chartDirs := []string{}
-	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
-		if !fileInfo.IsDir() {
-			chartDirs = append(chartDirs, fileName)
-		}
-		return nil
-	}
-
-	err := filepath.Walk(rootDirectory, walkFunc)
-	if err != nil {
-		return nil, err
-	}
-	return chartDirs, err
-}
-
 func getReleaseName(moduleName string) string {
-	return fmt.Sprintf("%s-%s", moduleName, "-integration")
+	return fmt.Sprintf("%s-%s", moduleName, "integration")
 }

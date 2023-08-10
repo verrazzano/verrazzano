@@ -5,34 +5,34 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ $.Release.Name }}
-  namespace: {{ $.Release.Namespace }}
-  {{- end }}
-  {{- with .annotations }}
-  annotations:
-    {{- range $key, $value := . }}
-      {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
-      {{- end }}
-  {{- end }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+labels:
   labels:
-  {{- include "keycloak.labels" $ | nindent 4 }}
-  {{- range $key, $value := .labels }}
-  {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
-  {{- end }}
+    app: .Chart.Name
+    app.kubernetes.io/name: .Chart.Name
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: "controller"
+    prometheus: {{ .Values.prometheus.servicemonitor.prometheusInstance }}
+    {{- with .Values.prometheus.servicemonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
-  {{- with .namespaceSelector }}
-  namespaceSelector:
-  {{- toYaml . | nindent 4 }}
-  {{- end }}
+  jobLabel: {{ template "cert-manager.fullname" . }}
   selector:
     matchLabels:
-      {{- include "keycloak.selectorLabels" $ | nindent 6 }}
-      app.kubernetes.io/component: http
-  endpoints:
-    - port: {{ .port }}
-      path: {{ tpl .path $ | quote }}
-      interval: {{ .interval }}
-      scrapeTimeout: {{ .scrapeTimeout }}
+      app.kubernetes.io/name: {{ template "cert-manager.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: "controller"
+  {{- if .Values.prometheus.servicemonitor.namespace }}
+namespaceSelector:
+  matchNames:
+    - {{ include "cert-manager.namespace" . }}
   {{- end }}
-  {{- end }}
-  {{- end }}
+endpoints:
+  - targetPort: {{ .Values.prometheus.servicemonitor.targetPort }}
+    path: {{ .Values.prometheus.servicemonitor.path }}
+    interval: {{ .Values.prometheus.servicemonitor.interval }}
+    scrapeTimeout: {{ .Values.prometheus.servicemonitor.scrapeTimeout }}
+    honorLabels: {{ .Values.prometheus.servicemonitor.honorLabels }}
+{{- end }}
