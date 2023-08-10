@@ -85,12 +85,10 @@ func TestClusterUnregistration(t *testing.T) {
 	asserts.NoError(err)
 
 	remainingSecret := &v1.Secret{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, remainingSecret)
-	asserts.Error(err)
+	asserts.Error(fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, remainingSecret))
 	deletedCluster := &unstructured.Unstructured{}
 	deletedCluster.SetGroupVersionKind(gvk)
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, deletedCluster)
-	asserts.Error(err)
+	asserts.Error(fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, deletedCluster))
 }
 
 func newScheme() *runtime.Scheme {
