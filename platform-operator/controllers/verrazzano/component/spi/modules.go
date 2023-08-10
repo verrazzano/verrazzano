@@ -30,6 +30,9 @@ type VerrazzanoValuesConfig struct {
 // Module instance.  Eventually this wrapper can be used to divorce the Module impls from the Verrazzano CR and
 // Effective CR.
 func NewModuleConfigHelmValuesWrapper(configObject interface{}) (*apiextensionsv1.JSON, error) {
+	if configObject == nil {
+		return &apiextensionsv1.JSON{}, nil
+	}
 	modSpec := &VerrazzanoValuesConfig{
 		Verrazzano: VerrazzanoValues{
 			Module: ModuleValuesSection{
