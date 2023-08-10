@@ -6,6 +6,9 @@ package opensearchoperator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -174,6 +177,40 @@ func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error
 		return err
 	}
 	return nil
+}
+
+func (o opensearchOperatorComponent) PreUninstall(ctx spi.ComponentContext) error {
+	restConfig, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return err
+	}
+	client, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchclusters",
+		Version:  "v1",
+	}
+	err = client.Resource(gvr).Namespace(ComponentNamespace).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
+	return err
+}
+
+func (o opensearchOperatorComponent) Uninstall(ctx spi.ComponentContext) error {
+	nodes, err := GetMergedNodePools(ctx)
+	if err != nil {
+		return err
+	}
+	for _, node := range nodes {
+		stsName := fmt.Sprintf("%s-%s", clusterName, node.Component)
+		ok, err := ready.DoesStatefulsetExist(ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace, Name: stsName})
+		if ok || err != nil {
+			return fmt.Errorf("Waiting for sts %s in %s to be deleted", stsName, ComponentNamespace)
+		}
+	}
+	return o.HelmComponent.Uninstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
