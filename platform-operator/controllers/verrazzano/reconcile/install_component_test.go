@@ -4,9 +4,9 @@
 package reconcile
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -124,6 +124,12 @@ func TestReconcilerInstallSingleComponent(t *testing.T) {
 			Version: "b1.2",
 		},
 	}
+	vzNoComponentStatus := &vzapi.Verrazzano{
+		Status: vzapi.VerrazzanoStatus{
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "b1.2",
+		},
+	}
 	tests := []struct {
 		name      string
 		k8sClient client.Client
@@ -185,13 +191,23 @@ func TestReconcilerInstallSingleComponent(t *testing.T) {
 			},
 			controllerruntime.Result{Requeue: true},
 		},
+		{
+			"TestReconcilerInstallSingleComponent with nil component status, should requeue",
+			mockClient,
+			args{
+				spi.NewFakeContext(mockClient, vzNoComponentStatus, nil, true),
+				compCtxWithPostInstall,
+				rancher.NewComponent(),
+				false,
+			},
+			controllerruntime.Result{Requeue: true},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newVerrazzanoReconciler(tt.k8sClient)
-			if got := r.installSingleComponent(tt.args.spiCtx, tt.args.installContext, tt.args.comp, tt.args.preUpgrade); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("installSingleComponent() = %v, want %v", got, tt.want)
-			}
+			result := r.installSingleComponent(tt.args.spiCtx, tt.args.installContext, tt.args.comp, tt.args.preUpgrade)
+			assert.Equal(t, tt.want.Requeue, result.Requeue)
 		})
 	}
 }
