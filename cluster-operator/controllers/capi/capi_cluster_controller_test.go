@@ -7,7 +7,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -30,7 +32,18 @@ const (
 func TestClusterRegistration(t *testing.T) {
 	asserts := assert.New(t)
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName)).Build()
+	rancherDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      common.RancherName,
+			Namespace: common.CattleSystem,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:      1,
+			ReadyReplicas: 1,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName), rancherDeployment).Build()
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
@@ -45,12 +58,13 @@ func TestClusterRegistration(t *testing.T) {
 
 	clusterRegistrationSecret := &v1.Secret{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, clusterRegistrationSecret)
+	asserts.NoError(err)
 	asserts.Equal(registrationCompleted, string(clusterRegistrationSecret.Data[clusterRegistrationStatusKey]))
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
-	asserts.Equal(finalizerName, cluster.GetFinalizers()[0])
 	asserts.NoError(err)
+	asserts.Equal(finalizerName, cluster.GetFinalizers()[0])
 }
 
 // GIVEN a CAPI cluster resource is deleted
@@ -58,6 +72,17 @@ func TestClusterRegistration(t *testing.T) {
 // THEN  a rancher registration and associated artifacts are removed
 func TestClusterUnregistration(t *testing.T) {
 	asserts := assert.New(t)
+
+	rancherDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      common.RancherName,
+			Namespace: common.CattleSystem,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:      1,
+			ReadyReplicas: 1,
+		},
+	}
 
 	clusterRegistrationSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,7 +97,7 @@ func TestClusterUnregistration(t *testing.T) {
 	cluster.SetDeletionTimestamp(&now)
 	cluster.SetFinalizers([]string{finalizerName})
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, clusterRegistrationSecret).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, rancherDeployment, clusterRegistrationSecret).Build()
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
