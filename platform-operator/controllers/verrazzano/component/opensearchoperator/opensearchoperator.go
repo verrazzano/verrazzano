@@ -4,16 +4,19 @@
 package opensearchoperator
 
 import (
+	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,6 +42,26 @@ var (
 
 	dashboardDeployment        = fmt.Sprintf("%s-dashboards", clusterName)
 	GetControllerRuntimeClient = GetClient
+
+	clusterGVR = schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchclusters",
+		Version:  "v1",
+	}
+
+	roleGVR = schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchroles",
+		Version:  "v1",
+	}
+
+	rolesMappingGVR = schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchuserrolebindings",
+		Version:  "v1",
+	}
+
+	gvrList = []schema.GroupVersionResource{clusterGVR, roleGVR, rolesMappingGVR}
 )
 
 // isReady checks if all the sts and deployments for OpenSearch are ready or not
@@ -62,6 +85,52 @@ func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
 	}
 	deployments := getEnabledDeployments(ctx)
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, getPrefix(ctx))
+}
+
+// deleteRelatedResource deletes the resources handled by the opensearchOperator
+// Like OpenSearchRoles, OpenSearchUserRolesBindings
+// Since the operator adds a finalizer to these resources, they need to deleted before the operator is uninstalled
+func (o opensearchOperatorComponent) deleteRelatedResource() error {
+	client, err := pkg.GetDynamicClient()
+	if err != nil {
+		return err
+	}
+
+	for _, gvr := range gvrList {
+		resourceClient := client.Resource(gvr)
+		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		for _, obj := range objList.Items {
+			err = resourceClient.Namespace(ComponentNamespace).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// areRelatedResourcesDeleted checks if the related resources are deleted or not
+func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
+	client, err := pkg.GetDynamicClient()
+	if err != nil {
+		return err
+	}
+
+	for _, gvr := range gvrList {
+		resourceClient := client.Resource(gvr)
+		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+		if len(objList.Items) > 0 {
+			return fmt.Errorf("waiting for all %s to be deleted", gvr.String())
+		}
+	}
+	return nil
 }
 
 // GetMergedNodePools returns the effective list of node pools
