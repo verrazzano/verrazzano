@@ -7,9 +7,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	goerrors "errors"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"strings"
 	"sync"
 	"time"
@@ -70,6 +74,10 @@ type Reconciler struct {
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
 	StatusUpdater     vzstatus.Updater
+}
+
+// Struct to unmarshall the ocne clusters list
+type ocneCluster struct {
 }
 
 // Name of finalizer
@@ -967,6 +975,102 @@ func (r *Reconciler) watchRancherGlobalDataNamespace(namespace string, name stri
 			},
 		},
 	)
+}
+
+func (r *Reconciler) watchCloudCredential(namespace string, name string) error {
+	return r.Controller.Watch(
+		&source.Kind{Type: &corev1.Secret{}},
+		createReconcileEventHandler(namespace, name),
+		// Reconcile if there is an event related to the registration secret
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				if r.isCloudCredential(e.Object) {
+					// add watch
+					r.AddWatch(keycloak.ComponentJSONName)
+					// call a helper to get ocne clusters and then update cloud credentials if needed
+				}
+				return false
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				if r.isCloudCredential(e.ObjectNew) {
+					// add watch
+					r.AddWatch(keycloak.ComponentJSONName)
+					// call a helper to get ocne clusters and then update cloud credentials if needed
+					//udpateOCNEclusterCloudCreds()
+				}
+				return false
+			},
+		},
+	)
+}
+
+func udpateOCNEclusterCloudCreds() error {
+	dynClient, err := getDynamicClient()
+	if err != nil {
+		return err
+	}
+	ocneClustersList, err := getOCNEClustersList(dynClient)
+	if err != nil {
+		return err
+	}
+	for _, cluster := range ocneClustersList.Items {
+		var obj ocneCluster
+		cluster2, err := cluster.MarshalJSON()
+		//fix this structure
+		if err == nil {
+			err = json.Unmarshal(cluster2, &obj)
+			//fix this obj clsuter struct
+			// fill in struct
+			// filter based on ocne kind plane
+			// if it is ocne cluster
+			// need to already have the cc it's using can i put that in the struct?
+			// if that cluster is using the modified secret, update that cluster's copy of the cloud credential using the modified secret's data.
+		}
+	}
+	return nil
+}
+
+// getOCNEClustersList returns the list of OCNE clusters
+func getOCNEClustersList(dynClient dynamic.Interface) (*unstructured.UnstructuredList, error) {
+	var ocneClustersList *unstructured.UnstructuredList
+	gvr := GetOCNEClusterAPIGVRForResource("clusters")
+	ocneClustersList, err := dynClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list %s/%s/%s: %v", gvr.Resource, gvr.Group, gvr.Version, err)
+	}
+	return ocneClustersList, nil
+}
+
+// GetOCNEClusterAPIGVRForResource returns a management.cattle.io/v3 GroupVersionResource structure for specified kind
+func GetOCNEClusterAPIGVRForResource(resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "cluster.x-k8s.io",
+		Version:  "v1beta1",
+		Resource: resource,
+	}
+}
+
+// GetDynamicClient returns a dynamic client needed to access Unstructured data
+func getDynamicClient() (dynamic.Interface, error) {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return nil, err
+	}
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return dynamicClient, nil
+}
+
+func (r *Reconciler) isCloudCredential(o client.Object) bool {
+	secret := o.(*corev1.Secret)
+	// if secret is a cloud credential
+	if secret.Namespace == constants.VerrazzanoCAPINamespace && secret.Data["fingerprint"] != nil && secret.Data["tenancy"] != nil {
+		return true
+	}
+	// secret is not cloud credential
+	return false
 }
 
 func (r *Reconciler) isCattleGlobalDataNamespace(o client.Object) bool {
