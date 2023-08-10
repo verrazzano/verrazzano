@@ -30,6 +30,7 @@ const (
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	modulesIntegrationDir        = "/module-integration/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -233,6 +234,10 @@ func GetProfilesDir() string {
 		return TestProfilesDir
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
+}
+
+func GetModuleIntegrationDir() string {
+	return filepath.Join(instance.VerrazzanoRootDir, modulesIntegrationDir)
 }
 
 // GetProfile returns API profiles dir
