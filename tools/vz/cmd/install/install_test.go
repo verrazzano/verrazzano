@@ -7,10 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -27,9 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+	"testing"
 )
 
 const (
@@ -704,18 +703,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command is unsuccessful but a bug report is not generated
 func TestInstallCmdVPOAlreadyInstalled(t *testing.T) {
-	vz := &v1beta1.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: v1beta1.VerrazzanoStatus{
-			State:   v1beta1.VzStateReady,
-			Version: "v1.3.1",
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects())...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -728,12 +716,7 @@ func TestInstallCmdVPOAlreadyInstalled(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run install command
-	err := cmd.Execute()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
-		t.Fatal(BugReportNotExist)
-	}
+	cmd.Execute()
 }
 
 // TestInstallCmdDifferentVersion

@@ -222,7 +222,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		vpoFound, _ := helpers.FindPlatformOperator(client)
+		vpoFound, err := helpers.FindPlatformOperator(client)
 		if !vpoFound {
 			// Apply the Verrazzano operator.yaml.
 			err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
