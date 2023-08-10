@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/delete"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/installupdate"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/migration"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/upgrade"
 )
 
@@ -17,5 +18,6 @@ func NewModuleHandlerInfo() handlerspi.ModuleHandlerInfo {
 		InstallActionHandler: installupdate.NewHandler(installupdate.InstallAction),
 		UpdateActionHandler:  installupdate.NewHandler(installupdate.UpdateAction),
 		UpgradeActionHandler: upgrade.NewHandler(),
+		MigrationHandler:     migration.NewHandler(),
 	}
 }

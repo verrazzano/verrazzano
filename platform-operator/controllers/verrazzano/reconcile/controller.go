@@ -149,7 +149,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// CreateOrUpdateEffectiveConfigCM will store our Effective CR in the configmap
-	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz, log)
+	err = vzcontroller.CreateOrUpdateEffectiveConfigCM(ctx, r.Client, vz)
 	if err != nil {
 		errorCounterMetricObject.Inc()
 		log.Errorf("Failed to Create/Update the effective-config ConfigMap: %v", err)
@@ -242,21 +242,9 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		if len(actualCR.Spec.Version) > 0 {
-			specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
-			statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
-			// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
-			if specVersion.CompareTo(statusVersion) != 0 {
-				// Transition to upgrade state
-				r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
-				return newRequeueWithDelay(), err
-			}
+		result, err = r.checkNeedsUpgrade(actualCR, log)
+		if err != nil || result.Requeue {
+			return result, err
 		}
 
 		// Keep retrying to reconcile components until it completes
@@ -319,10 +307,39 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 	return newRequeueWithDelay(), err
 }
 
+// checkNeedsUpgrade Checks whether the VZ CR spec version and status version are different, if
+// so update the VZ status state to Upgrading, and return a requeue result, so that the caller can
+// directly proceed to upgrading the VZ CR.
+func (r *Reconciler) checkNeedsUpgrade(actualCR *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	if len(actualCR.Spec.Version) > 0 {
+		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+		// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
+		if specVersion.CompareTo(statusVersion) != 0 {
+			// Transition to upgrade state
+			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
+			return newRequeueWithDelay(), err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
 // ProcReconcilingState processes the CR while in the installing state
 func (r *Reconciler) ProcReconcilingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	log := vzctx.Log
+	actualCR := vzctx.ActualCR
 	log.Debug("Entering ProcReconcilingState")
+
+	result, err := r.checkNeedsUpgrade(actualCR, log)
+	if err != nil || result.Requeue {
+		return result, err
+	}
 
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
