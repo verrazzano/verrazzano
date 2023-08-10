@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gertd/go-pluralize"
@@ -78,13 +79,8 @@ const fluentbitFilterAndParserTemplate = "rancher-filter-parser.yaml"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
-var imageEnvVars = map[string]string{
-	"rancher-fleet":       "FLEET_IMAGE",
-	"rancher-fleet-agent": "FLEET_AGENT_IMAGE",
-	"rancher-shell":       "CATTLE_SHELL_IMAGE",
-	"rancher-webhook":     "RANCHER_WEBHOOK_IMAGE",
-	"rancher-gitjob":      "GITJOB_IMAGE",
-}
+var imageEnvVars = map[string]string{}
+var imageEnvVarsMutex = &sync.Mutex{}
 
 var getKubernetesClusterVersion = getKubernetesVersion
 
@@ -166,6 +162,41 @@ func NewComponent() spi.Component {
 		},
 		monitor: &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
+}
+
+// initializeImageEnvVars - initialize the translation table for image names to environment variables
+func initializeImageEnvVars(imageEnvMap map[string]string) error {
+	// Synchronize so that map is only written once
+	imageEnvVarsMutex.Lock()
+	defer imageEnvVarsMutex.Unlock()
+	if len(imageEnvMap) > 0 {
+		return nil
+	}
+
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return fmt.Errorf("Failed to get the bom file for the Rancher image overrides: %v", err)
+	}
+
+	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
+	if err != nil {
+		return fmt.Errorf("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+	}
+
+	for _, image := range subcomponent.Images {
+		if strings.Contains(image.ImageName, "rancher-fleet-agent") {
+			imageEnvMap[image.ImageName] = "FLEET_AGENT_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-fleet") {
+			imageEnvMap[image.ImageName] = "FLEET_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-shell") {
+			imageEnvMap[image.ImageName] = "CATTLE_SHELL_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-webhook") {
+			imageEnvMap[image.ImageName] = "RANCHER_WEBHOOK_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-gitjob") {
+			imageEnvMap[image.ImageName] = "GITJOB_IMAGE"
+		}
+	}
+	return nil
 }
 
 // AppendOverrides set the Rancher overrides for Helm
@@ -293,6 +324,9 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	images := subcomponent.Images
 
 	var envList []envVar
+	if err := initializeImageEnvVars(imageEnvVars); err != nil {
+		return kvs, err
+	}
 	for _, image := range images {
 		imEnvVar, ok := imageEnvVars[image.ImageName]
 		// skip the images that are not included in the override map
