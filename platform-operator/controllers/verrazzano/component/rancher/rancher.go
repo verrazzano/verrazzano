@@ -121,10 +121,10 @@ const (
 	SettingUIPLValueVerrazzano          = "Verrazzano"
 	SettingUILogoLight                  = "ui-logo-light"
 	SettingUILogoFolderBeforeRancher275 = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images"
-	SettingUILogoFolder                 = "/usr/share/rancher/ui-dashboard/dashboard/img"
-	SettingUILogoLightPrefix            = "verrazzano-light"
+	SettingUILogoFolder                 = "/usr/share/rancher/ui-dashboard/dashboard/assets/images"
+	SettingUILogoLightFile              = "verrazzano-light.svg"
 	SettingUILogoDark                   = "ui-logo-dark"
-	SettingUILogoDarkPrefix             = "verrazzano-dark"
+	SettingUILogoDarkFile               = "verrazzano-dark.svg"
 	SettingUILogoValueprefix            = "data:image/svg+xml;base64,"
 	SettingUIPrimaryColor               = "ui-primary-color"
 	SettingUIPrimaryColorValue          = "rgb(48, 99, 142)"
@@ -648,7 +648,7 @@ func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
 }
 
 // createOrUpdateUILogoSetting updates the ui-logo-* settings
-func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoFilePrefix string) error {
+func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoFilename string) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
@@ -663,19 +663,19 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 
 	// The location of the logo files changed starting with Rancher 2.7.5.  First look for the logo file
 	// in the new location.  If not found there, check the old location.
-	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s*.svg", SettingUILogoFolder, logoFilePrefix)}
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s", SettingUILogoFolder, logoFilename)}
 	// The api request to pod was seen to be returning only first few bytes of the logo content,
 	// therefore we retry a few times until we get valid logo content which will be a svg
 	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 
 	if err != nil {
 		// Try the pre-Rancher 2.7.5 location
-		logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s*.svg", SettingUILogoFolderBeforeRancher275, logoFilePrefix)}
+		logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s", SettingUILogoFolderBeforeRancher275, logoFilename)}
 		// The api request to pod was seen to be returning only first few bytes of the logo content,
 		// therefore we retry a few times until we get valid logo content which will be a svg
 		logoContent, err = getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 		if err != nil {
-			return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoFilePrefix, err.Error())
+			return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoFilename, err.Error())
 		}
 	}
 
