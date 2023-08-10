@@ -9,11 +9,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// Create a new Result that will cause a reconcile requeue after a short delay
+// Create a new Result that will cause a reconcile requeue after a delay within the specified range
 func NewRequeueWithDelay(min int, max int, units time.Duration) ctrl.Result {
 	var seconds = rand.IntnRange(min, max)
 	delaySecs := time.Duration(seconds) * units
 	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
+}
+
+// ShortRequeue returns a new Result that will cause a reconcile requeue after a short delay
+func ShortRequeue() ctrl.Result {
+	return NewRequeueWithDelay(2, 3, time.Second)
 }
 
 // Return true if requeue is needed

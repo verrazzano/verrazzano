@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -25,15 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"os"
-	client2 "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
-	clusterctlcli "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
-
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
 const (
@@ -174,7 +168,7 @@ func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cl
 	kubeconfig, err := r.getWorkloadClusterKubeconfig(ctx, cluster)
 	if err != nil {
 		// requeue since we're waiting for cluster
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), err
+		return vzctrl.ShortRequeue(), err
 	}
 
 	rc, log, err := r.GetRancherAPIResources(cluster)
@@ -197,7 +191,7 @@ func ensureRancherRegistration(r *CAPIClusterReconciler, ctx context.Context, cl
 	}
 	// it appears that in some circumstances the registry yaml may be empty so need to re-queue to re-attempt retrieval
 	if len(registryYaml) == 0 {
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+		return vzctrl.ShortRequeue(), nil
 	}
 	// create workload cluster client
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
@@ -300,75 +294,21 @@ func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluste
 
 // getWorkloadClusterKubeconfig returns a kubeconfig for accessing the workload cluster
 func (r *CAPIClusterReconciler) getWorkloadClusterKubeconfig(ctx context.Context, cluster *unstructured.Unstructured) ([]byte, error) {
-	restConfig := ctrl.GetConfigOrDie()
-	apiConfig, err := r.ConstructManagementKubeconfig(ctx, restConfig, "")
+	// get the cluster kubeconfig
+	kubeconfigSecret := &v1.Secret{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: "default"}, kubeconfigSecret)
 	if err != nil {
+		r.Log.Warn(err, "failed to obtain workload "+
+			"cluster kubeconfig resource. Re-queuing...")
 		return nil, err
 	}
-	kubeconfigPath := fmt.Sprintf("%s/management-kubeconfig", os.TempDir())
-
-	if err = clientcmd.WriteToFile(*apiConfig, kubeconfigPath); err != nil {
-		return nil, err
+	kubeconfig, ok := kubeconfigSecret.Data["value"]
+	if !ok {
+		r.Log.Error(err, "failed to read kubeconfig from resource")
+		return nil, fmt.Errorf("Unable to read kubeconfig from retrieved cluster resource")
 	}
 
-	adminKubeconfig := &clusterctlcli.Kubeconfig{Path: kubeconfigPath, Context: apiConfig.CurrentContext}
-
-	c, err := client2.New("")
-	if err != nil {
-		return nil, err
-	}
-
-	options := client2.GetKubeconfigOptions{
-		Kubeconfig:          client2.Kubeconfig(*adminKubeconfig),
-		WorkloadClusterName: cluster.GetName(),
-		Namespace:           cluster.GetNamespace(),
-	}
-
-	kubeconfig, err := c.GetKubeconfig(options)
-
-	return []byte(kubeconfig), nil
-}
-
-// ConstructManagementKubeconfig constructs the kubeconfig for the management cluster
-func (r *CAPIClusterReconciler) ConstructManagementKubeconfig(ctx context.Context, restConfig *rest.Config, namespace string) (*clientcmdapi.Config, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	log.V(2).Info("Constructing kubeconfig file from rest.Config")
-
-	clusterName := "management-cluster"
-	userName := "default-user"
-	contextName := "default-context"
-	clusters := make(map[string]*clientcmdapi.Cluster)
-	clusters[clusterName] = &clientcmdapi.Cluster{
-		Server: restConfig.Host,
-		// Used in regular kubeconfigs.
-		CertificateAuthorityData: restConfig.CAData,
-		// Used in in-cluster configs.
-		CertificateAuthority: restConfig.CAFile,
-	}
-
-	contexts := make(map[string]*clientcmdapi.Context)
-	contexts[contextName] = &clientcmdapi.Context{
-		Cluster:   clusterName,
-		Namespace: namespace,
-		AuthInfo:  userName,
-	}
-
-	authInfos := make(map[string]*clientcmdapi.AuthInfo)
-	authInfos[userName] = &clientcmdapi.AuthInfo{
-		Token:                 restConfig.BearerToken,
-		ClientCertificateData: restConfig.TLSClientConfig.CertData,
-		ClientKeyData:         restConfig.TLSClientConfig.KeyData,
-	}
-
-	return &clientcmdapi.Config{
-		Kind:           "Config",
-		APIVersion:     "v1",
-		Clusters:       clusters,
-		Contexts:       contexts,
-		CurrentContext: contextName,
-		AuthInfos:      authInfos,
-	}, nil
+	return kubeconfig, nil
 }
 
 // GetRancherAPIResources returns the set of resources required for interacting with Rancher
