@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
 	"net/http"
 	"os"
@@ -129,8 +130,7 @@ func NewVerrazzanoForGroupVersion(groupVersion schema.GroupVersion) func() inter
 // FindVerrazzanoResource - find the single Verrazzano resource
 func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, error) {
 	vzList := v1beta1.VerrazzanoList{}
-	err := runtimeClient.List(context.TODO(), &vzList,
-		client.InNamespace("default"))
+	err := runtimeClient.List(context.TODO(), &vzList)
 	if err != nil {
 		// If v1beta1 resource version doesn't exist, try v1alpha1
 		if meta.IsNoMatchError(err) {
@@ -142,6 +142,21 @@ func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, e
 		return nil, err
 	}
 	return &vzList.Items[0], nil
+}
+
+// FindPlatformOperator - finds if the Verrazzano Platform Operator is already running
+func FindPlatformOperator(runtimeClient client.Client) (bool, error) {
+	var podList corev1.PodList
+	err := runtimeClient.List(context.TODO(), &podList,
+		client.InNamespace(constants.VerrazzanoInstallNamespace),
+		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	if err != nil {
+		return false, err
+	}
+	if len(podList.Items) != 0 {
+		return true, fmt.Errorf("A Verrazzano Platform Operator was found already running")
+	}
+	return false, nil
 }
 
 // GetVerrazzanoResource - get a Verrazzano resource
