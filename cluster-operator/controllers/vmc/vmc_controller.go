@@ -108,13 +108,13 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 	r.log = log
 	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
 	res, err := r.doReconcile(ctx, log, cr)
-	if err != nil || vzctrl.ShouldRequeue(res) {
-		if err != nil {
-			// Never return an error since it has already been logged and we don't want the
-			// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
-			reconcileErrorCount.Inc()
-			return newRequeueWithDelay(), nil
-		}
+	if err != nil {
+		// Never return an error since it has already been logged and we don't want the
+		// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+		reconcileErrorCount.Inc()
+		return newRequeueWithDelay(), nil
+	}
+	if vzctrl.ShouldRequeue(res) {
 		reconcileSuccessCount.Inc()
 		return res, nil
 	}
