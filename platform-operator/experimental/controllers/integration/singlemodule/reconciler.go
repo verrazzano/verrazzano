@@ -10,6 +10,9 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/helm"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
@@ -18,6 +21,13 @@ import (
 	"os"
 	"path"
 )
+
+// Create ModuleIntegrateAllRequestEvent for these modules
+var requireIntegrateAll = map[string]bool{
+	certmanager.ComponentName:    true,
+	fluentoperator.ComponentName: true,
+	istio.ComponentName:          true,
+}
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
@@ -29,10 +39,20 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-	ev := event.ConfigMapToEvent(cm)
+	ev := event.ConfigMapToModuleIntegrationEvent(cm)
 	res := r.applyIntegrationCharts(log, ev)
 	if res.ShouldRequeue() {
 		return res
+	}
+
+	// If needed, create an integrate all event using the same payload as the module event that was just processed
+	_, ok := requireIntegrateAll[ev.ModuleName]
+	if ok {
+		ev.EventType = event.ModuleIntegrateAllRequestEvent
+		res := event.CreateEvent(r.Client, ev)
+		if res.ShouldRequeue() {
+			return res
+		}
 	}
 
 	// Delete the event.  This is safe to do since the integration controller

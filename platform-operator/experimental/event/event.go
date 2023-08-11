@@ -64,7 +64,7 @@ type ModuleIntegrationEvent struct {
 
 // CreateModuleEvent creates a ModuleIntegrationEvent event for a module
 func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Action, eventType EventType) result.Result {
-	return CreateEvent(cli, ModuleIntegrationEvent{
+	return CreateEvent(cli, &ModuleIntegrationEvent{
 		EventType:       eventType,
 		Action:          action,
 		ResourceNSN:     types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
@@ -75,7 +75,7 @@ func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Actio
 }
 
 // CreateEvent creates a lifecycle event
-func CreateEvent(cli client.Client, ev ModuleIntegrationEvent) result.Result {
+func CreateEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEventResourceName(ev.ResourceNSN.Name, string(ev.Action)),
@@ -105,8 +105,8 @@ func CreateEvent(cli client.Client, ev ModuleIntegrationEvent) result.Result {
 	return result.NewResult()
 }
 
-// ConfigMapToEvent converts an event configmap to a ModuleIntegrationEvent
-func ConfigMapToEvent(cm *corev1.ConfigMap) *ModuleIntegrationEvent {
+// ConfigMapToModuleIntegrationEvent converts an event configmap to a ModuleIntegrationEvent
+func ConfigMapToModuleIntegrationEvent(cm *corev1.ConfigMap) *ModuleIntegrationEvent {
 	ev := ModuleIntegrationEvent{}
 	if cm.Data == nil {
 		return &ev
