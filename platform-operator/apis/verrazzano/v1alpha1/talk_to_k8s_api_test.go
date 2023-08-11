@@ -23,7 +23,7 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	// create the VZ resource. Stored as v1beta1.
+	// create a v1beta1 Verrazzano through the K8s client
 	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
 	assert.NoError(t, err)
 	err = client.Create(ctx, vzStoredV1Beta1)
@@ -109,4 +109,22 @@ func TestUpdateVerrazzanoV1Alpha1(t *testing.T) {
 	assert.EqualValues(t, vzV1Alpha1.ObjectMeta.Namespace, vzRetrieved.ObjectMeta.Namespace)
 	assert.EqualValues(t, vzV1Alpha1.Spec, vzRetrieved.Spec)
 	assert.EqualValues(t, vzV1Alpha1.Status, vzRetrieved.Status)
+}
+
+func TestUpdateVerrazzanoV1Alpha1NotFound(t *testing.T) {
+	ctx := context.TODO()
+
+	scheme := runtime.NewScheme()
+	err := v1beta1.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	vzV1Alpha1, err := loadV1Alpha1CR(testCaseBasic)
+	assert.NoError(t, err)
+
+	// Attempt to update a nonexistent Verrazzano resource through the K8s client
+	err = UpdateVerrazzanoV1Alpha1(ctx, client, vzV1Alpha1)
+
+	// a NotFound error should have been returned
+	assert.True(t, apierrors.IsNotFound(err), "a NotFound error was expected, but got '%v'", err)
 }
