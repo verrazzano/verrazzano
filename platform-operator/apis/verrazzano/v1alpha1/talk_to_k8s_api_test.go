@@ -12,20 +12,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 	ctx := context.TODO()
 
-	// FIXME: are all of these needed?
 	scheme := runtime.NewScheme()
-	err := AddToScheme(scheme)
-	assert.NoError(t, err)
-	err = clientgoscheme.AddToScheme(scheme)
-	assert.NoError(t, err)
-	err = v1beta1.AddToScheme(scheme)
+	err := v1beta1.AddToScheme(scheme)
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
@@ -39,8 +33,8 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 	// the expected VZ resource returned should be v1alpha1
 	vzExpected, err := loadV1Alpha1CR(testCaseBasic)
 	assert.NoError(t, err)
-	name := types.NamespacedName {
-		Name: vzExpected.Name,
+	name := types.NamespacedName{
+		Name:      vzExpected.Name,
 		Namespace: vzExpected.Namespace,
 	}
 
@@ -57,23 +51,18 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 func TestGetVerrazzanoV1Alpha1NotFound(t *testing.T) {
 	ctx := context.TODO()
 
-	// FIXME: are all of these needed?
 	scheme := runtime.NewScheme()
-	err := AddToScheme(scheme)
-	assert.NoError(t, err)
-	err = clientgoscheme.AddToScheme(scheme)
-	assert.NoError(t, err)
-	err = v1beta1.AddToScheme(scheme)
+	err := v1beta1.AddToScheme(scheme)
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	// get the v1alpha1 VZ resource
-	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, types.NamespacedName {
-		Name: "verrazzano",
+	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, types.NamespacedName{
+		Name:      "verrazzano",
 		Namespace: "default",
 	})
-	
+
 	// a NotFound error should have been returned
-	assert.True(t, apierrors.IsNotFound(err))
+	assert.True(t, apierrors.IsNotFound(err), "a NotFound error was expected, but got '%v'", err)
 	assert.Nil(t, vzActual)
 }
