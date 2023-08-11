@@ -59,7 +59,7 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 		if module.Name == ev.ModuleName {
 			continue
 		}
-		
+
 		// Nothing to do if an integration chart doesn't exist for this module
 		moduleChartDir := path.Join(config.GetIntegrationChartsDir(), ev.ModuleName)
 		_, err := os.Stat(moduleChartDir)
@@ -70,6 +70,7 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 			log.ErrorfThrottled("Failed to check if integration chart exists for module %s: %v", ev.ModuleName, err)
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
+
 		// Create an event requesting that this module be integrated
 		res := event.CreateNonCascadingModuleIntegrationEvent(r.Client, &module, ev.Action)
 		if res.ShouldRequeue() {

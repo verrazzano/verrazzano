@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strconv"
 )
 
 // EventType is the type of event
@@ -34,13 +35,14 @@ type DataKey string
 
 // DataKey constants
 const (
-	EventTypeKey         DataKey = "eventType"
 	ActionKey            DataKey = "action"
+	CascadeKey           DataKey = "cascade"
+	EventTypeKey         DataKey = "eventType"
+	ModuleNameKey        DataKey = "moduleName"
+	ModuleVersionKey     DataKey = "moduleVersion"
 	ResourceNamespaceKey DataKey = "resourceNamespace"
 	ResourceNameKey      DataKey = "resourceName"
 	TargetNamespaceKey   DataKey = "targetNamespace"
-	ModuleNameKey        DataKey = "moduleName"
-	ModuleVersionKey     DataKey = "moduleVersion"
 )
 
 // Action is the lifecycle action
@@ -82,19 +84,28 @@ func NewModuleIntegrationEvent(module *moduleapi.Module, action Action, eventTyp
 
 // CreateModuleIntegrationEvent creates a ModuleIntegrationEvent event for a module
 func CreateModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
-	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
+	return createEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
+}
+
+// CreateModuleIntegrateOthersEvent creates a ModuleIntegrationEvent event for a module to integrate other modules
+func CreateModuleIntegrateOthersEvent(cli client.Client, sourceEvent *ModuleIntegrationEvent) result.Result {
+	// Use the fields from the input event to create a new event of a different type
+	ev := *sourceEvent
+	ev.EventType = IntegrateOthersRequestEvent
+	ev.Cascade = false
+	return createEvent(cli, &ev)
 }
 
 // CreateNonCascadingModuleIntegrationEvent creates a ModuleIntegrationEvent event for a module with no cascading
 func CreateNonCascadingModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
-	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, false))
+	return createEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, false))
 }
 
-// CreateEvent creates a lifecycle event
-func CreateEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
+// createEvent creates a lifecycle event
+func createEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getEventResourceName(ev.ResourceNSN.Name, string(ev.Action)),
+			Name:      getEventResourceName(ev.ResourceNSN.Name, string(ev.Action), string(ev.EventType)),
 			Namespace: ev.ResourceNSN.Namespace,
 		},
 	}
@@ -105,8 +116,9 @@ func CreateEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 		// Always replace existing event data for this module-action
 		cm.Labels[constants.VerrazzanoModuleEventLabel] = string(ev.EventType)
 		cm.Data = make(map[string]string)
-		cm.Data[string(EventTypeKey)] = string(ev.EventType)
 		cm.Data[string(ActionKey)] = string(ev.Action)
+		cm.Data[string(CascadeKey)] = strconv.FormatBool(ev.Cascade)
+		cm.Data[string(EventTypeKey)] = string(ev.EventType)
 		cm.Data[string(ModuleNameKey)] = ev.ModuleName
 		cm.Data[string(ModuleVersionKey)] = ev.ModuleVersion
 		cm.Data[string(ResourceNamespaceKey)] = ev.ResourceNSN.Namespace
@@ -127,10 +139,12 @@ func ConfigMapToModuleIntegrationEvent(cm *corev1.ConfigMap) *ModuleIntegrationE
 	if cm.Data == nil {
 		return &ev
 	}
-	s, _ := cm.Data[string(EventTypeKey)]
-	ev.EventType = EventType(s)
-	s, _ = cm.Data[string(ActionKey)]
+	s, _ := cm.Data[string(ActionKey)]
 	ev.Action = Action(s)
+	s, _ = cm.Data[string(EventTypeKey)]
+	ev.EventType = EventType(s)
+	s, _ = cm.Data[string(CascadeKey)]
+	ev.Cascade, _ = strconv.ParseBool(s)
 	ev.ModuleName, _ = cm.Data[string(ModuleNameKey)]
 	ev.ModuleVersion, _ = cm.Data[string(ModuleVersionKey)]
 	ev.ResourceNSN.Name, _ = cm.Data[string(ResourceNameKey)]
@@ -139,6 +153,6 @@ func ConfigMapToModuleIntegrationEvent(cm *corev1.ConfigMap) *ModuleIntegrationE
 	return &ev
 }
 
-func getEventResourceName(name string, action string) string {
-	return fmt.Sprintf("event-%s-%s", name, action)
+func getEventResourceName(name string, action string, eventType string) string {
+	return fmt.Sprintf("event-%s-%s-%s", name, action, eventType)
 }

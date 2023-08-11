@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
@@ -24,9 +25,10 @@ import (
 
 // Create ModuleIntegrateAllRequestEvent for these modules
 var requireIntegrateAll = map[string]bool{
-	certmanager.ComponentName:    true,
-	fluentoperator.ComponentName: true,
-	istio.ComponentName:          true,
+	certmanager.ComponentName:        true,
+	fluentoperator.ComponentName:     true,
+	istio.ComponentName:              true,
+	prometheusOperator.ComponentName: true,
 }
 
 // Reconcile reconciles the Verrazzano CR
@@ -50,9 +52,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	if ev.Cascade {
 		_, ok := requireIntegrateAll[ev.ModuleName]
 		if ok {
-			ev.EventType = event.IntegrateOthersRequestEvent
-			ev.Cascade = false
-			res := event.CreateEvent(r.Client, ev)
+			res := event.CreateModuleIntegrateOthersEvent(r.Client, ev)
 			if res.ShouldRequeue() {
 				return res
 			}
