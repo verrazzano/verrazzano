@@ -59,7 +59,7 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 	}
 
 	var requeue *result.Result
-	for _, module := range modules.Items {
+	for i, module := range modules.Items {
 		// If this module was just integrated then ignore it
 		if module.Name == ev.ModuleName {
 			continue
@@ -77,7 +77,7 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 		}
 
 		// Create an event requesting that this module be integrated
-		res := event.CreateNonCascadingModuleIntegrationEvent(r.Client, &module, ev.Action)
+		res := event.CreateNonCascadingModuleIntegrationEvent(r.Client, &modules.Items[i], ev.Action)
 		if res.ShouldRequeue() {
 			requeue = &res
 		}
