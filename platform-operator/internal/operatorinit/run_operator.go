@@ -117,24 +117,20 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
 	// Use the new controller if module integration is enabled.  Also create the module controllers
 	if vzconfig.ModuleIntegration {
-		// init module controllers, one for each component
 		if err := initModuleControllers(log, mgr); err != nil {
 			log.Errorf("Failed to start all module controllers", err)
-			return errors.Wrap(err, "Failed to setup controller for module controller for the components")
+			return errors.Wrap(err, "Failed to initialize modules controllers for the components")
 		}
 
-		if err := integrationcontroller.InitController(integrationcontroller.IntegrationControllerConfig{
-			ControllerManager: mgr,
-			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
-		}); err != nil {
-			log.Errorf("Failed to start the integration controller:%v", err)
-			return err
+		if err := initIntegrationControllers(log, mgr); err != nil {
+			log.Errorf("Failed to start all integration controllers", err)
+			return errors.Wrap(err, "Failed to initialize integration controllers")
 		}
 
 		// init verrazzano module controller
 		if err := verrazzancontroller.InitController(mgr); err != nil {
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
-			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
+			return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 		}
 	}
 
@@ -270,5 +266,28 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 			return err
 		}
 	}
+	return nil
+}
+
+// initModuleControllers creates the integration controllers
+func initIntegrationControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+	// single module integration controller
+	if err := integrationcontroller.InitController(integrationcontroller.IntegrationControllerConfig{
+		ControllerManager: mgr,
+		ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
+	}); err != nil {
+		log.Errorf("Failed to start the integration controller:%v", err)
+		return err
+	}
+
+	// all modules integration controller
+	if err := integrationcontroller.InitController(integrationcontroller.IntegrationControllerConfig{
+		ControllerManager: mgr,
+		ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
+	}); err != nil {
+		log.Errorf("Failed to start the integration controller:%v", err)
+		return err
+	}
+
 	return nil
 }
