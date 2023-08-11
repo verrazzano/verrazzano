@@ -210,5 +210,5 @@ func (h ComponentHandler) updateReadyConditionStartedOrFailed(ctx handlerspi.Han
 	}
 
 	// Create an event
-	return event.CreateModuleEvent(ctx.Client, module, event.Installed)
+	return event.CreateModuleEvent(ctx.Client, module, event.Installed, event.ModuleLifeCycleEvent)
 }

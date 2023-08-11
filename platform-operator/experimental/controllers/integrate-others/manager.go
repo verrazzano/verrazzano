@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package integration
+package integrate_single
 
 import (
 	"context"
@@ -67,5 +67,5 @@ func (r Reconciler) HandlePredicateEvent(cli client.Client, object client.Object
 	if !ok {
 		return false
 	}
-	return evType == string(event.IntegrationEvent)
+	return evType == string(event.ModuleIntegrateAllRequestEvent)
 }

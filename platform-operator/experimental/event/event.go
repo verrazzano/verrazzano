@@ -21,7 +21,11 @@ type EventType string
 
 // EventType constants
 const (
-	IntegrationEvent EventType = "integration"
+	// ModuleLifeCycleEvent describes a lifecycle event for a module
+	ModuleLifeCycleEvent EventType = "module-lifecycle"
+
+	// ModuleIntegrateAllRequestEvent is an event request to integrate all the modules
+	ModuleIntegrateAllRequestEvent EventType = "module-integrate-all"
 )
 
 // DataKey is a configmap data key
@@ -48,8 +52,8 @@ const (
 	Deleted   Action = "deleted"
 )
 
-// LifecycleEvent contains the event data
-type LifecycleEvent struct {
+// ModuleIntegrationEvent contains the event data
+type ModuleIntegrationEvent struct {
 	EventType
 	Action
 	ResourceNSN     types.NamespacedName
@@ -58,10 +62,10 @@ type LifecycleEvent struct {
 	TargetNamespace string
 }
 
-// CreateModuleEvent creates a lifecycle event for a module
-func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
-	return CreateEvent(cli, LifecycleEvent{
-		EventType:       IntegrationEvent,
+// CreateModuleEvent creates a ModuleIntegrationEvent event for a module
+func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Action, eventType EventType) result.Result {
+	return CreateEvent(cli, ModuleIntegrationEvent{
+		EventType:       eventType,
 		Action:          action,
 		ResourceNSN:     types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
 		ModuleName:      module.Spec.ModuleName,
@@ -71,7 +75,7 @@ func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Actio
 }
 
 // CreateEvent creates a lifecycle event
-func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
+func CreateEvent(cli client.Client, ev ModuleIntegrationEvent) result.Result {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEventResourceName(ev.ResourceNSN.Name, string(ev.Action)),
@@ -101,9 +105,9 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 	return result.NewResult()
 }
 
-// ConfigMapToEvent converts an event configmap to a LifecycleEvent
-func ConfigMapToEvent(cm *corev1.ConfigMap) *LifecycleEvent {
-	ev := LifecycleEvent{}
+// ConfigMapToEvent converts an event configmap to a ModuleIntegrationEvent
+func ConfigMapToEvent(cm *corev1.ConfigMap) *ModuleIntegrationEvent {
+	ev := ModuleIntegrationEvent{}
 	if cm.Data == nil {
 		return &ev
 	}

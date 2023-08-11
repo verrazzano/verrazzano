@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package integration
+package integrate_single
 
 import (
 	ctx "context"
@@ -44,7 +44,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 // applyIntegrationCharts applies all the integration charts for components that are enabled
-func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event.LifecycleEvent) result.Result {
+func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event.ModuleIntegrationEvent) result.Result {
 	var retError error
 
 	// Get the chart directories
@@ -61,51 +61,34 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	// Get the chart directories
-	chartDirs, err := os.ReadDir(itegrationChartsDir)
+	// Get the chart.yaml for this module
+	chartInfo, err := helm.GetChartInfo(moduleChartDir)
 	if err != nil {
+		log.ErrorfThrottled("Failed to read Chart.yaml for chart %s", moduleChartDir)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	// Do helm install of all integration charts
-	for _, chartDir := range chartDirs {
-		if !chartDir.IsDir() {
-			continue
-		}
-		chartDirFull := path.Join(itegrationChartsDir, chartDir.Name())
-		chartInfo, err := helm.GetChartInfo(chartDirFull)
-		if err != nil {
-			log.ErrorfThrottled("Failed to read Chart.yaml for chart %s", chartDir)
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
-
-		// Perform a Helm install using the helm upgrade --install command
-		// Block until helm finishes (wait = true)
-		if err != nil {
-			return result.NewResult()
-		}
-		var opts = &helm.HelmReleaseOpts{
-			ReleaseName:  getReleaseName(ev.ResourceNSN.Name),
-			Namespace:    ev.TargetNamespace,
-			ChartPath:    chartDirFull,
-			ChartVersion: chartInfo.Version,
-			Overrides:    []helm.HelmOverrides{},
-		}
-		_, err = helm.UpgradeRelease(log, opts, true, false)
-		if err != nil {
-			retError = err
-		}
+	// Perform a Helm install using the helm upgrade --install command
+	// Block until helm finishes (wait = true)
+	if err != nil {
+		return result.NewResult()
 	}
-
-	// If any chart failed to install then reconcile again
-	if retError != nil {
+	var opts = &helm.HelmReleaseOpts{
+		ReleaseName:  getReleaseName(ev.ResourceNSN.Name),
+		Namespace:    ev.TargetNamespace,
+		ChartPath:    moduleChartDir,
+		ChartVersion: chartInfo.Version,
+		Overrides:    []helm.HelmOverrides{},
+	}
+	_, err = helm.UpgradeRelease(log, opts, true, false)
+	if err != nil {
 		return result.NewResultShortRequeueDelayIfError(retError)
 	}
 	return result.NewResult()
 }
 
 // deleteIntegrationRelease deletes the integration release
-func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev event.LifecycleEvent) result.Result {
+func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev event.ModuleIntegrationEvent) result.Result {
 	return result.NewResult()
 }
 
