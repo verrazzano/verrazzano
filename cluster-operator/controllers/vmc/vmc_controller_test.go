@@ -1855,8 +1855,8 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	if rancherEnabled {
 		// Expect a call to get the tls-ca secret, return the secret as not found
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.RancherTLSCA}, gomock.Not(gomock.Nil()), gomock.Any()).
-			Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.RancherTLSCA))
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.PrivateCABundle}, gomock.Not(gomock.Nil()), gomock.Any()).
+			Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.PrivateCABundle))
 
 		// Expect a call to get the Rancher ingress tls secret, return the secret with the fields set
 		mock.EXPECT().
@@ -1993,8 +1993,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to get the tls-ca secret, return the secret as not found
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.RancherTLSCA}, gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.RancherTLSCA))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.PrivateCABundle}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.PrivateCABundle))
 
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
@@ -2611,8 +2611,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin 
 
 	// Expect a call to get the Rancher additional CA secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.RancherTLSCA}), gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.RancherTLSCA))
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.PrivateCABundle}), gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.PrivateCABundle))
 }
 
 // expectMockCallsForDelete mocks expectations for the VMC deletion scenario. These are the common mock expectations across

@@ -85,7 +85,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		}
 	}
 
-	crdInstalled, err = isCRDInstalled(apiextv1Client, capiClustersCRDName)
+	capiCrdInstalled, err := isCRDInstalled(apiextv1Client, capiClustersCRDName)
 	if err != nil {
 		log.Error(err, "unable to determine if CAPI CRD is installed")
 		os.Exit(1)
@@ -95,8 +95,8 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 	}
 
-	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
-	if crdInstalled && rancherRegistrationEnabled {
+	// only start the CAPI cluster controller if the clusters CRD is installed and the controller is enabled
+	if capiCrdInstalled && rancherRegistrationEnabled {
 		log.Infof("Starting CAPI Cluster controller")
 		if err = (&capi.CAPIClusterReconciler{
 			Client:             mgr.GetClient(),
