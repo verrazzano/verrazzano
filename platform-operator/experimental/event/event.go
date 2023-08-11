@@ -16,26 +16,41 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type PayloadKey string
+// EventType is the type of event
+type EventType string
 
+// EventType constants
 const (
-	ActionKey            PayloadKey = "action"
-	ResourceNamespaceKey PayloadKey = "resourceNamespace"
-	ResourceNameKey      PayloadKey = "resourceName"
-	TargetNamespaceKey   PayloadKey = "targetNamespace"
-	ModuleNameKey        PayloadKey = "moduleName"
-	ModuleVersionKey     PayloadKey = "moduleVersion"
+	IntegrationEvent EventType = "integration"
 )
 
+// DataKey is a configmap data key
+type DataKey string
+
+// DataKey constants
+const (
+	EventTypeKey         DataKey = "eventType"
+	ActionKey            DataKey = "action"
+	ResourceNamespaceKey DataKey = "resourceNamespace"
+	ResourceNameKey      DataKey = "resourceName"
+	TargetNamespaceKey   DataKey = "targetNamespace"
+	ModuleNameKey        DataKey = "moduleName"
+	ModuleVersionKey     DataKey = "moduleVersion"
+)
+
+// Action is the lifecycle action
 type Action string
 
+// Action constants
 const (
 	Installed Action = "installed"
 	Upgraded  Action = "upgraded"
 	Deleted   Action = "deleted"
 )
 
+// LifecycleEvent contains the event data
 type LifecycleEvent struct {
+	EventType
 	Action
 	ResourceNSN     types.NamespacedName
 	ModuleName      string
@@ -43,13 +58,10 @@ type LifecycleEvent struct {
 	TargetNamespace string
 }
 
-type EventCustomResource struct {
-	corev1.Event
-}
-
 // CreateModuleEvent creates a lifecycle event for a module
 func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
 	return CreateEvent(cli, LifecycleEvent{
+		EventType:       IntegrationEvent,
 		Action:          action,
 		ResourceNSN:     types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
 		ModuleName:      module.Spec.ModuleName,
@@ -73,6 +85,7 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 		// Always replace existing event data for this module-action
 		cm.Labels[constants.VerrazzanoModuleEventLabel] = ev.ModuleName
 		cm.Data = make(map[string]string)
+		cm.Data[string(IntegrationEvent)] = string(ev.EventType)
 		cm.Data[string(ActionKey)] = string(ev.Action)
 		cm.Data[string(ModuleNameKey)] = ev.ModuleName
 		cm.Data[string(ModuleVersionKey)] = ev.ModuleVersion
@@ -88,12 +101,15 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 	return result.NewResult()
 }
 
+// ConfigMapToEvent converts an event configmap to a LifecycleEvent
 func ConfigMapToEvent(cm *corev1.ConfigMap) *LifecycleEvent {
 	ev := LifecycleEvent{}
 	if cm.Data == nil {
 		return &ev
 	}
-	s, _ := cm.Data[string(ActionKey)]
+	s, _ := cm.Data[string(EventTypeKey)]
+	ev.EventType = EventType(s)
+	s, _ = cm.Data[string(ActionKey)]
 	ev.Action = Action(s)
 	ev.ModuleName, _ = cm.Data[string(ModuleNameKey)]
 	ev.ModuleVersion, _ = cm.Data[string(ModuleVersionKey)]

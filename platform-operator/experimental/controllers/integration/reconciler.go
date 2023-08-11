@@ -4,6 +4,7 @@
 package integration
 
 import (
+	ctx "context"
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
@@ -29,7 +30,17 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResult()
 	}
 	ev := event.ConfigMapToEvent(cm)
-	return r.applyIntegrationCharts(log, ev)
+	res := r.applyIntegrationCharts(log, ev)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Delete the event.  This is safe to do since the integration controller
+	// is the only controller processing integration events
+	if err := r.Client.Delete(ctx.TODO(), cm); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	return result.NewResult()
 }
 
 // applyIntegrationCharts applies all the integration charts for components that are enabled

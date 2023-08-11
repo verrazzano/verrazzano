@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 	corev1 "k8s.io/api/core/v1"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,6 +63,9 @@ func (r Reconciler) HandlePredicateEvent(cli client.Client, object client.Object
 	if cm.Labels == nil {
 		return false
 	}
-	_, ok := cm.Labels[constants.VerrazzanoModuleEventLabel]
-	return ok
+	evType, ok := cm.Labels[constants.VerrazzanoModuleEventLabel]
+	if !ok {
+		return false
+	}
+	return evType == string(event.IntegrationEvent)
 }
