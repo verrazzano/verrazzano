@@ -3,7 +3,7 @@
 
 import groovy.transform.Field
 
-def agentLabel = "phxsmall_1_5"
+def agentLabel = "1.5-small"
 
 @Field
 def SUSPECT_LIST = ""

@@ -13,7 +13,7 @@ def LAST_PERIODIC_RUN_COMMIT = ""
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
-def agentLabel = "phxsmall_1_5"
+def agentLabel = "1.5-small"
 @Field
 def VERSIONED_IMAGES_FILENAME = ""
 @Field
