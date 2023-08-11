@@ -5,6 +5,7 @@ package event
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
@@ -14,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
+	"sigs.k8s.io/yaml"
 )
 
 // EventType is the type of event
@@ -35,14 +36,7 @@ type DataKey string
 
 // DataKey constants
 const (
-	ActionKey            DataKey = "action"
-	CascadeKey           DataKey = "cascade"
-	EventTypeKey         DataKey = "eventType"
-	ModuleNameKey        DataKey = "moduleName"
-	ModuleVersionKey     DataKey = "moduleVersion"
-	ResourceNamespaceKey DataKey = "resourceNamespace"
-	ResourceNameKey      DataKey = "resourceName"
-	TargetNamespaceKey   DataKey = "targetNamespace"
+	EventDataKey DataKey = "event"
 )
 
 // Action is the lifecycle action
@@ -103,27 +97,27 @@ func CreateNonCascadingModuleIntegrationEvent(cli client.Client, module *modulea
 
 // createEvent creates a lifecycle event
 func createEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
+	y, err := yaml.Marshal(ev)
+	if err != nil {
+		result.NewResultShortRequeueDelayWithError(err)
+	}
+	// convert to base64
+	encoded := base64.StdEncoding.EncodeToString(y)
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEventResourceName(ev.ResourceNSN.Name, string(ev.Action), string(ev.EventType)),
 			Namespace: ev.ResourceNSN.Namespace,
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), cli, cm, func() error {
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), cli, cm, func() error {
 		if cm.Labels == nil {
 			cm.Labels = make(map[string]string)
 		}
 		// Always replace existing event data for this module-action
 		cm.Labels[constants.VerrazzanoModuleEventLabel] = string(ev.EventType)
 		cm.Data = make(map[string]string)
-		cm.Data[string(ActionKey)] = string(ev.Action)
-		cm.Data[string(CascadeKey)] = strconv.FormatBool(ev.Cascade)
-		cm.Data[string(EventTypeKey)] = string(ev.EventType)
-		cm.Data[string(ModuleNameKey)] = ev.ModuleName
-		cm.Data[string(ModuleVersionKey)] = ev.ModuleVersion
-		cm.Data[string(ResourceNamespaceKey)] = ev.ResourceNSN.Namespace
-		cm.Data[string(ResourceNameKey)] = ev.ResourceNSN.Name
-		cm.Data[string(TargetNamespaceKey)] = ev.TargetNamespace
+		cm.Data[string(EventDataKey)] = encoded
 		return nil
 	})
 	if err != nil {
@@ -134,23 +128,16 @@ func createEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 }
 
 // ConfigMapToModuleIntegrationEvent converts an event configmap to a ModuleIntegrationEvent
-func ConfigMapToModuleIntegrationEvent(cm *corev1.ConfigMap) *ModuleIntegrationEvent {
-	ev := ModuleIntegrationEvent{}
-	if cm.Data == nil {
-		return &ev
+func ConfigMapToModuleIntegrationEvent(cm *corev1.ConfigMap) (*ModuleIntegrationEvent, error) {
+	decoded, err := base64.StdEncoding.DecodeString(cm.Data[string(EventDataKey)])
+	if err != nil {
+		return nil, err
 	}
-	s, _ := cm.Data[string(ActionKey)]
-	ev.Action = Action(s)
-	s, _ = cm.Data[string(EventTypeKey)]
-	ev.EventType = EventType(s)
-	s, _ = cm.Data[string(CascadeKey)]
-	ev.Cascade, _ = strconv.ParseBool(s)
-	ev.ModuleName, _ = cm.Data[string(ModuleNameKey)]
-	ev.ModuleVersion, _ = cm.Data[string(ModuleVersionKey)]
-	ev.ResourceNSN.Name, _ = cm.Data[string(ResourceNameKey)]
-	ev.ResourceNSN.Namespace, _ = cm.Data[string(ResourceNamespaceKey)]
-	ev.TargetNamespace, _ = cm.Data[string(TargetNamespaceKey)]
-	return &ev
+	ev := ModuleIntegrationEvent{}
+	if err := yaml.Unmarshal(decoded, &ev); err != nil {
+		return nil, err
+	}
+	return &ev, nil
 }
 
 func getEventResourceName(name string, action string, eventType string) string {
