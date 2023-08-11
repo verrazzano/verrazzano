@@ -201,7 +201,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.4.2",
+      "version": "v1.5.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -209,7 +209,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.4.2-20230601170413-d75d4df4d"
+              "tag": "v1.5.0-20230810225904-95043bc1f"
             }
           ]
         }
