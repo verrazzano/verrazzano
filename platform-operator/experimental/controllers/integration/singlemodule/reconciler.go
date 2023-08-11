@@ -45,18 +45,22 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return res
 	}
 
-	// If needed, create an integrate all event using the same payload as the module event that was just processed
-	_, ok := requireIntegrateAll[ev.ModuleName]
-	if ok {
-		ev.EventType = event.IntegrateAllRequestEvent
-		res := event.CreateEvent(r.Client, ev)
-		if res.ShouldRequeue() {
-			return res
+	// If needed, create an IntegrateOthersRequestEvent using the same payload as the module event that was just processed
+	// this is needed to integrate related modules affected by this module
+	if ev.Cascade {
+		_, ok := requireIntegrateAll[ev.ModuleName]
+		if ok {
+			ev.EventType = event.IntegrateOthersRequestEvent
+			ev.Cascade = false
+			res := event.CreateEvent(r.Client, ev)
+			if res.ShouldRequeue() {
+				return res
+			}
 		}
 	}
 
 	// Delete the event.  This is safe to do since the integration controller
-	// is the only controller processing integration events
+	// is the only controller processing IntegrateSingleRequestEvent events
 	if err := r.Client.Delete(ctx.TODO(), cm); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}

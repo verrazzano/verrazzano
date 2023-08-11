@@ -24,8 +24,9 @@ const (
 	// IntegrateSingleRequestEvent is a request to integrate a single module
 	IntegrateSingleRequestEvent EventType = "integrate-single"
 
-	// IntegrateAllRequestEvent is an event request to integrate all the modules
-	IntegrateAllRequestEvent EventType = "integrate-all"
+	// IntegrateOthersRequestEvent is an event request to integrate the other modules except the one
+	// in the event payload (since it will already have been integrated)
+	IntegrateOthersRequestEvent EventType = "integrate-others"
 )
 
 // DataKey is a configmap data key
@@ -56,6 +57,9 @@ const (
 type ModuleIntegrationEvent struct {
 	EventType
 	Action
+
+	// Cascade true indicates that the single-module integration controller should potentially create an
+	// event to integrate other modules
 	Cascade         bool
 	ResourceNSN     types.NamespacedName
 	ModuleName      string
@@ -81,9 +85,9 @@ func CreateModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, a
 	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
 }
 
-// CreateModuleIntegrateAllEvent creates ModuleIntegrationEvent event for a module
-func CreateModuleIntegrateAllEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
-	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateAllRequestEvent, false))
+// CreateNonCascadingModuleIntegrationEvent creates a ModuleIntegrationEvent event for a module with no cascading
+func CreateNonCascadingModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
+	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, false))
 }
 
 // CreateEvent creates a lifecycle event
