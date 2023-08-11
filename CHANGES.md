@@ -4,6 +4,7 @@ Component version updates:
 
 - Istio v1.17.2
 - Rancher v2.7.5
+- Kiali v1.66.1
 
 Fixes:
 
