@@ -512,7 +512,7 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
-	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
+	if err := putServerURL(c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 
@@ -729,12 +729,12 @@ func configureUISettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring ui-pl setting: %s", err.Error())
 	}
 
-	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoLight, SettingUILogoLightLogoFilePath); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoLight, SettingUILogoLightLogoFilePath, err.Error())
+	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoLight, SettingUILogoLightFile); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo %s: %s", SettingUILogoLight, SettingUILogoLightFile, err.Error())
 	}
 
-	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
+	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkFile); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkFile, err.Error())
 	}
 
 	if err := createOrUpdateUIColorSettings(ctx); err != nil {
