@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package othermodules
+package cascade
 
 import (
 	"context"
@@ -67,5 +67,5 @@ func (r Reconciler) HandlePredicateEvent(cli client.Client, object client.Object
 	if !ok {
 		return false
 	}
-	return evType == string(event.IntegrateOthersRequestEvent)
+	return evType == string(event.IntegrateCascadeRequestEvent)
 }

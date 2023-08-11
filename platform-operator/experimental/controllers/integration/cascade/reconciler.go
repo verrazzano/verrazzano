@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package othermodules
+package cascade
 
 import (
 	ctx "context"
@@ -41,7 +41,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 
 	// Delete the event.  This is safe to do since the integration controller
-	// is the only controller processing IntegrateOthersRequestEvent events
+	// is the only controller processing IntegrateCascadeRequestEvent events
 	if err := r.Client.Delete(ctx.TODO(), cm); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -49,7 +49,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 // createIntegrationEvents creates integration events for all modules that have an integration chart,
-// except for the module that was just integrated (i.e. the module in the IntegrateOthersRequestEvent)
+// except for the module that was just integrated (i.e. the module in the IntegrateCascadeRequestEvent)
 func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *event.ModuleIntegrationEvent) result.Result {
 	modules := moduleapi.ModuleList{}
 	err := r.Client.List(context.TODO(), &modules)

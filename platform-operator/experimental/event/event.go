@@ -26,9 +26,9 @@ const (
 	// IntegrateSingleRequestEvent is a request to integrate a single module
 	IntegrateSingleRequestEvent EventType = "integrate-single"
 
-	// IntegrateOthersRequestEvent is an event request to integrate the other modules except the one
+	// IntegrateCascadeRequestEvent is an event request to integrate the other modules except the one
 	// in the event payload (since it will already have been integrated)
-	IntegrateOthersRequestEvent EventType = "integrate-others"
+	IntegrateCascadeRequestEvent EventType = "integrate-cascade"
 )
 
 // DataKey is a configmap data key
@@ -81,11 +81,11 @@ func CreateModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, a
 	return createEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
 }
 
-// CreateModuleIntegrateOthersEvent creates a ModuleIntegrationEvent event for a module to integrate other modules
-func CreateModuleIntegrateOthersEvent(cli client.Client, sourceEvent *ModuleIntegrationEvent) result.Result {
+// CreateModuleIntegrationCascadeEvent creates a ModuleIntegrationEvent event for a module to integrate other modules
+func CreateModuleIntegrationCascadeEvent(cli client.Client, sourceEvent *ModuleIntegrationEvent) result.Result {
 	// Use the fields from the input event to create a new event of a different type
 	ev := *sourceEvent
-	ev.EventType = IntegrateOthersRequestEvent
+	ev.EventType = IntegrateCascadeRequestEvent
 	ev.Cascade = false
 	return createEvent(cli, &ev)
 }

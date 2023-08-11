@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package singlemodule
+package single
 
 import (
 	ctx "context"
@@ -51,12 +51,12 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return res
 	}
 
-	// If needed, create an IntegrateOthersRequestEvent using the same payload as the module event that was just processed
+	// If needed, create an IntegrateCascadeRequestEvent using the same payload as the module event that was just processed
 	// this is needed to integrate related modules affected by this module
 	if ev.Cascade {
 		_, ok := requireIntegrateAll[ev.ModuleName]
 		if ok {
-			res := event.CreateModuleIntegrateOthersEvent(r.Client, ev)
+			res := event.CreateModuleIntegrationCascadeEvent(r.Client, ev)
 			if res.ShouldRequeue() {
 				return res
 			}
