@@ -67,6 +67,39 @@ func TestGetVerrazzanoV1Alpha1NotFound(t *testing.T) {
 	assert.Nil(t, vzActual)
 }
 
+// TODO: write better tests for List
+func TestListVerrazzanoV1Alpha1(t *testing.T) {
+	ctx := context.TODO()
+
+	scheme := runtime.NewScheme()
+	err := v1beta1.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	// create a v1beta1 Verrazzano through the K8s client
+	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
+	assert.NoError(t, err)
+	err = client.Create(ctx, vzStoredV1Beta1)
+	assert.NoError(t, err)
+
+	// the expected VZ resource returned should be v1alpha1
+	vzExpected, err := loadV1Alpha1CR(testCaseBasic)
+	assert.NoError(t, err)
+
+	// get the v1alpha1 VZ resource
+	vzList, err := ListVerrazzanoV1Alpha1(ctx, client)
+	assert.NoError(t, err)
+	expectedLength := 1
+	assert.Len(t, vzList.Items, expectedLength, "the VerrazzanoList should have a length of %d but was %d", expectedLength, len(vzList.Items))
+
+	// expected and actual v1alpha1 CRs must be equal
+	vzActual := vzList.Items[0]
+	assert.EqualValues(t, vzExpected.ObjectMeta.Name, vzActual.ObjectMeta.Name)
+	assert.EqualValues(t, vzExpected.ObjectMeta.Namespace, vzActual.ObjectMeta.Namespace)
+	assert.EqualValues(t, vzExpected.Spec, vzActual.Spec)
+	assert.EqualValues(t, vzExpected.Status, vzActual.Status)
+}
+
 func TestUpdateVerrazzanoV1Alpha1(t *testing.T) {
 	ctx := context.TODO()
 

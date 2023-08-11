@@ -25,6 +25,28 @@ func GetVerrazzanoV1Alpha1(ctx context.Context, client client.Client, name types
 	return vzV1Alpha1, nil
 }
 
+// ListVerrazzanoV1Alpha1 returns a v1alpha1 VerrazzanoList.
+// This function internally uses v1beta1 Verrazzano to talk to the K8s API server.
+func ListVerrazzanoV1Alpha1(ctx context.Context, client client.Client) (*VerrazzanoList, error) {
+	vzListV1Beta1 := &v1beta1.VerrazzanoList{}
+	if err := client.List(ctx, vzListV1Beta1); err != nil {
+		return nil, err
+	}
+
+	// FIXME: maybe put this in its own helper function
+	// Convert the v1beta1 VerrazzanoList to a v1alpha1 VerrazzanoList
+	vzListV1Alpha1 := &VerrazzanoList{}
+	for _, vzV1Beta1 := range vzListV1Beta1.Items {
+		vzV1Alpha1 := &Verrazzano{}
+		if err := vzV1Alpha1.ConvertFrom(&vzV1Beta1); err != nil {
+			return nil, err
+		}
+		vzListV1Alpha1.Items = append(vzListV1Alpha1.Items, *vzV1Alpha1)
+	}
+
+	return vzListV1Alpha1, nil
+}
+
 // UpdateVerrazzanoV1Alpha1 takes in a v1alpha1 Verrazzano struct and sends an update request to the K8s API server
 // for that resource. This function internally converts the Verrazzano to v1beta1 before sending the update request.
 func UpdateVerrazzanoV1Alpha1(ctx context.Context, client client.Client, vzV1Alpha1 *Verrazzano) error {
