@@ -23,7 +23,6 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	// FIXME: better way to get these VZs than these "load..." functions?
 	// create the VZ resource. Stored as v1beta1.
 	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
 	assert.NoError(t, err)
