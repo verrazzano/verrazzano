@@ -117,6 +117,9 @@ func IsCertManagerEnabled(cr runtime.Object) bool {
 
 // IsClusterIssuerEnabled - Returns false only if the ClusterIssuerComponent is explicitly disabled
 func IsClusterIssuerEnabled(cr runtime.Object) bool {
+	if IsCertManagerEnabled(cr) {
+		return true
+	}
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterIssuer != nil &&
 			vzv1alpha1.Spec.Components.ClusterIssuer.Enabled != nil {

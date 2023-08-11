@@ -11,7 +11,12 @@ metadata:
 redirectURIs:
 - {{ .Values.kiali_route_url }}
 grantMethod: auto
-allowAnyScope: true
+{{- if .Values.auth.openshift.token_inactivity_timeout }}
+accessTokenInactivityTimeoutSeconds: {{ .Values.auth.openshift.token_inactivity_timeout }}
+{{- end }}
+{{- if .Values.auth.openshift.token_max_age }}
+accessTokenMaxAgeSeconds: {{ .Values.auth.openshift.token_max_age }}
+{{- end }}
 ...
 {{- end }}
 {{- end }}

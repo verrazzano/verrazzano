@@ -134,15 +134,6 @@ func generateClientObjects() client.WithWatch {
 		},
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: rancherNamespace,
-				Name:      pkgconst.AdditionalTLS,
-			},
-			Data: map[string][]byte{
-				pkgconst.AdditionalTLSCAKey: []byte(""),
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
 				Name:      pkgconst.VerrazzanoClusterRancherName,
 			},

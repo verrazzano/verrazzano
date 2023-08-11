@@ -12,7 +12,7 @@ auth:
 istio_namespace: istio-system
 
 deployment:
-  version_label: v1.57.1
+  version_label: v1.66.1
   # The platform operator will manage the Kiali ingress
   ingress:
     enabled: false
@@ -49,6 +49,10 @@ external_services:
     enabled: false
   tracing:
     enabled: false
+
+kiali_feature_flags:
+  validations:
+    ignore: ["KIA1201", "KIA0501"]
 
 server:
   web_root: ""

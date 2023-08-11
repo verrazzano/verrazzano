@@ -12,14 +12,16 @@ import (
 	"time"
 
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -91,6 +93,10 @@ func (nsMatcher) String() string {
 	return "namespace matcher"
 }
 
+func init() {
+	metricsexporter.Init()
+}
+
 // TestGetClusterRoleBindingName tests generating a ClusterRoleBinding name
 // GIVEN a name and namespace
 // WHEN the method is called
@@ -129,7 +135,6 @@ func TestGetUninstallJobName(t *testing.T) {
 //
 //	ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
-	metricsexporter.Init()
 	tests := []struct {
 		namespace string
 		name      string
@@ -1521,7 +1526,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1576,7 +1581,7 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1621,7 +1626,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1661,7 +1666,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 		&corev1.Pod{
@@ -1727,7 +1732,7 @@ func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "WrongNamespace",
 			Name:      "one-off-backup-20221018-201321",
-			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 		},
 	}
 	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
@@ -1746,7 +1751,7 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: constants.KeycloakNamespace,
 				Name:      "one-off-backup-schedule-20221018-201321",
-				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+				Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 			},
 		},
 	).Build()
@@ -1781,7 +1786,7 @@ func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: mysql.ComponentNamespace,
 			Name:      "one-off-backup-20221018-201321",
-			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 		},
 	}
 	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
@@ -2374,6 +2379,95 @@ func TestReconcilerProcReadyState(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ProcReadyState() got = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+// TestReconcilerProcReconcilingState tests ProcReconciling state
+// GIVEN a Verrazzano in Reconciling state with status version == spec version
+// WHEN ProcReconcilingState is called
+// THEN it proceeds with reconcile
+// GIVEN a Verrazzano in Reconciling state with status version != spec version
+// WHEN ProcReconcilingState is called
+// THEN it updates the VZ status to Upgrading returns a requeue
+func TestReconcilerProcReconcilingState(t *testing.T) {
+	vzNoSpecVersion := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "nospecver"},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateReconciling,
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "1.6.3",
+		},
+	}
+	// spec and status versions are equal
+	vzVersionsSame := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "same-versions"},
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.6.3",
+		},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateReconciling,
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "1.6.3",
+		},
+	}
+	// spec and status versions are different
+	vzVersionsDifferent := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: "diff-versions"},
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.6.3",
+		},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateReconciling,
+			Components: map[string]*vzapi.ComponentStatusDetails{},
+			Version:    "1.5.3",
+		},
+	}
+	tests := []struct {
+		name        string
+		vz          vzapi.Verrazzano
+		wantVZState vzapi.VzStateType
+		wantRequeue bool
+	}{
+		{"VZ with no spec version", vzNoSpecVersion, vzapi.VzStateReady, false},
+		{"VZ with same spec and status version", vzVersionsSame, vzapi.VzStateReady, false},
+		{"VZ with different spec and status version", vzVersionsDifferent, vzapi.VzStateUpgrading, true},
+	}
+	getCompFunc := func() []spi.Component {
+		return []spi.Component{}
+	}
+	initUnitTesing()
+	defer registry.ResetGetComponentsFn()
+	registry.OverrideGetComponentsFn(getCompFunc)
+	defer func() { config.TestProfilesDir = "" }()
+	config.TestProfilesDir = relativeProfilesDir
+
+	// Keycloak mocking up for reconcileComponents
+	authConfig := createKeycloakAuthConfig()
+	kcSecret := keycloakutil.CreateTestKeycloakLoginSecret()
+	firstLoginSetting := createFirstLoginSetting()
+	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	keycloakPod := keycloakutil.CreateTestKeycloakPod()
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
+	addKeycloakPodExec()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sClient := fakes.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(
+				&tt.vz, &authConfig, kcSecret, &kcIngress, &firstLoginSetting, keycloakPod,
+				&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole).Build()
+			r := newVerrazzanoReconciler(k8sClient)
+			vzCtx, err := vzContext.NewVerrazzanoContext(vzlog.DefaultLogger(), k8sClient, &tt.vz, true)
+			assert.NoError(t, err)
+			result, err := r.ProcReconcilingState(vzCtx)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantRequeue, result.Requeue)
+			vz := vzapi.Verrazzano{}
+			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: tt.vz.Namespace, Name: tt.vz.Name}, &vz)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantVZState, vz.Status.State)
 		})
 	}
 }

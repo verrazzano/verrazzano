@@ -92,10 +92,18 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 	componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 	if !ok {
 		compLog.Debugf("Did not find status details in map for component %s, adding it to the component status map", comp.Name())
-		if err := r.initComponentStatus(compContext, comp); err != nil {
+		var err error
+		if err = r.initComponentStatus(compContext, comp); err != nil {
 			compLog.Errorf("Error initializing the component status for component %s: %v", comp.Name(), err)
 			return newRequeueWithDelay()
 		}
+	}
+
+	// initComponentStatus above is an asynchronous operation, so if we didn't find component status,
+	// requeue until we do
+	if componentStatus == nil {
+		compLog.Debugf("Component status is not yet present for component %s, requeueing", comp.Name())
+		return newRequeueWithDelay()
 	}
 
 	for compTracker.installState != compStateInstallEnd {
@@ -217,7 +225,6 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 
 	// The component previously finished installing, but check for any mid-installation updates
 	// which may require restarting the component's installation from the beginning
-
 	if restartComponentInstallFromEndState(compContext, comp, componentStatus) {
 		compTracker.installState = compStateInstallInitDetermineComponentState
 		if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
@@ -298,8 +305,12 @@ func restartComponentInstallFromEndState(compContext spi.ComponentContext, comp 
 	if compContext.ActualCR().Status.State == vzapi.VzStateUpgrading || compContext.ActualCR().Status.State == vzapi.VzStatePaused {
 		return false
 	}
-	// Only restart the component install if the config has been updated and the component is enabled
-	if !checkConfigUpdated(compContext, componentStatus) || !comp.IsEnabled(compContext.EffectiveCR()) {
+	// Don't restart the component install if the component is disabled
+	if !comp.IsEnabled(compContext.EffectiveCR()) {
+		return false
+	}
+	// Don't restart the component install if the component does not have a valid component status
+	if !checkConfigUpdated(compContext, componentStatus) {
 		return false
 	}
 	// if monitoring overrides is disabled, updates are prevented for override changes and the install process should be bypassed
@@ -384,15 +395,16 @@ func (r *Reconciler) initComponentStatus(ctx spi.ComponentContext, comp spi.Comp
 		}
 	}
 
+	compStatusDetails := vzapi.ComponentStatusDetails{
+		Name:                     comp.Name(),
+		State:                    state,
+		LastReconciledGeneration: lastReconciled,
+	}
 	// Update the status
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: ctx.ActualCR(),
 		Components: map[string]*vzapi.ComponentStatusDetails{
-			comp.Name(): {
-				Name:                     comp.Name(),
-				State:                    state,
-				LastReconciledGeneration: lastReconciled,
-			},
+			comp.Name(): &compStatusDetails,
 		},
 	})
 	return nil

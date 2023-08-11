@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -577,7 +577,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
-	addExec()
+	addKeycloakPodExec()
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -681,7 +681,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
-	addExec()
+	addKeycloakPodExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
@@ -943,7 +943,7 @@ func TestUpgradeComponent(t *testing.T) {
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
-	addExec()
+	addKeycloakPodExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
 	kcPVC := &v1.PersistentVolumeClaim{
@@ -1156,7 +1156,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
-	addExec()
+	addKeycloakPodExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
 	kcPVC := &v1.PersistentVolumeClaim{
