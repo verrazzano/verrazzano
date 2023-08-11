@@ -195,8 +195,8 @@ func (r *VerrazzanoManagedClusterReconciler) getRancherCACert() (string, error) 
 	ingressSecret := corev1.Secret{}
 
 	err := r.Client.Get(context.TODO(), client.ObjectKey{
-		Namespace: vzconst.RancherSystemNamespace,
-		Name:      vzconst.RancherTLSCA,
+		Namespace: vzconst.VerrazzanoSystemNamespace,
+		Name:      vzconst.PrivateCABundle,
 	}, &ingressSecret)
 	if client.IgnoreNotFound(err) != nil {
 		return "", err
