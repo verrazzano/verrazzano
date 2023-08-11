@@ -83,9 +83,9 @@ func CreateEvent(cli client.Client, ev LifecycleEvent) result.Result {
 			cm.Labels = make(map[string]string)
 		}
 		// Always replace existing event data for this module-action
-		cm.Labels[constants.VerrazzanoModuleEventLabel] = ev.ModuleName
+		cm.Labels[constants.VerrazzanoModuleEventLabel] = string(ev.EventType)
 		cm.Data = make(map[string]string)
-		cm.Data[string(IntegrationEvent)] = string(ev.EventType)
+		cm.Data[string(EventTypeKey)] = string(ev.EventType)
 		cm.Data[string(ActionKey)] = string(ev.Action)
 		cm.Data[string(ModuleNameKey)] = ev.ModuleName
 		cm.Data[string(ModuleVersionKey)] = ev.ModuleVersion

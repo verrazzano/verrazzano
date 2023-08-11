@@ -95,9 +95,9 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 		if err != nil {
 			retError = err
 		}
-		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
+	// If any chart failed to install then reconcile again
 	if retError != nil {
 		return result.NewResultShortRequeueDelayIfError(retError)
 	}
