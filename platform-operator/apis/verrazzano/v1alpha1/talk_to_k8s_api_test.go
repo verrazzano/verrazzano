@@ -42,8 +42,9 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, name)
 	assert.NoError(t, err)
 
-	// FIXME: what are all the things that should be checked here?
 	// expected and actual v1alpha1 CRs must be equal
+	assert.EqualValues(t, vzExpected.ObjectMeta.Name, vzActual.ObjectMeta.Name)
+	assert.EqualValues(t, vzExpected.ObjectMeta.Namespace, vzActual.ObjectMeta.Namespace)
 	assert.EqualValues(t, vzExpected.Spec, vzActual.Spec)
 	assert.EqualValues(t, vzExpected.Status, vzActual.Status)
 }
