@@ -17,7 +17,7 @@ def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
 Collections.shuffle(availableDomains)
 def ocneVersions=[ "1.6", "1.5.13", "1.5.12", "1.7"]
-def osVersions=['8', '7']
+def osVersions=['8', '7.9']
 def uniquePrefix=UUID.randomUUID().toString().substring(0,4).replace('-','')
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
 
