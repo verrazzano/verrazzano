@@ -2,6 +2,7 @@
 Component version updates:
 
 - Kiali v1.66.1
+- Cluster API v1.5.0
 
 ### v1.6.4
 
