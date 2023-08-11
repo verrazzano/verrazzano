@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	corev1 "k8s.io/api/core/v1"
@@ -85,7 +84,7 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 // deleteConfigSecrets deletes all the module config secrets
 func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
 	secretList := &corev1.SecretList{}
-	req, _ := labels.NewRequirement(constants.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
 	selector := labels.NewSelector().Add(*req)
 	if err := r.Client.List(context.TODO(), secretList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
 		log.Infof("Failed getting secrets in %s namespace, retrying: %v", namespace, err)
@@ -106,7 +105,7 @@ func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace st
 // deleteConfigMaps deletes all the module config maps
 func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
 	configMapList := &corev1.ConfigMapList{}
-	req, _ := labels.NewRequirement(constants.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
 	selector := labels.NewSelector().Add(*req)
 	if err := r.Client.List(context.TODO(), configMapList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
 		log.Infof("Failed getting configMaps in %s namespace, retrying: %v", namespace, err)

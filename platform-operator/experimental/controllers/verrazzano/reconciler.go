@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -107,8 +106,8 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
-	module.Annotations[constants.VerrazzanoCRNameAnnotation] = effectiveCR.Name
-	module.Annotations[constants.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
+	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
+	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
 
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()

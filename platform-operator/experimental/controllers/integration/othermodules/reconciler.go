@@ -29,7 +29,12 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-	ev := event.ConfigMapToModuleIntegrationEvent(cm)
+	ev, err := event.ConfigMapToModuleIntegrationEvent(cm)
+	if err != nil {
+		spictx.Log.ErrorfThrottled(err.Error())
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
 	res := r.createIntegrationEvents(log, ev)
 	if res.ShouldRequeue() {
 		return res

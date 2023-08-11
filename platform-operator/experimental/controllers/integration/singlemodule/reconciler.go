@@ -116,9 +116,9 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 }
 
 // deleteIntegrationRelease deletes the integration release
-func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev event.ModuleIntegrationEvent) result.Result {
-	return result.NewResult()
-}
+//func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev event.ModuleIntegrationEvent) result.Result {
+//	return result.NewResult()
+//}
 
 func getReleaseName(moduleName string) string {
 	return fmt.Sprintf("%s-%s", moduleName, "integration")
