@@ -34,6 +34,7 @@ const (
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
+const defaultModuleCatalogFilename = "catalog.yaml"
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
@@ -236,8 +237,8 @@ func GetProfilesDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
 }
 
-func GetModuleIntegrationDir() string {
-	return filepath.Join(instance.VerrazzanoRootDir, modulesIntegrationDir)
+func GetModuleIntegrationCatalog() string {
+	return filepath.Join(instance.VerrazzanoRootDir, modulesIntegrationDir, defaultModuleCatalogFilename)
 }
 
 // GetProfile returns API profiles dir
