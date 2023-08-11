@@ -95,7 +95,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
 	}
 
-	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
+	// only start the CAPI cluster controller if the clusters CRD is installed and the controller is enabled
 	if capiCrdInstalled && rancherRegistrationEnabled {
 		log.Infof("Starting CAPI Cluster controller")
 		if err = (&capi.CAPIClusterReconciler{
