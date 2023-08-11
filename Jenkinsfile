@@ -86,6 +86,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RELEASE_OWNERS = credentials('release-version-owners')
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -211,6 +212,26 @@ pipeline {
                 }
             }
         }
+       stage('Verrazzano development version check') {
+                    when { not { buildingTag() } }
+                    steps {
+                         script {
+                            VERRAZZANO_DEV_VERSION_CHECK = sh (script: "git ls-remote --tags origin | grep -F ${VERRAZZANO_DEV_VERSION}", returnStatus: true )
+                            if (VERRAZZANO_DEV_VERSION_CHECK == 0) {
+                                if (env.JOB_NAME ==~ "verrazzano/release-*") {
+                                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nRelease Owners:\n ${RELEASE_OWNERS}\n")
+                                }
+                            }
+                         }
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
 
         stage('Parallel Build, Test, and Compliance') {
             parallel {
@@ -317,9 +338,9 @@ pipeline {
                         }
                     }
                 }
-            }
 
         }
+    }
 
         stage('Image Patch Operator') {
             when {
