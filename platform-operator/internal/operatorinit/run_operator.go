@@ -20,7 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	integrationcontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integrate-single"
+	integrationcontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/singlemodule"
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
 	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
