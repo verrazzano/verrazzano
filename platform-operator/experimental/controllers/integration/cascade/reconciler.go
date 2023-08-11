@@ -61,19 +61,21 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 	var requeue *result.Result
 	for i, module := range modules.Items {
 		// If this module was just integrated then ignore it
-		if module.Name == ev.ModuleName {
+		moduleName := module.Spec.ModuleName
+		if moduleName == ev.ModuleName {
 			continue
 		}
 
 		// Nothing to do if an integration chart doesn't exist for this module
-		moduleChartDir := path.Join(config.GetIntegrationChartsDir(), ev.ModuleName)
+		moduleChartDir := path.Join(config.GetIntegrationChartsDir(), moduleName)
 		_, err := os.Stat(moduleChartDir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return result.NewResult()
+				continue
 			}
-			log.ErrorfThrottled("Failed to check if integration chart exists for module %s: %v", ev.ModuleName, err)
-			return result.NewResultShortRequeueDelayWithError(err)
+			log.ErrorfThrottled("Failed to check if integration chart exists for module %s: %v", moduleName, err)
+			res := result.NewResultShortRequeueDelayWithError(err)
+			requeue = &res
 		}
 
 		// Create an event requesting that this module be integrated

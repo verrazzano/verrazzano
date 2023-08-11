@@ -186,7 +186,12 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the module status
-	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+	res = modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+	if res.ShouldRequeue() {
+		return res
+	}
+	// Create an event requesting that integration happen for this module
+	return event.CreateModuleIntegrationEvent(ctx.Client, module, event.Installed)
 }
 
 // updateReadyConditionReconcilingOrFailed updates the ready condition
@@ -204,11 +209,5 @@ func (h ComponentHandler) updateReadyConditionStartedOrFailed(ctx handlerspi.Han
 	if failed {
 		return modulestatus.UpdateReadyConditionFailed(ctx, module, reason, msg)
 	}
-	res := modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
-	if res.ShouldRequeue() {
-		return res
-	}
-
-	// Create an event requesting that integration happen for this module
-	return event.CreateModuleIntegrationEvent(ctx.Client, module, event.Installed)
+	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
