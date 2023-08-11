@@ -56,13 +56,57 @@ func TestGetVerrazzanoV1Alpha1NotFound(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	// get the v1alpha1 VZ resource
+	// get the v1alpha1 VZ resource, which was never created
 	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, types.NamespacedName{
-		Name:      "verrazzano",
-		Namespace: "default",
+		Name:      "nonexistent-verrazzano",
+		Namespace: "",
 	})
 
 	// a NotFound error should have been returned
 	assert.True(t, apierrors.IsNotFound(err), "a NotFound error was expected, but got '%v'", err)
 	assert.Nil(t, vzActual)
+}
+
+func TestUpdateVerrazzanoV1Alpha1(t *testing.T) {
+	ctx := context.TODO()
+
+	scheme := runtime.NewScheme()
+	err := v1beta1.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	// create the VZ resource. Stored as v1beta1.
+	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
+	assert.NoError(t, err)
+	err = client.Create(ctx, vzStoredV1Beta1)
+	assert.NoError(t, err)
+
+	// get the VZ resource before the update
+	vzNamespacedName := types.NamespacedName{
+		Name:      vzStoredV1Beta1.Name,
+		Namespace: vzStoredV1Beta1.Namespace,
+	}
+	vzV1Alpha1, err := GetVerrazzanoV1Alpha1(ctx, client, vzNamespacedName)
+	assert.NoError(t, err)
+
+	// Update the Verrazzano struct - add a new label
+	labels := map[string]string{"dummy-label-key": "dummy-label-value"}
+	vzV1Alpha1.SetLabels(labels)
+
+	// Update the Verrazzano resource through the K8s client
+	err = UpdateVerrazzanoV1Alpha1(ctx, client, vzV1Alpha1)
+	assert.NoError(t, err)
+
+	// Get the Verrazzano after the update
+	vzRetrieved, err := GetVerrazzanoV1Alpha1(ctx, client, vzNamespacedName)
+	assert.NoError(t, err)
+
+	// The retrieved Verrazzano should have the updated label
+	assert.EqualValues(t, vzV1Alpha1.ObjectMeta.Labels, vzRetrieved.ObjectMeta.Labels)
+
+	// Check that other things from the retrieved Verrazzano are as expected
+	assert.EqualValues(t, vzV1Alpha1.ObjectMeta.Name, vzRetrieved.ObjectMeta.Name)
+	assert.EqualValues(t, vzV1Alpha1.ObjectMeta.Namespace, vzRetrieved.ObjectMeta.Namespace)
+	assert.EqualValues(t, vzV1Alpha1.Spec, vzRetrieved.Spec)
+	assert.EqualValues(t, vzV1Alpha1.Status, vzRetrieved.Status)
 }

@@ -25,4 +25,15 @@ func GetVerrazzanoV1Alpha1(ctx context.Context, client client.Client, name types
 	return vzV1Alpha1, nil
 }
 
-// TODO: write Update function
+// UpdateVerrazzanoV1Alpha1 takes in a v1alpha1 Verrazzano struct and sends an update request to the K8s API server
+// for that resource. This function internally converts the Verrazzano to v1beta1 before sending the update request.
+func UpdateVerrazzanoV1Alpha1(ctx context.Context, client client.Client, vzV1Alpha1 *Verrazzano) error {
+	vzV1Beta1 := &v1beta1.Verrazzano{}
+	if err := vzV1Alpha1.ConvertTo(vzV1Beta1); err != nil {
+		return err
+	}
+	if err := client.Update(ctx, vzV1Beta1); err != nil {
+		return err
+	}
+	return nil
+}
