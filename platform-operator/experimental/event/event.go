@@ -21,11 +21,11 @@ type EventType string
 
 // EventType constants
 const (
-	// ModuleLifeCycleEvent describes a lifecycle event for a module
-	ModuleLifeCycleEvent EventType = "module-lifecycle"
+	// IntegrateSingleRequestEvent is a request to integrate a single module
+	IntegrateSingleRequestEvent EventType = "integrate-single"
 
-	// ModuleIntegrateAllRequestEvent is an event request to integrate all the modules
-	ModuleIntegrateAllRequestEvent EventType = "module-integrate-all"
+	// IntegrateAllRequestEvent is an event request to integrate all the modules
+	IntegrateAllRequestEvent EventType = "integrate-all"
 )
 
 // DataKey is a configmap data key
@@ -56,22 +56,34 @@ const (
 type ModuleIntegrationEvent struct {
 	EventType
 	Action
+	Cascade         bool
 	ResourceNSN     types.NamespacedName
 	ModuleName      string
 	ModuleVersion   string
 	TargetNamespace string
 }
 
-// CreateModuleEvent creates a ModuleIntegrationEvent event for a module
-func CreateModuleEvent(cli client.Client, module *moduleapi.Module, action Action, eventType EventType) result.Result {
-	return CreateEvent(cli, &ModuleIntegrationEvent{
+// NewModuleIntegrationEvent creates a ModuleIntegrationEvent event struct for a module
+func NewModuleIntegrationEvent(module *moduleapi.Module, action Action, eventType EventType, cascade bool) *ModuleIntegrationEvent {
+	return &ModuleIntegrationEvent{
+		Cascade:         cascade,
 		EventType:       eventType,
 		Action:          action,
 		ResourceNSN:     types.NamespacedName{Namespace: module.Namespace, Name: module.Name},
 		ModuleName:      module.Spec.ModuleName,
 		ModuleVersion:   module.Spec.Version,
 		TargetNamespace: module.Spec.TargetNamespace,
-	})
+	}
+}
+
+// CreateModuleIntegrationEvent creates a ModuleIntegrationEvent event for a module
+func CreateModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
+	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
+}
+
+// CreateModuleIntegrateAllEvent creates ModuleIntegrationEvent event for a module
+func CreateModuleIntegrateAllEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
+	return CreateEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateAllRequestEvent, false))
 }
 
 // CreateEvent creates a lifecycle event

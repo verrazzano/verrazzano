@@ -209,6 +209,6 @@ func (h ComponentHandler) updateReadyConditionStartedOrFailed(ctx handlerspi.Han
 		return res
 	}
 
-	// Create an event
-	return event.CreateModuleEvent(ctx.Client, module, event.Installed, event.ModuleLifeCycleEvent)
+	// Create an event requesting that integration happen for this module
+	return event.CreateModuleIntegrationEvent(ctx.Client, module, event.Installed)
 }

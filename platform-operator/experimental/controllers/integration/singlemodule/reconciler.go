@@ -48,7 +48,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// If needed, create an integrate all event using the same payload as the module event that was just processed
 	_, ok := requireIntegrateAll[ev.ModuleName]
 	if ok {
-		ev.EventType = event.ModuleIntegrateAllRequestEvent
+		ev.EventType = event.IntegrateAllRequestEvent
 		res := event.CreateEvent(r.Client, ev)
 		if res.ShouldRequeue() {
 			return res

@@ -29,7 +29,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-	ev := event.ConfigMapToEvent(cm)
+	ev := event.ConfigMapToModuleIntegrationEvent(cm)
 	res := r.applyIntegrationCharts(log, ev)
 	if res.ShouldRequeue() {
 		return res

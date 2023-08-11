@@ -67,5 +67,5 @@ func (r Reconciler) HandlePredicateEvent(cli client.Client, object client.Object
 	if !ok {
 		return false
 	}
-	return evType == string(event.ModuleLifeCycleEvent)
+	return evType == string(event.IntegrateSingleRequestEvent)
 }
