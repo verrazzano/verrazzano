@@ -13,7 +13,7 @@ def VZ_BASE_IMAGE = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = "large_1_6"
+def agentLabel = "1.6-large"
 
 pipeline {
     options {
