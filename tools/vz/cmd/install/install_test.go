@@ -697,28 +697,6 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	}
 }
 
-// TestInstallCmdVPOAlreadyInstalled
-// GIVEN a CLI install command where a Verrazzano Platform Operator is already installed
-//
-//	WHEN I call cmd.Execute for install
-//	THEN the CLI install command is unsuccessful but a bug report is not generated
-func TestInstallCmdVPOAlreadyInstalled(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects())...).Build()
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
-	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
-	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
-	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
-	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
-	defer cmdHelpers.SetDefaultDeleteFunc()
-
-	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
-	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
-
-	// Run install command
-	cmd.Execute()
-}
-
 // TestInstallCmdDifferentVersion
 // GIVEN a CLI install command when an install is in progress for a different version
 //

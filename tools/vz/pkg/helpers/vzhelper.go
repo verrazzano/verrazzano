@@ -6,7 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"io"
 	"net/http"
 	"os"
@@ -146,14 +146,11 @@ func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, e
 
 // FindPlatformOperator - finds if the Verrazzano Platform Operator is already running
 func FindPlatformOperator(runtimeClient client.Client) (bool, error) {
-	var podList corev1.PodList
-	err := runtimeClient.List(context.TODO(), &podList,
-		client.InNamespace(constants.VerrazzanoInstallNamespace),
-		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	vpoList, err := validators.GetPlatformOperatorList(runtimeClient)
 	if err != nil {
 		return false, err
 	}
-	if len(podList.Items) != 0 {
+	if len(vpoList.Items) != 0 {
 		return true, fmt.Errorf("A Verrazzano Platform Operator was found already running")
 	}
 	return false, nil
