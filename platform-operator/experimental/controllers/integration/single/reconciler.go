@@ -31,7 +31,11 @@ var requireIntegrateAll = map[string]bool{
 	prometheusOperator.ComponentName: true,
 }
 
-// Reconcile reconciles the Verrazzano CR
+// Reconcile reconciles the IntegrateSingleRequestEvent (in the form of a configmap)
+// to perform integration for a single module. Certain modules, such as prometheus-operator,
+// require that all integration charts for other modules be installed/upgraded. So in addition
+// to applying the chart for a single module, this reconciler may create second event,
+// the IntegrateCascadeRequestEvent which processed by the cascade integration controller.
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	log := vzlog.DefaultLogger()
 
@@ -71,7 +75,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	return result.NewResult()
 }
 
-// applyIntegrationCharts applies all the integration charts for components that are enabled
+// applyIntegrationCharts applies all the integration charts for modules that are enabled
 func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event.ModuleIntegrationEvent) result.Result {
 	var retError error
 

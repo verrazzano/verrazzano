@@ -19,7 +19,11 @@ import (
 	"path"
 )
 
-// Reconcile reconciles the Verrazzano CR
+// Reconcile reconciles the IntegrateCascadeRequestEvent (in the form of a configmap).
+// Cascaded means that a lifecycle event for certain modules, such as prometheus-operator,
+// require that all integration charts for other modules be installed/upgraded.  This controller
+// finds such modules and creates events that will cause the integration chart for each one to be
+// applied.
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	log := vzlog.DefaultLogger()
 
