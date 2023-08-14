@@ -49,7 +49,8 @@ vz install --version v%[1]s --set profile=dev --set components.kiali.enabled=fal
 # The overlay files can be a comma-separated list or a series of -f options.  Both formats are shown.
 vz install -f base.yaml,custom.yaml --set profile=prod --log-format json
 vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json
-
+# Install the latest version of Verrazzano with progress bar enabled.
+vz install --progress
 # Install the latest version of Verrazzano using a Verrazzano CR specified with stdin.
 vz install -f - <<EOF
 apiVersion: install.verrazzano.io/v1beta1
@@ -96,7 +97,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Private registry support
 	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
 	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
-
+	cmd.PersistentFlags().BoolP(constants.ProgressFlag, constants.ProgressShorthand, constants.ProgressFlagDefault, constants.ProgressFlagHelp)
 	// Flag to skip any confirmation questions
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
 
@@ -226,7 +227,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		if err != nil {
 			return err
 		}
-
 		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
@@ -234,9 +234,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()
 	}
-
-	// Wait for the Verrazzano install to complete
-	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	progressFlag, err := cmd.PersistentFlags().GetBool(constants.ProgressFlag)
+	if progressFlag {
+		err = displayInstallationProgress(cmd, vzHelper, timeout)
+	} else {
+		// Wait for the Verrazzano install to complete and show the logs
+		err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	}
 	if err != nil {
 		return bugreport.AutoBugReport(cmd, vzHelper, err)
 	}

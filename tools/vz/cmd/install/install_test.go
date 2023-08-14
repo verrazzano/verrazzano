@@ -653,6 +653,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+	defer ensureResourcesDeleted(t, c)
 
 	// Run install command
 	err := cmd.Execute()
@@ -937,4 +938,7 @@ func TestInstallFromFilename(t *testing.T) {
 	os.Args = append(os.Args, testFilenamePath)
 	cmd.Execute()
 	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
+	//Clean the resource args for
+	s := len(os.Args)
+	os.Args = append(os.Args[:s-1])
 }
