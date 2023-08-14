@@ -45,7 +45,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-	ev, err := event.ConfigMapToModuleIntegrationEvent(cm)
+	ev, err := event.ConfigMapToModuleIntegrationEvent(log, cm)
 	if err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -60,7 +60,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	if ev.Cascade {
 		_, ok := requireIntegrateAll[ev.ModuleName]
 		if ok {
-			res := event.CreateModuleIntegrationCascadeEvent(r.Client, ev)
+			res := event.CreateModuleIntegrationCascadeEvent(log, r.Client, ev)
 			if res.ShouldRequeue() {
 				return res
 			}
@@ -70,6 +70,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// Delete the event.  This is safe to do since the integration controller
 	// is the only controller processing IntegrateSingleRequestEvent events
 	if err := r.Client.Delete(ctx.TODO(), cm); err != nil {
+		log.ErrorfThrottled("Failed to delete event configmap %s", cm.Name)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()
@@ -100,9 +101,6 @@ func (r Reconciler) applyIntegrationChart(log vzlog.VerrazzanoLogger, ev *event.
 
 	// Perform a Helm install using the helm upgrade --install command
 	// Block until helm finishes (wait = true)
-	if err != nil {
-		return result.NewResult()
-	}
 	var opts = &helm.HelmReleaseOpts{
 		ReleaseName:  getReleaseName(ev.ResourceNSN.Name),
 		Namespace:    ev.TargetNamespace,

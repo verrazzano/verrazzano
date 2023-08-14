@@ -191,7 +191,7 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		return res
 	}
 	// Create an event requesting that integration happen for this module
-	return event.CreateModuleIntegrationEvent(ctx.Client, module, event.Installed)
+	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Installed)
 }
 
 // updateReadyConditionReconcilingOrFailed updates the ready condition

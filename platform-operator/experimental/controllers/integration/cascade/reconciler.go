@@ -33,7 +33,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		// This is a fatal error, don't requeue
 		return result.NewResult()
 	}
-	ev, err := event.ConfigMapToModuleIntegrationEvent(cm)
+	ev, err := event.ConfigMapToModuleIntegrationEvent(log, cm)
 	if err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -47,6 +47,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// Delete the event.  This is safe to do since the integration controller
 	// is the only controller processing IntegrateCascadeRequestEvent events
 	if err := r.Client.Delete(ctx.TODO(), cm); err != nil {
+		log.ErrorfThrottled("Failed to delete event configmap %s", cm.Name)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()
@@ -83,7 +84,7 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 		}
 
 		// Create an event requesting that this module be integrated
-		res := event.CreateNonCascadingModuleIntegrationEvent(r.Client, &modules.Items[i], ev.Action)
+		res := event.CreateNonCascadingModuleIntegrationEvent(log, r.Client, &modules.Items[i], ev.Action)
 		if res.ShouldRequeue() {
 			requeue = &res
 		}

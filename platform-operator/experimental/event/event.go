@@ -9,6 +9,7 @@ import (
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,28 +78,29 @@ func NewModuleIntegrationEvent(module *moduleapi.Module, action Action, eventTyp
 }
 
 // CreateModuleIntegrationEvent creates a ModuleIntegrationEvent event for a module
-func CreateModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
-	return createEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
+func CreateModuleIntegrationEvent(log vzlog.VerrazzanoLogger, cli client.Client, module *moduleapi.Module, action Action) result.Result {
+	return createEvent(log, cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, true))
 }
 
 // CreateModuleIntegrationCascadeEvent creates a ModuleIntegrationEvent event for a module to integrate other modules
-func CreateModuleIntegrationCascadeEvent(cli client.Client, sourceEvent *ModuleIntegrationEvent) result.Result {
+func CreateModuleIntegrationCascadeEvent(log vzlog.VerrazzanoLogger, cli client.Client, sourceEvent *ModuleIntegrationEvent) result.Result {
 	// Use the fields from the input event to create a new event of a different type
 	ev := *sourceEvent
 	ev.EventType = IntegrateCascadeRequestEvent
 	ev.Cascade = false
-	return createEvent(cli, &ev)
+	return createEvent(log, cli, &ev)
 }
 
 // CreateNonCascadingModuleIntegrationEvent creates a ModuleIntegrationEvent event for a module with no cascading
-func CreateNonCascadingModuleIntegrationEvent(cli client.Client, module *moduleapi.Module, action Action) result.Result {
-	return createEvent(cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, false))
+func CreateNonCascadingModuleIntegrationEvent(log vzlog.VerrazzanoLogger, cli client.Client, module *moduleapi.Module, action Action) result.Result {
+	return createEvent(log, cli, NewModuleIntegrationEvent(module, action, IntegrateSingleRequestEvent, false))
 }
 
 // createEvent creates a lifecycle event
-func createEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
+func createEvent(log vzlog.VerrazzanoLogger, cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 	y, err := yaml.Marshal(ev)
 	if err != nil {
+		log.ErrorfThrottled("Failed to unmarshal event configmap for module %s: %v", ev.ModuleName, err)
 		result.NewResultShortRequeueDelayWithError(err)
 	}
 	// convert to base64
@@ -121,6 +123,7 @@ func createEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 		return nil
 	})
 	if err != nil {
+		log.ErrorfThrottled("Failed to create or update event configmap for module %s: %v", ev.ModuleName, err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -128,7 +131,7 @@ func createEvent(cli client.Client, ev *ModuleIntegrationEvent) result.Result {
 }
 
 // ConfigMapToModuleIntegrationEvent converts an event configmap to a ModuleIntegrationEvent
-func ConfigMapToModuleIntegrationEvent(cm *corev1.ConfigMap) (*ModuleIntegrationEvent, error) {
+func ConfigMapToModuleIntegrationEvent(log vzlog.VerrazzanoLogger, cm *corev1.ConfigMap) (*ModuleIntegrationEvent, error) {
 	decoded, err := base64.StdEncoding.DecodeString(cm.Data[string(EventDataKey)])
 	if err != nil {
 		return nil, err
