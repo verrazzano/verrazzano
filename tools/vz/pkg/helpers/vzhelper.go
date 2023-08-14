@@ -144,8 +144,8 @@ func FindVerrazzanoResource(runtimeClient client.Client) (*v1beta1.Verrazzano, e
 	return &vzList.Items[0], nil
 }
 
-// FindPlatformOperator - finds if the Verrazzano Platform Operator is already running
-func FindPlatformOperator(runtimeClient client.Client) (bool, error) {
+// FindPlatformOperatorAlreadyDeployed - finds if the Verrazzano Platform Operator is already running
+func FindPlatformOperatorAlreadyDeployed(runtimeClient client.Client) (bool, error) {
 	vpoList, err := validators.GetPlatformOperatorList(runtimeClient)
 	if err != nil {
 		return false, err

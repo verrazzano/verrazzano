@@ -215,17 +215,17 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		vpoFound, _ := helpers.FindPlatformOperator(client)
-		if !vpoFound {
+		// Delete leftover verrazzano-platform-operator deployments after an abort.
+		// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+		err = cmdhelpers.DeleteFunc(client)
+		if err != nil {
+			return err
+		}
+
+		existingVPO, err := helpers.FindPlatformOperatorAlreadyDeployed(client)
+		if !existingVPO {
 			// Apply the Verrazzano operator.yaml.
 			err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
-			if err != nil {
-				return err
-			}
-		} else {
-			// Delete leftover verrazzano-platform-operator deployments after an abort.
-			// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
-			err = cmdhelpers.DeleteFunc(client)
 			if err != nil {
 				return err
 			}
