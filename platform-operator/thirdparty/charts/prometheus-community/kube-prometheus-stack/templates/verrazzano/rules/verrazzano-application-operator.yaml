@@ -18,6 +18,7 @@ spec:
   groups:
   - name: verrazzano-application-operator
     rules:
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorAppConfigReconcileErrorRate | default false) }}
     - alert: VerrazzanoApplicationOperatorAppConfigReconcileErrorRate
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -29,6 +30,11 @@ spec:
       for: 10m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorCoherenceWorkloadReconcileErrorRate | default false) }}
     - alert: VerrazzanoApplicationOperatorCoherenceWorkloadReconcileErrorRate
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -40,6 +46,11 @@ spec:
       for: 10m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorHelidonWorkloadReconcileErrorRate | default false) }}
     - alert: VerrazzanoApplicationOperatorHelidonWorkloadReconcileErrorRate
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -51,6 +62,11 @@ spec:
       for: 10m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorIngressTraitReconcileErrorRate | default false) }}
     - alert: VerrazzanoApplicationOperatorIngressTraitReconcileErrorRate
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -62,6 +78,11 @@ spec:
       for: 10m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorNotReady | default false) }}
     - alert: VerrazzanoApplicationOperatorNotReady
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -73,6 +94,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorWebhookNotReady | default false) }}
     - alert: VerrazzanoApplicationOperatorWebhookNotReady
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -84,6 +110,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorNotRunning | default false) }}
     - alert: VerrazzanoApplicationOperatorNotRunning
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -95,6 +126,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoApplicationOperatorWebhookNotRunning | default false) }}
     - alert: VerrazzanoApplicationOperatorWebhookNotRunning
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -106,4 +142,8 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
 {{- end }}

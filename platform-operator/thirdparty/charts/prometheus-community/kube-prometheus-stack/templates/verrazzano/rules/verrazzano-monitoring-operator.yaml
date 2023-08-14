@@ -20,6 +20,7 @@ spec:
     rules:
     - record: job_verrazzano_cluster:vz_monitoring_operator_reconcile_error_total:sum
       expr: sum by (job, verrazzano_cluster) (vz_monitoring_operator_reconcile_error_total)
+{{- if not (.Values.defaultRules.disabled.VerrazzanoMonitoringOperatorReconcileErrorRate | default false) }}
     - alert: VerrazzanoMonitoringOperatorReconcileErrorRate
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -31,6 +32,11 @@ spec:
       for: 10m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoMonitoringOperatorNotReady | default false) }}
     - alert: VerrazzanoMonitoringOperatorNotReady
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -42,6 +48,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoMonitoringOperatorNotRunning | default false) }}
     - alert: VerrazzanoMonitoringOperatorNotRunning
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -53,4 +64,8 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
 {{- end }}

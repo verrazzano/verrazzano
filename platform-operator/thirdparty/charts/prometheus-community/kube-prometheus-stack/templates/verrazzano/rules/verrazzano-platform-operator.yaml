@@ -18,6 +18,7 @@ spec:
   groups:
   - name: verrazzano-platform-operator
     rules:
+{{- if not (.Values.defaultRules.disabled.VerrazzanoPlatformOperatorReconcileErrorRate | default false) }}
     - alert: VerrazzanoPlatformOperatorReconcileErrorRate
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -29,6 +30,11 @@ spec:
       for: 10m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoPlatformOperatorNotReady | default false) }}
     - alert: VerrazzanoPlatformOperatorNotReady
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -40,6 +46,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoPlatformOperatorWebhookNotReady | default false) }}
     - alert: VerrazzanoPlatformOperatorWebhookNotReady
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -51,6 +62,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoPlatformOperatorNotRunning | default false) }}
     - alert: VerrazzanoPlatformOperatorNotRunning
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -62,6 +78,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoPlatformOperatorWebhookNotRunning | default false) }}
     - alert: VerrazzanoPlatformOperatorWebhookNotRunning
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -73,6 +94,11 @@ spec:
       for: 10m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.VerrazzanoComponentsNotReady | default false) }}
     - alert: VerrazzanoComponentsNotReady
       annotations:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
@@ -84,4 +110,8 @@ spec:
       for: 20m
       labels:
         severity: warning
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
+{{- end }}
 {{- end }}
