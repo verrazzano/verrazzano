@@ -12,25 +12,20 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestGetVerrazzanoV1Alpha1(t *testing.T) {
-	ctx := context.TODO()
+const (
+	nonexistentVZName = "nonexistent-verrazzano"
+)
 
-	scheme := runtime.NewScheme()
-	err := v1beta1.AddToScheme(scheme)
+func TestGetVerrazzanoV1Alpha1(t *testing.T) {
+	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	// create a v1beta1 Verrazzano through the K8s client
-	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
-	assert.NoError(t, err)
-	err = client.Create(ctx, vzStoredV1Beta1)
-	assert.NoError(t, err)
-
-	// the expected VZ resource returned should be v1alpha1
-	vzExpected, err := loadV1Alpha1CR(testCaseBasic)
+	vzExpected, err := createTestVZ(ctx, client)
 	assert.NoError(t, err)
 	name := types.NamespacedName{
 		Name:      vzExpected.Name,
@@ -49,16 +44,12 @@ func TestGetVerrazzanoV1Alpha1(t *testing.T) {
 }
 
 func TestGetVerrazzanoV1Alpha1NotFound(t *testing.T) {
-	ctx := context.TODO()
-
-	scheme := runtime.NewScheme()
-	err := v1beta1.AddToScheme(scheme)
+	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	// get the v1alpha1 VZ resource, which was never created
 	vzActual, err := GetVerrazzanoV1Alpha1(ctx, client, types.NamespacedName{
-		Name:      "nonexistent-verrazzano",
+		Name:      nonexistentVZName,
 		Namespace: "",
 	})
 
@@ -67,23 +58,12 @@ func TestGetVerrazzanoV1Alpha1NotFound(t *testing.T) {
 	assert.Nil(t, vzActual)
 }
 
-// TODO: write better tests for List
 func TestListVerrazzanoV1Alpha1(t *testing.T) {
-	ctx := context.TODO()
-
-	scheme := runtime.NewScheme()
-	err := v1beta1.AddToScheme(scheme)
+	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	// create a v1beta1 Verrazzano through the K8s client
-	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
-	assert.NoError(t, err)
-	err = client.Create(ctx, vzStoredV1Beta1)
-	assert.NoError(t, err)
-
-	// the expected VZ resource returned should be v1alpha1
-	vzExpected, err := loadV1Alpha1CR(testCaseBasic)
+	vzExpected, err := createTestVZ(ctx, client)
 	assert.NoError(t, err)
 
 	// get the v1alpha1 VZ resource
@@ -100,26 +80,31 @@ func TestListVerrazzanoV1Alpha1(t *testing.T) {
 	assert.EqualValues(t, vzExpected.Status, vzActual.Status)
 }
 
-func TestUpdateVerrazzanoV1Alpha1(t *testing.T) {
-	ctx := context.TODO()
-
-	scheme := runtime.NewScheme()
-	err := v1beta1.AddToScheme(scheme)
+func TestListVerrazzanoV1Alpha1NotFound(t *testing.T) {
+	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	// list the VZ resources
+	vzList, err := ListVerrazzanoV1Alpha1(ctx, client)
+	assert.NoError(t, err)
+	expectedLength := 0
+	assert.Len(t, vzList.Items, expectedLength, "the VerrazzanoList should have a length of %d but was %d", expectedLength, len(vzList.Items))
+}
+
+func TestUpdateVerrazzanoV1Alpha1(t *testing.T) {
+	ctx, client, err := getTestingContextAndClient()
+	assert.NoError(t, err)
 
 	// create the VZ resource. Stored as v1beta1.
-	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
-	assert.NoError(t, err)
-	err = client.Create(ctx, vzStoredV1Beta1)
+	vzV1Alpha1, err := createTestVZ(ctx, client)
 	assert.NoError(t, err)
 
-	// get the VZ resource before the update
+	// Get the VZ resource as it is before the Update
 	vzNamespacedName := types.NamespacedName{
-		Name:      vzStoredV1Beta1.Name,
-		Namespace: vzStoredV1Beta1.Namespace,
+		Name:      vzV1Alpha1.Name,
+		Namespace: vzV1Alpha1.Namespace,
 	}
-	vzV1Alpha1, err := GetVerrazzanoV1Alpha1(ctx, client, vzNamespacedName)
+	vzV1Alpha1, err = GetVerrazzanoV1Alpha1(ctx, client, vzNamespacedName)
 	assert.NoError(t, err)
 
 	// Update the Verrazzano struct - add a new label
@@ -145,12 +130,8 @@ func TestUpdateVerrazzanoV1Alpha1(t *testing.T) {
 }
 
 func TestUpdateVerrazzanoV1Alpha1NotFound(t *testing.T) {
-	ctx := context.TODO()
-
-	scheme := runtime.NewScheme()
-	err := v1beta1.AddToScheme(scheme)
+	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	vzV1Alpha1, err := loadV1Alpha1CR(testCaseBasic)
 	assert.NoError(t, err)
@@ -160,4 +141,89 @@ func TestUpdateVerrazzanoV1Alpha1NotFound(t *testing.T) {
 
 	// a NotFound error should have been returned
 	assert.True(t, apierrors.IsNotFound(err), "a NotFound error was expected, but got '%v'", err)
+}
+
+func TestUpdateStatusVerrazzanoV1Alpha1(t *testing.T) {
+	ctx, client, err := getTestingContextAndClient()
+	assert.NoError(t, err)
+
+	// create the VZ resource. Stored as v1beta1.
+	vzV1Alpha1, err := createTestVZ(ctx, client)
+	assert.NoError(t, err)
+
+	// Get the VZ resource as it is before the Update
+	vzNamespacedName := types.NamespacedName{
+		Name:      vzV1Alpha1.Name,
+		Namespace: vzV1Alpha1.Namespace,
+	}
+	vzV1Alpha1, err = GetVerrazzanoV1Alpha1(ctx, client, vzNamespacedName)
+	assert.NoError(t, err)
+
+	// Update the Verrazzano struct - change VZ State
+	vzV1Alpha1.Status.State = VzStatePaused
+
+	// Update the Verrazzano resource through the K8s client
+	err = UpdateVerrazzanoV1Alpha1Status(ctx, client.Status(), vzV1Alpha1)
+	assert.NoError(t, err)
+
+	// Get the Verrazzano after the update
+	vzRetrieved, err := GetVerrazzanoV1Alpha1(ctx, client, vzNamespacedName)
+	assert.NoError(t, err)
+
+	// The retrieved Verrazzano should have the updated status state
+	assert.EqualValues(t, vzV1Alpha1.Status.State, vzRetrieved.Status.State)
+
+	// Check that other things from the retrieved Verrazzano are as expected
+	assert.EqualValues(t, vzV1Alpha1.ObjectMeta.Name, vzRetrieved.ObjectMeta.Name)
+	assert.EqualValues(t, vzV1Alpha1.ObjectMeta.Namespace, vzRetrieved.ObjectMeta.Namespace)
+	assert.EqualValues(t, vzV1Alpha1.Spec, vzRetrieved.Spec)
+	assert.EqualValues(t, vzV1Alpha1.Status, vzRetrieved.Status)
+}
+
+func TestUpdateStatusVerrazzanoV1Alpha1NotFound(t *testing.T) {
+	ctx, client, err := getTestingContextAndClient()
+	assert.NoError(t, err)
+
+	vzV1Alpha1, err := loadV1Alpha1CR(testCaseBasic)
+	assert.NoError(t, err)
+
+	// Attempt to update a nonexistent Verrazzano resource through the K8s client
+	err = UpdateVerrazzanoV1Alpha1Status(ctx, client.Status(), vzV1Alpha1)
+
+	// a NotFound error should have been returned
+	assert.True(t, apierrors.IsNotFound(err), "a NotFound error was expected, but got '%v'", err)
+}
+
+// getTestingContextAndClient returns the Context and the Client used for these unit tests.
+// v1beta1 is loaded into the client's scheme.
+func getTestingContextAndClient() (context.Context, client.Client, error) {
+	ctx := context.TODO()
+
+	scheme := runtime.NewScheme()
+	if err := v1beta1.AddToScheme(scheme); err != nil {
+		return nil, nil, err
+	}
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	return ctx, client, nil
+}
+
+// createTestVZ creates a v1beta1 VZ resource through the fake client.
+// The expected v1alpha1 version of that VZ resource is returned.
+func createTestVZ(ctx context.Context, client client.Client) (*Verrazzano, error) {
+	// create a v1beta1 Verrazzano through the K8s client
+	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
+	if err != nil {
+		return nil, err
+	}
+	if err = client.Create(ctx, vzStoredV1Beta1); err != nil {
+		return nil, err
+	}
+
+	// the expected VZ resource returned should be v1alpha1
+	var vzExpected *Verrazzano
+	if vzExpected, err = loadV1Alpha1CR(testCaseBasic); err != nil {
+		return nil, err
+	}
+	return vzExpected, nil
 }
