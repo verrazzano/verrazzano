@@ -19,6 +19,7 @@ type Module struct {
 	Version string `json:"version"`
 }
 
+// NewCatalog takes a path and returns a new Catalog object
 func NewCatalog(catalogPath string) (Catalog, error) {
 	yamlCatalog, err := os.ReadFile(catalogPath)
 	if err != nil {
@@ -27,7 +28,7 @@ func NewCatalog(catalogPath string) (Catalog, error) {
 	return NewCatalogfromYAML(yamlCatalog)
 }
 
-// NewBOMFromJSON Create a new BOM instance from a JSON payload
+// NewCatalogfromYAML Create a new Catalog instance from a yaml payload
 func NewCatalogfromYAML(yamlCatalog []byte) (Catalog, error) {
 	catalog := Catalog{
 		versionMap: make(map[string]*semver.SemVersion),
@@ -39,15 +40,14 @@ func NewCatalogfromYAML(yamlCatalog []byte) (Catalog, error) {
 	return catalog, nil
 }
 
-// Initialize the BomInfo.  Load the Bom from the JSON file and build
-// a map of subcomponents
+// Initialize the Catalog object from a YAML string
 func (c *Catalog) init(yamlCatalog string) error {
 	// Convert the json into a to bom
 	if err := yaml.Unmarshal([]byte(yamlCatalog), &c); err != nil {
 		return err
 	}
 
-	// Build a map of subcomponents
+	// Build a map of modules
 	for _, module := range c.Modules {
 		version, err := semver.NewSemVersion(module.Version)
 		if err != nil {
@@ -58,6 +58,7 @@ func (c *Catalog) init(yamlCatalog string) error {
 	return nil
 }
 
+// GetVersion returns the version for the provided module
 func (c *Catalog) GetVersion(module string) *semver.SemVersion {
 	return c.versionMap[module]
 }
