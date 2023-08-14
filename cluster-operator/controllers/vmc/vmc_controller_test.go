@@ -15,6 +15,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -773,16 +774,20 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncServiceAccount", false)
 
+	errCount := testutil.ToFloat64(reconcileErrorCount)
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 
-	// Validate the results - there should have been an error returned for failing to sync svc account
+	// Validate the results - there should have been no error returned for failing to sync svc account, but the reconcile
+	// error metric should have been incremented and the request should be requeued
 	mocker.Finish()
-	asserts.Nil(err)
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(errCount+1, testutil.ToFloat64(reconcileErrorCount))
 }
 
 // TestCreateVMCSyncRoleBindingFailed tests the Reconcile method for the following use case
