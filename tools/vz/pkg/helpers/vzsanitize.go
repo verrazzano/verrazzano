@@ -10,6 +10,7 @@ import (
 )
 
 var regexToReplacementList = []string{}
+var KnownHostNames = make(map[string]bool)
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
@@ -23,6 +24,9 @@ func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)
+	for k, _ := range KnownHostNames {
+		regexToReplacementList = append(regexToReplacementList, k)
+	}
 }
 
 // SanitizeString sanitizes each line in a given file,
