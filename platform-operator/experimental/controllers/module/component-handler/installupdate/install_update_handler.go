@@ -12,7 +12,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 )
 
 type ActionType string
@@ -185,7 +186,12 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the module status
-	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+	res = modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+	if res.ShouldRequeue() {
+		return res
+	}
+	// Create an event requesting that integration happen for this module
+	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Installed)
 }
 
 // updateReadyConditionReconcilingOrFailed updates the ready condition
