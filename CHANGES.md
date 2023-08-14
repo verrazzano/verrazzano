@@ -1,14 +1,10 @@
-### v2.0.0
-Component version updates:
-
-- Kiali v1.66.1
-
 ### v1.6.4
 
 Component version updates:
 
 - Istio v1.17.2
 - Rancher v2.7.5
+- Kiali v1.66.1
 
 Fixes:
 
