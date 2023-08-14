@@ -112,7 +112,7 @@ func (r Reconciler) applyIntegrationChart(log vzlog.VerrazzanoLogger, ev *event.
 	}
 	_, err = helm.UpgradeRelease(log, opts, true, false)
 	if err != nil {
-		return result.NewResultShortRequeueDelayIfError(retError)
+		return result.NewResultShortRequeueDelayIfError(err)
 	}
 	return result.NewResult()
 }
