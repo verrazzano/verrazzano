@@ -49,6 +49,9 @@ var TestProfilesDir string
 // TestIntegrationChartsDis is needed for unit tests
 var TestIntegrationChartsDis string
 
+// ModuleIntegrationCatalogDir  is needed for unit tests
+var ModuleIntegrationCatalogDir string
+
 // TestThirdPartyManifestDir is needed for unit tests
 var TestThirdPartyManifestDir string
 
@@ -250,6 +253,9 @@ func GetIntegrationChartsDir() string {
 }
 
 func GetModuleIntegrationCatalog() string {
+	if ModuleIntegrationCatalogDir != "" {
+		return filepath.Join(ModuleIntegrationCatalogDir, defaultModuleCatalogFilename)
+	}
 	return filepath.Join(instance.VerrazzanoRootDir, modulesIntegrationDir, defaultModuleCatalogFilename)
 }
 
