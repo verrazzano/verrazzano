@@ -282,5 +282,8 @@ const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
 // VerrazzanoModuleOwnerLabel is the label for the module that owns the resource
 const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
 
+// VerrazzanoModuleEventLabel is the label for the module events
+const VerrazzanoModuleEventLabel = "module.verrazzano.io/event"
+
 // AlertmanagerIngress is the name of the ingress for Alertmanager
 const AlertmanagerIngress = "alertmanager"
