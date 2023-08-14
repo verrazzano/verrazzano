@@ -434,7 +434,7 @@ func getSupportedKubernetesVersions() ([]string, error) {
 // updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
 // multiple instances, if that makes sense.
 func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
-	podList, err := GetPlatformOperatorList(runtimeClient)
+	podList, err := getPlatformOperatorList(runtimeClient)
 	if err != nil {
 		return err
 	}
@@ -452,7 +452,7 @@ func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
 	return nil
 }
 
-func GetPlatformOperatorList(runtimeClient client.Client) (corev1.PodList, error) {
+func getPlatformOperatorList(runtimeClient client.Client) (corev1.PodList, error) {
 	var podList corev1.PodList
 	return podList, runtimeClient.List(context.TODO(), &podList,
 		client.InNamespace(constants.VerrazzanoInstallNamespace),

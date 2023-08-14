@@ -99,7 +99,8 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Flag to skip any confirmation questions
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
-
+	// Flag to skip reinstalling the operator
+	cmd.PersistentFlags().BoolP(constants.SkipOperatorInstallFlag, constants.SkipOperatorInstallShort, false, constants.SkipOperatorInstallFlagHelp)
 	// Add flags related to specifying the platform operator manifests as a local file or a URL
 	cmdhelpers.AddManifestsFlags(cmd)
 
@@ -222,8 +223,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		existingVPO, err := helpers.FindPlatformOperatorAlreadyDeployed(client)
-		if !existingVPO {
+		if !cmd.PersistentFlags().Changed(constants.SkipOperatorInstallFlag) {
 			// Apply the Verrazzano operator.yaml.
 			err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 			if err != nil {
@@ -410,6 +410,9 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 func validateCmd(cmd *cobra.Command) error {
 	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
 		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag)
+	}
+	if cmd.PersistentFlags().Changed(constants.SkipOperatorInstallFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.SkipOperatorInstallFlag, constants.ManifestsFlag)
 	}
 	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
 	if err != nil {
