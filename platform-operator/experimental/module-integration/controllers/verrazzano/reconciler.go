@@ -5,7 +5,6 @@ package verrazzano
 
 import (
 	"context"
-	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
@@ -83,7 +82,8 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 
 		version := catalog.GetVersion(comp.Name())
 		if version == nil {
-			return result.NewResultShortRequeueDelayWithError(fmt.Errorf("Failed to find version for module %s in the module catalog", comp.Name()))
+			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
+			return result.NewResultShortRequeueDelayWithError(err)
 		}
 
 		module := moduleapi.Module{
