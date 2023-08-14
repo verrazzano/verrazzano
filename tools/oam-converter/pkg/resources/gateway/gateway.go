@@ -131,7 +131,7 @@ func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents [
 	var err error
 	var ingressCount int
 	for _, conversionComponent := range conversionComponents {
-		if(conversionComponent.IngressTrait != nil){
+		if conversionComponent.IngressTrait != nil {
 			ingressCount = ingressCount + 1
 			allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(cli, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 			if err != nil {
@@ -160,7 +160,7 @@ func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents [
 func CreateGatewaySecret(conversionComponents []*types.ConversionComponents, hostsForTrait []string) []string {
 	var secrets []string
 	for _, conversionComponent := range conversionComponents {
-		if(conversionComponent.IngressTrait != nil){
+		if conversionComponent.IngressTrait != nil {
 			var secretName string
 			if conversionComponent.IngressTrait.Spec.TLS != (vzapi.IngressSecurity{}) {
 				secretName = validateConfiguredSecret(conversionComponent.IngressTrait)

@@ -19,7 +19,7 @@ type ConversionComponents struct {
 	Coherenceworkload *unstructured.Unstructured
 	Weblogicworkload  *unstructured.Unstructured
 	Genericworkload   *unstructured.Unstructured
-	Service *corev1.Service
+	Service           *corev1.Service
 }
 
 var InputArgs ConversionInput

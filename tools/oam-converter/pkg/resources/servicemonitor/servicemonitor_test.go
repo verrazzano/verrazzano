@@ -19,15 +19,15 @@ func TestCreateServiceMonitor(t *testing.T) {
 	types.InputArgs.IstioEnabled = false
 	scrape := "verrazzano-system/vmi-system-prometheus-0"
 	tests := []struct {
-		name        string
-		input       types.ConversionComponents
+		name         string
+		input        types.ConversionComponents
 		istioEnabled bool
-		workload	unstructured.Unstructured
+		workload     unstructured.Unstructured
 	}{
 		{
-			name:        "empty",
-			input:        types.ConversionComponents{
-				AppName: "test-appconf",
+			name: "empty",
+			input: types.ConversionComponents{
+				AppName:       "test-appconf",
 				ComponentName: "test-component",
 				MetricsTrait: &vzapi.MetricsTrait{
 					TypeMeta: k8smeta.TypeMeta{
@@ -54,9 +54,9 @@ func TestCreateServiceMonitor(t *testing.T) {
 			istioEnabled: false,
 		},
 		{
-			name:        "helidon input",
-			input:        types.ConversionComponents{
-				AppName: "test-appconf",
+			name: "helidon input",
+			input: types.ConversionComponents{
+				AppName:       "test-appconf",
 				ComponentName: "test-component",
 				MetricsTrait: &vzapi.MetricsTrait{
 					TypeMeta: k8smeta.TypeMeta{
@@ -83,9 +83,9 @@ func TestCreateServiceMonitor(t *testing.T) {
 			istioEnabled: false,
 		},
 		{
-			name:        "hello helidon",
-			input:        types.ConversionComponents{
-				AppName: "test-appconf",
+			name: "hello helidon",
+			input: types.ConversionComponents{
+				AppName:       "test-appconf",
 				ComponentName: "test-component",
 				MetricsTrait: &vzapi.MetricsTrait{
 					TypeMeta: k8smeta.TypeMeta{
@@ -114,7 +114,7 @@ func TestCreateServiceMonitor(t *testing.T) {
 	}
 	// Call the function with the sample inputs
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T){
+		t.Run(tt.name, func(t *testing.T) {
 			serviceMonitor, err := CreateServiceMonitor(&tt.input)
 			assert.Nil(t, err, "Unexpected error returned from CreateServiceMonitor")
 			assert.Equal(t, 1, len(serviceMonitor.Spec.Endpoints))
@@ -136,7 +136,7 @@ func TestCreateServiceMonitor(t *testing.T) {
 				workload = tt.input.Coherenceworkload
 			} else if &tt.input.Weblogicworkload != nil {
 				workload = tt.input.Weblogicworkload
-			} else{
+			} else {
 				workload = tt.input.Genericworkload
 			}
 

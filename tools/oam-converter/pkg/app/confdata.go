@@ -40,7 +40,6 @@ func ConfData() error {
 		return fmt.Errorf("error in iterating over directory %w", err)
 	}
 
-
 	//Read each file from the input directory
 	for _, input := range files {
 		data, err := os.ReadFile(input)
@@ -116,6 +115,7 @@ func ConfData() error {
 	//write the nonOAM resources to the file
 	return nil
 }
+
 // Write the kube resources to the files in output directory
 func writeKubeResources(outputDirectory string, outputResources []unstructured.Unstructured) error {
 	for index := range outputResources {
@@ -127,7 +127,7 @@ func writeKubeResources(outputDirectory string, outputResources []unstructured.U
 	return nil
 }
 
-func convertAnytoUnstructured(anyResources []any) []unstructured.Unstructured{
+func convertAnytoUnstructured(anyResources []any) []unstructured.Unstructured {
 	var unstructuredResources []unstructured.Unstructured
 	for _, obj := range anyResources {
 		resource, err := ToUnstructured(obj)
