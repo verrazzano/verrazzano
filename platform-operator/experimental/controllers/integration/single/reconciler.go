@@ -39,6 +39,7 @@ var requireIntegrateAll = map[string]bool{
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	log := vzlog.DefaultLogger()
 
+	// Get the configmap and convert into an event
 	cm := &corev1.ConfigMap{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, cm); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -50,9 +51,18 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		spictx.Log.ErrorfThrottled(err.Error())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	res := r.applyIntegrationChart(log, ev)
-	if res.ShouldRequeue() {
-		return res
+
+	// Either delete the Helm release or apply the integration chart to install/update the release
+	if ev.Action == event.Deleted {
+		res := r.deleteIntegrationRelease(log, ev)
+		if res.ShouldRequeue() {
+			return res
+		}
+	} else {
+		res := r.applyIntegrationChart(log, ev)
+		if res.ShouldRequeue() {
+			return res
+		}
 	}
 
 	// If needed, create an IntegrateCascadeRequestEvent using the same payload as the module event that was just processed
@@ -112,6 +122,31 @@ func (r Reconciler) applyIntegrationChart(log vzlog.VerrazzanoLogger, ev *event.
 	if err != nil {
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
+	return result.NewResult()
+}
+
+// deleteIntegrationRelease deletes the integration release
+func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev *event.ModuleIntegrationEvent) result.Result {
+	relName := getReleaseName(ev.ResourceNSN.Name)
+	relNamespace := ev.TargetNamespace
+
+	// Check if release is installed
+	installed, err := helm.IsReleaseInstalled(relName, relNamespace)
+	if err != nil {
+		log.ErrorfThrottled("Failed checking if integration Helm release %s is installed: %v", relName, err.Error())
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if !installed {
+		return result.NewResult()
+	}
+
+	// Uninstall release
+	err = helm.Uninstall(log, relName, ev.TargetNamespace, false)
+	if err != nil {
+		log.ErrorfThrottled("Failed deleting integration Helm release %s: %v", relName, err.Error())
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
 	return result.NewResult()
 }
 

@@ -13,9 +13,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -28,7 +28,7 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 	// If deletion timestamp is non-zero then the VZ CR got deleted
 	fullUninstall := !effectiveCR.GetDeletionTimestamp().IsZero()
 
-	// Delete all modules.  Loop through all the components once even if error occurs.
+	// Delete all modules.  Loop through all the modules once even if error occurs.
 	for _, comp := range registry.GetComponents() {
 		if !comp.ShouldUseModule() {
 			continue
@@ -38,11 +38,20 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 		if !fullUninstall && comp.IsEnabled(effectiveCR) {
 			continue
 		}
+
+		// Check if the module exists before trying to delete the other related resources
+		module := moduleapi.Module{}
+		nsn := types.NamespacedName{Namespace: comp.Name(), Name: vzconst.VerrazzanoInstallNamespace}
+		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Progressf("Failed to get Module %s, retrying: %v", comp.Name(), err)
+			return result.NewResultShortRequeueDelayIfError(err)
+		}
+
 		moduleCount++
-		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{
-			Name:      comp.Name(),
-			Namespace: vzconst.VerrazzanoInstallNamespace,
-		}}
 
 		// Delete all the configuration secrets that were referenced by the module
 		res := r.deleteConfigSecrets(log, module.Namespace, comp.Name())
@@ -56,14 +65,15 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 			return res
 		}
 
-		err := r.Client.Delete(context.TODO(), &module, &client.DeleteOptions{})
+		// Delete the Module
+		err = r.Client.Delete(context.TODO(), &module, &client.DeleteOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				deletedCount++
 				continue
 			}
 			if !errors.IsConflict(err) {
-				log.Progressf("Failed to delete Component %s, retrying: %v", comp.Name(), err)
+				log.Progressf("Failed to delete Module %s, retrying: %v", comp.Name(), err)
 			}
 			reterr = err
 			continue
