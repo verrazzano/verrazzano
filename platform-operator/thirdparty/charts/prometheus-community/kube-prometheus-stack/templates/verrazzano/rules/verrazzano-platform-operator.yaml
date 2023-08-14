@@ -1,0 +1,87 @@
+{{- if and .Values.defaultRules.create .Values.defaultRules.rules.verrazzanoPlatformOperator (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "verrazzano-platform-operator" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.defaultRules.labels }}
+{{ toYaml .Values.defaultRules.labels | indent 4 }}
+{{- end }}
+{{- if .Values.defaultRules.annotations }}
+  annotations:
+{{ toYaml .Values.defaultRules.annotations | indent 4 }}
+{{- end }}
+spec:
+  groups:
+  - name: verrazzano-platform-operator
+    rules:
+    - alert: VerrazzanoPlatformOperatorReconcileErrorRate
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: '{{`{{`}} $value | humanizePercentage {{`}}`}} of reconcile operations failed in the Verrazzano Platform Operator.'
+        summary: Verrazzano Platform Operator high reconcile error rate.
+      expr: sum by (job, verrazzano_cluster) (rate(vz_platform_operator_error_reconcile_total[5m])) / sum by (job, verrazzano_cluster) (rate(vz_platform_operator_reconcile_total[5m])) > 0.2
+      for: 10m
+      labels:
+        severity: warning
+    - alert: VerrazzanoPlatformOperatorNotReady
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Platform Operator pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not ready.
+        summary: Verrazzano Platform Operator is not ready.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_pod_status_ready{job="kube-state-metrics", verrazzano_component="platformOperator", pod=~"verrazzano-platform-operator-.*", pod!~"verrazzano-platform-operator-webhook-.*", condition="true"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoPlatformOperatorWebhookNotReady
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Platform Operator Webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not ready.
+        summary: Verrazzano Platform Operator Webhook is not ready.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_pod_status_ready{job="kube-state-metrics", verrazzano_component="platformOperator", pod=~"verrazzano-platform-operator-webhook-.*", condition="true"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoPlatformOperatorNotRunning
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Platform Operator pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not running.
+        summary: Verrazzano Platform Operator is not running.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_deployment_status_replicas{deployment="verrazzano-platform-operator"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoPlatformOperatorWebhookNotRunning
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Platform Operator Webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not running.
+        summary: Verrazzano Platform Operator Webhook is not running.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_deployment_status_replicas{deployment="verrazzano-platform-operator-webhook"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoComponentsNotReady
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: '{{`{{`}} $value {{`}}`}} Verrazzano components are not ready.'
+        summary: Verrazzano components are not ready.
+      expr: sum by (verrazzano_cluster) (vz_platform_operator_component_enabled_total) - sum by (verrazzano_cluster) (vz_platform_operator_component_health_total) > 0
+      for: 20m
+      labels:
+        severity: warning
+{{- end }}

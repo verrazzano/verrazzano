@@ -60,6 +60,10 @@ defaultRules:
     nodeExporterRecording: true
     prometheus: true
     prometheusOperator: true
+    verrazzanoPlatformOperator: true
+    verrazzanoApplicationOperator: true
+    verrazzanoClusterOperator: true
+    verrazzanoMonitoringOperator: true
 
   ## Reduce app namespace alert scope
   appNamespacesTarget: ".*"

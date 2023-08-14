@@ -1,0 +1,109 @@
+{{- if and .Values.defaultRules.create .Values.defaultRules.rules.verrazzanoApplicationOperator (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "verrazzano-application-operator" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.defaultRules.labels }}
+{{ toYaml .Values.defaultRules.labels | indent 4 }}
+{{- end }}
+{{- if .Values.defaultRules.annotations }}
+  annotations:
+{{ toYaml .Values.defaultRules.annotations | indent 4 }}
+{{- end }}
+spec:
+  groups:
+  - name: verrazzano-application-operator
+    rules:
+    - alert: VerrazzanoApplicationOperatorAppConfigReconcileErrorRate
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: '{{`{{`}} $value | humanizePercentage {{`}}`}} of application configuration reconcile operations failed in the Verrazzano Application Operator.'
+        summary: Verrazzano Application Operator high application configuration reconcile error rate.
+      expr: sum by (job, verrazzano_cluster) (rate(vz_application_operator_appconfig_error_reconcile_total[5m])) / (sum by (job, verrazzano_cluster) (rate(vz_application_operator_appconfig_successful_reconcile_total[5m])) + sum by (job, verrazzano_cluster) (rate(vz_application_operator_appconfig_error_reconcile_total[5m]))) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+    - alert: VerrazzanoApplicationOperatorCoherenceWorkloadReconcileErrorRate
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: '{{`{{`}} $value | humanizePercentage {{`}}`}} of Coherence workload reconcile operations failed in the Verrazzano Application Operator.'
+        summary: Verrazzano Application Operator high Coherence workload reconcile error rate.
+      expr: sum by (job, verrazzano_cluster) (rate(vz_application_operator_cohworkload_error_reconcile_total[5m])) / (sum by (job, verrazzano_cluster) (rate(vz_application_operator_cohworkload_successful_reconcile_total[5m])) + sum by (job, verrazzano_cluster) (rate(vz_application_operator_cohworkload_error_reconcile_total[5m]))) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+    - alert: VerrazzanoApplicationOperatorHelidonWorkloadReconcileErrorRate
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: '{{`{{`}} $value | humanizePercentage {{`}}`}} of Helidon workload reconcile operations failed in the Verrazzano Application Operator.'
+        summary: Verrazzano Application Operator high Helidon workload reconcile error rate.
+      expr: sum by (job, verrazzano_cluster) (rate(vz_application_operator_helidonworkload_error_reconcile_total[5m])) / (sum by (job, verrazzano_cluster) (rate(vz_application_operator_helidonworkload_successful_reconcile_total[5m])) + sum by (job, verrazzano_cluster) (rate(vz_application_operator_helidonworkload_error_reconcile_total[5m]))) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+    - alert: VerrazzanoApplicationOperatorIngressTraitReconcileErrorRate
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: '{{`{{`}} $value | humanizePercentage {{`}}`}} of ingress trait reconcile operations failed in the Verrazzano Application Operator.'
+        summary: Verrazzano Application Operator high ingress trait reconcile error rate.
+      expr: sum by (job, verrazzano_cluster) (rate(vz_application_operator_ingresstrait_error_reconcile_total[5m])) / (sum by (job, verrazzano_cluster) (rate(vz_application_operator_ingresstrait_successful_reconcile_total[5m])) + sum by (job, verrazzano_cluster) (rate(vz_application_operator_ingresstrait_error_reconcile_total[5m]))) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+    - alert: VerrazzanoApplicationOperatorNotReady
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Application Operator pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not ready.
+        summary: Verrazzano Application Operator is not ready.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_pod_status_ready{job="kube-state-metrics", verrazzano_component="applicationOperator", pod=~"verrazzano-application-operator-.*", pod!~"verrazzano-application-operator-webhook-.*", condition="true"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoApplicationOperatorWebhookNotReady
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Application Operator Webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not ready.
+        summary: Verrazzano Application Operator Webhook is not ready.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_pod_status_ready{job="kube-state-metrics", verrazzano_component="applicationOperator", pod=~"verrazzano-application-operator-webhook-.*", condition="true"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoApplicationOperatorNotRunning
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Application Operator pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not running.
+        summary: Verrazzano Application Operator is not running.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_deployment_status_replicas{deployment="verrazzano-application-operator"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+    - alert: VerrazzanoApplicationOperatorWebhookNotRunning
+      annotations:
+{{- if .Values.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+        description: Verrazzano Application Operator Webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not running.
+        summary: Verrazzano Application Operator Webhook is not running.
+      expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_deployment_status_replicas{deployment="verrazzano-application-operator-webhook"}[5m])) == 0
+      for: 10m
+      labels:
+        severity: critical
+{{- end }}
