@@ -50,7 +50,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		spictx.Log.ErrorfThrottled(err.Error())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	res := r.applyIntegrationCharts(log, ev)
+	res := r.applyIntegrationChart(log, ev)
 	if res.ShouldRequeue() {
 		return res
 	}
@@ -75,10 +75,8 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	return result.NewResult()
 }
 
-// applyIntegrationCharts applies all the integration charts for modules that are enabled
-func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event.ModuleIntegrationEvent) result.Result {
-	var retError error
-
+// applyIntegrationChart applies the integration chart for the module if chart exists
+func (r Reconciler) applyIntegrationChart(log vzlog.VerrazzanoLogger, ev *event.ModuleIntegrationEvent) result.Result {
 	// Get the chart directories
 	itegrationChartsDir := config.GetIntegrationChartsDir()
 
@@ -118,11 +116,6 @@ func (r Reconciler) applyIntegrationCharts(log vzlog.VerrazzanoLogger, ev *event
 	}
 	return result.NewResult()
 }
-
-// deleteIntegrationRelease deletes the integration release
-//func (r Reconciler) deleteIntegrationRelease(log vzlog.VerrazzanoLogger, ev event.ModuleIntegrationEvent) result.Result {
-//	return result.NewResult()
-//}
 
 func getReleaseName(moduleName string) string {
 	return fmt.Sprintf("%s-%s", moduleName, "integration")
