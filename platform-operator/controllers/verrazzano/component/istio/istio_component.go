@@ -556,6 +556,9 @@ func getOverridesString(ctx spi.ComponentContext) (string, error) {
 		return "", err
 	}
 
+	// Add override to enable the status on Istio reconciled objects
+	kvs = append(kvs, bom.KeyValue{Key: "values.pilot.env.PILOT_ENABLE_STATUS", Value: "true"})
+
 	// Build comma separated string of overrides that will be passed to
 	// isioctl as --set values.
 	// This include BOM image overrides as well as other overrides
