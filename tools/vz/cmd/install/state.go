@@ -46,7 +46,7 @@ func displayInstallationProgress(cmd *cobra.Command, vzHelper helpers.VZHelper, 
 		} else {
 			if time.Since(startTime) >= duration {
 
-				return fmt.Errorf("timed out waiting for components to be ready-> %s\n", strings.TrimPrefix(strings.Join(nonReady, ", "), ", "))
+				return fmt.Errorf("timed out waiting for components to be ready-> %s", strings.TrimPrefix(strings.Join(nonReady, ", "), ", "))
 			}
 			time.Sleep(constants.RefreshRate)
 			// Restore the cursor position to the beginning of the table and the progress bar
