@@ -463,7 +463,7 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 	certLocation := filepath.Join(captureDir, common.CattleSystem, constants.CertificatesJSON)
 	f, err := os.ReadFile(certLocation)
 	assert.NoError(t, err, "Should not error reading certificates.json file")
-	for k, _ := range KnownHostNames {
+	for k := range KnownHostNames {
 		keyMatch, err := regexp.Match(k, f)
 		assert.NoError(t, err, "Error while regex matching")
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file", k)

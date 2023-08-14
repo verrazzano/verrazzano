@@ -24,7 +24,7 @@ func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)
-	for k, _ := range KnownHostNames {
+	for k := range KnownHostNames {
 		regexToReplacementList = append(regexToReplacementList, k)
 	}
 }
