@@ -30,7 +30,7 @@ const (
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
-	modulesIntegrationDir        = "/module-integration/catalog"
+	modulesIntegrationDir        = "/platform-operator/experimental/module-integration/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
