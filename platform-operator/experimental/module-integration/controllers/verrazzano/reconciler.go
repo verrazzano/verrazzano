@@ -68,6 +68,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	catalog, err := moduleCatalog.NewCatalog(config.GetModuleIntegrationCatalog())
 	if err != nil {
+		log.ErrorfThrottled("Error loading module catalog: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
