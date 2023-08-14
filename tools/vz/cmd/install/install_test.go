@@ -7,6 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -23,12 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 const (
@@ -636,7 +637,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Namespace: "default",
 			Name:      "verrazzano",
 		},
 		Status: v1beta1.VerrazzanoStatus{
