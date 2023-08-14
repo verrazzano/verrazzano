@@ -198,7 +198,7 @@ spec:
             introspectorJobActiveDeadlineSeconds: 600
             model:
               auxiliaryImages:
-                - image: ghcr.io/verrazzano/example-bobbys-front-end:20230811195803-d53f88f
+                - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
               runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
           monitoringExporter:
             imagePullPolicy: IfNotPresent
@@ -461,7 +461,7 @@ spec:
             introspectorJobActiveDeadlineSeconds: 600
             model:
               auxiliaryImages:
-                - image: ghcr.io/verrazzano/example-bobs-bookstore-order-manager:20230811195803-d53f88f
+                - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:1.0.0-1-20220608153526-843e168
               configMap: bobs-bookstore-wdt-config-map
               runtimeEncryptionSecret: bobs-bookstore-runtime-encrypt-secret
             secrets:
