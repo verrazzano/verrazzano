@@ -41,7 +41,7 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 
 		// Check if the module exists before trying to delete the other related resources
 		module := moduleapi.Module{}
-		nsn := types.NamespacedName{Namespace: comp.Name(), Name: vzconst.VerrazzanoInstallNamespace}
+		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
 		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -87,6 +87,7 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi
 	if reterr != nil {
 		return result.NewResultShortRequeueDelayWithError(reterr)
 	}
+
 	// All modules have been deleted and the Module CRs are gone
 	return result.NewResult()
 }
