@@ -5,15 +5,16 @@ package install
 
 import (
 	"fmt"
+	"os"
+	"sort"
+	"strings"
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sort"
-	"strings"
-	"time"
 )
 
 // displayInstallationProgress Checks state of components until all of them are Ready or specified timeout is reached

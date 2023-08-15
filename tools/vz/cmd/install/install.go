@@ -234,7 +234,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()
 	}
-	progressFlag, err := cmd.PersistentFlags().GetBool(constants.ProgressFlag)
+	progressFlag, _ := cmd.PersistentFlags().GetBool(constants.ProgressFlag)
 	if progressFlag {
 		err = displayInstallationProgress(cmd, vzHelper, timeout)
 	} else {

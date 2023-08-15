@@ -938,7 +938,7 @@ func TestInstallFromFilename(t *testing.T) {
 	os.Args = append(os.Args, testFilenamePath)
 	cmd.Execute()
 	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
-	//Clean the resource args for
+	//Clean the resource args for further test cases.
 	s := len(os.Args)
 	os.Args = append(os.Args[:s-1])
 }
