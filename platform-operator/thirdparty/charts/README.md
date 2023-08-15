@@ -197,7 +197,7 @@ The `kiali-server` folder was created by running the following commands:
 
 ```shell
 export KIALI_SERVER_CHART_REPO=https://kiali.org/helm-charts
-export KIALI_SERVER_CHART_VERSION=1.57.1
+export KIALI_SERVER_CHART_VERSION=1.66.1
 helm repo add kiali ${KIALI_SERVER_CHART_REPO}
 helm repo update
 rm -rf kiali-server
