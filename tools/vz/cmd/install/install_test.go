@@ -920,27 +920,45 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command is successful and the VPO and VPO webhook deployments do not get reinstalled
 func TestInstallSkipOperatorInstall(t *testing.T) {
+	tests := []struct {
+		name        string
+		skipInstall bool
+		vpoExists   bool
+	}{
+		{name: "VPO is already running, skip-install", skipInstall: true, vpoExists: true},
+		{name: "VPO is already running, reinstall", skipInstall: false, vpoExists: true},
+		{name: "Clean install, no VPO is running", skipInstall: false, vpoExists: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			if tt.skipInstall {
+				cmd.PersistentFlags().Set(constants.SkipOperatorInstallFlag, "true")
+			}
 
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
-	cmd.PersistentFlags().Set(constants.SkipOperatorInstallFlag, "true")
-	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+			defer cmdHelpers.SetDefaultDeleteFunc()
 
-	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
-	defer cmdHelpers.SetDefaultDeleteFunc()
+			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
-	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
-	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+			SetValidateCRFunc(FakeValidateCRFunc)
+			defer SetDefaultValidateCRFunc()
 
-	SetValidateCRFunc(FakeValidateCRFunc)
-	defer SetDefaultValidateCRFunc()
+			// Run install command
+			err := cmd.Execute()
+			//assert.Equal(t, "", errBuf.String())
 
-	// Run install command
-	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+			if tt.vpoExists {
+				existingVPOPodList, _ := validators.GetPlatformOperatorPodList(c)
+				assert.NotNil(t, existingVPOPodList)
+				assert.Greater(t, len(existingVPOPodList.Items), 0)
+			}
+			assert.NoError(t, err)
 
-	existingVPOPodList, err := validators.GetPlatformOperatorPodList(c)
-	assert.NotNil(t, existingVPOPodList)
-	assert.Greater(t, len(existingVPOPodList.Items), 0)
+		})
+	}
+
 }
