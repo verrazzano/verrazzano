@@ -7,7 +7,7 @@ import groovy.transform.Field
 def GIT_COMMIT_TO_USE = ""
 @Field
 def LAST_CLEAN_BACKEND_COMMIT = ""
-def agentLabel = "small_1_6"
+def agentLabel = "1.6-small"
 @Field
 def TESTS_FAILED = false
 @Field

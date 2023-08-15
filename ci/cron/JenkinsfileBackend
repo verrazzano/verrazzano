@@ -12,7 +12,7 @@ def backendTestsUpToDate = false // If true, indicates that the backend tests al
 @Field
 def backendTestsUpToDateFailed = false // If true, indicates that the backend tests already ran and failed at the latest commit
 
-def agentLabel = "small_1_6"
+def agentLabel = "1.6-small"
 
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
