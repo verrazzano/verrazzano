@@ -130,11 +130,11 @@ func TestCreateServiceMonitor(t *testing.T) {
 
 			//check type of workload
 			var workload *unstructured.Unstructured
-			if &tt.input.Helidonworkload != nil {
+			if tt.input.Helidonworkload != nil {
 				workload = tt.input.Helidonworkload
-			} else if &tt.input.Coherenceworkload != nil {
+			} else if tt.input.Coherenceworkload != nil {
 				workload = tt.input.Coherenceworkload
-			} else if &tt.input.Weblogicworkload != nil {
+			} else if tt.input.Weblogicworkload != nil {
 				workload = tt.input.Weblogicworkload
 			} else {
 				workload = tt.input.Genericworkload
