@@ -4,17 +4,12 @@
 package verrazzano
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -134,8 +129,7 @@ func TestUpdateV1Alpha1NotFound(t *testing.T) {
 	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
 
-	vzV1Alpha1, err := loadV1Alpha1CR(testCaseBasic)
-	assert.NoError(t, err)
+	vzV1Alpha1 := loadV1Alpha1()
 
 	// Attempt to update a nonexistent Verrazzano resource through the K8s client
 	err = UpdateV1Alpha1(ctx, client, vzV1Alpha1)
@@ -185,46 +179,11 @@ func TestUpdateStatusV1Alpha1NotFound(t *testing.T) {
 	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
 
-	vzV1Alpha1, err := loadV1Alpha1CR(testCaseBasic)
-	assert.NoError(t, err)
+	vzV1Alpha1 := loadV1Alpha1()
 
 	// Attempt to update a nonexistent Verrazzano resource through the K8s client
 	err = UpdateV1Alpha1Status(ctx, client.Status(), vzV1Alpha1)
 
 	// a NotFound error should have been returned
 	assert.True(t, apierrors.IsNotFound(err), "a NotFound error was expected, but got '%v'", err)
-}
-
-// getTestingContextAndClient returns the Context and the Client used for these unit tests.
-// v1beta1 is loaded into the client's scheme.
-func getTestingContextAndClient() (context.Context, client.Client, error) {
-	ctx := context.TODO()
-
-	scheme := runtime.NewScheme()
-	if err := v1beta1.AddToScheme(scheme); err != nil {
-		return nil, nil, err
-	}
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	return ctx, client, nil
-}
-
-// createTestVZ creates a v1beta1 VZ resource through the fake client.
-// The expected v1alpha1 version of that VZ resource is returned.
-func createTestVZ(ctx context.Context, client client.Client) (*Verrazzano, error) {
-	// create a v1beta1 Verrazzano through the K8s client
-	vzStoredV1Beta1, err := loadV1Beta1(testCaseBasic)
-	if err != nil {
-		return nil, err
-	}
-	if err = client.Create(ctx, vzStoredV1Beta1); err != nil {
-		return nil, err
-	}
-
-	// the expected VZ resource returned should be v1alpha1
-	var vzExpected *Verrazzano
-	if vzExpected, err = loadV1Alpha1CR(testCaseBasic); err != nil {
-		return nil, err
-	}
-	return vzExpected, nil
 }
