@@ -142,6 +142,9 @@ func TestCreateServiceMonitor(t *testing.T) {
 
 			//check if workload is WLR or not
 			wlsWorkload, err := operator.IsWLSWorkload(workload)
+			if err != nil {
+				t.Fatalf("error in reading yaml file: %v", err)
+			}
 			if wlsWorkload {
 				assert.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
 					promoperapi.LabelName("__meta_kubernetes_pod_annotation_prometheus_io_scrape"))
