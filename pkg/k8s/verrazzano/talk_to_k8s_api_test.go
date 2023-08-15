@@ -129,7 +129,7 @@ func TestUpdateV1Alpha1NotFound(t *testing.T) {
 	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
 
-	vzV1Alpha1 := loadV1Alpha1()
+	vzV1Alpha1 := loadTestV1Alpha1()
 
 	// Attempt to update a nonexistent Verrazzano resource through the K8s client
 	err = UpdateV1Alpha1(ctx, client, vzV1Alpha1)
@@ -179,7 +179,7 @@ func TestUpdateStatusV1Alpha1NotFound(t *testing.T) {
 	ctx, client, err := getTestingContextAndClient()
 	assert.NoError(t, err)
 
-	vzV1Alpha1 := loadV1Alpha1()
+	vzV1Alpha1 := loadTestV1Alpha1()
 
 	// Attempt to update a nonexistent Verrazzano resource through the K8s client
 	err = UpdateV1Alpha1Status(ctx, client.Status(), vzV1Alpha1)
