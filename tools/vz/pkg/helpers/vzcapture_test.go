@@ -466,6 +466,6 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 	for k := range KnownHostNames {
 		keyMatch, err := regexp.Match(k, f)
 		assert.NoError(t, err, "Error while regex matching")
-		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file", k)
+		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
 }

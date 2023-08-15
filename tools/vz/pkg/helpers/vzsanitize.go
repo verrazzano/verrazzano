@@ -24,9 +24,6 @@ func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)
-	for k := range KnownHostNames {
-		regexToReplacementList = append(regexToReplacementList, k)
-	}
 }
 
 // SanitizeString sanitizes each line in a given file,
@@ -34,6 +31,10 @@ func InitRegexToReplacementMap() {
 func SanitizeString(l string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
+	}
+	for knownHost := range KnownHostNames {
+		wholeOccurrenceHostPattern := "\"" + knownHost + "\""
+		l = regexp.MustCompile(wholeOccurrenceHostPattern).ReplaceAllString(l, "\""+getSha256Hash(knownHost)+"\"")
 	}
 	for _, eachRegex := range regexToReplacementList {
 		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))
