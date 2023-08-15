@@ -7,7 +7,12 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
+	"regexp"
 	"testing"
+
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
@@ -27,6 +32,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+const dummyIP1 = "0.0.0.0"
+const dummyIP2 = "5.6.x.x"
 
 // TestCreateReportArchive
 // GIVEN a directory containing some files
@@ -384,4 +392,80 @@ func TestGetPodListAll(t *testing.T) {
 	pods, err = GetPodListAll(fake.NewClientBuilder().WithObjects(podList...).Build(), nsName)
 	assert.NoError(t, err)
 	assert.Equal(t, podLength, len(pods))
+}
+
+//		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
+//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
+//		WHEN I call functions to create a list of certificates for the namespace,
+//		THEN expect it to write to the provided resource file and no error should be returned.
+func TestCreateCertificateFile(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	sampleCert := v1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
+		Spec: v1.CertificateSpec{
+			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
+			IPAddresses: []string{dummyIP1, dummyIP2},
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureCertificates(client, "cattle-system", captureDir, rc)
+	assert.NoError(t, err)
+}
+
+// TestRedactHostNamesForCertificates tests the captureCertificates function
+// GIVEN when sample cert with DNSNames and IPAddresses which are sensitive information
+// WHEN captureCertificates is called on certain namespace
+// THEN it should obfuscate the known hostnames with hashed value
+// AND the output certificates.json file should NOT contain any of the sensitive information from KnownHostNames
+func TestRedactHostNamesForCertificates(t *testing.T) {
+	sampleCert := &v1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-certificate",
+			Namespace: "cattle-system",
+		},
+		Spec: v1.CertificateSpec{
+			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
+			IPAddresses: []string{dummyIP1, dummyIP2},
+		},
+	}
+
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(sampleCert).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	err = captureCertificates(client, common.CattleSystem, captureDir, rc)
+	assert.NoError(t, err)
+
+	// Check if the file is Sanitized as expected
+	certLocation := filepath.Join(captureDir, common.CattleSystem, constants.CertificatesJSON)
+	f, err := os.ReadFile(certLocation)
+	assert.NoError(t, err, "Should not error reading certificates.json file")
+	for k := range KnownHostNames {
+		keyMatch, err := regexp.Match(k, f)
+		assert.NoError(t, err, "Error while regex matching")
+		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
+	}
 }

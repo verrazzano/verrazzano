@@ -15,8 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	v1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
