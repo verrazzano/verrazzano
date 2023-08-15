@@ -26,6 +26,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// TestInstallProgressFlag
+// GIVEN a CLI install command with progress option enabled
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallProgressFlag(t *testing.T) {
 	vz1 := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
