@@ -89,7 +89,7 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 
 	// Wait for dependencies
 	if !registry.ComponentDependenciesMet(comp, compCtx) {
-		ctx.Log.Oncef("Component %s is waiting for dependenct components to be installed", comp.Name())
+		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -190,6 +190,7 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	if res.ShouldRequeue() {
 		return res
 	}
+
 	// Create an event requesting that integration happen for this module
 	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Installed)
 }

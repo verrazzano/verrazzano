@@ -27,6 +27,7 @@ import (
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	log := vzlog.DefaultLogger()
 
+	// Get the configmap and convert into an event
 	cm := &corev1.ConfigMap{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, cm); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -39,6 +40,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	// Create a single integration event for all the modules that have integration charts
 	res := r.createIntegrationEvents(log, ev)
 	if res.ShouldRequeue() {
 		return res
@@ -83,8 +85,10 @@ func (r Reconciler) createIntegrationEvents(log vzlog.VerrazzanoLogger, ev *even
 			requeue = &res
 		}
 
-		// Create an event requesting that this module be integrated
-		res := event.CreateNonCascadingModuleIntegrationEvent(log, r.Client, &modules.Items[i], ev.Action)
+		// Create an event requesting that this module be integrated.  Always use installed event so that the charts get applied.
+		// Even in the case where the original module got deleted, install action is needed to re-apply the integration
+		// charts for the module.
+		res := event.CreateNonCascadingModuleIntegrationEvent(log, r.Client, &modules.Items[i], event.Installed)
 		if res.ShouldRequeue() {
 			requeue = &res
 		}
