@@ -2,7 +2,7 @@
 
 Fixes:
 
-- Enabled status updates for Istio reconcile objects
+- Enabled status updates for Istio reconciled objects
 
 ### v1.6.4
 
