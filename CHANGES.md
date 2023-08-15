@@ -1,6 +1,6 @@
 ### v2.0.0
 
-Fixes:
+Feature:
 
 - Enabled status updates for Istio reconciled objects
 
