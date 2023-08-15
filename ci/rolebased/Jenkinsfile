@@ -3,7 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def agentLabel = "phxlarge_1_5"
+def agentLabel = "1.5-large"
 
 pipeline {
     options {
