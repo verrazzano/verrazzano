@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	testVZKind = "verrazzano"
-	testVZName = "test-verrazzano"
+	testVZKind    = "verrazzano"
+	testVZName    = "test-verrazzano"
 	testVZProfile = "prod"
 )
 
