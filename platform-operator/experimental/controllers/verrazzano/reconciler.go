@@ -5,17 +5,17 @@ package verrazzano
 
 import (
 	"context"
-	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -65,12 +65,11 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 
 // createOrUpdateModules creates or updates all the modules
 func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
-	semver, err := validators.GetCurrentBomVersion()
+	catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
 	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(fmt.Errorf("Failed to get BOM version: %v", err))
+		log.ErrorfThrottled("Error loading module catalog: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
 	}
-
-	version := semver.ToString()
 
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
@@ -81,6 +80,12 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 			continue
 		}
 
+		version := catalog.GetVersion(comp.Name())
+		if version == nil {
+			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+
 		module := moduleapi.Module{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      comp.Name(),
@@ -89,7 +94,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			// TODO For now have the module version match the VZ version
-			return r.mutateModule(log, effectiveCR, &module, comp, version)
+			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
 		})
 		if err != nil {
 			if !errors.IsConflict(err) {

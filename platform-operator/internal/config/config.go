@@ -31,9 +31,11 @@ const (
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
 	integrationChartsDirSuffix   = "/platform-operator/experimental/manifests/integration-charts"
+	catalogDirSuffix             = "/platform-operator/experimental/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
+const defaultCatalogFilename = "catalog.yaml"
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
@@ -46,6 +48,9 @@ var TestProfilesDir string
 
 // TestIntegrationChartsDis is needed for unit tests
 var TestIntegrationChartsDis string
+
+// TestCatalogDir  is needed for unit tests
+var TestCatalogDir string
 
 // TestThirdPartyManifestDir is needed for unit tests
 var TestThirdPartyManifestDir string
@@ -245,6 +250,14 @@ func GetIntegrationChartsDir() string {
 		return TestIntegrationChartsDis
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, integrationChartsDirSuffix)
+}
+
+// GetCatalogPath gets the module catalog path
+func GetCatalogPath() string {
+	if TestCatalogDir != "" {
+		return filepath.Join(TestCatalogDir, defaultCatalogFilename)
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, catalogDirSuffix, defaultCatalogFilename)
 }
 
 // GetProfile returns API profiles dir
