@@ -111,7 +111,7 @@ func TestCreateResources(t *testing.T) {
 	// Assert that the kubeResources fields are not empty or nil
 	for _, resource := range kubeResources {
 		vs, valid := resource.(*vsapi.VirtualService)
-		if valid{
+		if valid {
 			assert.NotEmpty(t, vs, "VirtualServices is empty")
 		}
 
