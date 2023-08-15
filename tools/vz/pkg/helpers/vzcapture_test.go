@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const dummyIp1 = "0.0.0.0"
-const dummyIp2 = "5.6.x.x"
+const dummyIP1 = "0.0.0.0"
+const dummyIP2 = "5.6.x.x"
 
 // TestCreateReportArchive
 // GIVEN a directory containing some files
@@ -409,7 +409,7 @@ func TestCreateCertificateFile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
 		Spec: v1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
-			IPAddresses: []string{dummyIp1, dummyIp2},
+			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
@@ -440,7 +440,7 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		},
 		Spec: v1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
-			IPAddresses: []string{dummyIp1, dummyIp2},
+			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
 
