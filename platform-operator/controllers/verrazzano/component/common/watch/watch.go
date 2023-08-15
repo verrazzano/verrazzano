@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -19,15 +20,16 @@ func GetModuleWatches(moduleNames []string) []controllerspi.WatchDescriptor {
 	for i, moduleName := range moduleNames {
 		watches = append(watches, controllerspi.WatchDescriptor{
 			WatchedResourceKind: source.Kind{Type: &moduleapi.Module{}},
-			FuncShouldReconcile: shouldReconcile,
+			FuncShouldReconcile: ShouldReconcile,
 		})
 	}
 	return watches
 }
 
-// shouldReconcile returns true if reconcile should be done in response to a Module status change to ready
-func shouldReconcile(moduleNSN types.NamespacedName, newModule *moduleapi.Module, oldModule *moduleapi.Module, event controllerspi.WatchEventType) bool {
-	// Get new Ready condition and return false if not ready
+// ShouldReconcile returns true if reconcile should be done in response to the Module status changing to ready
+func ShouldReconcile(_ types.NamespacedName, newWatchedObject client.Object, oldWatchedObject client.Object, event controllerspi.WatchEventType) bool {
+	// Get new module Ready condition and return false if not ready
+	var newModule = newWatchedObject.(*moduleapi.Module)
 	newCond := status.GetReadyCondition(newModule)
 	if newCond == nil {
 		return false
@@ -36,12 +38,14 @@ func shouldReconcile(moduleNSN types.NamespacedName, newModule *moduleapi.Module
 		return false
 	}
 
-	// The new module is ready get old Ready condition
+	// The new module is ready. get old module Ready condition
+	var oldModule = oldWatchedObject.(*moduleapi.Module)
 	oldCond := status.GetReadyCondition(oldModule)
 	if oldCond == nil {
 		return false
 	}
 
-	// Return false if the old condition reason was different OR if old condition was NOT ready
-	return oldCond.Reason != newCond.Reason || oldCond.Status != corev1.ConditionTrue
+	// Return false if the old module condition reason matches the new module AND the old condition was ready.
+	// In that case we don't need to reconcile
+	return !(oldCond.Reason == newCond.Reason && oldCond.Status == corev1.ConditionTrue)
 }
