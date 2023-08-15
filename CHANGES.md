@@ -1,3 +1,9 @@
+### v2.0.0
+
+Fixes:
+
+- Enabled status updates for Istio reconcile objects
+
 ### v1.6.4
 
 Component version updates:
