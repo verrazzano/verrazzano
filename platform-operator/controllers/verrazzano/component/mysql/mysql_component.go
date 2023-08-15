@@ -178,9 +178,13 @@ func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 
 // validatePersistenceSpecificChanges validates if there are any persistence related changes done via the install overrides
 func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) error {
+
+	oldValue := bom.FindKV(oldSetting, "c.resources.requests.storage")
+	newValue := bom.FindKV(newSetting, "datadirVolumeClaimTemplate.resources.requests.storage")
+
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
 	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.resources.requests.storage") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.resources.requests.storage") {
-		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
+		return fmt.Errorf("Can not change persistence volume size in component: %s oldValue: %v newValue: %v", ComponentJSONName, oldValue, newValue)
 	}
 	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.accessModes") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.accessModes") {
 		return fmt.Errorf("Can not change persistence access modes in component: %s", ComponentJSONName)
