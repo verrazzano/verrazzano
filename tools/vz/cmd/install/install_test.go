@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"os"
 	"path/filepath"
 	"testing"
@@ -910,4 +911,36 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+}
+
+// TestInstallSkipOperatorInstall tests installing Verrazzano and skipping the install of the operator.
+//
+// GIVEN a CLI install command with skip-operator-install flags set
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful and the VPO and VPO webhook deployments do not get reinstalled
+func TestInstallSkipOperatorInstall(t *testing.T) {
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipOperatorInstallFlag, "true")
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	existingVPOPodList, err := validators.GetPlatformOperatorPodList(c)
+	assert.NotNil(t, existingVPOPodList)
+	assert.Greater(t, len(existingVPOPodList.Items), 0)
 }
