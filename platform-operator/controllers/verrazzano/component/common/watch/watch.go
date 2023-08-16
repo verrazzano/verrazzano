@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// GetModuleReadyWatches get WatchDescriptors for the set of module where the code watches for the module transitioning to ready.
+// GetModuleReadyWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to ready.
 func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor {
 	var watches = []controllerspi.WatchDescriptor{}
 	moduleNameSet := vzstring.SliceToSet(moduleNames)
@@ -51,9 +51,9 @@ func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor
 				return false
 			}
 
-			// Return false if the old module condition reason matches the new module AND the old condition was ready.
-			// In that case we don't need to reconcile
-			return !(oldCond.Reason == newCond.Reason && oldCond.Status == corev1.ConditionTrue)
+			// Return true if the module transitioned to Ready.
+			// The old module condition reason doesn't matche the new module AND the old condition was not ready.
+			return oldCond.Reason != newCond.Reason && oldCond.Status != corev1.ConditionTrue
 		},
 	})
 
