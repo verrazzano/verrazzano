@@ -4,58 +4,59 @@
 package watch
 
 import (
-	"context"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// GetModuleWatches get WatchDescriptors for the set of module
-func GetModuleWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+// GetModuleReadyWatches get WatchDescriptors for the set of module where the code watches for the module transitioning to ready.
+func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor {
 	var watches = []controllerspi.WatchDescriptor{}
+	moduleNameSet := vzstring.SliceToSet(moduleNames)
 
-	for i, _ := range moduleNames {
-		watches = append(watches, controllerspi.WatchDescriptor{
-			WatchedResourceKind: source.Kind{Type: &moduleapi.Module{}},
-			FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
-				// Return false if the module target namespace doesn't match the desired module name
-				modName := moduleNames[i]
-				var module = moduleapi.Module{}
-				err := cli.Get(context.TODO(), wev.ReconcilingResource, &module)
-				if err != nil {
-					return false
-				}
-				if modName != module.Spec.ModuleName {
-					return false
-				}
+	// Just use a single watch that looks up the name in the set for a match
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &moduleapi.Module{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			// Return false if this is not one of the modules that is being watched
+			var newModule = wev.NewWatchedObject.(*moduleapi.Module)
+			_, ok := moduleNameSet[newModule.Spec.ModuleName]
+			if !ok {
+				return false
+			}
 
-				// Get new module Ready condition and return false if not ready
-				var newModule = wev.NewWatchedObject.(*moduleapi.Module)
-				newCond := status.GetReadyCondition(newModule)
-				if newCond == nil {
-					return false
-				}
-				if newCond.Status != corev1.ConditionTrue {
-					return false
-				}
+			// Get new module Ready condition and return false if not ready
+			newCond := status.GetReadyCondition(newModule)
+			if newCond == nil {
+				return false
+			}
+			if newCond.Status != corev1.ConditionTrue {
+				return false
+			}
 
-				// The new module is ready. get old module Ready condition
-				var oldModule = wev.OldWatchedObject.(*moduleapi.Module)
-				oldCond := status.GetReadyCondition(oldModule)
-				if oldCond == nil {
-					return false
-				}
+			// This is a create or delete event, trigger reconcile because the module is ready
+			if wev.OldWatchedObject == nil {
+				return true
+			}
 
-				// Return false if the old module condition reason matches the new module AND the old condition was ready.
-				// In that case we don't need to reconcile
-				return !(oldCond.Reason == newCond.Reason && oldCond.Status == corev1.ConditionTrue)
-			},
-		})
-	}
+			// The new module is ready. get old module Ready condition
+			var oldModule = wev.OldWatchedObject.(*moduleapi.Module)
+			oldCond := status.GetReadyCondition(oldModule)
+			if oldCond == nil {
+				return false
+			}
+
+			// Return false if the old module condition reason matches the new module AND the old condition was ready.
+			// In that case we don't need to reconcile
+			return !(oldCond.Reason == newCond.Reason && oldCond.Status == corev1.ConditionTrue)
+		},
+	})
+
 	return watches
 }
 

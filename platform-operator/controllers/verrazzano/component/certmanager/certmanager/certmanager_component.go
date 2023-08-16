@@ -91,7 +91,7 @@ func NewComponent() spi.Component {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c certManagerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleWatches([]string{componentnames.FluentOperator, componentnames.PrometheusOperator})
+	return watch.GetModuleReadyWatches([]string{componentnames.FluentOperator, componentnames.PrometheusOperator})
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
