@@ -6,14 +6,13 @@ package update
 import (
 	"context"
 	"fmt"
-	"time"
-
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/client-go/rest"
+	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -98,7 +97,7 @@ func UpdateCR(m CRModifier) error {
 	if err != nil {
 		return err
 	}
-	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	return err
 }
@@ -228,7 +227,7 @@ func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, polli
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -271,7 +270,7 @@ func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, polling
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -311,7 +310,7 @@ func UpdateCRExpectError(m CRModifier) error {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
-	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
