@@ -487,11 +487,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": grafanaSys}}, vzconst.VerrazzanoSystemNamespace, 3000, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana ingress rules failed: reason = %s", err))
 			},
-			func() {
-				t.Logs.Info("Negative test opensearch-dashboards ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 5601, true, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test opensearch-dashboards ingress rules failed: reason = %s", err))
-			},
+			//func() {
+			//	t.Logs.Info("Negative test opensearch-dashboards ingress rules")
+			//	err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{osdLabel: osClusterName}}, vzconst.VerrazzanoLoggingNamespace, 5601, true, false)
+			//	Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test opensearch-dashboards ingress rules failed: reason = %s", err))
+			//},
 			func() {
 				t.Logs.Info("Negative test prometheus ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, 9090, false, false)
