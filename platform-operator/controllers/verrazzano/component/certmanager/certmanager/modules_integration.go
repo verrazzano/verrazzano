@@ -5,7 +5,7 @@ package certmanager
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
@@ -31,7 +31,7 @@ func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 	if issuerConfig != nil {
 		clusterResourceNamespace = issuerConfig.ClusterResourceNamespace
 	}
-	return modules.NewModuleConfigHelmValuesWrapper(
+	return spi.NewModuleConfigHelmValuesWrapper(
 		certManagerModuleConfig{
 			//Certificate:              compConfig.Certificate,
 			ClusterResourceNamespace: clusterResourceNamespace,

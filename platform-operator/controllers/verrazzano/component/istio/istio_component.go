@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/componentnames"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"path/filepath"
 	"strings"
@@ -45,7 +44,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = componentnames.Istio
+const ComponentName = "istio"
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "istio"

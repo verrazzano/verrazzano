@@ -5,7 +5,6 @@ package operator
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/componentnames"
 
 	"path/filepath"
 
@@ -33,7 +32,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = componentnames.PrometheusOperator
+const ComponentName = "prometheus-operator"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace

@@ -5,7 +5,7 @@ package issuer
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
@@ -40,5 +40,5 @@ func (c clusterIssuerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha
 		ClusterResourceNamespace: clusterIssuer.ClusterResourceNamespace,
 		IssuerConfig:             clusterIssuer.IssuerConfig,
 	}
-	return modules.NewModuleConfigHelmValuesWrapper(configSnippet)
+	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }

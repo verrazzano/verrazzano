@@ -16,11 +16,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/componentnames"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -33,7 +33,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = componentnames.CertManager
+const ComponentName = cmconstants.CertManagerComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.CertManagerNamespace
@@ -91,7 +91,7 @@ func NewComponent() spi.Component {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c certManagerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{componentnames.FluentOperator, componentnames.PrometheusOperator})
+	return watch.GetModuleReadyWatches([]string{fluentoperator.ComponentName, prometheusOperator.ComponentName})
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
