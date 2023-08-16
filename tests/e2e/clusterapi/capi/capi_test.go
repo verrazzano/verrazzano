@@ -471,20 +471,20 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 	})
 
-	//t.Context(fmt.Sprintf("Deploy Verrazzano and monitor vz install status  '%s'", ClusterName), func() {
-	//	WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
-	//		Eventually(func() error {
-	//			return capiTest.DeployAnyClusterResourceSets(ClusterName, clusterResourceSetTemplateVZ, t.Logs)
-	//		}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
-	//	})
-	//
-	//	t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
-	//		WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
-	//			Eventually(func() error {
-	//				return capiTest.EnsureVerrazzano(ClusterName, t.Logs)
-	//			}, capiClusterCreationWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano is installed")
-	//		})
-	//	})
-	//})
+	t.Context(fmt.Sprintf("Deploy Verrazzano and monitor vz install status  '%s'", ClusterName), func() {
+		WhenClusterAPIInstalledIt("Create ClusterResourceSets on CAPI cluster", func() {
+			Eventually(func() error {
+				return capiTest.DeployAnyClusterResourceSets(ClusterName, clusterResourceSetTemplateVZ, t.Logs)
+			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
+		})
+
+		t.Context(fmt.Sprintf("Verrazzano installation monitoring '%s'", ClusterName), func() {
+			WhenClusterAPIInstalledIt("Ensure Verrazzano install is completed on workload cluster", func() {
+				Eventually(func() error {
+					return capiTest.EnsureVerrazzano(ClusterName, t.Logs)
+				}, capiClusterCreationWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano is installed")
+			})
+		})
+	})
 
 })
