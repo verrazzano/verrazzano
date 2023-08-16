@@ -215,17 +215,25 @@ func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogg
 		log.Infof("No OCNE control plane in namespace '%s' was detected", namespace)
 	}
 
+	if len(ocnecpesFetched.Items) > 1 {
+		log.Errorf("More than one OCNE control plane in namespace '%s' was detected !!", namespace)
+	}
+
 	var ocneControlPlane OCNEControlPlane
-	bdata, err := json.Marshal(ocnecpesFetched.Items[0])
-	if err != nil {
-		log.Errorf("Json marshalling error %v", zap.Error(err))
-		return nil, err
+	var bdata []byte
+	for _, ocnecp := range ocnecpesFetched.Items {
+		bdata, err = json.Marshal(ocnecp)
+		if err != nil {
+			log.Errorf("Json marshalling error %v", zap.Error(err))
+			return nil, err
+		}
+		err = json.Unmarshal(bdata, &ocneControlPlane)
+		if err != nil {
+			log.Errorf("Json unmarshall error %v", zap.Error(err))
+			return nil, err
+		}
 	}
-	err = json.Unmarshal(bdata, &ocneControlPlane)
-	if err != nil {
-		log.Errorf("Json unmarshall error %v", zap.Error(err))
-		return nil, err
-	}
+
 	// Set global variable to be used later
 	OCNEControlPlaneName = ocneControlPlane.Metadata.Name
 	err = os.Setenv("OCNE_CONTROL_PLANE_NAME", ocneControlPlane.Metadata.Name)
