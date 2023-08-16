@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 )
 
 type ComponentHandler struct{}
@@ -159,11 +158,5 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the module status
-	res = modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUpgradeSucceeded)
-	if res.ShouldRequeue() {
-		return res
-	}
-
-	// Create an event requesting that integration happen for this module
-	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Upgraded)
+	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUpgradeSucceeded)
 }

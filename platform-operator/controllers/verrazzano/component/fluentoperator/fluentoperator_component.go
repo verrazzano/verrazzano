@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/componentnames"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -29,7 +30,7 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "fluent-operator"
+	ComponentName = componentnames.FluentOperator
 
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = vzconst.VerrazzanoSystemNamespace
