@@ -15,17 +15,17 @@ import (
 )
 
 // GetModuleWatches get WatchDescriptors for the set of module
-func GetModuleWatches(cli client.Client, moduleNames []string) []controllerspi.WatchDescriptor {
+func GetModuleWatches(moduleNames []string) []controllerspi.WatchDescriptor {
 	var watches = []controllerspi.WatchDescriptor{}
 
 	for i, _ := range moduleNames {
 		watches = append(watches, controllerspi.WatchDescriptor{
 			WatchedResourceKind: source.Kind{Type: &moduleapi.Module{}},
-			FuncShouldReconcile: func(nsn types.NamespacedName, newWatchedObject client.Object, oldWatchedObject client.Object, event controllerspi.WatchEventType) bool {
+			FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 				// Return false if the module target namespace doesn't match the desired module name
 				modName := moduleNames[i]
 				var module = moduleapi.Module{}
-				err := cli.Get(context.TODO(), nsn, &module)
+				err := cli.Get(context.TODO(), wev.ReconcilingResource, &module)
 				if err != nil {
 					return false
 				}
@@ -34,7 +34,7 @@ func GetModuleWatches(cli client.Client, moduleNames []string) []controllerspi.W
 				}
 
 				// Get new module Ready condition and return false if not ready
-				var newModule = newWatchedObject.(*moduleapi.Module)
+				var newModule = wev.NewWatchedObject.(*moduleapi.Module)
 				newCond := status.GetReadyCondition(newModule)
 				if newCond == nil {
 					return false
@@ -44,7 +44,7 @@ func GetModuleWatches(cli client.Client, moduleNames []string) []controllerspi.W
 				}
 
 				// The new module is ready. get old module Ready condition
-				var oldModule = oldWatchedObject.(*moduleapi.Module)
+				var oldModule = wev.OldWatchedObject.(*moduleapi.Module)
 				oldCond := status.GetReadyCondition(oldModule)
 				if oldCond == nil {
 					return false
