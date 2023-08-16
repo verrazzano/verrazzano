@@ -171,3 +171,26 @@ Determine the root namespace - default is where Kiali is installed.
   {{- .Release.Namespace }}
 {{- end }}
 {{- end }}
+
+{{/*
+Autodetect remote cluster secrets if enabled - looks for secrets in the same namespace where Kiali is installed.
+Returns a JSON dict whose keys are the cluster names and values are the cluster secret data.
+*/}}
+{{- define "kiali-server.remote-cluster-secrets" -}}
+{{- $theDict := dict }}
+{{- if .Values.kiali_feature_flags.clustering.autodetect_secrets.enabled }}
+  {{- $secretLabelToLookFor := (regexSplit "=" .Values.kiali_feature_flags.clustering.autodetect_secrets.label 2) }}
+  {{- $secretLabelNameToLookFor := first $secretLabelToLookFor }}
+  {{- $secretLabelValueToLookFor := last $secretLabelToLookFor }}
+  {{- range $i, $secret := (lookup "v1" "Secret" .Release.Namespace "").items }}
+    {{- if (and (and (hasKey $secret.metadata "labels") (hasKey $secret.metadata.labels $secretLabelNameToLookFor)) (eq (get $secret.metadata.labels $secretLabelNameToLookFor) ($secretLabelValueToLookFor))) }}
+      {{- $clusterName := $secret.metadata.name }}
+      {{- if (and (hasKey $secret.metadata "annotations") (hasKey $secret.metadata.annotations "kiali.io/cluster")) }}
+        {{- $clusterName = get $secret.metadata.annotations "kiali.io/cluster" }}
+      {{- end }}
+      {{- $theDict = set $theDict $clusterName $secret.metadata.name }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $theDict | toJson }}
+{{- end }}

@@ -5,17 +5,19 @@ package factory
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/delete"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/installupdate"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/upgrade"
+	delete2 "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/delete"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/installupdate"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/migration"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/upgrade"
 )
 
 // NewModuleHandlerInfo creates a new ModuleHandlerInfo
 func NewModuleHandlerInfo() handlerspi.ModuleHandlerInfo {
 	return handlerspi.ModuleHandlerInfo{
-		DeleteActionHandler:  delete.NewHandler(),
+		DeleteActionHandler:  delete2.NewHandler(),
 		InstallActionHandler: installupdate.NewHandler(installupdate.InstallAction),
 		UpdateActionHandler:  installupdate.NewHandler(installupdate.UpdateAction),
 		UpgradeActionHandler: upgrade.NewHandler(),
+		MigrationHandler:     migration.NewHandler(),
 	}
 }

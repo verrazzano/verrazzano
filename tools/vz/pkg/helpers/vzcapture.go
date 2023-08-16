@@ -302,6 +302,7 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
 	}
+	collectHostNames(certificateList)
 	if len(certificateList.Items) > 0 {
 		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
 		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
@@ -309,6 +310,20 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 		}
 	}
 	return nil
+}
+
+func collectHostNames(certificateList v1.CertificateList) {
+	for _, cert := range certificateList.Items {
+		for _, hostname := range cert.Spec.DNSNames {
+			KnownHostNames[hostname] = true
+		}
+	}
+
+	for _, cert := range certificateList.Items {
+		for _, ipAddress := range cert.Spec.IPAddresses {
+			KnownHostNames[ipAddress] = true
+		}
+	}
 }
 
 // CapturePodLog captures the log from the pod in the captureDir

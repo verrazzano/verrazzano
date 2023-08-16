@@ -770,9 +770,9 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 	}
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tStatus\tVersion")
-	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
-		vz.Metadata.Name, curState, vz.Status.Version))
+	fmt.Fprintln(writer, "Name\tAvailable\tStatus\tVersion")
+	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v",
+		vz.Metadata.Name, vz.Status.Available, curState, vz.Status.Version))
 	writer.Flush()
 
 	if curState == "InstallComplete" {

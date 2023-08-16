@@ -225,8 +225,8 @@ func (r *VerrazzanoManagedClusterReconciler) getSecret(namespace string, secretN
 func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) {
 	var caBundle []byte
 
-	// Append the CA bundle from tls-ca secret if it exists
-	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.RancherTLSCA, false)
+	// Append the CA bundle from verrazzano-tls-ca secret if it exists
+	optSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.PrivateCABundle, false)
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}

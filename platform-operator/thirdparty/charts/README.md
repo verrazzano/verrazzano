@@ -197,7 +197,7 @@ The `kiali-server` folder was created by running the following commands:
 
 ```shell
 export KIALI_SERVER_CHART_REPO=https://kiali.org/helm-charts
-export KIALI_SERVER_CHART_VERSION=1.57.1
+export KIALI_SERVER_CHART_VERSION=1.66.1
 helm repo add kiali ${KIALI_SERVER_CHART_REPO}
 helm repo update
 rm -rf kiali-server
@@ -252,3 +252,30 @@ rm -rf fluent-operator
 helm fetch fluent/fluent-operator --untar=true --version=${FLUENT_OPERATOR_CHART_VERSION}
 ```
 
+### kube-prometheus-stack (aka Prometheus Operator)
+
+The `prometheus-community/kube-prometheus-stack` folder was created by running the following commands:
+
+```shell
+export KUBE_PROMETHEUS_STACK_CHART_VERSION=45.25.0
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+rm -rf prometheus-community/kube-prometheus-stack
+helm fetch prometheus-community/kube-prometheus-stack --untar=true --untardir=prometheus-community --version=${KUBE_PROMETHEUS_STACK_CHART_VERSION}
+```
+
+After downloading the chart, run the [update_prometheus_rules.sh](hack/update_prometheus_rules.sh) script to update alerting and recording rules.
+
+### Thanos
+
+The `thanos` folder was created by running the following commands:
+
+```shell
+export THANOS_CHART_VERSION=12.1.1
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+rm -rf thanos
+helm fetch bitnami/thanos --untar=true --version=${THANOS_CHART_VERSION}
+```
+
+After downloading the chart, run the [update_prometheus_rules.sh](hack/update_prometheus_rules.sh) script to update alerting and recording rules.

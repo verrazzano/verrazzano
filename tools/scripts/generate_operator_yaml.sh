@@ -50,7 +50,7 @@ if [ -n "${CLUSTER_OPERATOR_IMAGE}" ] && [[ "${CLUSTER_OPERATOR_IMAGE}" == *:* ]
     CLUSTER_OPERATOR_IMAGE_ARG="--set global.clusterOperatorImage=${CLUSTER_OPERATOR_IMAGE}"
 fi
 
-if [[ "$MODULE_INTEGRATION" == "true" ]]; then
+if [[ "${MODULE_INTEGRATION:-"false"}" == "true" ]]; then
   wget https://raw.githubusercontent.com/verrazzano/verrazzano-modules/main/module-operator/manifests/charts/operators/verrazzano-module-operator/crds/platform.verrazzano.io_modules.yaml \
   -O $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
 

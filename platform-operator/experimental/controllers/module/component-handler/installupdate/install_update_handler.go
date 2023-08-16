@@ -12,7 +12,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 )
 
 type ActionType string
@@ -88,13 +89,15 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 
 	// Wait for dependencies
 	if !registry.ComponentDependenciesMet(comp, compCtx) {
-		ctx.Log.Oncef("Component %s is waiting for dependenct components to be installed", comp.Name())
+		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	// Do the pre-install
-	if err := comp.PreInstall(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
-		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+	if err := comp.PreInstall(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	h.updateReadyConditionStartedOrFailed(ctx, "", false)
@@ -113,8 +116,10 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := comp.Install(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
-		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+	if err := comp.Install(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	h.updateReadyConditionStartedOrFailed(ctx, "", false)
@@ -143,8 +148,10 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := comp.PostInstall(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
-		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+	if err := comp.PostInstall(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	h.updateReadyConditionStartedOrFailed(ctx, "", false)
@@ -185,7 +192,13 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the module status
-	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+	res = modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Create an event requesting that integration happen for this module
+	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Installed)
 }
 
 // updateReadyConditionReconcilingOrFailed updates the ready condition
