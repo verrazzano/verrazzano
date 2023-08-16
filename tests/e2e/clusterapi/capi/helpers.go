@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -16,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
@@ -172,6 +174,7 @@ func (c CAPITestImpl) GetUnstructuredDataList(group, version, resource, nameSpac
 		log.Errorf("Unable to fetch resource %s due to '%v'", resource, zap.Error(err))
 		return nil, err
 	}
+
 	return dataFetched, nil
 }
 
@@ -232,14 +235,6 @@ func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogg
 			log.Errorf("Json unmarshall error %v", zap.Error(err))
 			return nil, err
 		}
-	}
-
-	// Set global variable to be used later
-	OCNEControlPlaneName = ocneControlPlane.Metadata.Name
-	err = os.Setenv("OCNE_CONTROL_PLANE_NAME", ocneControlPlane.Metadata.Name)
-	if err != nil {
-		log.Errorf("Unable to set env variable OCNE_CONTROL_PLANE_NAME")
-		return nil, err
 	}
 	return &ocneControlPlane, nil
 }
@@ -378,7 +373,7 @@ func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName str
 
 	err = resource.CreateOrUpdateResourceFromBytes(clusterTemplateData, log)
 	if err != nil {
-		log.Error("unable to get create clusterresourcesets on workload cluster :", zap.Error(err))
+		log.Error("unable to create clusterresourcesets on workload cluster :", zap.Error(err))
 		return err
 	}
 
@@ -677,17 +672,6 @@ func (c CAPITestImpl) DisplayWorkloadClusterResources(clusterName string, log *z
 	return c.ShowPodInfo(client, clusterName, log)
 }
 
-/*
-func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
-	log.Infof("deleting namespace '%s'", namespace)
-	k8s, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return err
-	}
-	return k8s.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
-}
-*/
-
 // UpdateOCINSG allows updating nsg based on source subnet cidr using the source subnet name
 func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
 	log.Infof("Updating NSG rules for cluster '%s' and nsg '%s' for '%s'", clusterName, nsgDisplayNameToUpdate, info)
@@ -965,4 +949,69 @@ func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusTyp
 
 	log.Errorf("OCNE controlplane check failure. All conditions %+v", ocneCP.Status.Conditions)
 	return false
+}
+
+// ToggleModules toggles module operator or VPO
+func (c CAPITestImpl) ToggleModules(group, version, resource, nameSpaceName string, toggle bool, log *zap.SugaredLogger) error {
+
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return err
+	}
+
+	log.Infof("Fetching resource %s", resource)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	dataFetched, err := dclient.Resource(gvr).Namespace(nameSpaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("Unable to fetch resource %s due to '%v'", resource, zap.Error(err))
+		return err
+	}
+
+	var ocneControlPlane OCNEControlPlane
+	var dataFetchedBytes, dataUpdatedBytes []byte
+	for _, ocnecp := range dataFetched.Items {
+		dataFetchedBytes, err = json.Marshal(ocnecp)
+		if err != nil {
+			log.Errorf("Json marshalling error %v", zap.Error(err))
+			return err
+		}
+		err = json.Unmarshal(dataFetchedBytes, &ocneControlPlane)
+		if err != nil {
+			log.Errorf("Json unmarshall error %v", zap.Error(err))
+			return err
+		}
+	}
+
+	// Toggle modules
+	ocneControlPlane.Spec.ModuleOperator.Enabled = toggle
+	ocneControlPlane.Spec.VerrazzanoPlatformOperator.Enabled = toggle
+
+	dataUpdatedBytes, err = json.Marshal(ocneControlPlane)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return err
+	}
+	OCNEControlPlaneName = ocneControlPlane.Metadata.Name
+	patchBytes, err := jsonpatch.CreateMergePatch(dataFetchedBytes, dataUpdatedBytes)
+	if err != nil {
+		log.Errorf("unable to generate patch data %v", zap.Error(err))
+		return err
+	}
+	_, err = dclient.Resource(gvr).Namespace(nameSpaceName).Patch(context.TODO(), OCNEControlPlaneName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		log.Errorf("unable to patch object %v", zap.Error(err))
+		return err
+	}
+	return nil
 }

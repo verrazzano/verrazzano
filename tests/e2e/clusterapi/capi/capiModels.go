@@ -171,6 +171,9 @@ type OCNEControlPlane struct {
 		ModuleOperator struct {
 			Enabled bool `json:"enabled"`
 		} `json:"moduleOperator"`
+		VerrazzanoPlatformOperator struct {
+			Enabled bool `json:"enabled"`
+		} `json:"verrazzanoPlatformOperator"`
 		Replicas        int `json:"replicas"`
 		RolloutStrategy struct {
 			RollingUpdate struct {
