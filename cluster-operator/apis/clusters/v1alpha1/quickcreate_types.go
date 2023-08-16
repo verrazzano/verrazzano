@@ -5,32 +5,28 @@ package v1alpha1
 
 type (
 	CommonClusterSpec struct {
-		KubernetesVersion string           `json:"kubernetesVersion"`
-		IdentityRef       IdentityRef      `json:"identityRef"`
-		Verrazzano        *Verrazzano      `json:"verrazzano,omitempty"`
-		PrivateRegistry   *PrivateRegistry `json:"privateRegistry,omitempty"`
-		Proxy             *Proxy           `json:"proxy,omitempty"`
+		TTLSecondsAfterFinished *int             `json:"ttlSecondsAfterFinished"`
+		KubernetesVersion       string           `json:"kubernetesVersion"`
+		IdentityRef             NamespacedRef    `json:"identityRef"`
+		PrivateRegistry         *PrivateRegistry `json:"privateRegistry,omitempty"`
+		Proxy                   *Proxy           `json:"proxy,omitempty"`
 	}
-	IdentityRef struct {
-		Name      string `json:"name"`
-		Namespace string `json:"namespace"`
-	}
-	Verrazzano struct {
-		Install     bool          `json:"install"`
-		Tag         *string       `json:"tag"`
-		Version     *string       `json:"version"`
-		ResourceRef NamespacedRef `json:"resourceRef"`
+	CommonOCISpec struct {
+		Region          string   `json:"region"`
+		Compartment     string   `json:"compartment"`
+		SSHPublicKey    *string  `json:"sshPublicKey,omitempty"`
+		ImageName       string   `json:"imageName"`
+		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}
 	NodeConfig struct {
 		// +patchMergeKey=name
 		// +patchStrategy=merge,retainKeys
-		Name              string   `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
-		Shape             *string  `json:"shape,omitempty"`
-		OCPUs             *int     `json:"ocpus,omitempty"`
-		MemoryGbs         *int     `json:"memoryGbs,omitempty"`
-		BootVolumeGbs     *int     `json:"bootVolumeGbs,omitempty"`
-		Replicas          *int     `json:"replicas,omitempty"`
-		CloudInitCommands []string `json:"cloudInitCommands,omitempty"`
+		Name          string  `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
+		Shape         *string `json:"shape,omitempty"`
+		OCPUs         *int    `json:"ocpus,omitempty"`
+		MemoryGbs     *int    `json:"memoryGbs,omitempty"`
+		BootVolumeGbs *int    `json:"bootVolumeGbs,omitempty"`
+		Replicas      *int    `json:"replicas,omitempty"`
 	}
 	Subnets struct {
 		ControlPlane string `json:"controlPlane"`
@@ -47,5 +43,14 @@ type (
 	NamespacedRef struct {
 		Name      string `json:"name"`
 		Namespace string `json:"namespace"`
+	}
+	OCNE struct {
+		Version string `json:"version"`
+	}
+	OCNEModule struct {
+		// +patchMergeKey=name
+		// +patchStrategy=merge,retainKeys
+		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
+		Tag  string `json:"tag"`
 	}
 )

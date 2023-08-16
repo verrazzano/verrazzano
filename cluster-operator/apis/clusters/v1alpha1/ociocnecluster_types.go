@@ -37,13 +37,10 @@ type (
 		OCI               OCI `json:"oci"`
 	}
 	OCI struct {
-		Region       string       `json:"region"`
-		Compartment  string       `json:"compartment"`
-		SSHPublicKey *string      `json:"sshPublicKey,omitempty"`
-		ImageName    string       `json:"imageName"`
-		ControlPlane NodeConfig   `json:"controlPlane"`
-		Workers      []NodeConfig `json:"workers,omitempty"`
-		Network      Network      `json:"network"`
+		CommonOCISpec CommonOCISpec `json:",inline"`
+		ControlPlane  NodeConfig    `json:"controlPlane"`
+		Workers       []NodeConfig  `json:"workers,omitempty"`
+		Network       Network       `json:"network"`
 	}
 	Network struct {
 		PodCIDR     string   `json:"podCIDR"`

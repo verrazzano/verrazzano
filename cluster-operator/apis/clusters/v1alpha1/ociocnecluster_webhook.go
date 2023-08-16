@@ -47,13 +47,13 @@ func (o *OCIOCNECluster) updateAllowed(other *OCIOCNECluster) error {
 	if o.Spec.KubernetesVersion != other.Spec.KubernetesVersion {
 		return cannotBeChangedErr("spec.kubernetesVersion")
 	}
-	if o.Spec.OCI.Compartment != other.Spec.OCI.Compartment {
+	if o.Spec.OCI.CommonOCISpec.Compartment != other.Spec.OCI.CommonOCISpec.Compartment {
 		return cannotBeChangedErr("spec.oci.compartment")
 	}
-	if o.Spec.OCI.Region != other.Spec.OCI.Region {
+	if o.Spec.OCI.CommonOCISpec.Region != other.Spec.OCI.CommonOCISpec.Region {
 		return cannotBeChangedErr("spec.oci.region")
 	}
-	if o.Spec.OCI.ImageName != other.Spec.OCI.ImageName {
+	if o.Spec.OCI.CommonOCISpec.ImageName != other.Spec.OCI.CommonOCISpec.ImageName {
 		return cannotBeChangedErr("spec.oci.imageName")
 	}
 	if o.Spec.OCI.ControlPlane != other.Spec.OCI.ControlPlane {
@@ -62,14 +62,11 @@ func (o *OCIOCNECluster) updateAllowed(other *OCIOCNECluster) error {
 	if o.Spec.OCI.Network != other.Spec.OCI.Network {
 		return cannotBeChangedErr("spec.oci.network")
 	}
-	if o.Spec.OCI.SSHPublicKey != other.Spec.OCI.SSHPublicKey {
+	if o.Spec.OCI.CommonOCISpec.SSHPublicKey != other.Spec.OCI.CommonOCISpec.SSHPublicKey {
 		return cannotBeChangedErr("spec.oci.sshPublicKey")
 	}
 	if len(o.Spec.OCI.Workers) != len(other.Spec.OCI.Workers) {
 		return cannotBeChangedErr("spec.oci.workers")
-	}
-	if !sliceEqual(o.Spec.OCI.CloudInitCommands, other.Spec.OCI.CloudInitCommands) {
-		return cannotBeChangedErr("spec.oci.cloudInitCommands")
 	}
 	if !sliceEqual(o.Spec.OCI.Workers, other.Spec.OCI.Workers) {
 		return cannotBeChangedErr("spec.oci.workers")
