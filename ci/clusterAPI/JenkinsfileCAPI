@@ -363,6 +363,11 @@ pipeline {
                             }
                         }
                     }
+                    post {
+                        failure {
+                            dumpK8sCluster("ocne-deploy-failure")
+                        }
+                    }
                 }
 
 
@@ -746,7 +751,7 @@ def ensureVZCleanupFromWorkloadCluster() {
 
 def ensureCAPICleanup() {
     script {
-        dumpOCNECluster("final-workload-cluster-dump")
+        dumpK8sCluster("final-admin-cluster-dump")
     }
     sh """
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}

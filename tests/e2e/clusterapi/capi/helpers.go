@@ -479,6 +479,13 @@ func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.Su
 		return err
 	}
 
+	log.Infof("----------- Cluster Events ---------------------")
+	err = c.ShowEvents(OCNENamespace, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- OCNE Control Plane ---------------------")
 	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
 	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
 	if err != nil {
@@ -492,6 +499,7 @@ func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.Su
 		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas, time.Until(ocneCP.Metadata.CreationTimestamp).Abs()))
 	writer.Flush()
 
+	log.Infof("----------- CAPI Machines ---------------------")
 	err = c.EnsureMachinesAreProvisioned(OCNENamespace, clusterName, log)
 	if err != nil {
 		return err
@@ -606,6 +614,34 @@ func (c CAPITestImpl) ShowPodInfo(client *kubernetes.Clientset, clusterName stri
 				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName,
 				time.Until(podData.GetCreationTimestamp().Time).Abs()))
 		}
+	}
+	writer.Flush()
+	return nil
+}
+
+// ShowEvents displays the events from a specific namespace
+func (c CAPITestImpl) ShowEvents(namespace string, log *zap.SugaredLogger) error {
+	log.Infof("Showing events for namespace '%s'", namespace)
+	k8sclient, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	events, err := k8sclient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Info("Failed to get events from namespace: %v", zap.Error(err))
+		return err
+	}
+
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Namespace\tLast Seen\tType\tReason\tObject\tMessage")
+
+	for _, event := range events.Items {
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v",
+			event.Namespace, event.LastTimestamp, event.Type, event.Reason, fmt.Sprintf("%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Name),
+			event.Message))
+
 	}
 	writer.Flush()
 	return nil

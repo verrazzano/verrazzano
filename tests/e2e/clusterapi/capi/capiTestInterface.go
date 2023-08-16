@@ -36,6 +36,7 @@ type CapiTestClient interface {
 	TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error
 	ShowNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error
 	ShowPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error
+	ShowEvents(namespace string, log *zap.SugaredLogger) error
 	DisplayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error
 	UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
 	UpdateOCINSGEW(clusterName, nsgDisplayNameToUpdate, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
