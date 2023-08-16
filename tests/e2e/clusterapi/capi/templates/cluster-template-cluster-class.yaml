@@ -25,16 +25,16 @@ spec:
       cidrBlocks:
         - ${CLUSTER_CIDR=10.128.0.0/12}
   topology:
-    class: ${CLUSTER_NAME}
+    class: ${CLUSTER_NAME}-cluster-class
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
     version: ${KUBERNETES_VERSION=v1.25.7}
     workers:
       machineDeployments:
-        - class: ${CLUSTER_NAME}-md-0
+        - class: ${CLUSTER_NAME}-md-0-class
           name: ${CLUSTER_NAME}-md-0
           replicas: ${NODE_MACHINE_COUNT=1}
-        - class: ${CLUSTER_NAME}-md-1
+        - class: ${CLUSTER_NAME}-md-1-class
           name: ${CLUSTER_NAME}-md-1
           replicas: ${NODE_MACHINE_COUNT=1}
 
@@ -42,7 +42,7 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
-  name: ${CLUSTER_NAME}
+  name: ${CLUSTER_NAME}-cluster-class
   namespace: ${CLUSTER_NAMESPACE}
   labels:
     cluster.x-k8s.io/provider: oci
@@ -51,49 +51,49 @@ spec:
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
       kind: OCNEControlPlaneTemplate
-      name: ${CLUSTER_NAME}-control-plane
+      name: ${CLUSTER_NAME}-control-plane-template
       namespace: ${CLUSTER_NAMESPACE}
     machineInfrastructure:
       ref:
         kind: OCIMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        name: ${CLUSTER_NAME}-control-plane
+        name: ${CLUSTER_NAME}-control-plane-machine-template
         namespace: ${CLUSTER_NAMESPACE}
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: OCIClusterTemplate
-      name: ${CLUSTER_NAME}-cluster
+      name: ${CLUSTER_NAME}-cluster-template
       namespace: ${CLUSTER_NAMESPACE}
   workers:
     machineDeployments:
-      - class: ${CLUSTER_NAME}-md-0
+      - class: ${CLUSTER_NAME}-md-0-class
         template:
           bootstrap:
             ref:
               apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
               kind: OCNEConfigTemplate
-              name: ${CLUSTER_NAME}-md-0
+              name: ${CLUSTER_NAME}-md-0-template
               namespace: ${CLUSTER_NAMESPACE}
           infrastructure:
             ref:
               apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
               kind: OCIMachineTemplate
-              name: ${CLUSTER_NAME}-md-0
+              name: ${CLUSTER_NAME}-md-0-machine-template
               namespace: ${CLUSTER_NAMESPACE}
-      - class: ${CLUSTER_NAME}-md-1
+      - class: ${CLUSTER_NAME}-md-1-class
         template:
           bootstrap:
             ref:
               apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
               kind: OCNEConfigTemplate
-              name: ${CLUSTER_NAME}-md-1
+              name: ${CLUSTER_NAME}-md-1-template
               namespace: ${CLUSTER_NAMESPACE}
           infrastructure:
             ref:
               apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
               kind: OCIMachineTemplate
-              name: ${CLUSTER_NAME}-md-1
+              name: ${CLUSTER_NAME}-md-1-machine-template
               namespace: ${CLUSTER_NAMESPACE}
 ---
 apiVersion: v1
@@ -125,7 +125,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIClusterTemplate
 metadata:
-  name: ${CLUSTER_NAME}-cluster
+  name: ${CLUSTER_NAME}-cluster-template
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
@@ -449,7 +449,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: ${CLUSTER_NAME}-control-plane-machine-template
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
@@ -468,7 +468,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: ${CLUSTER_NAME}-md-0-machine-template
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
@@ -487,7 +487,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-1
+  name: ${CLUSTER_NAME}-md-1-machine-template
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
@@ -506,7 +506,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
 kind: OCNEConfigTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: ${CLUSTER_NAME}-md-0-template
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
@@ -522,7 +522,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
 kind: OCNEConfigTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-1
+  name: ${CLUSTER_NAME}-md-1-template
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   template:
