@@ -75,6 +75,8 @@ spec:
               env:
                 - name: COH_CLUSTER
                   value: roberts-coherence
+                - name: COHERENCE_CLUSTER
+                  value: roberts-coherence
                 - name: COH_CACHE_CONFIG
                   value: coherence-cache-config.xml
                 - name: COH_POF_CONFIG
@@ -155,6 +157,8 @@ spec:
                 - name: BACKEND_HOSTNAME
                   value: bobs-bookstore-cluster-cluster-1
                 - name: COH_CLUSTER
+                  value: bobbys-coherence
+                - name: COHERENCE_CLUSTER
                   value: bobbys-coherence
                 - name: COH_CACHE_CONFIG
                   value: coherence-cache-config.xml
