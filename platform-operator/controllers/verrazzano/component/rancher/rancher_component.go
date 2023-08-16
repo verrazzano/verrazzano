@@ -6,15 +6,16 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/certs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -81,13 +82,8 @@ const clusterProvisioner = "cluster-provisioner"
 
 // Environment variables for the Rancher images
 // format: imageName: baseEnvVar
-var imageEnvVars = map[string]string{
-	"rancher-fleet":       "FLEET_IMAGE",
-	"rancher-fleet-agent": "FLEET_AGENT_IMAGE",
-	"rancher-shell":       "CATTLE_SHELL_IMAGE",
-	"rancher-webhook":     "RANCHER_WEBHOOK_IMAGE",
-	"rancher-gitjob":      "GITJOB_IMAGE",
-}
+var imageEnvVars = map[string]string{}
+var imageEnvVarsMutex = &sync.Mutex{}
 
 var getKubernetesClusterVersion = getKubernetesVersion
 
@@ -178,6 +174,41 @@ func NewComponent() spi.Component {
 		},
 		monitor: &monitor.BackgroundProcessMonitorType{ComponentName: ComponentName},
 	}
+}
+
+// initializeImageEnvVars - initialize the translation table for image names to environment variables
+func initializeImageEnvVars(imageEnvMap map[string]string) error {
+	// Synchronize so that map is only written once
+	imageEnvVarsMutex.Lock()
+	defer imageEnvVarsMutex.Unlock()
+	if len(imageEnvMap) > 0 {
+		return nil
+	}
+
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return fmt.Errorf("Failed to get the bom file for the Rancher image overrides: %v", err)
+	}
+
+	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
+	if err != nil {
+		return fmt.Errorf("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+	}
+
+	for _, image := range subcomponent.Images {
+		if strings.Contains(image.ImageName, "rancher-fleet-agent") {
+			imageEnvMap[image.ImageName] = "FLEET_AGENT_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-fleet") {
+			imageEnvMap[image.ImageName] = "FLEET_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-shell") {
+			imageEnvMap[image.ImageName] = "CATTLE_SHELL_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-webhook") {
+			imageEnvMap[image.ImageName] = "RANCHER_WEBHOOK_IMAGE"
+		} else if strings.Contains(image.ImageName, "rancher-gitjob") {
+			imageEnvMap[image.ImageName] = "GITJOB_IMAGE"
+		}
+	}
+	return nil
 }
 
 // AppendOverrides set the Rancher overrides for Helm
@@ -305,6 +336,9 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	images := subcomponent.Images
 
 	var envList []envVar
+	if err := initializeImageEnvVars(imageEnvVars); err != nil {
+		return kvs, err
+	}
 	for _, image := range images {
 		imEnvVar, ok := imageEnvVars[image.ImageName]
 		// skip the images that are not included in the override map
@@ -484,6 +518,16 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	}
 	log.Debugf("Patched Rancher ingress")
 
+	vz := ctx.EffectiveCR()
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+	}
+
+	if err := putServerURL(c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
+		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
+	}
+
 	return r.checkRestartRequired(ctx)
 }
 
@@ -525,20 +569,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
 	}
 
-	vz := ctx.EffectiveCR()
-	rancherHostName, err := getRancherHostname(c, vz)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
-	}
-
-	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
-		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
-	}
-
-	if err != nil {
-		return err
-	}
-
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
@@ -547,7 +577,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
 	// Create Fluentbit filter and parser for Rancher in cattle-fleet-system namespace
-	if err = common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
+	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, FleetSystemNamespace, false); err != nil {
 		return err
 	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
@@ -711,12 +741,12 @@ func configureUISettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring ui-pl setting: %s", err.Error())
 	}
 
-	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoLight, SettingUILogoLightLogoFilePath); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoLight, SettingUILogoLightLogoFilePath, err.Error())
+	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoLight, SettingUILogoLightFile); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo %s: %s", SettingUILogoLight, SettingUILogoLightFile, err.Error())
 	}
 
-	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
+	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkFile); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkFile, err.Error())
 	}
 
 	if err := createOrUpdateUIColorSettings(ctx); err != nil {

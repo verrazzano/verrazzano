@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"text/template"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -68,6 +69,8 @@ const (
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
 	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
+	k8sInstanceNameLabel  = "app.kubernetes.io/instance"
+	instanceName          = deploymentName + "-" + jaegerHostName
 	jaegerCertificateName = "jaeger-tls"
 	openSearchURL         = globalconst.DefaultJaegerOSURL
 	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring:9090"
@@ -91,6 +94,13 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.RolloverImage}}"
   - name: "JAEGER-ALL-IN-ONE-IMAGE"
     value: "{{.AllInOneImage}}"
+`
+
+// A template to define Jaeger override for using the JAEGER-ALL-IN-ONE-IMAGE to create a Jaeger instance.
+const jaegerAllInOneTemplate = `jaeger:
+  create: true
+  spec:
+    strategy: allInOne
 `
 
 // A template to define Jaeger override for creating default Jaeger instance
@@ -129,12 +139,28 @@ type jaegerData struct {
 }
 
 func isJaegerReady(ctx spi.ComponentContext) bool {
-	deploys, err := getAllComponentDeployments(ctx)
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	// Check if Jaeger Operator is ready
+	jaegerOperatorReady := ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerOperatorDeployments(), 1, prefix)
+	if !jaegerOperatorReady {
+		return jaegerOperatorReady
+	}
+	// Check if Jaeger instance is configured
+	jaegerCREnabled, err := isJaegerCREnabled(ctx)
 	if err != nil {
 		return false
 	}
-	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploys, 1, prefix)
+	// If there is no Jaeger instance configured, return true
+	if !jaegerCREnabled {
+		return true
+	}
+	// Check if Jaeger instance is ready
+	listOptions, err := jaegerListOptions()
+	if err != nil {
+		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
+		return false
+	}
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, listOptions)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -254,19 +280,34 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			return nil, err
 		}
 		if createInstance {
-			// use jaegerCRTemplate to populate Jaeger spec data
-			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
-			if err != nil {
-				return nil, err
-			}
-			var osReplicaCount int32 = 1
-			if opensearchoperator.IsSingleDataNodeCluster(compContext) {
-				osReplicaCount = 0
-			}
-			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-			err = jaegerCRTemplate.Execute(&b, data)
-			if err != nil {
-				return nil, err
+			// Check if Jaeger instance can use Verrazzano's OpenSearch as storage
+			if canUseVZOpenSearchStorage(compContext) {
+				jaegerValuesFile := filepath.Join(config.GetHelmOverridesDir(), "jaeger-production-strategy-values.yaml")
+				// Append jaeger-production-strategy-values values file
+				kvs = append(kvs, bom.KeyValue{Value: jaegerValuesFile, IsFile: true})
+
+				var osReplicaCount int32 = 1
+				if opensearchoperator.IsSingleDataNodeCluster(compContext) {
+					osReplicaCount = 0
+				}
+				data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
+				jaegerTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+				if err != nil {
+					return nil, err
+				}
+				err = jaegerTemplate.Execute(&b, data)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				jaegerTemplate, err := template.New("jaeger").Parse(jaegerAllInOneTemplate)
+				if err != nil {
+					return nil, err
+				}
+				err = jaegerTemplate.Execute(&b, nil)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -441,19 +482,15 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 
 // isCreateDefaultJaegerInstance determines if the default Jaeger instance has to be created or not.
 func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
-	// Default Jaeger instance will be created if Verrazzano's OpenSearch can be used as storage
-	if canUseVZOpenSearchStorage(ctx) {
-		jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
-		if err != nil {
-			return false, err
-		}
-		// If the jaeger instance creation is disabled in the VZ CR, do not create a Jaeger instance
-		if jaegerCreateOverride != nil && !jaegerCreateOverride.(bool) {
-			return false, nil
-		}
-		return true, nil
+	jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+	// If the jaeger instance creation is disabled in the VZ CR, do not create a Jaeger instance
+	if jaegerCreateOverride != nil && !jaegerCreateOverride.(bool) {
+		return false, nil
+	}
+	return true, nil
 }
 
 // isJaegerCREnabled determines if Jaeger instance is configured as part of Verrazzano
@@ -466,8 +503,17 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 	if jaegerCreateOverride != nil {
 		return jaegerCreateOverride.(bool), nil
 	}
-	// Jaeger instance would be created if Verrazzano's OpenSearch can be used as storage
-	return canUseVZOpenSearchStorage(ctx), nil
+	// Fetch the registration secret
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return false, err
+	}
+	// If there is a registration secret, then it is a managed cluster and the Jaeger instance using Verrazzano CR is
+	// not created unless it is explicitly enabled in the Verrazzano CR
+	if registrationSecret != nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
@@ -666,18 +712,6 @@ func getJaegerComponentDeployments() []types.NamespacedName {
 	}
 }
 
-func getAllComponentDeployments(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
-	defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	deploys := getJaegerOperatorDeployments()
-	if defaultJaegerEnabled {
-		deploys = append(deploys, getJaegerComponentDeployments()...)
-	}
-	return deploys, nil
-}
-
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
 // jaeger helm chart
 func GetHelmManagedResources() []common.HelmManagedResource {
@@ -806,7 +840,7 @@ func createJaegerSecrets(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	if createInstance {
+	if createInstance && canUseVZOpenSearchStorage(ctx) {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
@@ -832,4 +866,35 @@ func newScheme() *runtime.Scheme {
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = clientgoscheme.AddToScheme(scheme)
 	return scheme
+}
+
+func jaegerListOptions() (*clipkg.ListOptions, error) {
+	selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			k8sInstanceNameLabel: instanceName,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &clipkg.ListOptions{
+		Namespace:     ComponentNamespace,
+		LabelSelector: selector,
+	}, nil
+}
+
+// deleteIngress deletes Jaeger ingress
+func deleteIngress(ctx spi.ComponentContext) error {
+	ingress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.JaegerIngress,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	err := ctx.Client().Delete(context.TODO(), ingress)
+	if err != nil && !errors.IsNotFound(err) {
+		ctx.Log().Errorf("Error deleting ingress %s, %v", constants.JaegerIngress, err)
+		return err
+	}
+	return nil
 }

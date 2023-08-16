@@ -5,7 +5,6 @@ package operator
 
 import (
 	"context"
-
 	"io/fs"
 	"os"
 	"testing"
@@ -175,7 +174,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding Jaeger Images",
 			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 2,
 			expectedErr:  nil,
 		},
 		{
@@ -191,13 +190,13 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding metrics storage type",
 			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideMetricsStorageVz.yaml",
-			numKeyValues: 2,
+			numKeyValues: 3,
 			expectedErr:  nil,
 		},
 		{
 			name:         "OpenSearchDisabled",
 			description:  "Test OpenSearch disabled",
-			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
+			expectedYAML: "testdata/jaegerOperatorDisableOpenSearchValues.yaml",
 			actualCR:     "testdata/jaegerOperatorDisableOpenSearchVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
@@ -207,7 +206,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test OpenSearch replica count setting in prod profile",
 			expectedYAML: "testdata/jaegerOperatorProdOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorProdOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 2,
 			expectedErr:  nil,
 		},
 	}
@@ -268,18 +267,29 @@ func TestAppendOverrides(t *testing.T) {
 			asserts.NoError(err)
 			asserts.Equal(test.numKeyValues, len(kvs))
 
-			// Check Temp file
-			asserts.True(kvs[0].IsFile, "Expected generated Jaeger Operator overrides first in list of helm args")
-			tempFilePath := kvs[0].Value
-			files = append(files, tempFilePath)
-			_, err = os.Stat(tempFilePath)
-			asserts.NoError(err, "Unexpected error checking for temp file %s: %v", tempFilePath, err)
-			err = cleanFile(tempFilePath)
-			asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
+			if len(kvs) == 1 {
+				// Check Temp file
+				asserts.True(kvs[0].IsFile, "Expected generated Jaeger Operator overrides first in list of helm args")
+				tempFilePath := kvs[0].Value
+				files = append(files, tempFilePath)
+				_, err = os.Stat(tempFilePath)
+				asserts.NoError(err, "Unexpected error checking for temp file %s: %v", tempFilePath, err)
+				err = cleanFile(tempFilePath)
+				asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
+			} else {
+				// Check Temp file
+				asserts.True(kvs[1].IsFile, "Expected generated Jaeger production strategy overrides in list of helm args")
+				tempFilePath := kvs[1].Value
+				files = append(files, tempFilePath)
+				_, err = os.Stat(tempFilePath)
+				asserts.NoError(err, "Unexpected error checking for temp file %s: %v", tempFilePath, err)
+				err = cleanFile(tempFilePath)
+				asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
+			}
 
 			if test.name == "OverrideMetricsStorageType" {
-				asserts.Equal(kvs[1].Key, prometheusServerField)
-				asserts.Equal(kvs[1].Value, prometheusURL)
+				asserts.Equal(kvs[2].Key, prometheusServerField)
+				asserts.Equal(kvs[2].Value, prometheusURL)
 			}
 		})
 	}

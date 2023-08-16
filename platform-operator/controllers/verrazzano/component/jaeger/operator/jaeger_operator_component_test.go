@@ -53,7 +53,6 @@ const (
 	defaultJaegerDisabledJSON    = "{\"jaeger\":{\"create\": false}}"
 	defaultJaegerEnabledJSON     = "{\"jaeger\":{\"create\": true}}"
 	k8sAppNameLabel              = "app.kubernetes.io/name"
-	k8sInstanceNameLabel         = "app.kubernetes.io/instance"
 	podTemplateHashLabel         = "pod-template-hash"
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 )
@@ -937,8 +936,8 @@ func TestGetIngressAndCertificateNames(t *testing.T) {
 					},
 				},
 			},
-			ingresses: []types.NamespacedName{},
-			certs:     []types.NamespacedName{},
+			ingresses: jaegerIngressNames,
+			certs:     certificates,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with Jaeger operator is enabled and instance is disabled
@@ -953,7 +952,7 @@ func TestGetIngressAndCertificateNames(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
+			ctx := spi.NewFakeContext(createFakeClient(), &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.ingresses, NewComponent().GetIngressNames(ctx))
 			assert.Equal(t, tt.certs, NewComponent().GetCertificateNames(ctx))
 		})
@@ -1484,11 +1483,13 @@ func getJaegerCollectorObjects(availableReplicas int32) []client.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      JaegerCollectorDeploymentName,
-				Labels:    map[string]string{k8sAppNameLabel: JaegerCollectorDeploymentName},
+				Labels: map[string]string{k8sAppNameLabel: JaegerCollectorDeploymentName,
+					k8sInstanceNameLabel: instanceName},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{k8sAppNameLabel: JaegerCollectorDeploymentName},
+					MatchLabels: map[string]string{k8sAppNameLabel: JaegerCollectorDeploymentName,
+						k8sInstanceNameLabel: instanceName},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -1505,6 +1506,7 @@ func getJaegerCollectorObjects(availableReplicas int32) []client.Object {
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c4c96",
 					k8sAppNameLabel:      JaegerCollectorDeploymentName,
+					k8sInstanceNameLabel: instanceName,
 				},
 			},
 		},
@@ -1525,11 +1527,13 @@ func getJaegerQueryObjects(availableReplicas int32) []client.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      JaegerQueryDeploymentName,
-				Labels:    map[string]string{k8sAppNameLabel: JaegerQueryDeploymentName},
+				Labels: map[string]string{k8sAppNameLabel: JaegerQueryDeploymentName,
+					k8sInstanceNameLabel: instanceName},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{k8sAppNameLabel: JaegerQueryDeploymentName},
+					MatchLabels: map[string]string{k8sAppNameLabel: JaegerQueryDeploymentName,
+						k8sInstanceNameLabel: instanceName},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -1546,6 +1550,7 @@ func getJaegerQueryObjects(availableReplicas int32) []client.Object {
 				Labels: map[string]string{
 					podTemplateHashLabel: "95d8c3b96",
 					k8sAppNameLabel:      JaegerQueryDeploymentName,
+					k8sInstanceNameLabel: instanceName,
 				},
 			},
 		},

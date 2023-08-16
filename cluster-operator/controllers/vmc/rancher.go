@@ -50,9 +50,9 @@ type RancherCluster struct {
 	ID   string
 }
 
-// registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
+// RegisterManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
-func registerManagedClusterWithRancher(rc *rancherutil.RancherConfig, clusterName string, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, string, error) {
+func RegisterManagedClusterWithRancher(rc *rancherutil.RancherConfig, clusterName string, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, string, error) {
 	clusterID := rancherClusterID
 	var err error
 	if clusterID == "" {

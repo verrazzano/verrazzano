@@ -10,7 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 )
 
 type ComponentHandler struct{}
@@ -147,5 +148,11 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the module status
-	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
+	res = modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Create an event requesting that integration be deleted for this module
+	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Deleted)
 }

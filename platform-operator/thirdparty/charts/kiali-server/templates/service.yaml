@@ -27,13 +27,16 @@ spec:
   ports:
   {{- if (include "kiali-server.identity.cert_file" .) }}
   - name: tcp
+    appProtocol: https
   {{- else }}
   - name: http
+    appProtocol: http
   {{- end }}
     protocol: TCP
     port: {{ .Values.server.port }}
   {{- if .Values.server.metrics_enabled }}
   - name: http-metrics
+    appProtocol: http
     protocol: TCP
     port: {{ .Values.server.metrics_port }}
   {{- end }}

@@ -95,7 +95,7 @@ spec:
       expr: |-
         2^max(kube_state_metrics_total_shards{job="kube-state-metrics"}) - 1
           -
-        sum( 2 ^ max by (shard_ordinal) (kube_state_metrics_shard_ordinal{job="kube-state-metrics"}) )
+        sum( 2 ^ max by (shard_ordinal, verrazzano_cluster) (kube_state_metrics_shard_ordinal{job="kube-state-metrics"}) )
         != 0
       for: 15m
       labels:

@@ -70,6 +70,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to run all the OCNE Cluster Driver tests (true), or just the 1 bare minimum test case (false).', name: 'RUN_ALL_TESTS', defaultValue: false)
 
         // Optional parameters to the Ginkgo test suite
         string (name: 'DOCKER_ROOT_DIR',
@@ -551,7 +552,7 @@ def runGinkgo(testSuitePath) {
         sh """
             echo Starting the OCNE cluster driver tests
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -p -v --timeout 2h --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -p -v --timeout 2h --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --runAllTests=${params.RUN_ALL_TESTS}
         """
     }
 }
