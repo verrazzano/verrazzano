@@ -609,7 +609,7 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 
 func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) &&
-		vzcr.IsComponentStatusEnabled(vz, cmconstants.CertManagerComponentName) &&
+		vzcr.IsComponentStatusEnabled(vz, cmconstants.ClusterIssuerComponentName) &&
 		vzcr.IsComponentStatusEnabled(vz, keycloak.ComponentName)
 }
 

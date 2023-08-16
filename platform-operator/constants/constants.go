@@ -282,14 +282,11 @@ const VerrazzanoCRNameAnnotation = "module.verrazzano.io/vz-cr-name"
 // VerrazzanoCRNamespaceAnnotation is the annotation for the verrazzano CR namespace
 const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
 
-// VerrazzanoObservedGenerationAnnotation is the annotation for the verrazzano CR observed generation
-const VerrazzanoObservedGenerationAnnotation = "module.verrazzano.io/vz-cr-observed-generation"
-
-// VerrazzanoVersionAnnotation is the annotation for the verrazzano CR version
-const VerrazzanoVersionAnnotation = "module.verrazzano.io/vz-cr-version"
-
 // VerrazzanoModuleOwnerLabel is the label for the module that owns the resource
 const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
+
+// VerrazzanoModuleEventLabel is the label for the module events
+const VerrazzanoModuleEventLabel = "module.verrazzano.io/event"
 
 // AlertmanagerIngress is the name of the ingress for Alertmanager
 const AlertmanagerIngress = "alertmanager"

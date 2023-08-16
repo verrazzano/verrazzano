@@ -76,19 +76,19 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 	return secret.Data[RancherCACert], nil
 }
 
-// GetAdditionalCA fetches the Rancher tls-cA secret
-// returns empty byte array of the secret tls-ca is not found
+// GetAdditionalCA fetches the verrazzano-tls-ca secret
+// returns empty byte array of the secret verrazzano-tls-ca is not found
 func GetAdditionalCA(c client.Reader) []byte {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
-		Namespace: CattleSystem,
-		Name:      constants.RancherTLSCA}
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.PrivateCABundle}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
 		return []byte{}
 	}
 
-	return secret.Data[constants.RancherTLSCAKey]
+	return secret.Data[constants.CABundleKey]
 }
 
 func CertPool(certs ...[]byte) *x509.CertPool {

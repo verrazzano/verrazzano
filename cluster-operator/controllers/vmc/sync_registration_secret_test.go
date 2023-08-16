@@ -45,8 +45,8 @@ func TestVerrazzanoManagedClusterReconcilerGetAdminCaBundle(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.RancherTLSCA,
-						Namespace: constants.RancherSystemNamespace,
+						Name:      constants.PrivateCABundle,
+						Namespace: constants.VerrazzanoSystemNamespace,
 					},
 					Data: map[string][]byte{
 						constants.CABundleKey: tlsCABundleData,
@@ -70,8 +70,8 @@ func TestVerrazzanoManagedClusterReconcilerGetAdminCaBundle(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.RancherTLSCA,
-						Namespace: constants.RancherSystemNamespace,
+						Name:      constants.PrivateCABundle,
+						Namespace: constants.VerrazzanoSystemNamespace,
 					},
 					Data: map[string][]byte{
 						constants.CABundleKey: vzTLSBundleData,
@@ -111,8 +111,8 @@ func TestVerrazzanoManagedClusterReconcilerGetAdminCaBundle(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.RancherTLSCA,
-						Namespace: constants.RancherSystemNamespace,
+						Name:      constants.PrivateCABundle,
+						Namespace: constants.VerrazzanoSystemNamespace,
 					},
 					Data: map[string][]byte{
 						constants.CABundleKey: vzTLSBundleData,
