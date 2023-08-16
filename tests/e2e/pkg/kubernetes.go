@@ -587,7 +587,7 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
-func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
+func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1beta1.Verrazzano, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -596,7 +596,7 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	if err != nil {
 		return nil, err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos("")
+	vzClient := client.VerrazzanoV1beta1().Verrazzanos("")
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
@@ -647,14 +647,14 @@ func IsDevProfile() bool {
 	if err != nil {
 		return false
 	}
-	if vz.Spec.Profile == v1alpha1.Dev {
+	if vz.Spec.Profile == v1beta1.Dev {
 		return true
 	}
 	return false
 }
 
 // GetVerrazzano returns the installed Verrazzano
-func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
+func GetVerrazzano() (*v1beta1.Verrazzano, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
@@ -731,7 +731,7 @@ func IsProdProfile() bool {
 	if err != nil {
 		return false
 	}
-	if vz.Spec.Profile == v1alpha1.Prod || vz.Spec.Profile == "" {
+	if vz.Spec.Profile == v1beta1.Prod || vz.Spec.Profile == "" {
 		return true
 	}
 	return false
@@ -750,7 +750,7 @@ func IsManagedClusterProfile() bool {
 		Log(Error, fmt.Sprintf("Error getting vz install resource: %v", err))
 		return false
 	}
-	if vz.Spec.Profile == v1alpha1.ManagedCluster {
+	if vz.Spec.Profile == v1beta1.ManagedCluster {
 		return true
 	}
 	return false
@@ -817,10 +817,10 @@ func IsOCIDNSEnabled(kubeconfigPath string) bool {
 	return true
 }
 
-func IsCAIssuerConfig(certConfig v1alpha1.Certificate) (isCAConfig bool, err error) {
+func IsCAIssuerConfig(certConfig v1beta1.Certificate) (isCAConfig bool, err error) {
 	// Check if Ca or Acme is empty
-	caNotEmpty := certConfig.CA != v1alpha1.CA{}
-	acmeNotEmpty := certConfig.Acme != v1alpha1.Acme{}
+	caNotEmpty := certConfig.CA != v1beta1.CA{}
+	acmeNotEmpty := certConfig.Acme != v1beta1.Acme{}
 	if caNotEmpty && acmeNotEmpty {
 		return false, errors.New("certificate object Acme and CA cannot be simultaneously populated")
 	} else if !caNotEmpty && !acmeNotEmpty {
@@ -868,8 +868,8 @@ func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
 		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
 		return false, err
 	}
-	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
-		return *vz.Spec.Components.Elasticsearch.Enabled, nil
+	if vz != nil && vz.Spec.Components.OpenSearch != nil && vz.Spec.Components.OpenSearch.Enabled != nil {
+		return *vz.Spec.Components.OpenSearch.Enabled, nil
 	}
 	return false, nil
 }
@@ -895,7 +895,7 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return vz.Spec.Profile != v1alpha1.None
+		return vz.Spec.Profile != v1beta1.None
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
 }
@@ -908,7 +908,7 @@ func IsPrometheusEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
-		return vz.Spec.Profile != v1alpha1.None
+		return vz.Spec.Profile != v1beta1.None
 	}
 	return *vz.Spec.Components.Prometheus.Enabled
 }
@@ -920,10 +920,10 @@ func IsIngressEnabled(kubeconfigPath string) bool {
 		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
-	if vz.Spec.Components.Ingress == nil || vz.Spec.Components.Ingress.Enabled == nil {
+	if vz.Spec.Components.IngressNGINX == nil || vz.Spec.Components.IngressNGINX.Enabled == nil {
 		return false
 	}
-	return *vz.Spec.Components.Ingress.Enabled
+	return *vz.Spec.Components.IngressNGINX.Enabled
 }
 
 // IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
@@ -934,7 +934,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
-		return vz.Spec.Profile != v1alpha1.None
+		return vz.Spec.Profile != v1beta1.None
 	}
 	return *vz.Spec.Components.KubeStateMetrics.Enabled
 }
@@ -972,8 +972,8 @@ func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
 		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return true
 	}
-	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
-		return *vz.Spec.Components.Kibana.Enabled
+	if vz != nil && vz.Spec.Components.OpenSearchDashboards != nil && vz.Spec.Components.OpenSearchDashboards.Enabled != nil {
+		return *vz.Spec.Components.OpenSearchDashboards.Enabled
 	}
 	return true
 }
@@ -1166,7 +1166,7 @@ func GenerateNamespace(name string) string {
 }
 
 // GetEffectiveKeyCloakPersistenceOverride returns the effective PVC override for Keycloak, if it exists
-func GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath string) (*v1alpha1.VolumeClaimSpecTemplate, error) {
+func GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath string) (*v1beta1.VolumeClaimSpecTemplate, error) {
 	verrazzano, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -1189,7 +1189,7 @@ func GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath string) (*v1alpha1.V
 }
 
 // GetEffectiveVMIPersistenceOverride returns the effective PVC override for the VMI components, if it exists
-func GetEffectiveVMIPersistenceOverride(kubeconfigPath string) (*v1alpha1.VolumeClaimSpecTemplate, error) {
+func GetEffectiveVMIPersistenceOverride(kubeconfigPath string) (*v1beta1.VolumeClaimSpecTemplate, error) {
 	verrazzano, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -1886,7 +1886,7 @@ func GetContainerImage(namespace string, deploymentName string, containerName st
 }
 
 // WaitForVZCondition waits till the VZ CR reaches the given condition
-func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, timeout time.Duration) {
+func WaitForVZCondition(conditionType v1beta1.ConditionType, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		cr, err := GetVerrazzano()
 		if err != nil {
