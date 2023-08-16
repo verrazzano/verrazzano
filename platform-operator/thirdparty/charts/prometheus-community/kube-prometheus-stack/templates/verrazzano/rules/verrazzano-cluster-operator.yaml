@@ -56,8 +56,8 @@ spec:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
 {{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
 {{- end }}
-        description: Verrazzano Cluster Operator Webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not ready.
-        summary: Verrazzano Cluster Operator Webhook is not ready.
+        description: Verrazzano Cluster Operator webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not ready.
+        summary: Verrazzano Cluster Operator webhook is not ready.
       expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_pod_status_ready{job="kube-state-metrics", verrazzano_component="clusterOperator", pod=~"verrazzano-cluster-operator-webhook-.*", condition="true"}[5m])) == 0
       for: 10m
       labels:
@@ -88,8 +88,8 @@ spec:
 {{- if .Values.defaultRules.additionalRuleAnnotations }}
 {{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
 {{- end }}
-        description: Verrazzano Cluster Operator Webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not running.
-        summary: Verrazzano Cluster Operator Webhook is not running.
+        description: Verrazzano Cluster Operator webhook pod in {{`{{`}} $labels.namespace {{`}}`}} namespace is not running.
+        summary: Verrazzano Cluster Operator webhook is not running.
       expr: max by (namespace, verrazzano_cluster) (max_over_time(kube_deployment_status_replicas{deployment="verrazzano-cluster-operator-webhook"}[5m])) == 0
       for: 10m
       labels:
