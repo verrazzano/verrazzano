@@ -7,4 +7,6 @@ package v1alpha1
 
 type OCIOCNEClusterExpansion interface{}
 
+type OKEQuickCreateExpansion interface{}
+
 type VerrazzanoManagedClusterExpansion interface{}

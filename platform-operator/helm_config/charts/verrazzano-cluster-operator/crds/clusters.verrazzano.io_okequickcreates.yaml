@@ -1,5 +1,7 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Copyright (c) 2023, , Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -7,20 +9,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: ociocneclusters.clusters.verrazzano.io
+  name: okequickcreates.clusters.verrazzano.io
 spec:
   group: clusters.verrazzano.io
   names:
-    kind: OCIOCNECluster
-    listKind: OCIOCNEClusterList
-    plural: ociocneclusters
-    singular: ociocnecluster
+    kind: OKEQuickCreate
+    listKind: OKEQuickCreateList
+    plural: okequickcreates
+    singular: okequickcreate
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: OCIOCNECluster specifies the API for quick-create OCI OCNE Clusters.
+        description: OKEQuickCreate specifies the API for quick-create OKE Clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -49,7 +51,7 @@ spec:
                 type: object
               kubernetesVersion:
                 type: string
-              oci:
+              oke:
                 properties:
                   cloudInitScript:
                     items:
@@ -57,23 +59,6 @@ spec:
                     type: array
                   compartment:
                     type: string
-                  controlPlane:
-                    properties:
-                      bootVolumeGbs:
-                        type: integer
-                      memoryGbs:
-                        type: integer
-                      name:
-                        type: string
-                      ocpus:
-                        type: integer
-                      replicas:
-                        type: integer
-                      shape:
-                        type: string
-                    required:
-                    - name
-                    type: object
                   imageName:
                     type: string
                   network:
@@ -101,11 +86,7 @@ spec:
                     - clusterCIDR
                     - podCIDR
                     type: object
-                  region:
-                    type: string
-                  sshPublicKey:
-                    type: string
-                  workers:
+                  nodePools:
                     items:
                       properties:
                         bootVolumeGbs:
@@ -124,9 +105,21 @@ spec:
                       - name
                       type: object
                     type: array
+                  region:
+                    type: string
+                  sshPublicKey:
+                    type: string
+                  virtualNodePools:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
                 required:
                 - compartment
-                - controlPlane
                 - imageName
                 - network
                 - region
@@ -161,7 +154,7 @@ spec:
             required:
             - identityRef
             - kubernetesVersion
-            - oci
+            - oke
             - ttlSecondsAfterFinished
             type: object
           status:
