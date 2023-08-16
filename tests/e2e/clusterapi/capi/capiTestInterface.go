@@ -23,7 +23,7 @@ type CapiTestClient interface {
 	ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) (string, error)
 	GetUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
 	GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error)
-	GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error)
+	GetOCNEControlPlane(namespace string, log *zap.SugaredLogger) (*OCNEControlPlane, error)
 	CheckOCNEControlPlaneStatus(clusterName, expectedStatusType, expectedStatus, expectedReason string, log *zap.SugaredLogger) bool
 	GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error)
 	GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error)

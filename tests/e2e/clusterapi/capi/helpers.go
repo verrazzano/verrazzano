@@ -204,19 +204,19 @@ func (c CAPITestImpl) GetCluster(namespace, clusterName string, log *zap.Sugared
 }
 
 // GetOCNEControlPlane is used to fetch OCNE control plane info given a control plane name and namespace, if it exists
-func (c CAPITestImpl) GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
-	ocnecpFetched, err := c.GetUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, log)
+func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
+	ocnecpesFetched, err := c.GetUnstructuredDataList("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", namespace, log)
 	if err != nil {
-		log.Errorf("Unable to fetch OCNE control plane '%s' due to '%v'", controlPlaneName, zap.Error(err))
+		log.Errorf("Unable to fetch machines due to '%v'", zap.Error(err))
 		return nil, err
 	}
 
-	if ocnecpFetched == nil {
-		log.Infof("No OCNE control plane with name '%s' in namespace '%s' was detected", controlPlaneName, namespace)
+	if ocnecpesFetched == nil {
+		log.Infof("No OCNE control plane in namespace '%s' was detected", namespace)
 	}
 
 	var ocneControlPlane OCNEControlPlane
-	bdata, err := json.Marshal(ocnecpFetched)
+	bdata, err := json.Marshal(ocnecpesFetched.Items[0])
 	if err != nil {
 		log.Errorf("Json marshalling error %v", zap.Error(err))
 		return nil, err
@@ -226,7 +226,13 @@ func (c CAPITestImpl) GetOCNEControlPlane(namespace, controlPlaneName string, lo
 		log.Errorf("Json unmarshall error %v", zap.Error(err))
 		return nil, err
 	}
-
+	// Set global variable to be used later
+	OCNEControlPlaneName = ocneControlPlane.Metadata.Name
+	err = os.Setenv("OCNE_CONTROL_PLANE_NAME", ocneControlPlane.Metadata.Name)
+	if err != nil {
+		log.Errorf("Unable to set env variable OCNE_CONTROL_PLANE_NAME")
+		return nil, err
+	}
 	return &ocneControlPlane, nil
 }
 
@@ -486,8 +492,7 @@ func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.Su
 	}
 
 	log.Infof("----------- OCNE Control Plane ---------------------")
-	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
-	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
+	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, log)
 	if err != nil {
 		return err
 	}
@@ -925,8 +930,7 @@ func (c CAPITestImpl) CreateImagePullSecrets(clusterName string, log *zap.Sugare
 }
 
 func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusType, expectedStatus, expectedReason string, log *zap.SugaredLogger) bool {
-	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
-	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
+	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, log)
 	if err != nil {
 		log.Error("unable to fetch OCNE control plane : ", zap.Error(err))
 		return false

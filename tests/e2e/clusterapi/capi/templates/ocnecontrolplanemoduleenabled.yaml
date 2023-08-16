@@ -5,7 +5,7 @@
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
 kind: OCNEControlPlane
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: ${OCNE_CONTROL_PLANE_NAME}
   namespace: ${CLUSTER_NAMESPACE}
 spec:
   moduleOperator:

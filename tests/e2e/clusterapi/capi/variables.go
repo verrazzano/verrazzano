@@ -29,6 +29,7 @@ var (
 	ImageName              string
 	ImageTag               string
 	OCNEK8sVersion         string
+	OCNEControlPlaneName   string
 )
 
 func ensureCAPIVarsInitialized() {
