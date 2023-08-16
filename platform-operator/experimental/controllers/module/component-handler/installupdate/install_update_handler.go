@@ -94,8 +94,10 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	}
 
 	// Do the pre-install
-	if err := comp.PreInstall(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
-		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+	if err := comp.PreInstall(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	h.updateReadyConditionStartedOrFailed(ctx, "", false)
@@ -114,8 +116,10 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := comp.Install(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
-		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+	if err := comp.Install(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	h.updateReadyConditionStartedOrFailed(ctx, "", false)
@@ -144,8 +148,10 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := comp.PostInstall(compCtx); err != nil && !vzerrors.IsRetryableError(err) {
-		h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+	if err := comp.PostInstall(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	h.updateReadyConditionStartedOrFailed(ctx, "", false)
