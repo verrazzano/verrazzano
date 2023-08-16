@@ -18,7 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	pocnst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -41,7 +41,7 @@ type CertModifier struct {
 	CertManager *vzapi.CertManagerComponent
 }
 
-func (u *CertModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u *CertModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.CertManager = u.CertManager
 }
 
@@ -92,7 +92,7 @@ func updateAdminClusterCA() string {
 		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
 	}
 	m := &CertModifier{CertManager: newCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
+	update.RetryUpdateV1Beta1(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	return oldIngressCaCrt
 }
 
@@ -108,7 +108,7 @@ func revertToDefaultCertManager() string {
 	oldIngressCaCrt := adminCluster.
 		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 	m := &CertModifier{CertManager: originalCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
+	update.RetryUpdateV1Beta1(m, adminCluster.KubeConfigPath, true, pollingInterval, waitTimeout)
 	return oldIngressCaCrt
 }
 
