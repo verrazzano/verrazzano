@@ -6,7 +6,9 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
@@ -87,6 +89,11 @@ func NewComponent() spi.Component {
 			},
 		},
 	}
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c certManagerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return watch.GetModuleWatches(c)
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
