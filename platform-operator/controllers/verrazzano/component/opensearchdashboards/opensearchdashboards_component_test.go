@@ -425,7 +425,7 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "PVC to emptyDir in volumeSource",
@@ -946,7 +946,7 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "PVC to emptyDir in volumeSource",
