@@ -5,15 +5,16 @@ package infra
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -35,7 +36,7 @@ var (
 	t                        = framework.NewTestFramework("infra")
 	namespace                = pkg.GenerateNamespace("hello-helidon")
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
-	inClusterVZ              *v1alpha1.Verrazzano
+	inClusterVZ              *v1beta1.Verrazzano
 )
 
 var whenJaegerOperatorEnabledIt = t.WhenMeetsConditionFunc(jaeger.OperatorCondition, jaeger.IsJaegerEnabled)
@@ -43,7 +44,7 @@ var _ = t.AfterEach(func() {})
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
-	inClusterVZ, err = pkg.GetVerrazzano()
+	inClusterVZ, err = pkg.GetVerrazzanoV1beta1()
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
