@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -31,7 +31,7 @@ var (
 	isStoreGatewayEnabled bool
 	isCompactorEnabled    bool
 	isRulerEnabled        bool
-	inClusterVZ           *v1alpha1.Verrazzano
+	inClusterVZ           *v1beta1.Verrazzano
 )
 
 func getKubeConfigOrAbort() string {
@@ -50,7 +50,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		AbortSuite(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %v", err))
 	}
 
-	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
@@ -75,7 +75,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 
 // isThanosComponentEnabledInOverrides returns true if the specified Thanos component is enabled in the VZ CR overrides
-func isThanosComponentEnabledInOverrides(overrides []v1alpha1.Overrides, thanosCompName string) (bool, error) {
+func isThanosComponentEnabledInOverrides(overrides []v1beta1.Overrides, thanosCompName string) (bool, error) {
 	for _, override := range inClusterVZ.Spec.Components.Thanos.InstallOverrides.ValueOverrides {
 		if override.Values != nil {
 			jsonString, err := gabs.ParseJSON(override.Values.Raw)
