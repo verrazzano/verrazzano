@@ -52,6 +52,7 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 
 			}
 			addResourcesToKubeResources(virtualService, destinationRule, authzPolicy)
+			//kubeResources = append(kubeResources, virtualService..., destinationRule..., authzPolicy...)
 		}
 		if conversionComponent.Helidonworkload != nil || conversionComponent.Service != nil {
 			virtualService, destinationRule, authzPolicy, err := workloads.CreateIngressChildResourcesFromWorkload(cli, conversionComponent, gateway, allHostsForTrait)
@@ -66,13 +67,19 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 }
 func addResourcesToKubeResources(virtualService []*vsapi.VirtualService, destinationRule []*istioclient.DestinationRule, authzPolicy []*clisecurity.AuthorizationPolicy) {
 	for _, index := range virtualService {
-		kubeResources = append(kubeResources, index)
+		if(index != nil){
+			kubeResources = append(kubeResources, index)
+		}
 	}
 	for _, index := range destinationRule {
-		kubeResources = append(kubeResources, index)
+		if(index != nil){
+			kubeResources = append(kubeResources, index)
+		}
 	}
 	for _, index := range authzPolicy {
-		kubeResources = append(kubeResources, index)
+		if(index != nil){
+			kubeResources = append(kubeResources, index)
+		}
 	}
 }
 

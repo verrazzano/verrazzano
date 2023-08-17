@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-func ConfData() error {
+func ConfData(inputArgs types.ConversionInput) error {
 	//used to store app file data
 	var appData []map[string]interface{}
 
@@ -30,11 +30,10 @@ func ConfData() error {
 	var components []map[string]interface{}
 
 	//used to store non-oam file data
-
 	var otherResources []any
 
 	//iterate through user inputted directory
-	files, err := iterateDirectory(types.InputArgs.InputDirectory)
+	files, err := iterateDirectory(inputArgs.InputDirectory)
 	if err != nil {
 
 		return fmt.Errorf("error in iterating over directory %w", err)
@@ -76,7 +75,7 @@ func ConfData() error {
 		}
 	}
 	//Extract traits from app file
-	conversionComponents, err := traits.ExtractTrait(appData)
+	conversionComponents, err := traits.ExtractTrait(appData, inputArgs)
 	if err != nil {
 		return errors.New("failed extracting traits from app")
 	}
@@ -97,17 +96,23 @@ func ConfData() error {
 	}
 
 	//Convert OAM and non-OAM resources of []any to []unstructured to be printed
-	OAMResources := convertAnytoUnstructured(outputResources)
-	nonOAMResources := convertAnytoUnstructured(otherResources)
+	OAMResources, err := convertAnytoUnstructured(outputResources)
+	if err != nil {
+		return err
+	}
+	nonOAMResources, err := convertAnytoUnstructured(otherResources)
+	if err != nil {
+		return err
+	}
 
 	//Write the OAM K8s child resources to the file
-	err = writeKubeResources(types.InputArgs.OutputDirectory, OAMResources)
+	err = writeKubeResources(inputArgs.OutputDirectory, OAMResources)
 	if err != nil {
 		return err
 
 	}
 	//Write the non-OAM K8 child resources to the file
-	err = writeKubeResources(types.InputArgs.OutputDirectory, nonOAMResources)
+	err = writeKubeResources(inputArgs.OutputDirectory, nonOAMResources)
 	if err != nil {
 		return err
 
@@ -127,41 +132,23 @@ func writeKubeResources(outputDirectory string, outputResources []unstructured.U
 	return nil
 }
 
-func convertAnytoUnstructured(anyResources []any) []unstructured.Unstructured {
+func convertAnytoUnstructured(anyResources []any) ([]unstructured.Unstructured, error) {
 	var unstructuredResources []unstructured.Unstructured
 	for _, obj := range anyResources {
 		resource, err := ToUnstructured(obj)
 		if err != nil {
-			print("Null obj")
+			return nil, err
 		}
 		unstructuredResources = append(unstructuredResources, resource...)
 	}
-	return unstructuredResources
+	return unstructuredResources, nil
 }
 func writeToDirectory(outputDirectory string, index unstructured.Unstructured) error {
 	var fileName string
 	var filePath string
 	//check to find out what resource is being manipulated and printed
-	switch index.GetKind() {
-	case "Gateway":
-		fileName = "gateway.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
-	case "VirtualService":
-		fileName = "virtualservice.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
-	case "DestinationRule":
-		fileName = "destinationrule.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
-	case "AuthorizationPolicy":
-		fileName = "authorizationpolicy.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
-	case "ServiceMonitor":
-		fileName = "servicemonitor.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
-	default:
-		fileName = "nonOAM.yaml"
-		filePath = filepath.Join(outputDirectory, fileName)
-	}
+	fileName = strings.ToLower(index.GetKind())
+	filePath = filepath.Join(outputDirectory, fileName)
 
 	//print resources in respective files
 	writeToFile(filePath, index)
@@ -174,7 +161,7 @@ func ToUnstructured(o any) ([]unstructured.Unstructured, error) {
 	}
 	obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, j)
 	if err != nil {
-		return nil, err
+
 	}
 	if u, ok := obj.(*unstructured.Unstructured); ok {
 		return []unstructured.Unstructured{*u}, nil
@@ -190,6 +177,7 @@ func writeToFile(filePath string, object any) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	r, err := json.Marshal(object)
 	if err != nil {
 		return err
@@ -202,7 +190,6 @@ func writeToFile(filePath string, object any) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	return nil
 

@@ -108,18 +108,24 @@ func TestCreateResources(t *testing.T) {
 	// Assert that the returned kubeResources is not nil
 	assert.NotNil(t, kubeResources, "kubeResources is nil")
 
+	var virtService *vsapi.VirtualService
+	var gateWay map[string]interface{}
 	// Assert that the kubeResources fields are not empty or nil
 	for _, resource := range kubeResources {
 		vs, valid := resource.(*vsapi.VirtualService)
 		if valid {
-			assert.NotEmpty(t, vs, "VirtualServices is empty")
+			virtService = vs
 		}
 
 		gwMap, valid := resource.(map[string]interface{})
-		if valid {
-			assert.NotNil(t, gwMap["items"], "Gateway is nil")
+		gate := gwMap["items"]
+		assert.NotNil(t, gate, "Gate is nil")
+		if valid && assert.Equal(t, gwMap["Kind"], "Gateway"){
+			gateWay = gwMap
 		}
 	}
+	assert.NotNil(t, virtService, "Virtual Service is nil")
+	assert.NotNil(t, gateWay, "Gateway is nil")
 }
 
 func TestCreateChildResources(t *testing.T) {

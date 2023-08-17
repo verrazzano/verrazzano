@@ -13,6 +13,7 @@ type ConversionComponents struct {
 	AppName           string
 	ComponentName     string
 	AppNamespace      string
+	IstioEnabled      bool
 	IngressTrait      *vzapi.IngressTrait
 	MetricsTrait      *vzapi.MetricsTrait
 	Helidonworkload   *unstructured.Unstructured
@@ -21,9 +22,6 @@ type ConversionComponents struct {
 	Genericworkload   *unstructured.Unstructured
 	Service           *corev1.Service
 }
-
-var InputArgs ConversionInput
-
 type ConversionInput struct {
 	InputDirectory  string
 	OutputDirectory string

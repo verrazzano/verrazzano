@@ -27,7 +27,7 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 
 	// Creating a service monitor with name and namespace
 	serviceMonitor := promoperapi.ServiceMonitor{}
-	pmName, err := utils.CreateServiceMonitorName(trait, conversionComponent.AppName, conversionComponent.ComponentName, 0)
+	pmName, err := utils.CreateServiceMonitorName(trait, conversionComponent.AppName, conversionComponent.ComponentName, conversionComponent.AppNamespace, 0)
 	if err != nil {
 		return &serviceMonitor, err
 	}
@@ -67,7 +67,7 @@ func CreateServiceMonitor(conversionComponent *types.ConversionComponents) (*pro
 	}
 
 	//fetch if trait uses Istio
-	useHTTPS := types.InputArgs.IstioEnabled
+	useHTTPS := conversionComponent.IstioEnabled
 
 	//fetch if workload is WebLogic
 	wlsWorkload, err := operator.IsWLSWorkload(workload)

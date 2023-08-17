@@ -15,25 +15,25 @@ func main() {
 		print("Not enough arguments. Arrange CLI arguments like this: inputDirectory outputDirectory namespace istioEnabled")
 		return
 	}
-
+	input := types.ConversionInput{}
 	switch inp := len(os.Args); inp {
 	case 3:
-		types.InputArgs.InputDirectory = os.Args[1]
-		types.InputArgs.OutputDirectory = os.Args[2]
+		input.InputDirectory = os.Args[1]
+		input.OutputDirectory = os.Args[2]
 	case 4:
-		types.InputArgs.InputDirectory = os.Args[1]
-		types.InputArgs.OutputDirectory = os.Args[2]
-		types.InputArgs.Namespace = os.Args[3]
+		input.InputDirectory = os.Args[1]
+		input.OutputDirectory = os.Args[2]
+		input.Namespace = os.Args[3]
 	case 5:
-		types.InputArgs.InputDirectory = os.Args[1]
-		types.InputArgs.OutputDirectory = os.Args[2]
-		types.InputArgs.Namespace = os.Args[3]
-		types.InputArgs.IstioEnabled, _ = strconv.ParseBool(os.Args[4])
+		input.InputDirectory = os.Args[1]
+		input.OutputDirectory = os.Args[2]
+		input.Namespace = os.Args[3]
+		input.IstioEnabled, _ = strconv.ParseBool(os.Args[4])
 	default:
 		print("Incorrect amount of arguments")
 	}
 	//Configure data from app and comp file to extract traits and workloads
-	err := app.ConfData()
+	err := app.ConfData(input)
 	if err != nil {
 		print(err)
 		return

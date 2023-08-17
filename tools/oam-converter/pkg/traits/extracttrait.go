@@ -15,7 +15,7 @@ import (
 )
 
 // ExtractTrait - Extract traits from the app map
-func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponents, error) {
+func ExtractTrait(appMaps []map[string]interface{}, inputArgs types.ConversionInput) ([]*types.ConversionComponents, error) {
 	conversionComponents := []*types.ConversionComponents{}
 	for _, appMap := range appMaps {
 		appMetadata, found, err := unstructured.NestedMap(appMap, "metadata")
@@ -30,10 +30,10 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 
 		appNamespace, found, err := unstructured.NestedString(appMetadata, "namespace")
 		if !found || err != nil {
-			if types.InputArgs.Namespace == "" {
+			if inputArgs.Namespace == "" {
 				return nil, errors.New("namespace key doesn't exist, please enter in the YAML or CLI args")
 			}
-			appNamespace = types.InputArgs.Namespace
+			appNamespace = inputArgs.Namespace
 		}
 
 		appSpec, found, err := unstructured.NestedMap(appMap, "spec")
@@ -67,7 +67,6 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 						traitJSON, err := json.Marshal(traitSpec)
 
 						if err != nil {
-							fmt.Printf("Failed to marshal trait: %v", err)
 							return nil, err
 
 						}
@@ -75,7 +74,6 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 						err = json.Unmarshal(traitJSON, ingressTrait)
 
 						if err != nil {
-							fmt.Printf("Failed to unmarshal trait: %v", err)
 							return nil, err
 						}
 
@@ -84,6 +82,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 							AppName:       appName,
 							ComponentName: componentMap["componentName"].(string),
 							IngressTrait:  ingressTrait,
+							IstioEnabled: inputArgs.IstioEnabled,
 						})
 					}
 					if traitKind == consts.MetricsTrait {
@@ -91,14 +90,12 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 						traitJSON, err := json.Marshal(traitSpec)
 
 						if err != nil {
-							fmt.Printf("Failed to marshal trait: %v", err)
 							return nil, err
 						}
 
 						err = json.Unmarshal(traitJSON, metricsTrait)
 
 						if err != nil {
-							fmt.Printf("Failed to unmarshal trait: %v", err)
 							return nil, err
 						}
 
@@ -107,6 +104,7 @@ func ExtractTrait(appMaps []map[string]interface{}) ([]*types.ConversionComponen
 							AppName:       appName,
 							ComponentName: componentMap["componentName"].(string),
 							MetricsTrait:  metricsTrait,
+							IstioEnabled: inputArgs.IstioEnabled,
 						})
 					}
 				}

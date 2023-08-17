@@ -15,8 +15,9 @@ import (
 )
 
 func TestCreateServiceMonitor(t *testing.T) {
+	input := types.ConversionInput{}
 	port := 7001
-	types.InputArgs.IstioEnabled = false
+	input.IstioEnabled = false
 	scrape := "verrazzano-system/vmi-system-prometheus-0"
 	tests := []struct {
 		name         string
@@ -116,13 +117,10 @@ func TestCreateServiceMonitor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			serviceMonitor, err := CreateServiceMonitor(&tt.input)
-			assert.Nil(t, err, "Unexpected error returned from CreateServiceMonitor")
+			assert.NoError(t, err, "Unexpected error returned from CreateServiceMonitor")
 			assert.Equal(t, 1, len(serviceMonitor.Spec.Endpoints))
-			if len(serviceMonitor.Spec.Endpoints) == 0 {
-				return
-			}
 			assert.Equal(t, 10, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
-			if types.InputArgs.IstioEnabled == false {
+			if input.IstioEnabled == false {
 				assert.Equal(t, "http", serviceMonitor.Spec.Endpoints[0].Scheme)
 			} else {
 				assert.Equal(t, "https", serviceMonitor.Spec.Endpoints[0].Scheme)
