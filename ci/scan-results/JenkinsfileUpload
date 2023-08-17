@@ -58,7 +58,7 @@ pipeline {
                 script {
                     sh """
                     echo "Uploading ${upload_filename} to ${upload_url}"
-                    status="$(curl -w "%{http_code}\\n" curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url})"
+                    status=\$(curl -w "%{http_code}\\n" curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url})
                     echo "Status ${status}"
                     if [[ $status -lt 400 ]];then
                       echo "File uploaded"
