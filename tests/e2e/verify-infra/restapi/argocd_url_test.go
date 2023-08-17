@@ -8,7 +8,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
@@ -18,7 +18,7 @@ var _ = t.Describe("Argo CD", Label("f:infra-lcm",
 
 	t.BeforeEach(func() {
 		argoCD := vz.Status.Components["argocd"]
-		if argoCD == nil || argoCD.State == v1alpha1.CompStateDisabled {
+		if argoCD == nil || argoCD.State == v1beta1.CompStateDisabled {
 			Skip("Argo CD disabled, skipping test")
 		}
 
