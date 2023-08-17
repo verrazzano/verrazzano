@@ -214,7 +214,6 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			assert.NotNil(t, cmd)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-			cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -234,18 +233,25 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			sa := corev1.ServiceAccount{}
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &sa)
 			assert.NoError(t, err)
+			expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"v1\",\"kind\":\"ServiceAccount\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, sa.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 			ns := corev1.Namespace{}
 			err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-install"}, &ns)
 			assert.NoError(t, err)
+			expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"labels\":{\"verrazzano.io/namespace\":\"verrazzano-install\"},\"name\":\"verrazzano-install\"}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, ns.ObjectMeta, expectedLastAppliedConfigAnnotation)
+
 			svc := corev1.Service{}
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, &svc)
 			assert.NoError(t, err)
+			expectedLastAppliedConfigAnnotation = "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"http-metric\",\"port\":9100,\"protocol\":\"TCP\",\"targetPort\":9100}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, svc.ObjectMeta, expectedLastAppliedConfigAnnotation)
 
 			// Verify the version got updated
 			err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 			assert.NoError(t, err)
-			assert.Equal(t, "v1.4.0", vz.Spec.Version)
+			assert.Equal(t, "v1.5.2", vz.Spec.Version)
 		})
 	}
 }

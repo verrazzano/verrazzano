@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -108,6 +109,9 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
+
+	// Verifies that the CLI args are not set at the creation of a command
+	cmdhelpers.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }
@@ -234,6 +238,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		var errorArray = ValidateCRFunc(cmd, obj, vzHelper)
 		if len(errorArray) != 0 {
 			return fmt.Errorf("was unable to validate the given CR, the following error(s) occurred: \"%v\"", errorArray)
+		}
+
+		err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
+		if err != nil {
+			return err
 		}
 
 		// Create the Verrazzano install resource, if need be.

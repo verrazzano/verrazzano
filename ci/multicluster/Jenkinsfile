@@ -10,7 +10,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
-def agentLabel = "phxlarge_1_5"
+def agentLabel = "1.5-large"
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -47,7 +47,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.21.5", "v1.22.5", "v1.23.4", "v1.24.1" ])
+                choices: [ "v1.24.1" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value

@@ -6,7 +6,6 @@ package bugreport
 import (
 	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/vzchecks"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -86,10 +85,6 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
-	}
-
-	for _, e := range vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Spec.Profile)) {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: "+e.Error()+"\n")
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces

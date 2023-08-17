@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	admissionv1 "k8s.io/api/admission/v1"
 	v1 "k8s.io/api/core/v1"
@@ -112,7 +113,7 @@ func TestValidateInstallOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: common.Int32Ptr(8), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -126,7 +127,7 @@ func TestValidateInstallOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: 3, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: common.Int32Ptr(3), Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -140,7 +141,7 @@ func TestValidateInstallOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: common.Int32Ptr(2), Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: common.Int32Ptr(0), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -184,7 +185,7 @@ func TestValidateUpdateOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(5), Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: common.Int32Ptr(7), Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -194,7 +195,7 @@ func TestValidateUpdateOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: common.Int32Ptr(2), Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: common.Int32Ptr(8), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -208,7 +209,7 @@ func TestValidateUpdateOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(5), Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: common.Int32Ptr(7), Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -218,7 +219,7 @@ func TestValidateUpdateOS(t *testing.T) {
 					Components: v1alpha1.ComponentSpec{
 						Elasticsearch: &v1alpha1.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
+							Nodes:   []v1alpha1.OpenSearchNode{{Name: "node1", Replicas: common.Int32Ptr(2), Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: common.Int32Ptr(2), Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: common.Int32Ptr(1), Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},

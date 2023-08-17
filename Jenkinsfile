@@ -1,15 +1,18 @@
 // Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+import groovy.transform.Field
+
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
+@Field
 def SUSPECT_LIST = ""
 def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = "phxlarge_1_5"
+def agentLabel = "1.5-large"
 
 pipeline {
     options {
@@ -80,6 +83,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RELEASE_OWNERS = credentials('release-version-owners')
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -209,6 +213,26 @@ pipeline {
                 }
             }
         }
+       stage('Verrazzano development version check') {
+                    when { not { buildingTag() } }
+                    steps {
+                         script {
+                            VERRAZZANO_DEV_VERSION_CHECK = sh (script: "git ls-remote --tags origin | grep -F ${VERRAZZANO_DEV_VERSION}", returnStatus: true )
+                            if (VERRAZZANO_DEV_VERSION_CHECK == 0) {
+                                if (env.JOB_NAME ==~ "verrazzano/release-*") {
+                                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nRelease Owners:\n ${RELEASE_OWNERS}\n")
+                                }
+                            }
+                         }
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
 
         stage('Parallel Build, Test, and Compliance') {
             parallel {
@@ -263,6 +287,8 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     make precommit
                     make unit-test-coverage-ratcheting
+                    echo "Checking versions..."
+                    release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
                 """
                     }
                     post {
@@ -295,9 +321,9 @@ pipeline {
                         }
                     }
                 }
-            }
 
         }
+    }
 
         stage('Scan Image') {
             when {
@@ -518,26 +544,37 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
         failure {
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
-                rm archive.zip
-            """
             script {
-                if (isPagerDutyEnabled() && (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*")) {
-                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                }
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.BRANCH_NAME ==~ "mark/*") {
-                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
-                }
+                failedOrAborted()
+            }
+        }
+        aborted {
+            script {
+                failedOrAborted()
             }
         }
         cleanup {
             deleteDir()
+        }
+    }
+}
+
+def failedOrAborted() {
+    sh """
+        curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+    """
+    archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+    sh """
+        curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+        rm archive.zip
+    """
+    script {
+        if (isPagerDutyEnabled() && (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*")) {
+            pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+        }
+        if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.BRANCH_NAME ==~ "mark/*") {
+            slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
         }
     }
 }

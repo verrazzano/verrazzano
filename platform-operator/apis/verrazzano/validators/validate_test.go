@@ -1,12 +1,17 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package validators
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -210,7 +215,7 @@ func TestValidateNewVersionforInvalidVersions(t *testing.T) {
 // WHEN the respective version string are not in accordance with the rules
 // THEN an error is returned
 func TestValidateNewVersion(t *testing.T) {
-	//can add the case to test each of them separately, when they are invalid
+	// can add the case to test each of them separately, when they are invalid
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
@@ -510,65 +515,65 @@ func Test_cleanTempFiles(t *testing.T) {
 	}
 }
 
-// TestIsKubernetesVersionSupported tests IsKubernetesVersionSupported()
+// TestValidateKubernetesVersionSupported tests ValidateKubernetesVersionSupported()
 // GIVEN a request for the validating that the Kubernetes version of cluster is supported by the operator
 // WHEN the Kubernetes version and Supported versions can be determined without error
 // AND the Kubernetes version is either equal to one of the supported versions or is a patch version of a supported version
-// THEN only true is returned
-func TestIsKubernetesVersionSupported(t *testing.T) {
+// THEN no error is returned, otherwise an error is returned
+func TestValidateKubernetesVersionSupported(t *testing.T) {
 	tests := []struct {
 		name                               string
 		getSupportedKubernetesVersionsFunc func() ([]string, error)
 		getKubernetesVersionFunc           func() (string, error)
-		result                             bool
+		expectSuccess                      bool
 	}{
 		{
 			name:                               "testFailGettingSupportedVersions",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return nil, fmt.Errorf("errored out") },
 			getKubernetesVersionFunc:           func() (string, error) { return "v0.1.5", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testFailGettingKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v0.1.0", "v0.2.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "", fmt.Errorf("errored out") },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testPassNoSupportedVersionsInBom",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return nil, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "", fmt.Errorf("errored out") },
-			result:                             true,
+			expectSuccess:                      true,
 		},
 		{
 			name:                               "testFailInvalidSupportedVersionsInBom",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.0", "vx.y"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.3.9", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testFailInvalidKubernetesVersions",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.0", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "vx.y", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 		{
 			name:                               "testPassExactSupportedKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.2.5", nil },
-			result:                             true,
+			expectSuccess:                      true,
 		},
 		{
 			name:                               "testPassPatchSupportedKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.3.8", nil },
-			result:                             true,
+			expectSuccess:                      true,
 		},
 		{
 			name:                               "testPassNotSupportedKubernetesVersion",
 			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
 			getKubernetesVersionFunc:           func() (string, error) { return "v1.4.8", nil },
-			result:                             false,
+			expectSuccess:                      false,
 		},
 	}
 	for _, tt := range tests {
@@ -582,7 +587,74 @@ func TestIsKubernetesVersionSupported(t *testing.T) {
 				getKubernetesClusterVersion = getKubernetesVersionOriginal
 
 			}()
-			assert.Equal(t, tt.result, IsKubernetesVersionSupported())
+			if tt.expectSuccess {
+				assert.NoError(t, ValidateKubernetesVersionSupported())
+			} else {
+				assert.Error(t, ValidateKubernetesVersionSupported())
+			}
 		})
 	}
+}
+
+// TestVerifyPlatformOperatorSingletonNoFailedPods Tests the VerifyPlatformOperatorSingleton check
+// GIVEN a VerifyPlatformOperatorSingleton call
+// WHEN there are FAILED pods
+// THEN an error is returned
+func TestVerifyPlatformOperatorSingletonFailedPods(t *testing.T) {
+	tests := []struct {
+		name       string
+		shouldPass bool
+		failedPods int
+		podList    []string
+	}{
+		{name: "Single VPO instance", shouldPass: true, podList: []string{"appName"}},
+		{name: "Single VPO instance unhealthy", shouldPass: true, failedPods: 1, podList: []string{"appName"}},
+		{name: "Multiple VPO instances all healthy", shouldPass: false, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances unhealthy", shouldPass: false, failedPods: 1, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 healthy", shouldPass: true, failedPods: 2, podList: []string{"foo", "goo", "app"}},
+		{name: "Multiple VPO instances 1 unhealthy", shouldPass: true, failedPods: 1, podList: []string{"foo", "goo"}},
+		{name: "Multiple VPO instances all unhealthy", shouldPass: true, failedPods: 4, podList: []string{"foo", "goo", "app", "app1"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labels := map[string]string{
+				"app": "verrazzano-platform-operator",
+			}
+
+			runtimeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&corev1.PodList{
+				TypeMeta: metav1.TypeMeta{},
+				Items:    createPodList(tt.podList, labels, tt.failedPods)},
+			).Build()
+
+			if tt.shouldPass {
+				assert.NoError(t, VerifyPlatformOperatorSingleton(runtimeClient))
+			} else if !tt.shouldPass {
+				assert.Error(t, VerifyPlatformOperatorSingleton(runtimeClient))
+			}
+		})
+	}
+}
+
+func createPodList(listOfPods []string, labels map[string]string, failedPods int) []corev1.Pod {
+	var list []corev1.Pod
+	for _, podName := range listOfPods {
+		pod := corev1.Pod{}
+		pod.Name = podName
+		pod.Namespace = constants.VerrazzanoInstallNamespace
+		pod.Labels = labels
+		if failedPods != 0 {
+			pod.Status.Phase = "Failed"
+			failedPods--
+		}
+		list = append(list, pod)
+	}
+	return list
+}
+
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	corev1.AddToScheme(scheme)
+	clientgoscheme.AddToScheme(scheme)
+
+	return scheme
 }

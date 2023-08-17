@@ -200,6 +200,10 @@ func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, err
 	return goClient.CoreV1(), nil
 }
 
+func ResetCoreV1Client() {
+	GetCoreV1Func = GetCoreV1Client
+}
+
 // GetAppsV1Func is the function the AppsV1Interface
 var GetAppsV1Func = GetAppsV1Client
 

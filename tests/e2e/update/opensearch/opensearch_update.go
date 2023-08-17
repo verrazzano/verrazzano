@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
 
 import (
 	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -64,7 +65,7 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.MasterRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole},
 				Resources: newResources(u.NodeMemory),
 				Storage:   newNodeStorage(u.NodeStorage),
@@ -81,7 +82,7 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.IngestRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.IngestRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
@@ -98,7 +99,7 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.DataRole),
-				Replicas:  u.NodeReplicas,
+				Replicas:  &u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
@@ -127,7 +128,7 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.MasterRole),
-				Replicas:  3,
+				Replicas:  common.Int32Ptr(3),
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
 				Storage:   newNodeStorage("2Gi"),
 				Resources: newResources("512Mi"),

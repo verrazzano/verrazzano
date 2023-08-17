@@ -1,0 +1,41 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+spec:
+  components:
+    opensearch:
+      enabled: true
+      nodes:
+        # Replicas should be 3 (as in the base yaml) when not specified in actualCR
+        # For default nodePool
+        - name: es-master
+          javaOpts: "-Xmx6g -Xms6g"
+          replicas: 3
+          roles:
+            - master
+          storage:
+            size: 50Gi
+        # Zero replicas should be honoured for default nodePools
+        - name: es-data
+          replicas: 0
+          roles:
+            - data
+          storage:
+            size: 50Gi
+        # Modifying replicas count for default nodePool
+        - name: es-ingest
+          replicas: 2
+          roles:
+            - ingest
+        # Custom nodePools should be present
+        - name: my-opensearch-data
+          replicas: 4
+          storage:
+            size: 100Gi
+          roles:
+            - data
+        # Set replicas to 0 if not specified for custom nodePool
+        - name: my-opensearch-ingest
+          replicas: 0
+          roles:
+            - ingest

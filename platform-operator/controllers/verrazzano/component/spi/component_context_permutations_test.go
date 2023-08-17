@@ -156,7 +156,7 @@ var devElasticSearchOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -262,7 +262,7 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -274,7 +274,7 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-data",
-						Replicas: 6,
+						Replicas: Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -286,7 +286,7 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-ingest",
-						Replicas: 6,
+						Replicas: Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -311,7 +311,7 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 3,
+						Replicas: Int32Ptr(3),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("3G"),
@@ -323,7 +323,7 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-data",
-						Replicas: 6,
+						Replicas: Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -335,7 +335,7 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 					},
 					{
 						Name:     "es-ingest",
-						Replicas: 6,
+						Replicas: Int32Ptr(6),
 						Resources: &corev1.ResourceRequirements{
 							Requests: map[corev1.ResourceName]resource.Quantity{
 								corev1.ResourceMemory: resource.MustParse("32G"),
@@ -433,19 +433,19 @@ var prodNoStorageOSOverrides = v1alpha1.Verrazzano{
 				Nodes: []v1alpha1.OpenSearchNode{
 					{
 						Name:     "es-master",
-						Replicas: 0,
+						Replicas: Int32Ptr(0),
 					},
 					{
 						Name:     "es-data",
-						Replicas: 0,
+						Replicas: Int32Ptr(0),
 					},
 					{
 						Name:     "es-ingest",
-						Replicas: 0,
+						Replicas: Int32Ptr(0),
 					},
 					{
 						Name:     "custom",
-						Replicas: 3,
+						Replicas: Int32Ptr(3),
 						Roles: []vmov1.NodeRole{
 							vmov1.DataRole,
 							vmov1.IngestRole,

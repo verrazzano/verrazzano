@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -26,14 +27,14 @@ import (
 )
 
 var (
-	loginURLParts = strings.Split(loginPath, "?")
-	loginURIPath  = loginURLParts[0]
-	testToken     = "test"
+	testToken = "test"
+	userID    = "usertest"
 )
 
 // TestCreateRancherRequest tests the creation of a Rancher request sender to make sure that
 // HTTP requests are properly constructed and sent to Rancher
 func TestCreateRancherRequest(t *testing.T) {
+	DeleteStoredTokens()
 	cli := createTestObjects()
 	log := vzlog.DefaultLogger()
 
@@ -122,6 +123,8 @@ func createTestObjects() client.WithWatch {
 }
 
 func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody string) *mocks.MockRequestSender {
+	loginURLParts := strings.Split(loginPath, "?")
+	loginURIPath := loginURLParts[0]
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath+testToken)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -167,4 +170,61 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 			return resp, nil
 		}).Times(2)
 	return httpMock
+}
+func TestGetTokenWithFilter(t *testing.T) {
+	clusterIDForTest := "clusteridfortest"
+	DeleteStoredTokens()
+	cli := createTestObjects()
+	log := vzlog.DefaultLogger()
+	loginURLParts := strings.Split(loginPath, "?")
+	loginURIPath := loginURLParts[0]
+	testBodyForTokens, _ := os.Open("testdata/bodyfortokentest.json")
+	arrayBytes, _ := io.ReadAll(testBodyForTokens)
+	savedRancherHTTPClient := RancherHTTPClient
+	defer func() {
+		RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := DefaultRetry
+	defer func() {
+		DefaultRetry = savedRetry
+	}()
+
+	DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		}).Times(1)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(tokensPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(arrayBytes)))
+			resp = &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
+		}).Times(1)
+	RancherHTTPClient = httpMock
+	rc, err := NewAdminRancherConfig(cli, log)
+	assert.NoError(t, err)
+	createdTimeAsString, _, err := GetTokenWithFilter(rc, log, userID, clusterIDForTest)
+	assert.NoError(t, err)
+	assert.Equal(t, createdTimeAsString, "2023-07-13T19:32:38Z")
 }

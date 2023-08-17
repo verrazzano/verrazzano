@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -43,7 +43,7 @@ func IsOSReady(ctrlRuntimeClient client.Client, cr *vzv1alpha1.Verrazzano) bool 
 
 // IsOSNodeReady returns true if the OpenSearch tier is ready
 func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix string) bool {
-	if node.Replicas < 1 {
+	if node.Replicas == nil || *node.Replicas < 1 {
 		return true
 	}
 	nodeControllerName := getNodeControllerName(node)
@@ -53,7 +53,7 @@ func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix 
 		return ready.StatefulSetsAreReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: constants.VerrazzanoSystemNamespace,
-		}}, node.Replicas, prefix)
+		}}, *node.Replicas, prefix)
 	}
 
 	// Data nodes have N = node.Replicas number of deployment objects.
@@ -65,7 +65,7 @@ func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix 
 	return ready.DeploymentsAreReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
 		Name:      nodeControllerName,
 		Namespace: constants.VerrazzanoSystemNamespace,
-	}}, node.Replicas, prefix)
+	}}, *node.Replicas, prefix)
 }
 
 func getNodeControllerName(node vzv1alpha1.OpenSearchNode) string {
@@ -83,8 +83,11 @@ func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 
 func dataDeploymentObjectKeys(node vzv1alpha1.OpenSearchNode, nodeControllerName string) []types.NamespacedName {
 	var dataDeployments []types.NamespacedName
+	if node.Replicas == nil {
+		return dataDeployments
+	}
 	var i int32
-	for i = 0; i < node.Replicas; i++ {
+	for i = 0; i < *node.Replicas; i++ {
 		dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
 		dataDeployments = append(dataDeployments, types.NamespacedName{
 			Name:      dataDeploymentName,

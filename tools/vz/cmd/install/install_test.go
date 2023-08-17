@@ -54,6 +54,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
+
+	expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano\",\"namespace\":\"default\"}}\n"
+	testhelpers.VerifyLastAppliedConfigAnnotation(t, vz.ObjectMeta, expectedLastAppliedConfigAnnotation)
 }
 
 // TestInstallCmdDefaultTimeout
@@ -697,4 +700,28 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
+}
+
+// TestInstallFromFilename tests installing from a filename.
+//
+// GIVEN a filename after install command with filename flags set
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command fails and should catch the missing filename flag or the missing file
+func TestInstallFromFilename(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
+
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	// Send stdout stderr to a byte bufferF
+	rc.SetClient(c)
+
+	os.Args = append(os.Args, "../../test/testdata/v1beta1.yaml")
+	cmd.Execute()
+	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
 }

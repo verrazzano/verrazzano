@@ -57,20 +57,19 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.0.10
+export MYSQL_CHART_VERSION=2.0.8
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
 helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
-mv mysql-innodbcluster mysql
 ```
 
 ## MySQL Operator
 
-The `mysql-operator` folder was created by running the following commands:
+The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.0.10
+export MYSQL_OPERATOR_CHART_VERSION=2.0.8
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
@@ -107,7 +106,7 @@ The `wls-operator` folder was created by running the following commands:
 
 ```shell
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
-export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.6
+export WEBLOGIC_OPERATOR_CHART_VERSION=4.0.7
 rm -rf weblogic-operator
 helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update

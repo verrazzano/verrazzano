@@ -69,6 +69,8 @@ type OciAuth struct {
 var getKubernetesClusterVersion = getKubernetesVersion
 var getSupportedVersions = getSupportedKubernetesVersions
 
+var ValidateKubernetesVersionSupported = validateKubernetesVersionSupportedInCluster
+
 func CleanTempFiles(log *zap.SugaredLogger) error {
 	if err := vzos.RemoveTempFiles(log, validateTempFilePattern); err != nil {
 		return fmt.Errorf("Error cleaning temp files: %s", err.Error())
@@ -303,7 +305,7 @@ func ValidateUpgradeRequest(newSpecVerString string, currStatusVerString string,
 		return err
 	}
 
-	//// Make sure the requested version matches what's in the BOM and is not < the current spec version
+	// // Make sure the requested version matches what's in the BOM and is not < the current spec version
 	if len(newSpecVerString) > 0 {
 		return ValidateNewVersion(currStatusVerString, currSpecVerString, newSpecVerString, bomVersion)
 	}
@@ -357,30 +359,29 @@ func GetClient(scheme *runtime.Scheme) (client.Client, error) {
 	return client.New(config, client.Options{Scheme: scheme})
 }
 
-// IsKubernetesVersionSupported verifies if Kubernetes version of cluster is supported
-func IsKubernetesVersionSupported() bool {
+// validateKubernetesVersionSupportedInCluster verifies if Kubernetes version of cluster is supported
+func validateKubernetesVersionSupportedInCluster() error {
 	log := zap.S().With("validate", "kubernetes.version")
 	supportedKubernetesVersions, err := getSupportedVersions()
 	if err != nil {
 		log.Error(err)
-		return false
+		return err
 	}
 
 	if len(supportedKubernetesVersions) == 0 {
 		log.Info("supported kubernetes versions not specified in the bom, assuming supports all versions")
-		return true
+		return nil
 	}
 
 	version, err := getKubernetesClusterVersion()
 	if err != nil {
 		log.Error(err)
-		return false
+		return err
 	}
 
 	kubernetesVersion, err := semver.NewSemVersion(version)
 	if err != nil {
-		log.Errorf("invalid kubernetes version %s, error %v", version, err.Error())
-		return false
+		return fmt.Errorf("invalid kubernetes version %s, error %v", version, err.Error())
 	}
 
 	for _, supportedVersion := range supportedKubernetesVersions {
@@ -391,12 +392,11 @@ func IsKubernetesVersionSupported() bool {
 		}
 
 		if kubernetesVersion.IsEqualToOrPatchVersionOf(version) {
-			return true
+			return nil
 		}
 	}
 
-	log.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedKubernetesVersions)
-	return false
+	return fmt.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedKubernetesVersions)
 }
 
 // getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
@@ -427,4 +427,30 @@ func getSupportedKubernetesVersions() ([]string, error) {
 	}
 
 	return bom.GetSupportedKubernetesVersion(), nil
+}
+
+// VerifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
+// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
+// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
+// multiple instances, if that makes sense.
+func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
+	var podList corev1.PodList
+	err := runtimeClient.List(context.TODO(), &podList,
+		client.InNamespace(constants.VerrazzanoInstallNamespace),
+		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	if err != nil {
+		return err
+	}
+	if len(podList.Items) > 1 {
+		healthyPod := 0
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != "Failed" {
+				healthyPod++
+			}
+		}
+		if healthyPod > 1 {
+			return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+		}
+	}
+	return nil
 }
