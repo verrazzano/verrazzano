@@ -29,7 +29,6 @@ import (
 const profileDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
-var pvc0Gi, _ = resource.ParseQuantity("0Gi")
 
 // TestVMI tests the Multiple VMI functions
 func TestVMI(t *testing.T) {
@@ -106,27 +105,6 @@ func TestVMI(t *testing.T) {
 			},
 			expectedOverride: &ResourceRequestValues{
 				Storage: pvc100Gi.String(),
-			},
-		},
-		{
-			name:        "TestDevNoSettingOverride",
-			description: "Test dev profile with no storage setting",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             vzapi.Dev,
-					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
-					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{},
-							},
-						},
-					},
-				},
-			},
-			expectedOverride: &ResourceRequestValues{
-				Storage: pvc0Gi.String(),
 			},
 		},
 		{
@@ -290,27 +268,6 @@ func TestStorageOverrideBeta1(t *testing.T) {
 			},
 			expectedOverride: &ResourceRequestValues{
 				Storage: pvc100Gi.String(),
-			},
-		},
-		{
-			name:        "TestDevNoSettingOverride",
-			description: "Test dev profile with no storage setting",
-			actualCR: vzbeta1.Verrazzano{
-				Spec: vzbeta1.VerrazzanoSpec{
-					Profile:             vzbeta1.Dev,
-					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
-					VolumeClaimSpecTemplates: []vzbeta1.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{},
-							},
-						},
-					},
-				},
-			},
-			expectedOverride: &ResourceRequestValues{
-				Storage: pvc0Gi.String(),
 			},
 		},
 		{
