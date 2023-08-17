@@ -27,7 +27,7 @@ import (
 	mcClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	yv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -514,7 +514,7 @@ func (c *Cluster) GetRegistration(name string) (*corev1.Secret, error) {
 func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 	if waitForReady {
 		gomega.Eventually(func() error {
-			cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)
+			cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(c.KubeConfigPath)
 			if err != nil {
 				return err
 			}
@@ -525,7 +525,7 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 		}, mediumWait, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 	}
 	// Get the CR
-	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)
+	cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(c.KubeConfigPath)
 	if err != nil {
 		ginkgo.Fail(err.Error())
 	}
