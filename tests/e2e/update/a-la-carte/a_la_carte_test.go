@@ -5,14 +5,15 @@ package alacarte
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
@@ -63,7 +64,7 @@ type clusterManagementStackModifier struct {
 type noneModifier struct {
 }
 
-func (m prometheusEdgeStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (m prometheusEdgeStackModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{Enabled: &trueVal}
 	cr.Spec.Components.Prometheus = &vzapi.PrometheusComponent{Enabled: &trueVal}
 	cr.Spec.Components.PrometheusNodeExporter = &vzapi.PrometheusNodeExporterComponent{Enabled: &trueVal}
@@ -72,7 +73,7 @@ func (m prometheusEdgeStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.KubeStateMetrics = &vzapi.KubeStateMetricsComponent{Enabled: &trueVal}
 }
 
-func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (m appStackModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.PrometheusNodeExporter = &vzapi.PrometheusNodeExporterComponent{Enabled: &falseVal}
 	cr.Spec.Components.PrometheusAdapter = &vzapi.PrometheusAdapterComponent{Enabled: &falseVal}
 	cr.Spec.Components.PrometheusPushgateway = &vzapi.PrometheusPushgatewayComponent{Enabled: &falseVal}
@@ -83,11 +84,11 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{Enabled: &trueVal}
 	cr.Spec.Components.Fluentd = &vzapi.FluentdComponent{Enabled: &trueVal}
 	cr.Spec.Components.Grafana = &vzapi.GrafanaComponent{Enabled: &trueVal}
-	cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{Enabled: &trueVal}
+	cr.Spec.Components.IngressNGINX = &vzapi.IngressNginxComponent{Enabled: &trueVal}
 	cr.Spec.Components.Keycloak = &vzapi.KeycloakComponent{Enabled: &trueVal}
 	cr.Spec.Components.MySQLOperator = &vzapi.MySQLOperatorComponent{Enabled: &trueVal}
-	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{Enabled: &trueVal}
-	cr.Spec.Components.Kibana = &vzapi.KibanaComponent{Enabled: &trueVal}
+	cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{Enabled: &trueVal}
+	cr.Spec.Components.OpenSearchDashboards = &vzapi.OpenSearchDashboardsComponent{Enabled: &trueVal}
 	cr.Spec.Components.OAM = &vzapi.OAMComponent{Enabled: &trueVal}
 	cr.Spec.Components.Verrazzano = &vzapi.VerrazzanoComponent{Enabled: &trueVal}
 	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{Enabled: &trueVal}
@@ -132,12 +133,12 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 }
 
-func (m istioAppStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (m istioAppStackModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio = &vzapi.IstioComponent{Enabled: &trueVal}
 	cr.Spec.Components.Kiali = &vzapi.KialiComponent{Enabled: &trueVal}
 }
 
-func (m clusterManagementStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (m clusterManagementStackModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.ArgoCD = &vzapi.ArgoCDComponent{Enabled: &trueVal}
 	cr.Spec.Components.CoherenceOperator = &vzapi.CoherenceOperatorComponent{Enabled: &trueVal}
 	cr.Spec.Components.ClusterOperator = &vzapi.ClusterOperatorComponent{Enabled: &trueVal}
@@ -148,7 +149,7 @@ func (m clusterManagementStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.WebLogicOperator = &vzapi.WebLogicOperatorComponent{Enabled: &trueVal}
 }
 
-func (m noneModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (m noneModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{Enabled: &falseVal}
 	cr.Spec.Components.Prometheus = &vzapi.PrometheusComponent{Enabled: &falseVal}
 }
@@ -169,7 +170,7 @@ var _ = t.Describe("Updating a la carte configuration", func() {
 	})
 })
 
-func getModifer(updateType string) update.CRModifier {
+func getModifer(updateType string) update.CRModifierV1beta1 {
 	switch updateType {
 	case promEdgeStack:
 		return prometheusEdgeStackModifier{}

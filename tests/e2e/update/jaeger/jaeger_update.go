@@ -6,7 +6,7 @@ package jaeger
 import (
 	"time"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -25,11 +25,11 @@ type JaegerOperatorCleanupModifier struct {
 type JaegerOperatorEnabledModifier struct {
 }
 
-func (u JaegerOperatorCleanupModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u JaegerOperatorCleanupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{}
 }
 
-func (u JaegerOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u JaegerOperatorEnabledModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{
 		Enabled: &trueValue,
 	}

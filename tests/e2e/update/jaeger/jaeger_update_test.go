@@ -122,7 +122,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	whenJaegerOperatorEnabledIt("disabling previously enabled Jaeger operator should be disallowed", func() {
 		m := JaegerOperatorCleanupModifier{}
 		Eventually(func() bool {
-			err := update.UpdateCR(m)
+			err := update.UpdateCRV1beta1(m)
 			foundExpectedErr := err != nil && strings.Contains(err.Error(), disableErrorMsg)
 			return foundExpectedErr
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())

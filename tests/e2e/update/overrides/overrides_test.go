@@ -5,13 +5,14 @@ package overrides
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strings"
 	"time"
 
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -55,7 +56,7 @@ type PrometheusOperatorValuesModifier struct {
 type PrometheusOperatorDefaultModifier struct {
 }
 
-func (d PrometheusOperatorDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (d PrometheusOperatorDefaultModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.PrometheusOperator != nil {
 		if cr.Spec.Components.PrometheusOperator.ValueOverrides != nil {
 			cr.Spec.Components.PrometheusOperator.ValueOverrides = nil
@@ -63,7 +64,7 @@ func (d PrometheusOperatorDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 }
 
-func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (o PrometheusOperatorOverridesModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.PrometheusOperator == nil {
 		cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{}
 	}
@@ -98,7 +99,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
 }
 
-func (o PrometheusOperatorValuesModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (o PrometheusOperatorValuesModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	var trueVal = true
 	overrides := []vzapi.Overrides{
 		{
@@ -301,7 +302,7 @@ func deleteOverrides() {
 }
 
 func vzReady() error {
-	cr, err := pkg.GetVerrazzano()
+	cr, err := pkg.GetVerrazzanoV1beta1()
 	if err != nil {
 		return err
 	}

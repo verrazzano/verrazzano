@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -42,11 +42,11 @@ type CustomCACertificateModifier struct {
 	SecretName               string
 }
 
-func (u EnvironmentNameModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u EnvironmentNameModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.EnvironmentName = u.EnvironmentName
 }
 
-func (u WildcardDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u WildcardDNSModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.DNS == nil {
 		cr.Spec.Components.DNS = &vzapi.DNSComponent{}
 	}
@@ -56,7 +56,7 @@ func (u WildcardDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.DNS.Wildcard.Domain = u.Domain
 }
 
-func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u CustomCACertificateModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.ClusterIssuer == nil {
 		cr.Spec.Components.ClusterIssuer = &vzapi.ClusterIssuerComponent{}
 	}
@@ -97,7 +97,7 @@ var _ = AfterSuite(afterSuite)
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 
 	t.Context("Verify the current environment name", func() {
-		cr := update.GetCR()
+		cr := update.GetCRV1beta1()
 		currentEnvironmentName = pkg.GetEnvironmentName(cr)
 		currentDNSDomain = pkg.GetDNS(cr)
 		ItvalidateIngressList(currentEnvironmentName, currentDNSDomain)
@@ -129,7 +129,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 	})
 })
 
-func ItupdateCR(m update.CRModifier) {
+func ItupdateCR(m update.CRModifierV1beta1) {
 	t.It("Update the Verrazzano CR", func() {
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	})

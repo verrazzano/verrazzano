@@ -9,7 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -28,7 +28,7 @@ type DNSModifier struct {
 	DNS *vzapi.DNSComponent
 }
 
-func (m *DNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (m *DNSModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.DNS = m.DNS
 }
 

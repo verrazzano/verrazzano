@@ -5,8 +5,9 @@ package authproxy
 
 import (
 	"fmt"
-	"sigs.k8s.io/yaml"
 	"time"
+
+	"sigs.k8s.io/yaml"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -147,7 +148,7 @@ var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	m := AuthProxyDefaultModifier{}
-	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	update.UpdateCRWithRetriesV1Alpha1(m, pollingInterval, waitTimeout)
 	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, uint32(1), false)
 })
 
@@ -163,7 +164,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas v1alpha1", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
-			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+			update.UpdateCRWithRetriesV1Alpha1(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
@@ -172,7 +173,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity v1alpha1", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
-			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+			update.UpdateCRWithRetriesV1Alpha1(m, pollingInterval, waitTimeout)
 
 			// Because the authproxy rollout strategy requires maxUnavailable == 0, k8s tries to spin
 			// up a new pod after the edit to the deployment which gets stuck in pending, regardless of the number

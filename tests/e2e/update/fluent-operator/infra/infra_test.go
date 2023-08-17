@@ -4,13 +4,14 @@
 package infra
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -21,7 +22,7 @@ var falseValue = false
 type FluentOperatorEnabledModifier struct {
 }
 
-func (u FluentOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u FluentOperatorEnabledModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.FluentOperator = &vzapi.FluentOperatorComponent{
 		Enabled: &trueValue,
 	}
