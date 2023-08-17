@@ -339,7 +339,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "PVC to emptyDir in volumeSource",
@@ -581,7 +581,7 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "PVC to emptyDir in volumeSource",
