@@ -9,10 +9,12 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzReconcile "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -20,6 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -51,72 +55,125 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
-	res1 := r.createOrUpdateModules(log, effectiveCR)
-	res2 := r.deleteModules(log, effectiveCR)
+	res1 := r.deleteModules(log, effectiveCR)
+	res2 := r.reconcileModules(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed
 	if res1.ShouldRequeue() || res2.ShouldRequeue() {
 		return result.NewResultShortRequeueDelay()
 	}
 
+	vzReconcile.SetModuleCreateOrUpdateStarted(false)
+	vzReconcile.SetModuleCreateOrUpdateDone(false)
+
 	// All the modules have been reconciled and are ready
 	return result.NewResult()
 }
 
-// createOrUpdateModules creates or updates all the modules
-func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
-	catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
-	if err != nil {
-		log.ErrorfThrottled("Error loading module catalog: %v", err)
-		return result.NewResultShortRequeueDelayWithError(err)
+// reconcileModules creates or updates all the modules
+func (r Reconciler) reconcileModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+	// if modules are not reconciling yet, then createOrUpdate them
+	if !vzReconcile.IsModuleCreateOrUpdateStarted() {
+		catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
+		if err != nil {
+			log.ErrorfThrottled("Error loading module catalog: %v", err)
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+
+		// Create or Update a Module for each enabled resource
+		for _, comp := range registry.GetComponents() {
+			if err = r.mutateModule(log, effectiveCR, comp, catalog.GetVersion(comp.Name())); err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+		}
+		vzReconcile.SetModuleCreateOrUpdateStarted(true)
+		return result.NewResultShortRequeueDelay()
 	}
 
-	// Create or Update a Module for each enabled resource
-	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(effectiveCR) {
-			continue
-		}
-		if !comp.ShouldUseModule() {
-			continue
-		}
-
-		version := catalog.GetVersion(comp.Name())
-		if version == nil {
-			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
-
-		module := moduleapi.Module{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      comp.Name(),
-				Namespace: vzconst.VerrazzanoInstallNamespace,
-			},
-		}
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			// TODO For now have the module version match the VZ version
-			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
-		})
-		if err != nil {
-			if !errors.IsConflict(err) {
-				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
+	// if modules are reconciling see if they are all ready
+	if !vzReconcile.IsModuleCreateOrUpdateDone() {
+		for _, comp := range registry.GetComponents() {
+			ready, err := r.modulesReady(log, effectiveCR, comp)
+			if err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
 			}
-			return result.NewResultShortRequeueDelayWithError(err)
+			if !ready {
+				return result.NewResultShortRequeueDelay()
+			}
 		}
+		vzReconcile.SetModuleCreateOrUpdateDone(true)
 	}
 	return result.NewResult()
 }
 
 // mutateModule mutates the module for the create or update callback
-func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
-	if module.Annotations == nil {
-		module.Annotations = make(map[string]string)
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, comp componentspi.Component, moduleVersion *semver.SemVersion) error {
+	if !comp.IsEnabled(effectiveCR) {
+		return nil
 	}
-	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
-	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
+	if !comp.ShouldUseModule() {
+		return nil
+	}
 
-	module.Spec.ModuleName = module.Name
-	module.Spec.TargetNamespace = comp.Namespace()
-	module.Spec.Version = moduleVersion
+	if moduleVersion == nil {
+		return log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
+	}
 
-	return r.setModuleValues(log, effectiveCR, module, comp)
+	module := moduleapi.Module{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      comp.Name(),
+			Namespace: vzconst.VerrazzanoInstallNamespace,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+		if module.Annotations == nil {
+			module.Annotations = make(map[string]string)
+		}
+		module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
+		module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
+
+		module.Spec.ModuleName = module.Name
+		module.Spec.TargetNamespace = comp.Namespace()
+		module.Spec.Version = moduleVersion.ToString()
+
+		return r.setModuleValues(log, effectiveCR, &module, comp)
+	})
+	if err != nil {
+		if !errors.IsConflict(err) {
+			log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
+		}
+		return err
+	}
+	return nil
+}
+
+func (r Reconciler) modulesReady(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, comp componentspi.Component) (bool, error) {
+	if !comp.IsEnabled(effectiveCR) {
+		return true, nil
+	}
+	if !comp.ShouldUseModule() {
+		return true, nil
+	}
+
+	readyCondition := false
+	generationEqual := false
+	versionEqual := false
+	module := moduleapi.Module{}
+	nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
+	err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
+	if err != nil {
+		log.ErrorfThrottled("Failed to get Module %s, retrying: %v", comp.Name(), err)
+		return false, err
+	}
+
+	if module.Status.Conditions[len(module.Status.Conditions)-1].Type == moduleapi.ModuleConditionReady {
+		readyCondition = true
+	}
+	if module.Status.LastSuccessfulGeneration == module.Generation {
+		generationEqual = true
+	}
+	if module.Status.LastSuccessfulVersion == module.Spec.Version {
+		versionEqual = true
+	}
+	return readyCondition && generationEqual && versionEqual, nil
 }
