@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -1003,12 +1002,12 @@ func (c CAPITestImpl) ToggleModules(group, version, resource, nameSpaceName stri
 		return err
 	}
 	OCNEControlPlaneName = ocneControlPlane.Metadata.Name
-	patchBytes, err := jsonpatch.CreateMergePatch(dataFetchedBytes, dataUpdatedBytes)
-	if err != nil {
-		log.Errorf("unable to generate patch data %v", zap.Error(err))
-		return err
-	}
-	_, err = dclient.Resource(gvr).Namespace(nameSpaceName).Patch(context.TODO(), OCNEControlPlaneName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	//patchBytes, err := jsonpatch.CreateMergePatch(dataFetchedBytes, dataUpdatedBytes)
+	//if err != nil {
+	//	log.Errorf("unable to generate patch data %v", zap.Error(err))
+	//	return err
+	//}
+	_, err = dclient.Resource(gvr).Namespace(nameSpaceName).Patch(context.TODO(), OCNEControlPlaneName, types.ApplyPatchType, dataUpdatedBytes, metav1.PatchOptions{})
 	if err != nil {
 		log.Errorf("unable to patch object %v", zap.Error(err))
 		return err
