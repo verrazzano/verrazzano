@@ -9,7 +9,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
-	v1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -133,9 +132,9 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazza
 	// FIXME: skeptical I got this right
 	var replicas int32 = 1
 	arg := vzapi.OpenSearchNode{
-		Name:  "nodes.master.replicas",
+		Name:     "nodes.master.replicas",
 		Replicas: &replicas,
-		Roles: []v1.NodeRole{v1.MasterRole},
+		Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 	}
 	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{
 		arg,
@@ -144,7 +143,7 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazza
 }
 
 func (u OpensearchAllNodeRolesModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.OpenSearch= &vzapi.OpenSearchComponent{}
+	cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
 	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{}
 	cr.Spec.Components.OpenSearch.Nodes =
 		append(cr.Spec.Components.OpenSearch.Nodes,
