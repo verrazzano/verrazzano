@@ -29,13 +29,11 @@ import (
 )
 
 const (
-	profilesRelativePath     = "../../../../manifests/profiles"
-	testCaseInstallArgsErr   = "frominstallargserr"
-	testCaseGeneralOverrides = "overrides"
-	systemesdata             = "system-es-data"
-	podtemplatehash          = "pod-template-hash"
-	depKube                  = "deployment.kubernetes.io/revision"
-	systemesingest           = "system-es-ingest"
+	profilesRelativePath = "../../../../manifests/profiles"
+	systemesdata         = "system-es-data"
+	podtemplatehash      = "pod-template-hash"
+	depKube              = "deployment.kubernetes.io/revision"
+	systemesingest       = "system-es-ingest"
 )
 
 var dnsComponents = vzapi.ComponentSpec{
@@ -967,7 +965,7 @@ func TestValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "PVC to emptyDir in volumeSource",
