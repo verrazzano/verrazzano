@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -58,8 +58,14 @@ pipeline {
                 script {
                     sh """
                     echo "Uploading ${upload_filename} to ${upload_url}"
-                    curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
-                    echo "File uploaded"
+                    status=$(curl -w "%{http_code}\\n" curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url})
+                    echo "Status ${status}"
+                    if [[ $status -lt 400 ]];then
+                      echo "File uploaded"
+                    else
+                      echo "Something bad, upload failed"
+                      slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                    fi
                     """
                 }
             }
