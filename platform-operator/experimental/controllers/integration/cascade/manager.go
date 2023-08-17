@@ -5,9 +5,9 @@ package cascade
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/basecontroller"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/basecontroller"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 	corev1 "k8s.io/api/core/v1"
