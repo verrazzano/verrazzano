@@ -15,7 +15,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "CFGTST_tvlaimize_pipeline-job-large"
+            label "CFGTST_tvlauning_pipeline-job-large"
         }
     }
 
