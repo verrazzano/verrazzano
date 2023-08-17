@@ -50,5 +50,4 @@ type CapiTestClient interface {
 	GetVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
 	EnsureVerrazzano(clusterName string, log *zap.SugaredLogger) error
 	DebugSVCOutput(clusterName string, log *zap.SugaredLogger) error
-	ToggleModules(group, version, resource, nameSpaceName string, toggle bool, log *zap.SugaredLogger) error
 }

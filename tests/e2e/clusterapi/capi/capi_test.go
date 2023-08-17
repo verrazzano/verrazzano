@@ -400,9 +400,10 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 	})
 
 	t.Context(fmt.Sprintf("Disable Module Operator and Verrazzano Platform Operator '%s'", ClusterName), func() {
+
 		WhenClusterAPIInstalledIt("Disable Module operator and VPO from CAPI cluster", func() {
 			Eventually(func() error {
-				return capiTest.ToggleModules("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", OCNENamespace, false, t.Logs)
+				return capiTest.DeployAnyClusterResourceSets(ClusterName, ocnecpmoduldisabled, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "disable module and vpo")
 		})
 
@@ -441,7 +442,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 	t.Context(fmt.Sprintf("Enable Module Operator and Verrazzano Platform Operator '%s'", ClusterName), func() {
 		WhenClusterAPIInstalledIt("Enable Module operator and VPO from CAPI cluster", func() {
 			Eventually(func() error {
-				return capiTest.ToggleModules("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", OCNENamespace, true, t.Logs)
+				return capiTest.DeployAnyClusterResourceSets(ClusterName, ocnecpmodulenabled, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "enable module and vpo")
 		})
 

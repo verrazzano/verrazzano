@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
@@ -224,7 +223,7 @@ func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogg
 	var ocneControlPlane OCNEControlPlane
 	var bdata []byte
 	for _, ocnecp := range ocnecpesFetched.Items {
-		bdata, err = json.Marshal(ocnecp)
+		bdata, err = json.Marshal(ocnecp.Object)
 		if err != nil {
 			log.Errorf("Json marshalling error %v", zap.Error(err))
 			return nil, err
@@ -235,6 +234,7 @@ func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogg
 			return nil, err
 		}
 	}
+	os.Setenv("OCNE_CONTROL_PLANE_NAME", ocneControlPlane.Metadata.Name)
 	return &ocneControlPlane, nil
 }
 
@@ -948,69 +948,4 @@ func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusTyp
 
 	log.Errorf("OCNE controlplane check failure. All conditions %+v", ocneCP.Status.Conditions)
 	return false
-}
-
-// ToggleModules toggles module operator or VPO
-func (c CAPITestImpl) ToggleModules(group, version, resource, nameSpaceName string, toggle bool, log *zap.SugaredLogger) error {
-
-	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
-		return err
-	}
-	dclient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
-		return err
-	}
-
-	log.Infof("Fetching resource %s", resource)
-	gvr := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: resource,
-	}
-
-	dataFetched, err := dclient.Resource(gvr).Namespace(nameSpaceName).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		log.Errorf("Unable to fetch resource %s due to '%v'", resource, zap.Error(err))
-		return err
-	}
-
-	var ocneControlPlane OCNEControlPlane
-	var dataFetchedBytes, dataUpdatedBytes []byte
-	for _, ocnecp := range dataFetched.Items {
-		dataFetchedBytes, err = json.Marshal(ocnecp)
-		if err != nil {
-			log.Errorf("Json marshalling error %v", zap.Error(err))
-			return err
-		}
-		err = json.Unmarshal(dataFetchedBytes, &ocneControlPlane)
-		if err != nil {
-			log.Errorf("Json unmarshall error %v", zap.Error(err))
-			return err
-		}
-	}
-
-	// Toggle modules
-	ocneControlPlane.Spec.ModuleOperator.Enabled = toggle
-	ocneControlPlane.Spec.VerrazzanoPlatformOperator.Enabled = toggle
-
-	dataUpdatedBytes, err = json.Marshal(ocneControlPlane)
-	if err != nil {
-		log.Errorf("Json marshalling error %v", zap.Error(err))
-		return err
-	}
-	OCNEControlPlaneName = ocneControlPlane.Metadata.Name
-	//patchBytes, err := jsonpatch.CreateMergePatch(dataFetchedBytes, dataUpdatedBytes)
-	//if err != nil {
-	//	log.Errorf("unable to generate patch data %v", zap.Error(err))
-	//	return err
-	//}
-	_, err = dclient.Resource(gvr).Namespace(nameSpaceName).Patch(context.TODO(), OCNEControlPlaneName, types.ApplyPatchType, dataUpdatedBytes, metav1.PatchOptions{})
-	if err != nil {
-		log.Errorf("unable to patch object %v", zap.Error(err))
-		return err
-	}
-	return nil
 }
