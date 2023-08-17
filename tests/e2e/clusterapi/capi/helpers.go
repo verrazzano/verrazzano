@@ -235,6 +235,7 @@ func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogg
 		}
 	}
 	os.Setenv("OCNE_CONTROL_PLANE_NAME", ocneControlPlane.Metadata.Name)
+	os.Setenv("OCI_MACHINE_TEMPLATE_NAME", ocneControlPlane.Spec.MachineTemplate.InfrastructureRef.Name)
 	return &ocneControlPlane, nil
 }
 
@@ -363,10 +364,13 @@ func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName str
 		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
 		return err
 	}
-	defer os.RemoveAll(tmpFilePath)
+
+	log.Infof("+++ Filename = %v +++", tmpFilePath)
+
+	//defer os.RemoveAll(tmpFilePath)
 	clusterTemplateData, err := os.ReadFile(tmpFilePath)
 	if err != nil {
-		log.Errorf("unable to get read file : %v", zap.Error(err))
+		log.Errorf("unable to read file : %v", zap.Error(err))
 		return err
 	}
 
