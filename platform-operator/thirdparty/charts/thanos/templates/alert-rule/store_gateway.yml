@@ -1,7 +1,7 @@
 {{- /*
 Generated from https://github.com/thanos-io/thanos/blob/main/examples/alerts/alerts.md
 */ -}}
-{{- if and .Values.metrics.enabled (or .Values.metrics.prometheusRule.default.create .Values.metrics.prometheusRule.default.store_gateway ) ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) }}
+{{- if and .Values.metrics.enabled (or .Values.metrics.prometheusRule.default.create .Values.metrics.prometheusRule.default.store_gateway ) .Values.storegateway.enabled ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -32,9 +32,9 @@ spec:
         summary: Thanos Store is failing to handle qrpcd requests.
       expr: |
         (
-          sum by (job) (rate(grpc_server_handled_total{grpc_code=~"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss|DeadlineExceeded", job=~".*thanos-store.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(grpc_server_handled_total{grpc_code=~"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss|DeadlineExceeded", job=~".*thanos-store.*"}[5m]))
         /
-          sum by (job) (rate(grpc_server_started_total{job=~".*thanos-store.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(grpc_server_started_total{job=~".*thanos-store.*"}[5m]))
         * 100 > 5
         )
       for: 5m
@@ -55,9 +55,9 @@ spec:
         summary: Thanos Store has high latency for store series gate requests.
       expr: |
         (
-          histogram_quantile(0.99, sum by (job, le) (rate(thanos_bucket_store_series_gate_duration_seconds_bucket{job=~".*thanos-store.*"}[5m]))) > 2
+          histogram_quantile(0.99, sum by (job, le, verrazzano_cluster) (rate(thanos_bucket_store_series_gate_duration_seconds_bucket{job=~".*thanos-store.*"}[5m]))) > 2
         and
-          sum by (job) (rate(thanos_bucket_store_series_gate_duration_seconds_count{job=~".*thanos-store.*"}[5m])) > 0
+          sum by (job, verrazzano_cluster) (rate(thanos_bucket_store_series_gate_duration_seconds_count{job=~".*thanos-store.*"}[5m])) > 0
         )
       for: 10m
       labels:
@@ -77,9 +77,9 @@ spec:
         summary: Thanos Store Bucket is failing to execute operations.
       expr: |
         (
-          sum by (job) (rate(thanos_objstore_bucket_operation_failures_total{job=~".*thanos-store.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_objstore_bucket_operation_failures_total{job=~".*thanos-store.*"}[5m]))
         /
-          sum by (job) (rate(thanos_objstore_bucket_operations_total{job=~".*thanos-store.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_objstore_bucket_operations_total{job=~".*thanos-store.*"}[5m]))
         * 100 > 5
         )
       for: 15m
@@ -100,9 +100,9 @@ spec:
         summary: Thanos Store is having high latency for bucket operations.
       expr: |
         (
-          histogram_quantile(0.99, sum by (job, le) (rate(thanos_objstore_bucket_operation_duration_seconds_bucket{job=~".*thanos-store.*"}[5m]))) > 2
+          histogram_quantile(0.99, sum by (job, le, verrazzano_cluster) (rate(thanos_objstore_bucket_operation_duration_seconds_bucket{job=~".*thanos-store.*"}[5m]))) > 2
         and
-          sum by (job) (rate(thanos_objstore_bucket_operation_duration_seconds_count{job=~".*thanos-store.*"}[5m])) > 0
+          sum by (job, verrazzano_cluster) (rate(thanos_objstore_bucket_operation_duration_seconds_count{job=~".*thanos-store.*"}[5m])) > 0
         )
       for: 10m
       labels:

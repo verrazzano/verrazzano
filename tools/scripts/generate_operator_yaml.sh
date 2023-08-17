@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -50,12 +50,28 @@ if [ -n "${CLUSTER_OPERATOR_IMAGE}" ] && [[ "${CLUSTER_OPERATOR_IMAGE}" == *:* ]
     CLUSTER_OPERATOR_IMAGE_ARG="--set global.clusterOperatorImage=${CLUSTER_OPERATOR_IMAGE}"
 fi
 
-helm template \
-    --include-crds \
-    ${IMAGE_PULL_SECRET_ARG} \
-    --set image=${DOCKER_IMAGE} \
-    ${APP_OPERATOR_IMAGE_ARG} \
-    ${CLUSTER_OPERATOR_IMAGE_ARG} \
-    $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
+if [[ "${MODULE_INTEGRATION:-"false"}" == "true" ]]; then
+  wget https://raw.githubusercontent.com/verrazzano/verrazzano-modules/main/module-operator/manifests/charts/operators/verrazzano-module-operator/crds/platform.verrazzano.io_modules.yaml \
+  -O $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
+
+  helm template \
+      --include-crds \
+      ${IMAGE_PULL_SECRET_ARG} \
+      --set image=${DOCKER_IMAGE} \
+      ${APP_OPERATOR_IMAGE_ARG} \
+      ${CLUSTER_OPERATOR_IMAGE_ARG} \
+      $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator \
+      --set experimentalFeatures.moduleIntegration.enabled=true
+
+  rm $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
+else
+  helm template \
+      --include-crds \
+      ${IMAGE_PULL_SECRET_ARG} \
+      --set image=${DOCKER_IMAGE} \
+      ${APP_OPERATOR_IMAGE_ARG} \
+      ${CLUSTER_OPERATOR_IMAGE_ARG} \
+      $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
+fi
 
 exit $?

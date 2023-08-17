@@ -15,6 +15,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -773,16 +774,20 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	// expect status updated with condition Ready=true
 	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncServiceAccount", false)
 
+	errCount := testutil.ToFloat64(reconcileErrorCount)
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 
-	// Validate the results - there should have been an error returned for failing to sync svc account
+	// Validate the results - there should have been no error returned for failing to sync svc account, but the reconcile
+	// error metric should have been incremented and the request should be requeued
 	mocker.Finish()
-	asserts.Nil(err)
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(errCount+1, testutil.ToFloat64(reconcileErrorCount))
 }
 
 // TestCreateVMCSyncRoleBindingFailed tests the Reconcile method for the following use case
@@ -1384,7 +1389,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
-	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
+	regYAML, _, err := RegisterManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1461,7 +1466,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
-	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
+	regYAML, _, err = RegisterManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1539,7 +1544,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rc, err = rancherutil.NewVerrazzanoClusterRancherConfig(mock, rancherutil.RancherIngressServiceHost(), vzlog.DefaultLogger())
 	asserts.NoError(err)
 
-	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
+	regYAML, _, err = RegisterManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1853,10 +1858,10 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 		})
 
 	if rancherEnabled {
-		// Expect a call to get the tls-ca-additional secret, return the secret as not found
+		// Expect a call to get the tls-ca secret, return the secret as not found
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
-			Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.PrivateCABundle}, gomock.Not(gomock.Nil()), gomock.Any()).
+			Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.PrivateCABundle))
 
 		// Expect a call to get the Rancher ingress tls secret, return the secret with the fields set
 		mock.EXPECT().
@@ -1991,10 +1996,10 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
-	// Expect a call to get the tls-ca-additional secret, return the secret as not found
+	// Expect a call to get the tls-ca secret, return the secret as not found
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.PrivateCABundle}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.PrivateCABundle))
 
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
@@ -2398,7 +2403,7 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		})
 
 	// Expect an HTTP request to fetch the Rancher TLS additional CA secret from the managed cluster and return an HTTP 404
-	managedClusterAdditionalTLSCAPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/cattle-system/secrets/tls-ca-additional", unitTestRancherClusterID)
+	managedClusterAdditionalTLSCAPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/cattle-system/secrets/tls-ca", unitTestRancherClusterID)
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(managedClusterAdditionalTLSCAPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -2611,8 +2616,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin 
 
 	// Expect a call to get the Rancher additional CA secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.PrivateCABundle}), gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.PrivateCABundle))
 }
 
 // expectMockCallsForDelete mocks expectations for the VMC deletion scenario. These are the common mock expectations across

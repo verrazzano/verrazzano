@@ -60,6 +60,10 @@ defaultRules:
     nodeExporterRecording: true
     prometheus: true
     prometheusOperator: true
+    verrazzanoPlatformOperator: true
+    verrazzanoApplicationOperator: true
+    verrazzanoClusterOperator: true
+    verrazzanoMonitoringOperator: true
 
   ## Reduce app namespace alert scope
   appNamespacesTarget: ".*"
@@ -79,6 +83,28 @@ defaultRules:
   runbookUrl: "https://runbooks.prometheus-operator.dev/runbooks"
 
   ## Disabled PrometheusRule alerts
+  ## @extra defaultRules.disabled.VerrazzanoPlatformOperatorReconcileErrorRate Disable VerrazzanoPlatformOperatorReconcileErrorRate rule when defaultRules.rules.verrazzanoPlatformOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoPlatformOperatorNotReady Disable VerrazzanoPlatformOperatorNotReady rule when defaultRules.rules.verrazzanoPlatformOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoPlatformOperatorWebhookNotReady Disable VerrazzanoPlatformOperatorWebhookNotReady rule when defaultRules.rules.verrazzanoPlatformOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoPlatformOperatorNotRunning Disable VerrazzanoPlatformOperatorNotRunning rule when defaultRules.rules.verrazzanoPlatformOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoPlatformOperatorWebhookNotRunning Disable VerrazzanoPlatformOperatorWebhookNotRunning rule when defaultRules.rules.verrazzanoPlatformOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoComponentsNotReady Disable VerrazzanoComponentsNotReady rule when defaultRules.rules.verrazzanoPlatformOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorAppConfigReconcileErrorRate Disable VerrazzanoApplicationOperatorAppConfigReconcileErrorRate rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorCoherenceWorkloadReconcileErrorRate Disable VerrazzanoApplicationOperatorCoherenceWorkloadReconcileErrorRate rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorHelidonWorkloadReconcileErrorRate Disable VerrazzanoApplicationOperatorHelidonWorkloadReconcileErrorRate rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorIngressTraitReconcileErrorRate Disable VerrazzanoApplicationOperatorIngressTraitReconcileErrorRate rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorNotReady Disable VerrazzanoApplicationOperatorNotReady rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorWebhookNotReady Disable VerrazzanoApplicationOperatorWebhookNotReady rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorNotRunning Disable VerrazzanoApplicationOperatorNotRunning rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoApplicationOperatorWebhookNotRunning Disable VerrazzanoApplicationOperatorWebhookNotRunning rule when defaultRules.rules.verrazzanoApplicationOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoClusterOperatorVMCReconcileErrorRate Disable VerrazzanoClusterOperatorVMCReconcileErrorRate rule when defaultRules.rules.verrazzanoClusterOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoClusterOperatorNotReady Disable VerrazzanoClusterOperatorNotReady rule when defaultRules.rules.verrazzanoClusterOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoClusterOperatorWebhookNotReady Disable VerrazzanoClusterOperatorWebhookNotReady rule when defaultRules.rules.verrazzanoClusterOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoClusterOperatorNotRunning Disable VerrazzanoClusterOperatorNotRunning rule when defaultRules.rules.verrazzanoClusterOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoClusterOperatorWebhookNotRunning Disable VerrazzanoClusterOperatorWebhookNotRunning rule when defaultRules.rules.verrazzanoClusterOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoMonitoringOperatorReconcileErrorRate Disable VerrazzanoMonitoringOperatorReconcileErrorRate rule when defaultRules.rules.verrazzanoMonitoringOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoMonitoringOperatorNotReady Disable VerrazzanoMonitoringOperatorNotReady rule when defaultRules.rules.verrazzanoMonitoringOperator is true
+  ## @extra defaultRules.disabled.VerrazzanoMonitoringOperatorNotRunning Disable VerrazzanoMonitoringOperatorNotRunning rule when defaultRules.rules.verrazzanoMonitoringOperator is true
   disabled: {}
   # KubeAPIDown: true
   # NodeRAIDDegraded: true
@@ -3453,6 +3479,10 @@ prometheus:
     ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#podmetricsendpoint
     ##
     # podMetricsEndpoints: []
+
+  ## Enable the default Alertmanager endpoint for Prometheus.
+  ##
+  enableDefaultAlertingEndpoint: true
 
 ## Configuration for thanosRuler
 ## ref: https://thanos.io/tip/components/rule.md/

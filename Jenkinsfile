@@ -45,6 +45,7 @@ pipeline {
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
         booleanParam (description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to false, meaning Any non release-*/master branch will WARN only if its coverage is lower. This can be enabled so that jobs will FAIL if coverage drops, for example when testing a PR before merging.', name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false)
         booleanParam (description: 'Whether to write the UT coverage number to object storage. This always occurs for release-*/master branches. Defaults to true, but it can be disabled to not always upload.', name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: true)
+        booleanParam (description: 'Whether to generate the operator.yaml with module integration configured', name: 'MODULE_INTEGRATION', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
@@ -84,6 +85,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RELEASE_OWNERS = credentials('release-version-owners')
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -194,6 +196,9 @@ pipeline {
         }
 
         stage('Generate operator.yaml') {
+            environment {
+                MODULE_INTEGRATION = "${params.MODULE_INTEGRATION}"
+            }
             when { not { buildingTag() } }
             steps {
                 generateOperatorYaml("${DOCKER_IMAGE_TAG}")
@@ -222,6 +227,26 @@ pipeline {
                 }
             }
         }
+       stage('Verrazzano development version check') {
+                    when { not { buildingTag() } }
+                    steps {
+                         script {
+                            VERRAZZANO_DEV_VERSION_CHECK = sh (script: "git ls-remote --tags origin | grep -F ${VERRAZZANO_DEV_VERSION}", returnStatus: true )
+                            if (VERRAZZANO_DEV_VERSION_CHECK == 0) {
+                                if (env.JOB_NAME ==~ "verrazzano/release-*") {
+                                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nRelease Owners:\n ${RELEASE_OWNERS}\n")
+                                }
+                            }
+                         }
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
 
         stage('Parallel Build, Test, and Compliance') {
             parallel {
@@ -310,9 +335,9 @@ pipeline {
                         }
                     }
                 }
-            }
 
         }
+    }
 
         stage('Scan Image') {
             when {

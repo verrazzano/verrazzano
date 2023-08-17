@@ -125,7 +125,7 @@ func NewRancherConfigForUser(rdr client.Reader, username, password, host string,
 	}
 	rc.CertificateAuthorityData = caCert
 
-	log.Debugf("Checking for Rancher additional CA in secret %s", cons.AdditionalTLS)
+	log.Debugf("Checking for Rancher additional CA in secret %s", cons.RancherTLSCA)
 	rc.AdditionalCA = common.GetAdditionalCA(rdr)
 
 	token, exists := getStoredToken(username)

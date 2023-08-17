@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -149,6 +150,15 @@ func cleanupRemainingResources(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+
+	// Clean up the tls-ca secret if it exists
+	resource.Resource{
+		Namespace: common.CattleSystem,
+		Name:      rancherTLSCASecretName,
+		Client:    ctx.Client(),
+		Object:    &corev1.Secret{},
+		Log:       ctx.Log(),
+	}.Delete()
 
 	// Delete the remaining Rancher ConfigMaps
 	err = resource.Resource{

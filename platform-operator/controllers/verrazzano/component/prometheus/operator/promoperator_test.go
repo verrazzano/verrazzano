@@ -201,7 +201,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 32)
+	assert.Len(t, kvs, 34)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -243,7 +243,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 32)
+	assert.Len(t, kvs, 34)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"),
 		"Value prometheusOperator.admissionWebhooks.certManager.enabled was enabled with the ClusterIssuer disabled")
@@ -266,7 +266,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 18)
+	assert.Len(t, kvs, 20)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
@@ -1449,6 +1449,104 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+			assert.Equal(t, tt.expectOverrides, kvs)
+		})
+	}
+}
+
+// TestAppendPrometheusRuleOverrides tests the appendPrometheusRuleOverrides function.
+func TestAppendPrometheusRuleOverrides(t *testing.T) {
+	tests := []struct {
+		name            string
+		vzCR            *vzapi.Verrazzano
+		expectOverrides []bom.KeyValue
+	}{
+		{
+			// GIVEN a default VZ CR
+			// WHEN the appendPrometheusRuleOverrides function is called
+			// THEN no key/value overrides are returned
+			name:            "default VZ CR, no Prometheus rules should be disabled",
+			vzCR:            &vzapi.Verrazzano{},
+			expectOverrides: []bom.KeyValue{},
+		},
+		{
+			// GIVEN a VZ CR with the application operator disabled
+			// WHEN the appendPrometheusRuleOverrides function is called
+			// THEN expected key/value overrides are returned
+			name: "VZ CR with VAO disabled, VAO Prometheus rules should be disabled",
+			vzCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectOverrides: []bom.KeyValue{
+				{Key: "defaultRules.rules.verrazzanoApplicationOperator", Value: "false"},
+			},
+		},
+		{
+			// GIVEN a VZ CR with the application and cluster operators disabled
+			// WHEN the appendPrometheusRuleOverrides function is called
+			// THEN expected key/value overrides are returned
+			name: "VZ CR with VAO and VCO disabled, VAO and VCO Prometheus rules should be disabled",
+			vzCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+							Enabled: &falseValue,
+						},
+						ClusterOperator: &vzapi.ClusterOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectOverrides: []bom.KeyValue{
+				{Key: "defaultRules.rules.verrazzanoApplicationOperator", Value: "false"},
+				{Key: "defaultRules.rules.verrazzanoClusterOperator", Value: "false"},
+			},
+		},
+		{
+			// GIVEN a VZ CR with the application and cluster operators disabled, along with all of the VMO components
+			// WHEN the appendPrometheusRuleOverrides function is called
+			// THEN expected key/value overrides are returned
+			name: "VZ CR with VAO, VCO, and VMO components disabled, VAO, VCO, and VMO Prometheus rules should be disabled",
+			vzCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+							Enabled: &falseValue,
+						},
+						ClusterOperator: &vzapi.ClusterOperatorComponent{
+							Enabled: &falseValue,
+						},
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &falseValue,
+						},
+						Kibana: &vzapi.KibanaComponent{
+							Enabled: &falseValue,
+						},
+						Grafana: &vzapi.GrafanaComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectOverrides: []bom.KeyValue{
+				{Key: "defaultRules.rules.verrazzanoApplicationOperator", Value: "false"},
+				{Key: "defaultRules.rules.verrazzanoClusterOperator", Value: "false"},
+				{Key: "defaultRules.rules.verrazzanoMonitoringOperator", Value: "false"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, tt.vzCR, nil, false)
+			kvs := appendPrometheusRuleOverrides(ctx, []bom.KeyValue{})
 			assert.Equal(t, tt.expectOverrides, kvs)
 		})
 	}

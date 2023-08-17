@@ -6,17 +6,18 @@ package helm
 import (
 	ctx "context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/namespace"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"sort"
 	"strings"
 
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/namespace"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -34,19 +35,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ModuleIntegrationConfig specifies Module integration configuration
-type ModuleIntegrationConfig struct {
-	// UseModule if component should be implmemented by a Module, default false
-	UseModule bool
-	// WatchDescriptors contains the WatchDescriptor this the component
-	WatchDescriptors []controllerspi.WatchDescriptor
-}
-
 // HelmComponent struct needed to implement a component
 type HelmComponent struct {
-	// ModuleIntegrationConfig contains the configuration needed for Module integraiton
-	ModuleIntegrationConfig
-
 	// ReleaseName is the helm chart release name
 	ReleaseName string
 
@@ -176,17 +166,24 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 	return h.InstallBeforeUpgrade
 }
 
-// ShouldUseModule returns true if component is implemented using a Module, default false
+// ShouldUseModule returns true if component is implemented using a Module
 func (h HelmComponent) ShouldUseModule() bool {
+	// Default to true if module integration is enabled
 	return config.Get().ModuleIntegration
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (h HelmComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return h.WatchDescriptors
+	return nil
 }
 
-// GetJsonName returns the josn name of the verrazzano component in CRD
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (h HelmComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
+
+	return nil, nil
+}
+
+// GetJSONName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
 }
@@ -200,7 +197,6 @@ func (h HelmComponent) GetOverrides(cr runtime.Object) interface{} {
 		return []v1beta1.Overrides{}
 	}
 	return []v1alpha1.Overrides{}
-
 }
 
 // GetDependencies returns the Dependencies of this component

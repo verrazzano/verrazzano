@@ -131,6 +131,14 @@ spec:
         - name: {{ .name }}
           mountPath: "{{ .mount }}"
         {{- end }}
+        {{- range $key, $val := (include "kiali-server.remote-cluster-secrets" .) | fromJson }}
+        - name: {{ $key }}
+          mountPath: "/kiali-remote-cluster-secrets/{{ $val }}"
+        {{- end }}
+        {{- range .Values.kiali_feature_flags.clustering.clusters }}
+        - name: {{ .name }}
+          mountPath: "/kiali-remote-cluster-secrets/{{ .secret_name }}"
+        {{- end }}
         {{- if .Values.deployment.resources }}
         resources:
         {{- toYaml .Values.deployment.resources | nindent 10 }}
@@ -164,6 +172,16 @@ spec:
         secret:
           secretName: {{ .name }}
           optional: {{ .optional | default false }}
+      {{- end }}
+      {{- range $key, $val := (include "kiali-server.remote-cluster-secrets" .) | fromJson }}
+      - name: {{ $key }}
+        secret:
+          secretName: {{ $val }}
+      {{- end }}
+      {{- range .Values.kiali_feature_flags.clustering.clusters }}
+      - name: {{ .name }}
+        secret:
+          secretName: {{ .secret_name }}
       {{- end }}
       {{- if or (.Values.deployment.affinity.node) (or (.Values.deployment.affinity.pod) (.Values.deployment.affinity.pod_anti)) }}
       affinity:

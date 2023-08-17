@@ -103,6 +103,11 @@ func (y *YAMLApplier) ApplyF(filePath string) error {
 	return y.doFileAction(filePath, y.applyAction)
 }
 
+// ApplyB applies a spec to Kubernetes via a byte slice
+func (y *YAMLApplier) ApplyS(spec string) error {
+	return y.doStringAction(spec, y.applyAction)
+}
+
 // ApplyFT applies a file template spec (go text.template) to Kubernetes
 func (y *YAMLApplier) ApplyFT(filePath string, args map[string]interface{}) error {
 	return y.doTemplatedFileAction(filePath, y.applyAction, args)
@@ -292,7 +297,11 @@ func (y *YAMLApplier) doFileAction(filePath string, f action) error {
 	}
 	defer file.Close()
 	return y.doAction(bufio.NewReader(file), f)
+}
 
+// doStringAction runs the action against a string
+func (y *YAMLApplier) doStringAction(spec string, f action) error {
+	return y.doAction(bufio.NewReader(strings.NewReader(spec)), f)
 }
 
 // doTemplatedFileAction runs the action against a template file

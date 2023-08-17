@@ -6,16 +6,16 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/time"
-	"net/url"
-	"strings"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -69,7 +69,6 @@ var (
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Reconciling State
 func TestStartUpdate(t *testing.T) {
-	metricsexporter.Init()
 	initUnitTesing()
 	status := vzapi.VerrazzanoStatus{
 		State:   vzapi.VzStateReady,
@@ -432,7 +431,7 @@ func testUpdate(t *testing.T,
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 	jobList := createJobsList()
-	addExec()
+	addKeycloakPodExec()
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
 		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, keycloakPod).
@@ -612,7 +611,7 @@ func createIngress(namespace, name, host string) networkingv1.Ingress {
 	}
 }
 
-func addExec() {
+func addKeycloakPodExec() {
 	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {

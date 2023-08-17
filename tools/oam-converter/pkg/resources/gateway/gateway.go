@@ -14,6 +14,8 @@ import (
 	istio "istio.io/api/networking/v1beta1"
 	vsapi "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // The function createGatewayCertificate generates a certificate that the cert manager can use to generate a certificate
@@ -111,8 +113,9 @@ func updateGatewayServersList(servers []*istio.Server, server *istio.Server) []*
 	return servers
 }
 
-func CreateGatewayResource(conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
-	gateway, allHostsForTrait, err := CreateCertificateAndSecretGateway(conversionComponents)
+func CreateGatewayResource(cli client.Client, conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
+	gateway, allHostsForTrait, err := CreateCertificateAndSecretGateway(cli, conversionComponents)
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,15 +123,17 @@ func CreateGatewayResource(conversionComponents []*types.ConversionComponents) (
 	return gateway, allHostsForTrait, nil
 
 }
-func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
+
+func CreateCertificateAndSecretGateway(cli client.Client, conversionComponents []*types.ConversionComponents) (*vsapi.Gateway, []string, error) {
+
 	var gateway *vsapi.Gateway
 	var allHostsForTrait []string
 	var err error
 	for _, conversionComponent := range conversionComponents {
 
-		allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
+		allHostsForTrait, err = coallateHosts.CoallateAllHostsForTrait(cli, conversionComponent.IngressTrait, conversionComponent.AppName, conversionComponent.AppNamespace)
 		if err != nil {
-			print(err)
+			return nil, nil, err
 
 		}
 
@@ -137,12 +142,14 @@ func CreateCertificateAndSecretGateway(conversionComponents []*types.ConversionC
 	if len(secretNames) == len(conversionComponents) && secretNames != nil {
 		gwName, err := BuildGatewayName(conversionComponents[0].AppNamespace)
 		if err != nil {
-			print(err)
+
+			return nil, nil, err
 
 		}
 		gateway, err = CreateGateway(conversionComponents, allHostsForTrait, gwName, secretNames)
 		if err != nil {
-			print(err)
+
+			return nil, nil, err
 
 		}
 	}

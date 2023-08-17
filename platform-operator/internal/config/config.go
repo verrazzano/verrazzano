@@ -30,9 +30,12 @@ const (
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	integrationChartsDirSuffix   = "/platform-operator/experimental/manifests/integration-charts"
+	catalogDirSuffix             = "/platform-operator/experimental/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
+const defaultCatalogFilename = "catalog.yaml"
 
 // Global override for the default BOM file path
 var bomFilePathOverride string
@@ -42,6 +45,12 @@ var TestHelmConfigDir string
 
 // TestProfilesDir is needed for unit tests
 var TestProfilesDir string
+
+// TestIntegrationChartsDis is needed for unit tests
+var TestIntegrationChartsDis string
+
+// TestCatalogDir  is needed for unit tests
+var TestCatalogDir string
 
 // TestThirdPartyManifestDir is needed for unit tests
 var TestThirdPartyManifestDir string
@@ -93,9 +102,6 @@ type OperatorConfig struct {
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
 
-	// ExperimentalModules toggles the VPO to use the experimental modules feature
-	ExperimentalModules bool
-
 	// Module Itegration feature flag toggles the VPO to use the new Verrazzano controllers with modules
 	ModuleIntegration bool
 }
@@ -115,7 +121,6 @@ var instance = OperatorConfig{
 	MySQLCheckPeriodSeconds:        60,
 	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ExperimentalModules:            false,
 	ModuleIntegration:              false,
 }
 
@@ -237,6 +242,22 @@ func GetProfilesDir() string {
 		return TestProfilesDir
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
+}
+
+// GetIntegrationChartsDir returns the integration charts dir
+func GetIntegrationChartsDir() string {
+	if TestIntegrationChartsDis != "" {
+		return TestIntegrationChartsDis
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, integrationChartsDirSuffix)
+}
+
+// GetCatalogPath gets the module catalog path
+func GetCatalogPath() string {
+	if TestCatalogDir != "" {
+		return filepath.Join(TestCatalogDir, defaultCatalogFilename)
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, catalogDirSuffix, defaultCatalogFilename)
 }
 
 // GetProfile returns API profiles dir

@@ -1,8 +1,21 @@
+### v2.0.0
+
+Feature:
+
+- Enabled status updates for Istio reconciled objects
+
 ### v1.6.4
 
 Component version updates:
 
 - Istio v1.17.2
+- Rancher v2.7.5
+- Kiali v1.66.1
+
+Fixes:
+
+- Fixed issue provisioning OCNE workload clusters via Rancher UI when using Let's Encrypt Staging certs
+
 
 ### v1.6.1
 Features:
