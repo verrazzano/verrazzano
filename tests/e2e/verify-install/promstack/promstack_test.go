@@ -5,9 +5,11 @@ package promstack
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
@@ -21,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -53,7 +54,7 @@ type enabledComponents struct {
 }
 
 var (
-	vz *vzalpha1.Verrazzano
+	vz *vzbeta1.Verrazzano
 
 	promStackEnabledComponents = []enabledComponents{
 		{podName: "prometheus-adapter", componentName: adapter.ComponentName},
@@ -250,7 +251,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		Fail(err.Error())
 	}
 
-	vz, err = pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
 	}
