@@ -949,7 +949,6 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 
 			// Run install command
 			err := cmd.Execute()
-			//assert.Equal(t, "", errBuf.String())
 
 			if tt.vpoExists {
 				existingVPOPodList, _ := validators.GetPlatformOperatorPodList(c)
@@ -957,7 +956,12 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 				assert.Greater(t, len(existingVPOPodList.Items), 0)
 			}
 			assert.NoError(t, err)
+			vz := v1alpha1.Verrazzano{}
+			err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+			assert.NoError(t, err)
 
+			expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano\",\"namespace\":\"default\"}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, vz.ObjectMeta, expectedLastAppliedConfigAnnotation)
 		})
 	}
 
