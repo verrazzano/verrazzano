@@ -13,16 +13,30 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 )
-
-func TestCreateServiceMonitor(t *testing.T) {
-	input := types.ConversionInput{}
-	port := 7001
-	input.IstioEnabled = false
+func createDefaultMetricsTrait() *vzapi.MetricsTrait{
 	scrape := "verrazzano-system/vmi-system-prometheus-0"
+	port := 7001
+	metricsTrait:= vzapi.MetricsTrait{
+	TypeMeta: k8smeta.TypeMeta{
+		APIVersion: "oam.verrazzano.io/v1alpha1",
+		Kind:       vzapi.MetricsTraitKind,
+	},
+	ObjectMeta: k8smeta.ObjectMeta{
+		Namespace: "test-namespace",
+		Name:      "test-trait-name",
+		Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
+	},
+	Spec: vzapi.MetricsTraitSpec{
+		Scraper: &scrape,
+		Port:    &port,
+	},
+}
+	return &metricsTrait
+}
+func TestCreateServiceMonitor(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        types.ConversionComponents
-		istioEnabled bool
 		workload     unstructured.Unstructured
 	}{
 		{
@@ -30,87 +44,45 @@ func TestCreateServiceMonitor(t *testing.T) {
 			input: types.ConversionComponents{
 				AppName:       "test-appconf",
 				ComponentName: "test-component",
-				MetricsTrait: &vzapi.MetricsTrait{
-					TypeMeta: k8smeta.TypeMeta{
-						APIVersion: "oam.verrazzano.io/v1alpha1",
-						Kind:       vzapi.MetricsTraitKind,
-					},
-					ObjectMeta: k8smeta.ObjectMeta{
-						Namespace: "test-namespace",
-						Name:      "test-trait-name",
-						Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
-					},
-					Spec: vzapi.MetricsTraitSpec{
-						Scraper: &scrape,
-						Port:    &port,
-					},
-				},
+				MetricsTrait: createDefaultMetricsTrait(),
 				Weblogicworkload: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "oam.verrazzano.io/v1alpha1",
 						"kind":       "VerrazzanoWebLogicWorkload",
 					},
 				},
+				IstioEnabled: false,
 			},
-			istioEnabled: false,
 		},
 		{
 			name: "helidon input",
 			input: types.ConversionComponents{
 				AppName:       "test-appconf",
 				ComponentName: "test-component",
-				MetricsTrait: &vzapi.MetricsTrait{
-					TypeMeta: k8smeta.TypeMeta{
-						APIVersion: "oam.verrazzano.io/v1alpha1",
-						Kind:       vzapi.MetricsTraitKind,
-					},
-					ObjectMeta: k8smeta.ObjectMeta{
-						Namespace: "test-namespace",
-						Name:      "test-trait-name",
-						Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
-					},
-					Spec: vzapi.MetricsTraitSpec{
-						Scraper: &scrape,
-						Port:    &port,
-					},
-				},
+				MetricsTrait: createDefaultMetricsTrait(),
 				Helidonworkload: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "oam.verrazzano.io/v1alpha1",
 						"kind":       "VerrazzanoHelidonWorkload",
 					},
 				},
+				IstioEnabled: false,
 			},
-			istioEnabled: false,
 		},
 		{
 			name: "hello helidon",
 			input: types.ConversionComponents{
 				AppName:       "test-appconf",
 				ComponentName: "test-component",
-				MetricsTrait: &vzapi.MetricsTrait{
-					TypeMeta: k8smeta.TypeMeta{
-						APIVersion: "oam.verrazzano.io/v1alpha1",
-						Kind:       vzapi.MetricsTraitKind,
-					},
-					ObjectMeta: k8smeta.ObjectMeta{
-						Namespace: "test-namespace",
-						Name:      "test-trait-name",
-						Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
-					},
-					Spec: vzapi.MetricsTraitSpec{
-						Scraper: &scrape,
-						Port:    &port,
-					},
-				},
+				MetricsTrait: createDefaultMetricsTrait(),
 				Coherenceworkload: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "oam.verrazzano.io/v1alpha1",
 						"kind":       "VerrazzanoCoherenceWorkload",
 					},
 				},
+				IstioEnabled: true,
 			},
-			istioEnabled: true,
 		},
 	}
 	// Call the function with the sample inputs
@@ -120,7 +92,7 @@ func TestCreateServiceMonitor(t *testing.T) {
 			assert.NoError(t, err, "Unexpected error returned from CreateServiceMonitor")
 			assert.Equal(t, 1, len(serviceMonitor.Spec.Endpoints))
 			assert.Equal(t, 10, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
-			if input.IstioEnabled == false {
+			if tt.input.IstioEnabled == false {
 				assert.Equal(t, "http", serviceMonitor.Spec.Endpoints[0].Scheme)
 			} else {
 				assert.Equal(t, "https", serviceMonitor.Spec.Endpoints[0].Scheme)
