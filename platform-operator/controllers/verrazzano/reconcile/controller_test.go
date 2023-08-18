@@ -2758,5 +2758,5 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equalf(t, updatedClusterSecretCopy.Data[ociFingerprintField], ccSecret.Data[ociFingerprintField], "Expected fingerprint field of cloud credential copy to match updated cloud credential secret")
 	assert.Equalf(t, updatedClusterSecretCopy.Data[ociTenancyField], ccSecret.Data[ociTenancyField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
-	assert.NotEqualf(t, updatedClusterSecretCopy.Data[ociRegionField], ccSecret.Data[ociRegionField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
+	assert.NotEqualf(t, updatedClusterSecretCopy.Data[ociRegionField], ccSecret.Data[ociRegionField], "Expected region field of cloud credential copy to not match updated cloud credential secret")
 }
