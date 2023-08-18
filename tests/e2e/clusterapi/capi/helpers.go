@@ -365,9 +365,7 @@ func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName str
 		return err
 	}
 
-	log.Infof("+++ Filename = %v +++", tmpFilePath)
-
-	//defer os.RemoveAll(tmpFilePath)
+	defer os.RemoveAll(tmpFilePath)
 	clusterTemplateData, err := os.ReadFile(tmpFilePath)
 	if err != nil {
 		log.Errorf("unable to read file : %v", zap.Error(err))
