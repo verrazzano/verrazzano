@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(&VerrazzanoManagedCluster{}, &VerrazzanoManagedClusterList{}, &OCIOCNECluster{}, &OCIOCNEClusterList{})
+	SchemeBuilder.Register(&VerrazzanoManagedCluster{}, &VerrazzanoManagedClusterList{}, &OCNEOCIQuickCreate{}, &OCNEOCIQuickCreateList{}, &OKEQuickCreate{}, &OKEQuickCreateList{})
 }
 
 var (

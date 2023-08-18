@@ -15,8 +15,8 @@ type FakeClustersV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeClustersV1alpha1) OCIOCNEClusters(namespace string) v1alpha1.OCIOCNEClusterInterface {
-	return &FakeOCIOCNEClusters{c, namespace}
+func (c *FakeClustersV1alpha1) OCNEOCIQuickCreates(namespace string) v1alpha1.OCNEOCIQuickCreateInterface {
+	return &FakeOCNEOCIQuickCreates{c, namespace}
 }
 
 func (c *FakeClustersV1alpha1) OKEQuickCreates(namespace string) v1alpha1.OKEQuickCreateInterface {

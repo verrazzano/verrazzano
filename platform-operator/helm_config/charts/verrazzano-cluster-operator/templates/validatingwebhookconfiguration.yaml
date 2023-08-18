@@ -33,12 +33,12 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
-  - name: ociocnecluster.verrazzano.io
+  - name: ocneociquickcreate.verrazzano.io
     clientConfig:
       service:
         name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
-        path: "/validate-clusters-verrazzano-io-v1alpha1-ociocnecluster"
+        path: "/validate-clusters-verrazzano-io-v1alpha1-ocneociquickcreate"
     rules:
       - apiGroups:
           - clusters.verrazzano.io
@@ -49,7 +49,7 @@ webhooks:
           - CREATE
           - UPDATE
         resources:
-          - ociocneclusters
+          - ocneociquickcreates
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact
@@ -57,7 +57,27 @@ webhooks:
     admissionReviewVersions:
       - v1
       - v1alpha1
-
-
-
-
+  - name: okequickcreate.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}-webhook
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-okequickcreate"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - okequickcreates
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1
+      - v1alpha1

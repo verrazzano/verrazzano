@@ -15,7 +15,7 @@ import (
 
 type ClustersV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	OCIOCNEClustersGetter
+	OCNEOCIQuickCreatesGetter
 	OKEQuickCreatesGetter
 	VerrazzanoManagedClustersGetter
 }
@@ -25,8 +25,8 @@ type ClustersV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ClustersV1alpha1Client) OCIOCNEClusters(namespace string) OCIOCNEClusterInterface {
-	return newOCIOCNEClusters(c, namespace)
+func (c *ClustersV1alpha1Client) OCNEOCIQuickCreates(namespace string) OCNEOCIQuickCreateInterface {
+	return newOCNEOCIQuickCreates(c, namespace)
 }
 
 func (c *ClustersV1alpha1Client) OKEQuickCreates(namespace string) OKEQuickCreateInterface {

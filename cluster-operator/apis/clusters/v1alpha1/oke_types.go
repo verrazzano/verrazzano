@@ -16,9 +16,9 @@ type OKEQuickCreate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// The desired state of an OCIOCNECluster resource.
+	// The desired state of an OCNEOCIQuickCreate resource.
 	Spec OKEQuickCreateSpec `json:"spec,omitempty"`
-	// The observed state of an OCIOCNECluster resource.
+	// The observed state of an OCNEOCIQuickCreate resource.
 	Status OKEQuickCreateStatus `json:"status,omitempty"`
 }
 
@@ -37,16 +37,27 @@ type (
 		OKESpec           `json:"oke"`
 	}
 	OKESpec struct {
-		CommonOCISpec    CommonOCISpec     `json:",inline"`
+		CommonOCISpec    CommonOCI         `json:",inline"`
 		NodePools        []NodeConfig      `json:"nodePools,omitempty"`
 		VirtualNodePools []VirtualNodePool `json:"virtualNodePools,omitempty"`
 		Network          Network           `json:"network"`
 	}
+	OKENetwork struct {
+		Network Network `json:",inline"`
+		CNIType CNIType `json:"cniType"`
+	}
 	VirtualNodePool struct {
 		// +patchMergeKey=name
 		// +patchStrategy=merge,retainKeys
-		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
+		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	}
 	OKEQuickCreateStatus struct {
 	}
+)
+
+type CNIType string
+
+const (
+	FlannelOverlay CNIType = "FLANNEL_OVERLAY"
+	VCNNative      CNIType = "OCI_VCN_IP_NATIVE"
 )

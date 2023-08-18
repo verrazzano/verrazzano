@@ -4,53 +4,84 @@
 package v1alpha1
 
 type (
+	SubnetRole string
+	Subnet     struct {
+		// +patchMergeKey=role
+		// +patchStrategy=merge,retainKeys
+		Role SubnetRole `json:"role" patchStrategy:"merge,retainKeys" patchMergeKey:"role"`
+		ID   string     `json:"id"`
+	}
 	CommonClusterSpec struct {
-		TTLSecondsAfterFinished *int             `json:"ttlSecondsAfterFinished"`
-		KubernetesVersion       string           `json:"kubernetesVersion"`
+		TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished"`
+		Kubernetes              `json:"kubernetes"`
 		IdentityRef             NamespacedRef    `json:"identityRef"`
 		PrivateRegistry         *PrivateRegistry `json:"privateRegistry,omitempty"`
 		Proxy                   *Proxy           `json:"proxy,omitempty"`
 	}
-	CommonOCISpec struct {
+	CommonOCI struct {
 		Region          string   `json:"region"`
 		Compartment     string   `json:"compartment"`
 		SSHPublicKey    *string  `json:"sshPublicKey,omitempty"`
 		ImageName       string   `json:"imageName"`
 		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}
+	Kubernetes struct {
+		Version        string         `json:"version"`
+		ClusterNetwork ClusterNetwork `json:"clusterNetwork"`
+	}
+	ClusterNetwork struct {
+		PodCIDR     string `json:"podCIDR"`
+		ServiceCIDR string `json:"serviceCIDR"`
+	}
+	OCNE struct {
+		Version      string           `json:"version"`
+		Dependencies OCNEDependencies `json:"dependencies"`
+	}
+	OCNEDependencies struct {
+		Install bool `json:"install"`
+	}
 	NodeConfig struct {
 		// +patchMergeKey=name
 		// +patchStrategy=merge,retainKeys
-		Name          string  `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
+		Name          string  `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 		Shape         *string `json:"shape,omitempty"`
 		OCPUs         *int    `json:"ocpus,omitempty"`
 		MemoryGbs     *int    `json:"memoryGbs,omitempty"`
 		BootVolumeGbs *int    `json:"bootVolumeGbs,omitempty"`
 		Replicas      *int    `json:"replicas,omitempty"`
 	}
-	Subnets struct {
-		ControlPlane string `json:"controlPlane"`
-		Worker       string `json:"workers"`
-		LoadBalancer string `json:"loadBalancer"`
-	}
 	PrivateRegistry struct {
-		Server            string        `json:"server"`
-		CredentialsSecret NamespacedRef `json:"credentialsSecret"`
+		URL               string        `json:"url"`
+		CredentialsSecret NamespacedRef `json:"credentialSecret"`
 	}
 	Proxy struct {
-		Server string `json:"server"`
+		HTTPProxy  string `json:"httpProxy"`
+		HTTPSProxy string `json:"httpsProxy"`
+		NoProxy    string `json:"noProxy"`
 	}
 	NamespacedRef struct {
 		Name      string `json:"name"`
 		Namespace string `json:"namespace"`
 	}
-	OCNE struct {
-		Version string `json:"version"`
+	QuickCreateCondition struct {
+		Reason string                     `json:"reason"`
+		Status QuickCreateConditionStatus `json:"status"`
 	}
-	OCNEModule struct {
-		// +patchMergeKey=name
-		// +patchStrategy=merge,retainKeys
-		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"version"`
-		Tag  string `json:"tag"`
-	}
+	QuickCreateConditionStatus string
+	QuickCreateConditionType   string
+)
+
+// Subnet Roles
+const (
+	SubnetRoleControlPlane         SubnetRole = "control-plane"
+	SubnetRoleControlPlaneEndpoint SubnetRole = "control-plane-endpoint"
+	SubnetRoleServiceLB            SubnetRole = "service-lb"
+	SubnetRoleWorker               SubnetRole = "worker"
+
+	QuickCreateStatusTrue  QuickCreateConditionStatus = "true"
+	QuickCreateStatusFalse QuickCreateConditionStatus = "false"
+
+	QuickCreateTypeInitialized         = "Initialized"
+	QuickCreateTypeInfrastructureReady = "InfrastructureReady"
+	QuickCreateTypeCreat
 )

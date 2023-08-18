@@ -34,7 +34,7 @@ var (
 	runWebhookInit                bool
 	certDir                       string
 	ingressHost                   string
-	enableQuickCreateOCIOCNE      bool
+	enableQuickCreate             bool
 	enableCAPIRancherRegistration bool
 )
 
@@ -82,7 +82,7 @@ func handleFlags() operatorinit.Properties {
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
-	flag.BoolVar(&enableQuickCreateOCIOCNE, "quick-create-oci-ocne", false, "If true, enabled Quick Create OCI OCNE Clusters")
+	flag.BoolVar(&enableQuickCreate, "quick-create", false, "If true, enables Quick Create Clusters")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
 	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", false,
@@ -102,7 +102,7 @@ func handleFlags() operatorinit.Properties {
 		ProbeAddress:                  probeAddr,
 		IngressHost:                   ingressHost,
 		EnableLeaderElection:          enableLeaderElection,
-		EnableQuickCreateOCIOCNE:      enableQuickCreateOCIOCNE,
+		EnableQuickCreate:             enableQuickCreate,
 		EnableCAPIRancherRegistration: enableCAPIRancherRegistration,
 	}
 }

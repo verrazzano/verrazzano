@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/ociocne"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/oke"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -43,7 +44,7 @@ type Properties struct {
 	ProbeAddress                  string
 	IngressHost                   string
 	EnableLeaderElection          bool
-	EnableQuickCreateOCIOCNE      bool
+	EnableQuickCreate             bool
 	EnableCAPIRancherRegistration bool
 }
 
@@ -130,13 +131,21 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 		log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
 		os.Exit(1)
 	}
-	if props.EnableQuickCreateOCIOCNE {
+	if props.EnableQuickCreate {
 		if err = (&ociocne.ClusterReconciler{
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 			Logger: log,
 		}).SetupWithManager(mgr); err != nil {
-			log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
+			log.Error(err, "Failed to setup controller OCNEOCIQuickCreate")
+			os.Exit(1)
+		}
+		if err = (&oke.ClusterReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Logger: log,
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller OKEQuickCreate")
 			os.Exit(1)
 		}
 	}

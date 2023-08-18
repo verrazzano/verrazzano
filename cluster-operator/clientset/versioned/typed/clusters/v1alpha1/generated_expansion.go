@@ -5,7 +5,7 @@
 
 package v1alpha1
 
-type OCIOCNEClusterExpansion interface{}
+type OCNEOCIQuickCreateExpansion interface{}
 
 type OKEQuickCreateExpansion interface{}
 

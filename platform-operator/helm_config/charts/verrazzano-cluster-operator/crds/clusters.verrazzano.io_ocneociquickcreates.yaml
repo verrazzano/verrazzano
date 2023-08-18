@@ -1,5 +1,7 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Copyright (c) 2023, , Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -7,20 +9,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: okequickcreates.clusters.verrazzano.io
+  name: ocneociquickcreates.clusters.verrazzano.io
 spec:
   group: clusters.verrazzano.io
   names:
-    kind: OKEQuickCreate
-    listKind: OKEQuickCreateList
-    plural: okequickcreates
-    singular: okequickcreate
+    kind: OCNEOCIQuickCreate
+    listKind: OCNEOCIQuickCreateList
+    plural: ocneociquickcreates
+    singular: ocneociquickcreate
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: OKEQuickCreate specifies the API for quick-create OKE Clusters.
+        description: OCNEOCIQuickCreate specifies the API for quick-create OCI OCNE
+          Clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -65,7 +68,7 @@ spec:
                 - clusterNetwork
                 - version
                 type: object
-              oke:
+              oci:
                 properties:
                   cloudInitScript:
                     items:
@@ -73,6 +76,23 @@ spec:
                     type: array
                   compartment:
                     type: string
+                  controlPlane:
+                    properties:
+                      bootVolumeGbs:
+                        type: integer
+                      memoryGbs:
+                        type: integer
+                      name:
+                        type: string
+                      ocpus:
+                        type: integer
+                      replicas:
+                        type: integer
+                      shape:
+                        type: string
+                    required:
+                    - name
+                    type: object
                   imageName:
                     type: string
                   network:
@@ -92,7 +112,11 @@ spec:
                           type: object
                         type: array
                     type: object
-                  nodePools:
+                  region:
+                    type: string
+                  sshPublicKey:
+                    type: string
+                  workers:
                     items:
                       properties:
                         bootVolumeGbs:
@@ -111,24 +135,27 @@ spec:
                       - name
                       type: object
                     type: array
-                  region:
-                    type: string
-                  sshPublicKey:
-                    type: string
-                  virtualNodePools:
-                    items:
-                      properties:
-                        name:
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    type: array
                 required:
                 - compartment
+                - controlPlane
                 - imageName
                 - network
                 - region
+                type: object
+              ocne:
+                properties:
+                  dependencies:
+                    properties:
+                      install:
+                        type: boolean
+                    required:
+                    - install
+                    type: object
+                  version:
+                    type: string
+                required:
+                - dependencies
+                - version
                 type: object
               privateRegistry:
                 properties:
@@ -166,7 +193,8 @@ spec:
             required:
             - identityRef
             - kubernetes
-            - oke
+            - oci
+            - ocne
             - ttlSecondsAfterFinished
             type: object
           status:

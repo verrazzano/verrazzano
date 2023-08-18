@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package ociocne
+package oke
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	finalizerKey = "verrazzano.io/oci-ocne-cluster"
+	finalizerKey = "verrazzano.io/oci-oke-cluster"
 )
 
 type ClusterReconciler struct {
@@ -27,7 +27,7 @@ type ClusterReconciler struct {
 }
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	cluster := &vmcv1alpha1.OCNEOCIQuickCreate{}
+	cluster := &vmcv1alpha1.OKEQuickCreate{}
 	err := r.Get(ctx, req.NamespacedName, cluster)
 	// if cluster not found, no work to be done
 	if apierrors.IsNotFound(err) {
@@ -44,7 +44,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r ClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.OCNEOCIQuickCreate) error {
+func (r ClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
 	// If cluster is being deleted, handle delete
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		return r.delete(ctx, cluster)
@@ -56,7 +56,7 @@ func (r ClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.O
 	return r.syncCluster(ctx, cluster)
 }
 
-func (r *ClusterReconciler) delete(ctx context.Context, cluster *vmcv1alpha1.OCNEOCIQuickCreate) error {
+func (r *ClusterReconciler) delete(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
 	if !vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerKey) {
 		return nil
 	}
@@ -68,7 +68,7 @@ func (r *ClusterReconciler) delete(ctx context.Context, cluster *vmcv1alpha1.OCN
 	return nil
 }
 
-func (r *ClusterReconciler) setFinalizer(ctx context.Context, cluster *vmcv1alpha1.OCNEOCIQuickCreate) error {
+func (r *ClusterReconciler) setFinalizer(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
 	if finalizers, added := vzstring.SliceAddString(cluster.GetFinalizers(), finalizerKey); added {
 		cluster.SetFinalizers(finalizers)
 		if err := r.Update(ctx, cluster); err != nil {
@@ -78,14 +78,14 @@ func (r *ClusterReconciler) setFinalizer(ctx context.Context, cluster *vmcv1alph
 	return nil
 }
 
-func (r *ClusterReconciler) syncCluster(ctx context.Context, cluster *vmcv1alpha1.OCNEOCIQuickCreate) error {
+func (r *ClusterReconciler) syncCluster(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
 	return nil
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&vmcv1alpha1.OCNEOCIQuickCreate{}).
+		For(&vmcv1alpha1.OKEQuickCreate{}).
 		Complete(r)
 }
 

@@ -73,20 +73,26 @@ func StartWebhookServer(log *zap.SugaredLogger, props Properties) error {
 	// Cluster Operator mutating webhook
 	err = updateMutatingWebhookConfiguration(kubeClient, certificate.WebhookName)
 	if err != nil {
-		log.Errorf("Failed to update OCIOCNECluster validation webhook configuration: %v", err)
+		log.Errorf("Failed to update OCNEOCIQuickCreate validation webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
-	// Set up the validation webhook for VMC
+	// Set up VMC Webhook Listener
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Errorf("Failed to setup webhook with manager: %v", err)
+		log.Errorf("Failed to setup VerrazzanoManagedCluster webhook with manager: %v", err)
 		os.Exit(1)
 	}
-	// Set up the mutating webhook for Cluster Operator
-	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-	if err := (&clustersv1alpha1.OCIOCNECluster{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Errorf("Failed to setup webhook with manager: %v", err)
+	// Set up OCNEOCIQuickCreate Webhook Listener
+	log.Debug("Setting up OCNEOCIQuickCreate webhook with manager")
+	if err := (&clustersv1alpha1.OCNEOCIQuickCreate{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Errorf("Failed to setup OCNEOCIQuickCreate webhook with manager: %v", err)
+		os.Exit(1)
+	}
+	// Set up OCNEOCIQuickCreate Webhook Listener
+	log.Debug("Setting up OKEQuickCreate webhook with manager")
+	if err := (&clustersv1alpha1.OKEQuickCreate{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Errorf("Failed to setup OKEQuickCreate webhook with manager: %v", err)
 		os.Exit(1)
 	}
 
