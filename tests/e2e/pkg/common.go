@@ -190,15 +190,15 @@ func GetVerrazzanoRetentionPolicy(retentionPolicyName string) (v12.IndexManageme
 		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
 		return retentionPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
-	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	clientset, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
 		return retentionPolicy, fmt.Errorf(clientSetErrorFmt, err)
 	}
 	var retentionPolicies []v12.IndexManagementPolicy
-	if clientset.Spec.Components.Elasticsearch != nil &&
-		clientset.Spec.Components.Elasticsearch.Policies != nil {
-		retentionPolicies = clientset.Spec.Components.Elasticsearch.Policies
+	if clientset.Spec.Components.OpenSearch != nil &&
+		clientset.Spec.Components.OpenSearch.Policies != nil {
+		retentionPolicies = clientset.Spec.Components.OpenSearch.Policies
 	} else {
 		return retentionPolicy, nil
 	}
@@ -222,13 +222,13 @@ func GetVerrazzanoRolloverPolicy(rolloverPolicyName string) (v12.RolloverPolicy,
 		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
 		return defaultRolloverPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
-	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	clientset, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
 		return defaultRolloverPolicy, fmt.Errorf(clientSetErrorFmt, err)
 	}
-	if clientset.Spec.Components.Elasticsearch != nil {
-		for _, ismPolicy := range clientset.Spec.Components.Elasticsearch.Policies {
+	if clientset.Spec.Components.OpenSearch != nil {
+		for _, ismPolicy := range clientset.Spec.Components.OpenSearch.Policies {
 			if ismPolicy.PolicyName == rolloverPolicyName {
 				return ismPolicy.Rollover, nil
 			}

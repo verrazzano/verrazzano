@@ -69,7 +69,7 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 // Get the list of console URLs from the status block of the installed Verrazzano resource
 func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	var consoleUrls []string
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 	if err != nil {
 		return consoleUrls, err
 	}
@@ -80,14 +80,14 @@ func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	if vz.Status.VerrazzanoInstance.GrafanaURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.GrafanaURL)
 	}
-	if vz.Status.VerrazzanoInstance.ElasticURL != nil {
-		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ElasticURL)
+	if vz.Status.VerrazzanoInstance.OpenSearchURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.OpenSearchURL)
 	}
 	if vz.Status.VerrazzanoInstance.KeyCloakURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KeyCloakURL)
 	}
-	if vz.Status.VerrazzanoInstance.KibanaURL != nil {
-		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KibanaURL)
+	if vz.Status.VerrazzanoInstance.OpenSearchDashboardsURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.OpenSearchDashboardsURL)
 	}
 	if vz.Status.VerrazzanoInstance.KialiURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KialiURL)

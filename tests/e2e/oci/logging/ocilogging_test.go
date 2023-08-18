@@ -6,9 +6,10 @@ package logging
 import (
 	"context"
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
+
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -218,7 +219,7 @@ func getLogIdentifiersFromVZCustomResource() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return "", "", err
 	}

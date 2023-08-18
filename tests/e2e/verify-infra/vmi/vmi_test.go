@@ -367,7 +367,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						)
 					})
 				t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfigPath, func() {
-					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 					if err != nil {
 						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
 						Fail(err.Error())
@@ -562,7 +562,7 @@ func assertAdminRole() bool {
 // Prometheus Operator component in the Verrazzano CR. If there is no override for replicas then the
 // default replica count of 1 is returned.
 func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 	if err != nil {
 		return 0, err
 	}
