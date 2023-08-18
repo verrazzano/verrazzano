@@ -2160,6 +2160,43 @@ func TestIsCattleGlobalDataNamespace(t *testing.T) {
 	asserts.False(reconciler.isCattleGlobalDataNamespace(&otherNS))
 }
 
+// TestIsCloudCredentialSecret tests isOCNECloudCredential
+// GIVEN Namespace resource
+// WHEN isOCNECloudCredential is called
+// THEN true is returned if secret is cloud credential in cattle global data namespace
+// THEN false is returned if not cloud credential or is not in cattle global data namespace
+func TestIsCloudCredentialSecret(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	ccSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cloud-credential",
+			Namespace: rancher.CattleGlobalDataNamespace,
+		},
+		Data: map[string][]byte{
+			ociFingerprintField: []byte("fingerprint"),
+		},
+	}
+	nonCcSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cloud-credential",
+			Namespace: rancher.CattleGlobalDataNamespace,
+		},
+	}
+	ccInOtherNS := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cloud-credential",
+			Namespace: "verrazzano-install",
+		},
+		Data: map[string][]byte{
+			ociFingerprintField: []byte("fingerprint"),
+		},
+	}
+	asserts.True(reconciler.isOCNECloudCredential(ccSecret))
+	asserts.False(reconciler.isOCNECloudCredential(nonCcSecret))
+	asserts.False(reconciler.isOCNECloudCredential(ccInOtherNS))
+}
+
 // TestReconcile tests Reconcile
 func TestReconcile(t *testing.T) {
 	type args struct {
@@ -2676,7 +2713,7 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 	// add dynamic elements to scheme
 	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: gvr.Group, Version: gvr.Version, Kind: "Cluster" + "List"}, &unstructured.Unstructured{})
 	ccSecretName := "test-secret"
-	clusterSecretName := "cluster-principal"
+	clusterSecretName := "cluster-principal" //nolint:gosec //#gosec G101
 	ccSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ccSecretName,

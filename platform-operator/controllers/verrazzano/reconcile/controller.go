@@ -83,7 +83,7 @@ type ocneCluster struct {
 	} `json:"metadata"`
 	Spec struct {
 		GenericEngineConfig struct {
-			CloudCredentialId string `json:"cloudCredentialId"`
+			CloudCredentialID string `json:"cloudCredentialId"`
 		} `json:"genericEngineConfig"`
 	} `json:"spec"`
 }
@@ -93,7 +93,7 @@ const (
 	ociUserField                 = "ocicredentialConfig-userId"
 	ociFingerprintField          = "ocicredentialConfig-fingerprint"
 	ociRegionField               = "ocicredentialConfig-region"
-	ociPassphraseField           = "ocicredentialConfig-passphrase"
+	ociPassphraseField           = "ocicredentialConfig-passphrase" //nolint:gosec //#gosec G101
 	ociKeyField                  = "ocicredentialConfig-privateKeyContents"
 	ociUseInstancePrincipalField = "useInstancePrincipal"
 )
@@ -1025,7 +1025,7 @@ func watchCloudCredForUpdate(e event.UpdateEvent, r *Reconciler) bool {
 	return false
 }
 
-// createOrUpdateCAPISecret updates CAPI secret in place with the new credentials
+// createOrUpdateCAPISecret updates CAPI based on the updated credentials
 func updateCAPISecret(r *Reconciler, updatedSecret *corev1.Secret, clusterCredential *corev1.Secret) error {
 	data := map[string][]byte{
 		ociTenancyField:              updatedSecret.Data[ociTenancyField],
@@ -1052,13 +1052,16 @@ func updateOCNEclusterCloudCreds(updatedSecret *corev1.Secret, r *Reconciler, dy
 	for _, cluster := range ocneClustersList.Items {
 		var ocneStruct ocneCluster
 		clusterJSON, err := cluster.MarshalJSON()
+		if err != nil {
+			return err
+		}
 		if err = json.Unmarshal(clusterJSON, &ocneStruct); err != nil {
 			return err
 		}
 		// if the cluster is an OCNE cluster
-		if ocneStruct.Spec.GenericEngineConfig.CloudCredentialId != "" {
-			// extract cloud credential name from CloudCredentialId field
-			cloudCredentialStringSplit := strings.Split(ocneStruct.Spec.GenericEngineConfig.CloudCredentialId, ":")
+		if ocneStruct.Spec.GenericEngineConfig.CloudCredentialID != "" {
+			// extract cloud credential name from CloudCredentialID field
+			cloudCredentialStringSplit := strings.Split(ocneStruct.Spec.GenericEngineConfig.CloudCredentialID, ":")
 			// if cloud credential name matches updatedSecret name, get and update the cc copy held by the cluster
 			if cloudCredentialStringSplit[1] == updatedSecret.Name {
 				secretName := fmt.Sprintf("%s-principal", ocneStruct.Metadata.Name)
@@ -1111,9 +1114,8 @@ func getDynamicClient() (dynamic.Interface, error) {
 
 func (r *Reconciler) isOCNECloudCredential(o client.Object) bool {
 	secret := o.(*corev1.Secret)
-	ns := o.(*corev1.Namespace)
 	// if secret is a cloud credential in the cattle-global-data ns
-	if ns.Name == rancher.CattleGlobalDataNamespace && secret.Data["ocicredentialConfig-fingerprint"] != nil {
+	if secret.Namespace == rancher.CattleGlobalDataNamespace && secret.Data["ocicredentialConfig-fingerprint"] != nil {
 		return true
 	}
 	// secret is not cloud credential
