@@ -41,8 +41,10 @@ rules:
     resources:
       - verrazzanomanagedclusters
       - verrazzanomanagedclusters/status
-      - ociocneclusters
-      - ociocneclusters/status
+      - ocneociquickcreates
+      - ocneociquickcreates/status
+      - okequickcreates
+      - okequickcreates/status
     verbs:
       - create
       - update
