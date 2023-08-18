@@ -28,7 +28,7 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230712031907-3ae8a8da4",
+              "tag": "v1.7.1-20230817215350-c8315d559",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
