@@ -5,7 +5,6 @@ package verify
 
 import (
 	"fmt"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"strings"
 	"time"
 
@@ -14,10 +13,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	compistio "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -62,7 +62,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// Get the Verrazzano CR
 	Eventually(func() error {
 		var err error
-		vzcr, err = pkg.GetVerrazzano()
+		vzcr, err = pkg.GetVerrazzanoV1beta1()
 		if err != nil {
 			return err
 		}
