@@ -1,8 +1,6 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
-
 pipeline {
     options {
         skipDefaultCheckout true
@@ -15,7 +13,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "CFGTST_tvlauning_pipeline-job-large"
+            label "pipeline-job-large"
         }
     }
 
