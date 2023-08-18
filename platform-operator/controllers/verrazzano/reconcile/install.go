@@ -138,6 +138,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			}
 			tracker.vzState = vzStateInstallComponents
 			r.beforeInstallComponents(spiCtx)
+			SetPreModuleWorkDone(true)
 			// since we updated the status, requeue to pick up new changes
 			return ctrl.Result{Requeue: true}, nil
 
@@ -147,13 +148,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				return res, err
 			}
 			tracker.vzState = vzStateWaitModulesReady
-
-		case vzStateWaitModulesReady:
-			res, err := r.waitForModulesReady(spiCtx)
-			if err != nil || res.Requeue {
-				return res, err
-			}
-			tracker.vzState = vzStatePostInstall
 
 		case vzStatePostInstall:
 			if !preUpgrade {
