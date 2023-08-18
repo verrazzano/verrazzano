@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string,appNamespace string, portNum int) (string, error) {
+func CreateServiceMonitorName(trait *vzapi.MetricsTrait, appName string, compName string, appNamespace string, portNum int) (string, error) {
 	sname, err := createJobOrServiceMonitorName(trait, appName, compName, appNamespace, portNum)
 	if err != nil {
 		return "", err

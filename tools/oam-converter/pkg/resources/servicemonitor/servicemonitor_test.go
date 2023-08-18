@@ -13,38 +13,39 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 )
-func createDefaultMetricsTrait() *vzapi.MetricsTrait{
+
+func createDefaultMetricsTrait() *vzapi.MetricsTrait {
 	scrape := "verrazzano-system/vmi-system-prometheus-0"
 	port := 7001
-	metricsTrait:= vzapi.MetricsTrait{
-	TypeMeta: k8smeta.TypeMeta{
-		APIVersion: "oam.verrazzano.io/v1alpha1",
-		Kind:       vzapi.MetricsTraitKind,
-	},
-	ObjectMeta: k8smeta.ObjectMeta{
-		Namespace: "test-namespace",
-		Name:      "test-trait-name",
-		Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
-	},
-	Spec: vzapi.MetricsTraitSpec{
-		Scraper: &scrape,
-		Port:    &port,
-	},
-}
+	metricsTrait := vzapi.MetricsTrait{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+			Kind:       vzapi.MetricsTraitKind,
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Namespace: "test-namespace",
+			Name:      "test-trait-name",
+			Labels:    map[string]string{oam.LabelAppName: "test-app", oam.LabelAppComponent: "test-comp"},
+		},
+		Spec: vzapi.MetricsTraitSpec{
+			Scraper: &scrape,
+			Port:    &port,
+		},
+	}
 	return &metricsTrait
 }
 func TestCreateServiceMonitor(t *testing.T) {
 	tests := []struct {
-		name         string
-		input        types.ConversionComponents
-		workload     unstructured.Unstructured
+		name     string
+		input    types.ConversionComponents
+		workload unstructured.Unstructured
 	}{
 		{
 			name: "empty",
 			input: types.ConversionComponents{
 				AppName:       "test-appconf",
 				ComponentName: "test-component",
-				MetricsTrait: createDefaultMetricsTrait(),
+				MetricsTrait:  createDefaultMetricsTrait(),
 				Weblogicworkload: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "oam.verrazzano.io/v1alpha1",
@@ -59,7 +60,7 @@ func TestCreateServiceMonitor(t *testing.T) {
 			input: types.ConversionComponents{
 				AppName:       "test-appconf",
 				ComponentName: "test-component",
-				MetricsTrait: createDefaultMetricsTrait(),
+				MetricsTrait:  createDefaultMetricsTrait(),
 				Helidonworkload: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "oam.verrazzano.io/v1alpha1",
@@ -74,7 +75,7 @@ func TestCreateServiceMonitor(t *testing.T) {
 			input: types.ConversionComponents{
 				AppName:       "test-appconf",
 				ComponentName: "test-component",
-				MetricsTrait: createDefaultMetricsTrait(),
+				MetricsTrait:  createDefaultMetricsTrait(),
 				Coherenceworkload: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "oam.verrazzano.io/v1alpha1",

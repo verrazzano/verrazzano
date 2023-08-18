@@ -17,6 +17,7 @@ func TestExtractTrait(t *testing.T) {
 
 	// Test data: sample appMaps
 	appMaps := []map[string]interface{}{}
+	input := types.ConversionInput{}
 
 	appConf, err := reader.ReadFromYAMLTemplate("testdata/template/app_conf.yaml")
 	if err != nil {
@@ -25,7 +26,7 @@ func TestExtractTrait(t *testing.T) {
 	appMaps = append(appMaps, appConf)
 
 	// Call the function to test
-	result, err := ExtractTrait(appMaps)
+	result, err := ExtractTrait(appMaps, input)
 
 	// Assertions
 	assert.NoError(t, err)

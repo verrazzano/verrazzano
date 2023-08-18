@@ -67,17 +67,17 @@ func CreateResources(cli client.Client, conversionComponents []*types.Conversion
 }
 func addResourcesToKubeResources(virtualService []*vsapi.VirtualService, destinationRule []*istioclient.DestinationRule, authzPolicy []*clisecurity.AuthorizationPolicy) {
 	for _, index := range virtualService {
-		if(index != nil){
+		if index != nil {
 			kubeResources = append(kubeResources, index)
 		}
 	}
 	for _, index := range destinationRule {
-		if(index != nil){
+		if index != nil {
 			kubeResources = append(kubeResources, index)
 		}
 	}
 	for _, index := range authzPolicy {
-		if(index != nil){
+		if index != nil {
 			kubeResources = append(kubeResources, index)
 		}
 	}
