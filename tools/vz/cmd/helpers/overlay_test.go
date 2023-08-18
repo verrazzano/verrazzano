@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -142,7 +142,7 @@ func TestMergeSetFlags(t *testing.T) {
 	yamlString := "spec:\n  environmentName: test"
 	_, vz, err := helpers.NewVerrazzanoForVZVersion("1.4.0")
 	assert.NoError(t, err)
-	obj, err := MergeSetFlags(v1beta1.SchemeGroupVersion, vz, yamlString)
+	obj, _, err := MergeSetFlags(v1beta1.SchemeGroupVersion, vz, yamlString)
 	assert.NoError(t, err)
 	assert.Equal(t, "test", obj.(*unstructured.Unstructured).Object["spec"].(map[string]interface{})["environmentName"])
 }
