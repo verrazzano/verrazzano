@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"reflect"
 	"sync"
 	"testing"
@@ -1867,7 +1869,7 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		controller.EXPECT().Watch(gomock.Eq(podKind), gomock.Any(), gomock.Any()).Return(nil)
 		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
 		// watches 2 secrets - managed cluster registration and Thanos internal user
-		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil)
 		reconciler.Controller = controller
 	}
@@ -2640,4 +2642,84 @@ func TestReconcilerProcReconcilingState(t *testing.T) {
 			assert.Equal(t, tt.wantVZState, vz.Status.State)
 		})
 	}
+}
+
+// newClusterRepoResources creates resources that will be loaded into the dynamic k8s client
+func newClusterRepoResources() []runtime.Object {
+	ocneCluster := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"name": "cluster",
+			},
+			"spec": map[string]interface{}{
+				"genericEngineConfig": map[string]interface{}{
+					"cloudCredentialId": "cattle-global-data:test-secret",
+				},
+			},
+		},
+	}
+	gvk := schema.GroupVersionKind{
+		Group:   "management.cattle.io",
+		Version: "v3",
+		Kind:    "Cluster",
+	}
+	ocneCluster.SetGroupVersionKind(gvk)
+	return []runtime.Object{ocneCluster}
+}
+
+// TestUpdateOCNEclusterCloudCreds tests TestUpdateOCNEclusterCloudCreds
+func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
+	scheme := k8scheme.Scheme
+	_ = vzapi.AddToScheme(scheme)
+	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme, newClusterRepoResources()...)
+	gvr := GetOCNEClusterAPIGVRForResource("clusters")
+	// add dynamic elements to scheme
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: gvr.Group, Version: gvr.Version, Kind: "Cluster" + "List"}, &unstructured.Unstructured{})
+	ccSecretName := "test-secret"
+	clusterSecretName := "cluster-principal"
+	ccSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ccSecretName,
+			Namespace: rancher.CattleGlobalDataNamespace,
+		},
+		Data: map[string][]byte{
+			ociFingerprintField: []byte("fingerprint-new"),
+			ociTenancyField:     []byte("test-tenancy-new"),
+			ociRegionField:      []byte("test-region-new"),
+		},
+	}
+	clusterSecretCopy := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterSecretName,
+			Namespace: "cluster",
+		},
+		Data: map[string][]byte{
+			ociFingerprintField: []byte("fingerprint"),
+			ociTenancyField:     []byte("test-tenancy"),
+			ociRegionField:      []byte("test-region"),
+		},
+	}
+
+	vz := &vzapi.Verrazzano{}
+
+	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(ccSecret, vz, clusterSecretCopy).Build()
+	r := &Reconciler{
+		Client:            fakeClient,
+		Scheme:            scheme,
+		Controller:        nil,
+		DryRun:            false,
+		WatchedComponents: nil,
+		WatchMutex:        nil,
+		Bom:               nil,
+		StatusUpdater:     nil,
+	}
+
+	err := updateOCNEclusterCloudCreds(ccSecret, r, dynamicClient)
+	assert.NoError(t, err)
+	updatedClusterSecretCopy := &corev1.Secret{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: "cluster", Name: "cluster-principal"}, updatedClusterSecretCopy)
+	assert.NoError(t, err)
+	assert.Equalf(t, updatedClusterSecretCopy.Data[ociFingerprintField], ccSecret.Data[ociFingerprintField], "Expected fingerprint field of cloud credential copy to match updated cloud credential secret")
+	assert.Equalf(t, updatedClusterSecretCopy.Data[ociTenancyField], ccSecret.Data[ociTenancyField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
+	assert.NotEqualf(t, updatedClusterSecretCopy.Data[ociRegionField], ccSecret.Data[ociRegionField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
 }
