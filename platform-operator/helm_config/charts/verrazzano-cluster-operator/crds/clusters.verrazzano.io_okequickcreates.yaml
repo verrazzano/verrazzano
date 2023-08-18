@@ -77,6 +77,8 @@ spec:
                     type: string
                   network:
                     properties:
+                      cniType:
+                        type: string
                       string:
                         type: string
                       subnets:
@@ -91,6 +93,8 @@ spec:
                           - role
                           type: object
                         type: array
+                    required:
+                    - cniType
                     type: object
                   nodePools:
                     items:
@@ -127,7 +131,6 @@ spec:
                 required:
                 - compartment
                 - imageName
-                - network
                 - region
                 type: object
               privateRegistry:
@@ -166,8 +169,6 @@ spec:
             required:
             - identityRef
             - kubernetes
-            - oke
-            - ttlSecondsAfterFinished
             type: object
           status:
             description: The observed state of an OCNEOCIQuickCreate resource.

@@ -34,13 +34,13 @@ type OKEQuickCreateList struct {
 type (
 	OKEQuickCreateSpec struct {
 		CommonClusterSpec `json:",inline"`
-		OKESpec           `json:"oke"`
+		OKESpec           `json:"oke,omitempty"`
 	}
 	OKESpec struct {
 		CommonOCISpec    CommonOCI         `json:",inline"`
 		NodePools        []NodeConfig      `json:"nodePools,omitempty"`
 		VirtualNodePools []VirtualNodePool `json:"virtualNodePools,omitempty"`
-		Network          Network           `json:"network"`
+		Network          *OKENetwork       `json:"network,omitempty"`
 	}
 	OKENetwork struct {
 		Network Network `json:",inline"`

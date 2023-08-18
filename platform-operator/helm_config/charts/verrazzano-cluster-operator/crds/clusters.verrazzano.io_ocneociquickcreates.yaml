@@ -1,7 +1,5 @@
 # Copyright (c) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-# Copyright (c) 2023, , Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -139,7 +137,6 @@ spec:
                 - compartment
                 - controlPlane
                 - imageName
-                - network
                 - region
                 type: object
               ocne:
@@ -193,12 +190,23 @@ spec:
             required:
             - identityRef
             - kubernetes
-            - oci
             - ocne
-            - ttlSecondsAfterFinished
             type: object
           status:
             description: The observed state of an OCNEOCIQuickCreate resource.
+            properties:
+              cluster:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - cluster
             type: object
         type: object
     served: true

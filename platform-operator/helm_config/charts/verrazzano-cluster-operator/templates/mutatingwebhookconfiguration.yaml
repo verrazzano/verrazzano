@@ -23,7 +23,7 @@ webhooks:
           - CREATE
           - UPDATE
         resources:
-          - okequickcreates
+          - ocneociquickcreates
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact

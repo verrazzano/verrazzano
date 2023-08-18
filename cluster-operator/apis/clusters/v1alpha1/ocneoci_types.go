@@ -35,18 +35,19 @@ type (
 	OCIOCNEClusterSpec struct {
 		CommonClusterSpec `json:",inline"`
 		OCNE              OCNE `json:"ocne"`
-		OCI               OCI  `json:"oci"`
+		OCI               OCI  `json:"oci,omitempty"`
 	}
 	OCI struct {
 		CommonOCISpec CommonOCI    `json:",inline"`
 		ControlPlane  NodeConfig   `json:"controlPlane"`
 		Workers       []NodeConfig `json:"workers,omitempty"`
-		Network       Network      `json:"network"`
+		Network       *Network     `json:"network,omitempty"`
 	}
 	Network struct {
-		VCN     *string  `json:"string,omitempty"`
+		VCN     string   `json:"string,omitempty"`
 		Subnets []Subnet `json:"subnets,omitempty"`
 	}
 	OCNEOCIQuickCreateStatus struct {
+		Cluster NamespacedRef `json:"cluster"`
 	}
 )
