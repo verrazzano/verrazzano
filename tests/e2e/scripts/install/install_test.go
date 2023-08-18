@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -177,7 +177,7 @@ func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
 	}
 
 	// In 1.1.1 and later, the console URL will only be present in the VZ status instance info if the console is enabled
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return false, err
 	}
