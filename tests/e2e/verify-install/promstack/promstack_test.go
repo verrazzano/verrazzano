@@ -128,7 +128,7 @@ func listDisabledComponents() []string {
 // is present and set to "true"
 func areOverridesEnabled() bool {
 	kubeconfigPath := getKubeConfigOrAbort()
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
 		return false
@@ -160,7 +160,7 @@ func areOverridesEnabled() bool {
 // isThanosSidecarEnabled returns true if the Helm override for enabling the Thanos sidecar is found
 func isThanosSidecarEnabled() (bool, error) {
 	kubeconfigPath := getKubeConfigOrAbort()
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		t.Logs.Errorf("Failed to get installed Verrazzano resource in the cluster: %v", err)
 		return false, err
