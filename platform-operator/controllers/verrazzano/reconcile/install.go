@@ -140,7 +140,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 		case vzStatePreInstall:
 			r.beforeInstallComponents(spiCtx)
-			SetPreModuleWorkDone(true)
+			if !preUpgrade {
+				SetPreModuleWorkDone(true)
+			}
 			tracker.vzState = vzStateInstallComponents
 
 		case vzStateInstallComponents:
@@ -148,8 +150,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			if !IsModuleCreateOrUpdateDone() {
-				return newRequeueWithDelay(), nil
+			if !preUpgrade {
+				if !IsModuleCreateOrUpdateDone() {
+					return newRequeueWithDelay(), nil
+				}
 			}
 			tracker.vzState = vzStatePostInstall
 
@@ -161,13 +165,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
+				SetPreModuleWorkDone(false)
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}
 	}
 
 	deleteInstallTracker(spiCtx.ActualCR())
-	SetPreModuleWorkDone(false)
 	return ctrl.Result{}, nil
 }
 
