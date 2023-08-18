@@ -86,6 +86,8 @@ func main() {
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
+	flag.BoolVar(&config.CloudCredentialWatchEnabled, "enabled-cloud-credential-watch", config.WebhookValidationEnabled,
+		"Enable watch for cloud credential updates")
 	flag.BoolVar(&config.ResourceRequirementsValidation, "resource-validation",
 		config.ResourceRequirementsValidation, "Enables of resource validation webhooks.")
 	flag.BoolVar(&config.RunWebhooks, "run-webhooks", config.RunWebhooks,

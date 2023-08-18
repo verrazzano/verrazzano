@@ -80,6 +80,9 @@ type OperatorConfig struct {
 	// default-value: false, disabling the validation
 	ResourceRequirementsValidation bool
 
+	// CloudCredentialWatchEnabled enables/disables watching the cloud credentials for updates
+	CloudCredentialWatchEnabled bool
+
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
@@ -116,6 +119,7 @@ var instance = OperatorConfig{
 	RunWebhooks:                    false,
 	ResourceRequirementsValidation: false,
 	WebhookValidationEnabled:       true,
+	CloudCredentialWatchEnabled:    false,
 	VerrazzanoRootDir:              rootDir,
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
