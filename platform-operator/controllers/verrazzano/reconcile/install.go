@@ -178,10 +178,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 // checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) {
 			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 			if !ok {
