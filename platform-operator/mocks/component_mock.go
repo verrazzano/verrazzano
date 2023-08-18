@@ -10,7 +10,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	controllerspi "github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	controllerspi "github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"

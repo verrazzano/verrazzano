@@ -16,9 +16,8 @@ def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('mast
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
 Collections.shuffle(availableDomains)
-def kubernetesVersions=[ "v1.26.2", "v1.25.4", "v1.24.1" ]
-def ocneVersions=[ "1.5"]
-def osVersions=['8', '7']
+def ocneVersions=[ "1.7", "1.6", "1.5.13", "1.5.12"]
+def osVersions=['8', '7.9']
 def uniquePrefix=UUID.randomUUID().toString().substring(0,4).replace('-','')
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
 
@@ -44,14 +43,10 @@ pipeline {
             name: 'TEST_ENV',
             description: 'Verrazzano Test Environment',
             choices: testEnvironments)
-        choice (
-            name: 'K8S_VERSION',
-            description: 'Kubernetes Version for the cluster',
-            choices: kubernetesVersions)
         // OCNE configuration
         choice (
             name: 'OCNE_VERSION',
-            description: 'OCNE Version',
+            description: 'OCNE Version - OCNE-1.6(k8s-1.25.11), OCNE-1.5.13(k8s-1.24.15), OCNE-1.5.12(k8s-1.24.8), OCNE-1.7(k8s-1.26.6)',
             choices: ocneVersions)
         choice (
             name: 'OCNE_CLUSTER_REGION',
@@ -61,6 +56,10 @@ pipeline {
             name: 'OCNE_CLUSTER_AVAILABILITY_DOMAIN',
             description: 'Availability domain for the cluster region.',
             choices: availableDomains)
+        booleanParam (
+            name: 'PRIVATE_K8S_API_ENDPOINT',
+            description: 'Whether to setup Kubernetes API server endpoint on a virtual IP address instead of a LB',
+            defaultValue: true)
         string (
             name: "CONTROL_PLANE_NODE_COUNT",
             defaultValue: '1',
@@ -139,8 +138,8 @@ pipeline {
         VZ_COMMAND="$GO_REPO_PATH/vz"
         INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocne.yaml"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
-        OCNE_TERRAFORM_GIT_URL=credentials("gitlab_ocne_tf_url")
-        OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
+        OCNE_TERRAFORM_GIT_URL="https://github.com/oracle-terraform-modules/terraform-oci-olcne.git"
+        OCNE_BRANCH_TO_USE="origin/main"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
         // Terraform variables
@@ -152,7 +151,7 @@ pipeline {
         TF_VAR_region="${params.OCNE_CLUSTER_REGION}"
         TF_VAR_availability_domain_id="${params.OCNE_CLUSTER_AVAILABILITY_DOMAIN}"
         TF_VAR_deploy_networking="true"
-        TF_VAR_bastion_enabled="true"
+        TF_VAR_enable_bastion="true"
         TF_VAR_bastion_private_key_path="$OCNE_DUMP_DIR/id_rsa"
         TF_VAR_prefix="$CLUSTER_NAME"
         TF_VAR_use_vault="false"
@@ -161,17 +160,19 @@ pipeline {
         TF_VAR_worker_node_count="${params.WORKER_NODE_COUNT}"
         TF_VAR_control_plane_node_count="${params.CONTROL_PLANE_NODE_COUNT}"
         TF_VAR_os_version="${params.OCNE_OS_VERSION}"
-        TF_VAR_environment_name="myenvironment"
-        TF_VAR_kubernetes_name="mycluster"
-        TF_VAR_kubernetes_extra_args="--restrict-service-externalip=false"
-        TF_VAR_deploy_helm_module="true"
-        TF_VAR_helm_name="myhelm"
-        TF_VAR_deploy_oci_ccm_module="true"
-        TF_VAR_oci_ccm_name="myoci"
-        TF_VAR_olcne_version="${params.OCNE_VERSION}"
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
-        TF_VAR_instance_shape="VM.Standard2.4"
+        TF_VAR_instance_shape="{shape:\"VM.Standard.E4.Flex\",ocpus:4,memory:64,boot_volume_size:100}"
+        TF_VAR_bastion_shape="{shape:\"VM.Standard.E4.Flex\",ocpus:1,memory:4,boot_volume_size:50}"
+        TF_VAR_load_balancer_shape="{shape:\"flexible\",flex_min:10,flex_max:50}"
+        TF_VAR_provision_mode="OCNE"
+        TF_VAR_config_file_path="config-file_ociccm.yaml"
+        TF_VAR_debug="true"
+        TF_VAR_virtual_ip="${params.PRIVATE_K8S_API_ENDPOINT}"
+        OCNE_ENVNAME="myenv-${params.OCNE_VERSION}"
+        OCNE_K8SNAME="k8s"
+        OCNE_VERSION="${params.OCNE_VERSION}"
+        KUBE_VERSION=ocneKubeVersion()
 
         // OCI variables
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
@@ -255,7 +256,7 @@ pipeline {
                         SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                         // update the description with some meaningful info
                         setDisplayName()
-                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OCNE_CLUSTER_REGION + " : OCNE-" + params.OCNE_VERSION + " : k8s-" + ocneKubeVersion()
                         // derive the prefix for the OCNE cluster
                         OCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
@@ -267,7 +268,7 @@ pipeline {
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.OCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
+                        userRemoteConfigs: [[url: env.OCNE_TERRAFORM_GIT_URL]]])
                     env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
                     env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
                     // If the commit we were handed is not what the SCM says we are using, fail
@@ -333,6 +334,15 @@ pipeline {
                 script {
                     echo "[INFO] Setting up Kubeconfig"
                     setupKubeconfig()
+                }
+            }
+        }
+
+        stage("Setup OCI-CCM") {
+            steps {
+                script {
+                    echo "[INFO] Setting up OCI-CCM"
+                    setupOciCCM()
                 }
             }
         }
@@ -779,6 +789,19 @@ def createOCNECluster() {
     env.createdOCNECluster="true"
     sh """
         cd $TF_REPO_PATH
+        cat << EOF > config-file_ociccm.yaml
+environments:
+  - environment-name: ${OCNE_ENVNAME}
+    globals:
+      version: ${OCNE_VERSION}
+    modules:
+      - module: kubernetes
+        name: ${OCNE_K8SNAME}
+        args:
+          restrict-service-externalip: false
+      #- module: oci-ccm
+      #  name: ociccm
+EOF
         terraform init -input=false
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
@@ -825,12 +848,22 @@ def setupSSH() {
 
 def setupKubeconfig() {
     sh """
-        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
+        cp ${TF_REPO_PATH}/kubeconfig "$KUBECONFIG"
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
         cp "$KUBECONFIG" $OCNE_DUMP_DIR/kubeconfig
         kubectl get nodes
+        kubectl get po -A
+    """
+}
+
+def setupOciCCM() {
+    sh """
+        cd $TF_REPO_PATH
+        $GO_REPO_PATH/verrazzano/ci/scripts/ocne_ociccm.sh
+        kubectl get po -A
+        kubectl get po -o yaml -n kube-system -l app=csi-oci-controller | grep image:
     """
 }
 
@@ -857,7 +890,11 @@ def createImagePullSecrets() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
-        kubectl create namespace verrazzano-install
+        if kubectl get ns | grep verrazzano-install > /dev/null 2>&1 ; then
+            echo "Namespace verrazzano-install already exists (with OCNE-1.7 OCI-CCM)"
+        else
+            kubectl create namespace verrazzano-install
+        fi
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
     """
 }
@@ -900,6 +937,7 @@ def deleteVerrazzano() {
 def deleteOCNECluster() {
     sh '''
         cd $TF_REPO_PATH
+        $GO_REPO_PATH/verrazzano/ci/scripts/ocne_delete_lb_subnet.sh
         terraform destroy -auto-approve
         for x in {1..3}; do
             if [[ $? -ne 0 ]]; then
@@ -910,4 +948,15 @@ def deleteOCNECluster() {
             fi
         done
     '''
+}
+
+def ocneKubeVersion() {
+    if ( params.OCNE_VERSION.equals("1.6") ) {
+        return "1.25.11"
+    } else if ( params.OCNE_VERSION.equals("1.5.13") ) {
+        return "1.24.15"
+    } else if ( params.OCNE_VERSION.equals("1.5.12") ) {
+        return "1.24.8"
+    }
+    return "1.26.6"
 }
