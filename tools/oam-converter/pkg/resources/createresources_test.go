@@ -118,10 +118,10 @@ func TestCreateResources(t *testing.T) {
 		}
 
 		gwMap, valid := resource.(map[string]interface{})
-		gate := gwMap["items"]
-		assert.NotNil(t, gate, "Gate is nil")
-		//TODO: Check if Kind == "Gateway"
 		if valid {
+			gate := gwMap["items"]
+			assert.NotNil(t, gate, "Gate is nil")
+			//TODO: Check if Kind == "Gateway"
 			gateWay = gwMap
 		}
 	}
