@@ -50,16 +50,11 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		return newRequeueWithDelay(), err
 	}
 
-	var requeue bool
-
 	// Loop through all the Verrazzano components and upgrade each one.
 	// Don't move to the next component until the current one has been succcessfully upgraded
 	for _, comp := range registry.GetComponents() {
 		if comp.ShouldUseModule() {
-			// Requeue until the module is gone
-			if !IsModuleCreateOrUpdateDone() {
-				requeue = true
-			}
+			// Ignore if this component is being handled by a Module
 			continue
 		}
 		if !comp.IsEnabled(spiCtx.EffectiveCR()) {
@@ -69,15 +64,11 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		upgradeContext := tracker.getComponentUpgradeContext(comp.Name())
 		result, err := r.upgradeSingleComponent(spiCtx, upgradeContext, comp)
 		if err != nil || result.Requeue {
-			requeue = true
+			return result, err
 		}
 
 	}
-	if requeue {
-		return newRequeueWithDelay(), nil
-	}
-
-	// All components have been Upgraded
+	// All components have been upgraded
 	return ctrl.Result{}, nil
 }
 

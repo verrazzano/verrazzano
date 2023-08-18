@@ -5,7 +5,6 @@ package reconcile
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -149,6 +148,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err != nil || res.Requeue {
 				return res, err
 			}
+			if !IsModuleCreateOrUpdateDone() {
+				return newRequeueWithDelay(), nil
+			}
 			tracker.vzState = vzStatePostInstall
 
 		case vzStatePostInstall:
@@ -165,6 +167,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 	}
 
 	deleteInstallTracker(spiCtx.ActualCR())
+	SetPreModuleWorkDone(false)
 	return ctrl.Result{}, nil
 }
 

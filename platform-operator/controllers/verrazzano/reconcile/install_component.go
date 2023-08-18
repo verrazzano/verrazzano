@@ -74,10 +74,6 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 	// Loop through all the Verrazzano components and install each one
 	for _, comp := range registry.GetComponents() {
 		if comp.ShouldUseModule() {
-			// Requeue until the module is gone
-			if !IsModuleCreateOrUpdateDone() {
-				requeue = true
-			}
 			// Ignore if this component is being handled by a Module
 			continue
 		}
