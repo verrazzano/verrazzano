@@ -338,6 +338,17 @@ pipeline {
                             """
                         }
                     }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                dumpK8sCluster('verify-install-admin-failure-dump')
+                            }
+                        }
+                    }
                 }
 
                 stage('Display Verrazzano config to be deployed on workload cluster') {
@@ -364,12 +375,27 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
                         failure {
-                            dumpK8sCluster("ocne-deploy-failure")
+                            script {
+                                dumpK8sCluster('ocne-deploy-failure')
+                            }
                         }
                     }
                 }
 
+                stage('Display CAPI cluster conditions post VZ install on workload cluster') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                clusterctl describe cluster -n ${CLUSTER_NAMESPACE} {CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets
+                            """
+                        }
+                    }
+                }
 
                 stage('Post-install Verify Tests on workload cluster') {
                        when {
@@ -456,6 +482,8 @@ pipeline {
                     dumpVerrazzanoApplicationOperatorLogs()
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
+                    dumpCAPIPODLogs()
+                    dumpCAPIClusterDetails()
                 }
             }
 
@@ -750,9 +778,6 @@ def ensureVZCleanupFromWorkloadCluster() {
 }
 
 def ensureCAPICleanup() {
-    script {
-        dumpK8sCluster("final-admin-cluster-dump")
-    }
     sh """
         kubectl delete cl -n ${CLUSTER_NAME} ${CLUSTER_NAME}
         kubectl delete ns ${CLUSTER_NAME}
@@ -892,4 +917,32 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def dumpCAPIPODLogs() {
+    sh """
+        ## dump out capi pod logs
+        mkdir -p ${WORKSPACE}/capi-kubernetes-runtime/logs
+        kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=cluster-api > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=bootstrap-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-bootstrap-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=control-plane-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-control-plane-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=infrastructure-oci > ${WORKSPACE}/capi-kubernetes-runtime/logs/capoci-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=cluster-api > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=bootstrap-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-bootstrap-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=control-plane-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/ccapi-ocne-control-plane-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=infrastructure-oci > ${WORKSPACE}/capi-kubernetes-runtime/logs/capoci-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "capi logs logs dumped successfully"
+        echo "capi pod description dumped successfully"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpCAPIClusterDetails() {
+    sh """
+        ## dump out capi conditions
+        mkdir -p ${WORKSPACE}/capi-conditions/logs
+        clusterctl describe cluster -n ${CLUSTER_NAMESPACE} {CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets > ${WORKSPACE}/capi-conditions/logs/capi-cluster-conditions.out --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "capi cluster conditions dumped successfully to capi-cluster-conditions.out"
+        echo "------------------------------------------"
+    """
 }
