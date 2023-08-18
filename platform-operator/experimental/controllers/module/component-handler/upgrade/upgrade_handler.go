@@ -6,13 +6,12 @@ package upgrade
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 )
 
 type ComponentHandler struct{}
@@ -159,11 +158,5 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the module status
-	res = modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUpgradeSucceeded)
-	if res.ShouldRequeue() {
-		return res
-	}
-
-	// Create an event requesting that integration happen for this module
-	return event.CreateModuleIntegrationEvent(ctx.Log, ctx.Client, module, event.Upgraded)
+	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUpgradeSucceeded)
 }
