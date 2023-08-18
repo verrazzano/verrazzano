@@ -26,6 +26,9 @@ const (
 	// vzStateSetGlobalInstallStatus is the state where the VZ Install Started status is written
 	vzStateSetGlobalInstallStatus reconcileState = "vzSetGlobalInstallStatus"
 
+	// vzStatePreInstall is the global preinstall state
+	vzStatePreInstall reconcileState = "vzPreInstall"
+
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
 
@@ -126,9 +129,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				continue
 			}
 			// if the VZ state is not Ready, it must be Reconciling or Upgrading
-			// in either case, go right to installComponents
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			// in either case, go right to PreInstall
+			tracker.vzState = vzStatePreInstall
 
 		case vzStateSetGlobalInstallStatus:
 			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
@@ -136,11 +138,14 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
-			SetPreModuleWorkDone(true)
+			tracker.vzState = vzStatePreInstall
 			// since we updated the status, requeue to pick up new changes
 			return ctrl.Result{Requeue: true}, nil
+
+		case vzStatePreInstall:
+			r.beforeInstallComponents(spiCtx)
+			SetPreModuleWorkDone(true)
+			tracker.vzState = vzStateInstallComponents
 
 		case vzStateInstallComponents:
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
