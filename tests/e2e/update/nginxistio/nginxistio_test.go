@@ -210,10 +210,6 @@ func (u NginxIstioNodePortModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 	}
 	cr.Spec.Components.IngressNGINX.Ports = testNginxIngressPorts
 	cr.Spec.Components.IngressNGINX.Type = vzapi.NodePort
-	cr.Spec.Components.IngressNGINX.NGINXInstallArgs = append(cr.Spec.Components.IngressNGINX.NGINXInstallArgs, vzapi.InstallArgs{
-		Name:      "controller.service.externalIPs",
-		ValueList: []string{u.systemExternalLBIP},
-	})
 	// update nginx
 	nginxYaml := fmt.Sprintf(`controller:
   autoscaling:
@@ -221,43 +217,50 @@ func (u NginxIstioNodePortModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
     minReplicas: %v
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
-      name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
+      name-n: value-n
+  service:
+    externalIPs:
+      - %s`, u.nginxReplicas, u.nginxLBShape, u.systemExternalLBIP)
 	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(nginxYaml)
 
+	// update istio
 	istio := cr.Spec.Components.Istio
-	istio.IstioInstallArgs = []vzapi.InstallArgs{
-		{
-			Name:      "gateways.istio-ingressgateway.externalIPs",
-			ValueList: []string{u.applicationExternalLBIP},
-		},
-	}
-	istio.Ingress = &vzapi.IstioIngressSection{
-		Type:  vzapi.NodePort,
-		Ports: testIstioIngressPorts,
-		Kubernetes: &vzapi.IstioKubernetesSection{
-			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-				Replicas: newReplicas,
-			},
-		},
-	}
-	istio.Egress = &vzapi.IstioEgressSection{
-		Kubernetes: &vzapi.IstioKubernetesSection{
-			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-				Replicas: newReplicas,
-			},
-		},
-	}
-	// update Istio
+	// FIXME: cleanup fmt.Sprintf
 	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
+  components:
+    egressGateways:
+      - enabled: true
+        k8s:
+          replicaCount: %d
+        name: istio-egressgateway
+    ingressGateways:
+      - enabled: true
+        k8s:
+          replicaCount: %d
+          service:
+            externalIPs:
+              - %s
+			ports:
+			  - name: %s
+			    nodePort: %d
+				port: %d
+				protocol: %s
+				targetPort: %v
+            type: LoadBalancer
+        name: istio-ingressgateway
   values:
     gateways:
       istio-ingressgateway:
         serviceAnnotations:
           name-i: value-i
-          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioLBShape)
-	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`,
+		newReplicas, newReplicas, u.applicationExternalLBIP, testIstioIngressPorts[0].Name,
+		testIstioIngressPorts[0].NodePort, testIstioIngressPorts[0].Port, testIstioIngressPorts[0].Protocol,
+		testIstioIngressPorts[0].TargetPort, u.istioLBShape)
+
+	istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
 func (u NginxIstioLoadBalancerModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
