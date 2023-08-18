@@ -382,7 +382,7 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-nginx-istio verify", Label("f:platform-lcm.nginx-istio-verify"), func() {
 		t.It("nginx-istio default replicas", func() {
-			cr := update.GetCR()
+			cr := update.GetCRV1beta1()
 
 			expectedIstioRunning := uint32(1)
 			expectedNGINXRunning := uint32(1)

@@ -131,7 +131,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	inlineData = oldInlineData
 	monitorChanges = true
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	_ = update.GetCR()
+	_ = update.GetCRV1beta1()
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -139,7 +139,7 @@ var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {
 	m := PrometheusOperatorDefaultModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	_ = update.GetCR()
+	_ = update.GetCRV1beta1()
 	if failed {
 		dump.ExecuteBugReport()
 	}
@@ -191,7 +191,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 				monitorChanges = false
 				m := PrometheusOperatorOverridesModifier{}
 				update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-				_ = update.GetCR()
+				_ = update.GetCRV1beta1()
 			})
 
 			t.It("Update ConfigMap", func() {
@@ -232,7 +232,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 				monitorChanges = true
 				m := PrometheusOperatorOverridesModifier{}
 				update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-				_ = update.GetCR()
+				_ = update.GetCRV1beta1()
 			})
 		})
 
@@ -298,7 +298,7 @@ func deleteOverrides() {
 	}
 	m := PrometheusOperatorValuesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	_ = update.GetCR()
+	_ = update.GetCRV1beta1()
 }
 
 func vzReady() error {

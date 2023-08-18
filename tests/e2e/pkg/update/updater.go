@@ -339,14 +339,14 @@ func RetryUpdateV1Alpha1(m CRModifier, kubeconfigPath string, waitForReady bool,
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
-func UpdateCRExpectError(m CRModifier) error {
-	cr, err := pkg.GetVerrazzano()
+func UpdateCRExpectError(m CRModifierV1beta1) error {
+	cr, err := pkg.GetVerrazzanoV1beta1()
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
 	// Modify the CR
-	m.ModifyCR(cr)
+	m.ModifyCRV1beta1(cr)
 
 	// Update the CR
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -365,7 +365,7 @@ func UpdateCRExpectError(m CRModifier) error {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
+	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())

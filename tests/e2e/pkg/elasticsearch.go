@@ -362,14 +362,14 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 
 // osIngressInLoggingNSExists return true if fluentd is configured to use operator based OS
 func osIngressInLoggingNSExists() (bool, error) {
-	cr, err := GetVerrazzano()
+	cr, err := GetVerrazzanoV1beta1()
 
 	if err != nil {
 		return false, nil
 	}
 
 	if cr.Spec.Components.Fluentd != nil &&
-		cr.Spec.Components.Fluentd.ElasticsearchURL == constants.DefaultOperatorOSURLWithNS {
+		cr.Spec.Components.Fluentd.OpenSearchURL == constants.DefaultOperatorOSURLWithNS {
 		return true, nil
 	}
 	return false, nil
