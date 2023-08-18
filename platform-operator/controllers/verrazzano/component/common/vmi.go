@@ -300,6 +300,10 @@ func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonN
 	if err != nil {
 		return err
 	}
+	// Allow the case where existing (old) storage settings were not specified.
+	if oldSetting != nil && reflect.DeepEqual(*oldSetting, ResourceRequestValues{}) {
+		return nil
+	}
 	newSetting, err := FindStorageOverride(new)
 	if err != nil {
 		return err
@@ -310,12 +314,16 @@ func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonN
 	return nil
 }
 
-// CompareStorageOverrides compares storage override settings for the VMI components
+// CompareStorageOverridesV1Beta1 compares storage override settings for the VMI components
 func CompareStorageOverridesV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano, jsonName string) error {
 	// compare the storage overrides and reject if the type or size is different
 	oldSetting, err := FindStorageOverrideV1Beta1(old)
 	if err != nil {
 		return err
+	}
+	// Allow the case where existing (old) storage settings were not specified.
+	if oldSetting != nil && reflect.DeepEqual(*oldSetting, ResourceRequestValues{}) {
+		return nil
 	}
 	newSetting, err := FindStorageOverrideV1Beta1(new)
 	if err != nil {
