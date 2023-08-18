@@ -391,7 +391,7 @@ pipeline {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
-                                clusterctl describe cluster -n ${CLUSTER_NAMESPACE} {CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets
+                                clusterctl describe cluster -n ${CLUSTER_NAMESPACE} ${CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets
                             """
                         }
                     }
@@ -941,7 +941,7 @@ def dumpCAPIClusterDetails() {
     sh """
         ## dump out capi conditions
         mkdir -p ${WORKSPACE}/capi-conditions/logs
-        clusterctl describe cluster -n ${CLUSTER_NAMESPACE} {CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets > ${WORKSPACE}/capi-conditions/logs/capi-cluster-conditions.out --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        clusterctl describe cluster -n ${CLUSTER_NAMESPACE} ${CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets > ${WORKSPACE}/capi-conditions/logs/capi-cluster-conditions.out --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "capi cluster conditions dumped successfully to capi-cluster-conditions.out"
         echo "------------------------------------------"
     """
