@@ -82,7 +82,7 @@ func ExtractTrait(appMaps []map[string]interface{}, inputArgs types.ConversionIn
 							AppName:       appName,
 							ComponentName: componentMap["componentName"].(string),
 							IngressTrait:  ingressTrait,
-							IstioEnabled: inputArgs.IstioEnabled,
+							IstioEnabled:  inputArgs.IstioEnabled,
 						})
 					}
 					if traitKind == consts.MetricsTrait {
@@ -104,7 +104,7 @@ func ExtractTrait(appMaps []map[string]interface{}, inputArgs types.ConversionIn
 							AppName:       appName,
 							ComponentName: componentMap["componentName"].(string),
 							MetricsTrait:  metricsTrait,
-							IstioEnabled: inputArgs.IstioEnabled,
+							IstioEnabled:  inputArgs.IstioEnabled,
 						})
 					}
 				}
