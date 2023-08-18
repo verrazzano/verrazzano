@@ -7,6 +7,9 @@ kind: OCNEControlPlane
 metadata:
   name: ${OCNE_CONTROL_PLANE_NAME}
   namespace: ${CLUSTER_NAMESPACE}
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+    topology.cluster.x-k8s.io/owned: ""
 spec:
   moduleOperator:
     enabled: true
@@ -52,5 +55,9 @@ spec:
       kind: OCIMachineTemplate
       name: ${OCI_MACHINE_TEMPLATE_NAME}
       namespace: ${CLUSTER_NAMESPACE}
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+        topology.cluster.x-k8s.io/owned: ""
   replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
   version: ${KUBERNETES_VERSION=v1.25.7}
