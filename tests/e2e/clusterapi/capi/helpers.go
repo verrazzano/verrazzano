@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
@@ -365,7 +366,9 @@ func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName str
 		return err
 	}
 
-	defer os.RemoveAll(tmpFilePath)
+	log.Infof("Filename = %v", tmpFilePath)
+
+	//defer os.RemoveAll(tmpFilePath)
 	clusterTemplateData, err := os.ReadFile(tmpFilePath)
 	if err != nil {
 		log.Errorf("unable to read file : %v", zap.Error(err))
@@ -950,4 +953,103 @@ func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusTyp
 
 	log.Errorf("OCNE controlplane check failure. All conditions %+v", ocneCP.Status.Conditions)
 	return false
+}
+
+// ToggleModules toggles module operator or VPO
+func (c CAPITestImpl) ToggleModules(group, version, resource, clusterName, nameSpaceName string, toggle bool, log *zap.SugaredLogger) error {
+
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return err
+	}
+
+	log.Infof("Fetching resource %s", resource)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	var patch []interface{}
+	if !toggle {
+		patch = []interface{}{
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/0",
+				"value": map[string]interface{}{
+					"name":  "moduleOperatorEnabled",
+					"value": toggle,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/1",
+				"value": map[string]interface{}{
+					"name":  "verrazzanoPlatformOperatorEnabled",
+					"value": toggle,
+				},
+			},
+		}
+	} else {
+		patch = []interface{}{
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/0",
+				"value": map[string]interface{}{
+					"name":  "moduleOperatorEnabled",
+					"value": toggle,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/1",
+				"value": map[string]interface{}{
+					"name":  "verrazzanoPlatformOperatorEnabled",
+					"value": toggle,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/2",
+				"value": map[string]interface{}{
+					"name":  "imagePullSecret",
+					"value": ImagePullSecret,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/3",
+				"value": map[string]interface{}{
+					"name":  "imageName",
+					"value": ImageName,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/4",
+				"value": map[string]interface{}{
+					"name":  "imageTag",
+					"value": ImageTag,
+				},
+			},
+		}
+	}
+
+	payload, err := json.Marshal(patch)
+	if err != nil {
+		return err
+	}
+
+	_, err = dclient.Resource(gvr).Namespace(nameSpaceName).Patch(context.TODO(), clusterName, types.JSONPatchType, payload, metav1.PatchOptions{})
+	if err != nil {
+		log.Errorf("unable to patch object %v", zap.Error(err))
+		return err
+	}
+	return nil
 }

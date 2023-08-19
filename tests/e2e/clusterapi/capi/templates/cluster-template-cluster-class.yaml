@@ -29,6 +29,17 @@ spec:
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
     version: ${KUBERNETES_VERSION=v1.25.7}
+    variables:
+      - name: moduleOperatorEnabled
+        value: true
+      - name: verrazzanoPlatformOperatorEnabled
+        value: true
+      - name: imagePullSecret
+        value: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+      - name: imageName
+        value: ${VPO_IMAGE}
+      - name: imageTag
+        value: ${VPO_TAG}
     workers:
       machineDeployments:
         - class: ${CLUSTER_NAME}-md-0-class
@@ -37,7 +48,6 @@ spec:
         - class: ${CLUSTER_NAME}-md-1-class
           name: ${CLUSTER_NAME}-md-1
           replicas: ${NODE_MACHINE_COUNT=1}
-
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
@@ -95,6 +105,107 @@ spec:
               kind: OCIMachineTemplate
               name: ${CLUSTER_NAME}-md-1-machine-template
               namespace: ${CLUSTER_NAMESPACE}
+  variables:
+    - name: moduleOperatorEnabled
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          description: Flag to enable Module Operator.
+          default: true
+          example: true
+    - name: verrazzanoPlatformOperatorEnabled
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          description: Flag to enable VPO.
+          default: true
+          example: true
+    - name: imagePullSecret
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Default image pull secret.
+          default: verrazzano-container-registry
+          example: test-secret
+    - name: imageName
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Default container registry.
+          default: ghcr.io/verrazzano
+          example: ghcr.io/verrazzano
+    - name: imageTag
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Default image tag.
+  patches:
+    - name: moduleOperatorEnabled
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: replace
+              path: /spec/template/spec/moduleOperator/enabled
+              valueFrom:
+                variable: moduleOperatorEnabled
+    - name: verrazzanoPlatformOperatorEnabled
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: replace
+              path: /spec/template/spec/verrazzanoPlatformOperator/enabled
+              valueFrom:
+                variable: verrazzanoPlatformOperatorEnabled
+    - name: imagePullSecret
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/verrazzanoPlatformOperator/imagePullSecrets
+              valueFrom:
+                template: |
+                  - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+    - name: imageName
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/verrazzanoPlatformOperator/image/repository
+              valueFrom:
+                variable: imageName
+    - name: imageTag
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/verrazzanoPlatformOperator/image/tag
+              valueFrom:
+                variable: imageTag
 ---
 apiVersion: v1
 kind: Secret

@@ -46,6 +46,28 @@ type Cluster struct {
 			Name       string `json:"name"`
 			Namespace  string `json:"namespace"`
 		} `json:"infrastructureRef"`
+		Topology struct {
+			Class        string `json:"class"`
+			ControlPlane struct {
+				Metadata struct {
+				} `json:"metadata"`
+				Replicas int `json:"replicas"`
+			} `json:"controlPlane"`
+			Variables []struct {
+				Name  string      `json:"name"`
+				Value interface{} `json:"value"`
+			} `json:"variables"`
+			Version string `json:"version"`
+			Workers struct {
+				MachineDeployments []struct {
+					Class    string `json:"class"`
+					Metadata struct {
+					} `json:"metadata"`
+					Name     string `json:"name"`
+					Replicas int    `json:"replicas"`
+				} `json:"machineDeployments"`
+			} `json:"workers"`
+		} `json:"topology"`
 	} `json:"spec"`
 	Status struct {
 		Conditions []struct {
