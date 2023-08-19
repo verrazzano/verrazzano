@@ -454,3 +454,11 @@ func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
 	}
 	return nil
 }
+
+// ValidateMySQL Verifies that the defaultVolumeSource emptyDir is not left blank. Verrazzano does not support this behavior.
+func ValidateMySQL(defaultVolumeSource *corev1.VolumeSource) error {
+	if defaultVolumeSource == nil {
+		return fmt.Errorf("DefaultVolumeSource was empty. Not allowed.")
+	}
+	return nil
+}
