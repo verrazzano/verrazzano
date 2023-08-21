@@ -32,6 +32,7 @@ const (
 	clusterTemplate              = "templates/cluster-template-addons-new-vcn.yaml"
 	clusterResourceSetTemplate   = "templates/cluster-template-addons.yaml"
 	clusterSecurityListTemplate  = "templates/cluster-template-addons-new-vcn-securitylist.yaml"
+	clusterClassTemplate         = "templates/cluster-template-cluster-class.yaml"
 	clusterResourceSetTemplateVZ = "templates/cluster-template-verrazzano-resource.yaml"
 	ocnecpmoduldisabled          = "templates/ocnecontrolplanemoduledisabled.yaml"
 	ocnecpmodulenabled           = "templates/ocnecontrolplanemoduleenabled.yaml"
@@ -300,10 +301,6 @@ func capiPrerequisites() {
 		return capiTest.SetImageID(OCIImageIDKey, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	//t.Logs.Infof("Create namespace for capi objects '%s'", ClusterName)
-	//Eventually(func() error {
-	//	return capiTest.CreateNamespace(OCNENamespace, t.Logs)
-	//}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
 var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tests"), Serial, func() {
@@ -312,7 +309,7 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 		WhenClusterAPIInstalledIt("Create CAPI cluster", func() {
 			Eventually(func() error {
-				return capiTest.TriggerCapiClusterCreation(OCNENamespace, clusterSecurityListTemplate, t.Logs)
+				return capiTest.TriggerCapiClusterCreation(OCNENamespace, clusterClassTemplate, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "Create CAPI cluster")
 		})
 
@@ -402,10 +399,11 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 	})
 
-	t.Context(fmt.Sprintf("Disable Module and VPO '%s'", ClusterName), func() {
+	t.Context(fmt.Sprintf("Disable Module Operator and Verrazzano Platform Operator '%s'", ClusterName), func() {
+
 		WhenClusterAPIInstalledIt("Disable Module operator and VPO from CAPI cluster", func() {
 			Eventually(func() error {
-				return capiTest.DeployAnyClusterResourceSets(ClusterName, ocnecpmoduldisabled, t.Logs)
+				return capiTest.ToggleModules("cluster.x-k8s.io", "v1beta1", "clusters", ClusterName, OCNENamespace, false, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "disable module and vpo")
 		})
 
@@ -441,10 +439,10 @@ var _ = t.Describe("CAPI e2e tests ,", Label("f:platform-verrazzano.capi-e2e-tes
 
 	})
 
-	t.Context(fmt.Sprintf("Enable back Module and VPO '%s'", ClusterName), func() {
+	t.Context(fmt.Sprintf("Enable Module Operator and Verrazzano Platform Operator '%s'", ClusterName), func() {
 		WhenClusterAPIInstalledIt("Enable Module operator and VPO from CAPI cluster", func() {
 			Eventually(func() error {
-				return capiTest.DeployAnyClusterResourceSets(ClusterName, ocnecpmodulenabled, t.Logs)
+				return capiTest.ToggleModules("cluster.x-k8s.io", "v1beta1", "clusters", ClusterName, OCNENamespace, true, t.Logs)
 			}, capiClusterCreationWaitTimeout, pollingInterval).Should(BeNil(), "enable module and vpo")
 		})
 

@@ -10,6 +10,7 @@ import (
 )
 
 var regexToReplacementList = []string{}
+var KnownHostNames = make(map[string]bool)
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
@@ -30,6 +31,10 @@ func InitRegexToReplacementMap() {
 func SanitizeString(l string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
+	}
+	for knownHost := range KnownHostNames {
+		wholeOccurrenceHostPattern := "\"" + knownHost + "\""
+		l = regexp.MustCompile(wholeOccurrenceHostPattern).ReplaceAllString(l, "\""+getSha256Hash(knownHost)+"\"")
 	}
 	for _, eachRegex := range regexToReplacementList {
 		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))

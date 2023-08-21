@@ -887,7 +887,6 @@ func TestHelmComponent(t *testing.T) {
 		JSONName:                  compJSONName,
 		Dependencies:              compDependencies,
 		SupportsOperatorUninstall: enabled,
-		ModuleIntegrationConfig:   ModuleIntegrationConfig{UseModule: enabled},
 		Certificates:              compCertificates,
 		MinVerrazzanoVersion:      comVersion,
 		SkipUpgrade:               true,

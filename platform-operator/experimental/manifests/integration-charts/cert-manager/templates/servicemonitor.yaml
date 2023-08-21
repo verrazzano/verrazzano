@@ -1,0 +1,32 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+{{ if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: "controller"
+    prometheus: {{ .Values.prometheus.servicemonitor.prometheusInstance }}
+    {{- with .Values.prometheus.servicemonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  jobLabel: {{ .Chart.Name }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: "controller"
+  endpoints:
+    - targetPort: {{ .Values.prometheus.servicemonitor.targetPort }}
+      path: {{ .Values.prometheus.servicemonitor.path }}
+      interval: {{ .Values.prometheus.servicemonitor.interval }}
+      scrapeTimeout: {{ .Values.prometheus.servicemonitor.scrapeTimeout }}
+      honorLabels: {{ .Values.prometheus.servicemonitor.honorLabels }}
+{{- end }}

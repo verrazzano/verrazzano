@@ -5,8 +5,11 @@
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
 kind: OCNEControlPlane
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: ${OCNE_CONTROL_PLANE_NAME}
   namespace: ${CLUSTER_NAMESPACE}
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+    topology.cluster.x-k8s.io/owned: ""
 spec:
   moduleOperator:
     enabled: false
@@ -45,7 +48,11 @@ spec:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: OCIMachineTemplate
-      name: ${CLUSTER_NAME}-control-plane
+      name: ${OCI_MACHINE_TEMPLATE_NAME}
       namespace: ${CLUSTER_NAMESPACE}
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+        topology.cluster.x-k8s.io/owned: ""
   replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
   version: ${KUBERNETES_VERSION=v1.25.7}

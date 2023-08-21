@@ -20,8 +20,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	modulehandler "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/component-handler/factory"
-	verrazzanomodule "github.com/verrazzano/verrazzano/platform-operator/experimental/module-integration/controllers/verrazzano"
+	integrationcascade "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/cascade"
+	integrationsingle "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/single"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
+	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"
@@ -116,16 +120,20 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
 	// Use the new controller if module integration is enabled.  Also create the module controllers
 	if vzconfig.ModuleIntegration {
-		// init module controllers, one for each component
 		if err := initModuleControllers(log, mgr); err != nil {
 			log.Errorf("Failed to start all module controllers", err)
-			return errors.Wrap(err, "Failed to setup controller for module controller for the components")
+			return errors.Wrap(err, "Failed to initialize modules controllers for the components")
+		}
+
+		if err := initIntegrationControllers(log, mgr); err != nil {
+			log.Errorf("Failed to start all integration controllers", err)
+			return errors.Wrap(err, "Failed to initialize integration controllers")
 		}
 
 		// init verrazzano module controller
-		if err := verrazzanomodule.InitController(mgr); err != nil {
+		if err := verrazzancontroller.InitController(mgr); err != nil {
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
-			return errors.Wrap(err, "Failed to setup controller for module-based Verrazzano controller")
+			return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 		}
 	}
 
@@ -243,6 +251,8 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 // The controller uses the module name (i.e. component name) as a predicate, so that each controller only processes Module CRs for the
 // respective component.
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+	const maxReconciles = 30
+
 	// Temp hack to prevent module controller from looking up helm info
 	module.IgnoreHelmInfo()
 
@@ -253,13 +263,35 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 		// init controller
 		if err := module.InitController(module.ModuleControllerConfig{
 			ControllerManager: mgr,
-			ModuleHandlerInfo: modulehandler.NewModuleHandlerInfo(),
+			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
 			ModuleClass:       moduleapi.ModuleClassType(comp.Name()),
 			WatchDescriptors:  comp.GetWatchDescriptors(),
+			ControllerOptions: &controller.Options{MaxConcurrentReconciles: maxReconciles},
 		}); err != nil {
 			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
 			return err
 		}
 	}
+	return nil
+}
+
+// initModuleControllers creates the integration controllers
+func initIntegrationControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+	// single module integration controller
+	if err := integrationsingle.InitController(integrationsingle.IntegrationControllerConfig{
+		ControllerManager: mgr,
+	}); err != nil {
+		log.Errorf("Failed to start the integration controller:%v", err)
+		return err
+	}
+
+	// other modules integration controller
+	if err := integrationcascade.InitController(integrationcascade.IntegrationControllerConfig{
+		ControllerManager: mgr,
+	}); err != nil {
+		log.Errorf("Failed to start the integration controller:%v", err)
+		return err
+	}
+
 	return nil
 }
