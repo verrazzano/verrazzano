@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -7,28 +7,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
 const (
-	ociTenancyField              = "ocicredentialConfig-tenancyId"
-	ociUserField                 = "ocicredentialConfig-userId"
-	ociFingerprintField          = "ocicredentialConfig-fingerprint"
-	ociRegionField               = "ocicredentialConfig-region"
-	ociPassphraseField           = "ocicredentialConfig-passphrase" //nolint:gosec //#gosec G101
-	ociKeyField                  = "ocicredentialConfig-privateKeyContents"
-	ociUseInstancePrincipalField = "useInstancePrincipal"
+	rancherCcTenancyField     = "ocicredentialConfig-tenancyId"
+	rancherCcUserField        = "ocicredentialConfig-userId"
+	rancherCcFingerprintField = "ocicredentialConfig-fingerprint"
+	rancherCcRegionField      = "ocicredentialConfig-region"
+	rancherCcPassphraseField  = "ocicredentialConfig-passphrase" //nolint:gosec //#gosec G101
+	rancherCcKeyField         = "ocicredentialConfig-privateKeyContents"
+	ociCapiTenancyField       = "tenancy"
+	ociCapiUserField          = "user"
+	ociCapiFingerprintField   = "fingerprint"
+	ociCapiRegionField        = "region"
+	ociCapiPassphraseField    = "passphrase" //nolint:gosec //#gosec G101
+	ociCapiKeyField           = "key"
 )
 
-// Struct to unmarshall the ocne clusters list
 type rancherMgmtCluster struct {
 	Metadata struct {
 		Name string `json:"name"`
@@ -40,30 +42,15 @@ type rancherMgmtCluster struct {
 	} `json:"spec"`
 }
 
-func (r *VerrazzanoSecretsReconciler) watchCloudCredForUpdate(updatedSecret *corev1.Secret) error {
-	if isOCNECloudCredential(updatedSecret) {
-		//get ocne clusters and then update copy of cloud credential if necessary
-		dynClient, err := getDynamicClient()
-		if err != nil {
-			return err
-		}
-		if err = r.updateOCNEclusterCloudCreds(updatedSecret, dynClient); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// createOrUpdateCAPISecret updates CAPI based on the updated credentials
+// createOrUpdateCAPISecret updates CAPI secret based on the updated credentials
 func (r *VerrazzanoSecretsReconciler) updateCAPISecret(updatedSecret *corev1.Secret, clusterCredential *corev1.Secret) error {
 	data := map[string][]byte{
-		ociTenancyField:              updatedSecret.Data[ociTenancyField],
-		ociUserField:                 updatedSecret.Data[ociUserField],
-		ociFingerprintField:          updatedSecret.Data[ociFingerprintField],
-		ociRegionField:               clusterCredential.Data[ociRegionField],
-		ociPassphraseField:           updatedSecret.Data[ociPassphraseField],
-		ociKeyField:                  updatedSecret.Data[ociKeyField],
-		ociUseInstancePrincipalField: updatedSecret.Data[ociUseInstancePrincipalField],
+		ociCapiTenancyField:     updatedSecret.Data[rancherCcTenancyField],
+		ociCapiUserField:        updatedSecret.Data[rancherCcUserField],
+		ociCapiFingerprintField: updatedSecret.Data[rancherCcFingerprintField],
+		ociCapiRegionField:      clusterCredential.Data[rancherCcRegionField],
+		ociCapiPassphraseField:  updatedSecret.Data[rancherCcPassphraseField],
+		ociCapiKeyField:         updatedSecret.Data[rancherCcKeyField],
 	}
 	clusterCredential.Data = data
 	err := r.Client.Update(context.TODO(), clusterCredential)
@@ -73,34 +60,38 @@ func (r *VerrazzanoSecretsReconciler) updateCAPISecret(updatedSecret *corev1.Sec
 	return nil
 }
 
-func (r *VerrazzanoSecretsReconciler) updateOCNEclusterCloudCreds(updatedSecret *corev1.Secret, dynClient dynamic.Interface) error {
-	ocneClustersList, err := getOCNEClustersList(dynClient)
-	if err != nil {
-		return err
-	}
-	for _, cluster := range ocneClustersList.Items {
-		var rancherMgmtCluster rancherMgmtCluster
-		clusterJSON, err := cluster.MarshalJSON()
+func (r *VerrazzanoSecretsReconciler) updateCapiCredential(updatedSecret *corev1.Secret) error {
+	if isOCNECloudCredential(updatedSecret) {
+		ocneClustersList, err := r.getOCNEClustersList()
 		if err != nil {
 			return err
 		}
-		if err = json.Unmarshal(clusterJSON, &rancherMgmtCluster); err != nil {
-			return err
-		}
-		// if the cluster is an OCNE cluster
-		if rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID != "" {
-			// extract cloud credential name from CloudCredentialID field
-			cloudCredentialStringSplit := strings.Split(rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID, ":")
-			// if cloud credential name matches updatedSecret name, get and update the cc copy held by the cluster
-			if cloudCredentialStringSplit[1] == updatedSecret.Name {
-				secretName := fmt.Sprintf("%s-principal", rancherMgmtCluster.Metadata.Name)
-				clusterCredential := &corev1.Secret{}
-				if err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: rancherMgmtCluster.Metadata.Name, Name: secretName}, clusterCredential); err != nil {
-					return err
-				}
-				// update cluster's cloud credential copy
-				if err = r.updateCAPISecret(updatedSecret, clusterCredential); err != nil {
-					return err
+		for _, cluster := range ocneClustersList.Items {
+			var rancherMgmtCluster rancherMgmtCluster
+			clusterJSON, err := cluster.MarshalJSON()
+			if err != nil {
+				return err
+			}
+			if err = json.Unmarshal(clusterJSON, &rancherMgmtCluster); err != nil {
+				return err
+			}
+			// if the cluster is an OCNE cluster
+			if rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID != "" {
+				// extract cloud credential name from CloudCredentialID field
+				capiCredential := strings.Split(rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID, ":")
+				// if cloud credential name matches updatedSecret name, get and update the cc copy held by the cluster
+				if len(capiCredential) >= 2 {
+					if capiCredential[1] == updatedSecret.Name {
+						secretName := fmt.Sprintf("%s-principal", rancherMgmtCluster.Metadata.Name)
+						clusterCredential := &corev1.Secret{}
+						if err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: rancherMgmtCluster.Metadata.Name, Name: secretName}, clusterCredential); err != nil {
+							return err
+						}
+						// update cluster's cloud credential copy
+						if err = r.updateCAPISecret(updatedSecret, clusterCredential); err != nil {
+							return err
+						}
+					}
 				}
 			}
 		}
@@ -109,10 +100,10 @@ func (r *VerrazzanoSecretsReconciler) updateOCNEclusterCloudCreds(updatedSecret 
 }
 
 // getOCNEClustersList returns the list of OCNE clusters
-func getOCNEClustersList(dynClient dynamic.Interface) (*unstructured.UnstructuredList, error) {
+func (r *VerrazzanoSecretsReconciler) getOCNEClustersList() (*unstructured.UnstructuredList, error) {
 	var ocneClustersList *unstructured.UnstructuredList
 	gvr := GetOCNEClusterAPIGVRForResource("clusters")
-	ocneClustersList, err := dynClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	ocneClustersList, err := r.DynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list %s/%s/%s: %v", gvr.Resource, gvr.Group, gvr.Version, err)
 	}
@@ -126,19 +117,6 @@ func GetOCNEClusterAPIGVRForResource(resource string) schema.GroupVersionResourc
 		Version:  "v3",
 		Resource: resource,
 	}
-}
-
-// GetDynamicClient returns a dynamic client needed to access Unstructured data
-func getDynamicClient() (dynamic.Interface, error) {
-	config, err := k8sutil.GetConfigFromController()
-	if err != nil {
-		return nil, err
-	}
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return dynamicClient, nil
 }
 
 func isOCNECloudCredential(secret *corev1.Secret) bool {

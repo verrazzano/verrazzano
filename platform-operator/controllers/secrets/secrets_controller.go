@@ -21,6 +21,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -33,6 +34,7 @@ import (
 // This controller also manages install override sources from the Verrazzano CR
 type VerrazzanoSecretsReconciler struct {
 	client.Client
+	DynamicClient dynamic.Interface
 	Scheme        *runtime.Scheme
 	log           vzlog.VerrazzanoLogger
 	StatusUpdater vzstatus.Updater

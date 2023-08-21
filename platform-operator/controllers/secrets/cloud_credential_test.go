@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -34,7 +34,7 @@ func TestIsCloudCredentialSecret(t *testing.T) {
 			Namespace: rancher.CattleGlobalDataNamespace,
 		},
 		Data: map[string][]byte{
-			ociFingerprintField: []byte("fingerprint"),
+			rancherCcFingerprintField: []byte("fingerprint"),
 		},
 	}
 	nonCcSecret := &corev1.Secret{
@@ -49,7 +49,7 @@ func TestIsCloudCredentialSecret(t *testing.T) {
 			Namespace: "verrazzano-install",
 		},
 		Data: map[string][]byte{
-			ociFingerprintField: []byte("fingerprint"),
+			rancherCcFingerprintField: []byte("fingerprint"),
 		},
 	}
 	asserts.True(isOCNECloudCredential(ccSecret))
@@ -73,9 +73,9 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 			Namespace: rancher.CattleGlobalDataNamespace,
 		},
 		Data: map[string][]byte{
-			ociFingerprintField: []byte("fingerprint-new"),
-			ociTenancyField:     []byte("test-tenancy-new"),
-			ociRegionField:      []byte("test-region-new"),
+			rancherCcFingerprintField: []byte("fingerprint-new"),
+			rancherCcTenancyField:     []byte("test-tenancy-new"),
+			rancherCcRegionField:      []byte("test-region-new"),
 		},
 	}
 	clusterSecretCopy := &corev1.Secret{
@@ -84,9 +84,9 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 			Namespace: "cluster",
 		},
 		Data: map[string][]byte{
-			ociFingerprintField: []byte("fingerprint"),
-			ociTenancyField:     []byte("test-tenancy"),
-			ociRegionField:      []byte("test-region"),
+			ociCapiFingerprintField: []byte("fingerprint"),
+			ociCapiTenancyField:     []byte("test-tenancy"),
+			ociCapiRegionField:      []byte("test-region"),
 		},
 	}
 	config.Set(config.OperatorConfig{CloudCredentialWatchEnabled: true})
@@ -96,18 +96,19 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(ccSecret, vz, clusterSecretCopy).Build()
 	r := &VerrazzanoSecretsReconciler{
 		Client:        fakeClient,
+		DynamicClient: dynamicClient,
 		Scheme:        scheme,
 		StatusUpdater: nil,
 	}
 
-	err := r.updateOCNEclusterCloudCreds(ccSecret, dynamicClient)
+	err := r.updateCapiCredential(ccSecret)
 	assert.NoError(t, err)
 	updatedClusterSecretCopy := &corev1.Secret{}
 	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: "cluster", Name: "cluster-principal"}, updatedClusterSecretCopy)
 	assert.NoError(t, err)
-	assert.Equalf(t, updatedClusterSecretCopy.Data[ociFingerprintField], ccSecret.Data[ociFingerprintField], "Expected fingerprint field of cloud credential copy to match updated cloud credential secret")
-	assert.Equalf(t, updatedClusterSecretCopy.Data[ociTenancyField], ccSecret.Data[ociTenancyField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
-	assert.NotEqualf(t, updatedClusterSecretCopy.Data[ociRegionField], ccSecret.Data[ociRegionField], "Expected region field of cloud credential copy to not match updated cloud credential secret")
+	assert.Equalf(t, updatedClusterSecretCopy.Data[ociCapiFingerprintField], ccSecret.Data[rancherCcFingerprintField], "Expected fingerprint field of cloud credential copy to match updated cloud credential secret")
+	assert.Equalf(t, updatedClusterSecretCopy.Data[ociCapiTenancyField], ccSecret.Data[rancherCcTenancyField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
+	assert.NotEqualf(t, updatedClusterSecretCopy.Data[ociCapiRegionField], ccSecret.Data[rancherCcRegionField], "Expected region field of cloud credential copy to not match updated cloud credential secret")
 }
 
 // newClusterRepoResources creates resources that will be loaded into the dynamic k8s client
