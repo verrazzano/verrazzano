@@ -1476,7 +1476,7 @@ data:
         nginx -t -p /etc/nginx
         if [ $? -eq 0 ]
         then
-            echo "Detected Nginx Configuration Change"
+            echo "etected Nginx Configuration Change"
             echo "Executing: nginx -s reload -p /etc/nginx"
             nginx -s reload -p /etc/nginx
         fi
