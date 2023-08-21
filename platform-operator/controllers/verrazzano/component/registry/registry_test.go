@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"testing"
@@ -120,7 +121,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 40, "Wrong number of components")
+	a.Len(comps, 41, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
@@ -200,6 +201,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), thanos.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), clusteragent.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), dex.ComponentName)
 }
 
 // TestGetComponents tests getting the components
