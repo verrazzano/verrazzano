@@ -1,9 +1,10 @@
 ### v2.0.0
+Features:
+- Added progress flag in vz cli, which shows components progress in real time.
+
 Component version updates:
 
 - Kiali v1.66.1
-- Added progress flag in vz cli, which shows components progress in real time.
-
 ### v1.6.4
 
 Component version updates:
