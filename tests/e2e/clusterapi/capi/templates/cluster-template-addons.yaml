@@ -13,6 +13,16 @@ spec:
   resources:
     - kind: Secret
       name: ${CLUSTER_NAME}-oci-cloud-controller-manager
+    - kind: Secret
+      name: ${CLUSTER_NAME}-oci-csi
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-ccm-module-cr
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-calico-module-cr
+    - kind: ConfigMap
+      name: ${CLUSTER_NAME}-vpo-cm-test-overrides
+    - kind: Secret
+      name: ${CLUSTER_NAME}-vpo-secret-test-overrides
   strategy: Reconcile
 ---
 apiVersion: v1
@@ -57,20 +67,6 @@ metadata:
   name: ${CLUSTER_NAME}-oci-cloud-controller-manager
   namespace: ${CLUSTER_NAMESPACE}
 ---
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
-  name: ${CLUSTER_NAME}-csi-secret
-  namespace: ${CLUSTER_NAMESPACE}
-spec:
-  clusterSelector:
-    matchLabels:
-      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-  resources:
-    - kind: Secret
-      name: ${CLUSTER_NAME}-oci-csi
-  strategy: Reconcile
----
 apiVersion: v1
 stringData:
   csi.yaml: |
@@ -113,20 +109,6 @@ metadata:
   name: ${CLUSTER_NAME}-oci-csi
   namespace: ${CLUSTER_NAMESPACE}
 ---
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
-  name: ${CLUSTER_NAME}-ccm-module-resource
-  namespace: ${CLUSTER_NAMESPACE}
-spec:
-  clusterSelector:
-    matchLabels:
-      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-  resources:
-    - kind: ConfigMap
-      name: ${CLUSTER_NAME}-ccm-module-cr
-  strategy: Reconcile
----
 apiVersion: v1
 data:
   ccm-module.yaml: |
@@ -146,20 +128,6 @@ metadata:
     type: generated
   name: ${CLUSTER_NAME}-ccm-module-cr
   namespace: ${CLUSTER_NAMESPACE}
----
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
-  name: ${CLUSTER_NAME}-calico-module-resource
-  namespace: ${CLUSTER_NAMESPACE}
-spec:
-  clusterSelector:
-    matchLabels:
-      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-  resources:
-    - kind: ConfigMap
-      name: ${CLUSTER_NAME}-calico-module-cr
-  strategy: Reconcile
 ---
 apiVersion: v1
 data:
@@ -194,20 +162,6 @@ metadata:
   name: ${CLUSTER_NAME}-calico-module-cr
   namespace: ${CLUSTER_NAMESPACE}
 ---
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
-  name: ${CLUSTER_NAME}-vpo-cm-test-overrides
-  namespace: ${CLUSTER_NAMESPACE}
-spec:
-  clusterSelector:
-    matchLabels:
-      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-  resources:
-    - kind: ConfigMap
-      name: ${CLUSTER_NAME}-vpo-cm-test-overrides
-  strategy: Reconcile
----
 apiVersion: v1
 data:
   test-overrides-configmap.yaml: |
@@ -232,20 +186,6 @@ metadata:
     type: generated
   name: ${CLUSTER_NAME}-vpo-cm-test-overrides
   namespace: ${CLUSTER_NAMESPACE}
----
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
-  name: ${CLUSTER_NAME}-vpo-secret-test-overrides
-  namespace: ${CLUSTER_NAMESPACE}
-spec:
-  clusterSelector:
-    matchLabels:
-      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-  resources:
-    - kind: Secret
-      name: ${CLUSTER_NAME}-vpo-secret-test-overrides
-  strategy: Reconcile
 ---
 apiVersion: v1
 stringData:
