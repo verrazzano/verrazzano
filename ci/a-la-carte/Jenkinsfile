@@ -268,10 +268,6 @@ pipeline {
             }
             steps {
                 runGinkgoUpdate('update/a-la-carte', 'prom-edge-stack')
-                sh """
-                    # wait for Verrazzano install to complete
-                    ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                """
             }
 
             post {
@@ -342,8 +338,6 @@ pipeline {
                 runGinkgoUpdate('update/a-la-carte', 'app-stack')
 
                 sh """
-                    # wait for Verrazzano install to complete
-                    ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                     kubectl get vz -A -o yaml
                 """
 
@@ -404,10 +398,6 @@ pipeline {
             }
             steps {
                 runGinkgoUpdate('update/a-la-carte', 'istio-app-stack')
-                sh """
-                    # wait for Verrazzano install to complete
-                    ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                """
             }
 
             post {
@@ -473,10 +463,6 @@ pipeline {
             }
             steps {
                 runGinkgoUpdate('update/a-la-carte', 'cluster-management-stack')
-                sh """
-                    # wait for Verrazzano install to complete
-                    ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                """
             }
 
             post {
