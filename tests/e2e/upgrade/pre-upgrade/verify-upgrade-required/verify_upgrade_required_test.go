@@ -6,13 +6,13 @@ package verify
 import (
 	"context"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
+	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -76,20 +76,20 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 				return
 			}
 
-			var vz *vzbeta1.Verrazzano
-			Eventually(func() (*vzbeta1.Verrazzano, error) {
-				vz, err = pkg.GetVerrazzanoV1beta1()
+			var vz *vzalpha1.Verrazzano
+			Eventually(func() (*vzalpha1.Verrazzano, error) {
+				vz, err = pkg.GetVerrazzano()
 				return vz, err
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).
 				ShouldNot(BeNil(), "Unable to get Verrazzano instance")
 
 			if vz.Spec.Components.Istio == nil {
-				vz.Spec.Components.Istio = &vzbeta1.IstioComponent{}
+				vz.Spec.Components.Istio = &vzalpha1.IstioComponent{}
 			}
 			istio := vz.Spec.Components.Istio
 			if istio.Ingress == nil {
-				istio.Ingress = &vzbeta1.IstioIngressSection{
-					Kubernetes: &vzbeta1.IstioKubernetesSection{},
+				istio.Ingress = &vzalpha1.IstioIngressSection{
+					Kubernetes: &vzalpha1.IstioKubernetesSection{},
 				}
 			}
 			if istio.Egress == nil {
@@ -107,7 +107,7 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 			}
 
 			// This should fail with a webhook validation error
-			_, err = vzclient.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, v1.UpdateOptions{})
+			_, err = vzclient.VerrazzanoV1alpha1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, v1.UpdateOptions{})
 			t.Logs.Infof("Returned error: %s", err.Error())
 			Expect(err).Should(Not(BeNil()))
 		})

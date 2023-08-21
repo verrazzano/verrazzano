@@ -18,7 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	pocnst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -41,7 +41,7 @@ type CertModifier struct {
 	CertManager *vzapi.CertManagerComponent
 }
 
-func (u *CertModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
+func (u *CertModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.CertManager = u.CertManager
 }
 

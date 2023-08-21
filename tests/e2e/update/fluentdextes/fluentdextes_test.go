@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	mcconst "github.com/verrazzano/verrazzano/pkg/mcconstants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	poconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -33,11 +33,11 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	cr := update.GetCRV1beta1()
+	cr := update.GetCR()
 	orignalFluentd = cr.Spec.Components.Fluentd
 	if orignalFluentd != nil { //External Collector is enabled
-		extOpensearchURL = orignalFluentd.OpenSearchURL
-		extOpensearchSec = orignalFluentd.OpenSearchSecret
+		extOpensearchURL = orignalFluentd.ElasticsearchURL
+		extOpensearchSec = orignalFluentd.ElasticsearchSecret
 	}
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
@@ -60,10 +60,10 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("Update to default Opensearch", Label("f:platform-lcm.fluentd-default-opensearch"), func() {
 		t.It("default Opensearch", func() {
 			if orignalFluentd != nil { //External Collector is enabled
-				m := &fluentd.FluentdModifierV1beta1{Component: vzapi.FluentdComponent{}}
+				m := &fluentd.FluentdModifier{Component: vzapi.FluentdComponent{}}
 
 				start := time.Now()
-				fluentd.ValidateUpdateV1beta1(m, "")
+				fluentd.ValidateUpdate(m, "")
 
 				gomega.Eventually(func() bool {
 					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
@@ -80,7 +80,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		t.It("external Opensearch", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Update fluentd to use %v and %v", extOpensearchURL, extOpensearchSec))
 			if orignalFluentd != nil { //External Collector is enabled
-				m := &fluentd.FluentdModifierV1beta1{Component: *orignalFluentd}
+				m := &fluentd.FluentdModifier{Component: *orignalFluentd}
 				update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
 
 				start := time.Now()

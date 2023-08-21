@@ -6,11 +6,10 @@ package availability
 import (
 	"context"
 	"fmt"
+	. "github.com/onsi/ginkgo/v2"
 	"strconv"
 	"strings"
 	"time"
-
-	. "github.com/onsi/ginkgo/v2"
 
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -66,7 +65,7 @@ func scaleDeployment(name, namespace string, replicas int32) {
 
 func hasUnavailableComponents(numUnavailable int) {
 	Eventually(func() bool {
-		verrazzano, err := pkg.GetVerrazzanoV1beta1()
+		verrazzano, err := pkg.GetVerrazzano()
 		if err != nil {
 			t.Logs.Errorf("Error fetching Verrazzano: %v", err)
 			return false

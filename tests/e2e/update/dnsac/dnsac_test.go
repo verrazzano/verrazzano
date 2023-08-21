@@ -13,7 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -35,12 +35,12 @@ type DNSModifier struct {
 	DNS *vzapi.DNSComponent
 }
 
-func (m *DNSModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
+func (m *DNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.DNS = m.DNS
 }
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
-	cr := update.GetCRV1beta1()
+	cr := update.GetCR()
 	adminFluentd = cr.Spec.Components.Fluentd
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()

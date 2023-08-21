@@ -6,16 +6,15 @@ package api_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -44,7 +43,7 @@ var _ = t.Describe("Multi Cluster Verify API", Label("f:ui.api"), func() {
 		t.It("Get and Validate Verrazzano resource for admin cluster", func() {
 			api := pkg.EventuallyGetAPIEndpoint(adminKubeconfig)
 			Eventually(func() bool {
-				response, err := api.Get("apis/install.verrazzano.io/v1beta1/verrazzanos")
+				response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos")
 				return isValidVerrazzanosResponse(response, err)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -52,7 +51,7 @@ var _ = t.Describe("Multi Cluster Verify API", Label("f:ui.api"), func() {
 		t.It("Get and Validate Verrazzano resource for managed cluster", func() {
 			api := pkg.EventuallyGetAPIEndpoint(adminKubeconfig)
 			Eventually(func() bool {
-				response, err := api.Get("apis/install.verrazzano.io/v1beta1/verrazzanos?cluster=" + managedClusterName)
+				response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos?cluster=" + managedClusterName)
 				return isValidVerrazzanosResponse(response, err)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -69,7 +68,7 @@ func isValidVerrazzanosResponse(response *pkg.HTTPResponse, err error) bool {
 		return false
 	}
 
-	verrazzanos := v1beta1.VerrazzanoList{}
+	verrazzanos := v1alpha1.VerrazzanoList{}
 	err = json.Unmarshal(response.Body, &verrazzanos)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unable to unmarshal api response, error: %v", err))

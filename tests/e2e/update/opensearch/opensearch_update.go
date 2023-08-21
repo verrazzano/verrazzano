@@ -4,13 +4,12 @@
 package opensearch
 
 import (
-	"time"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -31,8 +30,8 @@ type OpensearchCleanUpModifier struct {
 type OpensearchAllNodeRolesModifier struct {
 }
 
-func (u OpensearchCleanUpModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
 type OpensearchMasterNodeGroupModifier struct {
@@ -62,13 +61,13 @@ type OpensearchDuplicateNodeGroupModifier struct {
 	Name string
 }
 
-func (u OpensearchMasterNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes =
+		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.MasterRole),
 				Replicas:  &u.NodeReplicas,
@@ -79,25 +78,25 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano)
 		)
 }
 
-func (u OpenSearchPlugins) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+func (u OpenSearchPlugins) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.OpenSearch.Plugins = vmov1.OpenSearchPlugins{}
-	cr.Spec.Components.OpenSearch.Plugins =
+	cr.Spec.Components.Elasticsearch.Plugins = vmov1.OpenSearchPlugins{}
+	cr.Spec.Components.Elasticsearch.Plugins =
 		vmov1.OpenSearchPlugins{
 			Enabled:     u.Enabled,
 			InstallList: []string{u.InstanceList},
 		}
 }
 
-func (u OpensearchIngestNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes =
+		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.IngestRole),
 				Replicas:  &u.NodeReplicas,
@@ -108,13 +107,13 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano)
 		)
 }
 
-func (u OpensearchDataNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes =
+		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.DataRole),
 				Replicas:  &u.NodeReplicas,
@@ -125,28 +124,25 @@ func (u OpensearchDataNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
 		)
 }
 
-func (u OpensearchDuplicateNodeGroupModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	// FIXME: skeptical I got this right
-	var replicas int32 = 1
-	arg := vzapi.OpenSearchNode{
-		Name:     "nodes.master.replicas",
-		Replicas: &replicas,
-		Roles:    []vmov1.NodeRole{vmov1.MasterRole},
+	arg := vzapi.InstallArgs{
+		Name:  "nodes.master.replicas",
+		Value: "1",
 	}
-	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{
 		arg,
 		arg,
 	}
 }
 
-func (u OpensearchAllNodeRolesModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
-	cr.Spec.Components.OpenSearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
+func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes =
+		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.MasterRole),
 				Replicas:  common.Int32Ptr(3),

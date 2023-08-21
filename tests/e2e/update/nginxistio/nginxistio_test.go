@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"reflect"
 	"strings"
 	"text/template"
@@ -15,9 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -102,9 +102,9 @@ type NginxIstioIngressServiceAnnotationModifier struct {
 	istioLBShape string
 }
 
-func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.IngressNGINX == nil {
-		cr.Spec.Components.IngressNGINX = &vzapi.IngressNginxComponent{}
+func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
@@ -118,7 +118,7 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCRV1beta1(cr *vzapi.V
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
       name-n: value-n`, m.nginxReplicas, m.nginxLBShape)
-	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(nginxYaml)
+	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
 	// update Istio
 	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
@@ -201,15 +201,19 @@ spec:
 	//cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredEgressAntiAffinity
 }
 
-func (u NginxIstioNodePortModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.IngressNGINX == nil {
-		cr.Spec.Components.IngressNGINX = &vzapi.IngressNginxComponent{}
+func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
-	cr.Spec.Components.IngressNGINX.Ports = testNginxIngressPorts
-	cr.Spec.Components.IngressNGINX.Type = vzapi.NodePort
+	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
+	cr.Spec.Components.Ingress.Type = vzapi.NodePort
+	cr.Spec.Components.Ingress.NGINXInstallArgs = append(cr.Spec.Components.Ingress.NGINXInstallArgs, vzapi.InstallArgs{
+		Name:      "controller.service.externalIPs",
+		ValueList: []string{u.systemExternalLBIP},
+	})
 	// update nginx
 	nginxYaml := fmt.Sprintf(`controller:
   autoscaling:
@@ -217,57 +221,50 @@ func (u NginxIstioNodePortModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
     minReplicas: %v
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
-      name-n: value-n
-  service:
-    externalIPs:
-      - %s`, u.nginxReplicas, u.nginxLBShape, u.systemExternalLBIP)
-	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(nginxYaml)
+      name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
+	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
-	// update istio
 	istio := cr.Spec.Components.Istio
-	// FIXME: cleanup fmt.Sprintf
+	istio.IstioInstallArgs = []vzapi.InstallArgs{
+		{
+			Name:      "gateways.istio-ingressgateway.externalIPs",
+			ValueList: []string{u.applicationExternalLBIP},
+		},
+	}
+	istio.Ingress = &vzapi.IstioIngressSection{
+		Type:  vzapi.NodePort,
+		Ports: testIstioIngressPorts,
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: newReplicas,
+			},
+		},
+	}
+	istio.Egress = &vzapi.IstioEgressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: newReplicas,
+			},
+		},
+	}
+	// update Istio
 	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  components:
-    egressGateways:
-      - enabled: true
-        k8s:
-          replicaCount: %d
-        name: istio-egressgateway
-    ingressGateways:
-      - enabled: true
-        k8s:
-          replicaCount: %d
-          service:
-            externalIPs:
-              - %s
-			ports:
-			  - name: %s
-			    nodePort: %d
-				port: %d
-				protocol: %s
-				targetPort: %v
-            type: LoadBalancer
-        name: istio-ingressgateway
   values:
     gateways:
       istio-ingressgateway:
         serviceAnnotations:
           name-i: value-i
-          service.beta.kubernetes.io/oci-load-balancer-shape: %s`,
-		newReplicas, newReplicas, u.applicationExternalLBIP, testIstioIngressPorts[0].Name,
-		testIstioIngressPorts[0].NodePort, testIstioIngressPorts[0].Port, testIstioIngressPorts[0].Protocol,
-		testIstioIngressPorts[0].TargetPort, u.istioLBShape)
-
-	istio.ValueOverrides = createOverridesOrDie(istioYaml)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioLBShape)
+	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
-func (u NginxIstioLoadBalancerModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.IngressNGINX == nil {
-		cr.Spec.Components.IngressNGINX = &vzapi.IngressNginxComponent{}
+func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
-	cr.Spec.Components.IngressNGINX.Type = vzapi.LoadBalancer
+	cr.Spec.Components.Ingress.Type = vzapi.LoadBalancer
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
@@ -281,7 +278,7 @@ func (u NginxIstioLoadBalancerModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
       name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
-	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(nginxYaml)
+	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
 	// update Istio
 	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
@@ -309,11 +306,11 @@ spec:
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
-func (u NginxIstioIngressServiceAnnotationModifier) ModifyCRV1beta1(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.IngressNGINX == nil {
-		cr.Spec.Components.IngressNGINX = &vzapi.IngressNginxComponent{}
+func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
-	ingress := cr.Spec.Components.IngressNGINX
+	ingress := cr.Spec.Components.Ingress
 	ingress.Type = vzapi.LoadBalancer
 	nginxYaml := fmt.Sprintf(`controller:
   service:
@@ -385,7 +382,7 @@ var _ = BeforeSuite(beforeSuite)
 var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-nginx-istio verify", Label("f:platform-lcm.nginx-istio-verify"), func() {
 		t.It("nginx-istio default replicas", func() {
-			cr := update.GetCRV1beta1()
+			cr := update.GetCR()
 
 			expectedIstioRunning := uint32(1)
 			expectedNGINXRunning := uint32(1)
