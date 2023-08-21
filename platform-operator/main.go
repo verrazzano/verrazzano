@@ -141,7 +141,7 @@ func main() {
 		exitErr = operatorinit.StartPlatformOperator(config, log, scheme)
 	}
 	if exitErr != nil {
-		log.Errorf("Error occurred during execution: %v", exitErr)
+		log.Errorf("Error occurred uring execution: %v", exitErr)
 		os.Exit(1)
 	}
 }
