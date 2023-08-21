@@ -7,13 +7,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"text/template"
+	"time"
+
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"text/template"
-	"time"
 )
 
 // OSOperatorOverrides are overrides to the opensearch-operator helm
@@ -157,10 +159,15 @@ metadata:
 // InstallOrUpdateOpenSearchOperator creates or updates the CM for the dev-controller
 // to install or upgrade the opensearch-operator helm chart
 func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ingest int) error {
-	cr, err := GetVerrazzano()
+	crV1Beta1, err := GetVerrazzanoV1beta1()
 	if err != nil {
 		return err
 	}
+  // convert the v1beta1 VZ to v1alpha1, since the functions in pkg/dns.go use v1alpha1 for now
+  var cr *v1alpha1.Verrazzano
+  if err = cr.ConvertFrom(crV1Beta1); err != nil {
+    return err
+  }
 	currentEnvironmentName := GetEnvironmentName(cr)
 	currentDNSSuffix := fmt.Sprintf("%s.%s", GetIngressIP(cr), GetDNS(cr))
 
