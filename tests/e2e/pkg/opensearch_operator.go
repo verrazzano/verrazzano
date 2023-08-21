@@ -163,11 +163,11 @@ func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ing
 	if err != nil {
 		return err
 	}
-  // convert the v1beta1 VZ to v1alpha1, since the functions in pkg/dns.go use v1alpha1 for now
-  var cr *v1alpha1.Verrazzano
-  if err = cr.ConvertFrom(crV1Beta1); err != nil {
-    return err
-  }
+	// convert the v1beta1 VZ to v1alpha1, since the functions in pkg/dns.go use v1alpha1 for now
+	var cr *v1alpha1.Verrazzano
+	if err = cr.ConvertFrom(crV1Beta1); err != nil {
+		return err
+	}
 	currentEnvironmentName := GetEnvironmentName(cr)
 	currentDNSSuffix := fmt.Sprintf("%s.%s", GetIngressIP(cr), GetDNS(cr))
 
