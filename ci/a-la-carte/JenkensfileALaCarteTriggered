@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -9,8 +9,8 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE_1_5}"
-            args "${RUNNER_DOCKER_ARGS_1_5}"
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "pipeline-job-large"
@@ -18,37 +18,19 @@ pipeline {
     }
 
     parameters {
+        choice (name: 'KUBERNETES_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KinD Cluster',
+                // 1st choice is the default value
+                choices: [ "1.26", "1.25", "1.24" ])
         string (name: 'GIT_COMMIT_TO_USE',
-                        defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
-                        trim: true)
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
-                        description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
-                        trim: true)
-        string (name: 'WILDCARD_DNS_DOMAIN',
-                        defaultValue: 'nip.io',
-                        description: 'This is the wildcard DNS domain',
-                        trim: true)
-        string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1, v1.1.2, v1.2.0, v1.2.1, v1.2.2",
-                description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
-        string (name: 'TAGGED_TESTS',
-                defaultValue: '',
-                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                 trim: true)
-        string (name: 'INCLUDED_TESTS',
-                defaultValue: '.*',
-                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
-                trim: true)
-        string (name: 'EXCLUDED_TESTS',
-                defaultValue: '_excluded_test',
-                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
-                trim: true)
-        string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: '',
-                description: 'The branch to check out after cloning the console repository.',
-                trim: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -60,7 +42,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        RELEASE_OWNERS = credentials('release-version-owners')
     }
 
     stages {
@@ -103,10 +84,7 @@ pipeline {
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    def excludeReleases = params.EXCLUDE_RELEASES
-                    def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
-                    VERSION_FOR_INSTALL = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} install-version ${excludeReleasesList}").trim()
-                    INTERIM_UPGRADE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} interim-version ${excludeReleasesList}").trim()
+
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     def currentCommitHash = env.GIT_COMMIT
@@ -120,143 +98,112 @@ pipeline {
             }
         }
 
-        stage('Verrazzano development version check') {
-                           steps {
-                               sh """
-                           [[ -z \$(git ls-remote --tags origin | grep -F ${VERRAZZANO_DEV_VERSION}) ]] || exit 1
-
-
-                       """
-                           }
-                           post {
-                               failure {
-                                   script {
-                                       if (env.JOB_NAME ==~ "verrazzano/release-*") {
-                                           slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nVZ Helper was not run, the Verrazzano Development Version ${VERRAZZANO_DEV_VERSION} matches a prior release\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nRelease Owners:\n ${RELEASE_OWNERS}\n")
-                                       }
-                                   }
-                               }
-                           }
-                       }
-
-        stage ('Kick off resiliency tests') {
+        stage ('Kick off a-la-carte tests') {
             parallel {
-                stage('VPO killed during upgrade') {
+                stage('Wildcard DNS, Default CA, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: params.KUBERNETES_CLUSTER_VERSION),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'vpo.killed')
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "my-cert-manager"),
+                                        string(name: 'DNS_TYPE', value: "wildcard"),
+                                        string(name: 'CERTIFICATE_TYPE', value: "default"),
                                     ], wait: true
                             }
                         }
                     }
                 }
-                stage('Upgrade using ephemeral storage') {
+                stage('OCIDNS, Default CA, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                            string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                            string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
-                                            string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
-                                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                            string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                            string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                            string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                            string(name: 'CHAOS_TEST_TYPE', value: 'ephemeral.storage.upgrade')
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: params.KUBERNETES_CLUSTER_VERSION),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "my-cert-manager"),
+                                        string(name: 'DNS_TYPE', value: "ocidns"),
+                                        string(name: 'CERTIFICATE_TYPE', value: "default"),
                                     ], wait: true
                             }
                         }
                     }
                 }
-                stage('Component helm install failure') {
+                stage('OCIDNS, LetEncypt staging, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: params.KUBERNETES_CLUSTER_VERSION),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'helm.chart.corrupted')
-                                ], wait: true
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "my-cert-manager"),
+                                        string(name: 'DNS_TYPE', value: "ocidns"),
+                                        string(name: 'CERTIFICATE_TYPE', value: "letsEncrypt"),
+                                    ], wait: true
                             }
                         }
                     }
                 }
-                stage('Uninstall failed upgrade') {
+                stage('Wildcard DNS, Default CA, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: params.KUBERNETES_CLUSTER_VERSION),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.failed.upgrade')
-                                ], wait: true
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "my-cluster-resource"),
+                                        string(name: 'DNS_TYPE', value: "wildcard"),
+                                        string(name: 'CERTIFICATE_TYPE', value: "default"),
+                                    ], wait: true
                             }
                         }
                     }
                 }
-                stage('Upgrade a failed upgrade') {
+                stage('OCIDNS, Default CA, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: params.KUBERNETES_CLUSTER_VERSION),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failed.upgrade')
-                                ], wait: true
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "my-cluster-resource"),
+                                        string(name: 'DNS_TYPE', value: "ocidns"),
+                                        string(name: 'CERTIFICATE_TYPE', value: "default"),
+                                    ], wait: true
                             }
                         }
                     }
                 }
-                stage('Upgrade an in-process failing upgrade') {
+                stage('OCIDNS, LetEncypt staging, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: params.KUBERNETES_CLUSTER_VERSION),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failing.upgrade')
-                                ], wait: true
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        string(name: 'CLUSTER_RESOURCE_NAMESPACE', value: "my-cluster-resource"),
+                                        string(name: 'DNS_TYPE', value: "ocidns"),
+                                        string(name: 'CERTIFICATE_TYPE', value: "letsEncrypt"),
+                                    ], wait: true
                             }
                         }
                     }
@@ -267,7 +214,7 @@ pipeline {
     post {
         failure {
             script {
-                if (env.JOB_NAME == "verrazzano-upgrade-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-upgrade-resiliency-tests/release-1.*") {
+                if (env.JOB_NAME == "verrazzano-a-la-carte-triggered/master" || env.JOB_NAME ==~ "errazzano-a-la-carte-triggered/release-1.*") {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
