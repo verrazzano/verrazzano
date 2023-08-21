@@ -3,6 +3,9 @@
 Feature:
 
 - Enabled status updates for Istio reconciled objects
+- Support for Thanos Ruler and Compactor
+- Prometheus rules in the kube-prometheus-stack and Thanos Helm charts are enabled by default
+- Added Prometheus alerting rules for Verrazzano operators
 
 ### v1.6.4
 
