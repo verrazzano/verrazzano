@@ -29,7 +29,7 @@ const (
 )
 
 // Struct to unmarshall the ocne clusters list
-type ocneCluster struct {
+type rancherMgmtCluster struct {
 	Metadata struct {
 		Name string `json:"name"`
 	} `json:"metadata"`
@@ -40,14 +40,14 @@ type ocneCluster struct {
 	} `json:"spec"`
 }
 
-func watchCloudCredForUpdate(r *VerrazzanoSecretsReconciler, updatedSecret *corev1.Secret) error {
-	if r.isOCNECloudCredential(updatedSecret) {
+func (r *VerrazzanoSecretsReconciler) watchCloudCredForUpdate(updatedSecret *corev1.Secret) error {
+	if isOCNECloudCredential(updatedSecret) {
 		//get ocne clusters and then update copy of cloud credential if necessary
 		dynClient, err := getDynamicClient()
 		if err != nil {
 			return err
 		}
-		if err = updateOCNEclusterCloudCreds(updatedSecret, r, dynClient); err != nil {
+		if err = r.updateOCNEclusterCloudCreds(updatedSecret, dynClient); err != nil {
 			return err
 		}
 	}
@@ -55,7 +55,7 @@ func watchCloudCredForUpdate(r *VerrazzanoSecretsReconciler, updatedSecret *core
 }
 
 // createOrUpdateCAPISecret updates CAPI based on the updated credentials
-func updateCAPISecret(r *VerrazzanoSecretsReconciler, updatedSecret *corev1.Secret, clusterCredential *corev1.Secret) error {
+func (r *VerrazzanoSecretsReconciler) updateCAPISecret(updatedSecret *corev1.Secret, clusterCredential *corev1.Secret) error {
 	data := map[string][]byte{
 		ociTenancyField:              updatedSecret.Data[ociTenancyField],
 		ociUserField:                 updatedSecret.Data[ociUserField],
@@ -73,33 +73,33 @@ func updateCAPISecret(r *VerrazzanoSecretsReconciler, updatedSecret *corev1.Secr
 	return nil
 }
 
-func updateOCNEclusterCloudCreds(updatedSecret *corev1.Secret, r *VerrazzanoSecretsReconciler, dynClient dynamic.Interface) error {
+func (r *VerrazzanoSecretsReconciler) updateOCNEclusterCloudCreds(updatedSecret *corev1.Secret, dynClient dynamic.Interface) error {
 	ocneClustersList, err := getOCNEClustersList(dynClient)
 	if err != nil {
 		return err
 	}
 	for _, cluster := range ocneClustersList.Items {
-		var ocneStruct ocneCluster
+		var rancherMgmtCluster rancherMgmtCluster
 		clusterJSON, err := cluster.MarshalJSON()
 		if err != nil {
 			return err
 		}
-		if err = json.Unmarshal(clusterJSON, &ocneStruct); err != nil {
+		if err = json.Unmarshal(clusterJSON, &rancherMgmtCluster); err != nil {
 			return err
 		}
 		// if the cluster is an OCNE cluster
-		if ocneStruct.Spec.GenericEngineConfig.CloudCredentialID != "" {
+		if rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID != "" {
 			// extract cloud credential name from CloudCredentialID field
-			cloudCredentialStringSplit := strings.Split(ocneStruct.Spec.GenericEngineConfig.CloudCredentialID, ":")
+			cloudCredentialStringSplit := strings.Split(rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID, ":")
 			// if cloud credential name matches updatedSecret name, get and update the cc copy held by the cluster
 			if cloudCredentialStringSplit[1] == updatedSecret.Name {
-				secretName := fmt.Sprintf("%s-principal", ocneStruct.Metadata.Name)
+				secretName := fmt.Sprintf("%s-principal", rancherMgmtCluster.Metadata.Name)
 				clusterCredential := &corev1.Secret{}
-				if err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: ocneStruct.Metadata.Name, Name: secretName}, clusterCredential); err != nil {
+				if err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: rancherMgmtCluster.Metadata.Name, Name: secretName}, clusterCredential); err != nil {
 					return err
 				}
 				// update cluster's cloud credential copy
-				if err = updateCAPISecret(r, updatedSecret, clusterCredential); err != nil {
+				if err = r.updateCAPISecret(updatedSecret, clusterCredential); err != nil {
 					return err
 				}
 			}
@@ -141,7 +141,7 @@ func getDynamicClient() (dynamic.Interface, error) {
 	return dynamicClient, nil
 }
 
-func (r *VerrazzanoSecretsReconciler) isOCNECloudCredential(secret *corev1.Secret) bool {
+func isOCNECloudCredential(secret *corev1.Secret) bool {
 	// if secret is a cloud credential in the cattle-global-data ns
 	if secret.Namespace == rancher.CattleGlobalDataNamespace && secret.Data["ocicredentialConfig-fingerprint"] != nil {
 		return true

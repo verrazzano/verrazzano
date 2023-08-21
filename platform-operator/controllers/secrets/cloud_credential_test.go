@@ -28,13 +28,6 @@ import (
 // THEN false is returned if not cloud credential or is not in cattle global data namespace
 func TestIsCloudCredentialSecret(t *testing.T) {
 	asserts := assert.New(t)
-	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	scheme := k8scheme.Scheme
-	reconciler := &VerrazzanoSecretsReconciler{
-		Client:        fakeClient,
-		Scheme:        scheme,
-		StatusUpdater: nil,
-	}
 	ccSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cloud-credential",
@@ -59,9 +52,9 @@ func TestIsCloudCredentialSecret(t *testing.T) {
 			ociFingerprintField: []byte("fingerprint"),
 		},
 	}
-	asserts.True(reconciler.isOCNECloudCredential(ccSecret))
-	asserts.False(reconciler.isOCNECloudCredential(nonCcSecret))
-	asserts.False(reconciler.isOCNECloudCredential(ccInOtherNS))
+	asserts.True(isOCNECloudCredential(ccSecret))
+	asserts.False(isOCNECloudCredential(nonCcSecret))
+	asserts.False(isOCNECloudCredential(ccInOtherNS))
 }
 
 // TestUpdateOCNEclusterCloudCreds tests TestUpdateOCNEclusterCloudCreds
@@ -107,7 +100,7 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 		StatusUpdater: nil,
 	}
 
-	err := updateOCNEclusterCloudCreds(ccSecret, r, dynamicClient)
+	err := r.updateOCNEclusterCloudCreds(ccSecret, dynamicClient)
 	assert.NoError(t, err)
 	updatedClusterSecretCopy := &corev1.Secret{}
 	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: "cluster", Name: "cluster-principal"}, updatedClusterSecretCopy)
