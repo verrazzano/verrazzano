@@ -683,7 +683,7 @@ func GetVerrazzanoV1beta1() (*v1beta1.Verrazzano, error) {
 
 // GetVerrazzanoVersion returns the Verrazzano Version
 func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return "", err
 	}
