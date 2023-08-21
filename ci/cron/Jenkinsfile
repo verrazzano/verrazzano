@@ -16,8 +16,6 @@ def periodicsUpToDate              = false // If true, indicates that the period
 @Field
 def periodicsUpToDateFailed        = false // If true, indicates that the periodics already ran and failed at the latest commit
 
-def agentLabel = "1.6-small"
-
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
 
@@ -35,7 +33,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "pipeline-job-large"
         }
     }
 

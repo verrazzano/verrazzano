@@ -11,7 +11,6 @@ def LAST_CLEAN_PERIODIC_COMMIT = ""
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
-def agentLabel = "1.6-small"
 @Field
 def TESTS_FAILED = false
 @Field
@@ -58,7 +57,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "pipeline-job-large"
         }
     }
 
