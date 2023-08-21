@@ -7,14 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 
 	"github.com/hashicorp/go-retryablehttp"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -389,7 +388,7 @@ func ValidateEsIndexCleanerCronJobFunc() func() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+		vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 		if err != nil {
 			return false, err
 		}

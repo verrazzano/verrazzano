@@ -6,17 +6,17 @@ package update
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/client-go/rest"
 	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -182,31 +182,23 @@ func UpdateCRV1beta1(m CRModifierV1beta1) error {
 }
 
 // UpdateCRWithRetries updates the CR with the given CRModifier.
+// UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
 // - if the modifier implements rest.WarningHandler it will be added to the client config
 //
 // If the update fails, it retries by getting the latest version of CR and applying the same
 // update till it succeeds or timesout.
-func UpdateCRWithRetries(m CRModifierV1beta1, pollingInterval, timeout time.Duration) {
+func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 	RetryUpdate(m, "", true, pollingInterval, timeout)
-}
-
-// UpdateCRWithRetriesV1Alpha1 updates the CR with the given CRModifier.
-// - if the modifier implements rest.WarningHandler it will be added to the client config
-//
-// If the update fails, it retries by getting the latest version of CR and applying the same
-// update till it succeeds or timesout.
-func UpdateCRWithRetriesV1Alpha1(m CRModifier, pollingInterval, timeout time.Duration) {
-	RetryUpdateV1Alpha1(m, "", true, pollingInterval, timeout)
 }
 
 // UpdateCRWithPlugins updates the CR with the given CRModifier.
 // update till it succeeds or timesout.
-func UpdateCRWithPlugins(m CRModifierV1beta1, pollingInterval, timeout time.Duration) {
+func UpdateCRWithPlugins(m CRModifier, pollingInterval, timeout time.Duration) {
 	UpdatePlugins(m, "", true, pollingInterval, timeout)
 }
 
 // UpdatePlugins tries update with kubeconfigPath
-func UpdatePlugins(m CRModifierV1beta1, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
+func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		var err error
 		if kubeconfigPath == "" {
@@ -217,13 +209,13 @@ func UpdatePlugins(m CRModifierV1beta1, kubeconfigPath string, waitForReady bool
 			}
 		}
 
-		cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
 		// Modify the CR
-		m.ModifyCRV1beta1(cr)
+		m.ModifyCR(cr)
 		config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -235,7 +227,7 @@ func UpdatePlugins(m CRModifierV1beta1, kubeconfigPath string, waitForReady bool
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -247,54 +239,7 @@ func UpdatePlugins(m CRModifierV1beta1, kubeconfigPath string, waitForReady bool
 
 // RetryUpdate tries update with kubeconfigPath
 // - if the modifier implements rest.WarningHandler it will be added to the client config
-func RetryUpdate(m CRModifierV1beta1, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
-	gomega.Eventually(func() bool {
-		var err error
-		if kubeconfigPath == "" {
-			kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-		}
-		if waitForReady {
-			WaitForReadyState(kubeconfigPath, time.Time{}, pollingInterval, timeout)
-		}
-		cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
-		if err != nil {
-			pkg.Log(pkg.Error, err.Error())
-			return false
-		}
-		// Modify the CR
-		m.ModifyCRV1beta1(cr)
-		config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-		if err != nil {
-			pkg.Log(pkg.Error, err.Error())
-			return false
-		}
-		addWarningHandlerIfNecessary(m, config)
-		client, err := vpoClient.NewForConfig(config)
-		if err != nil {
-			pkg.Log(pkg.Error, err.Error())
-			return false
-		}
-		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
-		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-		if err != nil {
-			pkg.Log(pkg.Error, err.Error())
-			return false
-		}
-		if waitForReady {
-			// Wait till the resource edit is complete and the verrazzano custom resource comes to ready state
-			WaitForReadyState(kubeconfigPath, time.Now(), pollingInterval, timeout)
-		}
-		return true
-	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
-}
-
-// RetryUpdateV1alpha1 tries update with kubeconfigPath
-// - if the modifier implements rest.WarningHandler it will be added to the client config
-func RetryUpdateV1Alpha1(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
+func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		var err error
 		if kubeconfigPath == "" {
@@ -339,14 +284,14 @@ func RetryUpdateV1Alpha1(m CRModifier, kubeconfigPath string, waitForReady bool,
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
-func UpdateCRExpectError(m CRModifierV1beta1) error {
-	cr, err := pkg.GetVerrazzanoV1beta1()
+func UpdateCRExpectError(m CRModifier) error {
+	cr, err := pkg.GetVerrazzano()
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
 	// Modify the CR
-	m.ModifyCRV1beta1(cr)
+	m.ModifyCR(cr)
 
 	// Update the CR
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -365,7 +310,7 @@ func UpdateCRExpectError(m CRModifierV1beta1) error {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
-	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
@@ -375,15 +320,15 @@ func UpdateCRExpectError(m CRModifierV1beta1) error {
 }
 
 // IsCRReady return true if the verrazzano custom resource is in ready state after an update operation false otherwise
-func IsCRReadyAfterUpdate(cr *v1beta1.Verrazzano, updatedTime time.Time) bool {
-	if cr == nil || cr.Status.State != v1beta1.VzStateReady {
+func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
+	if cr == nil || cr.Status.State != vzapi.VzStateReady {
 		pkg.Log(pkg.Error, "VZ CR is nil or not in ready state")
 		return false
 	}
 	for _, condition := range cr.Status.Conditions {
 		pkg.Log(pkg.Info, fmt.Sprintf("Checking if condition of type '%s', transitioned at '%s' is for the expected update",
 			condition.Type, condition.LastTransitionTime))
-		if (condition.Type == v1beta1.CondInstallComplete || condition.Type == v1beta1.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
+		if (condition.Type == vzapi.CondInstallComplete || condition.Type == vzapi.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
 			// check if the transition time is post the time of update
 			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
 			if err != nil {
@@ -405,7 +350,7 @@ func IsCRReadyAfterUpdate(cr *v1beta1.Verrazzano, updatedTime time.Time) bool {
 // WaitForReadyState waits till the verrazzano custom resource becomes ready or times out
 func WaitForReadyState(kubeconfigPath string, updateTime time.Time, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
-		cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false

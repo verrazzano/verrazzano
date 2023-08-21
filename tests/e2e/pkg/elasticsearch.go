@@ -8,6 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/gomega"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"html/template"
 	"net/http"
 	url2 "net/url"
@@ -16,11 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/onsi/gomega"
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo/v2"
@@ -221,9 +220,9 @@ type OpenSearchISMPolicyRemoveModifier struct{}
 var expectedSystemISMPolicies = []string{"vz-application", "vz-custom"}
 
 func (u OpenSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
-	if cr.Spec.Components.OpenSearch.Policies == nil {
-		cr.Spec.Components.OpenSearch.Policies = []vmov1.IndexManagementPolicy{
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+	if cr.Spec.Components.Elasticsearch.Policies == nil {
+		cr.Spec.Components.Elasticsearch.Policies = []vmov1.IndexManagementPolicy{
 			{
 				PolicyName:   "verrazzano-system",
 				IndexPattern: "verrazzano-system*",
@@ -245,7 +244,7 @@ func (u OpenSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u OpenSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.OpenSearch = &vzapi.OpenSearchComponent{}
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
 func TestOpenSearchPlugins(pollingInterval time.Duration, waitTimeout time.Duration) {
@@ -362,14 +361,14 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 
 // osIngressInLoggingNSExists return true if fluentd is configured to use operator based OS
 func osIngressInLoggingNSExists() (bool, error) {
-	cr, err := GetVerrazzanoV1beta1()
+	cr, err := GetVerrazzano()
 
 	if err != nil {
 		return false, nil
 	}
 
 	if cr.Spec.Components.Fluentd != nil &&
-		cr.Spec.Components.Fluentd.OpenSearchURL == constants.DefaultOperatorOSURLWithNS {
+		cr.Spec.Components.Fluentd.ElasticsearchURL == constants.DefaultOperatorOSURLWithNS {
 		return true, nil
 	}
 	return false, nil

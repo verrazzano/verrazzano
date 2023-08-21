@@ -36,7 +36,7 @@ func NewMetricsTest(kubeconfigPath string, defaultLabels map[string]string, extr
 	}
 
 	for _, kc := range append(extraKubeconfigs, kubeconfigPath) {
-		vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kc)
+		vz, err := GetVerrazzanoInstallResourceInCluster(kc)
 		if err != nil {
 			return MetricsTest{}, err
 		}

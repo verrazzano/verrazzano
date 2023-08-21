@@ -7,14 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"text/template"
-	"time"
-
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"text/template"
+	"time"
 )
 
 // OSOperatorOverrides are overrides to the opensearch-operator helm
@@ -158,7 +157,7 @@ metadata:
 // InstallOrUpdateOpenSearchOperator creates or updates the CM for the dev-controller
 // to install or upgrade the opensearch-operator helm chart
 func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ingest int) error {
-	cr, err := GetVerrazzanoV1beta1()
+	cr, err := GetVerrazzano()
 	if err != nil {
 		return err
 	}
