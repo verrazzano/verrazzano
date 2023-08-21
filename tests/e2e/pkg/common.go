@@ -24,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -843,7 +842,7 @@ func IsVerrazzanoManaged(labels map[string]string) bool {
 	return false
 }
 
-func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []string) (bool, error) {
+func IngressesExist(vz *v1beta1.Verrazzano, namespace string, ingressNames []string) (bool, error) {
 	if !vzcr.IsNGINXEnabled(vz) {
 		Log(Info, "Component NGINX is disabled, skipping Ingress check.")
 		return true, nil
