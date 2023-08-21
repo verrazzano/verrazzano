@@ -4,12 +4,14 @@
 package install
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
@@ -99,8 +101,8 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Flag to skip any confirmation questions
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
-	// Flag to skip reinstalling the operator
-	cmd.PersistentFlags().BoolP(constants.SkipOperatorInstallFlag, constants.SkipOperatorInstallShort, false, constants.SkipOperatorInstallFlagHelp)
+	// Flag to skip reinstalling the Verrazzano Platform Operator
+	cmd.PersistentFlags().Bool(constants.SkipOperatorInstallFlag, false, constants.SkipOperatorInstallFlagHelp)
 	// Add flags related to specifying the platform operator manifests as a local file or a URL
 	cmdhelpers.AddManifestsFlags(cmd)
 
@@ -216,7 +218,19 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		if !cmd.PersistentFlags().Changed(constants.SkipOperatorInstallFlag) {
+		vpoList, err := validators.GetPlatformOperatorPodList(client)
+		if err != nil {
+			return err
+		}
+		var confirmReinstall bool
+		if len(vpoList.Items) > 0 {
+			confirmReinstall, err = cmd.Flags().GetBool(constants.SkipOperatorInstallFlag)
+		}
+		continueReinstall, err := continueReinstall(confirmReinstall)
+		if err != nil {
+			return err
+		}
+		if continueReinstall {
 			// Delete leftover verrazzano-platform-operator deployments after an abort.
 			// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
 			err = cmdhelpers.DeleteFunc(client)
@@ -456,4 +470,23 @@ func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper hel
 	}
 
 	return nil
+}
+
+func continueReinstall(confirmReinstall bool) (bool, error) {
+	if confirmReinstall {
+		return true, nil
+	}
+	var response string
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("Are you sure you want to reinstall the Verrazzano Platform Operator? [y/N]: ")
+	if scanner.Scan() {
+		response = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+	if response == "y" || response == "Y" {
+		return true, nil
+	}
+	return false, nil
 }
