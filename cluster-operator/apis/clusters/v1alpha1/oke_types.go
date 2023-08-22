@@ -34,16 +34,22 @@ type OKEQuickCreateList struct {
 type (
 	OKEQuickCreateSpec struct {
 		CommonClusterSpec `json:",inline"`
-		OKESpec           `json:"oke,omitempty"`
+		// OKE Cluster settings.
+		OKESpec `json:"oke,omitempty"`
 	}
 	OKESpec struct {
-		CommonOCISpec    CommonOCI         `json:",inline"`
-		NodePools        []NodeConfig      `json:"nodePools,omitempty"`
+		CommonOCISpec CommonOCI `json:",inline"`
+		// List of Node pools.
+		NodePools []NodeConfig `json:"nodePools,omitempty"`
+		// List of Virtual Node pools.
 		VirtualNodePools []VirtualNodePool `json:"virtualNodePools,omitempty"`
-		Network          *OKENetwork       `json:"network,omitempty"`
+		// Network settings for the OKE Cluster.
+		Network *OKENetwork `json:"network,omitempty"`
 	}
 	OKENetwork struct {
+		// VCN and subnet settings for existing networks.
 		Network Network `json:",inline"`
+		// CNI Type for cluster networking. May be FLANNEL_OVERLAY or OCI_VCN_IP_NATIVE.
 		CNIType CNIType `json:"cniType"`
 	}
 	VirtualNodePool struct {

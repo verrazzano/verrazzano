@@ -34,14 +34,19 @@ type OCNEOCIQuickCreateList struct {
 type (
 	OCIOCNEClusterSpec struct {
 		CommonClusterSpec `json:",inline"`
-		OCNE              OCNE `json:"ocne"`
-		OCI               OCI  `json:"oci,omitempty"`
+		// OCNE settings.
+		OCNE OCNE `json:"ocne"`
+		// OCI infrastructure settings.
+		OCI OCI `json:"oci,omitempty"`
 	}
 	OCI struct {
-		CommonOCISpec CommonOCI    `json:",inline"`
-		ControlPlane  NodeConfig   `json:"controlPlane"`
-		Workers       []NodeConfig `json:"workers,omitempty"`
-		Network       *Network     `json:"network,omitempty"`
+		CommonOCISpec CommonOCI `json:",inline"`
+		// Control Plane node settings.
+		ControlPlane NodeConfig `json:"controlPlane"`
+		// List of worker nodes.
+		Workers []NodeConfig `json:"workers,omitempty"`
+		// OCI Network settings.
+		Network *Network `json:"network,omitempty"`
 	}
 	Network struct {
 		VCN     string   `json:"string,omitempty"`

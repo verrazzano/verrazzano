@@ -38,46 +38,65 @@ spec:
             description: The desired state of an OCNEOCIQuickCreate resource.
             properties:
               identityRef:
+                description: Reference for cloud authentication.
                 properties:
                   name:
+                    description: Name of the ref.
                     type: string
                   namespace:
+                    description: Namespace of the ref.
                     type: string
                 required:
                 - name
                 - namespace
                 type: object
               kubernetes:
+                description: Kubernetes settings.
                 properties:
                   clusterNetwork:
+                    description: Kubernetes network settings.
                     properties:
                       podCIDR:
+                        description: IP range for Kubernetes pods. The default is
+                          `10.244.0.0/16`
                         type: string
                       serviceCIDR:
+                        description: IP range for Kubernetes service addresses. The
+                          default is `10.96.0.0/16`.
                         type: string
                     required:
                     - podCIDR
                     - serviceCIDR
                     type: object
                   version:
+                    description: Kubernetes version.
                     type: string
                 required:
                 - clusterNetwork
                 - version
                 type: object
               oke:
+                description: OKE Cluster settings.
                 properties:
                   cloudInitScript:
+                    description: Cloud-init script to run during node startup.
                     items:
                       type: string
                     type: array
                   compartment:
+                    description: OCI Compartment id where the compartment will be
+                      created
                     type: string
                   imageName:
+                    description: Node image id. The default is the latest OL8 image
+                      in the provided compartment.
                     type: string
                   network:
+                    description: Network settings for the OKE Cluster.
                     properties:
                       cniType:
+                        description: CNI Type for cluster networking. May be FLANNEL_OVERLAY
+                          or OCI_VCN_IP_NATIVE.
                         type: string
                       string:
                         type: string
@@ -85,8 +104,10 @@ spec:
                         items:
                           properties:
                             id:
+                              description: The Id of the subnet.
                               type: string
                             role:
+                              description: Role of subnet within the cluster.
                               type: string
                           required:
                           - id
@@ -97,29 +118,40 @@ spec:
                     - cniType
                     type: object
                   nodePools:
+                    description: List of Node pools.
                     items:
                       properties:
                         bootVolumeGbs:
+                          description: Size of node boot volume, in gigabytes, when
+                            using flex shapes.
                           type: integer
                         memoryGbs:
+                          description: Amount of memory per node, in gigabytes, when
+                            using flex shapes.
                           type: integer
                         name:
                           type: string
                         ocpus:
+                          description: Number of OCPUs per node.
                           type: integer
                         replicas:
+                          description: Number of nodes to create.
                           type: integer
                         shape:
+                          description: Node pool Shape.
                           type: string
                       required:
                       - name
                       type: object
                     type: array
                   region:
+                    description: OCI region where the cluster will be created.
                     type: string
                   sshPublicKey:
+                    description: SSH public key for node ssh.
                     type: string
                   virtualNodePools:
+                    description: List of Virtual Node pools.
                     items:
                       properties:
                         name:
@@ -134,30 +166,39 @@ spec:
                 - region
                 type: object
               privateRegistry:
+                description: Private Registry settings for the workload cluster.
                 properties:
                   credentialSecret:
+                    description: Reference to private registry credentials secret.
                     properties:
                       name:
+                        description: Name of the ref.
                         type: string
                       namespace:
+                        description: Namespace of the ref.
                         type: string
                     required:
                     - name
                     - namespace
                     type: object
                   url:
+                    description: Private registry URL.
                     type: string
                 required:
                 - credentialSecret
                 - url
                 type: object
               proxy:
+                description: HTTP Proxy settings.
                 properties:
                   httpProxy:
+                    description: HTTP Proxy string.
                     type: string
                   httpsProxy:
+                    description: HTTPS Proxy string.
                     type: string
                   noProxy:
+                    description: No Proxy string.
                     type: string
                 required:
                 - httpProxy
