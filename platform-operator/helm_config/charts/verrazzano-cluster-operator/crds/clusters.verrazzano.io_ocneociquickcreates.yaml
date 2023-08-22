@@ -185,8 +185,6 @@ spec:
                 - httpsProxy
                 - noProxy
                 type: object
-              ttlSecondsAfterFinished:
-                type: integer
             required:
             - identityRef
             - kubernetes
@@ -195,18 +193,10 @@ spec:
           status:
             description: The observed state of an OCNEOCIQuickCreate resource.
             properties:
-              cluster:
-                properties:
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                required:
-                - name
-                - namespace
-                type: object
+              phase:
+                type: string
             required:
-            - cluster
+            - phase
             type: object
         type: object
     served: true

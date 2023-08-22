@@ -48,6 +48,6 @@ type (
 		Subnets []Subnet `json:"subnets,omitempty"`
 	}
 	OCNEOCIQuickCreateStatus struct {
-		Cluster NamespacedRef `json:"cluster"`
+		QuickCreateStatus QuickCreateStatus `json:",inline"`
 	}
 )

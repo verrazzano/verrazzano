@@ -6,14 +6,13 @@ package oke
 import (
 	"context"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 const (
@@ -31,17 +30,17 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	err := r.Get(ctx, req.NamespacedName, cluster)
 	// if cluster not found, no work to be done
 	if apierrors.IsNotFound(err) {
-		return ctrl.Result{}, nil
+		return controller.RequeueDelay(), nil
 	}
 	if err != nil {
-		return ctrl.Result{}, err
+		return controller.RequeueDelay(), err
 	}
 
 	err = r.reconcile(ctx, cluster)
 	if err != nil {
-		return newRequeueWithDelay(), err
+		return controller.RequeueDelay(), err
 	}
-	return ctrl.Result{}, nil
+	return controller.RequeueDelay(), nil
 }
 
 func (r ClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
@@ -87,8 +86,4 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vmcv1alpha1.OKEQuickCreate{}).
 		Complete(r)
-}
-
-func newRequeueWithDelay() ctrl.Result {
-	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
 }

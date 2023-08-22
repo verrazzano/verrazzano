@@ -39,6 +39,12 @@ type (
 	action func(obj *unstructured.Unstructured) error
 )
 
+// funcMap contains the helper functions used during templating
+var funcMap template.FuncMap = map[string]any{
+	"contains": strings.Contains,
+	"nindent":  nindent,
+}
+
 func NewYAMLApplier(client crtpkg.Client, namespaceOverride string) *YAMLApplier {
 	return &YAMLApplier{
 		client:            client,
@@ -309,6 +315,7 @@ func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args any)
 	templateName := path.Base(filePath)
 	tmpl, err := template.New(templateName).
 		Option("missingkey=error"). // Treat any missing keys as errors
+		Funcs(funcMap).
 		ParseFiles(filePath)
 	if err != nil {
 		return err
@@ -428,4 +435,27 @@ func filterYamlExt(files []os.DirEntry) []os.DirEntry {
 	}
 
 	return res
+}
+
+func nindent(indent int, s string) string {
+	spacing := strings.Repeat(" ", indent)
+	split := strings.FieldsFunc(s, func(r rune) bool {
+		switch r {
+		case '\n', '\v', '\f', '\r':
+			return true
+		default:
+			return false
+		}
+	})
+	sb := strings.Builder{}
+	for i := 0; i < len(split); i++ {
+		segment := split[i]
+		sb.WriteString(spacing)
+		sb.WriteString(strings.TrimSpace(segment))
+		if i < len(split)-1 {
+			sb.WriteRune('\n')
+		}
+	}
+
+	return sb.String()
 }

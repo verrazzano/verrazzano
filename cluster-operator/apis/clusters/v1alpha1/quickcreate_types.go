@@ -12,11 +12,10 @@ type (
 		ID   string     `json:"id"`
 	}
 	CommonClusterSpec struct {
-		TTLSecondsAfterFinished *int `json:"ttlSecondsAfterFinished,omitempty"`
-		Kubernetes              `json:"kubernetes"`
-		IdentityRef             NamespacedRef    `json:"identityRef"`
-		PrivateRegistry         *PrivateRegistry `json:"privateRegistry,omitempty"`
-		Proxy                   *Proxy           `json:"proxy,omitempty"`
+		Kubernetes      `json:"kubernetes"`
+		IdentityRef     NamespacedRef    `json:"identityRef"`
+		PrivateRegistry *PrivateRegistry `json:"privateRegistry,omitempty"`
+		Proxy           *Proxy           `json:"proxy,omitempty"`
 	}
 	CommonOCI struct {
 		Region          string   `json:"region"`
@@ -64,17 +63,9 @@ type (
 		Namespace string `json:"namespace"`
 	}
 	QuickCreateStatus struct {
-		Conditions []QuickCreateCondition `json:"conditions"`
-		Phase      QuickCreatePhase       `json:"phase"`
-		Cluster    NamespacedRef          `json:"cluster"`
+		Phase QuickCreatePhase `json:"phase"`
 	}
-	QuickCreateCondition struct {
-		Reason string                     `json:"reason"`
-		Status QuickCreateConditionStatus `json:"status"`
-	}
-	QuickCreateConditionStatus string
-	QuickCreateConditionType   string
-	QuickCreatePhase           string
+	QuickCreatePhase string
 )
 
 // Subnet Roles
@@ -84,20 +75,6 @@ const (
 	SubnetRoleServiceLB            SubnetRole = "service-lb"
 	SubnetRoleWorker               SubnetRole = "worker"
 
-	QuickCreateStatusTrue  QuickCreateConditionStatus = "true"
-	QuickCreateStatusFalse QuickCreateConditionStatus = "false"
-
-	QuickCreateTypeInitialized         = "Initialized"
-	QuickCreateTypeInfrastructureReady = "InfrastructureReady"
-	QuickCreateTypeClusterReady        = "ClusterReady"
-
-	QuickCreatePhasePending      QuickCreatePhase = "Pending"
 	QuickCreatePhaseProvisioning QuickCreatePhase = "Provisioning"
 	QuickCreatePhaseComplete     QuickCreatePhase = "Complete"
-	QuickCreatePhaseFailed       QuickCreatePhase = "Failed"
 )
-
-// IsFinalPhase returns true if the QuickCreatePhase is in a final state.
-func (p QuickCreatePhase) IsFinalPhase() bool {
-	return p == QuickCreatePhaseFailed || p == QuickCreatePhaseComplete
-}
