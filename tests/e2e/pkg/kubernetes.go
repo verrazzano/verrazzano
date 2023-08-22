@@ -18,6 +18,7 @@ import (
 	"github.com/onsi/gomega"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	vcoClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -34,6 +35,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -43,6 +45,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/remotecommand"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -592,12 +595,13 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	if err != nil {
 		return nil, err
 	}
-	client, err := vpoClient.NewForConfig(config)
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	vzClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
 		return nil, err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos("")
-	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
+	vzList, err := verrazzano.ListV1Alpha1(context.TODO(), vzClient)
 
 	if err != nil {
 		return nil, fmt.Errorf("error listing out Verrazzano instances: %v", err)
