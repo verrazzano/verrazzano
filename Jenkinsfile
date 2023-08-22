@@ -152,6 +152,8 @@ pipeline {
                 script {
                     try {
                         sh """
+                            docker version
+                            clusterctl version
                             echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                         """
                     } catch(error) {
