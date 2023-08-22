@@ -146,6 +146,7 @@ spec:
             - --zap-log-level=info
             - --run-webhooks=true
             - --resource-validation={{ .Values.webhooks.resourceValidation }}
+            - --enable-leader-election={{ .Values.webhooks.enableWebhookLeaderElection }}
             {{ if .Values.experimentalFeatures.moduleAPI.enabled }}
             - --experimental-modules=true
             {{ end }}

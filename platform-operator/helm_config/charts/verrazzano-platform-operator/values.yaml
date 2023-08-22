@@ -43,6 +43,7 @@ webhookAffinity:
         weight: 100
 webhooks:
   resourceValidation: false
+  enableWebhookLeaderElection: true
 
 # Configuration for experimental features that are under active development
 experimentalFeatures:
