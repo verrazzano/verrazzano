@@ -152,6 +152,7 @@ pipeline {
                 script {
                     try {
                         sh """
+                            cat /etc/docker/daemon.json
                             docker version
                             clusterctl version
                             echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
