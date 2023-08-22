@@ -51,6 +51,7 @@ spec:
         {{ if .Values.managedClusterRegistered }}
         verrazzano.io/managedClusterRegistered: "true"
         {{ end }}
+        verrazzano.io/cmChecksum: {{ include (print $.Template.BasePath "/verrazzano-authproxy-configmap.yaml") . | sha256sum }}
       labels:
         app: {{ .Values.name }}
     spec:
