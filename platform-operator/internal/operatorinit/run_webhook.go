@@ -234,6 +234,6 @@ func checkleader() {
 	fmt.Println("This calls dervies from leader")
 }
 
-func checkelector() {
-	fmt.Println("This calls dervice from elector")
-}
+//func checkelector() {
+//	fmt.Println("This calls dervice from elector")
+//}
