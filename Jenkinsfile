@@ -154,6 +154,7 @@ pipeline {
                         sh """
                             docker version
                             export DOCKER_CLI_EXPERIMENTAL=enabled
+                            sudo touch /etc/docker
                             sudo echo "{ \"experimental\": true }" > /etc/docker/daemon.json
                             cat /etc/docker/daemon.json
                             sudo systemctl restart docker
