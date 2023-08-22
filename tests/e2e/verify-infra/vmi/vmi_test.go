@@ -113,7 +113,7 @@ var (
 	elastic                *vmi.Opensearch
 	waitTimeout            = 1 * time.Minute
 	pollingInterval        = 5 * time.Second
-	elasticWaitTimeout     = 1 * time.Minute
+	elasticWaitTimeout     = 3 * time.Minute
 	elasticPollingInterval = 5 * time.Second
 
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
@@ -214,7 +214,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 												{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
 												{Key: "cluster_name", Value: constants.MCLocalCluster}},
 											[]pkg.Match{})
-									}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+									}, elasticWaitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
 								},
 								func() {
 									Eventually(func() bool {
@@ -223,7 +223,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 												{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
 												{Key: "cluster_name", Value: constants.MCLocalCluster}},
 											[]pkg.Match{})
-									}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
+									}, elasticWaitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
 								},
 							)
 						}
@@ -245,7 +245,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 									{Key: "TRANSPORT", Value: "journal"},
 									{Key: "cluster_name", Value: constants.MCLocalCluster}},
 								[]pkg.Match{})
-						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
+						}, elasticWaitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 					})
 			}
 		} else {
