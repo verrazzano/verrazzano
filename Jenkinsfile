@@ -152,13 +152,8 @@ pipeline {
                 script {
                     try {
                         sh """
-                            export DOCKER_CLI_EXPERIMENTAL=enabled
                             docker version
-                            sudo mkdir /etc/docker
-                            echo "{ \"experimental\": true }" | sudo tee /etc/docker/daemon.json
-                            cat /etc/docker/daemon.json
-                            sudo systemctl restart docker
-                            docker version
+                            docker buildx
                             echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                         """
                     } catch(error) {
