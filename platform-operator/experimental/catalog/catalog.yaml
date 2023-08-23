@@ -35,9 +35,9 @@ modules:
   - name: verrazzano-application-operator
     version: 2.0.0
   - name: weblogic-operator
-    version: 4.1.0
+    version: 4.1.0-1
   - name: coherence-operator
-    version: 3.2.11
+    version: 3.2.11-1
   - name: fluent-operator
     version: 2.2.0
   - name: fluentbit-opensearch-output
