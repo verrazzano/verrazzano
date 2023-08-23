@@ -370,7 +370,10 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 	return r.updateStatus(log, vz, msg, newCondition, nil)
 }
 
-func (r Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
+func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
+	if !IsModuleCreateOrUpdateDone() {
+		return false, nil
+	}
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsEnabled(ctx.EffectiveCR()) {
 			continue

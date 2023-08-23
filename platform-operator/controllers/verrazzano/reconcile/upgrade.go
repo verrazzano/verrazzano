@@ -178,6 +178,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
 			SetPreModuleWorkDone(false)
+			SetModuleCreateOrUpdateDone(false)
 		}
 	}
 	// Upgrade done, no need to requeue

@@ -63,7 +63,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResultShortRequeueDelay()
 	}
 
-	vzReconcile.SetModuleCreateOrUpdateStarted(true)
+	vzReconcile.SetModuleCreateOrUpdateDone(true)
 
 	// All the modules have been reconciled and are ready
 	return result.NewResult()

@@ -175,6 +175,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 					return ctrl.Result{Requeue: true}, err
 				}
 				SetPreModuleWorkDone(false)
+				SetModuleCreateOrUpdateDone(false)
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}
