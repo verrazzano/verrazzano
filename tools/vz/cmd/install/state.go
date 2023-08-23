@@ -25,7 +25,7 @@ func displayInstallationProgress(cmd *cobra.Command, vzHelper helpers.VZHelper, 
 		return err
 	}
 	time.Sleep(time.Second * 10)
-	fmt.Printf("\033[2J\033[H") // Clear the console before entering the loop
+	fmt.Print("\033[2J\033[H") // Clear the console before entering the loop
 	startTime := time.Now()
 	for {
 		// Save the cursor position
@@ -42,7 +42,7 @@ func displayInstallationProgress(cmd *cobra.Command, vzHelper helpers.VZHelper, 
 		progress, nonReady := calculateProgress(statusMap)
 		displayProgressBar(progress)
 		if isAllReady(statusMap) {
-			fmt.Printf("\nInstallation Completed. All components are ready")
+			fmt.Println("\nInstallation Completed. All components are ready")
 			break
 		} else {
 			if time.Since(startTime) >= duration {
@@ -51,7 +51,7 @@ func displayInstallationProgress(cmd *cobra.Command, vzHelper helpers.VZHelper, 
 			}
 			time.Sleep(constants.RefreshRate)
 			// Restore the cursor position to the beginning of the table and the progress bar
-			fmt.Printf("\033[u")
+			fmt.Print("\033[u")
 		}
 	}
 	return nil
@@ -97,7 +97,6 @@ func getEnabledComponentMap(client client.Client) (map[string]v1alpha1.CompState
 		return nil, err
 	}
 	statusMap := make(map[string]v1alpha1.CompStateType)
-	fmt.Println("printing", vz)
 	for componentName, componentStatus := range vz.Status.Components {
 		if componentStatus.State != "Disabled" {
 			statusMap[componentName] = v1alpha1.CompStateType(componentStatus.State)
