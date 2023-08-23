@@ -6,10 +6,11 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -171,7 +172,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			func() {
 				kubeconfig, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).To(BeNil())
-				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+				vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 				if err != nil {
 					Expect(err).To(BeNil())
 				}
@@ -400,7 +401,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			func() {
 				kubeconfig, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).To(BeNil())
-				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+				vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 				if err != nil {
 					Expect(err).To(BeNil())
 				}

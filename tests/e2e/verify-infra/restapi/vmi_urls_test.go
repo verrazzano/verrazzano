@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package restapi_test
@@ -11,19 +11,19 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var (
-	vz             *v1alpha1.Verrazzano
+	vz             *v1beta1.Verrazzano
 	httpClient     *retryablehttp.Client
 	vmiCredentials *pkg.UsernamePassword
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
-	vz, err = pkg.GetVerrazzano()
+	vz, err = pkg.GetVerrazzanoV1beta1()
 	Expect(err).To(Not(HaveOccurred()))
 
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
@@ -43,7 +43,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm", "f:ui.console"), func() {
 	t.BeforeEach(func() {
 		// if Keycloak is disabled, we cannot get the credentials needed for basic auth, so skip the test
 		keycloak := vz.Status.Components["keycloak"]
-		if keycloak == nil || keycloak.State == v1alpha1.CompStateDisabled {
+		if keycloak == nil || keycloak.State == v1beta1.CompStateDisabled {
 			Skip("Keycloak disabled, skipping test")
 		}
 	})
@@ -62,8 +62,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm", "f:ui.console"), func() {
 		},
 		Entry("Grafana web UI", func() *string { return vz.Status.VerrazzanoInstance.GrafanaURL }),
 		Entry("Prometheus web UI", func() *string { return vz.Status.VerrazzanoInstance.PrometheusURL }),
-		Entry("OpenSearch", func() *string { return vz.Status.VerrazzanoInstance.ElasticURL }),
-		Entry("OpenSearch Dashboards web UI", func() *string { return vz.Status.VerrazzanoInstance.KibanaURL }),
+		Entry("OpenSearch", func() *string { return vz.Status.VerrazzanoInstance.OpenSearchURL }),
+		Entry("OpenSearch Dashboards web UI", func() *string { return vz.Status.VerrazzanoInstance.OpenSearchDashboardsURL }),
 	)
 })
 

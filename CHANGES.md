@@ -6,6 +6,7 @@ Feature:
 - Support for Thanos Ruler and Compactor
 - Prometheus rules in the kube-prometheus-stack and Thanos Helm charts are enabled by default
 - Added Prometheus alerting rules for Verrazzano operators
+- Added progress flag in vz cli, which shows components installation progress in real time.
 
 ### v1.6.4
 
@@ -584,3 +585,4 @@ spec:
     - Verrazzano system components now emit JSON structured logs.
 - Fixes:
     - Updated Elasticsearch and Kibana versions (elasticsearch:7.6.1-20201130145440-5c76ab1) and (kibana:7.6.1-20201130145840-7717e73).
+
