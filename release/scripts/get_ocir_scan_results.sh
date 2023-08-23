@@ -44,7 +44,7 @@ function get_scan_summaries() {
   # TBD: Add filtering here
   # TBD: Need to add more fields here so we can at least have the result OCIDs and may also want times in case there are multiple scan results to differentiate
   # TBD: For multiple scans assuming -u will be mostly a noop here, ie: if we include all fields we wouldn't see any duplicates
-  oci vulnerability-scanning container scan result list --compartment-id $OCIR_COMPARTMENT_ID --region $OCI_REGION --all > $SCAN_RESULTS_DIR/ocir-scan-all-summary.json
+  oci vulnerability-scanning container scan result list --compartment-id $OCIR_COMPARTMENT_ID --region $OCI_REGION --all --is-latest-only true > $SCAN_RESULTS_DIR/ocir-scan-all-summary.json
   cat $SCAN_RESULTS_DIR/ocir-scan-all-summary.json | jq -r '.data.items[] | { finished: ."time-finished", sev: ."highest-problem-severity", full: (.repository + ":" + .image), repo: .repository, image: .image, count: ."problem-count", id: .id } ' | jq -r '[.[]] | @csv' | sort -u > $SCAN_RESULTS_DIR/ocir-scan-all-summary.csv
 }
 

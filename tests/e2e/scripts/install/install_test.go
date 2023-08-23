@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -69,7 +69,7 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 // Get the list of console URLs from the status block of the installed Verrazzano resource
 func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	var consoleUrls []string
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 	if err != nil {
 		return consoleUrls, err
 	}
@@ -80,14 +80,14 @@ func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	if vz.Status.VerrazzanoInstance.GrafanaURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.GrafanaURL)
 	}
-	if vz.Status.VerrazzanoInstance.ElasticURL != nil {
-		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ElasticURL)
+	if vz.Status.VerrazzanoInstance.OpenSearchURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.OpenSearchURL)
 	}
 	if vz.Status.VerrazzanoInstance.KeyCloakURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KeyCloakURL)
 	}
-	if vz.Status.VerrazzanoInstance.KibanaURL != nil {
-		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KibanaURL)
+	if vz.Status.VerrazzanoInstance.OpenSearchDashboardsURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.OpenSearchDashboardsURL)
 	}
 	if vz.Status.VerrazzanoInstance.KialiURL != nil {
 		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KialiURL)
@@ -177,7 +177,7 @@ func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
 	}
 
 	// In 1.1.1 and later, the console URL will only be present in the VZ status instance info if the console is enabled
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return false, err
 	}

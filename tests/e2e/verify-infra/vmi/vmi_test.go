@@ -7,11 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
@@ -19,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -113,7 +114,7 @@ var (
 	elastic                *vmi.Opensearch
 	waitTimeout            = 1 * time.Minute
 	pollingInterval        = 5 * time.Second
-	elasticWaitTimeout     = 1 * time.Minute
+	elasticWaitTimeout     = 3 * time.Minute
 	elasticPollingInterval = 5 * time.Second
 
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
@@ -125,7 +126,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		t.Fail(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
 	}
@@ -169,7 +170,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get installed Verrazzano resource in the cluster: %v", err))
 	}
@@ -198,7 +199,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
 					Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 					assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
-					Expect(vz.Status.VerrazzanoInstance.ElasticURL).ToNot(BeNil())
+					Expect(vz.Status.VerrazzanoInstance.OpenSearchURL).ToNot(BeNil())
 				})
 
 				t.It("verrazzano-system Index is accessible", Label("f:observability.logging.es"),
@@ -214,7 +215,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 												{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
 												{Key: "cluster_name", Value: constants.MCLocalCluster}},
 											[]pkg.Match{})
-									}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+									}, elasticWaitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
 								},
 								func() {
 									Eventually(func() bool {
@@ -223,7 +224,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 												{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
 												{Key: "cluster_name", Value: constants.MCLocalCluster}},
 											[]pkg.Match{})
-									}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
+									}, elasticWaitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
 								},
 							)
 						}
@@ -245,7 +246,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 									{Key: "TRANSPORT", Value: "journal"},
 									{Key: "cluster_name", Value: constants.MCLocalCluster}},
 								[]pkg.Match{})
-						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
+						}, elasticWaitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 					})
 			}
 		} else {
@@ -256,7 +257,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(elastic.CheckIngress()).To(BeFalse())
 				Expect(ingressURLs).NotTo(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s should not exist", opensearchIngress))
-				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.ElasticURL == nil).To(BeTrue())
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.OpenSearchURL == nil).To(BeTrue())
 			})
 		}
 	})
@@ -276,7 +277,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
 					Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
 					assertOidcIngressByName(osdIngress, vz, opensearchdashboards.ComponentName)
-					Expect(vz.Status.VerrazzanoInstance.KibanaURL).ToNot(BeNil())
+					Expect(vz.Status.VerrazzanoInstance.OpenSearchURL).ToNot(BeNil())
 				})
 			}
 		} else {
@@ -286,7 +287,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(ingressURLs).NotTo(HaveKey(osdIngress), fmt.Sprintf("Ingress %s should not exist", osdIngress))
-				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.KibanaURL == nil).To(BeTrue())
+				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.OpenSearchURL == nil).To(BeTrue())
 			})
 		}
 	})
@@ -366,7 +367,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						)
 					})
 				t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfigPath, func() {
-					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 					if err != nil {
 						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
 						Fail(err.Error())
@@ -379,7 +380,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				})
 
 				t.It("Grafana should have a default datasource present", func() {
-					vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+					vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 					if err != nil {
 						t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
 						Fail(err.Error())
@@ -406,7 +407,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 	})
 })
 
-func assertOidcIngressByName(key string, vz *vzalpha1.Verrazzano, componentName string) {
+func assertOidcIngressByName(key string, vz *vzbeta1.Verrazzano, componentName string) {
 	if ingressEnabled(vz) {
 		Expect(ingressURLs).To(HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
 		url := ingressURLs[key]
@@ -561,7 +562,7 @@ func assertAdminRole() bool {
 // Prometheus Operator component in the Verrazzano CR. If there is no override for replicas then the
 // default replica count of 1 is returned.
 func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
-	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	vz, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfig)
 	if err != nil {
 		return 0, err
 	}
@@ -592,13 +593,13 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	return expectedReplicas, nil
 }
 
-func ingressEnabled(vz *vzalpha1.Verrazzano) bool {
+func ingressEnabled(vz *vzbeta1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, nginx.ComponentName) &&
 		vzcr.IsComponentStatusEnabled(vz, cmconstants.ClusterIssuerComponentName) &&
 		vzcr.IsComponentStatusEnabled(vz, keycloak.ComponentName)
 }
 
-func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
+func verrazzanoSecretRequired(vz *vzbeta1.Verrazzano) bool {
 	return vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, opensearchdashboards.ComponentName) ||
 		vzcr.IsComponentStatusEnabled(vz, operator.ComponentName) ||
@@ -606,7 +607,7 @@ func verrazzanoSecretRequired(vz *vzalpha1.Verrazzano) bool {
 		vzcr.IsComponentStatusEnabled(vz, kiali.ComponentName)
 }
 
-func grafanaDefaultDatasourceExists(vz *vzalpha1.Verrazzano, name, kubeconfigPath string) (bool, error) {
+func grafanaDefaultDatasourceExists(vz *vzbeta1.Verrazzano, name, kubeconfigPath string) (bool, error) {
 	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		t.Logs.Error("Failed to get the Verrazzano password from the cluster")
