@@ -158,9 +158,11 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			tracker.vzState = vzStateWaitModulesReady
 
 		case vzStateWaitModulesReady:
-			ready, err := r.modulesReady(spiCtx)
-			if err != nil || !ready {
-				return ctrl.Result{Requeue: true}, err
+			if !preUpgrade {
+				ready, err := r.modulesReady(spiCtx)
+				if err != nil || !ready {
+					return ctrl.Result{Requeue: true}, err
+				}
 			}
 			tracker.vzState = vzStatePostInstall
 
