@@ -1,3 +1,8 @@
+### v1.5.6
+Component version updates:
+
+- Istio v1.15.7
+
 ### v1.5.4
 Component version updates:
 
