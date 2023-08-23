@@ -111,9 +111,9 @@ var (
 	ingressURLs            map[string]string
 	volumeClaims           map[string]*corev1.PersistentVolumeClaim
 	elastic                *vmi.Opensearch
-	waitTimeout            = 1 * time.Minute
+	waitTimeout            = 10 * time.Minute
 	pollingInterval        = 5 * time.Second
-	elasticWaitTimeout     = 1 * time.Minute
+	elasticWaitTimeout     = 10 * time.Minute
 	elasticPollingInterval = 5 * time.Second
 
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
