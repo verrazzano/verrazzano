@@ -3,6 +3,8 @@
 
 package constants
 
+import "time"
+
 // GlobalFlagKubeConfig - global flag for specifying the location of the kube config
 const GlobalFlagKubeConfig = "kubeconfig"
 const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use"
@@ -202,3 +204,11 @@ const (
 	BugReportTimeFlagDefaultTime = 0
 	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
 )
+const (
+	ProgressFlag        = "progress"
+	ProgressFlagHelp    = "Displaying progress bar with components and their status"
+	ProgressFlagDefault = false
+)
+const ProgressShorthand = "p"
+const RefreshRate = time.Second * 10
+const TotalWidth = 50
