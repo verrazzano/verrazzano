@@ -102,7 +102,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Flag to skip any confirmation questions
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
 	// Flag to skip reinstalling the Verrazzano Platform Operator
-	cmd.PersistentFlags().Bool(constants.SkipOperatorInstallFlag, false, constants.SkipOperatorInstallFlagHelp)
+	cmd.PersistentFlags().Bool(constants.SkipPlatformOperatorFlag, false, constants.SkipPlatformOperatorFlagHelp)
 	// Add flags related to specifying the platform operator manifests as a local file or a URL
 	cmdhelpers.AddManifestsFlags(cmd)
 
@@ -218,18 +218,19 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
+		var continueReinstall bool
+		skipOperatorInstall, _ := cmd.Flags().GetBool(constants.SkipPlatformOperatorFlag)
 		vpoList, err := validators.GetPlatformOperatorPodList(client)
 		if err != nil {
 			return err
 		}
-		var confirmReinstall bool
 		if len(vpoList.Items) > 0 {
-			confirmReinstall, err = cmd.Flags().GetBool(constants.SkipOperatorInstallFlag)
+			continueReinstall, err = continueReapply(skipOperatorInstall)
+			if err != nil {
+				return err
+			}
 		}
-		continueReinstall, err := continueReinstall(confirmReinstall)
-		if err != nil {
-			return err
-		}
+
 		if continueReinstall {
 			// Delete leftover verrazzano-platform-operator deployments after an abort.
 			// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
@@ -425,8 +426,9 @@ func validateCmd(cmd *cobra.Command) error {
 	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
 		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag)
 	}
-	if cmd.PersistentFlags().Changed(constants.SkipOperatorInstallFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
-		return fmt.Errorf("--%s and --%s cannot both be specified", constants.SkipOperatorInstallFlag, constants.ManifestsFlag)
+	skipOperatorInstall, _ := cmd.PersistentFlags().GetBool(constants.SkipPlatformOperatorFlag)
+	if skipOperatorInstall && cmdhelpers.ManifestsFlagChanged(cmd) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.SkipPlatformOperatorFlag, constants.ManifestsFlag)
 	}
 	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
 	if err != nil {
@@ -472,13 +474,13 @@ func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper hel
 	return nil
 }
 
-func continueReinstall(confirmReinstall bool) (bool, error) {
+func continueReapply(confirmReinstall bool) (bool, error) {
 	if confirmReinstall {
 		return true, nil
 	}
 	var response string
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("Are you sure you want to reinstall the Verrazzano Platform Operator? [y/N]: ")
+	fmt.Print("There was an existing Verrazzano Platform Operator found running.\nDo you want to reinstall the Verrazzano Platform Operator? [y/N]: ")
 	if scanner.Scan() {
 		response = scanner.Text()
 	}

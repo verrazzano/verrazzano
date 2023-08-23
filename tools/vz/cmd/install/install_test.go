@@ -48,6 +48,7 @@ const (
 func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -80,6 +81,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -113,6 +115,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -181,6 +184,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -202,6 +206,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 func TestInstallCmdJsonLogFormat(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -251,6 +256,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -285,6 +291,7 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 func TestInstallCmdFilenames(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -315,6 +322,7 @@ func TestInstallCmdFilenames(t *testing.T) {
 func TestInstallCmdFilenamesCsv(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml,../../test/testdata/override-components.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -347,6 +355,7 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 func TestInstallCmdSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -380,6 +389,7 @@ func TestInstallCmdSets(t *testing.T) {
 func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
@@ -446,8 +456,26 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			SetValidateCRFunc(FakeValidateCRFunc)
 			defer SetDefaultValidateCRFunc()
 
+			content := []byte("y")
+			tempfile, err := os.CreateTemp("", "test-input.txt")
+			if err != nil {
+				assert.Error(t, err)
+			}
+			// clean up tempfile
+			defer os.Remove(tempfile.Name())
+			if _, err := tempfile.Write(content); err != nil {
+				assert.Error(t, err)
+			}
+			if _, err := tempfile.Seek(0, 0); err != nil {
+				assert.Error(t, err)
+			}
+			oldStdin := os.Stdin
+			// Restore original Stdin
+			defer func() { os.Stdin = oldStdin }()
+			os.Stdin = tempfile
+
 			// Run install command
-			err := cmd.Execute()
+			err = cmd.Execute()
 			assert.NoError(t, err)
 			assert.Equal(t, "", errBuf.String())
 			assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
@@ -815,6 +843,7 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 
 	cmd := analyze.NewCmdAnalyze(rc)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	assert.Nil(t, err)
@@ -891,8 +920,26 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	SetValidateCRFunc(FakeValidateCRFunc)
 	defer SetDefaultValidateCRFunc()
 
+	content := []byte("y")
+	tempfile, err := os.CreateTemp("", "test-input.txt")
+	if err != nil {
+		assert.Error(t, err)
+	}
+	// clean up tempfile
+	defer os.Remove(tempfile.Name())
+	if _, err := tempfile.Write(content); err != nil {
+		assert.Error(t, err)
+	}
+	if _, err := tempfile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
+	oldStdin := os.Stdin
+	// Restore original Stdin
+	defer func() { os.Stdin = oldStdin }()
+	os.Stdin = tempfile
+
 	// Run install command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
@@ -921,12 +968,15 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 //	THEN the CLI install command is successful and the VPO and VPO webhook deployments do not get reinstalled
 func TestInstallSkipOperatorInstall(t *testing.T) {
 	tests := []struct {
-		name        string
-		skipInstall bool
-		vpoExists   bool
+		name         string
+		skipInstall  bool
+		vpoExists    bool
+		cmdLineInput string
 	}{
-		{name: "VPO is already running, skip-install", skipInstall: true, vpoExists: true},
-		{name: "VPO is already running, reinstall", skipInstall: false, vpoExists: true},
+		{name: "VPO is already running, skip-platform-operator enabled", skipInstall: true, vpoExists: true},
+		{name: "VPO is already running, skip-platform-operator disabled, cmdLineInput-y", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
+		{name: "VPO is already running, skip-platform-operator disabled, comdLineInput-n", skipInstall: false, vpoExists: true, cmdLineInput: "n"},
+		{name: "VPO is already running, reinstall", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
 		{name: "Clean install, no VPO is running", skipInstall: false, vpoExists: false},
 	}
 	for _, tt := range tests {
@@ -935,7 +985,27 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 			if tt.skipInstall {
-				cmd.PersistentFlags().Set(constants.SkipOperatorInstallFlag, "true")
+				cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
+			}
+
+			if tt.cmdLineInput != "" {
+				content := []byte(tt.cmdLineInput)
+				tempfile, err := os.CreateTemp("", "test-input.txt")
+				if err != nil {
+					assert.Error(t, err)
+				}
+				// clean up tempfile
+				defer os.Remove(tempfile.Name())
+				if _, err := tempfile.Write(content); err != nil {
+					assert.Error(t, err)
+				}
+				if _, err := tempfile.Seek(0, 0); err != nil {
+					assert.Error(t, err)
+				}
+				oldStdin := os.Stdin
+				// Restore original Stdin
+				defer func() { os.Stdin = oldStdin }()
+				os.Stdin = tempfile
 			}
 
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -965,4 +1035,24 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 		})
 	}
 
+}
+
+func createCmdLineInput(t *testing.T, input string) {
+	content := []byte(input)
+	tempfile, err := os.CreateTemp("", "test-input.txt")
+	if err != nil {
+		assert.Error(t, err)
+	}
+	// clean up tempfile
+	defer os.Remove(tempfile.Name())
+	if _, err := tempfile.Write(content); err != nil {
+		assert.Error(t, err)
+	}
+	if _, err := tempfile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
+	oldStdin := os.Stdin
+	// Restore original Stdin
+	defer func() { os.Stdin = oldStdin }()
+	os.Stdin = tempfile
 }
