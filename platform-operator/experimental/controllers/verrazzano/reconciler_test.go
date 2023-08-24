@@ -10,7 +10,12 @@ import (
 	"testing"
 )
 
-func TestIsUpgradePending(t *testing.T) {
+// TestIsUpgradeRequired tests that isUpgradeRequired method tells us when an upgrade is required before we can apply
+// any module updates
+// GIVEN a call to isUpgradeRequired
+// WHEN the Verrazzano spec version is out of sync with the BOM version
+// THEN true is returned
+func TestIsUpgradeRequired(t *testing.T) {
 	defaultTestBomFile := "./testdata/test_bom.json"
 
 	tests := []struct {
@@ -102,7 +107,7 @@ func TestIsUpgradePending(t *testing.T) {
 			}
 
 			r := Reconciler{}
-			got, err := r.isUpgradePending(tt.actualCR)
+			got, err := r.isUpgradeRequired(tt.actualCR)
 			if !wantErr(t, err, "Did not get expected error result") {
 				return
 			}
