@@ -37,6 +37,9 @@ spec:
 {{ toYaml .Values.imagePullSecrets | indent 6 }}
 {{- end }}
       affinity:
+{{- if .Values.affinity }}
+{{ toYaml .Values.affinity | indent 8 }}
+{{- else }}
         podAntiAffinity:
 {{- if eq .Values.antiAffinity "required" }}
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -62,6 +65,7 @@ spec:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms: {{ include "linux-node-selector-terms" . | nindent 14 }}
+{{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
       containers:
       - image: {{ .Values.rancherImage }}:{{ default .Chart.AppVersion .Values.rancherImageTag }}

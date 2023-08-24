@@ -3,6 +3,8 @@
 # See README.md for details.
 additionalTrustedCAs: false
 
+# affinity optionally replaces the entire affinity section of the pod spec. If affinity is specified then the value of antiAffinity is ignored.
+affinity: {}
 antiAffinity: preferred
 topologyKey: kubernetes.io/hostname
 
