@@ -109,9 +109,9 @@ func newTestIdentity(allowedNamespaces []byte) *unstructured.Unstructured {
 	obj, _ := runtime.Decode(unstructured.UnstructuredJSONScheme, j)
 	identity := obj.(*unstructured.Unstructured)
 	if len(allowedNamespaces) > 0 {
-		allowedNamespacesJson, _ := apiyaml.ToJSON(allowedNamespaces)
+		allowedNamespacesJSON, _ := apiyaml.ToJSON(allowedNamespaces)
 		m := map[string]interface{}{}
-		_ = json.Unmarshal(allowedNamespacesJson, &m)
+		_ = json.Unmarshal(allowedNamespacesJSON, &m)
 		identity.Object["spec"].(map[string]interface{})["allowedNamespaces"] = m
 	}
 	return identity
