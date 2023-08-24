@@ -7,11 +7,13 @@ import (
 	"context"
 	"time"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"go.uber.org/zap"
@@ -75,7 +77,11 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 		// When the ClusterIssuer secret changes,renew all leaf certificates
 		if isClusterIssuerSecret(req.NamespacedName, effectiveCR.Spec.Components.ClusterIssuer) {
-
+			if err = r.renewLeafCertificates(effectiveCR.Spec.Components.ClusterIssuer); err != nil {
+				r.log.Errorf("Failed to new all Verrazzano leaf certificates: %s", err.Error())
+				return newRequeueWithDelay(), err
+			}
+			return ctrl.Result{}, nil
 		}
 
 		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
@@ -147,4 +153,28 @@ func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
+}
+
+func (r *VerrazzanoSecretsReconciler) renewLeafCertificates(clusterIssuer *installv1alpha1.ClusterIssuerComponent) error {
+	// List the certificates
+	certList := &certv1.CertificateList{}
+	if err := r.List(context.TODO(), certList); err != nil {
+		return err
+	}
+
+	cmClient, err := issuer.GetCMClientFunc()()
+	if err != nil {
+		return err
+	}
+
+	// Renew each certificate that was issued by the Verrazzano ClusterIssuer
+	for i, cert := range certList.Items {
+		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
+			r.log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
+			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.log, &certList.Items[i]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

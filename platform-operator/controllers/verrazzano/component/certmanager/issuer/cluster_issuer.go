@@ -140,6 +140,10 @@ type getLetsEncryptStagingBundleFuncType func() ([]byte, error)
 
 var getLetsEncryptStagingBundleFunc getLetsEncryptStagingBundleFuncType = certs.CreateLetsEncryptStagingBundle
 
+func GetCMClientFunc() getCertManagerClientFuncType {
+	return getCMClientFunc
+}
+
 // GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 	cfg, err := k8sutil.GetConfigFromController()
@@ -262,7 +266,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 		}
 		if !vzstring.SliceContainsString(issuerCNs, certIssuerCN) {
 			// If the issuerRef CN is not in the set of configured issuers, we need to renew the existing certs
-			if err := renewCertificate(ctx, cmClient, log, &certList.Items[index]); err != nil {
+			if err := RenewCertificate(ctx, cmClient, log, &certList.Items[index]); err != nil {
 				return err
 			}
 		}
@@ -283,8 +287,8 @@ func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	return certIssuerCN, nil
 }
 
-// renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
-func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
+// RenewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
+func RenewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	// Update the certificate status to start a renewal; avoid using controllerruntime.CreateOrUpdate(), while
 	// it should only do an update we don't want to accidentally create a updateCert
 	log.Oncef("Updating certificate %s/%s", updateCert.Namespace, updateCert.Name)
