@@ -7,33 +7,44 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"text/template"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
-	"os"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"text/template"
 )
 
 const clusterctlYamlTemplate = `
+{{- if .IncludeImagesHeader }}
 images:
+  {{- if not .GetClusterAPIOverridesVersion }}
   cluster-api:
     repository: {{.GetClusterAPIRepository}}
     tag: {{.GetClusterAPITag}}
+  {{ end }}
 
+  {{- if not .GetOCIOverridesVersion }}
   infrastructure-oci:
     repository: {{.GetOCIRepository}}
     tag: {{.GetOCITag}}
+  {{ end }}
 
+  {{- if not .GetOCNEBootstrapOverridesVersion }}
   bootstrap-ocne:
     repository: {{.GetOCNEBootstrapRepository}}
     tag: {{.GetOCNEBootstrapTag}}
+  {{ end }}
 
+  {{- if not .GetOCNEControlPlaneOverridesVersion }}
   control-plane-ocne:
     repository: {{.GetOCNEControlPlaneRepository}}
     tag: {{.GetOCNEControlPlaneTag}}
+  {{ end }}
+{{ end }}
 
 providers:
   - name: "cluster-api"
