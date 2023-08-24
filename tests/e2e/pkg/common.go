@@ -911,7 +911,11 @@ func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
 	return true, nil
 }
 
-// isIPAddressValid checks whether the IP is a valid address
+// isIPAddressValid checks whether the IP is a valid address. If an empty string is passed in then the assumption is
+// that an IP address has yet to be assigned and a 'true' response is returned to allow for processing to continue.
 func isIPAddressValid(ip string) bool {
-	return net.ParseIP(ip) != nil
+	if len(ip) > 0 {
+		return net.ParseIP(ip) != nil
+	}
+	return true
 }
