@@ -114,6 +114,11 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
 	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
 
+	if module.Labels == nil {
+		module.Labels = make(map[string]string)
+	}
+	module.Labels[vzconst.VerrazzanoOwnerLabel] = string(effectiveCR.UID)
+
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion

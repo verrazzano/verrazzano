@@ -15,12 +15,22 @@ import (
 
 type ClustersV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	OCNEOCIQuickCreatesGetter
+	OKEQuickCreatesGetter
 	VerrazzanoManagedClustersGetter
 }
 
 // ClustersV1alpha1Client is used to interact with features provided by the clusters.verrazzano.io group.
 type ClustersV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *ClustersV1alpha1Client) OCNEOCIQuickCreates(namespace string) OCNEOCIQuickCreateInterface {
+	return newOCNEOCIQuickCreates(c, namespace)
+}
+
+func (c *ClustersV1alpha1Client) OKEQuickCreates(namespace string) OKEQuickCreateInterface {
+	return newOKEQuickCreates(c, namespace)
 }
 
 func (c *ClustersV1alpha1Client) VerrazzanoManagedClusters(namespace string) VerrazzanoManagedClusterInterface {

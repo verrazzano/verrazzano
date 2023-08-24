@@ -1,0 +1,174 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: ociocneclusters.clusters.verrazzano.io
+spec:
+  group: clusters.verrazzano.io
+  names:
+    kind: OCIOCNECluster
+    listKind: OCIOCNEClusterList
+    plural: ociocneclusters
+    singular: ociocnecluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: OCIOCNECluster specifies the API for quick-create OCI OCNE Clusters.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: The desired state of an OCIOCNECluster resource.
+            properties:
+              identityRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              kubernetesVersion:
+                type: string
+              oci:
+                properties:
+                  cloudInitScript:
+                    items:
+                      type: string
+                    type: array
+                  compartment:
+                    type: string
+                  controlPlane:
+                    properties:
+                      bootVolumeGbs:
+                        type: integer
+                      memoryGbs:
+                        type: integer
+                      name:
+                        type: string
+                      ocpus:
+                        type: integer
+                      replicas:
+                        type: integer
+                      shape:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  imageName:
+                    type: string
+                  network:
+                    properties:
+                      clusterCIDR:
+                        type: string
+                      podCIDR:
+                        type: string
+                      string:
+                        type: string
+                      subnets:
+                        properties:
+                          controlPlane:
+                            type: string
+                          loadBalancer:
+                            type: string
+                          workers:
+                            type: string
+                        required:
+                        - controlPlane
+                        - loadBalancer
+                        - workers
+                        type: object
+                    required:
+                    - clusterCIDR
+                    - podCIDR
+                    type: object
+                  region:
+                    type: string
+                  sshPublicKey:
+                    type: string
+                  workers:
+                    items:
+                      properties:
+                        bootVolumeGbs:
+                          type: integer
+                        memoryGbs:
+                          type: integer
+                        name:
+                          type: string
+                        ocpus:
+                          type: integer
+                        replicas:
+                          type: integer
+                        shape:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                required:
+                - compartment
+                - controlPlane
+                - imageName
+                - network
+                - region
+                type: object
+              privateRegistry:
+                properties:
+                  credentialsSecret:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  server:
+                    type: string
+                required:
+                - credentialsSecret
+                - server
+                type: object
+              proxy:
+                properties:
+                  server:
+                    type: string
+                required:
+                - server
+                type: object
+              ttlSecondsAfterFinished:
+                type: integer
+            required:
+            - identityRef
+            - kubernetesVersion
+            - oci
+            - ttlSecondsAfterFinished
+            type: object
+          status:
+            description: The observed state of an OCIOCNECluster resource.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
