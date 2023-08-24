@@ -114,7 +114,7 @@ var (
 	elastic                *vmi.Opensearch
 	waitTimeout            = 15 * time.Minute
 	pollingInterval        = 5 * time.Second
-	elasticWaitTimeout     = 3 * time.Minute
+	elasticWaitTimeout     = 15 * time.Minute
 	elasticPollingInterval = 5 * time.Second
 
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
