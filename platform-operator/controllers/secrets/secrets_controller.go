@@ -68,16 +68,16 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 
-		// Get the effective CR
+		// Get the effective CR to access the ClusterIssuer configuration
 		effectiveCR, err := transform.GetEffectiveCR(vz)
 		if err != nil {
 			r.log.Errorf("Failed to get the effective CR for %s/%s: %s", vz.Namespace, vz.Name, err.Error())
 			return newRequeueWithDelay(), err
 		}
 
-		// When the ClusterIssuer secret changes,renew all leaf certificates
+		// When the ClusterIssuer secret changes, renew all the leaf certificates
 		if isClusterIssuerSecret(req.NamespacedName, effectiveCR.Spec.Components.ClusterIssuer) {
-			if err = r.renewLeafCertificates(effectiveCR.Spec.Components.ClusterIssuer); err != nil {
+			if err = r.renewLeafCertificates(); err != nil {
 				r.log.Errorf("Failed to new all Verrazzano leaf certificates: %s", err.Error())
 				return newRequeueWithDelay(), err
 			}
@@ -155,7 +155,7 @@ func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
 }
 
-func (r *VerrazzanoSecretsReconciler) renewLeafCertificates(clusterIssuer *installv1alpha1.ClusterIssuerComponent) error {
+func (r *VerrazzanoSecretsReconciler) renewLeafCertificates() error {
 	// List the certificates
 	certList := &certv1.CertificateList{}
 	if err := r.List(context.TODO(), certList); err != nil {
