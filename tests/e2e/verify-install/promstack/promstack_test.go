@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	waitTimeout                     = 3 * time.Minute
+	waitTimeout                     = 15 * time.Minute
 	pollingInterval                 = 10 * time.Second
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
