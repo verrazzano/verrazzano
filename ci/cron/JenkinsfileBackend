@@ -12,8 +12,6 @@ def backendTestsUpToDate = false // If true, indicates that the backend tests al
 @Field
 def backendTestsUpToDateFailed = false // If true, indicates that the backend tests already ran and failed at the latest commit
 
-def agentLabel = "1.6-small"
-
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
 
@@ -31,7 +29,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "pipeline-job-large"
         }
     }
 
