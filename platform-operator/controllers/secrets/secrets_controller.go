@@ -5,14 +5,15 @@ package secrets
 
 import (
 	"context"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -65,6 +66,18 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 
+		// Get the effective CR
+		effectiveCR, err := transform.GetEffectiveCR(vz)
+		if err != nil {
+			r.log.Errorf("Failed to get the effective CR for %s/%s: %s", vz.Namespace, vz.Name, err.Error())
+			return newRequeueWithDelay(), err
+		}
+
+		// When the ClusterIssuer secret changes,renew all leaf certificates
+		if isClusterIssuerSecret(req.NamespacedName, effectiveCR.Spec.Components.ClusterIssuer) {
+
+		}
+
 		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
 		// a reconcile which will update any upstream copies
 		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
@@ -109,6 +122,13 @@ func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
 
 func isVerrazzanoPrivateCABundle(secretName types.NamespacedName) bool {
 	return secretName.Name == vzconst.PrivateCABundle && secretName.Namespace == constants.VerrazzanoSystemNamespace
+}
+
+func isClusterIssuerSecret(secretName types.NamespacedName, clusterIssuer *installv1alpha1.ClusterIssuerComponent) bool {
+	if clusterIssuer == nil || clusterIssuer.CA == nil {
+		return false
+	}
+	return secretName.Name == clusterIssuer.CA.SecretName && secretName.Namespace == clusterIssuer.ClusterResourceNamespace
 }
 
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
