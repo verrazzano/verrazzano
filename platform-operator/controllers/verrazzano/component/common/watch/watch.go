@@ -10,6 +10,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -60,14 +61,19 @@ func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor
 	return watches
 }
 
-// GetVerrazzanoCRWatch watches for any Verrazzano CR update.
-func GetVerrazzanoCRWatch() []controllerspi.WatchDescriptor {
+// GetVerrazzanoSpecWatch watches for any Verrazzano spec update.
+func GetVerrazzanoSpecWatch() []controllerspi.WatchDescriptor {
 	// Use a single watch that looks up the name in the set for a match
 	var watches = []controllerspi.WatchDescriptor{}
 	watches = append(watches, controllerspi.WatchDescriptor{
 		WatchedResourceKind: source.Kind{Type: &vzapiv1beta1.Verrazzano{}},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
-			return wev.WatchEventType == controllerspi.Updated
+			if wev.WatchEventType != controllerspi.Updated {
+				return false
+			}
+			oldSpec := wev.OldWatchedObject.(*vzapiv1beta1.Verrazzano).Spec
+			newSpec := wev.NewWatchedObject.(*vzapiv1beta1.Verrazzano).Spec
+			return reflect.DeepEqual(oldSpec, newSpec)
 		},
 	})
 	return watches

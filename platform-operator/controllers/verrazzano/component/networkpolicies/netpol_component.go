@@ -136,5 +136,5 @@ func (c networkPoliciesComponent) PreUninstall(ctx spi.ComponentContext) error {
 }
 
 func (c networkPoliciesComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetVerrazzanoCRWatch()
+	return watch.GetVerrazzanoSpecWatch()
 }
