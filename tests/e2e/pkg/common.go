@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -264,7 +265,13 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			if isReadyAndRunning(pod) {
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
+				// check to see if the pod IP is misconfigured
+				podIp := pod.Status.PodIP
+				if !isIPAddressValid(podIp) {
+					return false, fmt.Errorf("pod %s does not have a valid IP address: %s", pod.Name, podIp)
+				}
 				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+
 			}
 		}
 	}
@@ -902,4 +909,9 @@ func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
 		return false, fmt.Errorf("Namespace %s has the incorrect value for for the label %s: %s", ns, constants.LabelVerrazzanoNamespace, namespace.Labels[constants.LabelVerrazzanoNamespace])
 	}
 	return true, nil
+}
+
+// isIPAddressValid checks whether the IP is a valid address
+func isIPAddressValid(ip string) bool {
+	return net.ParseIP(ip) != nil
 }
