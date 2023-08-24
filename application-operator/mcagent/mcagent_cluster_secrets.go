@@ -6,6 +6,7 @@ package mcagent
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/certs"
@@ -169,6 +170,11 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}, &vmc)
 	if err != nil {
 		return err
+	}
+
+	// No CA secret for this managed cluster - nothing to sync.
+	if vmc.Spec.CASecret == "" {
+		return nil
 	}
 
 	vmcCASecret := corev1.Secret{}
