@@ -390,7 +390,7 @@ func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
 			return false, err
 		}
 
-		if module.Status.Conditions[len(module.Status.Conditions)-1].Type != moduleapi.ModuleConditionReady {
+		if module.Status.Conditions != nil && module.Status.Conditions[len(module.Status.Conditions)-1].Type != moduleapi.ModuleConditionReady {
 			return false, nil
 		}
 		if module.Status.LastSuccessfulGeneration != module.Generation {

@@ -10,7 +10,6 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -71,9 +70,7 @@ func GetVerrazzanoSpecWatch() []controllerspi.WatchDescriptor {
 			if wev.WatchEventType != controllerspi.Updated {
 				return false
 			}
-			oldSpec := wev.OldWatchedObject.(*vzapiv1beta1.Verrazzano).Spec
-			newSpec := wev.NewWatchedObject.(*vzapiv1beta1.Verrazzano).Spec
-			return reflect.DeepEqual(oldSpec, newSpec)
+			return wev.OldWatchedObject.(*vzapiv1beta1.Verrazzano).Generation != wev.NewWatchedObject.(*vzapiv1beta1.Verrazzano).Generation
 		},
 	})
 	return watches
