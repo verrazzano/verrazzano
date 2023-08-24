@@ -140,6 +140,7 @@ type getLetsEncryptStagingBundleFuncType func() ([]byte, error)
 
 var getLetsEncryptStagingBundleFunc getLetsEncryptStagingBundleFuncType = certs.CreateLetsEncryptStagingBundle
 
+// GetCMClientFunc - return the function to use for getting the cert-manager client
 func GetCMClientFunc() getCertManagerClientFuncType {
 	return getCMClientFunc
 }
