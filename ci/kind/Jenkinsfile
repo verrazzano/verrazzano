@@ -544,6 +544,9 @@ pipeline {
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
                         stage('opensearch-topology') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-topology"
+                            }
                             steps {
                                 runGinkgoRandomize('opensearch/topology')
                             }
