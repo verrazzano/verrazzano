@@ -1,7 +1,6 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = "1.4-small"
 def branchSpecificSchedule = getCronSchedule()
 def GIT_COMMIT_TO_USE = ""
 
@@ -17,7 +16,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS_1_4}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "pipeline-job-large"
         }
     }
 
