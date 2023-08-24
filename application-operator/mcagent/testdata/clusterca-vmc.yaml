@@ -10,3 +10,13 @@ spec:
   description: managed1-description
   managedClusterManifestSecret: managed1-manifest-secret
   serviceAccount: managed1-sa
+
+  verrazzano:
+    version: 1.6.4
+    installed: true
+
+  clusterRef:
+    apiVersion:
+    name:
+    namespace:
+    kind:

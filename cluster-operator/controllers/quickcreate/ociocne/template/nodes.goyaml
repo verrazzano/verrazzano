@@ -1,0 +1,89 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+    name:  {{.DisplayName}}-{{.ControlPlaneHash}}-control-plane
+    namespace: {{.Namespace}}
+spec:
+    template:
+        spec:
+            bootVolumeSizeInGBs: "{{.ControlPlaneVolumeGbs}}"
+            compartmentId:  {{.CompartmentID}}
+            imageId:  {{.ActualImage}}
+            isPvEncryptionInTransitEnabled: {{.NodePVTransitEncryption}}
+      {{- if .SSHPublicKey }}
+            metadata:
+                ssh_authorized_keys: {{.SSHPublicKey}}
+      {{- end }}
+            shape: {{.ControlPlaneShape}}
+      {{- if contains .ControlPlaneShape "Flex" }}
+            shapeConfig:
+        {{- if .ControlPlaneOCPUs }}
+                ocpus: "{{.ControlPlaneOCPUs}}"
+        {{- end }}
+        {{- if .ControlPlaneMemoryGbs }}
+                memoryInGBs: "{{.ControlPlaneMemoryGbs}}"
+        {{- end }}
+      {{- end }}
+---
+{{- range .NodePools }}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+    name:  {{$.DisplayName}}
+    namespace: {{$.Namespace}}
+    labels:
+        verrazzano.io/node-pool: {{.Name}}
+spec:
+    template:
+        spec:
+            bootVolumeSizeInGBs: "{{.VolumeSize}}"
+            compartmentId:  {{$.CompartmentID}}
+            imageId:  {{$.ActualImage}}
+            isPvEncryptionInTransitEnabled: {{$.NodePVTransitEncryption}}
+      {{- if $.SSHPublicKey}}
+            metadata:
+              ssh_authorized_keys: {{$.SSHPublicKey}}
+      {{- end }}
+            shape: {{.Shape}}
+      {{- if contains .Shape "Flex" }}
+            shapeConfig:
+            {{- if .Ocpus }}
+                ocpus: "{{.Ocpus}}"
+            {{- end }}
+            {{- if .Memory }}
+                memoryInGBs: "{{.Memory}}"
+            {{- end }}
+      {{- end }}
+---
+{{- end }}
+{{- range .NodePools }}
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+    name: {{.Name}}
+    namespace: {{$.Namespace}}
+    labels:
+        verrazzano.io/node-pool: {{.Name}}
+spec:
+    clusterName: {{$.Name}}
+    replicas: {{.Replicas}}
+    selector:
+        matchLabels: null
+    template:
+      spec:
+          bootstrap:
+              configRef:
+                  apiVersion: bootstrap.cluster.x-k8s.io/alpha1
+                  kind: OCNEConfigTemplate
+                  name: {{$.Name}}
+          clusterName: {{$.Name}}
+          infrastructureRef:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+              kind: OCIMachineTemplate
+              name: {{$.DisplayName}}
+          version: {{$.KubernetesVersion}}
+---
+{{- end }}
