@@ -5,6 +5,7 @@ package mysql
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -154,6 +155,10 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	// Reject any installArgs changes for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
+	}
+	// Validate the DefaultVolumeSource of mySQL
+	if err := validators.ValidateMySQL(convertedNewVZ.Spec.DefaultVolumeSource); err != nil {
+		return err
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
