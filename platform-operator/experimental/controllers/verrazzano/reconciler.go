@@ -132,11 +132,11 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	return r.setModuleValues(log, effectiveCR, module, comp)
 }
 
-// isUpgradeRequired Returns true if the Spec version is set but doesn't match what's in the BOM.
-//   - if spec version is empty then it's either an initial install or an update within the same version
-//   - if the Spec version IS NOT empty and matches the BOM, we're either in an upgrade or updating within the same version
-//   - if the Spec version IS empty and does NOT match the BOM, then we have updated the VPO but not yet upgraded, so we should
-//     skip reconciling
+// isUpgradeRequired Returns true if we detect that an upgrade is required but not (at least) in progress:
+//   - if the Spec version IS NOT empty is less than the BOM version, an upgrade is required
+//   - if the Spec version IS empty the Status version is less than the BOM, then an upgrade is required (upgrade of initial install scenario)
+//
+// If we return true here, it means we should stop reconciling until an upgrade has been requested
 func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) {
 	if actualCR == nil {
 		return false, fmt.Errorf("no Verrazzano CR provided")
