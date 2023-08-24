@@ -44,6 +44,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// has not started an upgrade of the Verrazzano install.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
 		// return an error if encountered, otherwise returns an empty result to stop reconciling
+		spictx.Log.Progressf("Upgrade required before reconciling modules")
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
@@ -144,7 +145,7 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	var bomVersion, specVersion *semver.SemVersion
+	var bomVersion, specVersion, statusVersion *semver.SemVersion
 	if bomVersion, err = semver.NewSemVersion(newBom.GetVersion()); err != nil {
 		return false, err
 	}
@@ -153,6 +154,12 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) 
 			return false, err
 		}
 		return specVersion.IsLessThan(bomVersion), nil
+	}
+	if len(actualCR.Status.Version) > 0 {
+		if statusVersion, err = semver.NewSemVersion(actualCR.Status.Version); err != nil {
+			return false, err
+		}
+		return statusVersion.IsLessThan(bomVersion), nil
 	}
 	return false, nil
 }
