@@ -6,7 +6,8 @@ Feature:
 - Support for Thanos Ruler and Compactor
 - Prometheus rules in the kube-prometheus-stack and Thanos Helm charts are enabled by default
 - Added Prometheus alerting rules for Verrazzano operators
-- Added progress flag in vz cli, which shows components installation progress in real time.
+- Added progress flag in vz cli, which shows components installation progress in real time
+- Added support for Kubernetes v1.27
 
 ### v1.6.4
 
