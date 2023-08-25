@@ -53,7 +53,7 @@ var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-n
 // THEN verify all certificates managed by ClusterIssuer are rotated
 // THEN verify the verrazzano-system/verrazzano-tls-ca secret is updated with the changes
 // THEN verify the cattle-system/tls-ca secret is updated with the changes
-// THEN verify the verrazzano-mc/verrazzano-local-ca-bundel secret is updated with the changes
+// THEN verify the verrazzano-mc/verrazzano-local-ca-bundle secret is updated with the changes
 func TestReconcileConfiguredCASecret(t *testing.T) {
 	const caCertCommonName = "verrazzano-root-ca"
 	asserts := assert.New(t)
