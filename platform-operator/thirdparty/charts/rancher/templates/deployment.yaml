@@ -81,6 +81,9 @@ spec:
 {{- if .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
 {{ toYaml .Values.topologySpreadConstraints | indent 8 }}
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
 {{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
       containers:
