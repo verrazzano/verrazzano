@@ -11,23 +11,18 @@ import (
 	"time"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
-
-	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
-
-	certv1fake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/fake"
-
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-
-	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
-
+	certv1fake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/fake"
+	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -79,13 +74,16 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	assert.NoError(t, err)
 	leaf1Secret.Data[constants2.CACertKey] = caSecret.Data[corev1.TLSCertKey]
 
+	// Create verrazzano-tls-ca secret
+	v8oTlsCASecret := newCertSecret(constants2.PrivateCABundle, constants2.VerrazzanoSystemNamespace, constants2.CABundleKey, caSecret.Data[corev1.TLSCertKey])
+
 	// Simulate rotate of the CA cert
 	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(commonName+"foo", nil)
 	assert.NoError(t, err)
 	caSecret.Data[corev1.TLSCertKey] = fakeIssuerCertBytes
 
 	// Fake ControllerRuntime client
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert, v8oTlsCASecret).Build()
 	r := newSecretsReconciler(client)
 
 	// Fake Go client for the CertManager clientSet
@@ -107,6 +105,12 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 		Type:   certv1.CertificateConditionIssuing,
 		Status: cmmeta.ConditionTrue,
 	}))
+
+	// Confirm the verrazzano-tls-ca secret got updated
+	secret := &corev1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: v8oTlsCASecret.Namespace, Name: v8oTlsCASecret.Name}, secret)
+	asserts.NoError(err)
+	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.CABundleKey])
 
 }
 
@@ -715,7 +719,7 @@ func newCertificateWithSecret(issuerName string, commonName string, certName str
 	if err != nil {
 		return nil, nil, err
 	}
-	secret := newCertSecret(fmt.Sprintf("%s-secret", certName), certNamespace, fakeIssuerCertBytes)
+	secret := newCertSecret(fmt.Sprintf("%s-secret", certName), certNamespace, corev1.TLSCertKey, fakeIssuerCertBytes)
 	certificate := &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      certName,
@@ -734,7 +738,7 @@ func newCertificateWithSecret(issuerName string, commonName string, certName str
 	return secret, certificate, nil
 }
 
-func newCertSecret(name string, namespace string, certBytes []byte) *corev1.Secret {
+func newCertSecret(name string, namespace string, certKey string, certBytes []byte) *corev1.Secret {
 	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -742,7 +746,7 @@ func newCertSecret(name string, namespace string, certBytes []byte) *corev1.Secr
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			corev1.TLSCertKey: certBytes,
+			certKey: certBytes,
 		},
 		Type: corev1.SecretTypeTLS,
 	}
