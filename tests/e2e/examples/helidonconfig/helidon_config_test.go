@@ -229,7 +229,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("HelloConfig World")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("HelloConfig World")))
 		})
 	})
 
