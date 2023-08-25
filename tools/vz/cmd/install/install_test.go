@@ -184,7 +184,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
-	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
+	//cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -974,8 +974,8 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 		cmdLineInput string
 	}{
 		{name: "VPO is already running, skip-platform-operator enabled", skipInstall: true, vpoExists: true},
-		{name: "VPO is already running, skip-platform-operator disabled, cmdLineInput-y", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
-		{name: "VPO is already running, skip-platform-operator disabled, comdLineInput-n", skipInstall: false, vpoExists: true, cmdLineInput: "n"},
+		{name: "VPO is already running, skip-platform-operator disabled, reInstallVPO-y", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
+		{name: "VPO is already running, skip-platform-operator disabled, reInstallVPO-n", skipInstall: false, vpoExists: true, cmdLineInput: "n"},
 		{name: "VPO is already running, reinstall", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
 		{name: "Clean install, no VPO is running", skipInstall: false, vpoExists: false},
 	}
@@ -1036,8 +1036,7 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 	}
 
 }
-
-func createCmdLineInput(t *testing.T, input string) {
+func createTempCmdLineInput(t *testing.T, input string) {
 	content := []byte(input)
 	tempfile, err := os.CreateTemp("", "test-input.txt")
 	if err != nil {
