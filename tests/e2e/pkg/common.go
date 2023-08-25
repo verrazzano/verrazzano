@@ -267,7 +267,7 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			} else {
 				// check to see if the pod IP is misconfigured
 				podIP := pod.Status.PodIP
-				Log(Info, fmt.Sprintf("Pod %s IP: %s", pod.Name, podIP))
+				Log(Debug, fmt.Sprintf("Pod %s IP: %s", pod.Name, podIP))
 				if !isIPAddressValid(podIP) {
 					return false, fmt.Errorf("pod %s does not have a valid IP address: %s", pod.Name, podIP)
 				}
