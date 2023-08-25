@@ -74,11 +74,21 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	assert.NoError(t, err)
 	leaf1Secret.Data[constants2.CACertKey] = caSecret.Data[corev1.TLSCertKey]
 
-	// Create verrazzano-tls-ca secret
+	// Create the verrazzano-tls-ca secret
 	v8oTlsCASecret := newCertSecret(constants2.PrivateCABundle, constants2.VerrazzanoSystemNamespace, constants2.CABundleKey, caSecret.Data[corev1.TLSCertKey])
 
-	// Create Rancher tls-ca secret
+	// Create the Rancher tls-ca secret
 	cattleTlsSecret := newCertSecret(constants2.RancherTLSCA, constants2.RancherSystemNamespace, constants2.RancherTLSCAKey, caSecret.Data[corev1.TLSCertKey])
+
+	// Create the Rancher deployment
+	cattleDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants2.RancherSystemNamespace,
+			Name:      "rancher",
+		},
+		Spec:   appsv1.DeploymentSpec{},
+		Status: appsv1.DeploymentStatus{},
+	}
 
 	// Simulate rotate of the CA cert
 	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(commonName+"foo", nil)
@@ -86,7 +96,8 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	caSecret.Data[corev1.TLSCertKey] = fakeIssuerCertBytes
 
 	// Fake ControllerRuntime client
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert, v8oTlsCASecret, cattleTlsSecret).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert,
+		v8oTlsCASecret, cattleTlsSecret, cattleDeployment).Build()
 	r := newSecretsReconciler(client)
 
 	// Fake Go client for the CertManager clientSet
@@ -120,6 +131,14 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cattleTlsSecret.Namespace, Name: cattleTlsSecret.Name}, secret)
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.RancherTLSCAKey])
+
+	// Confirm the Rancher deployment was annotated to restart
+	deployment := &appsv1.Deployment{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cattleDeployment.Namespace, Name: cattleDeployment.Name}, deployment)
+	asserts.NoError(err)
+	annotations := deployment.Spec.Template.ObjectMeta.Annotations
+	asserts.NotNil(annotations)
+	asserts.NotEmpty(annotations[constants2.VerrazzanoRestartAnnotation])
 }
 
 // TestCreateCABundle tests the Reconcile method for the following use cases
