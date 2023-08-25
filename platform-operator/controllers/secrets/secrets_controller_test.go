@@ -84,11 +84,19 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	cattleDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants2.RancherSystemNamespace,
-			Name:      "rancher",
+			Name:      rancherDeploymentName,
 		},
-		Spec:   appsv1.DeploymentSpec{},
-		Status: appsv1.DeploymentStatus{},
 	}
+
+	// Create the multi-cluster namespace
+	multiClusterNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants2.VerrazzanoMultiClusterNamespace,
+		},
+	}
+
+	// Create the multi-cluster verrazzano-local-ca-bundle secret
+	mcSecret := newCertSecret(constants.VerrazzanoLocalCABundleSecret, constants.VerrazzanoMultiClusterNamespace, mcCABundleKey, caSecret.Data[corev1.TLSCertKey])
 
 	// Simulate rotate of the CA cert
 	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(commonName+"foo", nil)
@@ -97,7 +105,7 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 
 	// Fake ControllerRuntime client
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert,
-		v8oTlsCASecret, cattleTlsSecret, cattleDeployment).Build()
+		v8oTlsCASecret, cattleTlsSecret, cattleDeployment, multiClusterNamespace, mcSecret).Build()
 	r := newSecretsReconciler(client)
 
 	// Fake Go client for the CertManager clientSet
@@ -139,6 +147,12 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	annotations := deployment.Spec.Template.ObjectMeta.Annotations
 	asserts.NotNil(annotations)
 	asserts.NotEmpty(annotations[constants2.VerrazzanoRestartAnnotation])
+
+	// Confirm the multi-cluster verrazzano-local-ca-bundle secret got updated
+	secret = &corev1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name}, secret)
+	asserts.NoError(err)
+	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[mcCABundleKey])
 }
 
 // TestCreateCABundle tests the Reconcile method for the following use cases
