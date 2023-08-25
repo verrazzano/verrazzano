@@ -102,7 +102,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStatePostUpgrade
+			tracker.vzState = vzStateUpgradeModulesReady
 
 		case vzStateUpgradeModulesReady:
 			ready, err := r.modulesReady(spiCtx)
