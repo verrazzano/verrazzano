@@ -55,17 +55,11 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 
 // reconcileVerrazzanoCABundleCopies - The configured CA secret has changed. Propagate that change into the following:
 //   - The secret verrazzano-system/verrazzano-tls-ca - the source of truth from the Verrazzano perspective
+//   - The Rancher TLS CA secret and restart Rancher deployment
+//   - The multi-cluster verrazzano-local-ca-bundle secret which maintains a copy of the local CA bundle to sync with remote clusters in the multi-cluster case
 //
-// Reconciles the source verrazzano-system/verrazzano-tls-ca CA bundle against any update to the
-// CA bundle in verrazzano-system/verrazzano-tls, along with any copies that need to be maintained.
-//
-// If the ca.crt field in the verrazzano-tls secret does not exist, any data in the verrazzano-tls-ca and cattle-system/tls-ca secrets
-// are left untouched, as this is typically a Let's Encrypt staging scenario.  Certs issued from ACME issuers do not populate the
-// "ca.crt" field in leaf cert secrets.  In those scenarios those copies are set up once during VZ resource reconciliation until if/when
-// the VZ issuer configuration is changed.
-//
-// - The cattle-system/tls-ca private bundle secret, if it already exists
-// - The verrazzano-mc/verrazzano-local-ca-bundle secret which maintains a copy of the local CA bundle to sync with remote clusters in the multi-cluster case
+// Certs issued from ACME issuers do not populate the "ca.crt" field in leaf cert secrets.  In those scenarios those copies are set up
+// once during VZ resource reconciliation until if/when the VZ issuer configuration is changed.
 //
 // These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret *corev1.Secret) (ctrl.Result, error) {
