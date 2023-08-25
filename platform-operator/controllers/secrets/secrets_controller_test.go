@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
+
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 
@@ -96,7 +98,16 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	request := newRequest(caSecret.Namespace, caSecret.Name)
 	result, err := r.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
-	asserts.Nil(result)
+	asserts.NotNil(result)
+
+	// Confirm the expected certificates were marked to be rotated
+	updatedCert, err := cmClient.CertmanagerV1().Certificates(leaf1Cert.Namespace).Get(context.TODO(), leaf1Cert.Name, metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.True(cmutil.CertificateHasCondition(updatedCert, certv1.CertificateCondition{
+		Type:   certv1.CertificateConditionIssuing,
+		Status: cmmeta.ConditionTrue,
+	}))
+
 }
 
 // TestCreateCABundle tests the Reconcile method for the following use cases
