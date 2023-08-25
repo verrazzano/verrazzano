@@ -466,6 +466,7 @@ func testUpdate(t *testing.T,
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(ctx.Client())
+	SetModuleCreateOrUpdateDone(true)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 	return ctx, asserts, result, fakeCompUpdated, err
 }

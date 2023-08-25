@@ -2631,6 +2631,7 @@ func TestReconcilerProcReconcilingState(t *testing.T) {
 			r := newVerrazzanoReconciler(k8sClient)
 			vzCtx, err := vzContext.NewVerrazzanoContext(vzlog.DefaultLogger(), k8sClient, &tt.vz, true)
 			assert.NoError(t, err)
+			SetModuleCreateOrUpdateDone(true)
 			result, err := r.ProcReconcilingState(vzCtx)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantRequeue, result.Requeue)
