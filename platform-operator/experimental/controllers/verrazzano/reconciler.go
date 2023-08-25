@@ -9,10 +9,10 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -151,22 +151,21 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) 
 	if actualCR == nil {
 		return false, fmt.Errorf("no Verrazzano CR provided")
 	}
-	newBom, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	bomVersion, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return false, err
 	}
-	var bomVersion, specVersion, statusVersion *semver.SemVersion
-	if bomVersion, err = semver.NewSemVersion(newBom.GetVersion()); err != nil {
-		return false, err
-	}
+
 	if len(actualCR.Spec.Version) > 0 {
-		if specVersion, err = semver.NewSemVersion(actualCR.Spec.Version); err != nil {
+		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+		if err != nil {
 			return false, err
 		}
 		return specVersion.IsLessThan(bomVersion), nil
 	}
 	if len(actualCR.Status.Version) > 0 {
-		if statusVersion, err = semver.NewSemVersion(actualCR.Status.Version); err != nil {
+		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+		if err != nil {
 			return false, err
 		}
 		return statusVersion.IsLessThan(bomVersion), nil
