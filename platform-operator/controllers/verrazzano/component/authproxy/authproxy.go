@@ -327,7 +327,7 @@ func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 }
 
 func appendAuthProxyImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
+	envImageOverride := os.Getenv(constants.VerrazzanoAuthProxyImageEnvVar)
 	if len(envImageOverride) > 0 {
 		return append(kvs, bom.KeyValue{
 			Key:   "v2.image",
