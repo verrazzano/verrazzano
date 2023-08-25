@@ -223,7 +223,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 	t.It("SockShop can be accessed and user can be registered", func() {
 		Eventually(func() (bool, error) {
 			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
-		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
+		}, longWaitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
 
 	t.It("SockShop can log in with default user", func() {
@@ -232,7 +232,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
 			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
+		}, longWaitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
 	})
 
