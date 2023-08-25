@@ -1036,22 +1036,3 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 	}
 
 }
-func createTempCmdLineInput(t *testing.T, input string) {
-	content := []byte(input)
-	tempfile, err := os.CreateTemp("", "test-input.txt")
-	if err != nil {
-		assert.Error(t, err)
-	}
-	// clean up tempfile
-	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(content); err != nil {
-		assert.Error(t, err)
-	}
-	if _, err := tempfile.Seek(0, 0); err != nil {
-		assert.Error(t, err)
-	}
-	oldStdin := os.Stdin
-	// Restore original Stdin
-	defer func() { os.Stdin = oldStdin }()
-	os.Stdin = tempfile
-}
