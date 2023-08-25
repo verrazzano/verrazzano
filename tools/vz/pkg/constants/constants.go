@@ -50,7 +50,7 @@ const (
 	SkipConfirmationFlag         = "skip-confirmation"
 	SkipConfirmationShort        = "y"
 	SkipPlatformOperatorFlag     = "skip-platform-operator"
-	SkipPlatformOperatorFlagHelp = "Installing the operator is skipped, but continues on to install Verrazzano."
+	SkipPlatformOperatorFlagHelp = "Installing the platform operator is skipped, but continues on to install Verrazzano."
 	VerboseFlag                  = "verbose"
 	VerboseFlagShorthand         = "v"
 	VerboseFlagDefault           = false
