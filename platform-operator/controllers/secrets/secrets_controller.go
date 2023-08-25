@@ -51,7 +51,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if ctx == nil {
 		ctx = context.TODO()
 	}
-	r.log.Infof("Reconcile called for secret %s/%s", req.Namespace, req.Name)
+	zap.S().Infof("Reconcile called for secret %s/%s", req.Namespace, req.Name)
 
 	vzList := &installv1alpha1.VerrazzanoList{}
 	err := r.List(ctx, vzList)
@@ -72,7 +72,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// Get the effective CR to access the ClusterIssuer configuration
 		effectiveCR, err := transform.GetEffectiveCR(vz)
 		if err != nil {
-			r.log.Errorf("Failed to get the effective CR for %s/%s: %s", vz.Namespace, vz.Name, err.Error())
+			zap.S().Errorf("Failed to get the effective CR for %s/%s: %s", vz.Namespace, vz.Name, err.Error())
 			return newRequeueWithDelay(), err
 		}
 
@@ -80,7 +80,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		clusterIssuer := effectiveCR.Spec.Components.ClusterIssuer
 		if isClusterIssuerSecret(req.NamespacedName, clusterIssuer) {
 			if err = r.renewClusterIssuerCertificates(); err != nil {
-				r.log.Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
+				zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
 				return newRequeueWithDelay(), err
 			}
 			return r.reconcileVerrazzanoTLS(ctx, req)
