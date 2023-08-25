@@ -51,6 +51,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if ctx == nil {
 		ctx = context.TODO()
 	}
+	r.log.Infof("Reconcile called for secret %s/%s", req.Namespace, req.Name)
 
 	vzList := &installv1alpha1.VerrazzanoList{}
 	err := r.List(ctx, vzList)
