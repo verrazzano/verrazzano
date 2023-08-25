@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -89,7 +88,6 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 			ociCapiRegionField:      []byte("test-region"),
 		},
 	}
-	config.Set(config.OperatorConfig{CloudCredentialWatchEnabled: true})
 
 	vz := &vzapi.Verrazzano{}
 
@@ -101,7 +99,7 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 		StatusUpdater: nil,
 	}
 
-	err := r.updateCapiCredential(ccSecret)
+	err := r.checkClusterCredentials(ccSecret)
 	assert.NoError(t, err)
 	updatedClusterSecretCopy := &corev1.Secret{}
 	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: "cluster", Name: "cluster-principal"}, updatedClusterSecretCopy)

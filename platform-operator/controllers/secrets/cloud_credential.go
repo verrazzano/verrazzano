@@ -60,7 +60,8 @@ func (r *VerrazzanoSecretsReconciler) updateCAPISecret(updatedSecret *corev1.Sec
 	return nil
 }
 
-func (r *VerrazzanoSecretsReconciler) updateCapiCredential(updatedSecret *corev1.Secret) error {
+// checkClusterCredentials checks whether the updated credential is being used by any OCNE cluster. If a cluster is using that credential, the OCNE cluster's copy of the credential also gets updated
+func (r *VerrazzanoSecretsReconciler) checkClusterCredentials(updatedSecret *corev1.Secret) error {
 	if isOCNECloudCredential(updatedSecret) {
 		ocneClustersList, err := r.getOCNEClustersList()
 		if err != nil {
