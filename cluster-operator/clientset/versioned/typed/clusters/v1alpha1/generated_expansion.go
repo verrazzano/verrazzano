@@ -5,4 +5,8 @@
 
 package v1alpha1
 
+type OCNEOCIQuickCreateExpansion interface{}
+
+type OKEQuickCreateExpansion interface{}
+
 type VerrazzanoManagedClusterExpansion interface{}

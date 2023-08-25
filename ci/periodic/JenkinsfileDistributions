@@ -4,6 +4,7 @@
 import groovy.transform.Field
 
 @Field def verrazzanoPrefix="verrazzano-"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 pipeline {
     options {
@@ -18,6 +19,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
+            label "${agentLabel}"
         }
     }
 

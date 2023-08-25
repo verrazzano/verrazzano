@@ -1,44 +1,18 @@
-# Copyright (C) 2020, 2023, Oracle and/or its affiliates.
+# Copyright (C) 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingWebhookConfiguration
+kind: MutatingWebhookConfiguration
 metadata:
   name: {{ .Values.name }}-webhook
   labels:
     app: {{ .Values.name }}-webhook
 webhooks:
-  - name: clusters.verrazzano.io
-    namespaceSelector:
-      matchExpressions:
-        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
-    clientConfig:
-      service:
-        name: {{ .Values.name }}-webhook
-        namespace: {{ .Values.namespace }}
-        path: /validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster
-    rules:
-      - apiGroups:
-          - clusters.verrazzano.io
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - verrazzanomanagedclusters
-    sideEffects: None
-    failurePolicy: Fail
-    matchPolicy: Exact
-    timeoutSeconds: 30
-    admissionReviewVersions:
-      - v1beta1
-      - v1
   - name: ocneociquickcreate.verrazzano.io
     clientConfig:
       service:
         name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
-        path: "/validate-clusters-verrazzano-io-v1alpha1-ocneociquickcreate"
+        path: "/mutate-clusters-verrazzano-io-v1alpha1-ocneociquickcreate"
     rules:
       - apiGroups:
           - clusters.verrazzano.io
@@ -62,7 +36,7 @@ webhooks:
       service:
         name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
-        path: "/validate-clusters-verrazzano-io-v1alpha1-okequickcreate"
+        path: "/mutate-clusters-verrazzano-io-v1alpha1-okequickcreate"
     rules:
       - apiGroups:
           - clusters.verrazzano.io
