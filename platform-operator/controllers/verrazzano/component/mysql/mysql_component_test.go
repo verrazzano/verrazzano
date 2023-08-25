@@ -750,32 +750,3 @@ func TestMonitorOverrides(t *testing.T) {
 		})
 	}
 }
-
-//func TestMysqlComponent_ValidateUpdate(t *testing.T) {
-//	tests := []struct {
-//		name     string
-//		emptyDir bool
-//	}{
-//		{name: "VZ CR with DefaultVolumeSource set to emptyDir", emptyDir: true},
-//		{name: "VZ CR with DefaultVolumeSource not set", emptyDir: false},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vz := vzapi.Verrazzano{
-//				TypeMeta:   metav1.TypeMeta{},
-//				ObjectMeta: metav1.ObjectMeta{},
-//				Spec:       vzapi.VerrazzanoSpec{},
-//				Status:     vzapi.VerrazzanoStatus{},
-//			}
-//			cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&vz).Build()
-//			spi.NewFakeContext(cli, &vz, nil, false)
-//
-//			if tt.emptyDir {
-//				//var emptyDir *corev1.EmptyDirVolumeSource
-//				vz.Spec.DefaultVolumeSource.EmptyDir = &corev1.EmptyDirVolumeSource{}
-//			}
-//
-//		})
-//	}
-//}

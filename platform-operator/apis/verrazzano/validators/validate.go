@@ -461,7 +461,7 @@ func ValidateMySQL(defaultVolumeSource *corev1.VolumeSource) error {
 		return nil
 	}
 	if defaultVolumeSource.EmptyDir != nil {
-		return fmt.Errorf("DefaultVolumeSource was empty. Not allowed.")
+		return fmt.Errorf("defaultVolumeSource: emptyDir was set, this is not supported")
 	}
 	return nil
 }
