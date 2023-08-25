@@ -81,6 +81,7 @@ spec:
 {{- if .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
 {{ toYaml .Values.topologySpreadConstraints | indent 8 }}
+{{- end }}
 {{- if .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml .Values.nodeSelector | indent 8 }}
