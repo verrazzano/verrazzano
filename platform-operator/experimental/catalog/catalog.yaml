@@ -35,7 +35,7 @@ modules:
   - name: verrazzano-application-operator
     version: 2.0.0
   - name: weblogic-operator
-    version: 4.1.0-1
+    version: 4.1.0
   - name: coherence-operator
     version: 3.2.11-1
   - name: fluent-operator

@@ -370,6 +370,7 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 	return r.updateStatus(log, vz, msg, newCondition, nil)
 }
 
+// The new Verrazzano controller creates Modules for components.  Make sure those modules are ready.
 func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsEnabled(ctx.EffectiveCR()) {

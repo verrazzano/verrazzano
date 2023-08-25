@@ -62,5 +62,5 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	}
 
 	// Set the module status condition, installed generation and installed version
-	return modulestatus.UpdateModuleStatusToInstalled(ctx, module, vzcr.Status.Version, 0)
+	return modulestatus.UpdateModuleStatusToInstalled(ctx, module, vzcr.Status.Version, compStatus.LastReconciledGeneration)
 }
