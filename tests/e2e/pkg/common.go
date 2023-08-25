@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -264,7 +265,14 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			if isReadyAndRunning(pod) {
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
+				// check to see if the pod IP is misconfigured
+				podIP := pod.Status.PodIP
+				Log(Debug, fmt.Sprintf("Pod %s IP: %s", pod.Name, podIP))
+				if !isIPAddressValid(podIP) {
+					return false, fmt.Errorf("pod %s does not have a valid IP address: %s", pod.Name, podIP)
+				}
 				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+
 			}
 		}
 	}
@@ -902,4 +910,13 @@ func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
 		return false, fmt.Errorf("Namespace %s has the incorrect value for for the label %s: %s", ns, constants.LabelVerrazzanoNamespace, namespace.Labels[constants.LabelVerrazzanoNamespace])
 	}
 	return true, nil
+}
+
+// isIPAddressValid checks whether the IP is a valid address. If an empty string is passed in then the assumption is
+// that an IP address has yet to be assigned and a 'true' response is returned to allow for processing to continue.
+func isIPAddressValid(ip string) bool {
+	if len(ip) > 0 {
+		return net.ParseIP(ip) != nil
+	}
+	return true
 }
