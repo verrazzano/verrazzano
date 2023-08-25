@@ -5,9 +5,20 @@ package secrets
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"testing"
 	"time"
+
+	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
+
+	certv1fake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/fake"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+
+	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -39,6 +50,54 @@ var additionalTLSSecret = types.NamespacedName{Name: "tls-ca-additional", Namesp
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
 var rancherDeployment = types.NamespacedName{Name: rancherDeploymentName, Namespace: constants2.RancherSystemNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
+
+// TestReconcileConfiguredCASecret tests the Reconcile method
+// GIVEN a request to reconcile the secret configured in ClusterIssuer
+// WHEN the secret has changed
+// THEN verify all certificates managed by ClusterIssuer are rotated
+// THEN verify the verrazzano-system/verrazzano-tls-ca secret is updated with the changes
+// THEN verify the cattle-system/tls-ca secret is updated with the changes
+// THEN verify the verrazzano-mc/verrazzano-local-ca-bundel secret is updated with the changes
+func TestReconcileConfiguredCASecret(t *testing.T) {
+	const caCertCommonName = "verrazzano-root-ca"
+	asserts := assert.New(t)
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+	scheme := newScheme()
+	vz := newVZ()
+
+	// Create a CA certificate
+	commonName := caCertCommonName + "-a23asdfa"
+	caIssuerCert := cmcommonfake.CreateFakeCertificate(commonName)
+	caSecret, caCert, err := newCertificateWithSecret("verrazzano-selfsigned-issuer", commonName, "verrazzano-ca-certificate", constants2.CertManagerNamespace, nil)
+	asserts.NoError(err)
+
+	// Create a leaf certificate signed by the CA
+	leaf1Secret, leaf1Cert, err := newCertificateWithSecret("verrazzano-cluster-issuer", "common-name", "tls-rancher-ingress", constants2.RancherSystemNamespace, caIssuerCert)
+	assert.NoError(t, err)
+	leaf1Secret.Data[constants2.CACertKey] = caSecret.Data[corev1.TLSCertKey]
+
+	// Simulate rotate of the CA cert
+	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(commonName+"foo", nil)
+	assert.NoError(t, err)
+	caSecret.Data[corev1.TLSCertKey] = fakeIssuerCertBytes
+
+	// Fake ControllerRuntime client
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert).Build()
+	r := newSecretsReconciler(client)
+
+	// Fake Go client for the CertManager clientSet
+	cmClient := certv1fake.NewSimpleClientset(caCert, leaf1Cert)
+	defer issuer.ResetCMClientFunc()
+	issuer.SetCMClientFunc(func() (certv1client.CertmanagerV1Interface, error) {
+		return cmClient.CertmanagerV1(), nil
+	})
+
+	request := newRequest(caSecret.Namespace, caSecret.Name)
+	result, err := r.Reconcile(context.TODO(), request)
+	asserts.NoError(err)
+	asserts.Nil(result)
+}
 
 // TestCreateCABundle tests the Reconcile method for the following use cases
 // GIVEN a request to reconcile the verrazzano-tls secret OR the tls-additional-ca secret
@@ -132,6 +191,7 @@ func TestCreateCABundle(t *testing.T) {
 		request := newRequest(tt.secretNS, tt.secretName)
 		reconciler := newSecretsReconciler(mock)
 		config.TestProfilesDir = "../../manifests/profiles"
+		defer func() { config.TestProfilesDir = "" }()
 		result, err := reconciler.Reconcile(context.TODO(), request)
 
 		// Validate the results
@@ -590,6 +650,7 @@ func newScheme() *runtime.Scheme {
 	_ = corev1.AddToScheme(scheme)
 	_ = vzapi.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
+	_ = certv1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -614,4 +675,64 @@ func newSecretsReconciler(c client.Client) VerrazzanoSecretsReconciler {
 		StatusUpdater: &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler
+}
+
+// newVZ - create a Verrazzano custom resource
+func newVZ() *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "verrazzano",
+		},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ClusterIssuer: &vzapi.ClusterIssuerComponent{
+					IssuerConfig: vzapi.IssuerConfig{
+						CA: &vzapi.CAIssuer{
+							SecretName: constants2.DefaultVerrazzanoCASecretName,
+						},
+					},
+					ClusterResourceNamespace: constants2.CertManagerNamespace,
+				},
+			},
+		},
+	}
+}
+
+// newCertificateWithSecret - Create a new certificate and secret that is optionally signed by a parent
+func newCertificateWithSecret(issuerName string, commonName string, certName string, certNamespace string, parent *x509.Certificate) (*corev1.Secret, *certv1.Certificate, error) {
+	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(commonName, parent)
+	if err != nil {
+		return nil, nil, err
+	}
+	secret := newCertSecret(fmt.Sprintf("%s-secret", certName), certNamespace, fakeIssuerCertBytes)
+	certificate := &certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      certName,
+			Namespace: certNamespace,
+		},
+		Spec: certv1.CertificateSpec{
+			CommonName: commonName,
+			IsCA:       true,
+			IssuerRef: cmmeta.ObjectReference{
+				Name: issuerName,
+			},
+			SecretName: secret.Name,
+		},
+	}
+
+	return secret, certificate, nil
+}
+
+func newCertSecret(name string, namespace string, certBytes []byte) *corev1.Secret {
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			corev1.TLSCertKey: certBytes,
+		},
+		Type: corev1.SecretTypeTLS,
+	}
 }

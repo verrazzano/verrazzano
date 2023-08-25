@@ -145,6 +145,15 @@ func GetCMClientFunc() getCertManagerClientFuncType {
 	return getCMClientFunc
 }
 
+func SetCMClientFunc(function getCertManagerClientFuncType) {
+	getCMClientFunc = function
+}
+
+// ResetCMClientFunc - reset getCMClientFunc to the default value
+func ResetCMClientFunc() {
+	getCMClientFunc = GetCertManagerClientset
+}
+
 // GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 	cfg, err := k8sutil.GetConfigFromController()
