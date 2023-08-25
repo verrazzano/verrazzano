@@ -82,7 +82,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				r.log.Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
 				return newRequeueWithDelay(), err
 			}
-			return ctrl.Result{}, nil
+			return r.reconcileVerrazzanoTLS(ctx, req)
 		}
 
 		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
@@ -91,7 +91,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
 		// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
 		if isVerrazzanoIngressSecretName(req.NamespacedName) || isVerrazzanoPrivateCABundle(req.NamespacedName) {
-			return r.reconcileVerrazzanoTLS(ctx, req, vz)
+			return r.reconcileVerrazzanoTLS(ctx, req)
 		}
 
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)

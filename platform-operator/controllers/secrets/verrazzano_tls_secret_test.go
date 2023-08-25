@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -21,7 +23,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 type testUpdater struct{}
@@ -126,7 +127,7 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 			}
 
 			ctx := context.TODO()
-			got, err := r.reconcileVerrazzanoTLS(ctx, req, vz)
+			got, err := r.reconcileVerrazzanoTLS(ctx, req)
 			if !wantErr(t, err, fmt.Sprintf("reconcileVerrazzanoTLS(%v, %v, %v)", ctx, req, vz)) {
 				return
 			}
