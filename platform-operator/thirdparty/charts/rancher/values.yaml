@@ -3,10 +3,21 @@
 # See README.md for details.
 additionalTrustedCAs: false
 
-# affinity optionally replaces the entire affinity section of the pod spec. If affinity is specified then the value of antiAffinity is ignored.
+
+# affinity optionally replaces the entire affinity section of the pod spec. If affinity is specified then the values of nodeAffinity, podAffinity, podAntiAffinity, and antiAffinity are ignored.
 affinity: {}
+# nodeAffinity optionally replaces the nodeAffinity section under affinity in the pod spec.
+nodeAffinity: {}
+# podAffinity optionally replaces the podAffinity section under affinity in the pod spec.
+podAffinity: {}
+# podAntiAffinity optionally replaces the podAntiAffinity section under affinity in the pod spec. If podAntiAffinity is specified then the value of antiAffinity is ignored.
+podAntiAffinity: {}
+
 antiAffinity: preferred
 topologyKey: kubernetes.io/hostname
+
+# Optional topology spread constraints
+topologySpreadConstraints: []
 
 # Audit Logs https://rancher.com/docs/rancher/v2.x/en/installation/api-auditing/
 # The audit log is piped to the console of the rancher-audit-log container in the rancher pod.
