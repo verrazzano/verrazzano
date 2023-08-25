@@ -175,6 +175,14 @@ spec:
           capabilities:
             drop:
               - ALL
+      - image: {{ .Values.v2.image.repository }}:{{ .Values.v2.image.tag }}
+        name: verrazzano-authproxy-v2
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
       serviceAccountName: {{ .Values.name }}
       securityContext:
         runAsUser: 101  # nginx container user

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,13 +53,25 @@ const (
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoClusterOperatorImageEnvVar)
 	if len(envImageOverride) > 0 {
-		kvs = append(kvs, bom.KeyValue{
+		return append(kvs, bom.KeyValue{
 			Key:   "image",
 			Value: envImageOverride,
-		})
+		}), nil
+	}
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, compContext.Log().ErrorfNewErr("Failed to generate the bom for the Verrazzano Cluster Operator image: %v", err)
 	}
 
-	return kvs, nil
+	images, err := bomFile.BuildImageOverrides("verrazzano-cluster-operator")
+	if err != nil {
+		return kvs, compContext.Log().ErrorfNewErr("Failed to get images for the Verrazzano Cluster Operator subcomponent: %v", err)
+	}
+
+	if len(images) != 1 {
+		return kvs, compContext.Log().ErrorfNewErr("Failed, %s images returned from the Verrazzano Cluster Operator subcomponent, expected 1", len(images))
+	}
+	return append(kvs, images...), nil
 }
 
 // isClusterOperatorReady checks if the cluster operator deployment is ready

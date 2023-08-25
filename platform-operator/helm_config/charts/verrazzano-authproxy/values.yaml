@@ -40,3 +40,6 @@ config:
 dns:
   wildcard:
     domain:
+
+v2:
+  image:

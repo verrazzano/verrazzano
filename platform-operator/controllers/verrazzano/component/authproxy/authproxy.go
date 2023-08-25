@@ -129,7 +129,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
-	return kvs, nil
+	return appendAuthProxyImageOverrides(ctx, kvs)
 }
 
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
@@ -324,4 +324,28 @@ func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	if err := ctx.Client().Delete(context.TODO(), service); err != nil && !apierrors.IsNotFound(err) {
 		ctx.Log().Errorf("Unable to delete deprecated ES service: %s, %v", service.Name, err)
 	}
+}
+
+func appendAuthProxyImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
+	if len(envImageOverride) > 0 {
+		return append(kvs, bom.KeyValue{
+			Key:   "v2.image",
+			Value: envImageOverride,
+		}), nil
+	}
+
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to generate the bom for the Verrazzano Authproxy image: %v", err)
+	}
+	images, err := bomFile.BuildImageOverrides("verrazzano-authproxy")
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get images for the Verrazzano Authproxy subcomponent: %v", err)
+	}
+
+	if len(images) != 1 {
+		return kvs, ctx.Log().ErrorfNewErr("Failed, %s images returned from the Verrazzano Authproxy subcomponent, expected 1", len(images))
+	}
+	return append(kvs, images...), nil
 }
