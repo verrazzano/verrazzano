@@ -38,6 +38,9 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 	var issueReporter = report.IssueReporter{
 		PendingIssues: make(map[string]report.Issue),
 	}
+
+	// Get the secret configured for the Verrazzano ClusterIssuer.  This will be used to check if certificates
+
 	for _, namespace := range allNamespacesFound {
 		certificateFile := files.FindFileInNamespace(clusterRoot, namespace, constants.CertificatesJSON)
 		certificateListForNamespace, err := getCertificateList(log, certificateFile)

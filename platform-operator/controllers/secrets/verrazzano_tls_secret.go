@@ -69,21 +69,21 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 //
 // These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret *corev1.Secret) (ctrl.Result, error) {
-	// Update the Verrazzano private CA bundle first; source of truth from a VZ perspective
+	// Update the Verrazzano private CA bundle; the source of truth from a VZ perspective
 	_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
 		vzconst.CABundleKey, corev1.TLSCertKey, caSecret, false)
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
 
-	// Update the Rancher TLS CA secret with the CA in verrazzano-tls-ca Secret
+	// Update the Rancher TLS CA secret
 	result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
 		vzconst.RancherTLSCAKey, corev1.TLSCertKey, caSecret, false)
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
 
-	// Restart Rancher pod to have the updated TLS CA secret value reflected in the pod
+	// Restart Rancher pod to have the updated CA secret value reflected in the pod
 	if result == controllerutil.OperationResultUpdated {
 		if err := r.restartRancherPod(); err != nil {
 			return newRequeueWithDelay(), err
@@ -95,7 +95,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret
 		return newRequeueWithDelay(), nil
 	}
 
-	// Always update the verrazzano-local-ca-bundle secret from the Verrazzano private CA bundle source
+	// Update the verrazzano-local-ca-bundle secret
 	if _, err := r.updateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
 		mcCABundleKey, corev1.TLSCertKey, caSecret, true); err != nil {
 		return newRequeueWithDelay(), nil
