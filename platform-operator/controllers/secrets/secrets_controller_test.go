@@ -45,7 +45,6 @@ var rancherTLSCASecret = types.NamespacedName{Name: constants2.RancherTLSCA, Nam
 
 var additionalTLSSecret = types.NamespacedName{Name: "tls-ca-additional", Namespace: constants2.RancherSystemNamespace}
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
-var rancherDeployment = types.NamespacedName{Name: rancherDeploymentName, Namespace: constants2.RancherSystemNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
 
 // TestReconcileConfiguredCASecret tests the Reconcile method
@@ -104,9 +103,9 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	caSecret.Data[corev1.TLSCertKey] = fakeIssuerCertBytes
 
 	// Fake ControllerRuntime client
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert,
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert,
 		v8oTlsCASecret, cattleTlsSecret, cattleDeployment, multiClusterNamespace, mcSecret).Build()
-	r := newSecretsReconciler(client)
+	r := newSecretsReconciler(fakeClient)
 
 	// Fake Go client for the CertManager clientSet
 	cmClient := certv1fake.NewSimpleClientset(caCert, leaf1Cert)
@@ -130,19 +129,19 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 
 	// Confirm the verrazzano-tls-ca secret got updated
 	secret := &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: v8oTlsCASecret.Namespace, Name: v8oTlsCASecret.Name}, secret)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: v8oTlsCASecret.Namespace, Name: v8oTlsCASecret.Name}, secret)
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.CABundleKey])
 
 	// Confirm the Rancher tls-ca secret got updated
 	secret = &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cattleTlsSecret.Namespace, Name: cattleTlsSecret.Name}, secret)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: cattleTlsSecret.Namespace, Name: cattleTlsSecret.Name}, secret)
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.RancherTLSCAKey])
 
 	// Confirm the Rancher deployment was annotated to restart
 	deployment := &appsv1.Deployment{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cattleDeployment.Namespace, Name: cattleDeployment.Name}, deployment)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: cattleDeployment.Namespace, Name: cattleDeployment.Name}, deployment)
 	asserts.NoError(err)
 	annotations := deployment.Spec.Template.ObjectMeta.Annotations
 	asserts.NotNil(annotations)
@@ -150,7 +149,7 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 
 	// Confirm the multi-cluster verrazzano-local-ca-bundle secret got updated
 	secret = &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name}, secret)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name}, secret)
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[mcCABundleKey])
 }
@@ -292,7 +291,7 @@ func TestIgnoresOtherSecrets(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mock := mocks.NewMockClient(mocker)
 
-		expectNothingForWrongSecret(t, mock)
+		expectNothingForWrongSecret(mock)
 
 		// Create and make the request
 		request := newRequest(tt.secretNS, tt.secretName)
@@ -576,7 +575,7 @@ func TestSecretCall(t *testing.T) {
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	expectGetSecretExists(mock, &testSecret, testNS, testSecretName)
+	expectGetSecretExists(mock, testNS, testSecretName)
 
 	request := newRequest(testNS, testSecretName)
 	reconciler := newSecretsReconciler(mock)
@@ -675,7 +674,7 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 }
 
 // mock client request to get the secret
-func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, namespace string, name string) {
+func expectGetSecretExists(mock *mocks.MockClient, namespace string, name string) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
@@ -683,7 +682,7 @@ func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, n
 		})
 }
 
-func expectNothingForWrongSecret(t *testing.T, mock *mocks.MockClient) {
+func expectNothingForWrongSecret(mock *mocks.MockClient) {
 
 	mock.EXPECT().
 		List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Any()).
