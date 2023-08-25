@@ -77,13 +77,16 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	// Create verrazzano-tls-ca secret
 	v8oTlsCASecret := newCertSecret(constants2.PrivateCABundle, constants2.VerrazzanoSystemNamespace, constants2.CABundleKey, caSecret.Data[corev1.TLSCertKey])
 
+	// Create Rancher tls-ca secret
+	cattleTlsSecret := newCertSecret(constants2.RancherTLSCA, constants2.RancherSystemNamespace, constants2.RancherTLSCAKey, caSecret.Data[corev1.TLSCertKey])
+
 	// Simulate rotate of the CA cert
 	fakeIssuerCertBytes, err := cmcommonfake.CreateFakeCertBytes(commonName+"foo", nil)
 	assert.NoError(t, err)
 	caSecret.Data[corev1.TLSCertKey] = fakeIssuerCertBytes
 
 	// Fake ControllerRuntime client
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert, v8oTlsCASecret).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert, v8oTlsCASecret, cattleTlsSecret).Build()
 	r := newSecretsReconciler(client)
 
 	// Fake Go client for the CertManager clientSet
@@ -112,6 +115,11 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.CABundleKey])
 
+	// Confirm the Rancher tls-ca secret got updated
+	secret = &corev1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: cattleTlsSecret.Namespace, Name: cattleTlsSecret.Name}, secret)
+	asserts.NoError(err)
+	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.RancherTLSCAKey])
 }
 
 // TestCreateCABundle tests the Reconcile method for the following use cases
