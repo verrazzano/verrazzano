@@ -7,6 +7,9 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/ociocne"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/oke"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -31,16 +34,28 @@ const (
 	clusterSelectorFilePath = "/var/syncClusters/selector.yaml"
 	syncClustersEnvVarName  = "CLUSTER_SYNC_ENABLED"
 	cattleClustersCRDName   = "clusters.management.cattle.io"
+	capiClustersCRDName     = "clusters.cluster.x-k8s.io"
 )
 
+type Properties struct {
+	Scheme                        *runtime.Scheme
+	CertificateDir                string
+	MetricsAddress                string
+	ProbeAddress                  string
+	IngressHost                   string
+	EnableLeaderElection          bool
+	EnableQuickCreate             bool
+	EnableCAPIRancherRegistration bool
+}
+
 // StartClusterOperator Cluster operator execution entry point
-func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAddr string, ingressHost string, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		Scheme:                 props.Scheme,
+		MetricsBindAddress:     props.MetricsAddress,
 		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: props.ProbeAddress,
+		LeaderElection:         props.EnableLeaderElection,
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
@@ -57,7 +72,7 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 	}
 
 	apiextv1Client := apiextv1.NewForConfigOrDie(ctrlConfig)
-	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1Client)
+	crdInstalled, err := isCRDInstalled(apiextv1Client, cattleClustersCRDName)
 	if err != nil {
 		log.Error(err, "unable to determine if cattle CRD is installed")
 		os.Exit(1)
@@ -83,18 +98,56 @@ func StartClusterOperator(metricsAddr string, enableLeaderElection bool, probeAd
 		}
 	}
 
-	if ingressHost == "" {
-		ingressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
+	capiCrdInstalled, err := isCRDInstalled(apiextv1Client, capiClustersCRDName)
+	if err != nil {
+		log.Error(err, "unable to determine if CAPI CRD is installed")
+		os.Exit(1)
+	}
+
+	if props.IngressHost == "" {
+		props.IngressHost = rancherutil.DefaultRancherIngressHostPrefix + nginxutil.IngressNGINXNamespace()
+	}
+
+	// only start the CAPI cluster controller if the clusters CRD is installed and the controller is enabled
+	if capiCrdInstalled && props.EnableCAPIRancherRegistration {
+		log.Infof("Starting CAPI Cluster controller")
+		if err = (&capi.CAPIClusterReconciler{
+			Client:             mgr.GetClient(),
+			Log:                log,
+			Scheme:             mgr.GetScheme(),
+			RancherIngressHost: props.IngressHost,
+		}).SetupWithManager(mgr); err != nil {
+			log.Errorf("Failed to create CAPI cluster controller: %v", err)
+			os.Exit(1)
+		}
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&vmc.VerrazzanoManagedClusterReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
-		RancherIngressHost: ingressHost,
+		RancherIngressHost: props.IngressHost,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
 		os.Exit(1)
+	}
+	if props.EnableQuickCreate {
+		if err = (&ociocne.ClusterReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Logger: log,
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller OCNEOCIQuickCreate")
+			os.Exit(1)
+		}
+		if err = (&oke.ClusterReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Logger: log,
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "Failed to setup controller OKEQuickCreate")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -149,9 +202,9 @@ func shouldSyncClusters(clusterSelectorFile string) (bool, *metav1.LabelSelector
 	return true, selector, err
 }
 
-// isCattleClustersCRDInstalled returns true if the clusters.management.cattle.io CRD is installed
-func isCattleClustersCRDInstalled(client apiextv1.ApiextensionsV1Interface) (bool, error) {
-	_, err := client.CustomResourceDefinitions().Get(context.TODO(), cattleClustersCRDName, metav1.GetOptions{})
+// isCRDInstalled returns true if the clusters.management.cattle.io CRD is installed
+func isCRDInstalled(client apiextv1.ApiextensionsV1Interface, crdName string) (bool, error) {
+	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -168,7 +221,7 @@ func isCattleClustersCRDInstalled(client apiextv1.ApiextensionsV1Interface) (boo
 func watchCattleClustersCRD(cancel context.CancelFunc, client apiextv1.ApiextensionsV1Interface, crdInstalled bool, log *zap.SugaredLogger) {
 	log.Infof("Watching for CRD %s to be installed or uninstalled", cattleClustersCRDName)
 	for {
-		installed, err := isCattleClustersCRDInstalled(client)
+		installed, err := isCRDInstalled(client, cattleClustersCRDName)
 		if err != nil {
 			log.Debugf("Unable to determine if CRD %s is installed: %v", cattleClustersCRDName, err)
 			continue

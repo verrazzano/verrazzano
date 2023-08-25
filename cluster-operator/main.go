@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	v1 "k8s.io/api/rbac/v1"
 	"os"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -26,13 +27,15 @@ import (
 var (
 	scheme = runtime.NewScheme()
 
-	metricsAddr          string
-	enableLeaderElection bool
-	probeAddr            string
-	runWebhooks          bool
-	runWebhookInit       bool
-	certDir              string
-	ingressHost          string
+	metricsAddr                   string
+	enableLeaderElection          bool
+	probeAddr                     string
+	runWebhooks                   bool
+	runWebhookInit                bool
+	certDir                       string
+	ingressHost                   string
+	enableQuickCreate             bool
+	enableCAPIRancherRegistration bool
 )
 
 func init() {
@@ -42,25 +45,26 @@ func init() {
 
 	utilruntime.Must(clustersv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(v1beta1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
-	handleFlags()
+	props := handleFlags()
 	log := zap.S()
 
 	if runWebhookInit {
-		err := operatorinit.WebhookInit(certDir, log)
+		err := operatorinit.WebhookInit(log, props)
 		if err != nil {
 			os.Exit(1)
 		}
 	} else if runWebhooks {
-		err := operatorinit.StartWebhookServer(metricsAddr, probeAddr, enableLeaderElection, certDir, scheme, log)
+		err := operatorinit.StartWebhookServer(log, props)
 		if err != nil {
 			os.Exit(1)
 		}
 	} else {
-		err := operatorinit.StartClusterOperator(metricsAddr, enableLeaderElection, probeAddr, ingressHost, log, scheme)
+		err := operatorinit.StartClusterOperator(log, props)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -68,7 +72,7 @@ func main() {
 }
 
 // handleFlags sets up the CLI flags, parses them, and initializes loggers
-func handleFlags() {
+func handleFlags() operatorinit.Properties {
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -78,8 +82,11 @@ func handleFlags() {
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
+	flag.BoolVar(&enableQuickCreate, "quick-create", false, "If true, enables Quick Create Clusters")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
+	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", false,
+		"Runs the webhook initialization code")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -88,4 +95,14 @@ func handleFlags() {
 	kzap.UseFlagOptions(&opts)
 	vzlog.InitLogs(opts)
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts)))
+	return operatorinit.Properties{
+		Scheme:                        scheme,
+		CertificateDir:                certDir,
+		MetricsAddress:                metricsAddr,
+		ProbeAddress:                  probeAddr,
+		IngressHost:                   ingressHost,
+		EnableLeaderElection:          enableLeaderElection,
+		EnableQuickCreate:             enableQuickCreate,
+		EnableCAPIRancherRegistration: enableCAPIRancherRegistration,
+	}
 }

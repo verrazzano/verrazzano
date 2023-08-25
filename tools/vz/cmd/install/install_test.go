@@ -682,6 +682,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+	defer ensureResourcesDeleted(t, c)
 
 	// Run install command
 	err := cmd.Execute()
@@ -960,6 +961,36 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistry, imagePrefix)
 }
 
+// TestInstallFromFilename tests installing from a filename.
+//
+// GIVEN a filename after install command with filename flags set
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command fails and should catch the missing filename flag or the missing file
+func TestInstallFromFilename(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
+
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	SetValidateCRFunc(FakeValidateCRFunc)
+	defer SetDefaultValidateCRFunc()
+
+	// Send stdout stderr to a byte bufferF
+	rc.SetClient(c)
+
+	os.Args = append(os.Args, testFilenamePath)
+	cmd.Execute()
+	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
+	//Clean the resource args for further test cases.
+	s := len(os.Args)
+	os.Args = append(os.Args[:s-1])
+}
+
 // TestInstallSkipOperatorInstall tests installing Verrazzano and skipping the install of the operator.
 //
 // GIVEN a CLI install command with skip-operator-install flags set
@@ -1034,5 +1065,4 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 			testhelpers.VerifyLastAppliedConfigAnnotation(t, vz.ObjectMeta, expectedLastAppliedConfigAnnotation)
 		})
 	}
-
 }

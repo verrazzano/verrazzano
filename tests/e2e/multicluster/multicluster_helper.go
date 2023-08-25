@@ -510,7 +510,7 @@ func (c *Cluster) GetRegistration(name string) (*corev1.Secret, error) {
 	return r, err
 }
 
-// GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
+// GetCR gets the CR.  If it is not "Ready", wait for up to 10 minutes for it to be "Ready".
 func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 	if waitForReady {
 		gomega.Eventually(func() error {
@@ -522,7 +522,7 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 			}
 			return nil
-		}, mediumWait, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+		}, 10*time.Minute, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 	}
 	// Get the CR
 	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)

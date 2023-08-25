@@ -105,40 +105,42 @@ const (
 )
 
 const (
-	CAPIMutatingWebhook               = "mutating-webhook-configuration"
-	CAPIValidatingWebhook             = "validating-webhook-configuration"
-	SettingServerURL                  = "server-url"
-	KontainerDriverOKE                = "oraclecontainerengine"
-	ClusterLocal                      = "local"
-	AuthConfigLocal                   = "local"
-	ClusterKind                       = "Cluster"
-	ProviderCattleIoLabel             = "provider.cattle.io"
-	UserVerrazzano                    = "u-verrazzano"
-	UsernameVerrazzano                = "verrazzano"
-	UserVerrazzanoDescription         = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzanoPrefix = "grb-"
-	SettingUIPL                       = "ui-pl"
-	SettingUIPLValueVerrazzano        = "Verrazzano"
-	SettingUILogoLight                = "ui-logo-light"
-	SettingUILogoLightLogoFilePath    = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
-	SettingUILogoDark                 = "ui-logo-dark"
-	SettingUILogoDarkLogoFilePath     = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
-	SettingUILogoValueprefix          = "data:image/svg+xml;base64,"
-	SettingUIPrimaryColor             = "ui-primary-color"
-	SettingUIPrimaryColorValue        = "rgb(48, 99, 142)"
-	SettingUILinkColor                = "ui-link-color"
-	SettingUILinkColorValue           = "rgb(49, 118, 217)"
-	SettingUIBrand                    = "ui-brand"
-	SettingUIBrandValue               = "verrazzano"
-	SettingCACerts                    = "cacerts"
-	SettingAuthResyncCron             = "auth-user-info-resync-cron"
-	SettingAuthMaxAge                 = "auth-user-info-max-age-seconds"
-	SettingAuthTTL                    = "auth-user-session-ttl-minutes"
-	SettingKubeDefaultTokenTTL        = "kubeconfig-default-token-ttl-minutes" //nolint:gosec //#gosec G101
-	SettingAuthResyncCronValue        = "*/15 * * * *"
-	SettingAuthMaxAgeValue            = "600"
-	SettingAuthTTLValue               = "540"
-	SettingKubeDefaultTokenTTLValue   = "540"
+	CAPIMutatingWebhook                 = "mutating-webhook-configuration"
+	CAPIValidatingWebhook               = "validating-webhook-configuration"
+	SettingServerURL                    = "server-url"
+	KontainerDriverOKE                  = "oraclecontainerengine"
+	ClusterLocal                        = "local"
+	AuthConfigLocal                     = "local"
+	ClusterKind                         = "Cluster"
+	ProviderCattleIoLabel               = "provider.cattle.io"
+	UserVerrazzano                      = "u-verrazzano"
+	UsernameVerrazzano                  = "verrazzano"
+	UserVerrazzanoDescription           = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzanoPrefix   = "grb-"
+	SettingUIPL                         = "ui-pl"
+	SettingUIPLValueVerrazzano          = "Verrazzano"
+	SettingUILogoLight                  = "ui-logo-light"
+	SettingUILogoFolderBeforeRancher275 = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images"
+	SettingUILogoFolder                 = "/usr/share/rancher/ui-dashboard/dashboard/assets/images"
+	SettingUILogoLightFile              = "verrazzano-light.svg"
+	SettingUILogoDark                   = "ui-logo-dark"
+	SettingUILogoDarkFile               = "verrazzano-dark.svg"
+	SettingUILogoValueprefix            = "data:image/svg+xml;base64,"
+	SettingUIPrimaryColor               = "ui-primary-color"
+	SettingUIPrimaryColorValue          = "rgb(48, 99, 142)"
+	SettingUILinkColor                  = "ui-link-color"
+	SettingUILinkColorValue             = "rgb(49, 118, 217)"
+	SettingUIBrand                      = "ui-brand"
+	SettingUIBrandValue                 = "verrazzano"
+	SettingCACerts                      = "cacerts"
+	SettingAuthResyncCron               = "auth-user-info-resync-cron"
+	SettingAuthMaxAge                   = "auth-user-info-max-age-seconds"
+	SettingAuthTTL                      = "auth-user-session-ttl-minutes"
+	SettingKubeDefaultTokenTTL          = "kubeconfig-default-token-ttl-minutes" //nolint:gosec //#gosec G101
+	SettingAuthResyncCronValue          = "*/15 * * * *"
+	SettingAuthMaxAgeValue              = "600"
+	SettingAuthTTLValue                 = "540"
+	SettingKubeDefaultTokenTTLValue     = "540"
 )
 
 // auth config
@@ -452,19 +454,19 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 }
 
 // putServerURL updates the server-url Setting
-func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
+func putServerURL(c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
 	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
 	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting server-url Setting: %s", err.Error())
+		return fmt.Errorf("waiting to get server-url setting: %s", err.Error())
 	}
 
 	serverURLSetting.UnstructuredContent()["value"] = serverURL
 	err = c.Update(context.Background(), &serverURLSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed updating server-url Setting: %s", err.Error())
+		return fmt.Errorf("Failed updating server-url setting: %s", err.Error())
 	}
 
 	return nil
@@ -646,7 +648,7 @@ func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
 }
 
 // createOrUpdateUILogoSetting updates the ui-logo-* settings
-func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoPath string) error {
+func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoFilename string) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
@@ -659,12 +661,22 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 		return err
 	}
 
-	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s", logoPath)}
-	// The api request to pod was seen to be returining only first few bytes of the logo content,
+	// The location of the logo files changed starting with Rancher 2.7.5.  First look for the logo file
+	// in the new location.  If not found there, check the old location.
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s", SettingUILogoFolder, logoFilename)}
+	// The api request to pod was seen to be returning only first few bytes of the logo content,
 	// therefore we retry a few times until we get valid logo content which will be a svg
 	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
+
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoPath, err.Error())
+		// Try the pre-Rancher 2.7.5 location
+		logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s/%s", SettingUILogoFolderBeforeRancher275, logoFilename)}
+		// The api request to pod was seen to be returning only first few bytes of the logo content,
+		// therefore we retry a few times until we get valid logo content which will be a svg
+		logoContent, err = getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
+		if err != nil {
+			return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoFilename, err.Error())
+		}
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, logoContent)})
@@ -761,16 +773,16 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 		var err error
 		logoContent, stderr, err = k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
 		if err != nil {
-			return false, log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+			return false, fmt.Errorf("Failed execing into Rancher pod %s: %v", stderr, err)
 		}
 
 		if len(logoContent) == 0 {
-			return false, log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+			return false, fmt.Errorf("Invalid empty output from Rancher pod")
 		}
 
 		decodedLogo, err := base64.StdEncoding.DecodeString(logoContent)
 		if err != nil {
-			return false, log.ErrorfThrottledNewErr("Error while decoding logo: %v", err)
+			return false, fmt.Errorf("Error while decoding logo: %v", err)
 		}
 
 		if !(strings.HasSuffix(strings.TrimSpace(string(decodedLogo)), "</svg>")) {

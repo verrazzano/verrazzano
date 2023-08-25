@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230712031907-3ae8a8da4",
+              "tag": "v1.7.1-20230817215350-c8315d559",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.7.1-20230712031907-3ae8a8da4",
+              "tag": "v1.7.1-20230817215350-c8315d559",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -145,7 +145,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.7.3",
+      "version": "v2.7.5",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -153,17 +153,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.2-20230731205738-a19122312",
+              "dashboard": "v2.7.5-20230818161107-07044c506",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.23.0",
               "ocneDriverChecksum": "e410fd9b7ac5533b656277e82f1a321a995a5cd5e0329c2e79091e26e2516313",
-              "tag": "v2.7.3-20230731220304-92ef766dd",
+              "tag": "v2.7.5-20230818162112-c6f745626",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-20230731220304-92ef766dd"
+              "tag": "v2.7.5-20230818162112-c6f745626"
             }
           ]
         },
@@ -177,19 +177,19 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.3-20230511200909-abfe60f"
+              "tag": "v0.3.5-20230803175843-1a77563"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.6.0-20230503174321-22d5a53"
+              "tag": "v0.7.0-20230803175255-e6633a6d"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.6.0-20230503174321-22d5a53"
+              "tag": "v0.7.0-20230803175255-e6633a6d"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.30-20230505115129-1dd0ea0"
+              "tag": "v0.1.32-20230804152729-58582b0"
             },
             {
               "image": "rancher-cleanup",
@@ -241,11 +241,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.7.0-20230728161919-ffd7110"
+              "tag": "v1.7.0-20230815141941-9a36ded"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.7.0-20230728161919-ffd7110"
+              "tag": "v1.7.0-20230815141941-9a36ded"
             }
           ]
         }
@@ -266,7 +266,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230606042435-f4b532f",
+              "tag": "v1.14.5-20230810212038-8777b84",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -277,7 +277,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230712031907-3ae8a8da4",
+              "tag": "v1.7.1-20230817215350-c8315d559",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -332,7 +332,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230712031907-3ae8a8da4",
+              "tag": "v1.7.1-20230817215350-c8315d559",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -479,7 +479,7 @@
             },
             {
               "image": "fluent-bit",
-              "tag": "v2.0.11-20230628072810-c499f26ce",
+              "tag": "v2.0.11-20230810070900-cc5f50963",
               "helmFullImageKey": "fluentbit.image.repository",
               "helmTagKey": "fluentbit.image.tag"
             },
@@ -496,7 +496,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "1.57.1",
+      "version": "1.66.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -504,7 +504,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.57.1-20230601094106-d94b80c9",
+              "tag": "v1.66.1-20230808154952-c7e9a3fe",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -610,7 +610,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.7.1-20230712031907-3ae8a8da4",
+              "tag": "v1.7.1-20230817215350-c8315d559",
               "helmRegKey": "prometheusOperator.admissionWebhooks.patch.image.registry",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"

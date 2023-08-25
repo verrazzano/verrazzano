@@ -1,8 +1,20 @@
+### v2.0.0
+
+Feature:
+
+- Enabled status updates for Istio reconciled objects
+- Support for Thanos Ruler and Compactor
+- Prometheus rules in the kube-prometheus-stack and Thanos Helm charts are enabled by default
+- Added Prometheus alerting rules for Verrazzano operators
+- Added progress flag in vz cli, which shows components installation progress in real time.
+
 ### v1.6.4
 
 Component version updates:
 
 - Istio v1.17.2
+- Rancher v2.7.5
+- Kiali v1.66.1
 
 Fixes:
 
@@ -573,3 +585,4 @@ spec:
     - Verrazzano system components now emit JSON structured logs.
 - Fixes:
     - Updated Elasticsearch and Kibana versions (elasticsearch:7.6.1-20201130145440-5c76ab1) and (kibana:7.6.1-20201130145840-7717e73).
+

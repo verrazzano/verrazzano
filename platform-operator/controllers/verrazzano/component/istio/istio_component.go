@@ -6,7 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"path/filepath"
 	"strings"
 
@@ -499,6 +500,11 @@ func (i istioComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return nil
 }
 
+// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
+func (i istioComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
+	return nil, nil
+}
+
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
@@ -549,6 +555,13 @@ func getOverridesString(ctx spi.ComponentContext) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Add overrides to enable the status on Istio reconciled objects
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: "values.pilot.env.PILOT_ENABLE_STATUS", Value: "true"},
+		{Key: "values.pilot.env.PILOT_ENABLE_CONFIG_DISTRIBUTION_TRACKING", Value: "true"},
+		{Key: "values.global.istiod.enableAnalysis", Value: "true"},
+	}...)
 
 	// Build comma separated string of overrides that will be passed to
 	// isioctl as --set values.

@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
@@ -172,6 +173,7 @@ func (c CAPITestImpl) GetUnstructuredDataList(group, version, resource, nameSpac
 		log.Errorf("Unable to fetch resource %s due to '%v'", resource, zap.Error(err))
 		return nil, err
 	}
+
 	return dataFetched, nil
 }
 
@@ -204,29 +206,37 @@ func (c CAPITestImpl) GetCluster(namespace, clusterName string, log *zap.Sugared
 }
 
 // GetOCNEControlPlane is used to fetch OCNE control plane info given a control plane name and namespace, if it exists
-func (c CAPITestImpl) GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
-	ocnecpFetched, err := c.GetUnstructuredData("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", controlPlaneName, namespace, log)
+func (c CAPITestImpl) GetOCNEControlPlane(namespace string, log *zap.SugaredLogger) (*OCNEControlPlane, error) {
+	ocnecpesFetched, err := c.GetUnstructuredDataList("controlplane.cluster.x-k8s.io", "v1alpha1", "ocnecontrolplanes", namespace, log)
 	if err != nil {
-		log.Errorf("Unable to fetch OCNE control plane '%s' due to '%v'", controlPlaneName, zap.Error(err))
+		log.Errorf("Unable to fetch machines due to '%v'", zap.Error(err))
 		return nil, err
 	}
 
-	if ocnecpFetched == nil {
-		log.Infof("No OCNE control plane with name '%s' in namespace '%s' was detected", controlPlaneName, namespace)
+	if ocnecpesFetched == nil {
+		log.Infof("No OCNE control plane in namespace '%s' was detected", namespace)
+	}
+
+	if len(ocnecpesFetched.Items) > 1 {
+		log.Errorf("More than one OCNE control plane in namespace '%s' was detected !!", namespace)
 	}
 
 	var ocneControlPlane OCNEControlPlane
-	bdata, err := json.Marshal(ocnecpFetched)
-	if err != nil {
-		log.Errorf("Json marshalling error %v", zap.Error(err))
-		return nil, err
+	var bdata []byte
+	for _, ocnecp := range ocnecpesFetched.Items {
+		bdata, err = json.Marshal(ocnecp.Object)
+		if err != nil {
+			log.Errorf("Json marshalling error %v", zap.Error(err))
+			return nil, err
+		}
+		err = json.Unmarshal(bdata, &ocneControlPlane)
+		if err != nil {
+			log.Errorf("Json unmarshall error %v", zap.Error(err))
+			return nil, err
+		}
 	}
-	err = json.Unmarshal(bdata, &ocneControlPlane)
-	if err != nil {
-		log.Errorf("Json unmarshall error %v", zap.Error(err))
-		return nil, err
-	}
-
+	os.Setenv("OCNE_CONTROL_PLANE_NAME", ocneControlPlane.Metadata.Name)
+	os.Setenv("OCI_MACHINE_TEMPLATE_NAME", ocneControlPlane.Spec.MachineTemplate.InfrastructureRef.Name)
 	return &ocneControlPlane, nil
 }
 
@@ -355,16 +365,19 @@ func (c CAPITestImpl) DeployAnyClusterResourceSets(clusterName, templateName str
 		log.Errorf("unable to generate template for clusterresourcesets : %v", zap.Error(err))
 		return err
 	}
-	defer os.RemoveAll(tmpFilePath)
+
+	log.Infof("Filename = %v", tmpFilePath)
+
+	//defer os.RemoveAll(tmpFilePath)
 	clusterTemplateData, err := os.ReadFile(tmpFilePath)
 	if err != nil {
-		log.Errorf("unable to get read file : %v", zap.Error(err))
+		log.Errorf("unable to read file : %v", zap.Error(err))
 		return err
 	}
 
 	err = resource.CreateOrUpdateResourceFromBytes(clusterTemplateData, log)
 	if err != nil {
-		log.Error("unable to get create clusterresourcesets on workload cluster :", zap.Error(err))
+		log.Error("unable to create clusterresourcesets on workload cluster :", zap.Error(err))
 		return err
 	}
 
@@ -479,8 +492,14 @@ func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.Su
 		return err
 	}
 
-	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
-	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
+	log.Infof("----------- Cluster Events ---------------------")
+	err = c.ShowEvents(OCNENamespace, log)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("----------- OCNE Control Plane ---------------------")
+	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, log)
 	if err != nil {
 		return err
 	}
@@ -492,6 +511,7 @@ func (c CAPITestImpl) MonitorCapiClusterCreation(clusterName string, log *zap.Su
 		ocneCP.Status.UpdatedReplicas, ocneCP.Status.UnavailableReplicas, ocneCP.Status.ReadyReplicas, time.Until(ocneCP.Metadata.CreationTimestamp).Abs()))
 	writer.Flush()
 
+	log.Infof("----------- CAPI Machines ---------------------")
 	err = c.EnsureMachinesAreProvisioned(OCNENamespace, clusterName, log)
 	if err != nil {
 		return err
@@ -611,6 +631,34 @@ func (c CAPITestImpl) ShowPodInfo(client *kubernetes.Clientset, clusterName stri
 	return nil
 }
 
+// ShowEvents displays the events from a specific namespace
+func (c CAPITestImpl) ShowEvents(namespace string, log *zap.SugaredLogger) error {
+	log.Infof("Showing events for namespace '%s'", namespace)
+	k8sclient, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	events, err := k8sclient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Info("Failed to get events from namespace: %v", zap.Error(err))
+		return err
+	}
+
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Namespace\tLast Seen\tType\tReason\tObject\tMessage")
+
+	for _, event := range events.Items {
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v",
+			event.Namespace, event.LastTimestamp, event.Type, event.Reason, fmt.Sprintf("%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Name),
+			event.Message))
+
+	}
+	writer.Flush()
+	return nil
+}
+
 // DisplayWorkloadClusterResources displays the pods of workload OCNE cluster as a formatted table.
 func (c CAPITestImpl) DisplayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
 	client, err := c.GetCapiClusterK8sClient(clusterName, log)
@@ -627,17 +675,6 @@ func (c CAPITestImpl) DisplayWorkloadClusterResources(clusterName string, log *z
 	log.Infof("----------- Pods running on workload cluster ---------------------")
 	return c.ShowPodInfo(client, clusterName, log)
 }
-
-/*
-func deleteNamespace(namespace string, log *zap.SugaredLogger) error {
-	log.Infof("deleting namespace '%s'", namespace)
-	k8s, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return err
-	}
-	return k8s.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
-}
-*/
 
 // UpdateOCINSG allows updating nsg based on source subnet cidr using the source subnet name
 func (c CAPITestImpl) UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error {
@@ -770,9 +807,9 @@ func (c CAPITestImpl) EnsureVerrazzano(clusterName string, log *zap.SugaredLogge
 	}
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintln(writer, "Name\tStatus\tVersion")
-	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v",
-		vz.Metadata.Name, curState, vz.Status.Version))
+	fmt.Fprintln(writer, "Name\tAvailable\tStatus\tVersion")
+	fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v",
+		vz.Metadata.Name, vz.Status.Available, curState, vz.Status.Version))
 	writer.Flush()
 
 	if curState == "InstallComplete" {
@@ -889,8 +926,7 @@ func (c CAPITestImpl) CreateImagePullSecrets(clusterName string, log *zap.Sugare
 }
 
 func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusType, expectedStatus, expectedReason string, log *zap.SugaredLogger) bool {
-	controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
-	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, controlPlaneName, log)
+	ocneCP, err := c.GetOCNEControlPlane(OCNENamespace, log)
 	if err != nil {
 		log.Error("unable to fetch OCNE control plane : ", zap.Error(err))
 		return false
@@ -917,4 +953,103 @@ func (c CAPITestImpl) CheckOCNEControlPlaneStatus(clusterName, expectedStatusTyp
 
 	log.Errorf("OCNE controlplane check failure. All conditions %+v", ocneCP.Status.Conditions)
 	return false
+}
+
+// ToggleModules toggles module operator or VPO
+func (c CAPITestImpl) ToggleModules(group, version, resource, clusterName, nameSpaceName string, toggle bool, log *zap.SugaredLogger) error {
+
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return err
+	}
+
+	log.Infof("Fetching resource %s", resource)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	var patch []interface{}
+	if !toggle {
+		patch = []interface{}{
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/0",
+				"value": map[string]interface{}{
+					"name":  "moduleOperatorEnabled",
+					"value": toggle,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/1",
+				"value": map[string]interface{}{
+					"name":  "verrazzanoPlatformOperatorEnabled",
+					"value": toggle,
+				},
+			},
+		}
+	} else {
+		patch = []interface{}{
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/0",
+				"value": map[string]interface{}{
+					"name":  "moduleOperatorEnabled",
+					"value": toggle,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/1",
+				"value": map[string]interface{}{
+					"name":  "verrazzanoPlatformOperatorEnabled",
+					"value": toggle,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/2",
+				"value": map[string]interface{}{
+					"name":  "imagePullSecret",
+					"value": ImagePullSecret,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/3",
+				"value": map[string]interface{}{
+					"name":  "imageName",
+					"value": ImageName,
+				},
+			},
+			map[string]interface{}{
+				"op":   "replace",
+				"path": "/spec/topology/variables/4",
+				"value": map[string]interface{}{
+					"name":  "imageTag",
+					"value": ImageTag,
+				},
+			},
+		}
+	}
+
+	payload, err := json.Marshal(patch)
+	if err != nil {
+		return err
+	}
+
+	_, err = dclient.Resource(gvr).Namespace(nameSpaceName).Patch(context.TODO(), clusterName, types.JSONPatchType, payload, metav1.PatchOptions{})
+	if err != nil {
+		log.Errorf("unable to patch object %v", zap.Error(err))
+		return err
+	}
+	return nil
 }

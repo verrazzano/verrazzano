@@ -32,9 +32,9 @@ spec:
         summary: Thanos Query is failing to handle requests.
       expr: |
         (
-          sum by (job) (rate(http_requests_total{code=~"5..", job=~".*thanos-query.*", handler="query"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(http_requests_total{code=~"5..", job=~".*thanos-query.*", handler="query"}[5m]))
         /
-          sum by (job) (rate(http_requests_total{job=~".*thanos-query.*", handler="query"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(http_requests_total{job=~".*thanos-query.*", handler="query"}[5m]))
         ) * 100 > 5
       for: 5m
       labels:
@@ -54,9 +54,9 @@ spec:
         summary: Thanos Query is failing to handle requests.
       expr: |
         (
-          sum by (job) (rate(http_requests_total{code=~"5..", job=~".*thanos-query.*", handler="query_range"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(http_requests_total{code=~"5..", job=~".*thanos-query.*", handler="query_range"}[5m]))
         /
-          sum by (job) (rate(http_requests_total{job=~".*thanos-query.*", handler="query_range"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(http_requests_total{job=~".*thanos-query.*", handler="query_range"}[5m]))
         ) * 100 > 5
       for: 5m
       labels:
@@ -76,9 +76,9 @@ spec:
         summary: Thanos Query is failing to handle requests.
       expr: |
         (
-          sum by (job) (rate(grpc_server_handled_total{grpc_code=~"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss|DeadlineExceeded", job=~".*thanos-query.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(grpc_server_handled_total{grpc_code=~"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss|DeadlineExceeded", job=~".*thanos-query.*"}[5m]))
         /
-          sum by (job) (rate(grpc_server_started_total{job=~".*thanos-query.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(grpc_server_started_total{job=~".*thanos-query.*"}[5m]))
         * 100 > 5
         )
       for: 5m
@@ -99,9 +99,9 @@ spec:
         summary: Thanos Query is failing to send requests.
       expr: |
         (
-          sum by (job) (rate(grpc_client_handled_total{grpc_code!="OK", job=~".*thanos-query.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(grpc_client_handled_total{grpc_code!="OK", job=~".*thanos-query.*"}[5m]))
         /
-          sum by (job) (rate(grpc_client_started_total{job=~".*thanos-query.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(grpc_client_started_total{job=~".*thanos-query.*"}[5m]))
         ) * 100 > 5
       for: 5m
       labels:
@@ -121,9 +121,9 @@ spec:
         summary: Thanos Query is having high number of DNS failures.
       expr: |
         (
-          sum by (job) (rate(thanos_query_store_apis_dns_failures_total{job=~".*thanos-query.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_query_store_apis_dns_failures_total{job=~".*thanos-query.*"}[5m]))
         /
-          sum by (job) (rate(thanos_query_store_apis_dns_lookups_total{job=~".*thanos-query.*"}[5m]))
+          sum by (job, verrazzano_cluster) (rate(thanos_query_store_apis_dns_lookups_total{job=~".*thanos-query.*"}[5m]))
         ) * 100 > 1
       for: 15m
       labels:
@@ -143,9 +143,9 @@ spec:
         summary: Thanos Query has high latency for queries.
       expr: |
         (
-          histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~".*thanos-query.*", handler="query"}[5m]))) > 40
+          histogram_quantile(0.99, sum by (job, le, verrazzano_cluster) (rate(http_request_duration_seconds_bucket{job=~".*thanos-query.*", handler="query"}[5m]))) > 40
         and
-          sum by (job) (rate(http_request_duration_seconds_bucket{job=~".*thanos-query.*", handler="query"}[5m])) > 0
+          sum by (job, verrazzano_cluster) (rate(http_request_duration_seconds_bucket{job=~".*thanos-query.*", handler="query"}[5m])) > 0
         )
       for: 10m
       labels:
@@ -165,9 +165,9 @@ spec:
         summary: Thanos Query has high latency for queries.
       expr: |
         (
-          histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~".*thanos-query.*", handler="query_range"}[5m]))) > 90
+          histogram_quantile(0.99, sum by (job, le, verrazzano_cluster) (rate(http_request_duration_seconds_bucket{job=~".*thanos-query.*", handler="query_range"}[5m]))) > 90
         and
-          sum by (job) (rate(http_request_duration_seconds_count{job=~".*thanos-query.*", handler="query_range"}[5m])) > 0
+          sum by (job, verrazzano_cluster) (rate(http_request_duration_seconds_count{job=~".*thanos-query.*", handler="query_range"}[5m])) > 0
         )
       for: 10m
       labels:

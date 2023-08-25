@@ -1,0 +1,647 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: ${CLUSTER_NAMESPACE}
+  name: ${CLUSTER_NAMESPACE}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  name: ${CLUSTER_NAME}
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - ${POD_CIDR=192.168.0.0/16}
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+        - ${CLUSTER_CIDR=10.128.0.0/12}
+  topology:
+    class: ${CLUSTER_NAME}-cluster-class
+    controlPlane:
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT=1}
+    version: ${KUBERNETES_VERSION=v1.25.7}
+    variables:
+      - name: moduleOperatorEnabled
+        value: true
+      - name: verrazzanoPlatformOperatorEnabled
+        value: true
+      - name: imagePullSecret
+        value: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+      - name: imageName
+        value: ${VPO_IMAGE}
+      - name: imageTag
+        value: ${VPO_TAG}
+    workers:
+      machineDeployments:
+        - class: ${CLUSTER_NAME}-md-0-class
+          name: ${CLUSTER_NAME}-md-0
+          replicas: ${NODE_MACHINE_COUNT=1}
+        - class: ${CLUSTER_NAME}-md-1-class
+          name: ${CLUSTER_NAME}-md-1
+          replicas: ${NODE_MACHINE_COUNT=1}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: ${CLUSTER_NAME}-cluster-class
+  namespace: ${CLUSTER_NAMESPACE}
+  labels:
+    cluster.x-k8s.io/provider: oci
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+      kind: OCNEControlPlaneTemplate
+      name: ${CLUSTER_NAME}-control-plane-template
+      namespace: ${CLUSTER_NAMESPACE}
+    machineInfrastructure:
+      ref:
+        kind: OCIMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: ${CLUSTER_NAME}-control-plane-machine-template
+        namespace: ${CLUSTER_NAMESPACE}
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: OCIClusterTemplate
+      name: ${CLUSTER_NAME}-cluster-template
+      namespace: ${CLUSTER_NAMESPACE}
+  workers:
+    machineDeployments:
+      - class: ${CLUSTER_NAME}-md-0-class
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+              kind: OCNEConfigTemplate
+              name: ${CLUSTER_NAME}-md-0-template
+              namespace: ${CLUSTER_NAMESPACE}
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: OCIMachineTemplate
+              name: ${CLUSTER_NAME}-md-0-machine-template
+              namespace: ${CLUSTER_NAMESPACE}
+      - class: ${CLUSTER_NAME}-md-1-class
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+              kind: OCNEConfigTemplate
+              name: ${CLUSTER_NAME}-md-1-template
+              namespace: ${CLUSTER_NAMESPACE}
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: OCIMachineTemplate
+              name: ${CLUSTER_NAME}-md-1-machine-template
+              namespace: ${CLUSTER_NAMESPACE}
+  variables:
+    - name: moduleOperatorEnabled
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          description: Flag to enable Module Operator.
+          default: true
+          example: true
+    - name: verrazzanoPlatformOperatorEnabled
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          description: Flag to enable VPO.
+          default: true
+          example: true
+    - name: imagePullSecret
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Default image pull secret.
+          default: verrazzano-container-registry
+          example: test-secret
+    - name: imageName
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Default container registry.
+          default: ghcr.io/verrazzano
+          example: ghcr.io/verrazzano
+    - name: imageTag
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Default image tag.
+  patches:
+    - name: moduleOperatorEnabled
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: replace
+              path: /spec/template/spec/moduleOperator/enabled
+              valueFrom:
+                variable: moduleOperatorEnabled
+    - name: verrazzanoPlatformOperatorEnabled
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: replace
+              path: /spec/template/spec/verrazzanoPlatformOperator/enabled
+              valueFrom:
+                variable: verrazzanoPlatformOperatorEnabled
+    - name: imagePullSecret
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/verrazzanoPlatformOperator/imagePullSecrets
+              valueFrom:
+                template: |
+                  - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+    - name: imageName
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/verrazzanoPlatformOperator/image/repository
+              valueFrom:
+                variable: imageName
+    - name: imageTag
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: OCNEControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/verrazzanoPlatformOperator/image/tag
+              valueFrom:
+                variable: imageTag
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${CLUSTER_NAME}-user-credentials
+  namespace: ${CLUSTER_NAMESPACE}
+type: Opaque
+data:
+  tenancy: ${OCI_TENANCY_ID_B64}
+  user: ${OCI_USER_ID_B64}
+  key: ${OCI_CREDENTIALS_KEY_B64}
+  fingerprint: ${OCI_CREDENTIALS_FINGERPRINT_B64}
+  passphrase: ""
+  region: ${OCI_REGION_B64}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIClusterIdentity
+metadata:
+  name: ${CLUSTER_NAME}-cluster-identity
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  type: UserPrincipal
+  principalSecret:
+    name: ${CLUSTER_NAME}-user-credentials
+    namespace: ${CLUSTER_NAMESPACE}
+  allowedNamespaces: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIClusterTemplate
+metadata:
+  name: ${CLUSTER_NAME}-cluster-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      compartmentId: ${OCI_COMPARTMENT_ID}
+      identityRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: OCIClusterIdentity
+        name: ${CLUSTER_NAME}-cluster-identity
+        namespace: ${CLUSTER_NAMESPACE}
+      networkSpec:
+        apiServerLoadBalancer:
+          loadBalancerType: "lb"
+        vcn:
+          name: ${CLUSTER_NAME}
+          cidr: "10.0.0.0/16"
+          subnets:
+            - cidr: 10.0.0.8/29
+              name: ocne-control-plane-endpoint
+              role: control-plane-endpoint
+              type: public
+              securityList:
+                name: ocne-control-plane-endpoint-security-list
+                egressRules:
+                  - description: Kubernetes API traffic to Control Plane
+                    destination: 10.0.0.0/29
+                    destinationType: CIDR_BLOCK
+                    isStateless: false
+                    protocol: "6"
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 6443
+                        min: 6443
+                ingressRules:
+                  - description: External access to Kubernetes API endpoint
+                    protocol: "6"
+                    source: 0.0.0.0/0
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 6443
+                        min: 6443
+                  - description: ICMP Peath discovery
+                    icmpOptions:
+                      code: 4
+                      type: 3
+                    protocol: "1"
+                    source: 10.0.0.0/16
+                    sourceType: CIDR_BLOCK
+            - cidr: 10.0.0.0/29
+              name: ocne-control-plane
+              role: control-plane
+              type: private
+              securityList:
+                name: ocne-control-plane-security-list
+                egressRules:
+                  - description: Control Plane access to Internet
+                    destination: 0.0.0.0/0
+                    destinationType: CIDR_BLOCK
+                    protocol: all
+                ingressRules:
+                  - description: Inbound East-West traffic
+                    source: 10.0.0.0/16
+                    sourceType: CIDR_BLOCK
+                    protocol: all
+                  - description: Kubernetes API endpoint to Control Plane(apiserver port)
+                      communication
+                    protocol: "6"
+                    source: 10.0.0.8/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 6443
+                        min: 6443
+                  - description: Control plane node to Control Plane(apiserver port) communication
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 6443
+                        min: 6443
+                  - description: Worker Node to Control Plane(apiserver port) communication
+                    protocol: "6"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 6443
+                        min: 6443
+                  - description: etcd client communication
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 2379
+                        min: 2379
+                  - description: etcd peer
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 2380
+                        min: 2380
+                  - description: Calico networking (BGP)
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 179
+                        min: 179
+                  - description: Calico networking (BGP)
+                    protocol: "6"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 179
+                        min: 179
+                  - description: Calico networking with IP-in-IP enabled
+                    protocol: "4"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                  - description: Calico networking with IP-in-IP enabled
+                    protocol: "4"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                  - description: Path discovery
+                    icmpOptions:
+                      code: 4
+                      type: 3
+                    protocol: "1"
+                    source: 10.0.0.0/16
+                    sourceType: CIDR_BLOCK
+                  - description: Inbound SSH traffic to Control Plane
+                    protocol: "6"
+                    source: 0.0.0.0/0
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 22
+                        min: 22
+                  - description: Control Plane to Control Plane Kubelet Communication
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 10250
+                        min: 10250
+            - cidr: 10.0.0.32/27
+              name: ocne-service-lb
+              role: service-lb
+              type: public
+              securityList:
+                name: ocne-service-lb-security-list
+                egressRules:
+                  - description: Service LoadBalancer to default NodePort egress communication
+                    destination: 10.0.64.0/20
+                    destinationType: CIDR_BLOCK
+                    protocol: "6"
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 32767
+                        min: 30000
+                ingressRules:
+                  - description: Path discovery
+                    icmpOptions:
+                      code: 4
+                      type: 3
+                    protocol: "1"
+                    source: 10.0.0.0/16
+                    sourceType: CIDR_BLOCK
+                  - description: Accept http traffic on port 80
+                    protocol: "6"
+                    source: 0.0.0.0/0
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 80
+                        min: 80
+                  - description: Accept https traffic on port 443
+                    protocol: "6"
+                    source: 0.0.0.0/0
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 443
+                        min: 443
+            - cidr: 10.0.64.0/20
+              name: ocne-worker
+              role: worker
+              type: private
+              securityList:
+                name: ocne-worker-security-list
+                egressRules:
+                  - description: Worker node access to Internet
+                    destination: 0.0.0.0/0
+                    destinationType: CIDR_BLOCK
+                    protocol: all
+                ingressRules:
+                  - description: Inbound East-West traffic
+                    source: 10.0.0.0/16
+                    sourceType: CIDR_BLOCK
+                    isStateless: false
+                    protocol: all
+                  - description: Inbound SSH traffic to worker node
+                    protocol: "6"
+                    source: 0.0.0.0/0
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 22
+                        min: 22
+                  - description: Path discovery
+                    icmpOptions:
+                      code: 4
+                      type: 3
+                    protocol: "1"
+                    source: 10.0.0.0/16
+                    sourceType: CIDR_BLOCK
+                  - description: Control Plane to worker node Kubelet Communication
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 10250
+                        min: 10250
+                  - description: Worker node to worker node Kubelet Communication
+                    protocol: "6"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 10250
+                        min: 10250
+                  - description: Calico networking (BGP)
+                    protocol: "6"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 179
+                        min: 179
+                  - description: Calico networking (BGP)
+                    protocol: "6"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 179
+                        min: 179
+                  - description: Calico networking with IP-in-IP enabled
+                    protocol: "4"
+                    source: 10.0.0.0/29
+                    sourceType: CIDR_BLOCK
+                  - description: Calico networking with IP-in-IP enabled
+                    protocol: "4"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                  - description: Worker node to default NodePort ingress communication
+                    protocol: "6"
+                    source: 10.0.64.0/20
+                    sourceType: CIDR_BLOCK
+                    tcpOptions:
+                      destinationPortRange:
+                        max: 32767
+                        min: 30000
+---
+kind: OCNEControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+metadata:
+  name: ${CLUSTER_NAME}-control-plane-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      moduleOperator:
+        enabled: true
+      verrazzanoPlatformOperator:
+        enabled: true
+        imagePullSecrets:
+          - name: ${IMAGE_PULL_SECRET=verrazzano-container-registry}
+        image:
+          repository: ${VPO_IMAGE}
+          tag: ${VPO_TAG}
+      controlPlaneConfig:
+        clusterConfiguration:
+          apiServer:
+            certSANs:
+              - localhost
+              - 127.0.0.1
+          dns:
+            imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+            imageTag: ${DNS_TAG=v1.9.3}
+          etcd:
+            local:
+              imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+              imageTag: ${ETCD_TAG=3.5.6}
+          networking: {}
+          scheduler: {}
+          imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/crio/crio.sock
+            kubeletExtraArgs:
+              cloud-provider: external
+              provider-id: oci://{{ ds["id"] }}
+        joinConfiguration:
+          discovery: {}
+          nodeRegistration:
+            criSocket: /var/run/crio/crio.sock
+            kubeletExtraArgs:
+              cloud-provider: external
+              provider-id: oci://{{ ds["id"] }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-control-plane-machine-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      bootVolumeSizeInGBs: "${OCI_NODE_BOOT_VOLUME=100}"
+      compartmentId: ${OCI_COMPARTMENT_ID}
+      imageId: ${OCI_IMAGE_ID}
+      isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=false}
+      metadata:
+        ssh_authorized_keys: ${OCI_SSH_KEY}
+      shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
+      shapeConfig:
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=4}"
+        memoryInGBs: "${OCI_NODE_MACHINE_MEMORY_GBS=80}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0-machine-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      bootVolumeSizeInGBs: "${OCI_NODE_BOOT_VOLUME=100}"
+      compartmentId: ${OCI_COMPARTMENT_ID}
+      imageId: ${OCI_IMAGE_ID}
+      isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=false}
+      metadata:
+        ssh_authorized_keys: ${OCI_SSH_KEY}
+      shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
+      shapeConfig:
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=4}"
+        memoryInGBs: "${OCI_NODE_MACHINE_MEMORY_GBS=80}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-1-machine-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      bootVolumeSizeInGBs: "${OCI_NODE_BOOT_VOLUME=100}"
+      compartmentId: ${OCI_COMPARTMENT_ID}
+      imageId: ${OCI_IMAGE_ID}
+      isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=false}
+      metadata:
+        ssh_authorized_keys: ${OCI_SSH_KEY}
+      shape: ${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}
+      shapeConfig:
+        ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=4}"
+        memoryInGBs: "${OCI_NODE_MACHINE_MEMORY_GBS=80}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+kind: OCNEConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      clusterConfiguration:
+        imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: external
+            provider-id: oci://{{ ds["id"] }}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+kind: OCNEConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-1-template
+  namespace: ${CLUSTER_NAMESPACE}
+spec:
+  template:
+    spec:
+      clusterConfiguration:
+        imageRepository: ${OCNE_IMAGE_REPOSITORY=container-registry.oracle.com}/${OCNE_IMAGE_PATH=olcne}
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: external
+            provider-id: oci://{{ ds["id"] }}

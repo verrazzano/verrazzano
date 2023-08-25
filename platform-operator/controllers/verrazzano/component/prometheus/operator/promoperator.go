@@ -366,6 +366,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
+	// Disable Prometheus rules for disabled components
+	kvs = appendPrometheusRuleOverrides(ctx, kvs)
+
 	return kvs, nil
 }
 
@@ -564,6 +567,20 @@ func appendAlertmanagerIntegrationOverrides(ctx spi.ComponentContext, kvs []bom.
 		// alertmanager endpoint configured
 		{Key: "defaultRules.disabled.PrometheusNotConnectedToAlertmanagers", Value: strconv.FormatBool(rulerEnabled)},
 	}...), nil
+}
+
+// appendPrometheusRuleOverrides disables Prometheus rules when components are disabled.
+func appendPrometheusRuleOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) []bom.KeyValue {
+	if !vzcr.IsApplicationOperatorEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "defaultRules.rules.verrazzanoApplicationOperator", Value: "false"})
+	}
+	if !vzcr.IsClusterOperatorEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "defaultRules.rules.verrazzanoClusterOperator", Value: "false"})
+	}
+	if !vzcr.IsVMOEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{Key: "defaultRules.rules.verrazzanoMonitoringOperator", Value: "false"})
+	}
+	return kvs
 }
 
 // isThanosRulerEnabled returns true if the Helm value to enable Thanos Ruler is set to true, otherwise it returns false.
