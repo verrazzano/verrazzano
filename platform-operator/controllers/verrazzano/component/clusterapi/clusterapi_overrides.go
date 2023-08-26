@@ -59,24 +59,28 @@ type OverridesInterface interface {
 	GetClusterAPIURL() string
 	GetClusterAPIVersion() string
 	GetClusterAPIOverridesVersion() string
+	GetClusterAPIBomVersion() string
 	GetOCIRepository() string
 	GetOCIControllerFullImagePath() string
 	GetOCITag() string
 	GetOCIURL() string
 	GetOCIVersion() string
 	GetOCIOverridesVersion() string
+	GetOCIBomVersion() string
 	GetOCNEBootstrapRepository() string
 	GetOCNEBootstrapControllerFullImagePath() string
 	GetOCNEBootstrapTag() string
 	GetOCNEBootstrapURL() string
 	GetOCNEBootstrapVersion() string
 	GetOCNEBootstrapOverridesVersion() string
+	GetOCNEBootstrapBomVersion() string
 	GetOCNEControlPlaneRepository() string
 	GetOCNEControlPlaneControllerFullImagePath() string
 	GetOCNEControlPlaneTag() string
 	GetOCNEControlPlaneURL() string
 	GetOCNEControlPlaneVersion() string
 	GetOCNEControlPlaneOverridesVersion() string
+	GetOCNEControlPlaneBomVersion() string
 	IncludeImagesHeader() bool
 }
 
@@ -108,6 +112,10 @@ func (c capiOverrides) GetClusterAPIOverridesVersion() string {
 	return c.DefaultProviders.Core.Version
 }
 
+func (c capiOverrides) GetClusterAPIBomVersion() string {
+	return c.DefaultProviders.Core.Image.BomVersion
+}
+
 func (c capiOverrides) GetOCIRepository() string {
 	return getRepositoryForProvider(c, c.DefaultProviders.OCI)
 }
@@ -126,6 +134,10 @@ func (c capiOverrides) GetOCIVersion() string {
 
 func (c capiOverrides) GetOCIOverridesVersion() string {
 	return c.DefaultProviders.OCI.Version
+}
+
+func (c capiOverrides) GetOCIBomVersion() string {
+	return c.DefaultProviders.OCI.Image.BomVersion
 }
 
 func (c capiOverrides) GetOCNEBootstrapRepository() string {
@@ -148,6 +160,10 @@ func (c capiOverrides) GetOCNEBootstrapOverridesVersion() string {
 	return c.DefaultProviders.OCNEBootstrap.Version
 }
 
+func (c capiOverrides) GetOCNEBootstrapBomVersion() string {
+	return c.DefaultProviders.OCNEBootstrap.Image.BomVersion
+}
+
 func (c capiOverrides) GetOCNEControlPlaneRepository() string {
 	return getRepositoryForProvider(c, c.DefaultProviders.OCNEControlPlane)
 }
@@ -166,6 +182,10 @@ func (c capiOverrides) GetOCNEControlPlaneVersion() string {
 
 func (c capiOverrides) GetOCNEControlPlaneOverridesVersion() string {
 	return c.DefaultProviders.OCNEControlPlane.Version
+}
+
+func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
+	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
 }
 
 // IncludeImagesHeader returns true if the overrides version for any of the default provider is specified.

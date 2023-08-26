@@ -86,14 +86,6 @@ type PodMatcherClusterAPI struct {
 	infrastructureProvider string
 }
 
-type ImageCheckResult int
-
-const (
-	OutOfDate ImageCheckResult = iota
-	UpToDate
-	NotFound
-)
-
 const (
 	defaultClusterAPIDir = "/verrazzano/.cluster-api"
 	clusterAPIDirEnv     = "VERRAZZANO_CLUSTER_API_DIR"
@@ -215,16 +207,16 @@ func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.Verraz
 	return nil
 }
 
-// isImageOutOfDate returns true if the container image is not as expected (out of date)
-func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expectedImage string) ImageCheckResult {
-	if strings.Contains(actualImage, imageName) {
-		if 0 != strings.Compare(actualImage, expectedImage) {
-			log.Infof("Image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
-			return OutOfDate
-		}
-		return UpToDate
+// applyUpgradeVersion returns true and corresponding version if either version overrides or bom version is specified. Otherwise, return false and empty version.
+func applyUpgradeVersion(log vzlog.VerrazzanoLogger, versionOverrides, bomVersion, imageName, actualImage, expectedImage string) (bool, string) {
+	if len(versionOverrides) > 0 {
+		return true, versionOverrides
 	}
-	return NotFound
+	if strings.Contains(actualImage, imageName) && actualImage != expectedImage {
+		log.Infof("Image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
+		return true, bomVersion
+	}
+	return false, ""
 }
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
@@ -235,40 +227,23 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
 	}
-	clusterAPIOverridesVersionFlag := len(overrides.GetClusterAPIOverridesVersion()) > 0
-	ocneBootstrapOverridesVersionFlag := len(overrides.GetOCNEBootstrapOverridesVersion()) > 0
-	ocneControlPlaneOverridesVersionFlag := len(overrides.GetOCNEControlPlaneOverridesVersion()) > 0
-	ociOverridesVersionFlag := len(overrides.GetOCIOverridesVersion()) > 0
 
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
-			if !clusterAPIOverridesVersionFlag && isImageOutOfDate(ctx.Log(), clusterAPIControllerImage, co.Image, c.coreProvider) == OutOfDate {
-				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overrides.GetClusterAPIVersion())
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetClusterAPIOverridesVersion(), overrides.GetClusterAPIBomVersion(), clusterAPIControllerImage, co.Image, c.coreProvider); ok {
+				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, version)
 			}
-			if !ocneBootstrapOverridesVersionFlag && isImageOutOfDate(ctx.Log(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider) == OutOfDate {
-				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEBootstrapVersion()))
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEBootstrapOverridesVersion(), overrides.GetOCNEBootstrapBomVersion(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider); ok {
+				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, version))
 			}
-			if !ocneControlPlaneOverridesVersionFlag && isImageOutOfDate(ctx.Log(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider) == OutOfDate {
-				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneVersion()))
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEControlPlaneOverridesVersion(), overrides.GetOCNEControlPlaneBomVersion(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider); ok {
+				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, version))
 			}
-			if !ociOverridesVersionFlag && isImageOutOfDate(ctx.Log(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider) == OutOfDate {
-				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIVersion()))
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCIOverridesVersion(), overrides.GetOCIBomVersion(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider); ok {
+				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, version))
 			}
 		}
-	}
-
-	if clusterAPIOverridesVersionFlag {
-		applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, overrides.GetClusterAPIOverridesVersion())
-	}
-	if ocneBootstrapOverridesVersionFlag {
-		applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEBootstrapOverridesVersion()))
-	}
-	if ocneControlPlaneOverridesVersionFlag {
-		applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, overrides.GetOCNEControlPlaneOverridesVersion()))
-	}
-	if ociOverridesVersionFlag {
-		applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, overrides.GetOCIOverridesVersion()))
 	}
 
 	return applyUpgradeOptions, nil
