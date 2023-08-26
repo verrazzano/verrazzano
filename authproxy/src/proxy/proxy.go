@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -28,6 +29,7 @@ type AuthProxy struct {
 }
 
 type Handler struct {
+	URL    string
 	Client *http.Client
 	Log    *zap.SugaredLogger
 }
@@ -49,7 +51,10 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
-	log.Infof("CA Data: %s", config.CAData)
+	caData := config.CAData
+	if len(caData) < 1 {
+		caData, err = os.ReadFile("/etc/ssl/certs/ca-bundle.crt")
+	}
 
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
@@ -59,6 +64,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 	}
 
 	authproxy.Handler = Handler{
+		URL: config.Host,
 		Client: &http.Client{
 			Timeout:   5 * time.Minute,
 			Transport: transport,
@@ -110,7 +116,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	formattedReq.RequestURI = ""
 
 	path := strings.Replace(req.URL.Path, localClusterPrefix, "", 1)
-	newReq, err := url.JoinPath(kubernetesAPIServerHostname, path)
+	newReq, err := url.JoinPath(h.URL, path)
 	if err != nil {
 		h.Log.Errorf("Failed to format request path for path %s: %v", path, err)
 	}
