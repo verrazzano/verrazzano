@@ -20,7 +20,7 @@ import (
 const (
 	localClusterPrefix = "/clusters/local"
 
-	kubernetesAPIServiceHostname = "kubernetes.default.svc.cluster.local"
+	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
 )
 
 type AuthProxy struct {
@@ -46,12 +46,13 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
+		return err
 	}
 
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
 		RootCAs:    common.CertPool(config.CAData),
-		ServerName: kubernetesAPIServiceHostname,
+		ServerName: kubernetesAPIServerHostname,
 		MinVersion: tls.VersionTLS12,
 	}
 
@@ -103,11 +104,16 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	formattedReq := req.Clone(context.TODO())
-	formattedReq.Host = kubernetesAPIServiceHostname
+	formattedReq.Host = kubernetesAPIServerHostname
 	formattedReq.RequestURI = ""
 
 	path := strings.Replace(req.URL.Path, localClusterPrefix, "", 1)
-	formattedURL, err := url.Parse(fmt.Sprintf("%s%s", kubernetesAPIServiceHostname, path))
+	newReq, err := url.JoinPath(kubernetesAPIServerHostname, path)
+	if err != nil {
+		h.Log.Errorf("Failed to format request path for path %s: %v", path, err)
+	}
+
+	formattedURL, err := url.Parse(newReq)
 	if err != nil {
 		h.Log.Errorf("Failed to format incoming url: %v", err)
 		return nil, err

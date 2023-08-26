@@ -18,17 +18,20 @@ func main() {
 	handleFlags()
 	log := zap.S()
 
+	log.Info("Initializing the proxy server")
 	authproxy := proxy.InitializeProxy()
+
+	log.Info("Configuring the proxy Kubernetes API client")
 	err := proxy.ConfigureKubernetesAPIProxy(authproxy, log)
 	if err != nil {
 		os.Exit(1)
 	}
 
+	log.Info("Starting up proxy server to listen for requests")
 	err = authproxy.ListenAndServe()
 	if err != nil {
 		os.Exit(1)
 	}
-	os.Exit(0)
 }
 
 // handleFlags sets up the CLI flags, parses them, and initializes loggers
