@@ -121,7 +121,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 		h.Log.Errorf("Failed to format request path for path %s: %v", path, err)
 	}
 
-	formattedURL, err := url.Parse(fmt.Sprintf("https://%s", newReq))
+	formattedURL, err := url.Parse(newReq)
 	if err != nil {
 		h.Log.Errorf("Failed to format incoming url: %v", err)
 		return nil, err
