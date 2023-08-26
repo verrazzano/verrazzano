@@ -7,10 +7,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	"io"
-	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,8 +42,8 @@ func InitializeProxy() *AuthProxy {
 	}
 }
 
-func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, kubeconfig string, log *zap.SugaredLogger) error {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) error {
+	config, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
 	}

@@ -14,16 +14,12 @@ import (
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-var (
-	kubeconfig string
-)
-
 func main() {
 	handleFlags()
 	log := zap.S()
 
 	authproxy := proxy.InitializeProxy()
-	err := proxy.ConfigureKubernetesAPIProxy(authproxy, kubeconfig, log)
+	err := proxy.ConfigureKubernetesAPIProxy(authproxy, log)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -37,8 +33,6 @@ func main() {
 
 // handleFlags sets up the CLI flags, parses them, and initializes loggers
 func handleFlags() {
-	flag.StringVar(&kubeconfig, "kubeconfig-path", "", "Kubeconfig path for the Verrazzano Authproxy cluster.")
-
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
