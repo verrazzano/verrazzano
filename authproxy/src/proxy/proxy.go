@@ -8,12 +8,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
@@ -51,18 +49,9 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
-	caData := config.CAData
-	if len(caData) < 1 {
-		caData, err = os.ReadFile("/etc/ssl/certs/ca-bundle.crt")
-	}
-
-	log.Infof("CA Data: %s", caData)
-
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		RootCAs:    common.CertPool(config.CAData),
-		ServerName: kubernetesAPIServerHostname,
-		MinVersion: tls.VersionTLS12,
+		InsecureSkipVerify: true,
 	}
 
 	authproxy.Handler = Handler{
