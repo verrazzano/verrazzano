@@ -7,12 +7,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
@@ -42,16 +42,15 @@ func InitializeProxy() *AuthProxy {
 	}
 }
 
-func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, path string, log *zap.SugaredLogger) error {
-	caCertData, err := os.ReadFile(path)
+func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) error {
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
-		log.Errorf("Failed to read given CA Cert file %s: %v", path, err)
-		return err
+		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
 	}
 
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		RootCAs:    common.CertPool(caCertData),
+		RootCAs:    common.CertPool(config.CAData),
 		ServerName: kubernetesAPIServiceHostname,
 		MinVersion: tls.VersionTLS12,
 	}
