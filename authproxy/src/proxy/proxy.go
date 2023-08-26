@@ -56,6 +56,8 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		caData, err = os.ReadFile("/etc/ssl/certs/ca-bundle.crt")
 	}
 
+	log.Infof("CA Data: %s", caData)
+
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
 		RootCAs:    common.CertPool(config.CAData),
@@ -119,6 +121,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	newReq, err := url.JoinPath(h.URL, path)
 	if err != nil {
 		h.Log.Errorf("Failed to format request path for path %s: %v", path, err)
+		return nil, err
 	}
 
 	formattedURL, err := url.Parse(newReq)
