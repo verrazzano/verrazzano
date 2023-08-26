@@ -49,6 +49,8 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
+	log.Infof("CA Data: %s", config.CAData)
+
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
 		RootCAs:    common.CertPool(config.CAData),
