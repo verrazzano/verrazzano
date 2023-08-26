@@ -20,7 +20,7 @@ import (
 const (
 	localClusterPrefix = "/clusters/local"
 
-	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
+	kubernetesAPIServerHostname = "https://kubernetes.default.svc.cluster.local"
 )
 
 type AuthProxy struct {
