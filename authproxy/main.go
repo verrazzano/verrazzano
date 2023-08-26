@@ -23,7 +23,7 @@ func main() {
 	log := zap.S()
 
 	authproxy := proxy.InitializeProxy()
-	err := proxy.ConfigureKubernetesAPIProxy(authproxy, log)
+	err := proxy.ConfigureKubernetesAPIProxy(authproxy, kubeconfig, log)
 	if err != nil {
 		os.Exit(1)
 	}
