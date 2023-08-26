@@ -20,7 +20,7 @@ import (
 const (
 	localClusterPrefix = "/clusters/local"
 
-	kubernetesAPIServerHostname = "https://kubernetes.default.svc.cluster.local"
+	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
 )
 
 type AuthProxy struct {
@@ -113,7 +113,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 		h.Log.Errorf("Failed to format request path for path %s: %v", path, err)
 	}
 
-	formattedURL, err := url.Parse(newReq)
+	formattedURL, err := url.Parse(fmt.Sprintf("https://%s", newReq))
 	if err != nil {
 		h.Log.Errorf("Failed to format incoming url: %v", err)
 		return nil, err
