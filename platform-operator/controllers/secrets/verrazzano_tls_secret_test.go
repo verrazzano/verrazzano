@@ -149,13 +149,26 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 	originalBundleData := []byte("original bundle data")
 	letsEncryptStagingBundleData := []byte("letsencrypt staging bundle data")
 
-	privateCABundleName := types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}
 	rancherTLSCATestSecret := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: vzconst.RancherTLSCA}
 	multiclusterCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
 	rancherDeploymentNSName := types.NamespacedName{Namespace: vzconst.RancherSystemNamespace, Name: rancherDeploymentName}
 
 	defaultWantErr := assert.NoError
 	defaultBundleWantErr := assert.NoError
+
+	clusterIssuerSecretNotUpdated := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzconst.DefaultVerrazzanoCASecretName, Namespace: vzconst.CertManagerNamespace},
+		Data: map[string][]byte{
+			"tls.crt": originalBundleData,
+		},
+	}
+
+	clusterIssuerSecretUpdated := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzconst.DefaultVerrazzanoCASecretName, Namespace: vzconst.CertManagerNamespace},
+		Data: map[string][]byte{
+			"tls.crt": updatedBundleData,
+		},
+	}
 
 	ingressLeafCertOnly := &corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
@@ -181,26 +194,29 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 		},
 	}
 
-	privateCASecret := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+	vzPrivateCASecret := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: vzPrivateCABundleSecret.Name, Namespace: vzPrivateCABundleSecret.Namespace},
 		Data: map[string][]byte{
 			vzconst.CABundleKey: originalBundleData,
 		},
 	}
-	defaultObjsList := []runtime.Object{
-		&corev1.Secret{
-			ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
-			Data: map[string][]byte{
-				vzconst.RancherTLSCAKey: originalBundleData,
-			},
+
+	rancherTLSCASecert := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
+		Data: map[string][]byte{
+			vzconst.RancherTLSCAKey: originalBundleData,
 		},
+	}
+	defaultObjsList := []runtime.Object{
+		rancherTLSCASecert,
 		&corev1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
 			Data: map[string][]byte{
 				mcCABundleKey: originalBundleData,
 			},
 		},
-		privateCASecret,
+		vzPrivateCASecret,
+		clusterIssuerSecretUpdated,
 		ingressTLSSecretPrivateCA,
 		// verrazzano-mc namespace exists
 		&corev1.Namespace{
@@ -229,7 +245,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 	}{
 		{
 			name:                        "self-signed-ca",
-			description:                 `Basic case where the verrazzano-tls CA bundle has been updated and the MC and Rancher copies exist `,
+			description:                 `Basic case where the ClusterIssuer secret has been updated and the MC and Rancher copies exist `,
 			cli:                         fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultObjsList...).Build(),
 			privateCAExpectedBundleData: updatedBundleData,
 			mcExpectedBundleData:        updatedBundleData,
@@ -238,7 +254,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 		},
 		{
 			name:        "verrazzano-tls-ca-does-not-exist",
-			description: `TLS CA bundle does not exist, the target copies should not be updated; likely a case where the secret was deleted, but should not happen`,
+			description: `TLS CA bundle does not exist, likely a case where the secret was deleted, but should not happen`,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
@@ -247,6 +263,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				ingressLeafCertOnly,
+				clusterIssuerSecretNotUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
@@ -255,10 +272,11 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 				},
 			).Build(),
-			sourceSecret:                 ingressLeafCertOnly,
+			sourceSecret:                 clusterIssuerSecretNotUpdated,
+			privateCAExpectedBundleData:  []byte(nil),
 			privateCABundleSecretWantErr: assert.Error,
 			rancherBundleSecretWantErr:   assert.Error,
-			mcExpectedBundleData:         []byte(nil),
+			mcExpectedBundleData:         originalBundleData,
 		},
 		{
 			name: "lets-encrypt-staging-update-scenario",
@@ -279,7 +297,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+					ObjectMeta: v1.ObjectMeta{Name: vzPrivateCABundleSecret.Name, Namespace: vzPrivateCABundleSecret.Namespace},
 					Data: map[string][]byte{
 						vzconst.CABundleKey: letsEncryptStagingBundleData,
 					},
@@ -340,7 +358,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 						vzconst.RancherTLSCAKey: originalBundleData,
 					},
 				},
-				privateCASecret,
+				vzPrivateCASecret,
 				ingressTLSSecretPrivateCA,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
@@ -373,7 +391,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 						vzconst.RancherTLSCAKey: originalBundleData,
 					},
 				},
-				privateCASecret,
+				vzPrivateCASecret,
 				ingressTLSSecretPrivateCANotUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
@@ -403,7 +421,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+					ObjectMeta: v1.ObjectMeta{Name: vzPrivateCABundleSecret.Name, Namespace: vzPrivateCABundleSecret.Namespace},
 					Data: map[string][]byte{
 						vzconst.CABundleKey: updatedBundleData,
 					},
@@ -430,7 +448,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{Name: privateCABundleName.Name, Namespace: privateCABundleName.Namespace},
+					ObjectMeta: v1.ObjectMeta{Name: vzPrivateCABundleSecret.Name, Namespace: vzPrivateCABundleSecret.Namespace},
 					Data: map[string][]byte{
 						vzconst.CABundleKey: originalBundleData,
 					},
@@ -477,7 +495,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				rancherBundleSecretWantErr = tt.rancherBundleSecretWantErr
 			}
 
-			sourceSecret := ingressTLSSecretPrivateCA
+			sourceSecret := clusterIssuerSecretUpdated
 			if tt.sourceSecret != nil {
 				sourceSecret = tt.sourceSecret
 			}
@@ -495,7 +513,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			assert.Equal(t, tt.rancherRestartRequired, foundRestartAnnotation, "Rancher restart check failed, expected %v", tt.rancherRestartRequired)
 			//}
 			// check that the VZ private CA bundle secret was updated if necessary
-			assertTargetCopy(t, tt.cli, privateCABundleName, vzconst.CABundleKey, tt.privateCAExpectedBundleData, privateCABundleSecretWantErr)
+			assertTargetCopy(t, tt.cli, vzPrivateCABundleSecret, vzconst.CABundleKey, tt.privateCAExpectedBundleData, privateCABundleSecretWantErr)
 			assertTargetCopy(t, tt.cli, multiclusterCASecret, mcCABundleKey, tt.mcExpectedBundleData, mcBundleSecretWantErr)
 			assertTargetCopy(t, tt.cli, rancherTLSCATestSecret, vzconst.RancherTLSCAKey, tt.rancherExpectedBundleData, rancherBundleSecretWantErr)
 		})
