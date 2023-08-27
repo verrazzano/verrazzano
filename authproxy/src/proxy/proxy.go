@@ -22,16 +22,23 @@ const (
 	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
 )
 
+var getConfigFunc = k8sutil.GetConfigFromController
+
+// AuthProxy wraps the server instance
 type AuthProxy struct {
 	http.Server
 }
 
+// Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
 	URL    string
 	Client *http.Client
 	Log    *zap.SugaredLogger
 }
 
+var _ http.Handler = Handler{}
+
+// InitializeProxy returns a configured AuthProxy instance
 func InitializeProxy() *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
@@ -42,8 +49,9 @@ func InitializeProxy() *AuthProxy {
 	}
 }
 
+// ConfigureKubernetesAPIProxy configures the server handler and the proxy client for the AuthProxy instance
 func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) error {
-	config, err := k8sutil.GetConfigFromController()
+	config, err := getConfigFunc()
 	if err != nil {
 		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
 		return err
@@ -57,7 +65,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 	authproxy.Handler = Handler{
 		URL: config.Host,
 		Client: &http.Client{
-			Timeout:   5 * time.Minute,
+			Timeout:   time.Minute,
 			Transport: transport,
 		},
 		Log: log,
@@ -65,27 +73,27 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 	return nil
 }
 
+// ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", req)
 	err := validateRequest(req)
 	if err != nil {
-		h.Log.Infof("Failed to validate request: %s", err.Error())
+		h.Log.Debugf("Failed to validate request: %s", err.Error())
+		http.Error(rw, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
 	reformattedReq, err := h.reformatAPIRequest(req)
 	if err != nil {
+		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return
 	}
 	h.Log.Debug("Outgoing request: %+v", reformattedReq)
 
 	resp, err := h.Client.Do(reformattedReq)
 	if err != nil {
-		h.Log.Errorf("Failed to send request: %v", err)
-		return
-	}
-	if resp == nil {
-		h.Log.Errorf("Empty response from server: %v", err)
+		errResponse := fmt.Sprintf("Failed to forward request to the Kubernetes API server: %s", err.Error())
+		http.Error(rw, errResponse, http.StatusBadRequest)
 		return
 	}
 	defer func() {
@@ -95,12 +103,18 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	_, err = io.Copy(rw, resp.Body)
+	var responseBody = io.NopCloser(strings.NewReader(""))
+	if resp != nil {
+		responseBody = resp.Body
+	}
+
+	_, err = io.Copy(rw, responseBody)
 	if err != nil {
-		h.Log.Errorf("Failed to send request: %v", err)
+		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
 	}
 }
 
+// reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
 func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	formattedReq := req.Clone(context.TODO())
 	formattedReq.Host = kubernetesAPIServerHostname
@@ -123,8 +137,9 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	return formattedReq, nil
 }
 
+// validateRequest performs request validation before the request is processed
 func validateRequest(req *http.Request) error {
-	if !strings.HasPrefix(req.URL.String(), localClusterPrefix) {
+	if !strings.HasPrefix(req.URL.Path, localClusterPrefix) {
 		return fmt.Errorf("request url: '%v' does not have cluster path", req.URL)
 	}
 	return nil
