@@ -140,7 +140,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 // validateRequest performs request validation before the request is processed
 func validateRequest(req *http.Request) error {
 	if !strings.HasPrefix(req.URL.Path, localClusterPrefix) {
-		return fmt.Errorf("request url: '%v' does not have cluster path", req.URL)
+		return fmt.Errorf("request path: '%v' does not have expected cluster path, i.e. '/clusters/local/api/v1'", req.URL.Path)
 	}
 	return nil
 }
