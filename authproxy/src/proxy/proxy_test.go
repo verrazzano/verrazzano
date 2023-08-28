@@ -64,15 +64,17 @@ func TestServeHTTP(t *testing.T) {
 }
 
 // TestReformatAPIRequest tests the reformatting of the request to be sent to the API server
-// GIVEN a request to the Auth proxy server
-// WHEN  the request is formatted correctly
-// THEN  the request is properly formatted to be sent to the API server
+
 func TestReformatAPIRequest(t *testing.T) {
 	handler := Handler{
 		URL:    "https://api-server.io",
 		Client: &http.Client{},
 		Log:    zap.S(),
 	}
+
+	// GIVEN a request to the Auth proxy server
+	// WHEN  the request is formatted correctly
+	// THEN  the request is properly formatted to be sent to the API server
 	url := fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
 	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 	assert.NoError(t, err)
@@ -80,6 +82,18 @@ func TestReformatAPIRequest(t *testing.T) {
 	formattedReq, err := handler.reformatAPIRequest(req)
 	assert.NoError(t, err)
 	expectedURL := fmt.Sprintf("%s%s", handler.URL, apiPath)
+	assert.Equal(t, expectedURL, formattedReq.URL.String())
+
+	// GIVEN a request to the Auth proxy server
+	// WHEN  the request is malformed
+	// THEN  a malformed request is returned
+	url = "malformed-request1234"
+	req, err = http.NewRequest(http.MethodGet, url, strings.NewReader(""))
+	assert.NoError(t, err)
+
+	formattedReq, err = handler.reformatAPIRequest(req)
+	assert.NoError(t, err)
+	expectedURL = fmt.Sprintf("%s/%s", handler.URL, url)
 	assert.Equal(t, expectedURL, formattedReq.URL.String())
 }
 
