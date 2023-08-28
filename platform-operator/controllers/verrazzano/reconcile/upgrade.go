@@ -177,7 +177,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			done = true
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
-			SetPreModuleWorkDone(false)
 			SetModuleCreateOrUpdateDone(false)
 		}
 	}

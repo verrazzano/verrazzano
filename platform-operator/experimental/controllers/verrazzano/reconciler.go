@@ -16,7 +16,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	vzReconcile "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
+	vzreconcile "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -29,7 +29,7 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	if !vzReconcile.IsPreModuleWorkDone() {
+	if !vzreconcile.IsPreModuleWorkDone() {
 		return result.NewResultShortRequeueDelay()
 	}
 	actualCR := &vzapi.Verrazzano{}
@@ -74,9 +74,9 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResultShortRequeueDelay()
 	}
 
-	vzReconcile.SetModuleCreateOrUpdateDone(true)
-
 	// All the modules have been reconciled and are ready
+	vzreconcile.SetModuleCreateOrUpdateDone(true)
+	vzreconcile.SetPreModuleWorkDone(false)
 	return result.NewResult()
 }
 
