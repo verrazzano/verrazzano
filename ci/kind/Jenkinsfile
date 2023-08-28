@@ -1,9 +1,12 @@
 // Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+import java.util.concurrent.atomic.AtomicInteger
+
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+@Field AtomicInteger delayIncrement = new AtomicInteger(0)
 
 pipeline {
     options {
@@ -545,7 +548,10 @@ pipeline {
                     parallel {
                         stage('opensearch-topology') {
                             steps {
-                                runGinkgoRandomize('opensearch/topology')
+                                script {
+                                    sleep(getDelayIncrement()*30)
+                                    runGinkgoRandomize('opensearch/topology')
+                                }
                             }
                         }
                         stage('Ingress & logging trait WebLogic workload') {
@@ -553,7 +559,10 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
                             steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
+                                script {
+                                    sleep(getDelayIncrement()*30)
+                                    runGinkgo('loggingtrait/weblogicworkload')
+                                }
                             }
                         }
                         stage('weblogic workload') {
@@ -561,7 +570,10 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                             }
                             steps {
-                                runGinkgo('workloads/weblogic')
+                                script {
+                                    sleep(getDelayIncrement()*30)
+                                    runGinkgo('workloads/weblogic')
+                                }
                             }
                         }
                         stage('coherence workload') {
@@ -569,7 +581,10 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                             }
                             steps {
-                                runGinkgo('workloads/coherence')
+                                script {
+                                    sleep(getDelayIncrement()*30)
+                                    runGinkgo('workloads/coherence')
+                                }
                             }
                         }
                         stage('oam workloads') {
@@ -577,7 +592,10 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
                             }
                             steps {
-                                runGinkgo('workloads/oam')
+                                script {
+                                    sleep(getDelayIncrement()*30)
+                                    runGinkgo('workloads/oam')
+                                }
                             }
                         }
                         stage('logging trait Coherence workload') {
@@ -585,7 +603,10 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
                             }
                             steps {
-                                runGinkgo('loggingtrait/coherenceworkload')
+                                script {
+                                    sleep(getDelayIncrement()*30)
+                                    runGinkgo('loggingtrait/coherenceworkload')
+                                }
                             }
                         }
                     }
@@ -754,6 +775,10 @@ def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
+}
+
+def getDelayIncrement() {
+    return delayIncrement.getAndAdd(1)
 }
 
 def dumpVerrazzanoSystemPods() {
