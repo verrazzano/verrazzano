@@ -98,7 +98,6 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			}
 			// Check if component is ex, if not continue
 			exists, err := comp.Exists(compContext)
-			//exists, err := comp.IsInstalled(compContext)
 			if err != nil {
 				compLog.Errorf("Failed checking if component %s exists in the cluster: %v", compName, err)
 				return ctrl.Result{}, err
