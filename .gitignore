@@ -42,6 +42,7 @@ out/
 platform-operator/THIRD_PARTY_LICENSES.txt
 cluster-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
+authproxy/THIRD_PARTY_LICENSES.txt
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
 **/.DS_Store
