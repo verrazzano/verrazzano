@@ -188,14 +188,14 @@ func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
 	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
 }
 
-// IncludeImagesHeader returns true if the overrides version for any of the default provider is specified.
-// Otherwise returns false.
+// IncludeImagesHeader returns true if the overrides version for any of the default providers is specified.
+// Otherwise, returns false.
 func (c capiOverrides) IncludeImagesHeader() bool {
-	if len(c.GetClusterAPIOverridesVersion()) > 0 && len(c.GetOCIOverridesVersion()) > 0 &&
-		len(c.GetOCNEBootstrapOverridesVersion()) > 0 && len(c.GetOCNEControlPlaneOverridesVersion()) > 0 {
-		return false
+	if len(c.GetClusterAPIOverridesVersion()) > 0 || len(c.GetOCIOverridesVersion()) > 0 ||
+		len(c.GetOCNEBootstrapOverridesVersion()) > 0 || len(c.GetOCNEControlPlaneOverridesVersion()) > 0 {
+		return true
 	}
-	return true
+	return false
 }
 
 func (c capiOverrides) GetClusterAPIControllerFullImagePath() string {
