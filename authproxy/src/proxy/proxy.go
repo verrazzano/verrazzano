@@ -84,7 +84,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", req)
+	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
 	err := validateRequest(req)
 
 	if err != nil {
@@ -116,7 +116,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return
 	}
-	h.Log.Debug("Outgoing request: %+v", reformattedReq.Request)
+	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(reformattedReq.Request))
 
 	resp, err := h.Client.Do(reformattedReq)
 	if err != nil {
@@ -205,4 +205,19 @@ func validateRequest(req *http.Request) error {
 		return fmt.Errorf("request path: '%v' does not have expected cluster path, i.e. '/clusters/local/api/v1'", req.URL.Path)
 	}
 	return nil
+}
+
+func obfuscateRequestData(req *http.Request) *http.Request {
+	sensitiveHeaders := []string{
+		"Authorization",
+		"Proxy-Authorization",
+		"API-Key",
+		"x-amz-security-token",
+	}
+
+	for _, header := range sensitiveHeaders {
+		delete(req.Header, header)
+	}
+
+	return req
 }
