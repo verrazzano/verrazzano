@@ -61,7 +61,7 @@ func TestServeHTTP(t *testing.T) {
 		Log:    zap.S(),
 	}
 
-	url := fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
+	url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
 	r := httptest.NewRequest(http.MethodPost, url, strings.NewReader(testBody))
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, r)
@@ -106,7 +106,7 @@ func TestValidateRequest(t *testing.T) {
 	// GIVEN a request without the cluster path
 	// WHEN  the request is validated
 	// THEN  an error is returned
-	url := fmt.Sprintf("https://authproxy.io/%s", apiPath)
+	url := fmt.Sprintf("%s/%s", testAPIServerURL, apiPath)
 	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 	assert.NoError(t, err)
 	err = validateRequest(req)
@@ -115,11 +115,25 @@ func TestValidateRequest(t *testing.T) {
 	// GIVEN a request with the cluster path
 	// WHEN  the request is validated
 	// THEN  no error is returned
-	url = fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
+	url = fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
 	req, err = http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 	assert.NoError(t, err)
 	err = validateRequest(req)
 	assert.NoError(t, err)
+}
+
+func TestObfuscateTestData(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, testAPIServerURL, strings.NewReader(""))
+	assert.NoError(t, err)
+
+	AuthKey := "Authorization"
+	basicAuth := "Basic username:pass"
+	tokenAuth := "Bearer test-token"
+	req.Header[AuthKey] = []string{basicAuth, tokenAuth}
+
+	obfReq := obfuscateRequestData(req)
+	assert.NotEqual(t, basicAuth, obfReq.Header[AuthKey][0])
+	assert.NotEqual(t, tokenAuth, obfReq.Header[AuthKey][1])
 }
 
 func testConfig() (*rest.Config, error) {

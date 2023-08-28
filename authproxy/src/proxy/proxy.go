@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"io"
 	"net/http"
 	"net/url"
@@ -210,15 +211,11 @@ func validateRequest(req *http.Request) error {
 func obfuscateRequestData(req *http.Request) *http.Request {
 	sensitiveHeaders := []string{
 		"Authorization",
-		"Proxy-Authorization",
-		"API-Key",
-		"x-amz-security-token",
 	}
 	for _, header := range sensitiveHeaders {
-		delete(req.Header, header)
+		for i := range req.Header[header] {
+			req.Header[header][i] = vzpassword.MaskFunction("")(req.Header[header][i])
+		}
 	}
-
-	req.Body = io.NopCloser(strings.NewReader(""))
-
 	return req
 }
