@@ -262,7 +262,7 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 	return release.StatusDeployed == helmRelease.Info.Status, nil
 }
 
-// ReleaseExists returns true if the helmRelease is installed
+// ReleaseExists returns true if the helm Release exists in the cluster in any state
 func ReleaseExists(releaseName string, namespace string) (found bool, err error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
@@ -279,7 +279,7 @@ func ReleaseExists(releaseName string, namespace string) (found bool, err error)
 		}
 		return false, err
 	}
-	return release.StatusUnknown != helmRelease.Info.Status, nil
+	return len(helmRelease.Info.Status) > 0, nil
 }
 
 // getChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string
