@@ -425,6 +425,23 @@
       ]
     },
     {
+      "name": "verrazzano-authproxy",
+      "version": "2.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-authproxy",
+          "images": [
+            {
+              "image": "VERRAZZANO_AUTHPROXY_IMAGE",
+              "tag": "VERRAZZANO_AUTHPROXY_TAG",
+              "helmFullImageKey": "v2.image"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "weblogic-operator",
       "version": "4.1.0",
       "subcomponents": [

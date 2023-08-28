@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -30,19 +30,25 @@ if [ -z "${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}" ]; then
   exit 1
 fi
 
-VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$5
+VERRAZZANO_AUTHPROXY_IMAGE_NAME=$5
+if [ -z "${VERRAZZANO_AUTHPROXY_IMAGE_NAME}" ]; then
+  echo "You must specify the Auth Proxy Image Name"
+  exit 1
+fi
+
+VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$6
 if [ -z "${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}" ]; then
   echo "You must specify the Platform Operator Image Name"
   exit 1
 fi
 
-IMAGE_TAG=$6
+IMAGE_TAG=$7
 if [ -z "${IMAGE_TAG}" ]; then
   echo "You must specify the Image Tag"
   exit 1
 fi
 
-GENERATED_BOM_FILE=$7
+GENERATED_BOM_FILE=$8
 if [ -z "${GENERATED_BOM_FILE}" ]; then
   echo "You must specify the BOM filename as output"
   exit 1
@@ -67,6 +73,13 @@ if [[ ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} =~ $regex ]] ; then
 else
   sed -i"" -e "s|VERRAZZANO_CLUSTER_OPERATOR_IMAGE|${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}|g" ${GENERATED_BOM_FILE}
   sed -i"" -e "s|VERRAZZANO_CLUSTER_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
+fi
+if [[ ${VERRAZZANO_AUTHPROXY_IMAGE} =~ $regex ]] ; then
+  sed -i"" -e "s|VERRAZZANO_AUTHPROXY_IMAGE|$(echo ${VERRAZZANO_AUTHPROXY_IMAGE} | rev | cut -d / -f 1 | rev | cut -d : -f 1)|g" ${GENERATED_BOM_FILE}
+  sed -i"" -e "s|VERRAZZANO_AUTHPROXY_TAG|$(echo ${VERRAZZANO_AUTHPROXY_IMAGE}:UNDEFINED | rev | cut -d / -f 1 | rev | cut -d : -f 2)|g" ${GENERATED_BOM_FILE}
+else
+  sed -i"" -e "s|VERRAZZANO_AUTHPROXY_IMAGE|${VERRAZZANO_AUTHPROXY_IMAGE}|g" ${GENERATED_BOM_FILE}
+  sed -i"" -e "s|VERRAZZANO_AUTHPROXY_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
 fi
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_IMAGE|${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}|g" ${GENERATED_BOM_FILE}
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
