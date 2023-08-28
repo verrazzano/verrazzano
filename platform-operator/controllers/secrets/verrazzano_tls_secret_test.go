@@ -426,7 +426,6 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 						vzconst.CABundleKey: updatedBundleData,
 					},
 				},
-				ingressTLSSecretPrivateCA,
 				&appsv1.Deployment{
 					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 				},
@@ -453,7 +452,6 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 						vzconst.CABundleKey: originalBundleData,
 					},
 				},
-				ingressTLSSecretPrivateCA,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
