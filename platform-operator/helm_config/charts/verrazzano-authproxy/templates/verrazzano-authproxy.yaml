@@ -228,6 +228,10 @@ spec:
     port: {{ .Values.grpcPort }}
     protocol: TCP
     targetPort: {{ .Values.grpcPort }}
+  - name: http-v2
+    port: {{ .Values.v2.port }}
+    protocol: TCP
+    targetPort: {{ .Values.v2.port }}
   selector:
     app: {{ .Values.name }}
 ---
