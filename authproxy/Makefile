@@ -55,7 +55,6 @@ build: go-fmt go-vet
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=true --metrics-addr=localhost:0 --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG}
 
 #
