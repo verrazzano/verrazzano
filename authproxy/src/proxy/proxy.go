@@ -78,9 +78,28 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", req)
 	err := validateRequest(req)
+
 	if err != nil {
 		h.Log.Debugf("Failed to validate request: %s", err.Error())
 		http.Error(rw, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	ingressHost := getIngressHost(req)
+	if err, statusCode := addCORSHeaders(req, rw, ingressHost); err != nil {
+		http.Error(rw, err.Error(), statusCode)
+		return
+	}
+
+	if req.Method == http.MethodOptions {
+		if err, statusCode := handleOptionsRequest(req, rw); err != nil {
+			http.Error(rw, err.Error(), statusCode)
+		}
+		return
+	}
+
+	if err, statusCode := handleAuth(req, rw); err != nil {
+		http.Error(rw, err.Error(), statusCode)
 		return
 	}
 
@@ -113,6 +132,34 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
 	}
+}
+
+func handleOptionsRequest(req *http.Request, rw http.ResponseWriter) (error, int) {
+	return nil, http.StatusOK
+}
+
+func addCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (error, int) {
+	// TODO get origin header, check if it is an allowed origin, add CORS response headers
+	return nil, http.StatusOK
+}
+
+func handleAuth(req *http.Request, rw http.ResponseWriter) (error, int) {
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		// TODO Handle callback/logout cases and if needed, perform authentication flow
+	}
+	return nil, http.StatusOK
+}
+
+// getIngressHost determines the ingress host from the request headers
+func getIngressHost(req *http.Request) string {
+	if host := req.Header.Get("x-forwarded-host"); host != "" {
+		return host
+	}
+	if host := req.Header.Get("host"); host != "" {
+		return host
+	}
+	return "invalid-hostname"
 }
 
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
