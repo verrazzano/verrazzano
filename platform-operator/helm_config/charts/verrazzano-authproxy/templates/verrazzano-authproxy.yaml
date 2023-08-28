@@ -175,8 +175,28 @@ spec:
           capabilities:
             drop:
               - ALL
-      - image: {{ .Values.v2.image.repository }}:{{ .Values.v2.image.tag }}
+      - image: {{ .Values.v2.image }}
         name: verrazzano-authproxy-v2
+        ports:
+          - containerPort: {{ .Values.v2.port }}
+        args:
+          - --proxy-port={{ .Values.v2.port }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.v2.port }}
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 1
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.v2.port }}
         securityContext:
           privileged: false
           allowPrivilegeEscalation: false

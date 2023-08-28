@@ -44,10 +44,10 @@ type Handler struct {
 var _ http.Handler = Handler{}
 
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy() *AuthProxy {
+func InitializeProxy(port int) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
-			Addr:         ":8777",
+			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},

@@ -43,3 +43,4 @@ dns:
 
 v2:
   image:
+  port: 8777
