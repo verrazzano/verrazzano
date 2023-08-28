@@ -214,10 +214,11 @@ func obfuscateRequestData(req *http.Request) *http.Request {
 		"API-Key",
 		"x-amz-security-token",
 	}
-
 	for _, header := range sensitiveHeaders {
 		delete(req.Header, header)
 	}
+
+	req.Body = io.NopCloser(strings.NewReader(""))
 
 	return req
 }
