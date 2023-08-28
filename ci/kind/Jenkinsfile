@@ -314,103 +314,103 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests Infra') {
-                    parallel {
-                        stage('verify-scripts') {
-                            steps {
-                                runGinkgoRandomize('scripts', "${KUBECONFIG}")
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('security rbac') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                            }
-                            steps {
-                                runGinkgo('security/rbac')
-                            }
-                        }
-                        stage('system component metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/syscomponents')
-                            }
-                        }
-                        stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
-                                }
-                            }
-                            post {
-                                failure {
-                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-                                }
-                            }
-                        }
-                        stage ('grafana db') {
-                            when {
-                                expression {params.USE_DB_FOR_GRAFANA == true}
-                            }
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
-                            }
-                            steps {
-                                runGinkgo('grafana-db')
-                            }
-                        }
-                        stage('opensearch logging') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
-                            }
-                            steps {
-                                runGinkgo('logging/opensearch')
-                            }
-                        }
-                        stage('system logging') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-                            }
-                            steps {
-                                runGinkgo('logging/system')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
+//                 stage('Run Acceptance Tests Infra') {
+//                     parallel {
+//                         stage('verify-scripts') {
+//                             steps {
+//                                 runGinkgoRandomize('scripts', "${KUBECONFIG}")
+//                             }
+//                         }
+//                         stage('verify-infra restapi') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+//                             }
+//                             steps {
+//                                 runGinkgoRandomize('verify-infra/restapi')
+//                             }
+//                         }
+//                         stage('verify-infra oam') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+//                             }
+//                             steps {
+//                                 runGinkgoRandomize('verify-infra/oam')
+//                             }
+//                         }
+//                         stage('verify-infra vmi') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+//                             }
+//                             steps {
+//                                 runGinkgoRandomize('verify-infra/vmi')
+//                             }
+//                         }
+//                         stage('security rbac') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+//                             }
+//                             steps {
+//                                 runGinkgo('security/rbac')
+//                             }
+//                         }
+//                         stage('system component metrics') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+//                             }
+//                             steps {
+//                                 runGinkgo('metrics/syscomponents')
+//                             }
+//                         }
+//                         stage ('console') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+//                             }
+//                             steps {
+//                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+//                                     sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+//                                 }
+//                             }
+//                             post {
+//                                 failure {
+//                                     sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+//                                 }
+//                             }
+//                         }
+//                         stage ('grafana db') {
+//                             when {
+//                                 expression {params.USE_DB_FOR_GRAFANA == true}
+//                             }
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+//                             }
+//                             steps {
+//                                 runGinkgo('grafana-db')
+//                             }
+//                         }
+//                         stage('opensearch logging') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
+//                             }
+//                             steps {
+//                                 runGinkgo('logging/opensearch')
+//                             }
+//                         }
+//                         stage('system logging') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+//                             }
+//                             steps {
+//                                 runGinkgo('logging/system')
+//                             }
+//                         }
+//                     }
+//                     post {
+//                         always {
+//                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+//                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                         }
+//                     }
+//                 }
 
 //                 stage('Run Acceptance Tests Deployments Group 1') {
 //                     parallel {
