@@ -34,6 +34,9 @@ const (
 	// vzStateUpgradeComponents is the state where the components are being upgraded
 	vzStateUpgradeComponents VerrazzanoUpgradeState = "vzUpgradeComponents"
 
+	// vzStateWaitModulesReady wait for components upgraded using Modules to be ready
+	vzStateUpgradeModulesReady VerrazzanoUpgradeState = "vzUpgradeModulesReady"
+
 	// vzStatePostUpgrade is the state where Verrazzano is doing a post-upgrade
 	vzStatePostUpgrade VerrazzanoUpgradeState = "vzDoPostUpgrade"
 
@@ -89,6 +92,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 				// Always requeue to get a fresh copy of status and avoid potential conflict
 				return newRequeueWithDelay(), err
 			}
+			SetPreModuleWorkDone(true)
 			tracker.vzState = vzStateUpgradeComponents
 
 		case vzStateUpgradeComponents:
@@ -97,6 +101,13 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			res, err := r.upgradeComponents(log, cr, tracker)
 			if err != nil || res.Requeue {
 				return res, err
+			}
+			tracker.vzState = vzStateUpgradeModulesReady
+
+		case vzStateUpgradeModulesReady:
+			ready, err := r.modulesReady(spiCtx)
+			if err != nil || !ready {
+				return ctrl.Result{Requeue: true}, err
 			}
 			tracker.vzState = vzStatePostUpgrade
 
@@ -166,6 +177,8 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			done = true
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
+			SetPreModuleWorkDone(false)
+			SetModuleCreateOrUpdateDone(false)
 		}
 	}
 	// Upgrade done, no need to requeue
@@ -248,6 +261,8 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 			compMap: make(map[string]*componentTrackerContext),
 		}
 		upgradeTrackerMap[key] = vuc
+		SetPreModuleWorkDone(false)
+
 	}
 	return vuc
 }

@@ -31,7 +31,7 @@ func DeploymentsReadyBySelectors(log vzlog.VerrazzanoLogger, client clipkg.Clien
 		return false
 	}
 	if deploymentList.Items == nil || len(deploymentList.Items) < 1 {
-		logErrorf(log, "%s is waiting for deployments matching selector %s to exist", prefix, opts)
+		logProgressf(log, "%s is waiting for deployments matching selector %s to exist", prefix, opts)
 		return false
 	}
 	for idx := range deploymentList.Items {
