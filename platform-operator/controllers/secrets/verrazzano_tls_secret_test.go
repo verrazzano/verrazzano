@@ -185,15 +185,6 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			"tls.key":         []byte("leaf-cert-key"),
 		},
 	}
-	ingressTLSSecretPrivateCANotUpdated := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
-		Data: map[string][]byte{
-			vzconst.CACertKey: originalBundleData,
-			"tls.crt":         []byte("leaf-cert"),
-			"tls.key":         []byte("leaf-cert-key"),
-		},
-	}
-
 	vzPrivateCASecret := &corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{Name: vzPrivateCABundleSecret.Name, Namespace: vzPrivateCABundleSecret.Namespace},
 		Data: map[string][]byte{
@@ -217,7 +208,6 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 		},
 		vzPrivateCASecret,
 		clusterIssuerSecretUpdated,
-		ingressTLSSecretPrivateCA,
 		// verrazzano-mc namespace exists
 		&corev1.Namespace{
 			ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
@@ -377,7 +367,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			description: "System has been updated from LE staging to self-signed; verrazzano-tls-ca and tls-ca are " +
 				"using up-to-date private CA data, verrazzano-local-ca-bundle has stale LE staging data.  verrazzano-tls updated" +
 				"with new bundle data.  All secrets should be updated with new bundle data.",
-			sourceSecret: ingressTLSSecretPrivateCANotUpdated,
+			sourceSecret: clusterIssuerSecretNotUpdated,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
@@ -392,7 +382,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				vzPrivateCASecret,
-				ingressTLSSecretPrivateCANotUpdated,
+				clusterIssuerSecretNotUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
