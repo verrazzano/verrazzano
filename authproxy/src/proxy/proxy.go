@@ -7,15 +7,15 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 )
 
@@ -188,6 +188,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, 
 	retryableReq, err := retryablehttp.FromRequest(formattedReq)
 	if err != nil {
 		h.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
+		return retryableReq, err
 	}
 
 	return retryableReq, nil
