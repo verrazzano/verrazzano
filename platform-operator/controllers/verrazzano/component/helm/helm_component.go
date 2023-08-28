@@ -246,6 +246,10 @@ func (h HelmComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 }
 
 func (h HelmComponent) Exists(ctx spi.ComponentContext) (bool, error) {
+	if ctx.IsDryRun() {
+		ctx.Log().Debugf("Exists() dry run for %s", h.ReleaseName)
+		return true, nil
+	}
 	releaseExists, err := helm.ReleaseExists(h.ReleaseName, h.resolveNamespace(ctx))
 	if err != nil {
 		return false, err
@@ -448,11 +452,11 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
-	installed, err := h.Exists(context)
+	existsInCluster, err := h.Exists(context)
 	if err != nil {
 		return err
 	}
-	if !installed {
+	if !existsInCluster {
 		context.Log().Infof("%s does not exist in cluster, skipping uninstall", h.Name())
 		return nil
 	}

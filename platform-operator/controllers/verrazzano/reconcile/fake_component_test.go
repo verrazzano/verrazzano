@@ -35,6 +35,8 @@ type fakeComponent struct {
 	minVersion      string
 }
 
+var _ spi.Component = fakeComponent{}
+
 func (f fakeComponent) Name() string {
 	return f.ReleaseName
 }
@@ -101,7 +103,11 @@ func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return getBool(f.installed, "installed"), nil
 }
 
-func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
+func (f fakeComponent) Exists(ctx spi.ComponentContext) (bool, error) {
+	return f.IsInstalled(ctx)
+}
+
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return getBool(f.ready, "ready")
 }
 
