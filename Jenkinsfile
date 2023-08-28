@@ -74,8 +74,8 @@ pipeline {
         DOCKER_CLUSTER_CI_IMAGE_NAME = 'verrazzano-cluster-operator-jenkins'
         DOCKER_CLUSTER_PUBLISH_IMAGE_NAME = 'verrazzano-cluster-operator'
         DOCKER_CLUSTER_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_CLUSTER_PUBLISH_IMAGE_NAME : env.DOCKER_CLUSTER_CI_IMAGE_NAME}"
-        DOCKER_AUTHPROXY_CI_IMAGE_NAME = 'verrazzano-auth-proxy-jenkins'
-        DOCKER_AUTHPROXY_PUBLISH_IMAGE_NAME = 'verrazzano-auth-proxy'
+        DOCKER_AUTHPROXY_CI_IMAGE_NAME = 'verrazzano-authproxy-jenkins'
+        DOCKER_AUTHPROXY_PUBLISH_IMAGE_NAME = 'verrazzano-authproxy'
         DOCKER_AUTHPROXY_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_AUTHPROXY_PUBLISH_IMAGE_NAME : env.DOCKER_AUTHPROXY_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
