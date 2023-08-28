@@ -765,7 +765,7 @@ def runGinkgo(testSuitePath) {
 }
 
 def runGinkgoWithDelay(testSuitePath) {
-    def delay = getDelayIncrement()
+    def delay = delayIncrement.getAndAdd(1)
     echo "suite: " + testSuitePath + ", delay = " + delay*30
     sleep(delay*30)
     runGinkgo(testSuitePath)
@@ -775,10 +775,6 @@ def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
-}
-
-def getDelayIncrement() {
-    return delayIncrement.getAndAdd(1)
 }
 
 def dumpVerrazzanoSystemPods() {
