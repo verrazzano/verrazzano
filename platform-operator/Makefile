@@ -135,6 +135,7 @@ docker-build-common:
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	@echo using verrazzano-cluster-operator image ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}
+	@echo using verrazzano-authproxy image ${VERRAZZANO_AUTHPROXY_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
@@ -173,13 +174,13 @@ OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
-		env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
+		env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} AUTHPROXY_IMAGE=${VERRAZZANO_AUTHPROXY_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
 
 .PHONY: generate-local-operator-yaml
 generate-local-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
-	env DOCKER_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
+	env DOCKER_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} CLUSTER_OPERATOR_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} AUTHPROXY_IMAGE=${VERRAZZANO_AUTHPROXY_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
 
 .PHONY: load-local-operators
 load-local-operators: generate-local-operator-yaml
@@ -207,7 +208,7 @@ create-test-deploy:
 	if [ -n "${VZ_DEV_IMAGE}" ]; then \
 		IMAGE=$$(echo $${VZ_DEV_IMAGE} | cut -f 1 -d :) ; \
 		IMAGE_TAG=$$(echo $${VZ_DEV_IMAGE} | cut -f 2 -d :) ; \
-		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$${VZ_APP_OP_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=$${VZ_CLUSTER_OP_IMAGE} $(MAKE) generate-operator-yaml ; \
+		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$${VZ_APP_OP_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=$${VZ_CLUSTER_OP_IMAGE} VERRAZZANO_AUTHPROXY_IMAGE=$${VZ_AUTHPROXY_IMAGE} $(MAKE) generate-operator-yaml ; \
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi
