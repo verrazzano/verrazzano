@@ -549,10 +549,7 @@ pipeline {
                     parallel {
                         stage('opensearch-topology') {
                             steps {
-                                script {
-                                    sleep(getDelayIncrement()*30)
-                                    runGinkgoRandomize('opensearch/topology')
-                                }
+                                runGinkgoRandomize('opensearch/topology')
                             }
                         }
                         stage('Ingress & logging trait WebLogic workload') {
@@ -560,10 +557,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
                             steps {
-                                script {
-                                    sleep(getDelayIncrement()*30)
-                                    runGinkgo('loggingtrait/weblogicworkload')
-                                }
+                                runGinkgoWithDelay('loggingtrait/weblogicworkload')
                             }
                         }
                         stage('weblogic workload') {
@@ -571,10 +565,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                             }
                             steps {
-                                script {
-                                    sleep(getDelayIncrement()*30)
-                                    runGinkgo('workloads/weblogic')
-                                }
+                                runGinkgoWithDelay('workloads/weblogic')
                             }
                         }
                         stage('coherence workload') {
@@ -582,10 +573,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                             }
                             steps {
-                                script {
-                                    sleep(getDelayIncrement()*30)
-                                    runGinkgo('workloads/coherence')
-                                }
+                                runGinkgoWithDelay('workloads/coherence')
                             }
                         }
                         stage('oam workloads') {
@@ -593,10 +581,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
                             }
                             steps {
-                                script {
-                                    sleep(getDelayIncrement()*30)
-                                    runGinkgo('workloads/oam')
-                                }
+                                runGinkgoWithDelay('workloads/oam')
                             }
                         }
                         stage('logging trait Coherence workload') {
@@ -604,10 +589,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
                             }
                             steps {
-                                script {
-                                    sleep(getDelayIncrement()*30)
-                                    runGinkgo('loggingtrait/coherenceworkload')
-                                }
+                                runGinkgoWithDelay('loggingtrait/coherenceworkload')
                             }
                         }
                     }
@@ -770,6 +752,12 @@ def runGinkgo(testSuitePath) {
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
+}
+
+def runGinkgoWithDelay(testSuitePath) {
+    def delay = getDelayIncrement()
+    sleep(delay*30)
+    runGinkgo(testSuitePath)
 }
 
 def dumpK8sCluster(dumpDirectory) {
