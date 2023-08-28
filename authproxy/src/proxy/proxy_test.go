@@ -5,15 +5,16 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"go.uber.org/zap"
 	"io"
-	"k8s.io/client-go/rest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 )
 
 const apiPath = "/api/v1/pods"

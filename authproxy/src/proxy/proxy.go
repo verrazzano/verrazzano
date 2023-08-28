@@ -7,13 +7,14 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"go.uber.org/zap"
 )
 
 const (
