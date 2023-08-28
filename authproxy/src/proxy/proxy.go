@@ -7,8 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,6 +15,8 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	"k8s.io/client-go/util/cert"
 )
