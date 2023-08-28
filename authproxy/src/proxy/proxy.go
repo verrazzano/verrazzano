@@ -72,7 +72,6 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 	}
 
 	client := retryablehttp.NewClient()
-	client.Logger = log
 	client.HTTPClient.Transport = transport
 
 	authproxy.Handler = Handler{
