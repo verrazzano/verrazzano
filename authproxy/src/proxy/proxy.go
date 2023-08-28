@@ -86,19 +86,19 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	ingressHost := getIngressHost(req)
-	if err, statusCode := addCORSHeaders(req, rw, ingressHost); err != nil {
+	if statusCode, err := addCORSHeaders(req, rw, ingressHost); err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
 	}
 
 	if req.Method == http.MethodOptions {
-		if err, statusCode := handleOptionsRequest(req, rw); err != nil {
+		if statusCode, err := handleOptionsRequest(req, rw); err != nil {
 			http.Error(rw, err.Error(), statusCode)
 		}
 		return
 	}
 
-	if err, statusCode := handleAuth(req, rw); err != nil {
+	if statusCode, err := handleAuth(req, rw); err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
 	}
@@ -134,21 +134,21 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func handleOptionsRequest(req *http.Request, rw http.ResponseWriter) (error, int) {
-	return nil, http.StatusOK
+func handleOptionsRequest(req *http.Request, rw http.ResponseWriter) (int, error) {
+	return http.StatusOK, nil
 }
 
-func addCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (error, int) {
+func addCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (int, error) {
 	// TODO get origin header, check if it is an allowed origin, add CORS response headers
-	return nil, http.StatusOK
+	return http.StatusOK, nil
 }
 
-func handleAuth(req *http.Request, rw http.ResponseWriter) (error, int) {
+func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
 		// TODO Handle callback/logout cases and if needed, perform authentication flow
 	}
-	return nil, http.StatusOK
+	return http.StatusOK, nil
 }
 
 // getIngressHost determines the ingress host from the request headers
