@@ -250,14 +250,15 @@ func (h HelmComponent) Exists(ctx spi.ComponentContext) (bool, error) {
 		ctx.Log().Debugf("Exists() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
-	vzManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(h.resolveNamespace(ctx))
+	resolvedNamespace := h.resolveNamespace(ctx)
+	vzManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(resolvedNamespace)
 	if err != nil {
 		return false, err
 	}
 	if !vzManaged {
 		return false, nil
 	}
-	releaseExists, err := helm.ReleaseExists(h.ReleaseName, h.resolveNamespace(ctx))
+	releaseExists, err := helm.ReleaseExists(h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return false, err
 	}
