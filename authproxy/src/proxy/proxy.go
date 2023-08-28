@@ -116,7 +116,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return
 	}
-	h.Log.Debug("Outgoing request: %+v", reformattedReq)
+	h.Log.Debug("Outgoing request: %+v", reformattedReq.Request)
 
 	resp, err := h.Client.Do(reformattedReq)
 	if err != nil {
