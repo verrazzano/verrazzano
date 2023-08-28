@@ -85,7 +85,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
+	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(*req))
 	err := validateRequest(req)
 
 	if err != nil {
@@ -117,7 +117,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return
 	}
-	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(reformattedReq.Request))
+	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(*reformattedReq.Request))
 
 	resp, err := h.Client.Do(reformattedReq)
 	if err != nil {
@@ -208,7 +208,7 @@ func validateRequest(req *http.Request) error {
 	return nil
 }
 
-func obfuscateRequestData(req *http.Request) *http.Request {
+func obfuscateRequestData(req http.Request) http.Request {
 	sensitiveHeaders := []string{
 		"Authorization",
 	}

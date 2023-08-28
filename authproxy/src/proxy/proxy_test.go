@@ -131,7 +131,7 @@ func TestObfuscateTestData(t *testing.T) {
 	tokenAuth := "Bearer test-token"
 	req.Header[AuthKey] = []string{basicAuth, tokenAuth}
 
-	obfReq := obfuscateRequestData(req)
+	obfReq := obfuscateRequestData(*req)
 	assert.NotEqual(t, basicAuth, obfReq.Header[AuthKey][0])
 	assert.NotEqual(t, tokenAuth, obfReq.Header[AuthKey][1])
 }
