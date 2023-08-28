@@ -90,9 +90,9 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
 		//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
 		// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
-		if isVerrazzanoIngressSecretName(req.NamespacedName) || isVerrazzanoPrivateCABundle(req.NamespacedName) {
-			return r.reconcileVerrazzanoTLS(ctx, req)
-		}
+		//if isVerrazzanoIngressSecretName(req.NamespacedName) || isVerrazzanoPrivateCABundle(req.NamespacedName) {
+		//	return r.reconcileVerrazzanoTLS(ctx, req)
+		//}
 
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
 		if err != nil {
