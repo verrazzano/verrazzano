@@ -23,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
@@ -38,7 +37,6 @@ import (
 
 const (
 	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
-	testBomFilePath    = "../../testdata/test_bom.json"
 )
 
 func TestGetOverrides(t *testing.T) {
@@ -109,25 +107,14 @@ func TestGetOverrides(t *testing.T) {
 // THEN  the returned key/value pairs contains the image override
 func TestAppendOverrides(t *testing.T) {
 	customImage := "myreg.io/myrepo/v8o/verrazzano-cluster-operator-dev:local-20210707002801-b7449154"
-	err := os.Setenv(constants.VerrazzanoClusterOperatorImageEnvVar, customImage)
-	asserts.NoError(t, err)
+	os.Setenv(constants.VerrazzanoClusterOperatorImageEnvVar, customImage)
+	defer func() { os.Unsetenv(constants.VerrazzanoClusterOperatorImageEnvVar) }()
 
 	kvs, err := AppendOverrides(nil, "", "", "", nil)
 	asserts.NoError(t, err)
 	asserts.Len(t, kvs, 1)
 	asserts.Equal(t, "image", kvs[0].Key)
 	asserts.Equal(t, customImage, kvs[0].Value)
-
-	err = os.Unsetenv(constants.VerrazzanoClusterOperatorImageEnvVar)
-	asserts.NoError(t, err)
-
-	config.SetDefaultBomFilePath(testBomFilePath)
-
-	kvs, err = AppendOverrides(nil, "", "", "", nil)
-	asserts.NoError(t, err)
-	asserts.Len(t, kvs, 1)
-	asserts.Equal(t, "image", kvs[0].Key)
-	asserts.Equal(t, "ghcr.io/verrazzano/VERRAZZANO_CLUSTER_OPERATOR_IMAGE:VERRAZZANO_CLUSTER_OPERATOR_TAG", kvs[0].Value)
 }
 
 // TestPostInstallUpgrade tests the PostInstallUpgrade creation of the RoleTemplate

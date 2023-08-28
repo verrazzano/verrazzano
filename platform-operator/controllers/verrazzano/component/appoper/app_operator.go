@@ -32,8 +32,7 @@ const (
 // of the verrazzano-application-operator image when set.
 func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
-	foundEnvOverride := len(envImageOverride) > 0
-	if foundEnvOverride {
+	if len(envImageOverride) > 0 {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   "image",
 			Value: envImageOverride,
@@ -44,19 +43,6 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
-	}
-
-	// If the override was not given in the env vars, use the bom image
-	if !foundEnvOverride {
-		images, err := bomFile.BuildImageOverrides("verrazzano-application-operator")
-		if err != nil {
-			return kvs, compContext.Log().ErrorfNewErr("Failed to get images for the Verrazzano Application Operator subcomponent: %v", err)
-		}
-
-		if len(images) != 1 {
-			return kvs, compContext.Log().ErrorfNewErr("Failed, %s images returned from the Verrazzano Application Operator subcomponent, expected 1", len(images))
-		}
-		kvs = append(kvs, images...)
 	}
 
 	// Get fluentd and istio proxy images
