@@ -15,8 +15,3 @@ func isMissingFinalizer(q *vmcv1alpha1.OCNEOCIQuickCreate) bool {
 func shouldProvision(q *vmcv1alpha1.OCNEOCIQuickCreate) bool {
 	return q.Status.QuickCreateStatus.Phase == ""
 }
-
-// isComplete TODO: creation is not complete for quick-create VCN until the VCN is ready, and we can scrape its information
-func isComplete(q *vmcv1alpha1.OCNEOCIQuickCreate) bool {
-	return true
-}

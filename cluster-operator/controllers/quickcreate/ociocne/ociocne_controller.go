@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	finalizerKey = "verrazzano.io/oci-ocne-cluster"
-	templatesDir = "template"
+	finalizerKey     = "verrazzano.io/oci-ocne-cluster"
+	clusterTemplates = "template/cluster"
+	addonTemplates   = "template/addons"
 )
 
 type ClusterReconciler struct {
@@ -74,20 +75,23 @@ func (r *ClusterReconciler) setFinalizers(ctx context.Context, q *vmcv1alpha1.OC
 }
 
 func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNEOCIQuickCreate) (ctrl.Result, error) {
+	ocne, err := NewProperties(ctx, r.Client, r.CredentialsLoader, q)
+	if err != nil {
+		return controller.RequeueDelay(), err
+	}
 	// If provisioning has not successfully started, attempt to provisioning the cluster
 	if shouldProvision(q) {
-		ocne, err := NewOCNE(ctx, r.Client, r.CredentialsLoader, q)
-		if err != nil {
-			return controller.RequeueDelay(), err
-		}
-		if err := ocne.ApplyFromTemplateDirectory(r.Client, templatesDir); err != nil {
+		if err := ocne.ApplyFromTemplateDirectory(r.Client, clusterTemplates); err != nil {
 			return controller.RequeueDelay(), err
 		}
 		q.Status.QuickCreateStatus.Phase = vmcv1alpha1.QuickCreatePhaseProvisioning
 		return r.updateStatus(ctx, q)
 	}
-	// If provisioning has been completed, update the quick create to completed phase
-	if isComplete(q) {
+	// If OCI Network is loaded, update the quick create to completed phase
+	if ocne.HasOCINetwork() {
+		if err := ocne.ApplyFromTemplateDirectory(r.Client, clusterTemplates); err != nil {
+			return controller.RequeueDelay(), err
+		}
 		q.Status.QuickCreateStatus.Phase = vmcv1alpha1.QuickCreatePhaseComplete
 		return r.updateStatus(ctx, q)
 	}

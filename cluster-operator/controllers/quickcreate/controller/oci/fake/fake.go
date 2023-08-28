@@ -16,6 +16,6 @@ type (
 	}
 )
 
-func (c *CredentialsLoaderImpl) LoadCredentialsIfAllowed(_ context.Context, _ clipkg.Client, _ vmcv1alpha1.NamespacedRef, _ string) (*oci.Credentials, error) {
+func (c *CredentialsLoaderImpl) GetCredentialsIfAllowed(_ context.Context, _ clipkg.Client, _ vmcv1alpha1.NamespacedRef, _ string) (*oci.Credentials, error) {
 	return c.Credentials, nil
 }

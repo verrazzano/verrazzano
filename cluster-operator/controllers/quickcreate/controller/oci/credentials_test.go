@@ -92,7 +92,7 @@ func TestLoadCredentials(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := CredentialsLoaderImpl{}.LoadCredentialsIfAllowed(context.TODO(), tt.cli, testRef, clusterNamespace)
+			c, err := CredentialsLoaderImpl{}.GetCredentialsIfAllowed(context.TODO(), tt.cli, testRef, clusterNamespace)
 			if tt.hasError {
 				assert.Error(t, err)
 				assert.Nil(t, c)

@@ -67,11 +67,11 @@ type (
 		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 		// Node pool Shape.
 		Shape *string `json:"shape,omitempty"`
-		// Number of OCPUs per node.
+		// Number of OCPUs per node, when using flex shapes.
 		OCPUs *int `json:"ocpus,omitempty"`
 		// Amount of memory per node, in gigabytes, when using flex shapes.
 		MemoryGbs *int `json:"memoryGbs,omitempty"`
-		// Size of node boot volume, in gigabytes, when using flex shapes.
+		// Size of node boot volume, in gigabytes.
 		BootVolumeGbs *int `json:"bootVolumeGbs,omitempty"`
 		// Number of nodes to create.
 		Replicas *int `json:"replicas,omitempty"`
@@ -115,6 +115,6 @@ const (
 
 	// QuickCreatePhaseProvisioning means the Quick Create is in progress.
 	QuickCreatePhaseProvisioning QuickCreatePhase = "Provisioning"
-	// QuickCreatePhaseComplete means the Quick Create has finished.
+	// QuickCreatePhaseComplete means the Quick Create has finished. Quick Create CR cleanup is started once this phase is reached.
 	QuickCreatePhaseComplete QuickCreatePhase = "Complete"
 )

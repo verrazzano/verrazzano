@@ -19,7 +19,7 @@ import (
 
 type (
 	CredentialsLoader interface {
-		LoadCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef vmcv1alpha1.NamespacedRef, namespace string) (*Credentials, error)
+		GetCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef vmcv1alpha1.NamespacedRef, namespace string) (*Credentials, error)
 	}
 	CredentialsLoaderImpl struct{}
 	Credentials           struct {
@@ -65,9 +65,9 @@ const (
 	ociUseInstancePrincipalField = "useInstancePrincipal"
 )
 
-// LoadCredentialsIfAllowed fetches the OCI Credentials for an OCIClusterIdentity, if that OCIClusterIdentity exists, has a principal secret,
+// GetCredentialsIfAllowed fetches the OCI Credentials for an OCIClusterIdentity, if that OCIClusterIdentity exists, has a principal secret,
 // and allows access from a given namespace.
-func (c CredentialsLoaderImpl) LoadCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef vmcv1alpha1.NamespacedRef, namespace string) (*Credentials, error) {
+func (c CredentialsLoaderImpl) GetCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef vmcv1alpha1.NamespacedRef, namespace string) (*Credentials, error) {
 	nsn := types.NamespacedName{
 		Name:      identityRef.Name,
 		Namespace: identityRef.Namespace,

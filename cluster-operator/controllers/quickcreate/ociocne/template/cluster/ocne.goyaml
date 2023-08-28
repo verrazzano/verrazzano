@@ -7,30 +7,15 @@ metadata:
     name:  {{.Name}}-control-plane
     namespace: {{.Namespace}}
 spec:
-  {{- if .InstallVerrazzano }}
     verrazzanoPlatformOperator:
-        enabled: {{ .InstallVerrazzano }}
-    {{- if .PrivateRegistry }}
-        privateRegistry:
-            enabled: true
-    {{- end }}
-    {{- if .CreateImagePullSecrets }}
-        imagePullSecrets:
-            - name: verrazzano-container-registry
-    {{- end }}
-        image:
-            tag: {{ .VerrazzanoTag }}
-      {{- if .PrivateRegistry }}
-            repository: {{ .PrivateRegistry }}/verrazzano/verrazzano-platform-operator
-      {{- end }}
-  {{- end }}
+        enabled: false
     moduleOperator:
         enabled: true
     {{- if .PrivateRegistry }}
         image:
-            repository: {{ .PrivateRegistry }}/verrazzano/module-operator
+            repository: {{ .PrivateRegistry.URL }}/verrazzano/module-operator
     {{- end }}
-    {{- if .CreateImagePullSecrets }}
+    {{- if .PrivateRegistry.CredentialSecret.Name }}
         imagePullSecrets:
             - name: verrazzano-container-registry
     {{- end }}
@@ -38,20 +23,24 @@ spec:
         infrastructureRef:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: OCIMachineTemplate
-            name: {{.DisplayName}}-{{.ControlPlaneHash}}-control-plane
+            name: {{.Name}}-control-plane
             namespace: {{.Namespace}}
-    replicas: {{.ControlPlaneReplicas}}
-    version: {{.KubernetesVersion}}
+    replicas: {{.OCI.ControlPlane.Replicas}}
+    version: {{.Kubernetes.Version}}
     controlPlaneConfig:
         imageConfiguration:
             dependencies:
-                skipInstall: {{.SkipOCNEInstall}}
-{{- if .ProxyEndpoint }}
+                skipInstall: {{.OCNE.Dependencies.Install}}
+            {{- if .Proxy }}
             proxy:
-                httpProxy: {{.ProxyEndpoint}}
-                httpsProxy: {{.ProxyEndpoint}}
-                noProxy: {{.ClusterCIDR}},{{.PodCIDR}}
-{{- end }}
+                httpProxy: {{.Proxy.HTTPProxy}}
+                httpsProxy: {{.Proxy.HTTPSProxy}}
+                {{- if .Proxy.NoProxy }}
+                noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
+                {{- else }}
+                noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}}
+                {{- end }}
+            {{- end }}
         clusterConfiguration:
             apiServer:
                 certSANs:
@@ -59,23 +48,23 @@ spec:
                     - 127.0.0.1
             dns:
         {{- if .PrivateRegistry }}
-                imageRepository: {{.PrivateRegistry}}/{{.CNEPath}}
+                imageRepository: {{.PrivateRegistry.URL}}/olcne
         {{- else }}
                 imageRepository: container-registry.oracle.com/olcne
         {{- end }}
-                imageTag: {{.CoreDNSImageTag}}
+                imageTag: {{.ContainerImages.CoreDNS}}
             etcd:
                 local:
           {{- if .PrivateRegistry }}
-                    imageRepository: {{.PrivateRegistry}}/{{.CNEPath}}
+                    imageRepository: {{.PrivateRegistry.URL}}/olcne
           {{- else }}
                     imageRepository: container-registry.oracle.com/olcne
           {{- end }}
-                    imageTag: {{.ETCDImageTag}}
+                    imageTag: {{.ContainerImages.ETCD}}
             networking: {}
             scheduler: {}
       {{- if .PrivateRegistry }}
-            imageRepository: {{.PrivateRegistry}}/{{.CNEPath}}
+            imageRepository: {{.PrivateRegistry.URL}}/olcne
       {{- else }}
             imageRepository: container-registry.oracle.com/olcne
       {{- end }}
@@ -92,19 +81,12 @@ spec:
                 kubeletExtraArgs:
                     cloud-provider: external
                     provider-id: {{.ProviderId}}
-    {{- if .PreOCNECommands }}
+    {{- if .OCI.CloudInitScript }}
         preOCNECommands:
-    {{- range .PreOCNECommands }}
+    {{- range .OCI.CloudInitScript }}
             - {{.}}
     {{- end }}
     {{- end }}
-    {{- if .PostOCNECommands }}
-        postOCNECommands:
-    {{- range .PostOCNECommands }}
-            - {{.}}
-    {{- end }}
-    {{- end }}
-
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
 kind: OCNEConfigTemplate
@@ -116,31 +98,29 @@ spec:
         spec:
       {{- if .PrivateRegistry }}
             clusterConfiguration:
-                imageRepository: {{.PrivateRegistry}}/{{.CNEPath}}
+                imageRepository: {{.PrivateRegistry.URL}}/olcne
       {{- end }}
             imageConfiguration:
                 dependencies:
-                    skipInstall: {{.SkipOCNEInstall}}
-{{- if .ProxyEndpoint }}
+                    skipInstall: {{.OCNE.Dependencies.Install}}
+                {{- if .Proxy }}
                 proxy:
-                    httpProxy: {{.ProxyEndpoint}}
-                    httpsProxy: {{.ProxyEndpoint}}
-                    noProxy: {{.ClusterCIDR}},{{.PodCIDR}}
-{{- end }}
+                    httpProxy: {{.Proxy.HTTPProxy}}
+                    httpsProxy: {{.Proxy.HTTPSProxy}}
+                    {{- if .Proxy.NoProxy }}
+                    noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
+                    {{- else }}
+                    noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}}
+                    {{- end }}
+                {{- end }}
             joinConfiguration:
                 nodeRegistration:
                     kubeletExtraArgs:
                         cloud-provider: external
                         provider-id: {{.ProviderId}}
-      {{- if .PreOCNECommands }}
+        {{- if .OCI.CloudInitScript }}
             preOCNECommands:
-      {{- range .PreOCNECommands }}
-                - {{.}}
-      {{- end }}
-      {{- end }}
-      {{- if .PostOCNECommands }}
-            postOCNECommands:
-      {{- range .PostOCNECommands }}
-                - {{.}}
-      {{- end }}
-      {{- end }}
+        {{- range .OCI.CloudInitScript }}
+            - {{.}}
+        {{- end }}
+        {{- end }}

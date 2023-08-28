@@ -49,8 +49,9 @@ type (
 		Network *Network `json:"network,omitempty"`
 	}
 	Network struct {
-		VCN     string   `json:"string,omitempty"`
-		Subnets []Subnet `json:"subnets,omitempty"`
+		CreateVCN bool     `json:"createVCN"`
+		VCN       string   `json:"vcn,omitempty"`
+		Subnets   []Subnet `json:"subnets,omitempty"`
 	}
 	OCNEOCIQuickCreateStatus struct {
 		QuickCreateStatus QuickCreateStatus `json:",inline"`
