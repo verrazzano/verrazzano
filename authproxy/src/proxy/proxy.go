@@ -212,6 +212,7 @@ func validateRequest(req *http.Request) error {
 	return nil
 }
 
+// obfuscateRequestData removes the Authorization header data from the request before logging
 func obfuscateRequestData(req *http.Request) *http.Request {
 	hiddenReq := req.Clone(context.TODO())
 	sensitiveHeaders := []string{
