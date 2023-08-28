@@ -198,6 +198,8 @@ spec:
           tcpSocket:
             port: {{ .Values.v2.port }}
         securityContext:
+          runAsUser: 1000
+          runAsGroup: 999
           privileged: false
           allowPrivilegeEscalation: false
           capabilities:
