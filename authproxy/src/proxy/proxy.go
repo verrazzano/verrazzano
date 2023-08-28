@@ -7,6 +7,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 	"net/url"
@@ -33,7 +35,7 @@ type AuthProxy struct {
 // Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
 	URL    string
-	Client *http.Client
+	Client *retryablehttp.Client
 	Log    *zap.SugaredLogger
 }
 
@@ -60,16 +62,17 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true, //nolint:gosec //#gosec G101
+		RootCAs: common.CertPool(config.CAData),
 	}
 
+	client := retryablehttp.NewClient()
+	client.Logger = log
+	client.HTTPClient.Transport = transport
+
 	authproxy.Handler = Handler{
-		URL: config.Host,
-		Client: &http.Client{
-			Timeout:   time.Minute,
-			Transport: transport,
-		},
-		Log: log,
+		URL:    config.Host,
+		Client: client,
+		Log:    log,
 	}
 	return nil
 }
@@ -163,7 +166,7 @@ func getIngressHost(req *http.Request) string {
 }
 
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
-func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
+func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
 	formattedReq := req.Clone(context.TODO())
 	formattedReq.Host = kubernetesAPIServerHostname
 	formattedReq.RequestURI = ""
@@ -182,7 +185,12 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	}
 	formattedReq.URL = formattedURL
 
-	return formattedReq, nil
+	retryableReq, err := retryablehttp.FromRequest(formattedReq)
+	if err != nil {
+		h.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
+	}
+
+	return retryableReq, nil
 }
 
 // validateRequest performs request validation before the request is processed

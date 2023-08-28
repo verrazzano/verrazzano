@@ -5,6 +5,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -53,7 +54,7 @@ func TestServeHTTP(t *testing.T) {
 
 	handler := Handler{
 		URL:    server.URL,
-		Client: &http.Client{},
+		Client: retryablehttp.NewClient(),
 		Log:    zap.S(),
 	}
 
@@ -68,7 +69,7 @@ func TestServeHTTP(t *testing.T) {
 func TestReformatAPIRequest(t *testing.T) {
 	handler := Handler{
 		URL:    "https://api-server.io",
-		Client: &http.Client{},
+		Client: retryablehttp.NewClient(),
 		Log:    zap.S(),
 	}
 
