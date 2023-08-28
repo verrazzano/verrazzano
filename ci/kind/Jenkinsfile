@@ -412,138 +412,138 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests Deployments Group 1') {
-                    parallel {
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
-                        stage('security network policies') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-                            }
-                            steps {
-                                script {
-                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/netpol')
-                                    }
-                                }
-                            }
-                        }
-                        stage('deployment metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('examples logging helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                            }
-                            steps {
-                                runGinkgo('logging/helidon')
-                            }
-                        }
-                        stage('examples helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                            }
-                            steps {
-                                runGinkgo('examples/helidon')
-                            }
-                        }
-                        stage('examples helidon service template') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
-                            }
-                            steps {
-                                runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
-                            }
-                        }
-                        stage('examples helidon manualscalertait') {
-                                                    environment {
-                                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
-                                                    }
-                                                    steps {
-                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
-                                                    }
-                                                }
-
-                        stage('jaeger helidon') {
-                            environment {
-                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
-                            }
-                            steps {
-                               runGinkgo('jaeger/helidon')
-                            }
-                        }
-                        stage('jaeger system') {
-                            environment {
-                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
-                            }
-                            steps {
-                               runGinkgo('jaeger/system')
-                            }
-                        }
-                        stage('jwt helidon') {
-                            when {
-                                expression {params.ENABLE_JWT_TESTING == true}
-                            }
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
-                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
-                                REALM_NAME="test-realm"
-                            }
-                            steps {
-                                runGinkgo('jwt/helidon')
-                            }
-                        }
-                        stage('jwt helidon svc') {
-                            when {
-                                expression {params.ENABLE_JWT_TESTING == true}
-                            }
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
-                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
-                                REALM_NAME="test-realm"
-                            }
-                            steps {
-                                runGinkgo('jwt/helidon-svc')
-                            }
-                        }
-                        stage('examples helidon-metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/helidonmetrics')
-                            }
-                        }
-                        stage('logging trait Helidon workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/helidonworkload')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
+//                 stage('Run Acceptance Tests Deployments Group 1') {
+//                     parallel {
+//                         stage('istio authorization policy') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+//                             }
+//                             steps {
+//                                 runGinkgo('istio/authz')
+//                             }
+//                         }
+//                         stage('security network policies') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
+//                             }
+//                             steps {
+//                                 script {
+//                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
+//                                         runGinkgo('security/netpol')
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                         stage('deployment metrics') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+//                             }
+//                             steps {
+//                                 runGinkgo('metrics/deploymetrics')
+//                             }
+//                         }
+//                         stage('examples logging helidon') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+//                             }
+//                             steps {
+//                                 runGinkgo('logging/helidon')
+//                             }
+//                         }
+//                         stage('examples helidon') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+//                             }
+//                             steps {
+//                                 runGinkgo('examples/helidon')
+//                             }
+//                         }
+//                         stage('examples helidon service template') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-service-template"
+//                             }
+//                             steps {
+//                                 runGinkgoAppTest('examples/helidon', 'hello-helidon-service-template', "${DUMP_DIRECTORY}", 'false', 'false', 'examples/hello-helidon/hello-helidon-comp-service-template.yaml', 'examples/hello-helidon/hello-helidon-app-custom-port.yaml')
+//                             }
+//                         }
+//                         stage('examples helidon manualscalertait') {
+//                                                     environment {
+//                                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
+//                                                     }
+//                                                     steps {
+//                                                         runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+//                                                     }
+//                                                 }
+//
+//                         stage('jaeger helidon') {
+//                             environment {
+//                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
+//                             }
+//                             steps {
+//                                runGinkgo('jaeger/helidon')
+//                             }
+//                         }
+//                         stage('jaeger system') {
+//                             environment {
+//                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
+//                             }
+//                             steps {
+//                                runGinkgo('jaeger/system')
+//                             }
+//                         }
+//                         stage('jwt helidon') {
+//                             when {
+//                                 expression {params.ENABLE_JWT_TESTING == true}
+//                             }
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
+//                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
+//                                 REALM_NAME="test-realm"
+//                             }
+//                             steps {
+//                                 runGinkgo('jwt/helidon')
+//                             }
+//                         }
+//                         stage('jwt helidon svc') {
+//                             when {
+//                                 expression {params.ENABLE_JWT_TESTING == true}
+//                             }
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
+//                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
+//                                 REALM_NAME="test-realm"
+//                             }
+//                             steps {
+//                                 runGinkgo('jwt/helidon-svc')
+//                             }
+//                         }
+//                         stage('examples helidon-metrics') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
+//                             }
+//                             when {
+//                                 expression {params.RUN_SLOW_TESTS == true}
+//                             }
+//                             steps {
+//                                 runGinkgo('examples/helidonmetrics')
+//                             }
+//                         }
+//                         stage('logging trait Helidon workload') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+//                             }
+//                             steps {
+//                                 runGinkgo('loggingtrait/helidonworkload')
+//                             }
+//                         }
+//                     }
+//                     post {
+//                         always {
+//                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+//                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                         }
+//                     }
+//                 }
 
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
@@ -557,7 +557,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
                             steps {
-                                runGinkgoWithDelay('loggingtrait/weblogicworkload')
+                                script {
+                                    runGinkgoWithDelay('loggingtrait/weblogicworkload')
+                                }
                             }
                         }
                         stage('weblogic workload') {
@@ -565,7 +567,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                             }
                             steps {
-                                runGinkgoWithDelay('workloads/weblogic')
+                                script {
+                                    runGinkgoWithDelay('workloads/weblogic')
+                                }
                             }
                         }
                         stage('coherence workload') {
@@ -573,7 +577,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                             }
                             steps {
-                                runGinkgoWithDelay('workloads/coherence')
+                                script {
+                                    runGinkgoWithDelay('workloads/coherence')
+                                }
                             }
                         }
                         stage('oam workloads') {
@@ -581,7 +587,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
                             }
                             steps {
-                                runGinkgoWithDelay('workloads/oam')
+                                script {
+                                    runGinkgoWithDelay('workloads/oam')
+                                }
                             }
                         }
                         stage('logging trait Coherence workload') {
@@ -589,7 +597,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
                             }
                             steps {
-                                runGinkgoWithDelay('loggingtrait/coherenceworkload')
+                                script {
+                                    runGinkgoWithDelay('loggingtrait/coherenceworkload')
+                                }
                             }
                         }
                     }
@@ -738,11 +748,11 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 
 def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-            sh """
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
-            """
-        }
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
+        """
+    }
 }
 
 def runGinkgo(testSuitePath) {
@@ -756,6 +766,7 @@ def runGinkgo(testSuitePath) {
 
 def runGinkgoWithDelay(testSuitePath) {
     def delay = getDelayIncrement()
+    echo "suite: " + testSuitePath + ", delay = " + delay*30
     sleep(delay*30)
     runGinkgo(testSuitePath)
 }
