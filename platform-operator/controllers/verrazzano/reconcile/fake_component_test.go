@@ -21,6 +21,8 @@ type installFuncSig func(ctx spi.ComponentContext) error
 // isInstalledFuncSig is a function needed for unit test override
 type isInstalledFuncSig func(ctx spi.ComponentContext) (bool, error)
 
+type uninstallFuncSig func(ctx spi.ComponentContext) error
+
 // fakeComponent allows for using dummy Component implementations for controller testing
 type fakeComponent struct {
 	helm.HelmComponent
@@ -28,6 +30,7 @@ type fakeComponent struct {
 	upgradeFunc     upgradeFuncSig
 	installFunc     installFuncSig
 	isInstalledFunc isInstalledFuncSig
+	uninstallFunc   uninstallFuncSig
 	installed       string `default:"true"`
 	ready           string `default:"true"`
 	enabled         string `default:"true"`
@@ -105,6 +108,21 @@ func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 
 func (f fakeComponent) Exists(ctx spi.ComponentContext) (bool, error) {
 	return f.IsInstalled(ctx)
+}
+
+func (f fakeComponent) PreUninstall(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Uninstall(ctx spi.ComponentContext) error {
+	if f.uninstallFunc != nil {
+		return f.uninstallFunc(ctx)
+	}
+	return nil
+}
+
+func (f fakeComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return nil
 }
 
 func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
