@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 	"net/url"
@@ -48,7 +49,7 @@ func InitializeProxy() *AuthProxy {
 		Server: http.Server{
 			Addr:         ":8777",
 			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			WriteTimeout: 30 * time.Second,
 		},
 	}
 }
@@ -61,10 +62,13 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
-	rootCA, err := cert.NewPool(config.CAFile)
-	if err != nil {
-		log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
-		return err
+	rootCA := common.CertPool(config.CAData)
+	if len(config.CAData) < 1 {
+		rootCA, err = cert.NewPool(config.CAFile)
+		if err != nil {
+			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+			return err
+		}
 	}
 
 	transport := http.DefaultTransport
@@ -85,7 +89,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(*req))
+	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
 	err := validateRequest(req)
 
 	if err != nil {
@@ -117,7 +121,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return
 	}
-	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(*reformattedReq.Request))
+	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(reformattedReq.Request))
 
 	resp, err := h.Client.Do(reformattedReq)
 	if err != nil {
@@ -208,14 +212,15 @@ func validateRequest(req *http.Request) error {
 	return nil
 }
 
-func obfuscateRequestData(req http.Request) http.Request {
+func obfuscateRequestData(req *http.Request) *http.Request {
+	hiddenReq := req.Clone(context.TODO())
 	sensitiveHeaders := []string{
 		"Authorization",
 	}
 	for _, header := range sensitiveHeaders {
-		for i := range req.Header[header] {
-			req.Header[header][i] = vzpassword.MaskFunction("")(req.Header[header][i])
+		for i := range hiddenReq.Header[header] {
+			hiddenReq.Header[header][i] = vzpassword.MaskFunction("")(hiddenReq.Header[header][i])
 		}
 	}
-	return req
+	return hiddenReq
 }
