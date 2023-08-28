@@ -135,7 +135,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 					log.Oncef("Waiting for component %s to be ready after post-upgrade", compName)
 					return newRequeueWithDelay(), nil
 				}
-				log.Oncef("Component %s is ready after post-upgrade", compName)
+				log.Debugf("Component %s is ready after post-upgrade", compName)
 
 			}
 			tracker.vzState = vzStateRestartApps

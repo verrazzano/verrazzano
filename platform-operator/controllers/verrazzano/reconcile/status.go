@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -390,7 +391,8 @@ func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
 			return false, err
 		}
 
-		if module.Status.Conditions != nil && module.Status.Conditions[len(module.Status.Conditions)-1].Type != moduleapi.ModuleConditionReady {
+		cond := modulestatus.GetReadyCondition(&module)
+		if cond == nil {
 			return false, nil
 		}
 		if module.Status.LastSuccessfulGeneration != module.Generation {
