@@ -18,7 +18,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const apiPath = "/api/v1/pods"
+const (
+	apiPath          = "/api/v1/pods"
+	testAPIServerURL = "https://api-server.io"
+)
 
 // TestConfigureKubernetesAPIProxy tests the configuration of the API proxy
 // GIVEN an Auth proxy object
@@ -68,7 +71,7 @@ func TestServeHTTP(t *testing.T) {
 
 func TestReformatAPIRequest(t *testing.T) {
 	handler := Handler{
-		URL:    "https://api-server.io",
+		URL:    testAPIServerURL,
 		Client: retryablehttp.NewClient(),
 		Log:    zap.S(),
 	}
@@ -122,5 +125,8 @@ func TestValidateRequest(t *testing.T) {
 func testConfig() (*rest.Config, error) {
 	return &rest.Config{
 		Host: "test-host",
+		TLSClientConfig: rest.TLSClientConfig{
+			CAFile: "./testdata/test-ca.crt",
+		},
 	}, nil
 }

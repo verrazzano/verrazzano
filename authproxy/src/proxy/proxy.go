@@ -15,8 +15,8 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	"k8s.io/client-go/util/cert"
 )
 
 const (
@@ -60,9 +60,15 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
+	rootCA, err := cert.NewPool(config.CAFile)
+	if err != nil {
+		log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+		return err
+	}
+
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		RootCAs: common.CertPool(config.CAData),
+		RootCAs: rootCA,
 	}
 
 	client := retryablehttp.NewClient()
