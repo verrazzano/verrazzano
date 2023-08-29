@@ -74,7 +74,6 @@ func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
 			compMap: make(map[string]*componentTrackerContext),
 		}
 		installTrackerMap[key] = vuc
-		SetPreModuleWorkDone(false)
 	}
 	return vuc
 }
@@ -145,9 +144,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 		case vzStatePreInstall:
 			r.beforeInstallComponents(spiCtx)
-			if !preUpgrade {
-				SetPreModuleWorkDone(true)
-			}
 			tracker.vzState = vzStateInstallComponents
 
 		case vzStateInstallComponents:
@@ -174,8 +170,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-				SetPreModuleWorkDone(false)
-				SetModuleCreateOrUpdateDone(false)
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}

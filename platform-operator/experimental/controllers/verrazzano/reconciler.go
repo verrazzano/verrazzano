@@ -29,13 +29,10 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	if !vzreconcile.IsPreModuleWorkDone() {
-		return result.NewResultShortRequeueDelay()
-	}
 	actualCR := &vzapi.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
-		// This is a fatal error, don't requeue
+		// This is a fatal error which should never happen, don't requeue
 		return result.NewResult()
 	}
 
@@ -76,7 +73,6 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 
 	// All the modules have been reconciled and are ready
 	vzreconcile.SetModuleCreateOrUpdateDone(true)
-	vzreconcile.SetPreModuleWorkDone(false)
 	return result.NewResult()
 }
 
