@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearchdashboards
@@ -83,6 +83,10 @@ func (d opensearchDashboardsComponent) IsOperatorInstallSupported() bool {
 // IsInstalled OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return doesOSDExist(ctx), nil
+}
+
+func (d opensearchDashboardsComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return d.IsInstalled(context)
 }
 
 // Reconcile OpenSearch-Dashboards component function

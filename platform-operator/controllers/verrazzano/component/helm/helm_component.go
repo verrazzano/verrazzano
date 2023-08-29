@@ -216,6 +216,19 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	return installed, nil
 }
 
+func (h HelmComponent) Exists(ctx spi.ComponentContext) (bool, error) {
+	if ctx.IsDryRun() {
+		ctx.Log().Debugf("Exists() dry run for %s", h.ReleaseName)
+		return true, nil
+	}
+	resolvedNamespace := h.resolveNamespace(ctx)
+	releaseExists, err := helm.ReleaseExists(h.ReleaseName, resolvedNamespace)
+	if err != nil {
+		return false, err
+	}
+	return releaseExists, nil
+}
+
 // IsAvailable Indicates whether a component is available for end users
 // Components should implement comprehensive availability checks, supplying an appropriate reason
 // if the check fails.
@@ -410,12 +423,12 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
-	installed, err := h.IsInstalled(context)
+	existsInCluster, err := h.Exists(context)
 	if err != nil {
 		return err
 	}
-	if !installed {
-		context.Log().Infof("%s already uninstalled", h.Name())
+	if !existsInCluster {
+		context.Log().Infof("%s does not exist in cluster, skipping uninstall", h.Name())
 		return nil
 	}
 	_, stderr, err := helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())

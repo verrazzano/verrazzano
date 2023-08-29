@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -1376,8 +1376,11 @@ func TestUninstall(t *testing.T) {
 				},
 			},
 			helmOverride: func() {
+				helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+					return helm.ChartStatusDeployed, nil
+				})
 				helm.SetCmdRunner(genericHelmTestRunner{
-					stdOut: []byte("namespace installed"),
+					stdOut: []byte(""),
 					stdErr: []byte(""),
 					err:    nil,
 				})
@@ -1385,21 +1388,25 @@ func TestUninstall(t *testing.T) {
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
 		},
-		// GIVEN Helm component
-		// WHEN Uninstall is called
-		// THEN uninstallation is skipped if specified namespace is not found
+		// GIVEN a call to Uninstall
+		// WHEN the Helm release does not exist
+		// THEN no error is returned
 		{
-			name: "TestUninstall when namespace is not found",
+			name: "TestUninstall when release does not exist",
 			helmComponent: HelmComponent{
+				ReleaseName: releaseName,
 				ResolveNamespaceFunc: func(ns string) string {
 					return testNs
 				},
 			},
 			helmOverride: func() {
+				helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+					return helm.ChartNotFound, nil
+				})
 				helm.SetCmdRunner(genericHelmTestRunner{
-					stdOut: []byte(""),
+					stdOut: []byte(notFoundErrorString),
 					stdErr: []byte(notFoundErrorString),
-					err:    fmt.Errorf(notFoundErrorString),
+					err:    nil,
 				})
 			},
 			ctx:           fakeContextWithSecret,
@@ -1416,6 +1423,9 @@ func TestUninstall(t *testing.T) {
 				},
 			},
 			helmOverride: func() {
+				helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+					return helm.ChartStatusDeployed, nil
+				})
 				helm.SetCmdRunner(genericHelmTestRunner{
 					stdOut: []byte(""),
 					stdErr: []byte("failed to uninstall namespace"),
@@ -1430,6 +1440,11 @@ func TestUninstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.helmOverride()
+			defer func() {
+				helm.SetDefaultRunner()
+				helm.SetDefaultChartStatusFunction()
+			}()
+
 			if tt.expectSuccess {
 				a.NoError(tt.helmComponent.Uninstall(tt.ctx))
 			} else {

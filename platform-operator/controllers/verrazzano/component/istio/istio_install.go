@@ -113,6 +113,10 @@ func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 	return true, nil
 }
 
+func (i istioComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return i.IsInstalled(context)
+}
+
 // Install - istioComponent install
 //
 // This utilizes the istioctl utility for install, which blocks during the entire installation process.  This can
