@@ -44,27 +44,57 @@ func TestConfigureKubernetesAPIProxy(t *testing.T) {
 // WHEN  the request is formatted correctly
 // THEN  the request is properly forwarded to the API server
 func TestServeHTTP(t *testing.T) {
-	testBody := "test-body"
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.NotNil(t, r)
-		assert.Equal(t, apiPath, r.URL.Path)
-		body, err := io.ReadAll(r.Body)
-		assert.NoError(t, err)
-		assert.Equal(t, testBody, string(body))
-	}))
-	defer server.Close()
-
-	handler := Handler{
-		URL:    server.URL,
-		Client: retryablehttp.NewClient(),
-		Log:    zap.S(),
+	ingressHost := "inghost.example.com"
+	originVal := fmt.Sprintf("https://%s", ingressHost)
+	tests := []struct {
+		name             string
+		reqMethod        string
+		headers          map[string]string
+		expectedStatus   int
+		expectedRespHdrs map[string]string
+	}{
+		{"POST request with no added headers", http.MethodPost, map[string]string{}, http.StatusOK, map[string]string{}},
+		{"GET request with Host header", http.MethodPost, map[string]string{"Host": ingressHost}, http.StatusOK, map[string]string{}},
+		{"GET request with valid Origin and Host headers", http.MethodGet, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Access-Control-Allow-Origin": originVal}},
+		{"OPTIONS request with valid Origin and Host headers", http.MethodOptions, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Content-Length": "0", "Access-Control-Allow-Origin": originVal}},
+		{"POST request with Host and invalid Origin header", http.MethodPost, map[string]string{"Host": ingressHost, "Origin": "https://notvalid"}, http.StatusForbidden, map[string]string{}},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testBody := "test-body"
 
-	url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
-	r := httptest.NewRequest(http.MethodPost, url, strings.NewReader(testBody))
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.NotNil(t, r)
+				assert.Equal(t, apiPath, r.URL.Path)
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+				assert.Equal(t, testBody, string(body))
+			}))
+			defer server.Close()
+
+			handler := Handler{
+				URL:    server.URL,
+				Client: retryablehttp.NewClient(),
+				Log:    zap.S(),
+			}
+
+			url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
+			r := httptest.NewRequest(tt.reqMethod, url, strings.NewReader(testBody))
+
+			for name, val := range tt.headers {
+				r.Header.Set(name, val)
+			}
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+			assert.Equal(t, tt.expectedStatus, w.Code)
+
+			for name, val := range tt.expectedRespHdrs {
+				assert.Equal(t, val, w.Header().Get(name))
+			}
+
+		})
+	}
 }
 
 // TestReformatAPIRequest tests the reformatting of the request to be sent to the API server
