@@ -38,7 +38,7 @@ type (
 		OKESpec `json:"oke,omitempty"`
 	}
 	OKESpec struct {
-		CommonOCISpec CommonOCI `json:",inline"`
+		CommonOCI `json:",inline"`
 		// List of Node pools.
 		NodePools []NodeConfig `json:"nodePools,omitempty"`
 		// List of Virtual Node pools.

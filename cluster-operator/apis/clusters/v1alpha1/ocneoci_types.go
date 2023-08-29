@@ -40,7 +40,7 @@ type (
 		OCI OCI `json:"oci"`
 	}
 	OCI struct {
-		CommonOCISpec CommonOCI `json:",inline"`
+		CommonOCI `json:",inline"`
 		// Control Plane node settings.
 		ControlPlane NodeConfig `json:"controlPlane"`
 		// List of worker nodes.

@@ -85,8 +85,7 @@ spec:
                       type: string
                     type: array
                   compartment:
-                    description: OCI Compartment id where the compartment will be
-                      created
+                    description: OCI Compartment id where the cluster will be created
                     type: string
                   controlPlane:
                     description: Control Plane node settings.

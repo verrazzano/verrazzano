@@ -84,8 +84,7 @@ spec:
                       type: string
                     type: array
                   compartment:
-                    description: OCI Compartment id where the compartment will be
-                      created
+                    description: OCI Compartment id where the cluster will be created
                     type: string
                   imageId:
                     description: Node image id. The default is the latest OL8 image

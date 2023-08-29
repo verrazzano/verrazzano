@@ -26,7 +26,7 @@ type (
 	CommonOCI struct {
 		// OCI region where the cluster will be created.
 		Region string `json:"region,omitempty"`
-		// OCI Compartment id where the compartment will be created
+		// OCI Compartment id where the cluster will be created
 		Compartment string `json:"compartment,omitempty"`
 		// SSH public key for node ssh.
 		SSHPublicKey *string `json:"sshPublicKey,omitempty"`
