@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -100,15 +101,14 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	ingressHost := getIngressHost(req)
-	if statusCode, err := addCORSHeaders(req, rw, ingressHost); err != nil {
+	if statusCode, err := cors.AddCORSHeaders(req, rw, ingressHost); err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
 	}
 
 	if req.Method == http.MethodOptions {
-		if statusCode, err := handleOptionsRequest(req, rw); err != nil {
-			http.Error(rw, err.Error(), statusCode)
-		}
+		rw.Header().Set("Content-Length", "0")
+		rw.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -146,15 +146,6 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
 	}
-}
-
-func handleOptionsRequest(req *http.Request, rw http.ResponseWriter) (int, error) {
-	return http.StatusOK, nil
-}
-
-func addCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (int, error) {
-	// TODO get origin header, check if it is an allowed origin, add CORS response headers
-	return http.StatusOK, nil
 }
 
 func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
