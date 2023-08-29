@@ -219,7 +219,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		// finds a running Verrazzano Platform Operator and determines whether to suppress the reinstall prompt
+		// Determines whether to reapply the Verrazzano Platform Operator
 		continuePlatformOperatorReinstall, err := reapplyPlatformOperator(cmd, client)
 		if err != nil {
 			return err
@@ -238,7 +238,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 				return err
 			}
 		}
-		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj)
+		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj, continuePlatformOperatorReinstall)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
@@ -258,9 +258,9 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	return nil
 }
 
-func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration, obj *unstructured.Unstructured) error {
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration, obj *unstructured.Unstructured, continuePlatformOperatorReinstall bool) error {
 	// Do not wait for platform operator if skip-platform-operator flag is enabled
-	if !cmd.PersistentFlags().Changed(constants.SkipPlatformOperatorFlag) {
+	if continuePlatformOperatorReinstall {
 		// Wait for the platform operator to be ready before we create the Verrazzano resource.
 		_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 		if err != nil {
@@ -485,6 +485,7 @@ func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper hel
 // reapplyPlatformOperator - finds a running Verrazzano Platform Operator and determines whether to suppress the reinstall prompt
 func reapplyPlatformOperator(cmd *cobra.Command, client clipkg.Client) (bool, error) {
 	skipPlatformOperator, _ := cmd.Flags().GetBool(constants.SkipPlatformOperatorFlag)
+	skipConfirmation, _ := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
 	vpoList, err := validators.GetPlatformOperatorPodList(client)
 	if err != nil {
 		return false, err
@@ -493,7 +494,7 @@ func reapplyPlatformOperator(cmd *cobra.Command, client clipkg.Client) (bool, er
 	// this is only valid if there is a Verrazzano Platform Operator already running,
 	// otherwise there would be no prompt to suppress
 	if len(vpoList.Items) > 0 {
-		continuePlatformOperatorReapply, err := continueReapply(skipPlatformOperator)
+		continuePlatformOperatorReapply, err := continueReapply(skipPlatformOperator, skipConfirmation)
 		if err != nil {
 			return false, err
 		}
@@ -503,9 +504,12 @@ func reapplyPlatformOperator(cmd *cobra.Command, client clipkg.Client) (bool, er
 	return true, nil
 }
 
-func continueReapply(skipPlatformOperator bool) (bool, error) {
+func continueReapply(skipPlatformOperator, skipConfirmation bool) (bool, error) {
 	if skipPlatformOperator {
 		return false, nil
+	}
+	if skipConfirmation {
+		return true, nil
 	}
 	var response string
 	scanner := bufio.NewScanner(os.Stdin)
