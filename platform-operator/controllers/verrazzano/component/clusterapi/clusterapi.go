@@ -151,16 +151,6 @@ func setEnvVariables() error {
 		return err
 	}
 
-	// Setting GOPROXY to direct to avoid Not Found 404 errors due to cluster-api intermittently
-	// retrieving either non-existent provider releases or failing to retrieve legitimate provider releases.
-	// Related bug https://github.com/kubernetes-sigs/cluster-api/issues/7889.  This bug is linked to a
-	// partial fix https://github.com/kubernetes-sigs/cluster-api/pull/8253 fixed in cluster-api v1.5.0.
-	// On uptaking cluster-api v1.5.0, we may no longer require to set the GOPROXY environment variable.
-	err = os.Setenv(goproxy, "direct")
-	if err != nil {
-		return err
-	}
-
 	// Enable experimental feature cluster topology at boot up
 	return os.Setenv(clusterTopology, "true")
 }

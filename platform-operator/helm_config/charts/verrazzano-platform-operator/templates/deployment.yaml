@@ -71,6 +71,8 @@ spec:
             - name: CLUSTER_OPERATOR_IMAGE
               value: {{ .Values.global.clusterOperatorImage }}
             {{- end }}
+            - name: GOPROXY
+              value: direct
           resources:
             requests:
               memory: 72Mi
