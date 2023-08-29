@@ -43,7 +43,6 @@ func TestAddCORSHeaders(t *testing.T) {
 				req.Header.Add("Origin", org)
 			}
 			rw := httptest.NewRecorder()
-			// req.Header.Set("Host", ingressHost)
 			got, err := AddCORSHeaders(req, rw, tt.ingressHost)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AddCORSHeaders() error = %v, wantErr %v", err, tt.wantErr)
@@ -74,7 +73,7 @@ func TestAddCORSHeaders(t *testing.T) {
 	}
 }
 
-func Test_originAllowed(t *testing.T) {
+func TestOriginAllowed(t *testing.T) {
 	ingressHostVal := "someorigin.example.com"
 	oneAllowedOrigin := "https://allowedorigin.example.com"
 	defaultAllowedOriginFunc := func() string { return "" }

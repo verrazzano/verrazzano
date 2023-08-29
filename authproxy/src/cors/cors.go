@@ -75,12 +75,14 @@ func originAllowed(origin string, ingressHost string) bool {
 	}
 
 	// Check whitelist of allowed origins if provided
-	if allowedOriginsStr := allowedOriginsWhitelistFunc(); allowedOriginsStr != "" {
-		allowedOrigins := strings.Split(allowedOriginsStr, ",")
-		for _, allowed := range allowedOrigins {
-			if origin == strings.TrimSpace(allowed) {
-				return true
-			}
+	var allowedOriginsStr string
+	if allowedOriginsStr = allowedOriginsWhitelistFunc(); allowedOriginsStr == "" {
+		return false
+	}
+	allowedOrigins := strings.Split(allowedOriginsStr, ",")
+	for _, allowed := range allowedOrigins {
+		if origin == strings.TrimSpace(allowed) {
+			return true
 		}
 	}
 
