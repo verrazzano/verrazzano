@@ -177,7 +177,28 @@ func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
 		return err
 	}
+	// Validate the DefaultVolumeSource of mySQL
+	if err := validateDefaultVolumeSource(new); err != nil {
+		return err
+	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+func (c mysqlComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	convertedOldVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedOldVZ); err != nil {
+		return err
+	}
+	if err := validateDefaultVolumeSource(&convertedOldVZ); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateInstall(vz)
+}
+
+func (c mysqlComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := validateDefaultVolumeSource(vz); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 // validatePersistenceSpecificChanges validates if there are any persistence related changes done via the install overrides
