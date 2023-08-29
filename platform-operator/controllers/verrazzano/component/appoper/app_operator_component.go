@@ -68,7 +68,6 @@ func NewComponent() spi.Component {
 	}
 }
 
-
 // IsReady component check
 func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {

@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-
 // TestGetWatchDescriptors tests the GetWatchDescriptors function impl for this component
 // GIVEN a call to GetWatchDescriptors
 //
