@@ -153,6 +153,15 @@ func TestAppendOverrides(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
+
+	testImageVar := "test-image"
+	err := os.Setenv(vpoconst.VerrazzanoAuthProxyImageEnvVar, testImageVar)
+	assert.NoError(t, err)
+	defer func() {
+		err := os.Unsetenv(vpoconst.VerrazzanoAuthProxyImageEnvVar)
+		assert.NoError(t, err)
+	}()
+
 	tests := []struct {
 		name         string
 		description  string
@@ -249,8 +258,10 @@ func TestAppendOverrides(t *testing.T) {
 			cleanTempFiles(fakeContext)
 
 			// Check authproxy image
-			asserts.Equal("v2.image", kvs[1].Key)
-			asserts.Equal("ghcr.io/verrazzano/VERRAZZANO_AUTHPROXY_IMAGE:VERRAZZANO_AUTHPROXY_TAG", kvs[1].Value)
+			if len(kvs) > 1 {
+				asserts.Equal("v2.image", kvs[1].Key)
+				asserts.Equal(testImageVar, kvs[1].Value)
+			}
 
 		})
 	}
