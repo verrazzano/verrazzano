@@ -199,14 +199,6 @@ func TestIgnoresOtherSecrets(t *testing.T) {
 	}
 }
 
-// TestMultiClusterNamespaceDoesNotExist tests the Reconcile method for the following use case
-// GIVEN a request to reconcile the verrazzano-tls secret
-// WHEN the verrazzano-mc namespace does not exist
-// THEN a requeue request is returned with no error
-//func TestMultiClusterNamespaceDoesNotExist(t *testing.T) {
-//	runNamespaceErrorTest(t, errors.NewNotFound(corev1.Resource("Namespace"), constants.VerrazzanoMultiClusterNamespace))
-//}
-
 // TestSecretReconciler tests the Reconciler method for the following use case
 // GIVEN a request to reconcile a Secret
 // WHEN the Secret is referenced in the Verrazzano CR under a component and is also present the CR namespace
