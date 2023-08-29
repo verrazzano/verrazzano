@@ -8,6 +8,6 @@ import (
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (c oamComponent)  GetWatchDescriptors() []controllerspi.WatchDescriptor {
+func (c oamComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return nil
 }
