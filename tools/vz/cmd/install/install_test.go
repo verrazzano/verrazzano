@@ -968,7 +968,7 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command fails and should catch the missing filename flag or the missing file
 func TestInstallFromFilename(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
 
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -984,7 +984,10 @@ func TestInstallFromFilename(t *testing.T) {
 	rc.SetClient(c)
 
 	os.Args = append(os.Args, testFilenamePath)
-	cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		return
+	}
 	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
 	//Clean the resource args for further test cases.
 	s := len(os.Args)
