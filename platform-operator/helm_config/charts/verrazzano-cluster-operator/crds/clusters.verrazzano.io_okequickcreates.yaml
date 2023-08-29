@@ -162,10 +162,6 @@ spec:
                       - name
                       type: object
                     type: array
-                required:
-                - compartment
-                - imageId
-                - region
                 type: object
               privateRegistry:
                 description: Private Registry settings for the workload cluster.

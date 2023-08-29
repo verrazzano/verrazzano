@@ -173,11 +173,8 @@ spec:
                       type: object
                     type: array
                 required:
-                - compartment
                 - controlPlane
-                - imageId
                 - network
-                - region
                 type: object
               ocne:
                 description: OCNE settings.
