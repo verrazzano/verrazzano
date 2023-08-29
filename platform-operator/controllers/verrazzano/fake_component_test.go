@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package verrazzano
 
@@ -21,6 +21,8 @@ type installFuncSig func(ctx spi.ComponentContext) error
 // isInstalledFuncSig is a function needed for unit test override
 type isInstalledFuncSig func(ctx spi.ComponentContext) (bool, error)
 
+type uninstallFuncSig func(ctx spi.ComponentContext) error
+
 // fakeComponent allows for using dummy Component implementations for controller testing
 type fakeComponent struct {
 	helm.HelmComponent
@@ -28,12 +30,15 @@ type fakeComponent struct {
 	upgradeFunc     upgradeFuncSig
 	installFunc     installFuncSig
 	isInstalledFunc isInstalledFuncSig
+	uninstallFunc   uninstallFuncSig
 	installed       string `default:"true"`
 	ready           string `default:"true"`
 	enabled         string `default:"true"`
 	monitorChanges  string `default:"true"`
 	minVersion      string
 }
+
+var _ spi.Component = fakeComponent{}
 
 func (f fakeComponent) Name() string {
 	return f.ReleaseName
@@ -101,7 +106,26 @@ func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return getBool(f.installed, "installed"), nil
 }
 
-func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
+func (f fakeComponent) Exists(ctx spi.ComponentContext) (bool, error) {
+	return f.IsInstalled(ctx)
+}
+
+func (f fakeComponent) PreUninstall(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Uninstall(ctx spi.ComponentContext) error {
+	if f.uninstallFunc != nil {
+		return f.uninstallFunc(ctx)
+	}
+	return nil
+}
+
+func (f fakeComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return getBool(f.ready, "ready")
 }
 

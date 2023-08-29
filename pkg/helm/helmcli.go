@@ -312,6 +312,15 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 	return false, err
 }
 
+// ReleaseExists returns true if the helm Release exists in the cluster in any state
+func ReleaseExists(releaseName string, namespace string) (found bool, err error) {
+	status, err := chartStatusFn(releaseName, namespace)
+	if err != nil {
+		return false, err
+	}
+	return status != ChartNotFound, nil
+}
+
 // getChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string
 func getChartStatus(releaseName string, namespace string) (string, error) {
 	args := []string{"status", releaseName}

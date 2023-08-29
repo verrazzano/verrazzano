@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package authproxy
@@ -204,12 +204,18 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 //  WHEN I call Uninstall with the Fluentd helm chart installed
 //  THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),
 		StdErr: []byte{},
 		Err:    nil,
 	})
-	defer helmcli.SetDefaultRunner()
+	defer func() {
+		helmcli.SetDefaultChartStatusFunction()
+		helmcli.SetDefaultRunner()
+	}()
 
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package spi
@@ -85,6 +85,8 @@ type ComponentInstaller interface {
 
 // ComponentUninstaller interface defines uninstall operations
 type ComponentUninstaller interface {
+	// Exists returns true if the component exists in the cluster (may not be fully installed/available) and may be uninstalled
+	Exists(context ComponentContext) (bool, error)
 	// IsOperatorUninstallSupported Returns true if the component supports uninstall directly via the platform operator
 	// - scaffolding while we move components from the scripts to the operator
 	IsOperatorUninstallSupported() bool
