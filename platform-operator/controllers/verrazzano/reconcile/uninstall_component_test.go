@@ -41,12 +41,7 @@ func TestReconcilerUninstallSingleComponent(t *testing.T) {
 			},
 		},
 	}
-	//defer helm.SetDefaultRunner()
-	//helm.SetCmdRunner(vzos.GenericTestRunner{
-	//	StdOut: []byte(""),
-	//	StdErr: []byte("not found"),
-	//	Err:    fmt.Errorf(unExpectedError),
-	//})
+
 	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
 	k8sutil.GetDynamicClientFunc = common.MockDynamicClient()
 	defer func() {

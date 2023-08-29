@@ -91,6 +91,10 @@ func (d opensearchDashboardsComponent) IsInstalled(ctx spi.ComponentContext) (bo
 	return doesOSDExist(ctx), nil
 }
 
+func (d opensearchDashboardsComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return d.IsInstalled(context)
+}
+
 // Reconcile OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) Reconcile(ctx spi.ComponentContext) error {
 	return nil

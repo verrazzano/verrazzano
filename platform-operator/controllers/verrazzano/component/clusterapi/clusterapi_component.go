@@ -117,6 +117,10 @@ func (c clusterAPIComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsClusterAPIEnabled(effectiveCR)
 }
 
+func (c clusterAPIComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return c.IsInstalled(context)
+}
+
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 func (c clusterAPIComponent) GetMinVerrazzanoVersion() string {
 	return vpoconstants.VerrazzanoVersion1_6_0
