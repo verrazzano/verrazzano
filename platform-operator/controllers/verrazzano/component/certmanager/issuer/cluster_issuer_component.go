@@ -60,6 +60,10 @@ func (c clusterIssuerComponent) IsInstalled(ctx spi.ComponentContext) (bool, err
 	return c.verrazzanoCertManagerResourcesReady(ctx), nil
 }
 
+func (c clusterIssuerComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return c.IsInstalled(context)
+}
+
 // PreInstall runs before cert-manager-config component is executed
 func (c clusterIssuerComponent) PreInstall(compContext spi.ComponentContext) error {
 	return nil
