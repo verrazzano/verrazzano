@@ -6,7 +6,7 @@ package certmanager
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"

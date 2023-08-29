@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"

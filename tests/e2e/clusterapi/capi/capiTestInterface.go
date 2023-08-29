@@ -23,7 +23,7 @@ type CapiTestClient interface {
 	ClusterTemplateGenerate(clusterName, templatePath string, log *zap.SugaredLogger) (string, error)
 	GetUnstructuredData(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
 	GetCluster(namespace, clusterName string, log *zap.SugaredLogger) (*Cluster, error)
-	GetOCNEControlPlane(namespace, controlPlaneName string, log *zap.SugaredLogger) (*OCNEControlPlane, error)
+	GetOCNEControlPlane(namespace string, log *zap.SugaredLogger) (*OCNEControlPlane, error)
 	CheckOCNEControlPlaneStatus(clusterName, expectedStatusType, expectedStatus, expectedReason string, log *zap.SugaredLogger) bool
 	GetCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byte, error)
 	GetCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client *kubernetes.Clientset, err error)
@@ -36,6 +36,7 @@ type CapiTestClient interface {
 	TriggerCapiClusterDeletion(clusterName, nameSpaceName string, log *zap.SugaredLogger) error
 	ShowNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error
 	ShowPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error
+	ShowEvents(namespace string, log *zap.SugaredLogger) error
 	DisplayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error
 	UpdateOCINSG(clusterName, nsgDisplayNameToUpdate, nsgDisplayNameInRule, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
 	UpdateOCINSGEW(clusterName, nsgDisplayNameToUpdate, info string, rule *SecurityRuleDetails, log *zap.SugaredLogger) error
@@ -49,4 +50,5 @@ type CapiTestClient interface {
 	GetVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error)
 	EnsureVerrazzano(clusterName string, log *zap.SugaredLogger) error
 	DebugSVCOutput(clusterName string, log *zap.SugaredLogger) error
+	ToggleModules(group, version, resource, clusterName, nameSpaceName string, toggle bool, log *zap.SugaredLogger) error
 }

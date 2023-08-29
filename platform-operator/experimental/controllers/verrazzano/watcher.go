@@ -5,7 +5,7 @@ package verrazzano
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

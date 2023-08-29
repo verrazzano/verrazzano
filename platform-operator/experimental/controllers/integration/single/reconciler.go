@@ -6,8 +6,8 @@ package single
 import (
 	ctx "context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/helm"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
