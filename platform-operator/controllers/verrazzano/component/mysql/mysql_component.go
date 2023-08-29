@@ -5,7 +5,6 @@ package mysql
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -157,7 +156,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	// Validate the DefaultVolumeSource of mySQL
-	if err := validators.ValidateDefaultVolumeSource(convertedNewVZ.Spec.DefaultVolumeSource, convertedNewVZ.Spec.Components.MySQLOperator.Enabled); err != nil {
+	if err := validateDefaultVolumeSource(&convertedNewVZ); err != nil {
 		return err
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
@@ -214,4 +213,14 @@ func (c mysqlComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+// validateDefaultVolumeSource Verifies that the defaultVolumeSource emptyDir is not left blank. Verrazzano does not support this behavior.
+func validateDefaultVolumeSource(vz *v1beta1.Verrazzano) error {
+	if vz.Spec.DefaultVolumeSource != nil && vz.Spec.Components.MySQLOperator != nil {
+		if vz.Spec.DefaultVolumeSource.EmptyDir != nil && !*vz.Spec.Components.MySQLOperator.Enabled {
+			return fmt.Errorf("defaultVolumeSource: emptyDir was set, this is not supported")
+		}
+	}
+	return nil
 }
