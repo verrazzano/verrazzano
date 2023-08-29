@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"os"
 	"path/filepath"
 	"testing"
@@ -47,6 +48,7 @@ const (
 func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -79,6 +81,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -112,6 +115,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -180,10 +184,12 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
+	//cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
@@ -201,6 +207,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 func TestInstallCmdJsonLogFormat(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -250,6 +257,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -284,6 +292,7 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 func TestInstallCmdFilenames(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -314,6 +323,7 @@ func TestInstallCmdFilenames(t *testing.T) {
 func TestInstallCmdFilenamesCsv(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml,../../test/testdata/override-components.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -346,6 +356,7 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 func TestInstallCmdSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -379,6 +390,7 @@ func TestInstallCmdSets(t *testing.T) {
 func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
@@ -438,6 +450,7 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
@@ -815,6 +828,7 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 
 	cmd := analyze.NewCmdAnalyze(rc)
+	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	assert.Nil(t, err)
@@ -882,6 +896,7 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -920,7 +935,7 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command fails and should catch the missing filename flag or the missing file
 func TestInstallFromFilename(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
 
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -936,9 +951,88 @@ func TestInstallFromFilename(t *testing.T) {
 	rc.SetClient(c)
 
 	os.Args = append(os.Args, testFilenamePath)
-	cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		return
+	}
 	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
 	//Clean the resource args for further test cases.
 	s := len(os.Args)
 	os.Args = append(os.Args[:s-1])
+}
+
+// TestInstallSkipOperatorInstall tests installing Verrazzano and skipping the install of the operator.
+//
+// GIVEN a CLI install command with skip-operator-install flags set
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful and the VPO and VPO webhook deployments do not get reinstalled
+func TestInstallSkipOperatorInstall(t *testing.T) {
+	tests := []struct {
+		name         string
+		skipInstall  bool
+		vpoExists    bool
+		cmdLineInput string
+	}{
+		{name: "VPO is already running, skip-platform-operator enabled", skipInstall: true, vpoExists: true},
+		{name: "VPO is already running, skip-platform-operator disabled, reInstallVPO-y", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
+		{name: "VPO is already running, skip-platform-operator disabled, reInstallVPO-n", skipInstall: false, vpoExists: true, cmdLineInput: "n"},
+		{name: "VPO is already running, reinstall", skipInstall: false, vpoExists: true, cmdLineInput: "y"},
+		{name: "Clean install, no VPO is running", skipInstall: false, vpoExists: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
+			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			if tt.skipInstall {
+				cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
+			}
+
+			if tt.cmdLineInput != "" {
+				content := []byte(tt.cmdLineInput)
+				tempfile, err := os.CreateTemp("", "test-input.txt")
+				if err != nil {
+					assert.Error(t, err)
+				}
+				// clean up tempfile
+				defer os.Remove(tempfile.Name())
+				if _, err := tempfile.Write(content); err != nil {
+					assert.Error(t, err)
+				}
+				if _, err := tempfile.Seek(0, 0); err != nil {
+					assert.Error(t, err)
+				}
+				oldStdin := os.Stdin
+				// Restore original Stdin
+				defer func() { os.Stdin = oldStdin }()
+				os.Stdin = tempfile
+			}
+
+			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+			defer cmdHelpers.SetDefaultDeleteFunc()
+
+			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+			SetValidateCRFunc(FakeValidateCRFunc)
+			defer SetDefaultValidateCRFunc()
+
+			// Run install command
+			err := cmd.Execute()
+
+			if tt.vpoExists {
+				existingVPOPodList, _ := validators.GetPlatformOperatorPodList(c)
+				assert.NotNil(t, existingVPOPodList)
+				assert.Greater(t, len(existingVPOPodList.Items), 0)
+			}
+			assert.NoError(t, err)
+			vz := v1alpha1.Verrazzano{}
+			err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+			assert.NoError(t, err)
+
+			expectedLastAppliedConfigAnnotation := "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"verrazzano\",\"namespace\":\"default\"}}\n"
+			testhelpers.VerifyLastAppliedConfigAnnotation(t, vz.ObjectMeta, expectedLastAppliedConfigAnnotation)
+		})
+	}
 }

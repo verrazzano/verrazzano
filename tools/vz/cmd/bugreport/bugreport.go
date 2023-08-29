@@ -69,7 +69,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().DurationP(constants.BugReportTimeFlagName, constants.BugReportTimeFlagNameShort, constants.BugReportTimeFlagDefaultTime, constants.BugReportTimeFlagNameUsage)
 
 	// Verifies that the CLI args are not set at the creation of a command
-	cmdhelpers.VerifyCLIArgsNil(cmd)
+	vzHelper.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }

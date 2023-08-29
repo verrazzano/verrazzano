@@ -52,6 +52,7 @@ type VZHelper interface {
 	GetHTTPClient() *http.Client
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 	GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error)
+	VerifyCLIArgsNil(cmd *cobra.Command) error
 }
 
 type ReportCtx struct {
