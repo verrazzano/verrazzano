@@ -107,6 +107,10 @@ func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error)
 	return doesOSExist(ctx), nil
 }
 
+func (o opensearchComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return o.IsInstalled(context)
+}
+
 func (o opensearchComponent) Reconcile(_ spi.ComponentContext) error {
 	return nil
 }
