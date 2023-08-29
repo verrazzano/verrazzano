@@ -259,7 +259,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 }
 
 func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration, obj *unstructured.Unstructured, continuePlatformOperatorReinstall bool) error {
-	// Do not wait for platform operator if skip-platform-operator flag is enabled
+	// Determines whether to wait for Platform Operator
 	if continuePlatformOperatorReinstall {
 		// Wait for the platform operator to be ready before we create the Verrazzano resource.
 		_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)

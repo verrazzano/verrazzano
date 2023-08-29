@@ -189,6 +189,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+	cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
@@ -449,6 +450,7 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
 			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 			defer cmdHelpers.SetDefaultDeleteFunc()
 			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
@@ -456,26 +458,8 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			SetValidateCRFunc(FakeValidateCRFunc)
 			defer SetDefaultValidateCRFunc()
 
-			content := []byte("y")
-			tempfile, err := os.CreateTemp("", "test-input.txt")
-			if err != nil {
-				assert.Error(t, err)
-			}
-			// clean up tempfile
-			defer os.Remove(tempfile.Name())
-			if _, err := tempfile.Write(content); err != nil {
-				assert.Error(t, err)
-			}
-			if _, err := tempfile.Seek(0, 0); err != nil {
-				assert.Error(t, err)
-			}
-			oldStdin := os.Stdin
-			// Restore original Stdin
-			defer func() { os.Stdin = oldStdin }()
-			os.Stdin = tempfile
-
 			// Run install command
-			err = cmd.Execute()
+			err := cmd.Execute()
 			assert.NoError(t, err)
 			assert.Equal(t, "", errBuf.String())
 			assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
@@ -912,6 +896,7 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
+	cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
@@ -921,26 +906,8 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	SetValidateCRFunc(FakeValidateCRFunc)
 	defer SetDefaultValidateCRFunc()
 
-	content := []byte("y")
-	tempfile, err := os.CreateTemp("", "test-input.txt")
-	if err != nil {
-		assert.Error(t, err)
-	}
-	// clean up tempfile
-	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(content); err != nil {
-		assert.Error(t, err)
-	}
-	if _, err := tempfile.Seek(0, 0); err != nil {
-		assert.Error(t, err)
-	}
-	oldStdin := os.Stdin
-	// Restore original Stdin
-	defer func() { os.Stdin = oldStdin }()
-	os.Stdin = tempfile
-
 	// Run install command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
