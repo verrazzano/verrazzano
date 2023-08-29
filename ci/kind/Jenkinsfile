@@ -308,6 +308,22 @@ pipeline {
                     }
                 }
 
+                stage ('console') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                    }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                        }
+                    }
+                    post {
+                        always {
+                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                        }
+                    }
+                }
+
                 stage('Run Acceptance Tests Infra') {
                     parallel {
                         stage('verify-scripts') {
@@ -353,21 +369,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('metrics/syscomponents')
-                            }
-                        }
-                        stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
-                                }
-                            }
-                            post {
-                                failure {
-                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-                                }
                             }
                         }
                         stage ('grafana db') {
@@ -542,6 +543,9 @@ pipeline {
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
                         stage('opensearch-topology') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-topology"
+                            }
                             steps {
                                 runGinkgoRandomize('opensearch/topology')
                             }
