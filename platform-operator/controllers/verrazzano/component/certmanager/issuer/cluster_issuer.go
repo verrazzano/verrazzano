@@ -132,20 +132,20 @@ type templateData struct {
 type CertIssuerType string
 
 // var getClientFunc cmcommon.GetCoreV1ClientFuncType = k8sutil.GetCoreV1Client
-type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, error)
+type GetCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, error)
 
-var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
+var getCMClientFunc GetCertManagerClientFuncType = GetCertManagerClientset
 
 type getLetsEncryptStagingBundleFuncType func() ([]byte, error)
 
 var getLetsEncryptStagingBundleFunc getLetsEncryptStagingBundleFuncType = certs.CreateLetsEncryptStagingBundle
 
 // GetCMClientFunc - return the function to use for getting the cert-manager client
-func GetCMClientFunc() getCertManagerClientFuncType {
+func GetCMClientFunc() GetCertManagerClientFuncType {
 	return getCMClientFunc
 }
 
-func SetCMClientFunc(function getCertManagerClientFuncType) {
+func SetCMClientFunc(function GetCertManagerClientFuncType) {
 	getCMClientFunc = function
 }
 

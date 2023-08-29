@@ -70,10 +70,10 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 	leaf1Secret.Data[constants2.CACertKey] = caSecret.Data[corev1.TLSCertKey]
 
 	// Create the verrazzano-tls-ca secret
-	v8oTlsCASecret := newCertSecret(constants2.PrivateCABundle, constants2.VerrazzanoSystemNamespace, constants2.CABundleKey, caSecret.Data[corev1.TLSCertKey])
+	v8oTLSCASecret := newCertSecret(constants2.PrivateCABundle, constants2.VerrazzanoSystemNamespace, constants2.CABundleKey, caSecret.Data[corev1.TLSCertKey])
 
 	// Create the Rancher tls-ca secret
-	cattleTlsSecret := newCertSecret(constants2.RancherTLSCA, constants2.RancherSystemNamespace, constants2.RancherTLSCAKey, caSecret.Data[corev1.TLSCertKey])
+	cattleTLSSecret := newCertSecret(constants2.RancherTLSCA, constants2.RancherSystemNamespace, constants2.RancherTLSCAKey, caSecret.Data[corev1.TLSCertKey])
 
 	// Create the Rancher deployment
 	cattleDeployment := &appsv1.Deployment{
@@ -100,7 +100,7 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 
 	// Fake ControllerRuntime client
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vz, caSecret, caCert, leaf1Secret, leaf1Cert,
-		v8oTlsCASecret, cattleTlsSecret, cattleDeployment, multiClusterNamespace, mcSecret).Build()
+		v8oTLSCASecret, cattleTLSSecret, cattleDeployment, multiClusterNamespace, mcSecret).Build()
 	r := newSecretsReconciler(fakeClient)
 
 	// Fake Go client for the CertManager clientSet
@@ -125,13 +125,13 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 
 	// Confirm the verrazzano-tls-ca secret got updated
 	secret := &corev1.Secret{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: v8oTlsCASecret.Namespace, Name: v8oTlsCASecret.Name}, secret)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: v8oTLSCASecret.Namespace, Name: v8oTLSCASecret.Name}, secret)
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.CABundleKey])
 
 	// Confirm the Rancher tls-ca secret got updated
 	secret = &corev1.Secret{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: cattleTlsSecret.Namespace, Name: cattleTlsSecret.Name}, secret)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: cattleTLSSecret.Namespace, Name: cattleTLSSecret.Name}, secret)
 	asserts.NoError(err)
 	asserts.Equal(caSecret.Data[corev1.TLSCertKey], secret.Data[constants2.RancherTLSCAKey])
 
