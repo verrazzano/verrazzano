@@ -558,7 +558,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    runGinkgoWithDelay('loggingtrait/weblogicworkload')
+                                    runGinkgo('loggingtrait/weblogicworkload', true)
                                 }
                             }
                         }
@@ -568,7 +568,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    runGinkgoWithDelay('workloads/weblogic')
+                                    runGinkgo('workloads/weblogic', true)
                                 }
                             }
                         }
@@ -578,7 +578,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    runGinkgoWithDelay('workloads/coherence')
+                                    runGinkgo('workloads/coherence', true)
                                 }
                             }
                         }
@@ -588,7 +588,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    runGinkgoWithDelay('workloads/oam')
+                                    runGinkgo('workloads/oam', true)
                                 }
                             }
                         }
@@ -598,7 +598,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    runGinkgoWithDelay('loggingtrait/coherenceworkload')
+                                    runGinkgo('loggingtrait/coherenceworkload', true)
                                 }
                             }
                         }
@@ -755,20 +755,18 @@ def runSocksVariant(variant) {
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgo(testSuitePath, delay=false) {
+    if (delay) {
+        def delayInc = delayIncrement.getAndAdd(1)
+        echo "suite: " + testSuitePath + ", delay = " + delayInc*30
+        sleep(delayInc*30)
+    }
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
-}
-
-def runGinkgoWithDelay(testSuitePath) {
-    def delay = delayIncrement.getAndAdd(1)
-    echo "suite: " + testSuitePath + ", delay = " + delay*30
-    sleep(delay*30)
-    runGinkgo(testSuitePath)
 }
 
 def dumpK8sCluster(dumpDirectory) {
