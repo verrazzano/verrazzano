@@ -155,6 +155,8 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
 
+	pkghelpers.CaptureExpiredThirdPartyCerts()
+
 	wg.Wait()
 	close(ecl)
 	close(ecr)

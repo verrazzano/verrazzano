@@ -312,6 +312,26 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 	return nil
 }
 
+// captureExpiredThirdPartyCerts outputs a file of the list of third party secrets that correspond to certificates that have expired crt.cas
+func CaptureExpiredThirdPartyCerts(client clipkg.Client, captureDir string, vzHelper VZHelper) error {
+	// Dictionary should have name of third party secret and namespace that it corresponds to
+	dictionaryOfThirdSecrets := nil
+	// Loop through each key in these secrets and get the secret
+	err := client.Get(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
+	if err != nil {
+	}
+	//Check if it is expired if it is than create a file with its name and then output it
+	collectHostNames(certificateList)
+	if len(certificateList.Items) > 0 {
+		//Don't use the createFile, just use a seperate function (Look at what other functions do) (Main thing is to get a list of the secrets where this is happening)
+		// Then the VZ analysis tool would just look for this file, if it exists parse it and report issues
+		if err = createFile(certificateList, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func collectHostNames(certificateList v1.CertificateList) {
 	for _, cert := range certificateList.Items {
 		for _, hostname := range cert.Spec.DNSNames {
