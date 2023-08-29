@@ -929,6 +929,60 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.V
 
 		}
 
+	} else {
+		configMapNameModel, ex, err := unstructured.NestedString(u.Object, specConfigurationWDTConfigMap...)
+		if err != nil {
+			log.Errorf("Failed to extract WDT configMap from WebLogic spec for Model: %v", err)
+			return err
+		}
+		if !ex {
+			domainUID, domainUIDFound, err := unstructured.NestedString(u.Object, specDomainUID...)
+			if err != nil {
+				log.Errorf("Failed to extract domainUID from the WebLogic spec: %v", err)
+				return err
+			}
+			if !domainUIDFound {
+				log.Errorf("Failed to find domainUID in WebLogic spec: %v", err)
+				return errors.New("unable to find domainUID in WebLogic spec")
+			}
+			// Create a default WDT config map
+			err = r.createDefaultWDTConfigMap(ctx, log, namespaceName, domainUID, workloadLabels)
+			if err != nil {
+				return err
+			}
+			// Set WDT config map field in WebLogic spec
+			err = unstructured.SetNestedField(u.Object, getWDTConfigMapName(domainUID), specConfigurationWDTConfigMap...)
+			if err != nil {
+				log.Errorf("Failed to set WDT config map in WebLogic spec: %v", err)
+				return err
+			}
+		} else {
+
+			configMap, err := r.getConfigMap(ctx, u.GetNamespace(), configMapNameModel)
+			if err != nil {
+				return err
+			}
+			if configMap == nil {
+				log.Errorf("Failed to find the specified WDT config map: %v", err)
+				return err
+			}
+			// Update WDT configMap configuration to add default WLS plugin configuration
+			v := configMap.Data[webLogicPluginConfigYamlKey]
+			if v == "" {
+				byt, err := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
+				if err != nil {
+					return err
+				}
+				if configMap.Data == nil {
+					configMap.Data = map[string]string{}
+				}
+				configMap.Data[webLogicPluginConfigYamlKey] = string(byt)
+				err = r.Client.Update(ctx, configMap)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil
