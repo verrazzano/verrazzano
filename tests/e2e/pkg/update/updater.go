@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -93,13 +94,11 @@ func UpdateCR(m CRModifier) error {
 		return err
 	}
 	addWarningHandlerIfNecessary(m, config)
-	client, err := vpoClient.NewForConfig(config)
+	vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 	if err != nil {
 		return err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	return err
+	return verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr)
 }
 
 // UpdateCRV1beta1WithRetries updates the CR with the given CRModifierV1beta1.

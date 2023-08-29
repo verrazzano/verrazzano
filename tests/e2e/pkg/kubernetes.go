@@ -588,6 +588,20 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 	return k8sutil.GetDynamicClientInCluster(kubeconfigPath)
 }
 
+// GetV1Beta1ControllerRuntimeClient, given a kubeconfig,
+// returns a controller runtime client with verrazzano v1beta1 as part of its scheme.
+func GetV1Beta1ControllerRuntimeClient(config *restclient.Config) (client.Client, error) {
+	scheme := runtime.NewScheme()
+	if err := v1beta1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	vzClient, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, err
+	}
+	return vzClient, nil
+}
+
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
 func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
@@ -595,9 +609,7 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	if err != nil {
 		return nil, err
 	}
-	scheme := runtime.NewScheme()
-	_ = v1beta1.AddToScheme(scheme)
-	vzClient, err := client.New(config, client.Options{Scheme: scheme})
+	vzClient, err := GetV1Beta1ControllerRuntimeClient(config)
 	if err != nil {
 		return nil, err
 	}
