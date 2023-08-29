@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
 	"os"
 	"strings"
@@ -457,8 +456,8 @@ func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
 }
 
 // ValidateDefaultVolumeSource Verifies that the defaultVolumeSource emptyDir is not left blank. Verrazzano does not support this behavior.
-func ValidateDefaultVolumeSource(defaultVolumeSource *corev1.VolumeSource, mySQLComponent *v1beta1.MySQLOperatorComponent) error {
-	if defaultVolumeSource.EmptyDir != nil && !*mySQLComponent.Enabled {
+func ValidateDefaultVolumeSource(defaultVolumeSource *corev1.VolumeSource, isMySQLComponent bool) error {
+	if defaultVolumeSource.EmptyDir != nil && !isMySQLComponent {
 		return fmt.Errorf("defaultVolumeSource: emptyDir was set, this is not supported")
 	}
 	return nil
