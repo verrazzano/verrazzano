@@ -37,7 +37,17 @@ spec:
 {{ toYaml .Values.imagePullSecrets | indent 6 }}
 {{- end }}
       affinity:
+{{- if .Values.affinity }}
+{{ toYaml .Values.affinity | indent 8 }}
+{{- else }}
+{{- if .Values.podAffinity }}
+        podAffinity:
+{{ toYaml .Values.podAffinity | indent 10 }}
+{{- end }}
         podAntiAffinity:
+{{- if .Values.podAntiAffinity }}
+{{ toYaml .Values.podAntiAffinity | indent 10 }}
+{{- else }}
 {{- if eq .Values.antiAffinity "required" }}
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
@@ -59,9 +69,23 @@ spec:
                   - {{ template "rancher.fullname" . }}
               topologyKey: {{ .Values.topologyKey | default "kubernetes.io/hostname" }}
 {{- end }}
+{{- end }}
         nodeAffinity:
+{{- if .Values.nodeAffinity }}
+{{ toYaml .Values.nodeAffinity | indent 10 }}
+{{- else }}
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms: {{ include "linux-node-selector-terms" . | nindent 14 }}
+{{- end }}
+{{- end }}
+{{- if .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+{{ toYaml .Values.topologySpreadConstraints | indent 8 }}
+{{- end }}
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
       containers:
       - image: {{ .Values.rancherImage }}:{{ default .Chart.AppVersion .Values.rancherImageTag }}

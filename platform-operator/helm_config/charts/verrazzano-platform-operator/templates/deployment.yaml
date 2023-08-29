@@ -71,6 +71,10 @@ spec:
             - name: CLUSTER_OPERATOR_IMAGE
               value: {{ .Values.global.clusterOperatorImage }}
             {{- end }}
+            {{- if .Values.global.authProxyImage }}
+            - name: AUTH_PROXY_IMAGE
+              value: {{ .Values.global.authProxyImage }}
+            {{- end }}
             - name: GOPROXY
               value: direct
           resources:
