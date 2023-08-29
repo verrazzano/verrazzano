@@ -326,6 +326,7 @@ func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	}
 }
 
+// If the Auth Proxy image is specified in the env vars, add it as a Helm argument to override the image
 func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	envImageOverride := os.Getenv(constants.VerrazzanoAuthProxyImageEnvVar)
 	if len(envImageOverride) > 0 {

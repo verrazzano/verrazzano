@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"k8s.io/client-go/rest"
 	"net/http"
 	"net/url"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 )
 
