@@ -21,8 +21,20 @@ const chartdir = "my_charts"
 const helmRelease = "my-release"
 const missingRelease = "no-release"
 
+func testActionConfigWithReleaseUnknownStatus(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return createActionConfigWithStatus(log, settings, namespace, release.StatusUnknown)
+}
+
+func testActionConfigWithReleaseUninstallingStatus(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return createActionConfigWithStatus(log, settings, namespace, release.StatusUninstalling)
+}
+
 func testActionConfigWithRelease(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
-	return CreateActionConfig(true, helmRelease, release.StatusDeployed, log, createRelease)
+	return createActionConfigWithStatus(log, settings, namespace, release.StatusDeployed)
+}
+
+func createActionConfigWithStatus(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string, status release.Status) (*action.Configuration, error) {
+	return CreateActionConfig(true, helmRelease, status, log, createRelease)
 }
 
 func testActionConfigWithFailedRelease(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
@@ -215,6 +227,81 @@ func TestIsReleaseInstalledFailed(t *testing.T) {
 	defer SetDefaultActionConfigFunction()
 
 	found, err := IsReleaseInstalled("", ns)
+	assertion.Error(err, "IsReleaseInstalled should have returned an error")
+	assertion.False(found, "Release should not be found")
+}
+
+// TestReleaseExists tests checking if a Helm release is exists
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release in the Deployed state
+//	THEN the function returns true and no error
+func TestReleaseExists(t *testing.T) {
+	assertion := assert.New(t)
+	SetActionConfigFunction(testActionConfigWithRelease)
+	defer SetDefaultActionConfigFunction()
+
+	exists, err := ReleaseExists(helmRelease, ns)
+	assertion.NoError(err, "ReleaseExists returned an error")
+	assertion.True(exists, "Release not found")
+}
+
+// TestReleaseExistsUninstallingStatus tests checking if a Helm release is exists
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release in the Uninstalling state
+//	THEN the function returns true and no error
+func TestReleaseExistsUninstallingStatus(t *testing.T) {
+	assertion := assert.New(t)
+	SetActionConfigFunction(testActionConfigWithReleaseUninstallingStatus)
+	defer SetDefaultActionConfigFunction()
+
+	exists, err := ReleaseExists(helmRelease, ns)
+	assertion.NoError(err, "ReleaseExists returned an error")
+	assertion.True(exists, "Release not found")
+}
+
+// TestReleaseExistsUnknownStatus tests checking if a Helm release is exists
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release in the Unknown state
+//	THEN the function returns true and no error
+func TestReleaseExistsUnknownStatus(t *testing.T) {
+	assertion := assert.New(t)
+	SetActionConfigFunction(testActionConfigWithReleaseUnknownStatus)
+	defer SetDefaultActionConfigFunction()
+
+	exists, err := ReleaseExists(helmRelease, ns)
+	assertion.NoError(err, "ReleaseExists returned an error")
+	assertion.True(exists, "Release not found")
+}
+
+// TestReleaseExistsNotInstalled tests the ReleaseExists func
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release that does not exist
+//	THEN the function returns false and no error
+func TestReleaseExistsNotInstalled(t *testing.T) {
+	assertion := assert.New(t)
+	SetActionConfigFunction(testActionConfigWithRelease)
+	defer SetDefaultActionConfigFunction()
+
+	exists, err := ReleaseExists(missingRelease, ns)
+	assertion.NoError(err, "IsReleaseInstalled returned an error")
+	assertion.False(exists, "Release should not be exists")
+}
+
+// TestReleaseExistsError tests the ReleaseExists func
+// GIVEN a bad helmRelease name and namespace
+//
+//	WHEN I call ReleaseExists
+//	THEN the function returns false and an error
+func TestReleaseExistsError(t *testing.T) {
+	assertion := assert.New(t)
+	SetActionConfigFunction(testActionConfigWithRelease)
+	defer SetDefaultActionConfigFunction()
+
+	found, err := ReleaseExists("", ns)
 	assertion.Error(err, "IsReleaseInstalled should have returned an error")
 	assertion.False(found, "Release should not be found")
 }

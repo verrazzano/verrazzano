@@ -218,6 +218,8 @@ create-test-deploy:
 generate-bom:
 	@echo Generating BOM verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo                verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
+	@echo                verrazzano-cluster-operator image ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}
+	@echo                verrazzano-authproxy image ${VERRAZZANO_AUTHPROXY_IMAGE}
 	mkdir out || true
-	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_VERSION} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
+	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_VERSION} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} ${VERRAZZANO_AUTHPROXY_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
 

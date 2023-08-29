@@ -246,6 +246,8 @@ func TestReconcileUninstall(t *testing.T) {
 
 	// call reconcile once with installed true, then again with installed false
 	reconciler := newVerrazzanoReconciler(c)
+	reconciler.DryRun = true
+
 	DeleteUninstallTracker(vzcr)
 	result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
 	asserts.NoError(err)

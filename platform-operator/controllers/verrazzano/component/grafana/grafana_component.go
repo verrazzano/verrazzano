@@ -152,6 +152,10 @@ func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
 }
 
+func (g grafanaComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return g.IsInstalled(context)
+}
+
 func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	return (&ready.AvailabilityObjects{DeploymentNames: newDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
 }
