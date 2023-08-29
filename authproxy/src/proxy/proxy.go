@@ -73,7 +73,8 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		RootCAs: rootCA,
+		RootCAs:    rootCA,
+		MinVersion: tls.VersionTLS12,
 	}
 
 	client := retryablehttp.NewClient()
