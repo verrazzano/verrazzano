@@ -32,7 +32,7 @@ type (
 		SSHPublicKey *string `json:"sshPublicKey,omitempty"`
 		// Node image id.
 		// The default is the latest OL8 image in the provided compartment.
-		ImageName string `json:"imageName"`
+		ImageId string `json:"imageId"`
 		// Cloud-init script to run during node startup.
 		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}

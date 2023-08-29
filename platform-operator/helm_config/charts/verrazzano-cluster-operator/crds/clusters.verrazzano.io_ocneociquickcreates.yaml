@@ -92,8 +92,7 @@ spec:
                     description: Control Plane node settings.
                     properties:
                       bootVolumeGbs:
-                        description: Size of node boot volume, in gigabytes, when
-                          using flex shapes.
+                        description: Size of node boot volume, in gigabytes.
                         type: integer
                       memoryGbs:
                         description: Amount of memory per node, in gigabytes, when
@@ -102,7 +101,7 @@ spec:
                       name:
                         type: string
                       ocpus:
-                        description: Number of OCPUs per node.
+                        description: Number of OCPUs per node, when using flex shapes.
                         type: integer
                       replicas:
                         description: Number of nodes to create.
@@ -113,15 +112,15 @@ spec:
                     required:
                     - name
                     type: object
-                  imageName:
+                  imageId:
                     description: Node image id. The default is the latest OL8 image
                       in the provided compartment.
                     type: string
                   network:
                     description: OCI Network settings.
                     properties:
-                      string:
-                        type: string
+                      createVCN:
+                        type: boolean
                       subnets:
                         items:
                           properties:
@@ -136,6 +135,10 @@ spec:
                           - role
                           type: object
                         type: array
+                      vcn:
+                        type: string
+                    required:
+                    - createVCN
                     type: object
                   region:
                     description: OCI region where the cluster will be created.
@@ -148,8 +151,7 @@ spec:
                     items:
                       properties:
                         bootVolumeGbs:
-                          description: Size of node boot volume, in gigabytes, when
-                            using flex shapes.
+                          description: Size of node boot volume, in gigabytes.
                           type: integer
                         memoryGbs:
                           description: Amount of memory per node, in gigabytes, when
@@ -158,7 +160,7 @@ spec:
                         name:
                           type: string
                         ocpus:
-                          description: Number of OCPUs per node.
+                          description: Number of OCPUs per node, when using flex shapes.
                           type: integer
                         replicas:
                           description: Number of nodes to create.
@@ -173,7 +175,8 @@ spec:
                 required:
                 - compartment
                 - controlPlane
-                - imageName
+                - imageId
+                - network
                 - region
                 type: object
               ocne:
@@ -239,6 +242,7 @@ spec:
             required:
             - identityRef
             - kubernetes
+            - oci
             - ocne
             type: object
           status:

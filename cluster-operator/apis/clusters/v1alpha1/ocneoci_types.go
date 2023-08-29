@@ -37,7 +37,7 @@ type (
 		// OCNE settings.
 		OCNE OCNE `json:"ocne"`
 		// OCI infrastructure settings.
-		OCI OCI `json:"oci,omitempty"`
+		OCI OCI `json:"oci"`
 	}
 	OCI struct {
 		CommonOCISpec CommonOCI `json:",inline"`
@@ -46,7 +46,7 @@ type (
 		// List of worker nodes.
 		Workers []NodeConfig `json:"workers,omitempty"`
 		// OCI Network settings.
-		Network *Network `json:"network,omitempty"`
+		Network *Network `json:"network"`
 	}
 	Network struct {
 		CreateVCN bool     `json:"createVCN"`
