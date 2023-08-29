@@ -126,14 +126,14 @@ func TestObfuscateTestData(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, testAPIServerURL, strings.NewReader(""))
 	assert.NoError(t, err)
 
-	AuthKey := "Authorization"
+	authKey := "Authorization"
 	basicAuth := "Basic username:pass"
 	tokenAuth := "Bearer test-token"
-	req.Header[AuthKey] = []string{basicAuth, tokenAuth}
+	req.Header[authKey] = []string{basicAuth, tokenAuth}
 
 	obfReq := obfuscateRequestData(req)
-	assert.NotEqual(t, basicAuth, obfReq.Header[AuthKey][0])
-	assert.NotEqual(t, tokenAuth, obfReq.Header[AuthKey][1])
+	assert.NotEqual(t, basicAuth, obfReq.Header[authKey][0])
+	assert.NotEqual(t, tokenAuth, obfReq.Header[authKey][1])
 }
 
 func testConfig() (*rest.Config, error) {
