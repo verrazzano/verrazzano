@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var allowedOriginsWhitelistFunc = allowedOriginsWhitelist
+var allowedOriginsFunc = allowedOrigins
 
 func AddCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (int, error) {
 	var origin string
@@ -26,7 +26,7 @@ func AddCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost strin
 	allowed := originAllowed(origin, ingressHost)
 
 	// From https://tools.ietf.org/id/draft-abarth-origin-03.html#server-behavior, if the request Origin is not in
-	// whitelisted origins and the request method is not a safe non state changing (i.e. GET or HEAD), we should
+	// allowed origins and the request method is not a safe non state changing (i.e. GET or HEAD), we should
 	// abort the request.
 	if !allowed && req.Method != http.MethodGet && req.Method != http.MethodHead && req.Method != http.MethodOptions {
 		// TODO forbidden doesn't seem right here, but that's what current authproxy does
@@ -74,9 +74,9 @@ func originAllowed(origin string, ingressHost string) bool {
 		return true
 	}
 
-	// Check whitelist of allowed origins if provided
+	// Check list of allowed origins if provided
 	var allowedOriginsStr string
-	if allowedOriginsStr = allowedOriginsWhitelistFunc(); allowedOriginsStr == "" {
+	if allowedOriginsStr = allowedOriginsFunc(); allowedOriginsStr == "" {
 		return false
 	}
 	allowedOrigins := strings.Split(allowedOriginsStr, ",")
@@ -89,6 +89,7 @@ func originAllowed(origin string, ingressHost string) bool {
 	return false
 }
 
-func allowedOriginsWhitelist() string {
+// allowedOrigins returns an "allow list" of permitted origins
+func allowedOrigins() string {
 	return os.Getenv("VZ_API_ALLOWED_ORIGINS")
 }

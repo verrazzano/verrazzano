@@ -89,16 +89,16 @@ func TestOriginAllowed(t *testing.T) {
 	}{
 		{"origin equals ingress host", ingressHostVal, fmt.Sprintf("https://%s", ingressHostVal), defaultAllowedOriginFunc, true},
 		{"origin has value 'null'", ingressHostVal, "null", defaultAllowedOriginFunc, false},
-		{"origin not equal to ingress host, no whitelist", ingressHostVal, "https://otherorigin.example.com", defaultAllowedOriginFunc, false},
-		{"origin not equal to ingress host, in whitelist with one entry", ingressHostVal, oneAllowedOrigin, oneAllowedOriginFunc, true},
-		{"origin not equal to ingress host, in whitelist with multiple entries", ingressHostVal, oneAllowedOrigin, multiAllowedOriginsFunc, true},
-		{"origin not equal to ingress host, not in whitelist", ingressHostVal, "someotheroriginentirely", multiAllowedOriginsFunc, false},
+		{"origin not equal to ingress host, no allow list", ingressHostVal, "https://otherorigin.example.com", defaultAllowedOriginFunc, false},
+		{"origin not equal to ingress host, in allow list with one entry", ingressHostVal, oneAllowedOrigin, oneAllowedOriginFunc, true},
+		{"origin not equal to ingress host, in allow list with multiple entries", ingressHostVal, oneAllowedOrigin, multiAllowedOriginsFunc, true},
+		{"origin not equal to ingress host, not in allow list", ingressHostVal, "someotheroriginentirely", multiAllowedOriginsFunc, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			allowedOriginsWhitelistFunc = tt.allowedOriginFunc
+			allowedOriginsFunc = tt.allowedOriginFunc
 			defer func() {
-				allowedOriginsWhitelistFunc = defaultAllowedOriginFunc
+				allowedOriginsFunc = defaultAllowedOriginFunc
 			}()
 
 			if got := originAllowed(tt.origin, tt.ingressHost); got != tt.want {
