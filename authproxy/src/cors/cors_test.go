@@ -38,6 +38,7 @@ func TestAddCORSHeaders(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req, err := http.NewRequest(tt.reqMethod, testURL, nil)
+			assert.Nil(t, err)
 			for _, org := range tt.originHeader {
 				req.Header.Add("Origin", org)
 			}
@@ -91,7 +92,7 @@ func Test_originAllowed(t *testing.T) {
 		{"origin has value 'null'", ingressHostVal, "null", defaultAllowedOriginFunc, false},
 		{"origin not equal to ingress host, no whitelist", ingressHostVal, "https://otherorigin.example.com", defaultAllowedOriginFunc, false},
 		{"origin not equal to ingress host, in whitelist with one entry", ingressHostVal, oneAllowedOrigin, oneAllowedOriginFunc, true},
-		{"origin not equal to ingress host, in whitelist with mulitple entries", ingressHostVal, oneAllowedOrigin, multiAllowedOriginsFunc, true},
+		{"origin not equal to ingress host, in whitelist with multiple entries", ingressHostVal, oneAllowedOrigin, multiAllowedOriginsFunc, true},
 		{"origin not equal to ingress host, not in whitelist", ingressHostVal, "someotheroriginentirely", multiAllowedOriginsFunc, false},
 	}
 	for _, tt := range tests {
