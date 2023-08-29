@@ -215,13 +215,12 @@ func validateRequest(req *http.Request) error {
 // obfuscateRequestData removes the Authorization header data from the request before logging
 func obfuscateRequestData(req *http.Request) *http.Request {
 	hiddenReq := req.Clone(context.TODO())
-	sensitiveHeaders := []string{
-		"Authorization",
-	}
-	for _, header := range sensitiveHeaders {
-		for i := range hiddenReq.Header[header] {
-			hiddenReq.Header[header][i] = vzpassword.MaskFunction("")(hiddenReq.Header[header][i])
-		}
+	authKey := "Authorization"
+	for i := range hiddenReq.Header[authKey] {
+		// List of authorization schemes compiled from
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication#authentication_schemes
+		authRegEx := "(Bearer|Basic|Digest|HOBA|Mutual|Negotiate|NTLM|VAPID|SCRAM|AWS4-HMAC-SHA256)"
+		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction(authRegEx)(hiddenReq.Header[authKey][i])
 	}
 	return hiddenReq
 }
