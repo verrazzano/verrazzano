@@ -157,7 +157,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	// Validate the DefaultVolumeSource of mySQL
-	if err := validators.ValidateMySQL(convertedNewVZ.Spec.DefaultVolumeSource); err != nil {
+	if err := validators.ValidateDefaultVolumeSource(convertedNewVZ.Spec.DefaultVolumeSource, convertedNewVZ.Spec.Components.MySQLOperator); err != nil {
 		return err
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
