@@ -4,10 +4,12 @@
 package grafana
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -73,4 +75,14 @@ func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 	configSnippet.PrometheusOperatorEnabled = vzcr.IsPrometheusOperatorEnabled(effectiveCR)
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
+}
+
+// ShouldUseModule returns true if component is implemented using a Module
+func (g grafanaComponent) ShouldUseModule() bool {
+	return config.Get().ModuleIntegration
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return nil
 }
