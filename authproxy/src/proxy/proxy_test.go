@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 const (
 	apiPath          = "/api/v1/pods"
 	testAPIServerURL = "https://api-server.io"
+	caCertFile       = "./testdata/test-ca.crt"
 )
 
 // TestConfigureKubernetesAPIProxy tests the configuration of the API proxy
@@ -28,7 +30,7 @@ const (
 // WHEN  the Kubernetes API proxy is configured
 // THEN  the handler exists and there is no error
 func TestConfigureKubernetesAPIProxy(t *testing.T) {
-	authproxy := InitializeProxy()
+	authproxy := InitializeProxy(8777)
 	log := zap.S()
 
 	getConfigFunc = testConfig
@@ -122,6 +124,10 @@ func TestValidateRequest(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestObfuscateTestData tests that request authorization headers get scrubbed
+// GIVEN a request with an authorization header
+// WHEN  the request is scrubbed
+// THEN  the header contains a different value
 func TestObfuscateTestData(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, testAPIServerURL, strings.NewReader(""))
 	assert.NoError(t, err)
@@ -136,11 +142,41 @@ func TestObfuscateTestData(t *testing.T) {
 	assert.NotEqual(t, tokenAuth, obfReq.Header[authKey][1])
 }
 
+// TestLoadCAData tests that the CA data is properly loaded from sources
+func TestLoadCAData(t *testing.T) {
+	// GIVEN a config with the CA Data populated
+	// WHEN  the cert pool is generated
+	// THEN  no error is returned
+	caData, err := os.ReadFile(caCertFile)
+	assert.NoError(t, err)
+	config := &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: caData,
+		},
+	}
+	log := zap.S()
+	pool, err := loadCAData(config, log)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, pool)
+
+	// GIVEN a config with the CA File populated
+	// WHEN  the cert pool is generated
+	// THEN  no error is returned
+	config = &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			CAFile: caCertFile,
+		},
+	}
+	pool, err = loadCAData(config, log)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, pool)
+}
+
 func testConfig() (*rest.Config, error) {
 	return &rest.Config{
 		Host: "test-host",
 		TLSClientConfig: rest.TLSClientConfig{
-			CAFile: "./testdata/test-ca.crt",
+			CAFile: caCertFile,
 		},
 	}, nil
 }
