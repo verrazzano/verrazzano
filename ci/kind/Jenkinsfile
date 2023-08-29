@@ -467,13 +467,13 @@ pipeline {
                             }
                         }
                         stage('examples helidon manualscalertait') {
-                                                    environment {
-                                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
-                                                    }
-                                                    steps {
-                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
-                                                    }
-                                                }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
+                            }
+                            steps {
+                                runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                            }
+                        }
 
                         stage('jaeger helidon') {
                             environment {
@@ -557,9 +557,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
                             steps {
-                                script {
-                                    runGinkgo('loggingtrait/weblogicworkload', true)
-                                }
+                                runGinkgo('loggingtrait/weblogicworkload', true)
                             }
                         }
                         stage('weblogic workload') {
@@ -567,9 +565,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                             }
                             steps {
-                                script {
-                                    runGinkgo('workloads/weblogic', true)
-                                }
+                                runGinkgo('workloads/weblogic', true)
                             }
                         }
                         stage('coherence workload') {
@@ -577,9 +573,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                             }
                             steps {
-                                script {
-                                    runGinkgo('workloads/coherence', true)
-                                }
+                                runGinkgo('workloads/coherence', true)
                             }
                         }
                         stage('oam workloads') {
@@ -587,9 +581,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
                             }
                             steps {
-                                script {
-                                    runGinkgo('workloads/oam', true)
-                                }
+                                runGinkgo('workloads/oam', true)
                             }
                         }
                         stage('logging trait Coherence workload') {
@@ -597,9 +589,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
                             }
                             steps {
-                                script {
-                                    runGinkgo('loggingtrait/coherenceworkload', true)
-                                }
+                                runGinkgo('loggingtrait/coherenceworkload', true)
                             }
                         }
                     }
