@@ -5,7 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -59,11 +59,6 @@ func (d opensearchDashboardsComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
 }
 
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (d opensearchDashboardsComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
-}
-
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
 func (d opensearchDashboardsComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
 	return nil, nil
@@ -71,7 +66,7 @@ func (d opensearchDashboardsComponent) GetModuleConfigAsHelmValues(effectiveCR *
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component

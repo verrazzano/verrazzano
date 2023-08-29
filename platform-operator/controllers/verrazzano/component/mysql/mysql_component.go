@@ -41,6 +41,9 @@ const DeploymentPersistentVolumeClaim = "mysql"
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "mysql"
 
+// Cannot include mysqloperatorcomponent because of import cycle
+const MySQLOperatorComponentName = "mysql-operator"
+
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
 	helm.HelmComponent
@@ -51,10 +54,6 @@ var _ spi.Component = mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
-
-	// Cannot include mysqloperatorcomponent because of import cycle
-	const MySQLOperatorComponentName = "mysql-operator"
-
 	return mysqlComponent{
 		HelmComponent: helm.HelmComponent{
 			ReleaseName:               helmReleaseName,

@@ -25,8 +25,6 @@
 package networkpolicies
 
 import (
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -133,8 +131,4 @@ func (c networkPoliciesComponent) PreUninstall(ctx spi.ComponentContext) error {
 	}
 
 	return c.HelmComponent.PreUninstall(ctx)
-}
-
-func (c networkPoliciesComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetVerrazzanoSpecWatch()
 }
