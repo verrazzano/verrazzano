@@ -11,13 +11,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 )
 
-const apiPath = "/api/v1/pods"
+const (
+	apiPath          = "/api/v1/pods"
+	testAPIServerURL = "https://api-server.io"
+)
 
 // TestConfigureKubernetesAPIProxy tests the configuration of the API proxy
 // GIVEN an Auth proxy object
@@ -53,11 +57,11 @@ func TestServeHTTP(t *testing.T) {
 
 	handler := Handler{
 		URL:    server.URL,
-		Client: &http.Client{},
+		Client: retryablehttp.NewClient(),
 		Log:    zap.S(),
 	}
 
-	url := fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
+	url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
 	r := httptest.NewRequest(http.MethodPost, url, strings.NewReader(testBody))
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, r)
@@ -67,8 +71,8 @@ func TestServeHTTP(t *testing.T) {
 
 func TestReformatAPIRequest(t *testing.T) {
 	handler := Handler{
-		URL:    "https://api-server.io",
-		Client: &http.Client{},
+		URL:    testAPIServerURL,
+		Client: retryablehttp.NewClient(),
 		Log:    zap.S(),
 	}
 
@@ -102,7 +106,7 @@ func TestValidateRequest(t *testing.T) {
 	// GIVEN a request without the cluster path
 	// WHEN  the request is validated
 	// THEN  an error is returned
-	url := fmt.Sprintf("https://authproxy.io/%s", apiPath)
+	url := fmt.Sprintf("%s/%s", testAPIServerURL, apiPath)
 	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 	assert.NoError(t, err)
 	err = validateRequest(req)
@@ -111,15 +115,32 @@ func TestValidateRequest(t *testing.T) {
 	// GIVEN a request with the cluster path
 	// WHEN  the request is validated
 	// THEN  no error is returned
-	url = fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
+	url = fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
 	req, err = http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 	assert.NoError(t, err)
 	err = validateRequest(req)
 	assert.NoError(t, err)
 }
 
+func TestObfuscateTestData(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, testAPIServerURL, strings.NewReader(""))
+	assert.NoError(t, err)
+
+	authKey := "Authorization"
+	basicAuth := "Basic username:pass"
+	tokenAuth := "Bearer test-token"
+	req.Header[authKey] = []string{basicAuth, tokenAuth}
+
+	obfReq := obfuscateRequestData(req)
+	assert.NotEqual(t, basicAuth, obfReq.Header[authKey][0])
+	assert.NotEqual(t, tokenAuth, obfReq.Header[authKey][1])
+}
+
 func testConfig() (*rest.Config, error) {
 	return &rest.Config{
 		Host: "test-host",
+		TLSClientConfig: rest.TLSClientConfig{
+			CAFile: "./testdata/test-ca.crt",
+		},
 	}, nil
 }
