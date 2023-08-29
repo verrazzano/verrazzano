@@ -27,22 +27,22 @@ const mcCABundleKey = "ca-bundle"
 var fetchSecretFailureTemplate = "Failed to fetch secret %s/%s: %v"
 
 // reconcileVerrazzanoTLS Updates the related CA bundle copies when the secret configured with ClusterIssuer changes
-func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, secret types.NamespacedName, caKey string) (ctrl.Result, error) {
 
 	// Get the secret
 	caSecret := corev1.Secret{}
-	if err := r.Get(ctx, req.NamespacedName, &caSecret); err != nil {
+	if err := r.Get(ctx, secret, &caSecret); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Secret may have been deleted, skip reconcile
-			zap.S().Infof("Secret %s does not exist, skipping reconcile", req.NamespacedName)
+			zap.S().Infof("Secret %s does not exist, skipping reconcile", secret)
 			return ctrl.Result{}, nil
 		}
 		// Secret should never be not found, unless we're running while installation is still underway
 		zap.S().Errorf(fetchSecretFailureTemplate,
-			req.Namespace, req.Name, err)
+			secret.Namespace, secret.Name, err)
 		return newRequeueWithDelay(), nil
 	}
-	zap.S().Debugf("Fetched secret %s/%s ", req.NamespacedName.Namespace, req.NamespacedName.Name)
+	zap.S().Debugf("Fetched secret %s/%s ", secret.Namespace, secret.Name)
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	if result, err := r.initLogger(caSecret); err != nil {
@@ -50,7 +50,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	}
 
 	// Update the copies
-	return r.reconcileVerrazzanoCABundleCopies(&caSecret)
+	return r.reconcileVerrazzanoCABundleCopies(&caSecret, caKey)
 }
 
 // reconcileVerrazzanoCABundleCopies - The configured CA secret has changed. Propagate that change into the following:
@@ -62,17 +62,17 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 // once during VZ resource reconciliation until if/when the VZ issuer configuration is changed.
 //
 // These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
-func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret *corev1.Secret) (ctrl.Result, error) {
+func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret *corev1.Secret, caKey string) (ctrl.Result, error) {
 	// Update the Verrazzano private CA bundle; the source of truth from a VZ perspective
 	_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
-		vzconst.CABundleKey, corev1.TLSCertKey, caSecret, false)
+		vzconst.CABundleKey, caKey, caSecret, false)
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
 
 	// Update the Rancher TLS CA secret
 	result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
-		vzconst.RancherTLSCAKey, corev1.TLSCertKey, caSecret, false)
+		vzconst.RancherTLSCAKey, caKey, caSecret, false)
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
@@ -91,7 +91,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret
 
 	// Update the verrazzano-local-ca-bundle secret
 	if _, err := r.updateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
-		mcCABundleKey, corev1.TLSCertKey, caSecret, true); err != nil {
+		mcCABundleKey, caKey, caSecret, true); err != nil {
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil

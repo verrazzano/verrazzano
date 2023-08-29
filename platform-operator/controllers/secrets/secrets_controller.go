@@ -82,7 +82,21 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
 				return newRequeueWithDelay(), err
 			}
-			return r.reconcileVerrazzanoTLS(ctx, req)
+			return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, corev1.TLSCertKey)
+		}
+
+		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
+		// a reconcile which will update any upstream copies
+		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
+		//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
+		// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
+		letsEncrypt, err := clusterIssuer.IsLetsEncryptIssuer()
+		if err != nil {
+			zap.S().Errorf("Failed to determine if Let's Encrypt certificates are configured: %s", err.Error())
+			return newRequeueWithDelay(), err
+		}
+		if letsEncrypt && isVerrazzanoIngressSecretName(req.NamespacedName) {
+			return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, vzconst.CACertKey)
 		}
 
 		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
@@ -112,6 +126,10 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	}
 	r.log = log
 	return ctrl.Result{}, nil
+}
+
+func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
+	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func isClusterIssuerSecret(secretName types.NamespacedName, clusterIssuer *installv1alpha1.ClusterIssuerComponent) bool {

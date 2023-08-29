@@ -127,7 +127,7 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 			}
 
 			ctx := context.TODO()
-			got, err := r.reconcileVerrazzanoTLS(ctx, req)
+			got, err := r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, vzconst.CACertKey)
 			if !wantErr(t, err, fmt.Sprintf("reconcileVerrazzanoTLS(%v, %v, %v)", ctx, req, vz)) {
 				return
 			}
@@ -177,14 +177,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			"tls.key": []byte("leaf-cert-key"),
 		},
 	}
-	ingressTLSSecretPrivateCA := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{Name: vzTLSSecret.Name, Namespace: vzTLSSecret.Namespace},
-		Data: map[string][]byte{
-			vzconst.CACertKey: updatedBundleData,
-			"tls.crt":         []byte("leaf-cert"),
-			"tls.key":         []byte("leaf-cert-key"),
-		},
-	}
+
 	vzPrivateCASecret := &corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{Name: vzPrivateCABundleSecret.Name, Namespace: vzPrivateCABundleSecret.Namespace},
 		Data: map[string][]byte{
@@ -198,6 +191,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			vzconst.RancherTLSCAKey: originalBundleData,
 		},
 	}
+
 	defaultObjsList := []runtime.Object{
 		rancherTLSCASecert,
 		&corev1.Secret{
@@ -225,6 +219,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 		requeueRequired              bool
 		wantErr                      assert.ErrorAssertionFunc
 		sourceSecret                 *corev1.Secret
+		sourceSecretKey              string
 		privateCAExpectedBundleData  []byte
 		privateCABundleSecretWantErr assert.ErrorAssertionFunc
 		mcExpectedBundleData         []byte
@@ -272,7 +267,8 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			name: "lets-encrypt-staging-update-scenario",
 			description: "ACME/Let's encrypt staging case, TLS CA bundle-key does not exist in ingress secret but the leaf cert has been rotated.  " +
 				"The target copies should not be updated, preserving the staging CA root bundle",
-			sourceSecret: ingressLeafCertOnly,
+			sourceSecret:    ingressLeafCertOnly,
+			sourceSecretKey: vzconst.CACertKey,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: rancherTLSCATestSecret.Namespace, Name: rancherTLSCATestSecret.Name},
@@ -309,7 +305,8 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			description: "ACME/Let's encrypt staging-to-production case; VZ and Rancher TLS CA bundle-key do not exist," +
 				"leaf cert has no CA bundle, but the ingress secret but the leaf cert has been rotated.  Only the" +
 				"multi-cluster copy should be updated with an empty value, and the other copies should not exist",
-			sourceSecret: ingressLeafCertOnly,
+			sourceSecret:    ingressLeafCertOnly,
+			sourceSecretKey: vzconst.CACertKey,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
@@ -334,7 +331,6 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			description: "System has been updated from LE staging to self-signed; verrazzano-tls-ca and tls-ca are " +
 				"using private CA with old data, verrazzano-local-ca-bundle has LE staging data.  verrazzano-tls updated" +
 				"with new bundle data.  All secrets should be updated with new bundle data.",
-			sourceSecret: ingressTLSSecretPrivateCA,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
@@ -349,7 +345,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				vzPrivateCASecret,
-				ingressTLSSecretPrivateCA,
+				clusterIssuerSecretUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
@@ -488,7 +484,12 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				sourceSecret = tt.sourceSecret
 			}
 
-			got, err := r.reconcileVerrazzanoCABundleCopies(sourceSecret)
+			sourceSecretKey := corev1.TLSCertKey
+			if len(tt.sourceSecretKey) > 0 {
+				sourceSecretKey = tt.sourceSecretKey
+			}
+
+			got, err := r.reconcileVerrazzanoCABundleCopies(sourceSecret, sourceSecretKey)
 			if !wantErr(t, err, "reconcileVerrazzanoCABundleCopies did not get expected error result") {
 				return
 			}
