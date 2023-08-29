@@ -38,13 +38,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var mcNamespace = types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}
 var vzTLSSecret = types.NamespacedName{Name: constants.VerrazzanoIngressSecret, Namespace: constants.VerrazzanoSystemNamespace}
 var vzPrivateCABundleSecret = types.NamespacedName{Name: constants2.PrivateCABundle, Namespace: constants.VerrazzanoSystemNamespace}
-var rancherTLSCASecret = types.NamespacedName{Name: constants2.RancherTLSCA, Namespace: constants2.RancherSystemNamespace}
-
 var additionalTLSSecret = types.NamespacedName{Name: "tls-ca-additional", Namespace: constants2.RancherSystemNamespace}
-var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
 
 // TestReconcileConfiguredCASecret tests the Reconcile method
@@ -499,75 +495,6 @@ func TestOtherNS(t *testing.T) {
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 
-}
-func runNamespaceErrorTest(t *testing.T, expectedErr error) {
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	// Expect a call to get a list of verrazzano resources
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vzList *vzapi.VerrazzanoList, opts ...client.ListOption) error {
-			vzList.Items = []vzapi.Verrazzano{{
-				ObjectMeta: metav1.ObjectMeta{Namespace: constants.DefaultNamespace, Name: "verrazzano"},
-				Status: vzapi.VerrazzanoStatus{
-					State: vzapi.VzStateReady,
-				},
-			}}
-			return nil
-		})
-
-	// Expect a call to get a list of certificate resources
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certList *certv1.CertificateList, opts ...client.ListOption) error {
-			certList.Items = []certv1.Certificate{}
-			return nil
-		})
-	// Expect  a call to get the verrazzano-mc namespace
-	mock.EXPECT().
-		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
-			return expectedErr
-		}).MinTimes(1)
-
-	// Expect a call to get the verrazzano-tls-ca secret
-	mock.EXPECT().
-		Get(gomock.Any(), vzPrivateCABundleSecret, gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-			secret.Name = vzPrivateCABundleSecret.Name
-			secret.Namespace = vzPrivateCABundleSecret.Namespace
-			return nil
-		}).MinTimes(1)
-
-	// Expect a call to get the verrazzano-tls secret
-	mock.EXPECT().
-		Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-			secret.Name = vzTLSSecret.Name
-			secret.Namespace = vzTLSSecret.Namespace
-			return nil
-		}).MinTimes(1)
-
-	mock.EXPECT().
-		Get(gomock.Any(), rancherTLSCASecret, gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-			secret.Name = rancherTLSCASecret.Name
-			secret.Namespace = rancherTLSCASecret.Namespace
-			return nil
-		}).MinTimes(1)
-
-	// Create and make the request
-	request := newRequest(constants2.CertManagerNamespace, constants2.DefaultVerrazzanoCASecretName)
-	reconciler := newSecretsReconciler(mock)
-	result, err := reconciler.Reconcile(context.TODO(), request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.NotNil(result)
-	asserts.NotEqual(ctrl.Result{}, result)
 }
 
 // mock client request to get the secret

@@ -70,9 +70,16 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret
 		return newRequeueWithDelay(), nil
 	}
 
+	// Use private bundle secret to update copies from here
+	privateBundleSecret := &corev1.Secret{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
+	if otherErr := client.IgnoreNotFound(err); otherErr != nil {
+		return newRequeueWithDelay(), otherErr
+	}
+
 	// Update the Rancher TLS CA secret
 	result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
-		vzconst.RancherTLSCAKey, caKey, caSecret, false)
+		vzconst.RancherTLSCAKey, vzconst.CABundleKey, privateBundleSecret, false)
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
@@ -91,7 +98,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret
 
 	// Update the verrazzano-local-ca-bundle secret
 	if _, err := r.updateSecret(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret,
-		mcCABundleKey, caKey, caSecret, true); err != nil {
+		mcCABundleKey, vzconst.CABundleKey, privateBundleSecret, true); err != nil {
 		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil

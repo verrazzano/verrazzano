@@ -239,7 +239,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 		},
 		{
 			name:        "verrazzano-tls-ca-does-not-exist",
-			description: `TLS CA bundle does not exist, likely a case where the secret was deleted, but should not happen`,
+			description: `TLS CA bundle does not exist, the target copies should not be updated; likely a case where the secret was deleted, but should not happen`,
 			cli: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 				&corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{Namespace: multiclusterCASecret.Namespace, Name: multiclusterCASecret.Name},
@@ -248,7 +248,6 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					},
 				},
 				ingressLeafCertOnly,
-				clusterIssuerSecretNotUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
@@ -257,11 +256,10 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 					ObjectMeta: v1.ObjectMeta{Name: rancherDeploymentName, Namespace: vzconst.RancherSystemNamespace},
 				},
 			).Build(),
-			sourceSecret:                 clusterIssuerSecretNotUpdated,
-			privateCAExpectedBundleData:  []byte(nil),
+			sourceSecret:                 ingressLeafCertOnly,
 			privateCABundleSecretWantErr: assert.Error,
 			rancherBundleSecretWantErr:   assert.Error,
-			mcExpectedBundleData:         originalBundleData,
+			mcExpectedBundleData:         []byte(nil),
 		},
 		{
 			name: "lets-encrypt-staging-update-scenario",
