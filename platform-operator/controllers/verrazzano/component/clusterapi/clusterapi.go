@@ -66,6 +66,7 @@ const (
 	expClusterResourceSet                     = "EXP_CLUSTER_RESOURCE_SET"
 	expMachinePool                            = "EXP_MACHINE_POOL"
 	initOCIClientsOnStartup                   = "INIT_OCI_CLIENTS_ON_STARTUP"
+	goproxy                                   = "GOPROXY"
 	clusterAPIControllerImage                 = "cluster-api-controller"
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
@@ -146,6 +147,16 @@ func setEnvVariables() error {
 
 	// Enable experimental feature machine pool at boot up
 	err = os.Setenv(expMachinePool, "true")
+	if err != nil {
+		return err
+	}
+
+	// Setting GOPROXY to direct to avoid Not Found 404 errors due to cluster-api intermittently
+	// retrieving either non-existent provider releases or failing to retrieve legitimate provider releases.
+	// Related bug https://github.com/kubernetes-sigs/cluster-api/issues/7889.  This bug is linked to a
+	// partial fix https://github.com/kubernetes-sigs/cluster-api/pull/8253 fixed in cluster-api v1.5.0.
+	// On uptaking cluster-api v1.5.0, we may no longer require to set the GOPROXY environment variable.
+	err = os.Setenv(goproxy, "direct")
 	if err != nil {
 		return err
 	}
