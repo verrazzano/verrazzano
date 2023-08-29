@@ -29,6 +29,10 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	// there is a window where finalizer.go might set uninstall done after the legacy reconciler has
+	// reset the flag (see controller.go).  Ensure that this field is set to false.
+	vzreconcile.SetModuleUninstallDone(false)
+
 	actualCR := &vzapi.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
