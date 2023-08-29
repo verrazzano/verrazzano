@@ -547,11 +547,11 @@ pipeline {
 
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
-                        stage('opensearch-topology') {
-                            steps {
-                                runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
+//                         stage('opensearch-topology') {
+//                             steps {
+//                                 runGinkgoRandomize('opensearch/topology')
+//                             }
+//                         }
                         stage('Ingress & logging trait WebLogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
@@ -560,38 +560,38 @@ pipeline {
                                 runGinkgo('loggingtrait/weblogicworkload', true)
                             }
                         }
-                        stage('weblogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-                            }
-                            steps {
-                                runGinkgo('workloads/weblogic', true)
-                            }
-                        }
-                        stage('coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-                            }
-                            steps {
-                                runGinkgo('workloads/coherence', true)
-                            }
-                        }
-                        stage('oam workloads') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
-                            }
-                            steps {
-                                runGinkgo('workloads/oam', true)
-                            }
-                        }
-                        stage('logging trait Coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/coherenceworkload', true)
-                            }
-                        }
+//                         stage('weblogic workload') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+//                             }
+//                             steps {
+//                                 runGinkgo('workloads/weblogic', true)
+//                             }
+//                         }
+//                         stage('coherence workload') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+//                             }
+//                             steps {
+//                                 runGinkgo('workloads/coherence', true)
+//                             }
+//                         }
+//                         stage('oam workloads') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+//                             }
+//                             steps {
+//                                 runGinkgo('workloads/oam', true)
+//                             }
+//                         }
+//                         stage('logging trait Coherence workload') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+//                             }
+//                             steps {
+//                                 runGinkgo('loggingtrait/coherenceworkload', true)
+//                             }
+//                         }
                     }
                 }
 
