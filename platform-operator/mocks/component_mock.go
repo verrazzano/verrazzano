@@ -600,7 +600,7 @@ func (m *MockComponent) EXPECT() *MockComponentMockRecorder {
 	return m.recorder
 }
 
-// Exists mocks base method
+// Exists mocks base method.
 func (m *MockComponent) Exists(arg0 spi.ComponentContext) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Exists", arg0)
@@ -609,7 +609,7 @@ func (m *MockComponent) Exists(arg0 spi.ComponentContext) (bool, error) {
 	return ret0, ret1
 }
 
-// Exists indicates an expected call of Exists
+// Exists indicates an expected call of Exists.
 func (mr *MockComponentMockRecorder) Exists(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockComponent)(nil).Exists), arg0)
