@@ -6,7 +6,6 @@ package clusterapi
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -102,11 +101,6 @@ func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 // ShouldUseModule returns true if component is implemented using a Module
 func (c clusterAPIComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
-}
-
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (c clusterAPIComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module

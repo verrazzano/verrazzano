@@ -4,7 +4,10 @@
 package issuer
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -41,4 +44,9 @@ func (c clusterIssuerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha
 		IssuerConfig:             clusterIssuer.IssuerConfig,
 	}
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return watch.GetModuleReadyWatches([]string{cmconstants.CertManagerComponentName})
 }
