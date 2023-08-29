@@ -52,62 +52,68 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ctx = context.TODO()
 	}
 
+	// Get the VZ
+	vzList, result, err := r.getVZ(ctx)
+	if err != nil {
+		return result, err
+	}
+
+	// Nothing to do if no VZ returned or if it is being deleted
+	if vzList == nil || len(vzList.Items) == 0 || vzList.Items[0].DeletionTimestamp != nil {
+		return ctrl.Result{}, nil
+	}
+
+	// Get the effective CR to access the ClusterIssuer configuration
+	vz := &vzList.Items[0]
+	effectiveCR, err := transform.GetEffectiveCR(vz)
+	if err != nil {
+		zap.S().Errorf("Failed to get the effective CR for %s/%s: %s", vz.Namespace, vz.Name, err.Error())
+		return newRequeueWithDelay(), err
+	}
+
+	// Renew all certificates issued by ClusterIssuer when it's secret changes
+	clusterIssuer := effectiveCR.Spec.Components.ClusterIssuer
+	if isClusterIssuerSecret(req.NamespacedName, clusterIssuer) {
+		if err = r.renewClusterIssuerCertificates(); err != nil {
+			zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
+			return newRequeueWithDelay(), err
+		}
+		return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, corev1.TLSCertKey)
+	}
+
+	// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
+	// a reconcile which will update any upstream copies
+	// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
+	//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
+	// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
+	letsEncrypt, err := clusterIssuer.IsLetsEncryptIssuer()
+	if err != nil {
+		zap.S().Errorf("Failed to determine if Let's Encrypt certificates are configured: %s", err.Error())
+		return newRequeueWithDelay(), err
+	}
+	if letsEncrypt && isVerrazzanoIngressSecretName(req.NamespacedName) {
+		return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, vzconst.CACertKey)
+	}
+
+	res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
+	if err != nil {
+		zap.S().Errorf("Failed to reconcile Secret: %v", err)
+		return newRequeueWithDelay(), err
+	}
+	return res, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) getVZ(ctx context.Context) (*installv1alpha1.VerrazzanoList, ctrl.Result, error) {
 	vzList := &installv1alpha1.VerrazzanoList{}
 	err := r.List(ctx, vzList)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
+			return nil, reconcile.Result{}, nil
 		}
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
-		return newRequeueWithDelay(), err
+		return nil, newRequeueWithDelay(), err
 	}
-	if vzList != nil && len(vzList.Items) > 0 {
-		vz := &vzList.Items[0]
-		// Nothing to do if the vz resource is being deleted
-		if vz.DeletionTimestamp != nil {
-			return ctrl.Result{}, nil
-		}
-
-		// Get the effective CR to access the ClusterIssuer configuration
-		effectiveCR, err := transform.GetEffectiveCR(vz)
-		if err != nil {
-			zap.S().Errorf("Failed to get the effective CR for %s/%s: %s", vz.Namespace, vz.Name, err.Error())
-			return newRequeueWithDelay(), err
-		}
-
-		// Renew all certificates issued by ClusterIssuer when it's secret changes
-		clusterIssuer := effectiveCR.Spec.Components.ClusterIssuer
-		if isClusterIssuerSecret(req.NamespacedName, clusterIssuer) {
-			if err = r.renewClusterIssuerCertificates(); err != nil {
-				zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
-				return newRequeueWithDelay(), err
-			}
-			return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, corev1.TLSCertKey)
-		}
-
-		// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
-		// a reconcile which will update any upstream copies
-		// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
-		//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
-		// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
-		letsEncrypt, err := clusterIssuer.IsLetsEncryptIssuer()
-		if err != nil {
-			zap.S().Errorf("Failed to determine if Let's Encrypt certificates are configured: %s", err.Error())
-			return newRequeueWithDelay(), err
-		}
-		if letsEncrypt && isVerrazzanoIngressSecretName(req.NamespacedName) {
-			return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, vzconst.CACertKey)
-		}
-
-		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
-		if err != nil {
-			zap.S().Errorf("Failed to reconcile Secret: %v", err)
-			return newRequeueWithDelay(), err
-		}
-		return res, nil
-	}
-
-	return ctrl.Result{}, nil
+	return vzList, ctrl.Result{}, nil
 }
 
 // initialize secret logger
