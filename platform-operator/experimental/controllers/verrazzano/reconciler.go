@@ -5,14 +5,18 @@ package verrazzano
 
 import (
 	"context"
+	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzreconcile "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -25,6 +29,9 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	if !vzreconcile.IsPreModuleWorkDone() {
+		return result.NewResultShortRequeueDelay()
+	}
 	actualCR := &vzapi.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -35,6 +42,14 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// Wait for legacy verrazzano controller to initialize status
 	if actualCR.Status.Components == nil {
 		return result.NewResultShortRequeueDelay()
+	}
+
+	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
+	// has not started an upgrade of the Verrazzano install.
+	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
+		// return an error if encountered, otherwise returns an empty result to stop reconciling
+		spictx.Log.Progressf("Upgrade required before reconciling modules")
+		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
 	// Get effective CR and set the effective CR status with the actual status
@@ -60,6 +75,8 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 
 	// All the modules have been reconciled and are ready
+	vzreconcile.SetModuleCreateOrUpdateDone(true)
+	vzreconcile.SetPreModuleWorkDone(false)
 	return result.NewResult()
 }
 
@@ -93,7 +110,6 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 			},
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			// TODO For now have the module version match the VZ version
 			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
 		})
 		if err != nil {
@@ -114,9 +130,45 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
 	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
 
+	if module.Labels == nil {
+		module.Labels = make(map[string]string)
+	}
+	module.Labels[vzconst.VerrazzanoOwnerLabel] = string(effectiveCR.UID)
+
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion
 
 	return r.setModuleValues(log, effectiveCR, module, comp)
+}
+
+// isUpgradeRequired Returns true if we detect that an upgrade is required but not (at least) in progress:
+//   - if the Spec version IS NOT empty is less than the BOM version, an upgrade is required
+//   - if the Spec version IS empty the Status version is less than the BOM, then an upgrade is required (upgrade of initial install scenario)
+//
+// If we return true here, it means we should stop reconciling until an upgrade has been requested
+func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) {
+	if actualCR == nil {
+		return false, fmt.Errorf("no Verrazzano CR provided")
+	}
+	bomVersion, err := validators.GetCurrentBomVersion()
+	if err != nil {
+		return false, err
+	}
+
+	if len(actualCR.Spec.Version) > 0 {
+		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+		if err != nil {
+			return false, err
+		}
+		return specVersion.IsLessThan(bomVersion), nil
+	}
+	if len(actualCR.Status.Version) > 0 {
+		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+		if err != nil {
+			return false, err
+		}
+		return statusVersion.IsLessThan(bomVersion), nil
+	}
+	return false, nil
 }

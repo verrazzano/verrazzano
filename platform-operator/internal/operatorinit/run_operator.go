@@ -22,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	integrationcascade "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/cascade"
 	integrationsingle "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/single"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
 	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
@@ -250,6 +251,8 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 // The controller uses the module name (i.e. component name) as a predicate, so that each controller only processes Module CRs for the
 // respective component.
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
+	const maxReconciles = 30
+
 	// Temp hack to prevent module controller from looking up helm info
 	module.IgnoreHelmInfo()
 
@@ -263,6 +266,7 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
 			ModuleClass:       moduleapi.ModuleClassType(comp.Name()),
 			WatchDescriptors:  comp.GetWatchDescriptors(),
+			ControllerOptions: &controller.Options{MaxConcurrentReconciles: maxReconciles},
 		}); err != nil {
 			log.Errorf("Failed to start the controller for module %s:%v", comp.Name(), err)
 			return err

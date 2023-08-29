@@ -4,7 +4,7 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"

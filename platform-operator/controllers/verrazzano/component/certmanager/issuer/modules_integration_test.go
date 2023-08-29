@@ -5,12 +5,18 @@ package issuer
 
 import (
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"testing"
 )
 
+// TestGetModuleSpec tests the GetModuleConfigAsHelmValues function impl for this component
+// GIVEN a call to GetModuleConfigAsHelmValues
+//
+//	WHEN for various Verrazzano CR configurations
+//	THEN the generated helm values JSON snippet is valid
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
 	tests := []struct {
@@ -82,6 +88,69 @@ func TestGetModuleSpec(t *testing.T) {
 			wantErr: assert.NoError,
 			want: `
 				{
+				  "verrazzano": {
+					"module": {
+					  "spec": {
+						"dns": {
+						  "oci": {
+							"dnsScope": "global",
+							"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
+							"dnsZoneOCID": "ocid..zone.myzone",
+							"dnsZoneName": "myzone",
+							"ociConfigSecret": "oci"
+						  }
+						},
+						"issuerConfig": {
+						  "ca": {
+							"secretName": "newsecret"
+						  }
+						},
+						"clusterResourceNamespace": "ns"
+					  }
+					}
+				  }
+				}
+				`,
+		},
+		{
+			name: "OtherComponentConfigsHaveNoEffect",
+			effectiveCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{Values: &apiextensionsv1.JSON{Raw: []byte("somevalue")}},
+								},
+							},
+							KeycloakInstallArgs: nil,
+							MySQL:               vzapi.MySQLComponent{},
+						},
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{
+								DNSScope:               "global",
+								DNSZoneCompartmentOCID: "ocid..compartment.mycomp",
+								DNSZoneOCID:            "ocid..zone.myzone",
+								DNSZoneName:            "myzone",
+								OCIConfigSecret:        "oci",
+							},
+						},
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							Enabled:                  &trueValue,
+							ClusterResourceNamespace: secretNamespace,
+							IssuerConfig: vzapi.IssuerConfig{
+								CA: &vzapi.CAIssuer{
+									SecretName: secretName,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: assert.NoError,
+			want: `				{
 				  "verrazzano": {
 					"module": {
 					  "spec": {

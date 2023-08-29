@@ -6,17 +6,17 @@ package update
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/client-go/rest"
 	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -320,15 +320,15 @@ func UpdateCRExpectError(m CRModifier) error {
 }
 
 // IsCRReady return true if the verrazzano custom resource is in ready state after an update operation false otherwise
-func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
-	if cr == nil || cr.Status.State != vzapi.VzStateReady {
+func IsCRReadyAfterUpdate(cr *v1beta1.Verrazzano, updatedTime time.Time) bool {
+	if cr == nil || cr.Status.State != v1beta1.VzStateReady {
 		pkg.Log(pkg.Error, "VZ CR is nil or not in ready state")
 		return false
 	}
 	for _, condition := range cr.Status.Conditions {
 		pkg.Log(pkg.Info, fmt.Sprintf("Checking if condition of type '%s', transitioned at '%s' is for the expected update",
 			condition.Type, condition.LastTransitionTime))
-		if (condition.Type == vzapi.CondInstallComplete || condition.Type == vzapi.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
+		if (condition.Type == v1beta1.CondInstallComplete || condition.Type == v1beta1.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
 			// check if the transition time is post the time of update
 			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
 			if err != nil {
@@ -350,7 +350,7 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 // WaitForReadyState waits till the verrazzano custom resource becomes ready or times out
 func WaitForReadyState(kubeconfigPath string, updateTime time.Time, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
-		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+		cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false

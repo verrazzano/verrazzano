@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -191,15 +191,15 @@ func GetVerrazzanoRetentionPolicy(retentionPolicyName string) (v12.IndexManageme
 		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
 		return retentionPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
-	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	clientset, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
 		return retentionPolicy, fmt.Errorf(clientSetErrorFmt, err)
 	}
 	var retentionPolicies []v12.IndexManagementPolicy
-	if clientset.Spec.Components.Elasticsearch != nil &&
-		clientset.Spec.Components.Elasticsearch.Policies != nil {
-		retentionPolicies = clientset.Spec.Components.Elasticsearch.Policies
+	if clientset.Spec.Components.OpenSearch != nil &&
+		clientset.Spec.Components.OpenSearch.Policies != nil {
+		retentionPolicies = clientset.Spec.Components.OpenSearch.Policies
 	} else {
 		return retentionPolicy, nil
 	}
@@ -223,13 +223,13 @@ func GetVerrazzanoRolloverPolicy(rolloverPolicyName string) (v12.RolloverPolicy,
 		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
 		return defaultRolloverPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
-	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	clientset, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
 		return defaultRolloverPolicy, fmt.Errorf(clientSetErrorFmt, err)
 	}
-	if clientset.Spec.Components.Elasticsearch != nil {
-		for _, ismPolicy := range clientset.Spec.Components.Elasticsearch.Policies {
+	if clientset.Spec.Components.OpenSearch != nil {
+		for _, ismPolicy := range clientset.Spec.Components.OpenSearch.Policies {
 			if ismPolicy.PolicyName == rolloverPolicyName {
 				return ismPolicy.Rollover, nil
 			}
@@ -265,7 +265,14 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			if isReadyAndRunning(pod) {
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
+				// check to see if the pod IP is misconfigured
+				podIP := pod.Status.PodIP
+				Log(Debug, fmt.Sprintf("Pod %s IP: %s", pod.Name, podIP))
+				if !isIPAddressValid(podIP) {
+					return false, fmt.Errorf("pod %s does not have a valid IP address: %s", pod.Name, podIP)
+				}
 				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+
 			}
 		}
 	}
@@ -843,7 +850,7 @@ func IsVerrazzanoManaged(labels map[string]string) bool {
 	return false
 }
 
-func IngressesExist(vz *v1alpha1.Verrazzano, namespace string, ingressNames []string) (bool, error) {
+func IngressesExist(vz *v1beta1.Verrazzano, namespace string, ingressNames []string) (bool, error) {
 	if !vzcr.IsNGINXEnabled(vz) {
 		Log(Info, "Component NGINX is disabled, skipping Ingress check.")
 		return true, nil
@@ -903,4 +910,13 @@ func DoesNamespaceHasVerrazzanoLabel(ns string) (bool, error) {
 		return false, fmt.Errorf("Namespace %s has the incorrect value for for the label %s: %s", ns, constants.LabelVerrazzanoNamespace, namespace.Labels[constants.LabelVerrazzanoNamespace])
 	}
 	return true, nil
+}
+
+// isIPAddressValid checks whether the IP is a valid address. If an empty string is passed in then the assumption is
+// that an IP address has yet to be assigned and a 'true' response is returned to allow for processing to continue.
+func isIPAddressValid(ip string) bool {
+	if len(ip) > 0 {
+		return net.ParseIP(ip) != nil
+	}
+	return true
 }

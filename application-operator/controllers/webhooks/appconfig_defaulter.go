@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -63,7 +63,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	//This json can be used to curl -X POST the webhook endpoint
 	log.Debugw("admission.Request", "request", req)
 	log.Infow("Handling appconfig default",
-		"request.Operation", req.Operation, "request.Name", req.Name)
+		"requestOperation", req.Operation, "requestName", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
 	if req.Operation == v1.Delete {
