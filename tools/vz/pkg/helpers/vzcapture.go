@@ -324,7 +324,8 @@ func CaptureExpiredThirdPartyCerts(client clipkg.Client, captureDir string, vzHe
 	collectHostNames(certificateList)
 	if len(certificateList.Items) > 0 {
 		//Don't use the createFile, just use a seperate function (Look at what other functions do) (Main thing is to get a list of the secrets where this is happening)
-		// Then the VZ analysis tool would just look for this file, if it exists parse it and report issues
+		// Then the VZ analysis tool would just look for this file, if it exists parse it and report issues)
+		// How to handle if secret is not in cluster, is that an error itself, or just ignore it? (Ask Mike Tomoror)
 		if err = createFile(certificateList, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
