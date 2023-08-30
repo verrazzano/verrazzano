@@ -18,12 +18,11 @@ type (
 		*ocne.VersionDefaults `json:",inline"`
 		*oci.Credentials      `json:",inline"` //nolint:gosec //#gosec G101
 		*vmcv1alpha1.Network
-		Name               string
-		Namespace          string
-		Spec               vmcv1alpha1.OCIOCNEClusterSpec `json:",inline"`
-		LoadBalancerSubnet string
-		ProviderId         string
-		f                  []map[string][]map[string]string
+		Name                           string
+		Namespace                      string
+		vmcv1alpha1.OCIOCNEClusterSpec `json:",inline"`
+		LoadBalancerSubnet             string
+		ProviderId                     string
 	}
 )
 
@@ -37,13 +36,13 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		return nil, err
 	}
 	props := &Properties{
-		VersionDefaults: versions,
-		Credentials:     creds,
-		Name:            q.Name,
-		Namespace:       q.Namespace,
-		Spec:            q.Spec,
-		Network:         q.Spec.OCI.Network,
-		ProviderId:      oci.ProviderId,
+		VersionDefaults:    versions,
+		Credentials:        creds,
+		Name:               q.Name,
+		Namespace:          q.Namespace,
+		OCIOCNEClusterSpec: q.Spec,
+		Network:            q.Spec.OCI.Network,
+		ProviderId:         oci.ProviderId,
 	}
 	// If there's no OCI network, check if the network has created
 	if !props.HasOCINetwork() {
@@ -57,11 +56,21 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 	return props, nil
 }
 
-func (p *Properties) ApplyFromTemplateDirectory(cli clipkg.Client, dir string) error {
-	return k8sutil.NewYAMLApplier(cli, "").ApplyDT(dir, p)
+func (p *Properties) ApplyTemplate(cli clipkg.Client, templates ...[]byte) error {
+	applier := k8sutil.NewYAMLApplier(cli, "")
+	for _, tmpl := range templates {
+		if err := applier.ApplyBT(tmpl, p); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // HasOCINetwork returns true if the OCI Network is present
 func (p *Properties) HasOCINetwork() bool {
 	return p.Network != nil
+}
+
+func (p *Properties) IsQuickCreate() bool {
+	return p.Network.CreateVCN
 }

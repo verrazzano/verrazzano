@@ -54,6 +54,6 @@ type (
 		Subnets   []Subnet `json:"subnets,omitempty"`
 	}
 	OCNEOCIQuickCreateStatus struct {
-		QuickCreateStatus QuickCreateStatus `json:",inline"`
+		Phase QuickCreatePhase `json:"phase"`
 	}
 )

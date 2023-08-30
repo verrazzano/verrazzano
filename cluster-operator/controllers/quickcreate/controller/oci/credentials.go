@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/oracle/oci-go-sdk/v53/common"
+	"github.com/oracle/oci-go-sdk/v53/common/auth"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,6 +82,17 @@ func (c CredentialsLoaderImpl) GetCredentialsIfAllowed(ctx context.Context, cli 
 		return nil, fmt.Errorf("cannot access OCI identity %s/%s", identityRef.Namespace, identityRef.Name)
 	}
 	return getCredentialsFromIdentity(ctx, cli, identity)
+}
+
+func (c Credentials) AsConfigurationProvider() (common.ConfigurationProvider, error) {
+	if c.UseInstancePrincipal == "true" {
+		return auth.InstancePrincipalConfigurationProvider()
+	}
+	var passphrase *string
+	if len(c.Passphrase) > 0 {
+		passphrase = &c.Passphrase
+	}
+	return common.NewRawConfigurationProvider(c.Tenancy, c.User, c.Region, c.Fingerprint, c.PrivateKey, passphrase), nil
 }
 
 // IsAllowedNamespace checks if a given identity allows access from a given namespace.

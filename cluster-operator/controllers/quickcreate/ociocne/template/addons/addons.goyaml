@@ -78,7 +78,7 @@ stringData:
                     calicoNetwork:
                         bgp: Disabled
                         ipPools:
-                            - cidr: {{ .Kubernetes.ClusterNetwork.Kubernetes.ClusterNetwork.PodCIDR }}
+                            - cidr: {{ .Kubernetes.ClusterNetwork.PodCIDR }}
                               encapsulation: VXLAN
                     {{- if .PrivateRegistry }}
                     registry: {{.PrivateRegistry.URL}}
@@ -109,7 +109,7 @@ stringData:
                   compartment: {{.OCI.Compartment}}
                   user: {{.User}}
                   key: |-
-        {{.PrivateKey | nindent 20 }}
+{{.PrivateKey | nindent 20 }}
                   fingerprint: {{.Fingerprint}}
               {{- if .Passphrase}}
                   key_passphrase: {{.Passphrase}}
@@ -152,7 +152,7 @@ stringData:
                   compartment: {{.OCI.Compartment}}
                   user: {{.User}}
                   key: |-
-        {{.PrivateKey | nindent 20 }}
+{{.PrivateKey | nindent 20 }}
                   fingerprint: {{.Fingerprint}}
               {{- if .Passphrase}}
                   key_passphrase: {{.Passphrase}}

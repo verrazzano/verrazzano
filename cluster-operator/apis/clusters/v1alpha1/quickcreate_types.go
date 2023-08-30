@@ -96,9 +96,6 @@ type (
 		// Namespace of the ref.
 		Namespace string `json:"namespace"`
 	}
-	QuickCreateStatus struct {
-		Phase QuickCreatePhase `json:"phase"`
-	}
 	QuickCreatePhase string
 )
 

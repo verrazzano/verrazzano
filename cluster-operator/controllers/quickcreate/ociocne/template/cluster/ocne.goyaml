@@ -15,7 +15,7 @@ spec:
         image:
             repository: {{ .PrivateRegistry.URL }}/verrazzano/module-operator
     {{- end }}
-    {{- if .PrivateRegistry.CredentialSecret.Name }}
+    {{- if and .PrivateRegistry .PrivateRegistry.CredentialSecret.Name }}
         imagePullSecrets:
             - name: verrazzano-container-registry
     {{- end }}

@@ -13,5 +13,5 @@ func isMissingFinalizer(q *vmcv1alpha1.OCNEOCIQuickCreate) bool {
 }
 
 func shouldProvision(q *vmcv1alpha1.OCNEOCIQuickCreate) bool {
-	return q.Status.QuickCreateStatus.Phase == ""
+	return q.Status.Phase == ""
 }

@@ -5,6 +5,7 @@ package ociocne
 
 import (
 	"context"
+	_ "embed"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
@@ -17,9 +18,18 @@ import (
 )
 
 const (
-	finalizerKey     = "verrazzano.io/oci-ocne-cluster"
-	clusterTemplates = "template/cluster"
-	addonTemplates   = "template/addons"
+	finalizerKey = "verrazzano.io/oci-ocne-cluster"
+)
+
+var (
+	//go:embed template/addons/addons.goyaml
+	addonsTemplate []byte
+	//go:embed template/cluster/cluster.goyaml
+	clusterTemplate []byte
+	//go:embed template/cluster/nodes.goyaml
+	nodesTemplate []byte
+	//go:embed template/cluster/ocne.goyaml
+	ocneTemplate []byte
 )
 
 type ClusterReconciler struct {
@@ -44,7 +54,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *ClusterReconciler) reconcile(ctx context.Context, q *vmcv1alpha1.OCNEOCIQuickCreate) (ctrl.Result, error) {
 	// If quick create is completed, or being deleted, clean up the quick create
-	if !q.GetDeletionTimestamp().IsZero() || q.Status.QuickCreateStatus.Phase == vmcv1alpha1.QuickCreatePhaseComplete {
+	if !q.GetDeletionTimestamp().IsZero() || q.Status.Phase == vmcv1alpha1.QuickCreatePhaseComplete {
 		return ctrl.Result{}, r.delete(ctx, q)
 	}
 	// Add any finalizers if they are not present
@@ -55,13 +65,17 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, q *vmcv1alpha1.OCNEOC
 }
 
 func (r *ClusterReconciler) delete(ctx context.Context, q *vmcv1alpha1.OCNEOCIQuickCreate) error {
-	if !vzstring.SliceContainsString(q.GetFinalizers(), finalizerKey) {
-		return nil
+	if q.GetDeletionTimestamp().IsZero() {
+		if err := r.Delete(ctx, q); err != nil {
+			return err
+		}
 	}
-	q.SetFinalizers(vzstring.RemoveStringFromSlice(q.GetFinalizers(), finalizerKey))
-	err := r.Update(ctx, q)
-	if err != nil && !apierrors.IsConflict(err) {
-		return err
+	if vzstring.SliceContainsString(q.GetFinalizers(), finalizerKey) {
+		q.SetFinalizers(vzstring.RemoveStringFromSlice(q.GetFinalizers(), finalizerKey))
+		err := r.Update(ctx, q)
+		if err != nil && !apierrors.IsConflict(err) {
+			return err
+		}
 	}
 	return nil
 }
@@ -81,18 +95,20 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNE
 	}
 	// If provisioning has not successfully started, attempt to provisioning the cluster
 	if shouldProvision(q) {
-		if err := ocne.ApplyFromTemplateDirectory(r.Client, clusterTemplates); err != nil {
+		if err := ocne.ApplyTemplate(r.Client, clusterTemplate, nodesTemplate, ocneTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
-		q.Status.QuickCreateStatus.Phase = vmcv1alpha1.QuickCreatePhaseProvisioning
+		q.Status = vmcv1alpha1.OCNEOCIQuickCreateStatus{
+			Phase: vmcv1alpha1.QuickCreatePhaseProvisioning,
+		}
 		return r.updateStatus(ctx, q)
 	}
 	// If OCI Network is loaded, update the quick create to completed phase
 	if ocne.HasOCINetwork() {
-		if err := ocne.ApplyFromTemplateDirectory(r.Client, clusterTemplates); err != nil {
+		if err := ocne.ApplyTemplate(r.Client, addonsTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
-		q.Status.QuickCreateStatus.Phase = vmcv1alpha1.QuickCreatePhaseComplete
+		q.Status.Phase = vmcv1alpha1.QuickCreatePhaseComplete
 		return r.updateStatus(ctx, q)
 	}
 	// Quick Create is not complete yet, requeue

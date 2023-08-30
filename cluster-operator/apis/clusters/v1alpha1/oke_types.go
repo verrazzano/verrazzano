@@ -58,7 +58,7 @@ type (
 		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	}
 	OKEQuickCreateStatus struct {
-		QuickCreateStatus QuickCreateStatus `json:",inline"`
+		Phase QuickCreatePhase `json:"phase"`
 	}
 )
 

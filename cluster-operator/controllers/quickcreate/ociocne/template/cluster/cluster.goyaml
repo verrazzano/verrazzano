@@ -371,12 +371,13 @@ spec:
     networkSpec:
         skipNetworkManagement: true
         vcn:
-            id:  {{.Network.VCN}}
+            id: {{.Network.VCN}}
       {{- if .Network.Subnets }}
             subnets:
         {{- range .Network.Subnets }}
-                - id:  {{.ID}}
+                - id: {{.ID}}
                   role: {{.Role}}
+                  name: {{.Role}}
         {{- end }}
       {{- end }}
 {{- end }}

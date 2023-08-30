@@ -11,7 +11,7 @@ spec:
         spec:
             bootVolumeSizeInGBs: "{{.OCI.ControlPlane.BootVolumeGbs}}"
             compartmentId:  {{.OCI.Compartment}}
-            imageId:  {{.OCI.ImageName}}
+            imageId:  {{.OCI.ImageId}}
       {{- if .OCI.SSHPublicKey }}
             metadata:
                 ssh_authorized_keys: {{.OCI.SSHPublicKey}}
@@ -40,8 +40,8 @@ spec:
         spec:
             bootVolumeSizeInGBs: "{{.BootVolumeGbs}}"
             compartmentId:  {{$.OCI.Compartment}}
-            imageId:  {{$.OCI.ImageName}}
-      {{- if $.SSHPublicKey}}
+            imageId:  {{$.OCI.ImageId}}
+      {{- if $.OCI.SSHPublicKey}}
             metadata:
               ssh_authorized_keys: {{$.OCI.SSHPublicKey}}
       {{- end }}
