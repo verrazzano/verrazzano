@@ -24,7 +24,7 @@ func (c *CredentialsLoaderImpl) GetCredentialsIfAllowed(_ context.Context, _ cli
 	return c.Credentials, nil
 }
 
-func (c *ClientImpl) GetSubnetById(ctx context.Context, id, role string) (*oci.Subnet, error) {
+func (c *ClientImpl) GetSubnetByID(ctx context.Context, id, role string) (*oci.Subnet, error) {
 	subnet, ok := c.subnets[id]
 	if !ok {
 		return nil, errors.New("subnet not found")

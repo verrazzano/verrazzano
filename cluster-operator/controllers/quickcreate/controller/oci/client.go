@@ -17,14 +17,14 @@ const (
 // Client interface for OCI Clients
 type (
 	Client interface {
-		GetSubnetById(ctx context.Context, id, role string) (*Subnet, error)
+		GetSubnetByID(ctx context.Context, id, role string) (*Subnet, error)
 	}
 	// ClientImpl OCI Client implementation
 	ClientImpl struct {
 		vnClient core.VirtualNetworkClient
 	}
 	Subnet struct {
-		Id   string
+		ID   string
 		Role string
 		Name string
 		CIDR string
@@ -47,10 +47,10 @@ func NewClient(creds *Credentials) (Client, error) {
 	}, nil
 }
 
-// GetSubnetById retrieves a subnet given that subnet's Id.
-func (c *ClientImpl) GetSubnetById(ctx context.Context, subnetId, role string) (*Subnet, error) {
+// GetSubnetByID retrieves a subnet given that subnet's ID.
+func (c *ClientImpl) GetSubnetByID(ctx context.Context, subnetID, role string) (*Subnet, error) {
 	response, err := c.vnClient.GetSubnet(ctx, core.GetSubnetRequest{
-		SubnetId:        &subnetId,
+		SubnetId:        &subnetID,
 		RequestMetadata: common.RequestMetadata{},
 	})
 	if err != nil {
@@ -59,7 +59,7 @@ func (c *ClientImpl) GetSubnetById(ctx context.Context, subnetId, role string) (
 
 	sn := response.Subnet
 	return &Subnet{
-		Id:   subnetId,
+		ID:   subnetID,
 		CIDR: *sn.CidrBlock,
 		Type: subnetAccess(sn),
 		Name: role,

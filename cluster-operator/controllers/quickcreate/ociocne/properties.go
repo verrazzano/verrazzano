@@ -23,7 +23,7 @@ type (
 		Namespace                      string
 		vmcv1alpha1.OCIOCNEClusterSpec `json:",inline"`
 		LoadBalancerSubnet             string
-		ProviderId                     string
+		ProviderID                     string
 		ExistingSubnets                []oci.Subnet
 		OCIClientGetter                func() (oci.Client, error)
 	}
@@ -33,6 +33,9 @@ type (
 func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.CredentialsLoader, q *vmcv1alpha1.OCNEOCIQuickCreate) (*Properties, error) {
 	// Get the OCNE Versions
 	versions, err := ocne.GetVersionDefaults(ctx, cli, q.Spec.OCNE.Version)
+	if err != nil {
+		return nil, err
+	}
 	// Try to load the credentials, if allowed
 	creds, err := loader.GetCredentialsIfAllowed(ctx, cli, q.Spec.IdentityRef, q.Namespace)
 	if err != nil {
@@ -45,7 +48,7 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		Namespace:          q.Namespace,
 		OCIOCNEClusterSpec: q.Spec,
 		Network:            q.Spec.OCI.Network,
-		ProviderId:         oci.ProviderId,
+		ProviderID:         oci.ProviderID,
 		OCIClientGetter: func() (oci.Client, error) {
 			return oci.NewClient(creds)
 		},
@@ -95,7 +98,7 @@ func (p *Properties) SetExistingSubnets(ctx context.Context) error {
 		var subnet *oci.Subnet
 		subnet, ok := subnetCache[sn.ID]
 		if !ok {
-			subnet, err = ociClient.GetSubnetById(ctx, sn.ID, string(sn.Role))
+			subnet, err = ociClient.GetSubnetByID(ctx, sn.ID, string(sn.Role))
 			if err != nil {
 				return err
 			}

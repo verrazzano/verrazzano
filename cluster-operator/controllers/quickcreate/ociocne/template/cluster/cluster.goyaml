@@ -375,7 +375,7 @@ spec:
       {{- if .Network.Subnets }}
             subnets:
         {{- range .ExistingSubnets }}
-            - id:  {{.Id}}
+            - id:  {{.ID}}
               role: {{.Role}}
               name: {{.Name}}
               cidr: {{.CIDR}}

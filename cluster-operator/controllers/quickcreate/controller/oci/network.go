@@ -55,14 +55,14 @@ func GetNetwork(ctx context.Context, cli clipkg.Client, o clipkg.Object) (*vmcv1
 		if err != nil || !found {
 			return nil, errors.New("waiting for subnet role to be populated")
 		}
-		subnetId, found, err := unstructured.NestedString(subnetObject, "id")
+		subnetID, found, err := unstructured.NestedString(subnetObject, "id")
 		if err != nil || !found {
 			return nil, errors.New("waiting for subnet id to be populated")
 		}
 
 		network.Subnets = append(network.Subnets, vmcv1alpha1.Subnet{
 			Role: vmcv1alpha1.SubnetRole(subnetRole),
-			ID:   subnetId,
+			ID:   subnetID,
 		})
 	}
 	// No network can be loaded currently

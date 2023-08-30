@@ -4,5 +4,5 @@
 package oci
 
 const (
-	ProviderId = `oci://{{ ds["id"] }}`
+	ProviderID = `oci://{{ ds["id"] }}`
 )

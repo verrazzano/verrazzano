@@ -10,7 +10,7 @@ type (
 		// +patchStrategy=merge,retainKeys
 		// Role of subnet within the cluster.
 		Role SubnetRole `json:"role" patchStrategy:"merge,retainKeys" patchMergeKey:"role"`
-		// The Id of the subnet.
+		// The ID of the subnet.
 		ID string `json:"id"`
 	}
 	CommonClusterSpec struct {
@@ -32,7 +32,7 @@ type (
 		SSHPublicKey *string `json:"sshPublicKey,omitempty"`
 		// Node image id.
 		// The default is the latest OL8 image in the provided compartment.
-		ImageId string `json:"imageId,omitempty"`
+		ImageID string `json:"imageId,omitempty"`
 		// Cloud-init script to run during node startup.
 		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}

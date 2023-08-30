@@ -73,14 +73,14 @@ spec:
                 criSocket: /var/run/crio/crio.sock
                 kubeletExtraArgs:
                     cloud-provider: external
-                    provider-id: {{.ProviderId}}
+                    provider-id: {{.ProviderID}}
         joinConfiguration:
             discovery: {}
             nodeRegistration:
                 criSocket: /var/run/crio/crio.sock
                 kubeletExtraArgs:
                     cloud-provider: external
-                    provider-id: {{.ProviderId}}
+                    provider-id: {{.ProviderID}}
     {{- if .OCI.CloudInitScript }}
         preOCNECommands:
     {{- range .OCI.CloudInitScript }}
@@ -117,7 +117,7 @@ spec:
                 nodeRegistration:
                     kubeletExtraArgs:
                         cloud-provider: external
-                        provider-id: {{.ProviderId}}
+                        provider-id: {{.ProviderID}}
         {{- if .OCI.CloudInitScript }}
             preOCNECommands:
         {{- range .OCI.CloudInitScript }}
