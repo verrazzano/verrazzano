@@ -109,7 +109,8 @@ func (c coherenceComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := webhook.DeleteValidatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-validating-webhook-configuration"); err != nil {
 		return err
 	}
-	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-mutating-webhook-configuration"); err != nil {
+	webhooks := []string{"coherence-operator-mutating-webhook-configuration"}
+	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks); err != nil {
 		return err
 	}
 	return nil
