@@ -325,35 +325,14 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
 	caCrtList := []CaCrtInfo{}
 	for _, cert := range certificateList.Items {
-		correspondingSecretName := cert.Spec.SecretName
-		secretForCertificate := &corev1.Secret{}
-		err := client.Get(context.Background(), clipkg.ObjectKey{
-			Namespace: namespace,
-			Name:      correspondingSecretName,
-		}, secretForCertificate)
+		caCrtInfoForCert, isExpired, err := isCaExpired(client, cert, namespace)
+
 		if err != nil {
 			return err
 		}
-		caCrtData, ok := secretForCertificate.Data["ca.crt"]
-		if !ok {
-			continue
+		if isExpired == true {
+			caCrtList = append(caCrtList, *caCrtInfoForCert)
 		}
-		caCrtDataPemDecoded, _ := pem.Decode(caCrtData)
-		if caCrtDataPemDecoded == nil {
-			return fmt.Errorf("Failure to PEM Decode Certificate")
-		}
-		certificate, err := x509.ParseCertificate(caCrtDataPemDecoded.Bytes)
-		if err != nil {
-			return err
-		}
-		caCrtInfoForCert := CaCrtInfo{Name: correspondingSecretName, Expired: false}
-		expirationDateOfCert := certificate.NotAfter
-
-		if time.Now().Unix() > expirationDateOfCert.Unix() {
-			caCrtInfoForCert.Expired = true
-
-		}
-		caCrtList = append(caCrtList, caCrtInfoForCert)
 
 	}
 	if len(caCrtList) > 0 {
@@ -849,4 +828,37 @@ func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
 		podList = removePod(podList, p)
 	}
 	return podList
+}
+
+func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*CaCrtInfo, bool, error) {
+	correspondingSecretName := cert.Spec.SecretName
+	secretForCertificate := &corev1.Secret{}
+	err := client.Get(context.Background(), clipkg.ObjectKey{
+		Namespace: namespace,
+		Name:      correspondingSecretName,
+	}, secretForCertificate)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtData, ok := secretForCertificate.Data["ca.crt"]
+	if !ok {
+		return nil, false, nil
+	}
+	caCrtDataPemDecoded, _ := pem.Decode(caCrtData)
+	if caCrtDataPemDecoded == nil {
+		return nil, false, fmt.Errorf("Failure to PEM Decode Certificate")
+	}
+	certificate, err := x509.ParseCertificate(caCrtDataPemDecoded.Bytes)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtInfoForCert := CaCrtInfo{Name: correspondingSecretName, Expired: false}
+	expirationDateOfCert := certificate.NotAfter
+
+	if time.Now().Unix() > expirationDateOfCert.Unix() {
+		caCrtInfoForCert.Expired = true
+		return &caCrtInfoForCert, true, nil
+
+	}
+	return nil, false, nil
 }
