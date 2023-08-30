@@ -7,7 +7,6 @@ import (
 	"flag"
 	"os"
 
-	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/proxy"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
@@ -20,8 +19,6 @@ var proxyPort int
 func main() {
 	handleFlags()
 	log := zap.S()
-
-	config.InitConfiguration(log)
 
 	log.Info("Initializing the proxy server")
 	authproxy := proxy.InitializeProxy(proxyPort)

@@ -44,7 +44,3 @@ dns:
 v2:
   image:
   port: 8777
-
-  oidcIssuerURL: placeholder
-  oidcClientID: verrazzano-pkce
-  oidcConfigSecret: verrazzano-authproxy-oidc-config
