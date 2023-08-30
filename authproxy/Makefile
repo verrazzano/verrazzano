@@ -42,6 +42,8 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
+
 DIST_DIR:=dist
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
@@ -53,7 +55,6 @@ build: go-fmt go-vet
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=true --metrics-addr=localhost:0 --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG}
 
 #

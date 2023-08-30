@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -16,6 +17,8 @@ import (
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -43,6 +46,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -397,8 +401,14 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	c := fake.NewClientBuilder().WithScheme(getTestScheme()).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: func() metav1.ObjectMeta {
 				om := createObjectMeta(namespace, name, []string{finalizerName})
@@ -434,6 +444,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
+	SetModuleCreateOrUpdateDone(true)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
@@ -446,6 +457,16 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.Error(err)
 	asserts.True(errors2.IsNotFound(err))
+}
+
+func getTestScheme() *runtime.Scheme {
+	scheme := newScheme()
+	_ = vzapi.AddToScheme(scheme)
+	_ = vzappclusters.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
+	_ = clustersapi.AddToScheme(scheme)
+	_ = rbacv1.AddToScheme(scheme)
+	return scheme
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
@@ -1945,6 +1966,7 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
+		SetModuleCreateOrUpdateDone(true)
 		result, err = reconciler.Reconcile(context.TODO(), request)
 		if err != nil || !result.Requeue {
 			break

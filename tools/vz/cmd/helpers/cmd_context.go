@@ -110,3 +110,14 @@ func (rc *RootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.Disc
 	}
 	return discoveryClient, nil
 }
+
+// VerifyCLIArgsNil checks that command args are not set at the creation of the command
+func (rc *RootCmdContext) VerifyCLIArgsNil(cmd *cobra.Command) error {
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return fmt.Errorf("invalid arguments specified: %s", args)
+		}
+		return nil
+	}
+	return nil
+}

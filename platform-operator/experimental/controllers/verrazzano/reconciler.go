@@ -9,13 +9,14 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzreconcile "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -28,10 +29,14 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	// there is a window where finalizer.go might set uninstall done after the legacy reconciler has
+	// reset the flag (see controller.go).  Ensure that this field is set to false.
+	vzreconcile.SetModuleUninstallDone(false)
+
 	actualCR := &vzapi.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
-		// This is a fatal error, don't requeue
+		// This is a fatal error which should never happen, don't requeue
 		return result.NewResult()
 	}
 
@@ -71,6 +76,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 
 	// All the modules have been reconciled and are ready
+	vzreconcile.SetModuleCreateOrUpdateDone(true)
 	return result.NewResult()
 }
 
@@ -104,7 +110,6 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 			},
 		}
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			// TODO For now have the module version match the VZ version
 			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
 		})
 		if err != nil {
@@ -146,22 +151,21 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) 
 	if actualCR == nil {
 		return false, fmt.Errorf("no Verrazzano CR provided")
 	}
-	newBom, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	bomVersion, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return false, err
 	}
-	var bomVersion, specVersion, statusVersion *semver.SemVersion
-	if bomVersion, err = semver.NewSemVersion(newBom.GetVersion()); err != nil {
-		return false, err
-	}
+
 	if len(actualCR.Spec.Version) > 0 {
-		if specVersion, err = semver.NewSemVersion(actualCR.Spec.Version); err != nil {
+		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+		if err != nil {
 			return false, err
 		}
 		return specVersion.IsLessThan(bomVersion), nil
 	}
 	if len(actualCR.Status.Version) > 0 {
-		if statusVersion, err = semver.NewSemVersion(actualCR.Status.Version); err != nil {
+		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+		if err != nil {
 			return false, err
 		}
 		return statusVersion.IsLessThan(bomVersion), nil

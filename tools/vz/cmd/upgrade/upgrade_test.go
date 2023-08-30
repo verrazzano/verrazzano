@@ -545,6 +545,25 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
 	rc.SetClient(c)
+
+	content := []byte("y")
+	tempfile, err := os.CreateTemp("", "test-input.txt")
+	if err != nil {
+		assert.Error(t, err)
+	}
+	// clean up tempfile
+	defer os.Remove(tempfile.Name())
+	if _, err := tempfile.Write(content); err != nil {
+		assert.Error(t, err)
+	}
+	if _, err := tempfile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
+	oldStdin := os.Stdin
+	// Restore original Stdin
+	defer func() { os.Stdin = oldStdin }()
+	os.Stdin = tempfile
+
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, testVZMajorRelease)
@@ -560,7 +579,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
