@@ -427,6 +427,45 @@ func TestCreateCertificateFile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+//		TestCreateCaCrtInfoFile tests that a caCrtInfo file titled caCrtInfo.json can be successfully written
+//	 	GIVEN a k8s cluster with secrets containing caCrtInfo present in a namespace  ,
+//		WHEN I call functions to create a list of caCrt for the namespace,
+//		THEN expect it to write to the provided resource file and no error should be returned.
+func TestCreateCaCrtJsonFile(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	certificateListForTest := v1.CertificateList{}
+	sampleCert := v1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-certificate-caCrt.json", Namespace: "cattle-system"},
+		Spec: v1.CertificateSpec{
+			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
+			IPAddresses: []string{dummyIP1, dummyIP2},
+			SecretName:  "test-secret-name",
+		},
+	}
+	certificateListForTest.Items = append(certificateListForTest.Items, sampleCert)
+	sampleSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-secret-name", Namespace: "cattle-system"},
+		Data: map[string][]byte{
+			"ca.crt": []byte("-----BEGIN CERTIFICATE-----\nMIIDGTCCAgGgAwIBAgIRAOK5EroizAZ3e2Mw+8fNesIwDQYJKoZIhvcNAQELBQAw\nJjEkMCIGA1UEAxMbdmVycmF6emFuby1yb290LWNhLXVraGdqa2R0MB4XDTIzMDgz\nMDE0NDQzN1oXDTIzMTEyODE0NDQzN1owJjEkMCIGA1UEAxMbdmVycmF6emFuby1y\nb290LWNhLXVraGdqa2R0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\nxdfloT77/+/d9XDR9Y9xu8jcjD8/HEO+ZCJ5hNk6JPahc/Q9sAsgs2EZ3HGWiMk6\nFvhrzTQ4dniaPTzca5Q4NJd2NtCS5nqBQUUfWFH9QbWjScZ31Xt8vy1iwTTGy6i0\nHmavWuwqZEaFqZOH8v4SjD6K5wnk9PIYSFmgwu/oubmheAbj0ybvDn1SwB+50dux\nf9/cdrqUDBDn5fZ2Dzk+xBK66hQDIUcH4cfWpvvoZq0fxgF4Wsvq/xAsxLCHl/yU\nc43acOkxNmbv/JwRPE6UaOrhyWaz90zi2FOrviOL4OpprFlxdP5Oe8kN5Ak60BrT\n1jUl8rFgUVesNtG8Qkjm7wIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0T\nAQH/BAUwAwEB/zAdBgNVHQ4EFgQUud6JAMjEIzacdCXkl5ZYKme1GL0wDQYJKoZI\nhvcNAQELBQADggEBAGtaZvvGTz2JYklD+dt6ltqK1nzPniioNaQdf38ZhCZOi5tg\nB7ID1lLDkmUj7p5eqMhXDr7F1zS77YGN3jil1PPE/qzrz1z9f3pjVZ5Uc+KrALB8\nWYaIDDdchjpx47+eGDYh+XhsLVNQZ+alghxqxWkGnr7M1EapzwxEo3i1JzWG8G2C\ny7/NmsxDPoZM5M2Y8gZhfZ4UmiugQ/EPpT9QIDU2XwGRArNidGT0lkTBNEUnmwvm\n8pVB2EKaDB7eX7D9kgQwwSVt+Ci9azSRvLtfLONRBYIPa5a2N7zRGcFOjpcuRqm4\nP1JH/bnsfw1z+o7x5fVqQzMUu9bIxXMNm0KZfVY=\n-----END CERTIFICATE-----"),
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert, &sampleSecret).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcaCrt.json")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-ca-crt-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureCaCrtExpirationInfo(client, certificateListForTest, "cattle-system", captureDir, rc)
+	assert.NoError(t, err)
+}
+
 // TestRedactHostNamesForCertificates tests the captureCertificates function
 // GIVEN when sample cert with DNSNames and IPAddresses which are sensitive information
 // WHEN captureCertificates is called on certain namespace

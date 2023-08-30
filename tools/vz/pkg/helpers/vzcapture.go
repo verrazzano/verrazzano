@@ -50,8 +50,8 @@ var multiWriterOut io.Writer
 var multiWriterErr io.Writer
 
 type CaCrtInfo struct {
-	nameofSecret string
-	expired      bool
+	NameofSecret string `json:"nameofSecret"`
+	Expired      bool   `json:"expired"`
 }
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
@@ -316,12 +316,13 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
-		determineIfCaCrtsAreExpired(client, certificateList, namespace, captureDir, vzHelper)
+		captureCaCrtExpirationInfo(client, certificateList, namespace, captureDir, vzHelper)
 	}
 	return nil
 }
 
-func determineIfCaCrtsAreExpired(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
+// captureCaCrtExpirationInfo is a helper function of the captureCertificates function that loops through the certificates in a particular namespace and outputs a file containing information about the ca.crt of each certificate
+func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
 	caCrtList := []CaCrtInfo{}
 	for _, cert := range certificateList.Items {
 		correspondingSecretName := cert.Spec.SecretName
@@ -345,11 +346,11 @@ func determineIfCaCrtsAreExpired(client clipkg.Client, certificateList v1.Certif
 		if err != nil {
 			return err
 		}
-		caCrtInfoForCert := CaCrtInfo{nameofSecret: correspondingSecretName, expired: false}
+		caCrtInfoForCert := CaCrtInfo{NameofSecret: correspondingSecretName, Expired: false}
 		expirationDateOfCert := certificate.NotAfter
 
 		if time.Now().Unix() > expirationDateOfCert.Unix() {
-			caCrtInfoForCert.expired = true
+			caCrtInfoForCert.Expired = true
 
 		}
 		caCrtList = append(caCrtList, caCrtInfoForCert)
