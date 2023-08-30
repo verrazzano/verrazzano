@@ -303,7 +303,8 @@ func getComponentsToUpgrade(client clusterapi.Client, options clusterapi.ApplyUp
 
 // deleteRBACComponents deletes all the RBAC resources and check to ensure they were deleted
 func deleteRBACComponents(ctx spi.ComponentContext, components []unstructured.Unstructured) error {
-	for _, component := range components {
+	for i := range components {
+		component := components[i]
 		if component.GroupVersionKind().Group == rbacGroup {
 			err := ctx.Client().Delete(context.TODO(), &component)
 			if err != nil && !errors.IsNotFound(err) {
@@ -313,7 +314,8 @@ func deleteRBACComponents(ctx spi.ComponentContext, components []unstructured.Un
 		}
 	}
 
-	for _, component := range components {
+	for i := range components {
+		component := components[i]
 		if component.GroupVersionKind().Group == rbacGroup {
 			err := ctx.Client().Get(context.TODO(),
 				types.NamespacedName{Name: component.GetName(), Namespace: component.GetNamespace()}, &component)
