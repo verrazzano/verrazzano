@@ -1,13 +1,9 @@
 // Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-import java.util.concurrent.atomic.AtomicInteger
-import groovy.transform.Field
-
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-@Field AtomicInteger delayIncrement = new AtomicInteger(0)
 
 pipeline {
     options {
@@ -547,51 +543,51 @@ pipeline {
 
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
-//                         stage('opensearch-topology') {
-//                             steps {
-//                                 runGinkgoRandomize('opensearch/topology')
-//                             }
-//                         }
+                        stage('opensearch-topology') {
+                            steps {
+                                runGinkgoRandomize('opensearch/topology')
+                            }
+                        }
                         stage('Ingress & logging trait WebLogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
                             }
                             steps {
-                                runGinkgo('loggingtrait/weblogicworkload', true)
+                                runGinkgo('loggingtrait/weblogicworkload')
                             }
                         }
-//                         stage('weblogic workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-//                             }
-//                             steps {
-//                                 runGinkgo('workloads/weblogic', true)
-//                             }
-//                         }
-//                         stage('coherence workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-//                             }
-//                             steps {
-//                                 runGinkgo('workloads/coherence', true)
-//                             }
-//                         }
-//                         stage('oam workloads') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
-//                             }
-//                             steps {
-//                                 runGinkgo('workloads/oam', true)
-//                             }
-//                         }
-//                         stage('logging trait Coherence workload') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-//                             }
-//                             steps {
-//                                 runGinkgo('loggingtrait/coherenceworkload', true)
-//                             }
-//                         }
+                        stage('weblogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+                            }
+                            steps {
+                                runGinkgo('workloads/weblogic')
+                            }
+                        }
+                        stage('coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+                            }
+                            steps {
+                                runGinkgo('workloads/coherence')
+                            }
+                        }
+                        stage('oam workloads') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+                            }
+                            steps {
+                                runGinkgo('workloads/oam')
+                            }
+                        }
+                        stage('logging trait Coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/coherenceworkload')
+                            }
+                        }
                     }
                 }
 
@@ -745,12 +741,7 @@ def runSocksVariant(variant) {
     }
 }
 
-def runGinkgo(testSuitePath, delay=false) {
-    if (delay) {
-        def delayInc = delayIncrement.getAndAdd(1)
-        echo "suite: " + testSuitePath + ", delay = " + delayInc*30
-        sleep(delayInc*30)
-    }
+def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
