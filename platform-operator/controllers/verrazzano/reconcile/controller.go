@@ -177,8 +177,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	SetModuleCreateOrUpdateDone(false)
-
 	return ctrl.Result{}, nil
 }
 
@@ -190,7 +188,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	}
 
 	// This is not uninstall, clear the sync flags
-	SetModuleUninstallDone(false)
 	SetLegacyUninstallPreWorkDone(false)
 
 	// Initialize once for this Verrazzano resource when the operator starts
