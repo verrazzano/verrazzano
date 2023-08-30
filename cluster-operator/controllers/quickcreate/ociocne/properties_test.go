@@ -7,31 +7,9 @@ import (
 	"context"
 	_ "embed"
 	"github.com/stretchr/testify/assert"
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
-	ocifake "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci/fake"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
 	"testing"
 )
-
-var (
-	scheme *runtime.Scheme
-	//go:embed testdata/base.yaml
-	testBase []byte
-	//go:embed testdata/existing-vcn-patch.yaml
-	testExistingVCN  []byte
-	testOCNEVersions = "../controller/ocne/testdata/ocne-versions.yaml"
-)
-
-func init() {
-	scheme = runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = vmcv1alpha1.AddToScheme(scheme)
-}
 
 func TestCreateAndApplyOCNETemplate(t *testing.T) {
 	var tests = []struct {
@@ -40,49 +18,26 @@ func TestCreateAndApplyOCNETemplate(t *testing.T) {
 	}{
 		{
 			"existing vcn",
-			testExistingVCN,
+			testExistingVCNPatch,
+		},
+		{
+			"new vcn",
+			testNewVCNPatch,
 		},
 	}
 
-	cm := &corev1.ConfigMap{}
-	b, _ := os.ReadFile(testOCNEVersions)
-	_ = yaml.Unmarshal(b, cm)
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
-	loader := &ocifake.CredentialsLoaderImpl{
-		Credentials: &oci.Credentials{
-			Region:  "",
-			Tenancy: "a",
-			User:    "b",
-			PrivateKey: `abc
-def
-ghi
-`,
-			Fingerprint:          "d",
-			Passphrase:           "e",
-			UseInstancePrincipal: "false",
-		},
-	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testOCNEConfigMap()).Build()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q, err := testCreateCR(tt.patch)
 			assert.NoError(t, err)
-			p, err := NewProperties(context.TODO(), cli, loader, q)
+			ctx := context.TODO()
+			p, err := NewProperties(ctx, cli, testLoader, testOCIClientGetter, q)
 			assert.NoError(t, err)
 			assert.NotNil(t, p)
+			err = p.ApplyTemplate(cli, clusterTemplate, nodesTemplate, ocneTemplate, addonsTemplate)
+			assert.NoError(t, err)
 		})
 	}
-}
-
-func testCreateCR(patch []byte) (*vmcv1alpha1.OCNEOCIQuickCreate, error) {
-	baseCR := &vmcv1alpha1.OCNEOCIQuickCreate{}
-	patchCR := &vmcv1alpha1.OCNEOCIQuickCreate{}
-	if err := yaml.Unmarshal(testBase, baseCR); err != nil {
-		return nil, err
-	}
-	if err := yaml.Unmarshal(patch, patchCR); err != nil {
-		return nil, err
-	}
-	baseCR.Spec = patchCR.Spec
-	return baseCR, nil
 }

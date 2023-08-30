@@ -37,6 +37,7 @@ type ClusterReconciler struct {
 	Scheme            *runtime.Scheme
 	Logger            *zap.SugaredLogger
 	CredentialsLoader oci.CredentialsLoader
+	OCIClientGetter   func(credentials *oci.Credentials) (oci.Client, error)
 }
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -89,14 +90,9 @@ func (r *ClusterReconciler) setFinalizers(ctx context.Context, q *vmcv1alpha1.OC
 }
 
 func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNEOCIQuickCreate) (ctrl.Result, error) {
-	ocne, err := NewProperties(ctx, r.Client, r.CredentialsLoader, q)
+	ocne, err := NewProperties(ctx, r.Client, r.CredentialsLoader, r.OCIClientGetter, q)
 	if err != nil {
 		return controller.RequeueDelay(), err
-	}
-	if !ocne.IsQuickCreate() {
-		if err := ocne.SetExistingSubnets(ctx); err != nil {
-			return controller.RequeueDelay(), err
-		}
 	}
 	// If provisioning has not successfully started, attempt to provisioning the cluster
 	if shouldProvision(q) {

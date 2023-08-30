@@ -138,6 +138,9 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 			Scheme:            mgr.GetScheme(),
 			Logger:            log,
 			CredentialsLoader: oci.CredentialsLoaderImpl{},
+			OCIClientGetter: func(credentials *oci.Credentials) (oci.Client, error) {
+				return oci.NewClient(credentials)
+			},
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "Failed to setup controller OCNEOCIQuickCreate")
 			os.Exit(1)

@@ -25,12 +25,12 @@ type (
 		LoadBalancerSubnet             string
 		ProviderID                     string
 		ExistingSubnets                []oci.Subnet
-		OCIClientGetter                func() (oci.Client, error)
+		OCIClientGetter                func(creds *oci.Credentials) (oci.Client, error)
 	}
 )
 
 // NewProperties creates a new properties object based on the quick create resource.
-func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.CredentialsLoader, q *vmcv1alpha1.OCNEOCIQuickCreate) (*Properties, error) {
+func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.CredentialsLoader, ociClientGetter func(creds *oci.Credentials) (oci.Client, error), q *vmcv1alpha1.OCNEOCIQuickCreate) (*Properties, error) {
 	// Get the OCNE Versions
 	versions, err := ocne.GetVersionDefaults(ctx, cli, q.Spec.OCNE.Version)
 	if err != nil {
@@ -49,15 +49,18 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		OCIOCNEClusterSpec: q.Spec,
 		Network:            q.Spec.OCI.Network,
 		ProviderID:         oci.ProviderID,
-		OCIClientGetter: func() (oci.Client, error) {
-			return oci.NewClient(creds)
-		},
+		OCIClientGetter:    ociClientGetter,
 	}
 	// If there's no OCI network, check if the network has created
 	if !props.HasOCINetwork() {
 		network, _ := oci.GetNetwork(ctx, cli, q)
 		if err == nil {
 			props.Network = network
+		}
+	}
+	if !props.IsQuickCreate() {
+		if err := props.SetExistingSubnets(ctx); err != nil {
+			return nil, err
 		}
 	}
 	// Set LoadBalancerSubnet for simple lookup. Will be empty string if the network has not created yet.
@@ -88,20 +91,15 @@ func (p *Properties) SetExistingSubnets(ctx context.Context) error {
 	if p.Credentials == nil {
 		return errors.New("no credentials")
 	}
-	ociClient, err := p.OCIClientGetter()
+	ociClient, err := p.OCIClientGetter(p.Credentials)
 	if err != nil {
 		return err
 	}
-	subnetCache := map[string]*oci.Subnet{}
 	var subnetList []oci.Subnet
 	for _, sn := range p.Network.Subnets {
-		var subnet *oci.Subnet
-		subnet, ok := subnetCache[sn.ID]
-		if !ok {
-			subnet, err = ociClient.GetSubnetByID(ctx, sn.ID, string(sn.Role))
-			if err != nil {
-				return err
-			}
+		subnet, err := ociClient.GetSubnetByID(ctx, sn.ID, string(sn.Role))
+		if err != nil {
+			return err
 		}
 		subnetList = append(subnetList, *subnet)
 	}

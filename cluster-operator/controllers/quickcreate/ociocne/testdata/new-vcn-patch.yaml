@@ -35,7 +35,7 @@ spec:
         shape: a.Flex.v4
         bootVolumeGbs: 100
     network:
-      createVCN: false
+      createVCN: true
       vcn: xyz
       subnets:
         - id: xyz
@@ -46,3 +46,5 @@ spec:
           role: worker
         - id: xyz
           role: service-lb
+status:
+  phase: Provisioning
