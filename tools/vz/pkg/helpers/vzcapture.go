@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"os"
@@ -320,7 +321,7 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 	return nil
 }
 
-func determineIfCaCrtsAreExpired(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) {
+func determineIfCaCrtsAreExpired(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
 	caCrtList := []CaCrtInfo{}
 	for _, cert := range certificateList.Items {
 		correspondingSecretName := cert.Spec.SecretName
@@ -330,33 +331,38 @@ func determineIfCaCrtsAreExpired(client clipkg.Client, certificateList v1.Certif
 			Name:      correspondingSecretName,
 		}, secretForCertificate)
 		if err != nil {
-			LogError(fmt.Sprintf("An error occurred while getting a secret in namespace %s: %s\n", namespace, err.Error()))
+			return err
 		}
 		caCrtData, ok := secretForCertificate.Data["ca.crt"]
 		if !ok {
 			continue
 		}
-		certificate, err := x509.ParseCertificate(caCrtData)
-		if err != nil {
-			LogError(fmt.Sprintf("An error occurred while parsing a certificate in namespace %s: %s\n", namespace, err.Error()))
+		caCrtDataPemDecoded, _ := pem.Decode(caCrtData)
+		if caCrtDataPemDecoded == nil {
+			return fmt.Errorf("Failure to PEM Decode Certificate")
 		}
-		caCrtInfoForCert := CaCrtInfo{nameofSecret: correspondingSecretName, expired: true}
+		certificate, err := x509.ParseCertificate(caCrtDataPemDecoded.Bytes)
+		if err != nil {
+			return err
+		}
+		caCrtInfoForCert := CaCrtInfo{nameofSecret: correspondingSecretName, expired: false}
 		expirationDateOfCert := certificate.NotAfter
 
 		if time.Now().Unix() > expirationDateOfCert.Unix() {
-			caCrtInfoForCert.expired = false
+			caCrtInfoForCert.expired = true
 
 		}
 		caCrtList = append(caCrtList, caCrtInfoForCert)
 
 	}
 	if len(caCrtList) > 0 {
-		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
+		LogMessage(fmt.Sprintf("ca.crts in namespace: %s ...\n", namespace))
 		if err := createFile(caCrtList, namespace, "caCrtInfo.json", captureDir, vzHelper); err != nil {
-			LogError(fmt.Sprintf("An error occurred while craeting the cacrtInfo output file in namespace %s: %s\n", namespace, err.Error()))
+			return err
 		}
 
 	}
+	return nil
 }
 
 func collectHostNames(certificateList v1.CertificateList) {
