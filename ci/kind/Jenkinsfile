@@ -464,13 +464,13 @@ pipeline {
                             }
                         }
                         stage('examples helidon manualscalertait') {
-                                                    environment {
-                                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
-                                                    }
-                                                    steps {
-                                                        runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
-                                                    }
-                                                }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-manualscalertait"
+                            }
+                            steps {
+                                runGinkgoAppTest('examples/helidon', 'examples-helidon-manualscalertait', "${DUMP_DIRECTORY}", 'false', 'false','examples/hello-helidon/hello-helidon-comp.yaml', 'examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                            }
+                        }
 
                         stage('jaeger helidon') {
                             environment {
@@ -542,6 +542,15 @@ pipeline {
                     }
                 }
 
+                stage('Ingress & logging trait WebLogic workload') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                    }
+                    steps {
+                        runGinkgo('loggingtrait/weblogicworkload')
+                    }
+                }
+
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
                         stage('opensearch-topology') {
@@ -550,14 +559,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
-                        stage('Ingress & logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
                             }
                         }
                         stage('weblogic workload') {
@@ -747,11 +748,11 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 
 def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-            sh """
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
-            """
-        }
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
+        """
+    }
 }
 
 def runGinkgo(testSuitePath) {
