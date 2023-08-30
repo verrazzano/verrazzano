@@ -542,6 +542,15 @@ pipeline {
                     }
                 }
 
+                stage('Ingress & logging trait WebLogic workload') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                    }
+                    steps {
+                        runGinkgo('loggingtrait/weblogicworkload')
+                    }
+                }
+
                 stage('Run Acceptance Tests Deployments Group 2') {
                     parallel {
                         stage('opensearch-topology') {
@@ -550,14 +559,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
-                        stage('Ingress & logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
                             }
                         }
                         stage('weblogic workload') {
