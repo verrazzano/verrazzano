@@ -40,3 +40,7 @@ config:
 dns:
   wildcard:
     domain:
+
+v2:
+  image:
+  port: 8777
