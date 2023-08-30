@@ -178,8 +178,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
 	SetModuleCreateOrUpdateDone(false)
-	SetModuleUninstallDone(false)
-	SetLegacyUninstallPreWorkDone(false)
 
 	return ctrl.Result{}, nil
 }
@@ -190,6 +188,10 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
 	}
+
+	// This is not uninstall, clear the sync flags
+	SetModuleUninstallDone(false)
+	SetLegacyUninstallPreWorkDone(false)
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
