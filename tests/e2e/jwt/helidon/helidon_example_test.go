@@ -30,6 +30,7 @@ const (
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
 	nodeExporterJobName      = "node-exporter"
+	jwtHelidonAppYaml        = "testdata/jwt/helidon/hello-helidon-app.yaml"
 )
 
 var isMinVersion140 bool
@@ -43,7 +44,7 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", "")
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", jwtHelidonAppYaml)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
