@@ -181,12 +181,12 @@ spec:
                   dependencies:
                     description: OCNE dependency settings.
                     properties:
-                      install:
-                        description: Whether to install OCNE dependencies. The default
-                          is `true`.
+                      skipInstall:
+                        description: Whether to skip OCNE dependency installation.
+                          The default is `true`.
                         type: boolean
                     required:
-                    - install
+                    - skipInstall
                     type: object
                   version:
                     description: OCNE Version.

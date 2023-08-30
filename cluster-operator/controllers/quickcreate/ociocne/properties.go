@@ -5,6 +5,7 @@ package ociocne
 
 import (
 	"context"
+	"errors"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
@@ -23,6 +24,8 @@ type (
 		vmcv1alpha1.OCIOCNEClusterSpec `json:",inline"`
 		LoadBalancerSubnet             string
 		ProviderId                     string
+		ExistingSubnets                []oci.Subnet
+		OCIClientGetter                func() (oci.Client, error)
 	}
 )
 
@@ -43,6 +46,9 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		OCIOCNEClusterSpec: q.Spec,
 		Network:            q.Spec.OCI.Network,
 		ProviderId:         oci.ProviderId,
+		OCIClientGetter: func() (oci.Client, error) {
+			return oci.NewClient(creds)
+		},
 	}
 	// If there's no OCI network, check if the network has created
 	if !props.HasOCINetwork() {
@@ -73,4 +79,29 @@ func (p *Properties) HasOCINetwork() bool {
 
 func (p *Properties) IsQuickCreate() bool {
 	return p.Network.CreateVCN
+}
+
+func (p *Properties) SetExistingSubnets(ctx context.Context) error {
+	if p.Credentials == nil {
+		return errors.New("no credentials")
+	}
+	ociClient, err := p.OCIClientGetter()
+	if err != nil {
+		return err
+	}
+	subnetCache := map[string]*oci.Subnet{}
+	var subnetList []oci.Subnet
+	for _, sn := range p.Network.Subnets {
+		var subnet *oci.Subnet
+		subnet, ok := subnetCache[sn.ID]
+		if !ok {
+			subnet, err = ociClient.GetSubnetById(ctx, sn.ID, string(sn.Role))
+			if err != nil {
+				return err
+			}
+		}
+		subnetList = append(subnetList, *subnet)
+	}
+	p.ExistingSubnets = subnetList
+	return nil
 }

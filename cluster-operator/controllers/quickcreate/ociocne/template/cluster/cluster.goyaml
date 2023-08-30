@@ -374,10 +374,12 @@ spec:
             id: {{.Network.VCN}}
       {{- if .Network.Subnets }}
             subnets:
-        {{- range .Network.Subnets }}
-                - id: {{.ID}}
-                  role: {{.Role}}
-                  name: {{.Role}}
+        {{- range .ExistingSubnets }}
+            - id:  {{.Id}}
+              role: {{.Role}}
+              name: {{.Name}}
+              cidr: {{.CIDR}}
+              type: {{.Type}}
         {{- end }}
       {{- end }}
 {{- end }}

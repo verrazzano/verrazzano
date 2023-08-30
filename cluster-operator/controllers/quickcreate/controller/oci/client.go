@@ -17,7 +17,7 @@ const (
 // Client interface for OCI Clients
 type (
 	Client interface {
-		GetSubnetById(context.Context, string, string) (*Subnet, error)
+		GetSubnetById(ctx context.Context, id, role string) (*Subnet, error)
 	}
 	// ClientImpl OCI Client implementation
 	ClientImpl struct {
@@ -61,14 +61,14 @@ func (c *ClientImpl) GetSubnetById(ctx context.Context, subnetId, role string) (
 	return &Subnet{
 		Id:   subnetId,
 		CIDR: *sn.CidrBlock,
-		Type: SubnetAccess(sn),
+		Type: subnetAccess(sn),
 		Name: role,
 		Role: role,
 	}, nil
 }
 
-// SubnetAccess returns public or private, depending on a subnet's access type
-func SubnetAccess(subnet core.Subnet) string {
+// subnetAccess returns public or private, depending on a subnet's access type
+func subnetAccess(subnet core.Subnet) string {
 	if subnet.ProhibitPublicIpOnVnic != nil && subnet.ProhibitInternetIngress != nil && !*subnet.ProhibitPublicIpOnVnic && !*subnet.ProhibitInternetIngress {
 		return subnetPublic
 	}

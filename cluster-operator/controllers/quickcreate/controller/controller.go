@@ -3,7 +3,7 @@
 
 package controller
 
-// Reusable code for Quick Create controllersΩ©
+// Reusable code for Quick Create controllers
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"

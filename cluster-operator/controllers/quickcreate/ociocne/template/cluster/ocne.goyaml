@@ -30,7 +30,7 @@ spec:
     controlPlaneConfig:
         imageConfiguration:
             dependencies:
-                skipInstall: {{.OCNE.Dependencies.Install}}
+                skipInstall: {{.OCNE.Dependencies.SkipInstall}}
             {{- if .Proxy }}
             proxy:
                 httpProxy: {{.Proxy.HTTPProxy}}
@@ -102,7 +102,7 @@ spec:
       {{- end }}
             imageConfiguration:
                 dependencies:
-                    skipInstall: {{.OCNE.Dependencies.Install}}
+                    skipInstall: {{.OCNE.Dependencies.SkipInstall}}
                 {{- if .Proxy }}
                 proxy:
                     httpProxy: {{.Proxy.HTTPProxy}}

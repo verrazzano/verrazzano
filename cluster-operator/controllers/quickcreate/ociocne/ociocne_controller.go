@@ -93,6 +93,11 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNE
 	if err != nil {
 		return controller.RequeueDelay(), err
 	}
+	if !ocne.IsQuickCreate() {
+		if err := ocne.SetExistingSubnets(ctx); err != nil {
+			return controller.RequeueDelay(), err
+		}
+	}
 	// If provisioning has not successfully started, attempt to provisioning the cluster
 	if shouldProvision(q) {
 		if err := ocne.ApplyTemplate(r.Client, clusterTemplate, nodesTemplate, ocneTemplate); err != nil {

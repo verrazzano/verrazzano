@@ -57,9 +57,9 @@ type (
 		Dependencies OCNEDependencies `json:"dependencies"`
 	}
 	OCNEDependencies struct {
-		// Whether to install OCNE dependencies.
+		// Whether to skip OCNE dependency installation.
 		// The default is `true`.
-		Install bool `json:"install"`
+		SkipInstall bool `json:"skipInstall"`
 	}
 	NodeConfig struct {
 		// +patchMergeKey=name
