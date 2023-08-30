@@ -32,7 +32,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for Admin KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.26", "1.25", "1.24" ])
+                choices: [ "1.27", "1.26", "1.25", "1.24" ])
         choice (name: 'OCNE_KUBERNETES_CLUSTER_VERSION',
                         description: 'Kubernetes Version for OCNE Cluster',
                         // 1st choice is the default value
