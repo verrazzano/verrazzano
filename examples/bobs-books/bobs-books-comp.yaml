@@ -18,7 +18,7 @@ spec:
             app: robert-coh
             version: v1
           replicas: 2
-          image: ghcr.io/verrazzano/example-roberts-coherence:20230828161331-845c6aa
+          image: ghcr.io/verrazzano/example-roberts-coherence:1.0.0-1-20230830170835-ad1de21
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -67,7 +67,7 @@ spec:
         podSpec:
           containers:
             - name: robert-helidon-stock-application
-              image: ghcr.io/verrazzano/example-roberts-helidon-stock-application:20230828161331-845c6aa
+              image: ghcr.io/verrazzano/example-roberts-helidon-stock-application:1.0.0-1-20230830170835-ad1de21
               imagePullPolicy: IfNotPresent
               ports:
                 - name: http
@@ -101,7 +101,7 @@ spec:
             app: bobbys-coh
             version: v1
           replicas: 1
-          image: ghcr.io/verrazzano/example-bobbys-coherence:20230828161331-845c6aa
+          image: ghcr.io/verrazzano/example-bobbys-coherence:1.0.0-1-20230830170835-ad1de21
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -146,7 +146,7 @@ spec:
         podSpec:
           containers:
             - name: bobbys-helidon-stock-application
-              image: ghcr.io/verrazzano/example-bobbys-helidon-stock-application:20230828161331-845c6aa
+              image: ghcr.io/verrazzano/example-bobbys-helidon-stock-application:1.0.0-1-20230830170835-ad1de21
               imagePullPolicy: IfNotPresent
               ports:
                 - containerPort: 8080
