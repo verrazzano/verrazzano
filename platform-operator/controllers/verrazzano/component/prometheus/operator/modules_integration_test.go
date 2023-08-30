@@ -1,12 +1,11 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package grafana
+package operator
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -24,7 +23,6 @@ var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 //	THEN the generated helm values JSON snippet is valid
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
-	var replicas int32 = 3
 
 	ingressClassName := "myclass"
 	tests := []struct {
@@ -56,20 +54,20 @@ func TestGetModuleSpec(t *testing.T) {
 						},
 					},
 					Components: vzapi.ComponentSpec{
+						ClusterIssuer: &vzapi.ClusterIssuerComponent{
+							Enabled: &trueValue,
+						},
+						ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+							Enabled: &trueValue,
+						},
+						ClusterOperator: &vzapi.ClusterOperatorComponent{
+							Enabled: &trueValue,
+						},
+						Istio: &vzapi.IstioComponent{
+							Enabled: &trueValue,
+						},
 						Grafana: &vzapi.GrafanaComponent{
-							Database: &vzapi.DatabaseInfo{
-								Host: "dbhost",
-								Name: "grafanadb",
-							},
-							Enabled:  &enabled,
-							Replicas: &replicas,
-							SMTP: &vmov1.SMTPInfo{
-								Enabled:        &enabled,
-								Host:           "smtphost.foo.com",
-								ExistingSecret: "secret",
-								FromAddress:    "me@foo.com",
-								FromName:       "Mike",
-							},
+							Enabled: &trueValue,
 						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled:          &trueValue,
@@ -101,6 +99,12 @@ func TestGetModuleSpec(t *testing.T) {
 						},
 						Thanos: &vzapi.ThanosComponent{
 							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{Values: &apiextensionsv1.JSON{Raw: []byte(`{"key": "someJSON"}`)}},
+								},
+							},
 						},
 						AuthProxy: &vzapi.AuthProxyComponent{
 							Enabled: &trueValue,
@@ -129,18 +133,7 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
-					"database": {
-					  "host": "dbhost",
-					  "name": "grafanadb"
-					},
-					"replicas": 3,
-					"smtp": {
-					  "enabled": true,
-					  "host": "smtphost.foo.com",
-					  "existingSecret": "secret",
-					  "fromAddress": "me@foo.com",
-					  "fromName": "Mike"
-					},
+					"environmentName": "Myenv",
 					"ingress": {
 					  "enabled": true,
 					  "ingressClassName": "myclass",
@@ -164,10 +157,23 @@ func TestGetModuleSpec(t *testing.T) {
 						"ociConfigSecret": "oci"
 					  }
 					},
-					"environmentName": "Myenv",
-					"thanosEnabled": true,
+					"thanos": {
+					  "enabled": true,
+					  "monitorChanges": true,
+					  "overrides": [
+						{
+						  "values": {
+							"key": "someJSON"
+						  }
+						}
+					  ]
+					},
 					"prometheusEnabled": true,
-					"prometheusOperatorEnabled": true,
+					"clusterIssuerEnabled": true,
+					"applicationOperatorEnabled": true,
+					"clusterOperatorEnabled": true,
+					"istioEnabled": true,
+					"vmoEnabled": true,
 					"defaultVolumeSource": {
 					  "persistentVolumeClaim": {
 						"claimName": "vmi"
