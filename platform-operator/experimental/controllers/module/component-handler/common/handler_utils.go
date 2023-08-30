@@ -74,7 +74,7 @@ func AreDependenciesReady(ctx handlerspi.HandlerContext, depModulesNames []strin
 		}
 	}
 
-	if len (remainingDeps) > 0 {
+	if len(remainingDeps) > 0 {
 		return result.NewResultShortRequeueDelay(), remainingDeps
 	}
 	return result.NewResult(), nil
