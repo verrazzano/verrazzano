@@ -317,7 +317,7 @@ func CaptureExpiredThirdPartyCerts(client clipkg.Client, captureDir string, vzHe
 	// Dictionary should have name of third party secret and namespace that it corresponds to
 	dictionaryOfThirdSecrets := nil
 	// Loop through each key in these secrets and get the secret
-	err := client.Get(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
+	err := client.Get(context.TODO())
 	if err != nil {
 	}
 	//Check if it is expired if it is than create a file with its name and then output it
