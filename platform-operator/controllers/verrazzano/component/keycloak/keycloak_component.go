@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
@@ -173,15 +174,32 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Delete the StatefulSet before the upgrade
-	if err := deleteStatefulSet(ctx); err != nil {
-		return err
+	// If the Verrazzano installed version is 1.5.0 (with Keycloak version 20.0.1) or later, skip deleting the
+	// Keycloak StatefulSet before an upgrade.
+	if ctx.ActualCR() != nil {
+		installedVersion, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
+		if err != nil {
+			return err
+		}
+		minVersion, err := semver.NewSemVersion(constants.VerrazzanoVersion1_5_0)
+		if err != nil {
+			return err
+		}
+		if installedVersion.IsLessThan(minVersion) {
+			ctx.Log().Infof("Delete Keycloak StatefulSet for upgrade from versions earlier than %s", constants.VerrazzanoVersion1_5_0)
+
+			// Delete the StatefulSet before the upgrade
+			if err := deleteStatefulSet(ctx); err != nil {
+				return err
+			}
+
+			// Delete the headless service before the upgrade
+			if err := deleteHeadlessService(ctx); err != nil {
+				return err
+			}
+		}
 	}
 
-	// Delete the headless service before the upgrade
-	if err := deleteHeadlessService(ctx); err != nil {
-		return err
-	}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 

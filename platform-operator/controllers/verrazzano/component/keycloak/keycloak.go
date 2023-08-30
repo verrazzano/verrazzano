@@ -1727,7 +1727,7 @@ func GetOverrides(object runtime.Object) interface{} {
 
 // deleteStatefulSet deletes the Keycloak StatefulSet before upgrade
 // The StatefulSet defined by the helm chart for Keycloak 20.0.1 contains changes to fields other than
-// 'replicas', 'template', and 'updateStrategy'. The work around is to delete the StatefulSet prior upgrading to 1.5 or
+// 'replicas', 'template', and 'updateStrategy'. The workaround is to delete the StatefulSet prior upgrading to 1.5 or
 // later and then do the upgrade
 func deleteStatefulSet(ctx spi.ComponentContext) error {
 	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
