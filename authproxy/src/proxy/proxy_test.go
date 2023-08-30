@@ -110,29 +110,46 @@ func TestReformatAPIRequest(t *testing.T) {
 		Log:    zap.S(),
 	}
 
-	// GIVEN a request to the Auth proxy server
-	// WHEN  the request is formatted correctly
-	// THEN  the request is properly formatted to be sent to the API server
-	url := fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
-	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	assert.NoError(t, err)
+	tests := []struct {
+		name        string
+		url         string
+		expectedURL string
+	}{
+		// GIVEN a request to the Auth proxy server
+		// WHEN  the request is formatted correctly
+		// THEN  the request is properly formatted to be sent to the API server
+		{
+			name:        "test cluster path",
+			url:         fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath),
+			expectedURL: fmt.Sprintf("%s%s", handler.URL, apiPath),
+		},
+		// GIVEN a request to the Auth proxy server
+		// WHEN  the request is malformed
+		// THEN  a malformed request is returned
+		{
+			name:        "test malformed request",
+			url:         "malformed-request1234",
+			expectedURL: fmt.Sprintf("%s/%s", handler.URL, "malformed-request1234"),
+		},
+		// GIVEN a request to the Auth proxy server
+		// WHEN  the request has a query param
+		// THEN  the query param is added to the outgoing request
+		{
+			name:        "test query param",
+			url:         fmt.Sprintf("https://authproxy.io/clusters/local%s?watch=1", apiPath),
+			expectedURL: fmt.Sprintf("%s%s?watch=1", handler.URL, apiPath),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, tt.url, strings.NewReader(""))
+			assert.NoError(t, err)
 
-	formattedReq, err := handler.reformatAPIRequest(req)
-	assert.NoError(t, err)
-	expectedURL := fmt.Sprintf("%s%s", handler.URL, apiPath)
-	assert.Equal(t, expectedURL, formattedReq.URL.String())
-
-	// GIVEN a request to the Auth proxy server
-	// WHEN  the request is malformed
-	// THEN  a malformed request is returned
-	url = "malformed-request1234"
-	req, err = http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	assert.NoError(t, err)
-
-	formattedReq, err = handler.reformatAPIRequest(req)
-	assert.NoError(t, err)
-	expectedURL = fmt.Sprintf("%s/%s", handler.URL, url)
-	assert.Equal(t, expectedURL, formattedReq.URL.String())
+			formattedReq, err := handler.reformatAPIRequest(req)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedURL, formattedReq.URL.String())
+		})
+	}
 }
 
 // TestValidateRequest tests the request validation for the Auth Proxy

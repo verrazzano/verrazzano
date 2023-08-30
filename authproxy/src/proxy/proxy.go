@@ -241,6 +241,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, 
 		h.Log.Errorf("Failed to format incoming url: %v", err)
 		return nil, err
 	}
+	formattedURL.RawQuery = req.URL.RawQuery
 	formattedReq.URL = formattedURL
 
 	retryableReq, err := retryablehttp.FromRequest(formattedReq)
