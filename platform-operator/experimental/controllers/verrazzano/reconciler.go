@@ -109,9 +109,10 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 				Namespace: vzconst.VerrazzanoInstallNamespace,
 			},
 		}
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
 		})
+		log.Debugf("Module %s update result: %v", module.Name, opResult)
 		if err != nil {
 			if !errors.IsConflict(err) {
 				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
