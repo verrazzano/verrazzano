@@ -6,6 +6,7 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,8 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 )
 
@@ -45,10 +46,10 @@ type Handler struct {
 var _ http.Handler = Handler{}
 
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy() *AuthProxy {
+func InitializeProxy(port int) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
-			Addr:         ":8777",
+			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},
@@ -63,13 +64,9 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
-	rootCA := common.CertPool(config.CAData)
-	if len(config.CAData) < 1 {
-		rootCA, err = cert.NewPool(config.CAFile)
-		if err != nil {
-			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
-			return err
-		}
+	rootCA, err := loadCAData(config, log)
+	if err != nil {
+		return err
 	}
 
 	transport := http.DefaultTransport
@@ -167,6 +164,23 @@ func getIngressHost(req *http.Request) string {
 	return "invalid-hostname"
 }
 
+// loadCAData returns the config CA data from the byte array or from the file name
+func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, error) {
+	if len(config.CAData) < 1 {
+		rootCA, err := cert.NewPool(config.CAFile)
+		if err != nil {
+			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+		}
+		return rootCA, err
+	}
+
+	rootCA, err := cert.NewPoolFromBytes(config.CAData)
+	if err != nil {
+		log.Errorf("Failed to load CA data from the Kubeconfig")
+	}
+	return rootCA, err
+}
+
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
 func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
 	formattedReq := req.Clone(context.TODO())
@@ -209,10 +223,7 @@ func obfuscateRequestData(req *http.Request) *http.Request {
 	hiddenReq := req.Clone(context.TODO())
 	authKey := "Authorization"
 	for i := range hiddenReq.Header[authKey] {
-		// List of authorization schemes compiled from
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication#authentication_schemes
-		authRegEx := "(Bearer|Basic|Digest|HOBA|Mutual|Negotiate|NTLM|VAPID|SCRAM|AWS4-HMAC-SHA256)"
-		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction(authRegEx)(hiddenReq.Header[authKey][i])
+		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction("")(hiddenReq.Header[authKey][i])
 	}
 	return hiddenReq
 }

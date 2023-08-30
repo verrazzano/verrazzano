@@ -96,6 +96,9 @@ spec:
                   - key: reload.sh
                     path: reload.sh
                     mode: 0755
+       - name: oidc-config-secret
+         secret:
+           secretName: {{ .Values.v2.oidcConfigSecret }}
       {{- with .Values.affinity }}
       affinity:
         {{- tpl . $ | nindent 8 }}
@@ -175,6 +178,39 @@ spec:
           capabilities:
             drop:
               - ALL
+      - image: {{ .Values.v2.image }}
+        name: verrazzano-authproxy-v2
+        ports:
+          - containerPort: {{ .Values.v2.port }}
+        args:
+          - --proxy-port={{ .Values.v2.port }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.v2.port }}
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 1
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.v2.port }}
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 999
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+        - name: oidc-config-secret
+          mountPath: /etc/config
       serviceAccountName: {{ .Values.name }}
       securityContext:
         runAsUser: 101  # nginx container user
@@ -198,6 +234,10 @@ spec:
     port: {{ .Values.grpcPort }}
     protocol: TCP
     targetPort: {{ .Values.grpcPort }}
+  - name: http-v2
+    port: {{ .Values.v2.port }}
+    protocol: TCP
+    targetPort: {{ .Values.v2.port }}
   selector:
     app: {{ .Values.name }}
 ---
