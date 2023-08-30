@@ -47,6 +47,13 @@ spec:
               service:
                 name: {{ .Values.name }}
                 port:
+                  number: {{ .Values.v2.port }}
+            path: /clusters
+            pathType: Prefix
+          - backend:
+              service:
+                name: {{ .Values.name }}
+                port:
                   number: {{ .Values.port }}
             path: /()(.*)
             pathType: ImplementationSpecific
