@@ -43,19 +43,24 @@ const (
 	dnsTarget       = "dnsTarget"
 	hostsHost       = "host"
 	tlsHosts        = "tlsHosts"
-	tlsSecret       = "tlsSecret"
+	tlsSecret       = "dexSecret"
+	dexTLSSecret    = "dex-tls"
+	pkceClient      = "verrazzano-pkce"
+	pgClient        = "verrazzano-pg"
 
-	dexSecret = "dex"
+	adminEmail      = "verrazzano@verrazzano.io"
+	httpPrefix      = "http://"
+	dexClientSecret = "clientSecret"
 
-	pkceClient = "verrazzano-pkce"
-	pgClient   = "verrazzano-pg"
+	// ES secret keys
+	adminUsernameKey = "username"
+	adminPasswordKey = "password"
 
-	tmpFilePrefix = "dex-overrides-"
-	tmpSuffix     = "yaml"
+	dexCertificateName = "dex-tls"
+	helmValuesFile     = "dex-values.yaml"
 
-	adminEmail          = "verrazzano@verrazzano.io"
-	httpPrefix          = "http://"
-	dexClientSecret     = "clientSecret"
+	tmpFilePrefix       = "dex-overrides-"
+	tmpSuffix           = "yaml"
 	tmpFileCleanPattern = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
@@ -113,11 +118,13 @@ const pkceClientUrisTemplate = `redirectURIs: [
 const staticClientTemplate = `config:
   staticClients:
 `
+
 const clientTemplate = `  - id: "{{.ClientId}}"
     name: "{{.ClientName}}"
     secret: {{.ClientSecret}}
     {{.RedirectURIs}}
 `
+
 const staticPasswordTemplate = `config:
   staticPasswords:
 `
@@ -190,8 +197,9 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	})
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   tlsSecret,
-		Value: dexSecret,
+		Key:       tlsSecret,
+		Value:     dexTLSSecret,
+		SetString: true,
 	})
 
 	kvs = append(kvs, bom.KeyValue{
@@ -222,6 +230,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	if err != nil {
 		return kvs, fmt.Errorf("failed generating Dex overrides file: %v", err)
 	}
+
 	// Append any installArgs overrides
 	kvs = append(kvs, bom.KeyValue{Value: clientOverridesFile, IsFile: true})
 	return kvs, nil
@@ -295,6 +304,7 @@ func updateDexIngress(ctx spi.ComponentContext) error {
 	return err
 }
 
+// populateStaticPasswords populates the data for the admin user, created as static password  in Dex
 func populateStaticPasswords(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	var b bytes.Buffer
 	t, err := template.New("").Parse(staticPasswordTemplate)
@@ -326,6 +336,7 @@ func populateStaticPasswords(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	return b, nil
 }
 
+// populateAdminUserData populates the data for the admin user
 func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -338,8 +349,10 @@ func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 		return err
 	}
 
-	vzUser := secret.Data["username"]
-	vzPwd := secret.Data["password"]
+	vzUser := secret.Data[adminUsernameKey]
+	vzPwd := secret.Data[adminPasswordKey]
+
+	// Dex expects bcrypt hash of the password
 	pwdHash, err := generateBCCryptHash(ctx, vzPwd)
 	if err != nil {
 		return err
@@ -350,7 +363,7 @@ func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 	return nil
 }
 
-// Dex expects bcrypt hash of the password
+// generateBCCryptHash generates the bcrypt hash of the password
 func generateBCCryptHash(ctx spi.ComponentContext, password []byte) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
 	if err != nil {
@@ -458,12 +471,10 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte, filePatter
 	if err := writeFileFunc(overridesFileName, contents, fs.ModeAppend); err != nil {
 		return "", err
 	}
-	ctx.Log().Infof("Verrazzano Dex install overrides file %s contents: %s", overridesFileName,
-		string(contents))
 	return overridesFileName, nil
 }
 
-// generateClientSecret creates the secret for the Dex client
+// generateClientSecret creates the secret for the given client
 func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedName) (string, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: clientName.Name, Namespace: clientName.Namespace},

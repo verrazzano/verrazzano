@@ -8,6 +8,10 @@ config:
       inCluster: true
   enablePasswordDB: true
 
+envVars:
+  - name: PASSWORD_DB_USERNAME_PROMPT
+    value: "Username"
+
 ingress:
   enabled: true
   annotations:

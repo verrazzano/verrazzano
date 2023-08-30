@@ -43,7 +43,7 @@ type DexComponent struct {
 }
 
 var certificates = []types.NamespacedName{
-	{Namespace: ComponentNamespace, Name: "dex-tls"},
+	{Namespace: ComponentNamespace, Name: dexCertificateName},
 }
 
 // Verify that DexComponent implements Component
@@ -60,7 +60,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion2_0_0,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "dex-values.yaml"),
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), helmValuesFile),
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName},
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -98,7 +98,6 @@ func (c DexComponent) isDexReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	// If a Dex component is enabled, ensure the deployment exists after Helm installation
-	// TODO: Check if replicas are ready, find out whether there is anything we need to care
 	deployments := []types.NamespacedName{
 		{
 			Name:      ComponentName,
@@ -115,7 +114,6 @@ func (c DexComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // PreInstall handles the pre-install operations for the Dex component
 func (c DexComponent) PreInstall(ctx spi.ComponentContext) error {
-
 	// Check Verrazzano Secret, return error to requeue
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -193,7 +191,8 @@ func (c DexComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new 
 
 // cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	ctx.Log().Info(">>>> Deleting temp files using pattern: %v", tmpFileCleanPattern)
+	// TODO: Convert the message to debug or remove completely
+	ctx.Log().Info("Deleting temp files using pattern: %v", tmpFileCleanPattern)
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
