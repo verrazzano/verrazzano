@@ -14,5 +14,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c argoCDComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, keycloak.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, keycloak.ComponentName})
 }

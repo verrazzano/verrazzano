@@ -11,5 +11,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c clusterOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{rancher.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{rancher.ComponentName})
 }

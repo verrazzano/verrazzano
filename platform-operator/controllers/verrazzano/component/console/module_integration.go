@@ -11,5 +11,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c consoleComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{authproxy.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{authproxy.ComponentName})
 }

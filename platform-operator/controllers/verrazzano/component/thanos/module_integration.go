@@ -13,5 +13,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (t ThanosComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName})
 }

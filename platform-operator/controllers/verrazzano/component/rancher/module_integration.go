@@ -13,5 +13,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (r rancherComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName})
 }

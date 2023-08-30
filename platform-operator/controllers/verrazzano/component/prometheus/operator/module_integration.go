@@ -13,5 +13,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c prometheusComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, vmo.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, vmo.ComponentName})
 }

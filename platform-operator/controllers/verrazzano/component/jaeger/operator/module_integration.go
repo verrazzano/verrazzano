@@ -13,5 +13,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c jaegerOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName})
 }

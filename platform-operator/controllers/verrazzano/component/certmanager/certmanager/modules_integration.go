@@ -45,5 +45,5 @@ func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c certManagerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{fluentoperator.ComponentName, prometheusOperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName, prometheusOperator.ComponentName})
 }

@@ -11,5 +11,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c prometheusPushgatewayComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{promoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{promoperator.ComponentName})
 }

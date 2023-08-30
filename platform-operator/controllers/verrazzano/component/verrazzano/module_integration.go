@@ -15,5 +15,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c verrazzanoComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, authproxy.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, authproxy.ComponentName, fluentoperator.ComponentName})
 }

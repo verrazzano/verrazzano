@@ -12,5 +12,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c prometheusNodeExporterComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{promoperator.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{promoperator.ComponentName, fluentoperator.ComponentName})
 }

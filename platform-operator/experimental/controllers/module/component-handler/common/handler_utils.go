@@ -7,36 +7,28 @@ import (
 	"context"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetComponentAndContext(ctx handlerspi.HandlerContext, operation string) (spi.ComponentContext, spi.Component, error) {
 	module := ctx.CR.(*moduleapi.Module)
-
 	vz, err := GetVerrazzanoCR(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	compCtx, err := spi.NewContext(vzlog.DefaultLogger(), ctx.Client, vz, nil, false)
-	if err != nil {
-		compCtx.Log().Errorf("Failed to create component context: %v", err)
-		return nil, nil, err
-	}
-
-	found, comp := registry.FindComponent(module.Spec.ModuleName)
-	if !found {
-		compCtx.Log().Errorf("Failed to find component %s in registry: %s", module.Spec.ModuleName)
-		return nil, nil, err
-	}
-
-	return compCtx.Operation(operation), comp, nil
+	return getComponentByNameAndContext(ctx, vz, module.Spec.ModuleName, operation)
 }
 
 func GetVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {
@@ -63,4 +55,57 @@ func GetVerrazzanoNSN(ctx handlerspi.HandlerContext) (*types.NamespacedName, err
 		return nil, fmt.Errorf("Module %s is missing annotations for verrazzano CR name and namespace", module.Name)
 	}
 	return &types.NamespacedName{Namespace: ns, Name: name}, nil
+}
+
+// AreDependenciesReady wait for dependencies to be ready using the Module condition
+func AreDependenciesReady(ctx handlerspi.HandlerContext, moduleNames []string) result.Result {
+	vz, err := GetVerrazzanoCR(ctx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	// Check if every dependency is ready, skip ones that are not enabled
+	for _, moduleName := range moduleNames {
+		_, comp, err := getComponentByNameAndContext(ctx, vz, moduleName, "")
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+		if !comp.IsEnabled(vz) {
+			continue
+		}
+		module := moduleapi.Module{}
+		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: moduleName}
+		if err := ctx.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{}); err != nil {
+			ctx.Log.ErrorfThrottled("Failed to get Module %s, retrying: %v", moduleName, err)
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+
+		cond := modulestatus.GetReadyCondition(&module)
+		if cond == nil || cond.Status != corev1.ConditionTrue {
+			return result.NewResultShortRequeueDelay()
+		}
+		if module.Status.LastSuccessfulGeneration != module.Generation {
+			return result.NewResultShortRequeueDelay()
+		}
+		if module.Status.LastSuccessfulVersion != module.Spec.Version {
+			return result.NewResultShortRequeueDelay()
+		}
+	}
+
+	return result.NewResult()
+}
+
+func getComponentByNameAndContext(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, compName string, operation string) (spi.ComponentContext, spi.Component, error) {
+	compCtx, err := spi.NewContext(vzlog.DefaultLogger(), ctx.Client, vz, nil, false)
+	if err != nil {
+		compCtx.Log().Errorf("Failed to create component context: %v", err)
+		return nil, nil, err
+	}
+
+	found, comp := registry.FindComponent(compName)
+	if !found {
+		compCtx.Log().Errorf("Failed to find component %s in registry: %s", compName)
+		return nil, nil, err
+	}
+
+	return compCtx.Operation(operation), comp, nil
 }

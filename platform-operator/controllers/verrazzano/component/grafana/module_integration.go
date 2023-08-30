@@ -13,5 +13,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName})
 }

@@ -12,5 +12,5 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (d opensearchDashboardsComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{vmo.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName})
 }

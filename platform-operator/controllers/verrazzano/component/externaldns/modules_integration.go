@@ -44,5 +44,5 @@ func (c externalDNSComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c externalDNSComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName})
 }

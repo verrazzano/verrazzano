@@ -48,5 +48,5 @@ func (c certManagerWebhookOCIComponent) GetModuleConfigAsHelmValues(effectiveCR 
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c certManagerWebhookOCIComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{cmconstants.CertManagerComponentName})
+	return watch.GetModuleInstalledWatches([]string{cmconstants.CertManagerComponentName})
 }

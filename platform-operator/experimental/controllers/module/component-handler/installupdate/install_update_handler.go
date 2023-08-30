@@ -11,7 +11,6 @@ import (
 	vzerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
 )
 
@@ -87,7 +86,7 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	}
 
 	// Wait for dependencies
-	if !registry.ComponentDependenciesMet(comp, compCtx) {
+	if res := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
 		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}

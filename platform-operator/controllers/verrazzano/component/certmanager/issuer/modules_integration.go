@@ -48,5 +48,5 @@ func (c clusterIssuerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleReadyWatches([]string{cmconstants.CertManagerComponentName})
+	return watch.GetModuleInstalledWatches([]string{cmconstants.CertManagerComponentName})
 }
