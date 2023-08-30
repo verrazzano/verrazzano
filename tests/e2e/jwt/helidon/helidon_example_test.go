@@ -249,6 +249,7 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
+	t.Logs.Infof("response status code %d\n", resp.StatusCode)
 	bodyRaw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
