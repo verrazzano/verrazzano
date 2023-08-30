@@ -6,8 +6,8 @@ package migration
 import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/handlerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
@@ -62,5 +62,5 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	}
 
 	// Set the module status condition, installed generation and installed version
-	return modulestatus.UpdateModuleStatusToInstalled(ctx, module, vzcr.Status.Version, compStatus.LastReconciledGeneration)
+	return modulestatus.UpdateModuleStatusToInstalled(ctx, module, "v0.0.0", 0)
 }

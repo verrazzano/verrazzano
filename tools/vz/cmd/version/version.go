@@ -40,7 +40,7 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 
 	// Verifies that the CLI args are not set at the creation of a command
-	cmdhelpers.VerifyCLIArgsNil(cmd)
+	vzHelper.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }

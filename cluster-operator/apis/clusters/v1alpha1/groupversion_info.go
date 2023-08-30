@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package v1alpha1 contains API Schema definitions for the clusters.verrazzano.io v1alpha1 API group
@@ -10,6 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
+
+func init() {
+	SchemeBuilder.Register(&VerrazzanoManagedCluster{}, &VerrazzanoManagedClusterList{}, &OCNEOCIQuickCreate{}, &OCNEOCIQuickCreateList{}, &OKEQuickCreate{}, &OKEQuickCreateList{})
+}
 
 var (
 	// SchemeGroupVersion is group version used to register these objects

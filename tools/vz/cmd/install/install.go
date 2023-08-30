@@ -4,12 +4,14 @@
 package install
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
@@ -49,7 +51,8 @@ vz install --version v%[1]s --set profile=dev --set components.kiali.enabled=fal
 # The overlay files can be a comma-separated list or a series of -f options.  Both formats are shown.
 vz install -f base.yaml,custom.yaml --set profile=prod --log-format json
 vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json
-
+# Install the latest version of Verrazzano with progress bar enabled.
+vz install --progress
 # Install the latest version of Verrazzano using a Verrazzano CR specified with stdin.
 vz install -f - <<EOF
 apiVersion: install.verrazzano.io/v1beta1
@@ -96,10 +99,11 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Private registry support
 	cmd.PersistentFlags().String(constants.ImageRegistryFlag, constants.ImageRegistryFlagDefault, constants.ImageRegistryFlagHelp)
 	cmd.PersistentFlags().String(constants.ImagePrefixFlag, constants.ImagePrefixFlagDefault, constants.ImagePrefixFlagHelp)
-
+	cmd.PersistentFlags().BoolP(constants.ProgressFlag, constants.ProgressShorthand, constants.ProgressFlagDefault, constants.ProgressFlagHelp)
 	// Flag to skip any confirmation questions
 	cmd.PersistentFlags().BoolP(constants.SkipConfirmationFlag, constants.SkipConfirmationShort, false, constants.SkipConfirmationFlagHelp)
-
+	// Flag to skip reinstalling the Verrazzano Platform Operator
+	cmd.PersistentFlags().Bool(constants.SkipPlatformOperatorFlag, false, constants.SkipPlatformOperatorFlagHelp)
 	// Add flags related to specifying the platform operator manifests as a local file or a URL
 	cmdhelpers.AddManifestsFlags(cmd)
 
@@ -111,14 +115,20 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	// Verifies that the CLI args are not set at the creation of a command
-	cmdhelpers.VerifyCLIArgsNil(cmd)
+	vzHelper.VerifyCLIArgsNil(cmd)
 
 	return cmd
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Validate the command options
-	err := validateCmd(cmd)
+	err = validateCmd(cmd, client)
 	if err != nil {
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}
@@ -137,12 +147,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
-	if err != nil {
-		return err
-	}
-
-	// Get the controller runtime client
-	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
 	}
@@ -215,39 +219,53 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		// Delete leftover verrazzano-platform-operator deployments after an abort.
-		// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
-		err = cmdhelpers.DeleteFunc(client)
+		// Determines whether to reapply the Verrazzano Platform Operator
+		continuePlatformOperatorReinstall, err := reapplyPlatformOperator(cmd, client)
 		if err != nil {
 			return err
 		}
-		// Apply the Verrazzano operator.yaml.
-		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
-		if err != nil {
-			return err
-		}
+		if continuePlatformOperatorReinstall {
+			// Delete leftover verrazzano-platform-operator deployments after an abort.
+			// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+			err = cmdhelpers.DeleteFunc(client)
+			if err != nil {
+				return err
+			}
 
-		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj)
+			// Apply the Verrazzano operator.yaml.
+			err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
+			if err != nil {
+				return err
+			}
+		}
+		err = installVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout, obj, continuePlatformOperatorReinstall)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
 		vzNamespace = vz.GetNamespace()
 		vzName = vz.GetName()
 	}
-
-	// Wait for the Verrazzano install to complete
-	err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	progressFlag, _ := cmd.PersistentFlags().GetBool(constants.ProgressFlag)
+	if progressFlag {
+		err = displayInstallationProgress(cmd, vzHelper, timeout)
+	} else {
+		// Wait for the Verrazzano install to complete and show the logs
+		err = waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
+	}
 	if err != nil {
 		return bugreport.AutoBugReport(cmd, vzHelper, err)
 	}
 	return nil
 }
 
-func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration, obj *unstructured.Unstructured) error {
-	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
-	if err != nil {
-		return err
+func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.Object, client clipkg.Client, version string, vpoTimeout time.Duration, obj *unstructured.Unstructured, continuePlatformOperatorReinstall bool) error {
+	// Determines whether to wait for Platform Operator
+	if continuePlatformOperatorReinstall {
+		// Wait for the platform operator to be ready before we create the Verrazzano resource.
+		_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Validate Custom Resource if present
@@ -256,7 +274,7 @@ func installVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz clipkg.
 		return fmt.Errorf("was unable to validate the given CR, the following error(s) occurred: \"%v\"", errorArray)
 	}
 
-	err = kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
+	err := kubectlutil.SetLastAppliedConfigurationAnnotation(vz)
 	if err != nil {
 		return err
 	}
@@ -403,9 +421,22 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 }
 
 // validateCmd - validate the command line options
-func validateCmd(cmd *cobra.Command) error {
+func validateCmd(cmd *cobra.Command, client clipkg.Client) error {
 	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
 		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag)
+	}
+	if cmd.PersistentFlags().Changed(constants.SkipPlatformOperatorFlag) && cmdhelpers.ManifestsFlagChanged(cmd) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.SkipPlatformOperatorFlag, constants.ManifestsFlag)
+	}
+	if cmd.PersistentFlags().Changed(constants.SkipPlatformOperatorFlag) {
+		// Get the list of platform operator pods currently running
+		vpoList, err := validators.GetPlatformOperatorPodList(client)
+		if err != nil {
+			return err
+		}
+		if len(vpoList.Items) == 0 {
+			return fmt.Errorf("--%s cannot be specified when there is no Verrazzano Platform Operator running", constants.SkipPlatformOperatorFlag)
+		}
 	}
 	prefix, err := cmd.PersistentFlags().GetString(constants.ImagePrefixFlag)
 	if err != nil {
@@ -449,4 +480,48 @@ func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper hel
 	}
 
 	return nil
+}
+
+// reapplyPlatformOperator - finds a running Verrazzano Platform Operator and determines whether to suppress the reinstall prompt
+func reapplyPlatformOperator(cmd *cobra.Command, client clipkg.Client) (bool, error) {
+	skipPlatformOperator, _ := cmd.Flags().GetBool(constants.SkipPlatformOperatorFlag)
+	skipConfirmation, _ := cmd.PersistentFlags().GetBool(constants.SkipConfirmationFlag)
+	vpoList, err := validators.GetPlatformOperatorPodList(client)
+	if err != nil {
+		return false, err
+	}
+	// Decide to suppress the reinstall prompt based on the skipPlatformOperatorFlag
+	// this is only valid if there is a Verrazzano Platform Operator already running,
+	// otherwise there would be no prompt to suppress
+	if len(vpoList.Items) > 0 {
+		continuePlatformOperatorReapply, err := continueReapply(skipPlatformOperator, skipConfirmation)
+		if err != nil {
+			return false, err
+		}
+		return continuePlatformOperatorReapply, nil
+	}
+	// DEFAULT scenario is reinstalling the platform operator
+	return true, nil
+}
+
+func continueReapply(skipPlatformOperator, skipConfirmation bool) (bool, error) {
+	if skipPlatformOperator {
+		return false, nil
+	}
+	if skipConfirmation {
+		return true, nil
+	}
+	var response string
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("Do you want to reinstall the Verrazzano Platform Operator? [y/N]: ")
+	if scanner.Scan() {
+		response = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+	if response == "y" || response == "Y" {
+		return true, nil
+	}
+	return false, nil
 }

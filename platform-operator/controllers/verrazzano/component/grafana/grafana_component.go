@@ -5,7 +5,7 @@ package grafana
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -150,6 +150,10 @@ func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsInstalled returns true if the Grafana component is installed
 func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
+}
+
+func (g grafanaComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return g.IsInstalled(context)
 }
 
 func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {

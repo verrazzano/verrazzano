@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -35,19 +35,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ModuleIntegrationConfig specifies Module integration configuration
-type ModuleIntegrationConfig struct {
-	// UseModule if component should be implmemented by a Module, default false
-	UseModule bool
-	// WatchDescriptors contains the WatchDescriptor this the component
-	WatchDescriptors []controllerspi.WatchDescriptor
-}
-
 // HelmComponent struct needed to implement a component
 type HelmComponent struct {
-	// ModuleIntegrationConfig contains the configuration needed for Module integraiton
-	ModuleIntegrationConfig
-
 	// ReleaseName is the helm chart release name
 	ReleaseName string
 
@@ -177,14 +166,15 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 	return h.InstallBeforeUpgrade
 }
 
-// ShouldUseModule returns true if component is implemented using a Module, default false
+// ShouldUseModule returns true if component is implemented using a Module
 func (h HelmComponent) ShouldUseModule() bool {
+	// Default to true if module integration is enabled
 	return config.Get().ModuleIntegration
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (h HelmComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return h.WatchDescriptors
+	return nil
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
@@ -253,6 +243,26 @@ func (h HelmComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	}
 	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(ctx))
 	return installed, nil
+}
+
+func (h HelmComponent) Exists(ctx spi.ComponentContext) (bool, error) {
+	if ctx.IsDryRun() {
+		ctx.Log().Debugf("Exists() dry run for %s", h.ReleaseName)
+		return true, nil
+	}
+	resolvedNamespace := h.resolveNamespace(ctx)
+	vzManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(resolvedNamespace)
+	if err != nil {
+		return false, err
+	}
+	if !vzManaged {
+		return false, nil
+	}
+	releaseExists, err := helm.ReleaseExists(h.ReleaseName, resolvedNamespace)
+	if err != nil {
+		return false, err
+	}
+	return releaseExists, nil
 }
 
 // IsAvailable Indicates whether a component is available for end users
@@ -450,12 +460,12 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
-	installed, err := h.IsInstalled(context)
+	existsInCluster, err := h.Exists(context)
 	if err != nil {
 		return err
 	}
-	if !installed {
-		context.Log().Infof("%s already uninstalled", h.Name())
+	if !existsInCluster {
+		context.Log().Infof("%s does not exist in cluster, skipping uninstall", h.Name())
 		return nil
 	}
 	err = helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())

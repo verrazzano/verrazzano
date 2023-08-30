@@ -126,6 +126,10 @@ func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.
 	return helm.CreateActionConfig(true, "my-release", release.StatusDeployed, vzlog.DefaultLogger(), createRelease)
 }
 
+func testActionConfigWithUninstallingStatus(log vzlog.VerrazzanoLogger, settings *cli.EnvSettings, namespace string) (*action.Configuration, error) {
+	return helm.CreateActionConfig(true, "my-release", release.StatusUninstalling, vzlog.DefaultLogger(), createRelease)
+}
+
 func init() {
 	_ = k8scheme.AddToScheme(testScheme)
 	_ = v1alpha1.AddToScheme(testScheme)
@@ -887,7 +891,6 @@ func TestHelmComponent(t *testing.T) {
 		JSONName:                  compJSONName,
 		Dependencies:              compDependencies,
 		SupportsOperatorUninstall: enabled,
-		ModuleIntegrationConfig:   ModuleIntegrationConfig{UseModule: enabled},
 		Certificates:              compCertificates,
 		MinVerrazzanoVersion:      comVersion,
 		SkipUpgrade:               true,
@@ -1413,18 +1416,36 @@ func TestUninstall(t *testing.T) {
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
 		},
-		// GIVEN Helm component
-		// WHEN Uninstall is called
-		// THEN uninstallation is skipped if specified namespace is not found
+		// GIVEN a call to Uninstall
+		// WHEN the Helm release does not exist
+		// THEN no error is returned
 		{
-			name: "TestUninstall when namespace is not found",
+			name: "TestUninstall when release does not exist",
 			helmComponent: HelmComponent{
+				ReleaseName: releaseName,
 				ResolveNamespaceFunc: func(ns string) string {
 					return testNs
 				},
 			},
 			helmOverride: func() {
-				helm.SetActionConfigFunction(testActionConfigWithInstallation)
+				helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
+			},
+			ctx:           fakeContextWithSecret,
+			expectSuccess: true,
+		},
+		// GIVEN Helm component
+		// WHEN Uninstall is called and the release status is already "uninstalling"
+		// THEN no error is returned
+		{
+			name: "TestUninstall Uninstalling status",
+			helmComponent: HelmComponent{
+				ReleaseName: releaseName,
+				ResolveNamespaceFunc: func(ns string) string {
+					return testNs
+				},
+			},
+			helmOverride: func() {
+				helm.SetActionConfigFunction(testActionConfigWithUninstallingStatus)
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,

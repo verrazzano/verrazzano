@@ -5,7 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -107,6 +107,10 @@ func (d opensearchDashboardsComponent) IsOperatorInstallSupported() bool {
 // IsInstalled OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return doesOSDExist(ctx), nil
+}
+
+func (d opensearchDashboardsComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return d.IsInstalled(context)
 }
 
 // Reconcile OpenSearch-Dashboards component function

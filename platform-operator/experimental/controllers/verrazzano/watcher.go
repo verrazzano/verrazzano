@@ -5,10 +5,9 @@ package verrazzano
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -29,29 +28,29 @@ func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 }
 
 // ShouldSecretTriggerReconcile returns true if reconcile should be done in response to a Secret lifecycle event
-func (r Reconciler) ShouldSecretTriggerReconcile(vzNSN types.NamespacedName, secret client.Object, _ controllerspi.WatchEventType) bool {
-	if secret.GetNamespace() != vzNSN.Namespace {
+func (r Reconciler) ShouldSecretTriggerReconcile(cli client.Client, wev controllerspi.WatchEvent) bool {
+	if wev.NewWatchedObject.GetNamespace() != wev.ReconcilingResource.Namespace {
 		return false
 	}
 	vzcr := vzapi.Verrazzano{}
-	if err := r.Client.Get(context.TODO(), vzNSN, &vzcr); err != nil {
+	if err := r.Client.Get(context.TODO(), wev.ReconcilingResource, &vzcr); err != nil {
 		return false
 	}
 	secretNames := getOverrideResourceNames(&vzcr, secretType)
-	_, ok := secretNames[secret.GetName()]
+	_, ok := secretNames[wev.NewWatchedObject.GetName()]
 	return ok
 }
 
 // ShouldConfigMapTriggerReconcile returns true if reconcile should be done in response to a ConfigMap lifecycle event
-func (r Reconciler) ShouldConfigMapTriggerReconcile(vzNSN types.NamespacedName, cm client.Object, _ controllerspi.WatchEventType) bool {
-	if cm.GetNamespace() != vzNSN.Namespace {
+func (r Reconciler) ShouldConfigMapTriggerReconcile(cli client.Client, wev controllerspi.WatchEvent) bool {
+	if wev.NewWatchedObject.GetNamespace() != wev.ReconcilingResource.Namespace {
 		return false
 	}
 	vzcr := vzapi.Verrazzano{}
-	if err := r.Client.Get(context.TODO(), vzNSN, &vzcr); err != nil {
+	if err := r.Client.Get(context.TODO(), wev.ReconcilingResource, &vzcr); err != nil {
 		return false
 	}
 	names := getOverrideResourceNames(&vzcr, configMapType)
-	_, ok := names[cm.GetName()]
+	_, ok := names[wev.NewWatchedObject.GetName()]
 	return ok
 }

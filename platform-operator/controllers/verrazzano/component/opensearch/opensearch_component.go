@@ -5,7 +5,7 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -105,6 +105,10 @@ func (o opensearchComponent) IsOperatorInstallSupported() bool {
 
 func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return doesOSExist(ctx), nil
+}
+
+func (o opensearchComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return o.IsInstalled(context)
 }
 
 func (o opensearchComponent) Reconcile(_ spi.ComponentContext) error {

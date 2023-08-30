@@ -6,7 +6,7 @@ package clusterapi
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -133,6 +133,10 @@ func (c clusterAPIComponent) IsAvailable(ctx spi.ComponentContext) (reason strin
 // IsEnabled returns true if component is enabled for installation.
 func (c clusterAPIComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsClusterAPIEnabled(effectiveCR)
+}
+
+func (c clusterAPIComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return c.IsInstalled(context)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component

@@ -77,6 +77,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 			// Ignore if this component is being handled by a Module
 			continue
 		}
+
 		installContext := tracker.getComponentInstallContext(comp.Name())
 		result, err := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade)
 		if result.Requeue || err != nil {

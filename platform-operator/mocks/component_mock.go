@@ -10,7 +10,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	controllerspi "github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	controllerspi "github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -599,6 +599,21 @@ func NewMockComponent(ctrl *gomock.Controller) *MockComponent {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockComponent) EXPECT() *MockComponentMockRecorder {
 	return m.recorder
+}
+
+// Exists mocks base method
+func (m *MockComponent) Exists(arg0 spi.ComponentContext) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Exists", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Exists indicates an expected call of Exists
+func (mr *MockComponentMockRecorder) Exists(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockComponent)(nil).Exists), arg0)
 }
 
 // GetCertificateNames mocks base method

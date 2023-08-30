@@ -6,13 +6,13 @@ package reconcile
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -25,6 +25,9 @@ const (
 
 	// vzStateSetGlobalInstallStatus is the state where the VZ Install Started status is written
 	vzStateSetGlobalInstallStatus reconcileState = "vzSetGlobalInstallStatus"
+
+	// vzStatePreInstall is the global preinstall state
+	vzStatePreInstall reconcileState = "vzPreInstall"
 
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
@@ -126,9 +129,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				continue
 			}
 			// if the VZ state is not Ready, it must be Reconciling or Upgrading
-			// in either case, go right to installComponents
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			// in either case, go right to PreInstall
+			tracker.vzState = vzStatePreInstall
 
 		case vzStateSetGlobalInstallStatus:
 			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
@@ -136,10 +138,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			tracker.vzState = vzStatePreInstall
 			// since we updated the status, requeue to pick up new changes
 			return ctrl.Result{Requeue: true}, nil
+
+		case vzStatePreInstall:
+			r.beforeInstallComponents(spiCtx)
+			tracker.vzState = vzStateInstallComponents
 
 		case vzStateInstallComponents:
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
@@ -149,9 +154,11 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			tracker.vzState = vzStateWaitModulesReady
 
 		case vzStateWaitModulesReady:
-			res, err := r.waitForModulesReady(spiCtx)
-			if err != nil || res.Requeue {
-				return res, err
+			if !preUpgrade {
+				ready, err := r.modulesReady(spiCtx)
+				if err != nil || !ready {
+					return ctrl.Result{Requeue: true}, err
+				}
 			}
 			tracker.vzState = vzStatePostInstall
 
@@ -175,10 +182,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 // checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) {
 			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 			if !ok {
@@ -219,21 +222,4 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
-}
-func (r *Reconciler) waitForModulesReady(compContext spi.ComponentContext) (ctrl.Result, error) {
-	// Loop through all the Verrazzano components being handled by Modules and check if ready
-	for _, comp := range registry.GetComponents() {
-		if !comp.ShouldUseModule() {
-			// Ignore if this component is NOT being handled by a Module
-			continue
-		}
-		if !comp.IsEnabled(compContext.EffectiveCR()) {
-			continue
-		}
-		if !comp.IsReady(compContext) {
-			compContext.Log().Oncef("Waiting for the module %s to be ready", comp.Name())
-			return newRequeueWithDelay(), nil
-		}
-	}
-	return ctrl.Result{}, nil
 }

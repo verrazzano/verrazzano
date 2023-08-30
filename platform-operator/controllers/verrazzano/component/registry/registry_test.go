@@ -4,7 +4,7 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/base/controllerspi"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"testing"
@@ -941,6 +941,10 @@ func (f fakeComponent) IsOperatorInstallSupported() bool {
 
 func (f fakeComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
 	return true, nil
+}
+
+func (f fakeComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return f.IsInstalled(context)
 }
 
 func (f fakeComponent) PreInstall(_ spi.ComponentContext) error {
