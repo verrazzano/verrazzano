@@ -8,12 +8,14 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -45,6 +47,11 @@ var isVerbose bool
 
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
+
+type CaCrtInfo struct {
+	nameofSecret string
+	expired      bool
+}
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
@@ -308,29 +315,48 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
+		determineIfCaCrtsAreExpired(client, certificateList, namespace, captureDir, vzHelper)
 	}
 	return nil
 }
 
-// captureExpiredThirdPartyCerts outputs a file of the list of third party secrets that correspond to certificates that have expired crt.cas
-func CaptureExpiredThirdPartyCerts(client clipkg.Client, captureDir string, vzHelper VZHelper) error {
-	// Dictionary should have name of third party secret and namespace that it corresponds to
-	dictionaryOfThirdSecrets := nil
-	// Loop through each key in these secrets and get the secret
-	err := client.Get(context.TODO())
-	if err != nil {
-	}
-	//Check if it is expired if it is than create a file with its name and then output it
-	collectHostNames(certificateList)
-	if len(certificateList.Items) > 0 {
-		//Don't use the createFile, just use a seperate function (Look at what other functions do) (Main thing is to get a list of the secrets where this is happening)
-		// Then the VZ analysis tool would just look for this file, if it exists parse it and report issues)
-		// How to handle if secret is not in cluster, is that an error itself, or just ignore it? (Ask Mike Tomoror)
-		if err = createFile(certificateList, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
-			return err
+func determineIfCaCrtsAreExpired(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) {
+	caCrtList := []CaCrtInfo{}
+	for _, cert := range certificateList.Items {
+		correspondingSecretName := cert.Spec.SecretName
+		secretForCertificate := &corev1.Secret{}
+		err := client.Get(context.Background(), clipkg.ObjectKey{
+			Namespace: namespace,
+			Name:      correspondingSecretName,
+		}, secretForCertificate)
+		if err != nil {
+			LogError(fmt.Sprintf("An error occurred while getting a secret in namespace %s: %s\n", namespace, err.Error()))
 		}
+		caCrtData, ok := secretForCertificate.Data["ca.crt"]
+		if !ok {
+			continue
+		}
+		certificate, err := x509.ParseCertificate(caCrtData)
+		if err != nil {
+			LogError(fmt.Sprintf("An error occurred while parsing a certificate in namespace %s: %s\n", namespace, err.Error()))
+		}
+		caCrtInfoForCert := CaCrtInfo{nameofSecret: correspondingSecretName, expired: true}
+		expirationDateOfCert := certificate.NotAfter
+
+		if time.Now().Unix() > expirationDateOfCert.Unix() {
+			caCrtInfoForCert.expired = false
+
+		}
+		caCrtList = append(caCrtList, caCrtInfoForCert)
+
 	}
-	return nil
+	if len(caCrtList) > 0 {
+		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
+		if err := createFile(caCrtList, namespace, "caCrtInfo.json", captureDir, vzHelper); err != nil {
+			LogError(fmt.Sprintf("An error occurred while craeting the cacrtInfo output file in namespace %s: %s\n", namespace, err.Error()))
+		}
+
+	}
 }
 
 func collectHostNames(certificateList v1.CertificateList) {
