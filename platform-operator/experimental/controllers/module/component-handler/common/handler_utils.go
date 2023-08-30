@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,38 +58,56 @@ func GetVerrazzanoNSN(ctx handlerspi.HandlerContext) (*types.NamespacedName, err
 	return &types.NamespacedName{Namespace: ns, Name: name}, nil
 }
 
-// AreDependenciesReady wait for dependencies to be ready using the Module condition
-func AreDependenciesReady(ctx handlerspi.HandlerContext, moduleNames []string) result.Result {
+// AreDependenciesReady check if dependencies are ready using the Module condition
+func AreDependenciesReady(ctx handlerspi.HandlerContext, depModulesNames []string) (res result.Result, deps []string) {
+	var remainingDeps []string
+
 	vz, err := GetVerrazzanoCR(ctx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err), nil
+	}
+	// Check if every dependency is ready, skip ones that are not enabled
+	for _, moduleName := range depModulesNames {
+		res := isDependencyReady(ctx, vz, moduleName)
+		if res.ShouldRequeue() {
+			remainingDeps = append(remainingDeps, moduleName)
+		}
+	}
+
+	if len (remainingDeps) > 0 {
+		return result.NewResultShortRequeueDelay(), remainingDeps
+	}
+	return result.NewResult(), nil
+}
+
+// isDependencyReady checks if a single dependency is ready.  Return requeue if not ready.
+func isDependencyReady(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, moduleName string) result.Result {
+	compCtx, comp, err := getComponentByNameAndContext(ctx, vz, moduleName, "")
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	// Check if every dependency is ready, skip ones that are not enabled
-	for _, moduleName := range moduleNames {
-		compCtx, comp, err := getComponentByNameAndContext(ctx, vz, moduleName, "")
-		if err != nil {
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
-		if !comp.IsEnabled(compCtx.EffectiveCR()) {
-			continue
-		}
-		module := moduleapi.Module{}
-		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: moduleName}
-		if err := ctx.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{}); err != nil {
+	if !comp.IsEnabled(compCtx.EffectiveCR()) {
+		return result.NewResult()
+	}
+	module := moduleapi.Module{}
+	nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: moduleName}
+	if err := ctx.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{}); err != nil {
+		if !errors.IsNotFound(err) {
 			ctx.Log.ErrorfThrottled("Failed to get Module %s, retrying: %v", moduleName, err)
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
+		return result.NewResultShortRequeueDelay()
+	}
 
-		cond := modulestatus.GetReadyCondition(&module)
-		if cond == nil || cond.Status != corev1.ConditionTrue {
-			return result.NewResultShortRequeueDelay()
-		}
-		if module.Status.LastSuccessfulGeneration != module.Generation {
-			return result.NewResultShortRequeueDelay()
-		}
-		if module.Status.LastSuccessfulVersion != module.Spec.Version {
-			return result.NewResultShortRequeueDelay()
-		}
+	cond := modulestatus.GetReadyCondition(&module)
+	if cond == nil || cond.Status != corev1.ConditionTrue {
+		return result.NewResultShortRequeueDelay()
+	}
+	if module.Status.LastSuccessfulGeneration != module.Generation {
+		return result.NewResultShortRequeueDelay()
+	}
+	if module.Status.LastSuccessfulVersion != module.Spec.Version {
+		return result.NewResultShortRequeueDelay()
 	}
 
 	return result.NewResult()

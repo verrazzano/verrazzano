@@ -51,7 +51,7 @@ func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) resul
 	}
 
 	// Check if dependencies are ready
-	if res := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
+	if res, _ := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
 		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
 		return res
 	}

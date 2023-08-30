@@ -4,6 +4,7 @@
 package installupdate
 
 import (
+	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
@@ -43,6 +44,23 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 	return true, result.NewResult()
 }
 
+// CheckDependencies checks if the dependencies are ready
+func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
+	_, comp, err := common.GetComponentAndContext(ctx, string(h.action))
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Check if dependencies are ready
+	if res, deps := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
+		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
+		msg := fmt.Sprintf("Waiting for dependencies %v", deps)
+		h.updateReadyConditionMessage(ctx, msg, true)
+		return res
+	}
+	return result.NewResult()
+}
+
 // PreWorkUpdateStatus does the pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
@@ -78,21 +96,6 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
 
-// CheckDependencies checks if the dependencies are ready
-func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
-	_, comp, err := common.GetComponentAndContext(ctx, string(h.action))
-	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	// Check if dependencies are ready
-	if res := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
-		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
-		return res
-	}
-	return result.NewResult()
-}
-
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
@@ -103,11 +106,11 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	// Do the pre-install
 	if err := comp.PreInstall(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+			h.updateReadyConditionMessage(ctx, err.Error(), true)
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	h.updateReadyConditionStartedOrFailed(ctx, "", false)
+	h.updateReadyConditionMessage(ctx, "", false)
 	return result.NewResult()
 }
 
@@ -125,11 +128,11 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 	if err := comp.Install(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+			h.updateReadyConditionMessage(ctx, err.Error(), true)
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	h.updateReadyConditionStartedOrFailed(ctx, "", false)
+	h.updateReadyConditionMessage(ctx, "", false)
 	return result.NewResult()
 }
 
@@ -157,11 +160,11 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 	}
 	if err := comp.PostInstall(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			h.updateReadyConditionStartedOrFailed(ctx, err.Error(), true)
+			h.updateReadyConditionMessage(ctx, err.Error(), true)
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	h.updateReadyConditionStartedOrFailed(ctx, "", false)
+	h.updateReadyConditionMessage(ctx, "", false)
 	return result.NewResult()
 }
 
@@ -203,7 +206,7 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 }
 
 // updateReadyConditionReconcilingOrFailed updates the ready condition
-func (h ComponentHandler) updateReadyConditionStartedOrFailed(ctx handlerspi.HandlerContext, msg string, failed bool) result.Result {
+func (h ComponentHandler) updateReadyConditionMessage(ctx handlerspi.HandlerContext, msg string, failed bool) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 	var reason moduleapi.ModuleConditionReason
 
