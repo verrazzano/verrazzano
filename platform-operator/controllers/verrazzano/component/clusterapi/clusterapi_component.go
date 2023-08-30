@@ -7,9 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -18,7 +15,9 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -301,7 +300,6 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-
 	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
@@ -316,6 +314,19 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
+		// get all the resource that will be deleted and recreated
+		components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
+		if err != nil {
+			ctx.Log().Errorf("Error generating CAPI components to be upgraded")
+			return err
+		}
+
+		// delete the RBAC resources that Rancher puts finalizers on and keep requeuing until they're gone
+		if err = deleteRBACComponents(ctx, components); err != nil {
+			return err
+		}
+
+		// then apply the upgrade
 		return capiClient.ApplyUpgrade(applyUpgradeOptions)
 	}
 	return nil
