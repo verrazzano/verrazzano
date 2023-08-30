@@ -427,10 +427,10 @@ func TestCreateCertificateFile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-//		TestCreateCaCrtInfoFile tests that a caCrtInfo file titled caCrtInfo.json can be successfully written
-//	 	GIVEN a k8s cluster with secrets containing caCrtInfo present in a namespace  ,
-//		WHEN I call functions to create a list of caCrt for the namespace,
-//		THEN expect it to write to the provided resource file and no error should be returned.
+// TestCreateCaCrtInfoFile tests that a caCrtInfo file titled caCrtInfo.json can be successfully written
+// GIVEN a k8s cluster with secrets containing caCrtInfo present in a namespace  ,
+// WHEN I call functions to create a list of caCrt for the namespace,
+// THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCaCrtJsonFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
 	err := v1.AddToScheme(schemeForClient)
