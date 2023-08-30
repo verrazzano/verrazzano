@@ -88,7 +88,7 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	// Wait for dependencies
 	if res := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
 		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
-		return result.NewResultShortRequeueDelayWithError(err)
+		return res
 	}
 
 	// Do the pre-install
