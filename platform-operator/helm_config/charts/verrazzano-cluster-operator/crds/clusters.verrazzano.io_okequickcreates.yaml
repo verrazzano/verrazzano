@@ -103,7 +103,7 @@ spec:
                         items:
                           properties:
                             id:
-                              description: The Id of the subnet.
+                              description: The ID of the subnet.
                               type: string
                             role:
                               description: Role of subnet within the cluster.
