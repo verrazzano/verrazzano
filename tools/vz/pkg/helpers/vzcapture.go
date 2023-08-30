@@ -50,8 +50,8 @@ var multiWriterOut io.Writer
 var multiWriterErr io.Writer
 
 type CaCrtInfo struct {
-	NameofSecret string `json:"nameofSecret"`
-	Expired      bool   `json:"expired"`
+	Name    string `json:"name"`
+	Expired bool   `json:"expired"`
 }
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
@@ -346,7 +346,7 @@ func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.Certifi
 		if err != nil {
 			return err
 		}
-		caCrtInfoForCert := CaCrtInfo{NameofSecret: correspondingSecretName, Expired: false}
+		caCrtInfoForCert := CaCrtInfo{Name: correspondingSecretName, Expired: false}
 		expirationDateOfCert := certificate.NotAfter
 
 		if time.Now().Unix() > expirationDateOfCert.Unix() {
