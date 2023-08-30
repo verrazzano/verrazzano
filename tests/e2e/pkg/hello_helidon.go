@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -64,6 +65,11 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	Log(Info, "Create Hello Helidon application resource")
 	gomega.Eventually(func() error {
+		bytes, err := os.ReadFile(helidonAppYaml)
+		if err != nil {
+			return fmt.Errorf("failed to read test data file: %w", err)
+		}
+		Log(Info, "HelidonAppYaml"+string(bytes))
 		file, err := FindTestDataFile(helidonAppYaml)
 		if err != nil {
 			return err
