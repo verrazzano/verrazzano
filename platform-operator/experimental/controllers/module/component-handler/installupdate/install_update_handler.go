@@ -78,17 +78,26 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
 
+// CheckDependencies checks if the dependencies are ready
+func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
+	_, comp, err := common.GetComponentAndContext(ctx, string(h.action))
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Check if dependencies are ready
+	if res := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
+		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
+		return res
+	}
+	return result.NewResult()
+}
+
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	// Wait for dependencies
-	if res := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
-		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
-		return res
 	}
 
 	// Do the pre-install

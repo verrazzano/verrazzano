@@ -65,11 +65,11 @@ func AreDependenciesReady(ctx handlerspi.HandlerContext, moduleNames []string) r
 	}
 	// Check if every dependency is ready, skip ones that are not enabled
 	for _, moduleName := range moduleNames {
-		_, comp, err := getComponentByNameAndContext(ctx, vz, moduleName, "")
+		compCtx, comp, err := getComponentByNameAndContext(ctx, vz, moduleName, "")
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
-		if !comp.IsEnabled(vz) {
+		if !comp.IsEnabled(compCtx.EffectiveCR()) {
 			continue
 		}
 		module := moduleapi.Module{}

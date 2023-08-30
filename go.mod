@@ -28,7 +28,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
-	github.com/verrazzano/verrazzano-modules v0.0.0-20230830180217-24901c68d62a
+	github.com/verrazzano/verrazzano-modules v0.0.0-20230830183320-9b45822b7ca2
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
 	go.uber.org/zap v1.24.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
