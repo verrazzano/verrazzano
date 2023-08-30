@@ -6,6 +6,8 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -94,4 +96,28 @@ func (c mysqlOperatorComponent) validateMySQLOperator(vz *installv1beta1.Verrazz
 		}
 	}
 	return nil
+}
+
+// doesInnoDBClusterExist returns true if the InnoDBCluster resource exists
+func doesInnoDBClusterExist(ctx spi.ComponentContext) (bool, error) {
+	innoDBClusterGVK := schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+	const innoDBName = "mysql"
+
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+
+	// the InnoDBCluster resource name is the helm release name
+	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: innoDBName}
+	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+		return false, err
+	}
+	return true, nil
 }
