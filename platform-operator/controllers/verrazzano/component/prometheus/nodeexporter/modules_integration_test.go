@@ -58,7 +58,7 @@ func TestGetModuleSpec(t *testing.T) {
 						Prometheus: &vzapi.PrometheusComponent{
 							Enabled: &trueValue,
 						},
-						Thanos: &vzapi.ThanosComponent{
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
 							Enabled: &trueValue,
 						},
 						AuthProxy: &vzapi.AuthProxyComponent{
