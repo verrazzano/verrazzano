@@ -6,10 +6,13 @@ package ociocne
 import (
 	"context"
 	"errors"
+	"fmt"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -26,6 +29,7 @@ type (
 		ProviderID                     string
 		ExistingSubnets                []oci.Subnet
 		OCIClientGetter                func(creds *oci.Credentials) (oci.Client, error)
+		DockerConfigJSON               string
 	}
 )
 
@@ -63,6 +67,11 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 			return nil, err
 		}
 	}
+	if props.HasImagePullSecret() {
+		if err := props.SetDockerConfigJSON(ctx, cli); err != nil {
+			return nil, err
+		}
+	}
 	// Set LoadBalancerSubnet for simple lookup. Will be empty string if the network has not created yet.
 	props.LoadBalancerSubnet = oci.GetLoadBalancerSubnet(props.Network)
 	return props, nil
@@ -87,6 +96,10 @@ func (p *Properties) IsQuickCreate() bool {
 	return p.Network.CreateVCN
 }
 
+func (p *Properties) HasImagePullSecret() bool {
+	return p.PrivateRegistry != nil && len(p.PrivateRegistry.CredentialsSecret.Name) > 0
+}
+
 func (p *Properties) SetExistingSubnets(ctx context.Context) error {
 	if p.Credentials == nil {
 		return errors.New("no credentials")
@@ -104,5 +117,24 @@ func (p *Properties) SetExistingSubnets(ctx context.Context) error {
 		subnetList = append(subnetList, *subnet)
 	}
 	p.ExistingSubnets = subnetList
+	return nil
+}
+
+func (p *Properties) SetDockerConfigJSON(ctx context.Context, cli clipkg.Client) error {
+	secret := &corev1.Secret{}
+	if err := cli.Get(ctx, types.NamespacedName{
+		Namespace: p.PrivateRegistry.CredentialsSecret.Namespace,
+		Name:      p.PrivateRegistry.CredentialsSecret.Name,
+	}, secret); err != nil {
+		return err
+	}
+	if secret.Data == nil {
+		return fmt.Errorf("failed to load private registry credentials from secret %s/%s", p.PrivateRegistry.CredentialsSecret.Namespace, p.PrivateRegistry.CredentialsSecret.Name)
+	}
+	dockerConfigJSON, ok := secret.Data[".dockerconfigjson"]
+	if !ok {
+		return fmt.Errorf("no private registry credentials found in secret %s/%s", p.PrivateRegistry.CredentialsSecret.Namespace, p.PrivateRegistry.CredentialsSecret.Name)
+	}
+	p.DockerConfigJSON = string(dockerConfigJSON)
 	return nil
 }

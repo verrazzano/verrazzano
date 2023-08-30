@@ -19,6 +19,10 @@ spec:
           name: {{.Name}}-ccm
         - kind: Secret
           name: {{.Name}}-csi
+        {{- if .DockerConfigJSON }}
+        - kind: Secret
+          name: {{.Name}}-image-pull-secret
+        {{- end }}
     strategy: Reconcile
 ---
 apiVersion: v1
@@ -173,3 +177,22 @@ stringData:
                   rateLimitBucketRead: 5
                   rateLimitQPSWrite: 20.0
                   rateLimitBucketWrite: 5
+{{- if .DockerConfigJSON }}
+---
+apiVersion: v1
+kind: Secret
+type: addons.cluster.x-k8s.io/resource-set
+metadata:
+    name: {{.Name}}-image-pull-secret
+    namespace: {{.Namespace}}
+stringData:
+    csi.yaml: |
+        apiVersion: v1
+        kind: Secret
+        metadata:
+            name: verrazzano-container-registry
+            namespace: default
+        data:
+            .dockerconfigjson: {{.DockerConfigJSON}}
+        type: kubernetes.io/dockerconfigjson
+{{- end }}

@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	ocifake "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci/fake"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -33,8 +34,10 @@ var (
 	testNewVCNPatch []byte
 	//go:embed testdata/completed-patch.yaml
 	testCompletedPatch []byte
-	testOCNEVersions   = "../controller/ocne/testdata/ocne-versions.yaml"
-	testLoader         = &ocifake.CredentialsLoaderImpl{
+	//go:embed testdata/new-vcn-private-registry.yaml
+	testNewVCNPrivateRegistryPatch []byte
+	testOCNEVersions               = "../controller/ocne/testdata/ocne-versions.yaml"
+	testLoader                     = &ocifake.CredentialsLoaderImpl{
 		Credentials: &oci.Credentials{
 			Region:  "",
 			Tenancy: "a",
@@ -51,11 +54,22 @@ ghi
 	testOCIClientGetter = func(creds *oci.Credentials) (oci.Client, error) {
 		return &ocifake.ClientImpl{}, nil
 	}
+	privateRegistrySecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testRegistrySecretName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			".dockerconfigjson": []byte("foo"),
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+	}
 )
 
 const (
-	testNamespace = "test"
-	testName      = testNamespace
+	testNamespace          = "test"
+	testName               = testNamespace
+	testRegistrySecretName = "registry"
 )
 
 func init() {
@@ -116,11 +130,14 @@ func TestReconcile(t *testing.T) {
 	noFinalizerCR.Finalizers = nil
 	provisioningCR, err := testCreateCR(testNewVCNPatch)
 	assert.NoError(t, err)
+	privateRegistryCR, err := testCreateCR(testNewVCNPrivateRegistryPatch)
+	assert.NoError(t, err)
 	notFoundReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).Build())
 	quickCreateReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingVCNCR, testOCNEConfigMap()).Build())
 	completedReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(completedCR, testOCNEConfigMap()).Build())
 	noFinalizerReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(noFinalizerCR, testOCNEConfigMap()).Build())
 	provisioningReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(provisioningCR, testOCNEConfigMap()).Build())
+	privateRegistryReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(privateRegistrySecret, privateRegistryCR, testOCNEConfigMap()).Build())
 	var tests = []struct {
 		name        string
 		reconciler  *ClusterReconciler
@@ -167,6 +184,17 @@ func TestReconcile(t *testing.T) {
 			func(t *testing.T) {
 				err := provisioningReconciler.Client.Get(context.TODO(), types.NamespacedName{
 					Name:      fmt.Sprintf("%s-csi", testName),
+					Namespace: testNamespace,
+				}, &corev1.Secret{})
+				assert.NoError(t, err)
+			},
+		},
+		{
+			"private registry secret is created when using private registry credentials",
+			privateRegistryReconciler,
+			func(t *testing.T) {
+				err := privateRegistryReconciler.Client.Get(context.TODO(), types.NamespacedName{
+					Name:      fmt.Sprintf("%s-image-pull-secret", testName),
 					Namespace: testNamespace,
 				}, &corev1.Secret{})
 				assert.NoError(t, err)
