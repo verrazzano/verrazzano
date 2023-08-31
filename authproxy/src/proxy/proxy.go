@@ -15,12 +15,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
+	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -34,25 +37,34 @@ var getConfigFunc = k8sutil.GetConfigFromController
 // AuthProxy wraps the server instance
 type AuthProxy struct {
 	http.Server
+	K8sClient client.Client
 }
+
+type handlerFuncType func(w http.ResponseWriter, r *http.Request)
 
 // Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
-	URL    string
-	Client *retryablehttp.Client
-	Log    *zap.SugaredLogger
+	URL        string
+	Client     *retryablehttp.Client
+	Log        *zap.SugaredLogger
+	OIDCConfig map[string]string
+	K8sClient  client.Client
 }
 
 var _ http.Handler = Handler{}
 
+const callbackPath = "/_authentication_callback"
+const logoutPath = "/_logout"
+
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy(port int) *AuthProxy {
+func InitializeProxy(port int, k8sClient client.Client) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
 			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},
+		K8sClient: k8sClient,
 	}
 }
 
@@ -69,6 +81,17 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
+	httpClient := GetHTTPClientWithCABundle(rootCA)
+	authproxy.Handler = Handler{
+		URL:       config.Host,
+		Client:    httpClient,
+		Log:       log,
+		K8sClient: authproxy.K8sClient,
+	}
+	return nil
+}
+
+func GetHTTPClientWithCABundle(rootCA *x509.CertPool) *retryablehttp.Client {
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
 		RootCAs:    rootCA,
@@ -77,20 +100,41 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient.Transport = transport
+	return client
+}
 
-	authproxy.Handler = Handler{
-		URL:    config.Host,
-		Client: client,
-		Log:    log,
+func (h Handler) findPathHandler(req *http.Request) handlerFuncType {
+	switch req.URL.Path {
+	case callbackPath:
+		return h.handleAuthCallback
+	case logoutPath:
+		return h.handleLogout
+	default:
+		return h.handleAPIRequest
 	}
-	return nil
 }
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
-	err := validateRequest(req)
 
+	handlerFunc := h.findPathHandler(req)
+	handlerFunc(rw, req)
+}
+
+// handleAuthCallback is the http handler for authentication callback
+func (h Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
+
+}
+
+// handleLogout is the http handler for logout
+func (h Handler) handleLogout(rw http.ResponseWriter, req *http.Request) {
+
+}
+
+// handleAPIRequest is the http handler for API requests
+func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
+	err := validateRequest(req)
 	if err != nil {
 		h.Log.Debugf("Failed to validate request: %s", err.Error())
 		http.Error(rw, err.Error(), http.StatusUnprocessableEntity)
@@ -109,8 +153,14 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if statusCode, err := handleAuth(req, rw); err != nil {
-		http.Error(rw, err.Error(), statusCode)
+	oidcConfig := auth.OIDCConfiguration{
+		IssuerURL:   config.GetIssuerURL(),
+		ClientID:    config.GetClientID(),
+		CallbackURL: fmt.Sprintf("https://%s%s", ingressHost, callbackPath),
+	}
+	authenticator := auth.NewAuthenticator(oidcConfig, h.Log, h.K8sClient)
+	requestProcessed := authenticator.Authenticate(req, rw)
+	if requestProcessed {
 		return
 	}
 
@@ -143,14 +193,6 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
 	}
-}
-
-func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
-	authHeader := req.Header.Get("Authorization")
-	if authHeader == "" {
-		// TODO Handle callback/logout cases and if needed, perform authentication flow
-	}
-	return http.StatusOK, nil
 }
 
 // getIngressHost determines the ingress host from the request headers

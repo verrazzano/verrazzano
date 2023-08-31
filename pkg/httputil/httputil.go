@@ -4,6 +4,8 @@
 package httputil
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -54,4 +56,18 @@ func integerSliceContains(slice []int, i int) bool {
 		}
 	}
 	return false
+}
+
+func GetHTTPClientWithRootCA(ca *x509.CertPool) *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:    ca,
+			MinVersion: tls.VersionTLS12},
+		Proxy: http.ProxyFromEnvironment,
+	}
+
+	// disable the custom DNS resolver
+	// setupCustomDNSResolver(tr, kubeconfigPath)
+
+	return &http.Client{Transport: tr}
 }

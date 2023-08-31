@@ -9,8 +9,12 @@ import (
 
 	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/proxy"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -23,11 +27,19 @@ func main() {
 
 	config.InitConfiguration(log)
 
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	opts := ctrl.Options{
+		Scheme: scheme,
+	}
+	// create a controller manager in order to create a K8S in-cluster client
+	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), opts)
+
 	log.Info("Initializing the proxy server")
-	authproxy := proxy.InitializeProxy(proxyPort)
+	authproxy := proxy.InitializeProxy(proxyPort, mgr.GetClient())
 
 	log.Info("Configuring the proxy Kubernetes API client")
-	err := proxy.ConfigureKubernetesAPIProxy(authproxy, log)
+	err = proxy.ConfigureKubernetesAPIProxy(authproxy, log)
 	if err != nil {
 		os.Exit(1)
 	}
