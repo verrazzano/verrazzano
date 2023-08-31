@@ -26,7 +26,7 @@ const mcCABundleKey = "ca-bundle"
 
 var fetchSecretFailureTemplate = "Failed to fetch secret %s/%s: %v"
 
-// reconcileVerrazzanoTLS Updates the related CA bundle copies when the secret configured with ClusterIssuer changes
+// reconcileVerrazzanoTLS - Update the Verrazzano private CA bundle
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, secret types.NamespacedName, caKey string) (ctrl.Result, error) {
 
 	// Get the secret
@@ -58,8 +58,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-// reconcileVerrazzanoCABundleCopies - The configured CA secret has changed. Propagate that change into the following:
-//   - The secret verrazzano-system/verrazzano-tls-ca - the source of truth from the Verrazzano perspective
+// reconcileVerrazzanoCABundleCopies - The Verrazzano private CA secret has changed. Propagate that change into the following:
 //   - The Rancher TLS CA secret and restart Rancher deployment
 //   - The multi-cluster verrazzano-local-ca-bundle secret which maintains a copy of the local CA bundle to sync with remote clusters in the multi-cluster case
 //
