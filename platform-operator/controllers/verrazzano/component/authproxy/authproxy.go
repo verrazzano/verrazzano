@@ -5,14 +5,16 @@ package authproxy
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io/fs"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +41,7 @@ const (
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 	adminClusterOidcID   = "verrazzano-pkce"
+	dexProvider          = "dex"
 )
 
 var (
@@ -88,15 +91,27 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	overrides.Proxy = &proxyValues{
-		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
-		OidcProviderHostInCluster: keycloakInClusterURL,
-		PKCEClientID:              adminClusterOidcID,
+		OidcProviderHostKeycloak:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
+		OidcProviderHostInClusterKeycloak: keycloakInClusterURL,
+		PKCEClientID:                      adminClusterOidcID,
 	}
 	if len(mgdClusterOidcClient) > 0 {
 		overrides.Proxy.OIDCClientID = mgdClusterOidcClient
 		overrides.ManagedClusterRegistered = true
 	} else {
 		overrides.Proxy.OIDCClientID = adminClusterOidcID
+	}
+
+	if vzcr.IsDexEnabled(effectiveCR) {
+		clientSecret, err := getPKCEClientSecret(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		overrides.Proxy.OidcClientSecret = string(clientSecret)
+		overrides.Proxy.OidcProviderForConsole = dexProvider
+		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", dexProvider, overrides.Config.EnvName, dnsSuffix)
+		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, dexProvider)
 	}
 
 	// Image name and version
@@ -336,4 +351,23 @@ func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 		})
 	}
 	return kvs
+}
+
+// getPKCEClientSecret retrieves the client secret for verrazzano-pkce client.
+func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
+	secret := &corev1.Secret{}
+	ctx.Log().Debugf("Retrieving the client secret from %s/%s secret", dexProvider, adminClusterOidcID)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: dexProvider, Name: adminClusterOidcID}, secret)
+	if err != nil {
+		errMsg := fmt.Sprintf("Unable to retrieve %s secret from %s namespace, %v", adminClusterOidcID, dexProvider, err)
+		ctx.Log().Errorf(errMsg)
+		return nil, fmt.Errorf(errMsg)
+	}
+
+	if data, ok := secret.Data["clientSecret"]; ok {
+		return base64.StdEncoding.DecodeString(string(data))
+	}
+
+	return nil, fmt.Errorf("client secret not present in %s/%s secret", dexProvider, adminClusterOidcID)
+
 }
