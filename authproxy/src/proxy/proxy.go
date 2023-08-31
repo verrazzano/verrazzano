@@ -30,6 +30,8 @@ const (
 	localClusterPrefix = "/clusters/local"
 
 	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
+
+	contentTypeHeader = "Content-Type"
 )
 
 var getConfigFunc = k8sutil.GetConfigFromController
@@ -192,6 +194,21 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 	_, err = io.Copy(rw, responseBody)
 	if err != nil {
 		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
+		return
+	}
+
+	if _, ok := resp.Header[contentTypeHeader]; ok {
+		for _, h := range resp.Header[contentTypeHeader] {
+			rw.Header().Add(contentTypeHeader, h)
+		}
+	} else {
+		bodyData, err := io.ReadAll(responseBody)
+		if err != nil {
+			h.Log.Errorf("Failed to read response body for content type detection: %v", err)
+			return
+		}
+
+		rw.Header().Add(contentTypeHeader, http.DetectContentType(bodyData))
 	}
 }
 

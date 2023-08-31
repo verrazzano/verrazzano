@@ -6,6 +6,7 @@ package proxy
 import (
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,9 +58,9 @@ func TestServeHTTP(t *testing.T) {
 		expectedStatus   int
 		expectedRespHdrs map[string]string
 	}{
-		{"POST request with no added headers", http.MethodPost, map[string]string{}, http.StatusOK, map[string]string{}},
+		{"POST request with no added headers", http.MethodPost, map[string]string{}, http.StatusOK, map[string]string{contentTypeHeader: runtime.ContentTypeJSON}},
 		{"GET request with Host header", http.MethodPost, map[string]string{"Host": ingressHost}, http.StatusOK, map[string]string{}},
-		{"GET request with valid Origin and Host headers", http.MethodGet, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Access-Control-Allow-Origin": originVal}},
+		{"GET request with valid Origin and Host headers", http.MethodGet, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Access-Control-Allow-Origin": originVal, contentTypeHeader: runtime.ContentTypeJSON}},
 		{"OPTIONS request with valid Origin and Host headers", http.MethodOptions, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Content-Length": "0", "Access-Control-Allow-Origin": originVal}},
 		{"POST request with Host and invalid Origin header", http.MethodPost, map[string]string{"Host": ingressHost, "Origin": "https://notvalid"}, http.StatusForbidden, map[string]string{}},
 	}
@@ -73,6 +74,7 @@ func TestServeHTTP(t *testing.T) {
 				body, err := io.ReadAll(r.Body)
 				assert.NoError(t, err)
 				assert.Equal(t, testBody, string(body))
+				w.Header().Add(contentTypeHeader, runtime.ContentTypeJSON)
 			}))
 			defer server.Close()
 
