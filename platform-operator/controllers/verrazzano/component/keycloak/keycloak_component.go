@@ -174,29 +174,20 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// If the Verrazzano installed version is 1.5.0 (with Keycloak version 20.0.1) or later, skip deleting the
-	// Keycloak StatefulSet before an upgrade.
-	if ctx.ActualCR() != nil {
-		installedVersion, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
-		if err != nil {
+	isDeleteRequired, err := isDeleteStatefulSetRequired(ctx)
+	if err != nil {
+		return err
+	}
+
+	if isDeleteRequired {
+		// Delete the StatefulSet before the upgrade
+		if err := deleteStatefulSet(ctx); err != nil {
 			return err
 		}
-		minVersion, err := semver.NewSemVersion(constants.VerrazzanoVersion1_5_0)
-		if err != nil {
+
+		// Delete the headless service before the upgrade
+		if err := deleteHeadlessService(ctx); err != nil {
 			return err
-		}
-		if installedVersion.IsLessThan(minVersion) {
-			ctx.Log().Infof("Delete Keycloak StatefulSet for upgrade from versions earlier than %s", constants.VerrazzanoVersion1_5_0)
-
-			// Delete the StatefulSet before the upgrade
-			if err := deleteStatefulSet(ctx); err != nil {
-				return err
-			}
-
-			// Delete the headless service before the upgrade
-			if err := deleteHeadlessService(ctx); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -271,4 +262,35 @@ func (c KeycloakComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+// isDeleteStatefulSetRequired determines whether deleting the Keycloak StatefulSet is required
+func isDeleteStatefulSetRequired(ctx spi.ComponentContext) (bool, error) {
+	isDeleteRequired := true
+	if ctx.ActualCR() != nil {
+		installedVersion, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
+		if err != nil {
+			return isDeleteRequired, nil
+		}
+		ctx.Log().Infof("Verrazzano version installed: %s", installedVersion)
+		versionToUpgrade, err := semver.NewSemVersion(ctx.ActualCR().Spec.Version)
+		if err != nil {
+			return isDeleteRequired, nil
+		}
+		ctx.Log().Infof("Verrazzano version for upgrade: %s", versionToUpgrade)
+
+		minVersion, err := semver.NewSemVersion(constants.VerrazzanoVersion1_5_0)
+		if err != nil {
+			return isDeleteRequired, nil
+		}
+
+		// Deleting the Keycloak StatefulSet during pre-upgrade is required only when the version installed is pre 1.5.0
+		// (with Keycloak version 15.0.2) and version to upgrade is 1.5.0 or later(with Keycloak version 20.0.1)
+		if (installedVersion.IsLessThan(minVersion) && versionToUpgrade.IsLessThan(minVersion)) ||
+			!installedVersion.IsLessThan(minVersion) {
+			ctx.Log().Info("Deleting Keycloak StatefulSet is not during pre-upgrade")
+			isDeleteRequired = false
+		}
+	}
+	return isDeleteRequired, nil
 }
