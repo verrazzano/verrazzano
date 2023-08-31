@@ -52,9 +52,13 @@ rules:
   - apiGroups: [""]
     resources: ["serviceaccounts"]
     verbs: ["get", "patch"]
+{{- if .Values.psp.enabled }}
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy" }}
   - apiGroups: ["policy"]
     resources: ["podsecuritypolicies"]
     verbs:     ["use"]
+{{- end }}
+{{- end }}
     resourceNames:
       - {{ include "backupRestore.fullname" . }}-patch-sa
 ---
@@ -75,6 +79,7 @@ subjects:
     name: {{ include "backupRestore.fullname" . }}-patch-sa
     namespace: {{ .Release.Namespace }}
 ---
+{{- if .Values.psp.enabled }}
 {{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy" }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -106,6 +111,7 @@ spec:
   readOnlyRootFilesystem: false
   volumes:
     - 'secret'
+{{- end }}
 {{- end }}
 ---
 apiVersion: networking.k8s.io/v1
