@@ -234,6 +234,93 @@ func TestIsReleaseInstalledFailed(t *testing.T) {
 	assert.False(found, "Release should not be found")
 }
 
+// TestReleaseExists tests checking if a Helm release is exists
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release in the Deployed state
+//	THEN the function returns true and no error
+func TestReleaseExists(t *testing.T) {
+	assertion := assert.New(t)
+
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return ChartStatusDeployed, nil
+	})
+	defer SetDefaultChartStatusFunction()
+
+	exists, err := ReleaseExists(release, ns)
+	assertion.NoError(err, "ReleaseExists returned an error")
+	assertion.True(exists, "Release not found")
+}
+
+// TestReleaseExistsUninstallingStatus tests checking if a Helm release is exists
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release in the Uninstalling state
+//	THEN the function returns true and no error
+func TestReleaseExistsUninstallingStatus(t *testing.T) {
+	assertion := assert.New(t)
+
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return "uninstalling", nil
+	})
+	defer SetDefaultChartStatusFunction()
+
+	exists, err := ReleaseExists(release, ns)
+	assertion.NoError(err, "ReleaseExists returned an error")
+	assertion.True(exists, "Release not found")
+}
+
+// TestReleaseExistsUnknownStatus tests checking if a Helm release is exists
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release in the Unknown state
+//	THEN the function returns true and no error
+func TestReleaseExistsUnknownStatus(t *testing.T) {
+	assertion := assert.New(t)
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return "unknown", nil
+	})
+	defer SetDefaultChartStatusFunction()
+
+	exists, err := ReleaseExists(release, ns)
+	assertion.NoError(err, "ReleaseExists returned an error")
+	assertion.True(exists, "Release not found")
+}
+
+// TestReleaseExistsNotInstalled tests the ReleaseExists func
+// GIVEN a call to ReleaseExists
+//
+//	WHEN for a Helm release that does not exist
+//	THEN the function returns false and no error
+func TestReleaseExistsNotInstalled(t *testing.T) {
+	assertion := assert.New(t)
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return ChartNotFound, nil
+	})
+	defer SetDefaultChartStatusFunction()
+
+	exists, err := ReleaseExists(release, ns)
+	assertion.NoError(err, "IsReleaseInstalled returned an error")
+	assertion.False(exists, "Release should not be exists")
+}
+
+// TestReleaseExistsError tests the ReleaseExists func
+// GIVEN a bad helmRelease name and namespace
+//
+//	WHEN I call ReleaseExists
+//	THEN the function returns false and an error
+func TestReleaseExistsError(t *testing.T) {
+	assertion := assert.New(t)
+	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return "", fmt.Errorf("error running helm status")
+	})
+	defer SetDefaultChartStatusFunction()
+
+	exists, err := ReleaseExists(release, ns)
+	assertion.Error(err, "IsReleaseInstalled should have returned an error")
+	assertion.False(exists, "Release should not be found")
+}
+
 // TestIsReleaseDeployed tests checking if a Helm release is installed
 // GIVEN a release name and namespace
 //
