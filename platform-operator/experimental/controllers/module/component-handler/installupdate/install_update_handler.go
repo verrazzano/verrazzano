@@ -4,7 +4,6 @@
 package installupdate
 
 import (
-	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
@@ -46,21 +45,7 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // CheckDependencies checks if the dependencies are ready
 func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
-	module := ctx.CR.(*moduleapi.Module)
-
-	_, comp, err := common.GetComponentAndContext(ctx, string(h.action))
-	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	// Check if dependencies are ready
-	if res, deps := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
-		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
-		msg := fmt.Sprintf("Waiting for dependencies %v", deps)
-		modulestatus.UpdateReadyConditionFailed(ctx, module, h.getStartedReason(), msg)
-		return res
-	}
-	return result.NewResult()
+	return common.CheckDependencies(ctx, string(h.action), h.getStartedReason())
 }
 
 // PreWorkUpdateStatus does the pre-Work status update
@@ -124,7 +109,6 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 	if err := comp.Install(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			module := ctx.CR.(*moduleapi.Module)
 			modulestatus.UpdateReadyConditionFailed(ctx, module, h.getStartedReason(), err.Error())
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
