@@ -33,10 +33,6 @@ import (
 
 var writeFileFunc = os.WriteFile
 
-func resetWriteFileFunc() {
-	writeFileFunc = os.WriteFile
-}
-
 const (
 	configIssuer    = "config.issuer"
 	ingressClassKey = "ingress.className"
@@ -44,7 +40,7 @@ const (
 	hostsHost       = "host"
 	tlsHosts        = "tlsHosts"
 	tlsSecret       = "dexSecret"
-	dexTLSSecret    = "dex-tls"
+	dexTLSSecret    = "dex-tls" //nolint:gosec //#gosec G101
 	pkceClient      = "verrazzano-pkce"
 	pgClient        = "verrazzano-pg"
 
@@ -56,7 +52,7 @@ const (
 	adminUsernameKey = "username"
 	adminPasswordKey = "password"
 
-	dexCertificateName = "dex-tls"
+	dexCertificateName = "dex-tls" //nolint:gosec //#gosec G101
 	helmValuesFile     = "dex-values.yaml"
 
 	tmpFilePrefix       = "dex-overrides-"
@@ -68,11 +64,11 @@ type userData struct {
 	Email    string
 	Hash     string
 	UserName string
-	UserId   string
+	UserID   string
 }
 
 type clientData struct {
-	ClientId     string
+	ClientID     string
 	RedirectURIs string
 	ClientName   string
 	ClientSecret string
@@ -125,10 +121,12 @@ const clientTemplate = `  - id: "{{.ClientId}}"
     {{.RedirectURIs}}
 `
 
+//nolint:gosec //#gosec G101
 const staticPasswordTemplate = `config:
   staticPasswords:
 `
 
+//nolint:gosec //#gosec G101
 const passwordTemplate = `  - email: "{{.Email}}"
     hash: "{{.Hash}}"
     username: "{{.UserName}}"
@@ -252,15 +250,22 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 // ensureDexNamespace ensures that the dex namespace is created with the right labels.
 func ensureDexNamespace(ctx spi.ComponentContext) error {
 	// Create the dex namespace
-	namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.DexNamespace}}
-	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.DexNamespace,
+		},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), namespace, func() error {
 		if namespace.Labels == nil {
 			namespace.Labels = map[string]string{}
 		}
 		namespace.Labels[v8oconst.LabelVerrazzanoNamespace] = constants.DexNamespace
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // getDNSDomain returns the DNS Domain
@@ -359,7 +364,7 @@ func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 	}
 	data.Hash = pwdHash
 	data.UserName = string(vzUser)
-	data.UserId = uuid.New().String()
+	data.UserID = uuid.New().String()
 	return nil
 }
 
@@ -402,7 +407,7 @@ func populateStaticClients(ctx spi.ComponentContext, dnsSubDomain string) (bytes
 	}
 
 	cData := clientData{}
-	cData.ClientId = pkceClient
+	cData.ClientID = pkceClient
 	cData.ClientName = pkceClient
 	cData.ClientSecret = cs
 	cData.RedirectURIs = redirectURIs
@@ -427,7 +432,7 @@ func populateStaticClients(ctx spi.ComponentContext, dnsSubDomain string) (bytes
 	}
 
 	cData = clientData{}
-	cData.ClientId = pgClient
+	cData.ClientID = pgClient
 	cData.ClientName = pgClient
 	cData.ClientSecret = cs
 	cData.RedirectURIs = ""
@@ -488,7 +493,7 @@ func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedN
 	if err != nil {
 		pw, err := vzpassword.GeneratePassword(12)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to generate a password for the client %s: %v", clientName.Name, err)
 		}
 		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
 			secret.Data = map[string][]byte{
@@ -496,6 +501,9 @@ func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedN
 			}
 			return nil
 		})
+		if err != nil {
+			return "", fmt.Errorf("unable to create or update the secret for the client %s: %v", clientName.Name, err)
+		}
 		ctx.Log().Infof("Created secret %s successfully", clientName)
 		return pw, nil
 	}
