@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -30,7 +31,8 @@ const (
 // WHEN  the Kubernetes API proxy is configured
 // THEN  the handler exists and there is no error
 func TestConfigureKubernetesAPIProxy(t *testing.T) {
-	authproxy := InitializeProxy(8777)
+	c := fake.NewClientBuilder().Build()
+	authproxy := InitializeProxy(8777, c)
 	log := zap.S()
 
 	getConfigFunc = testConfig
