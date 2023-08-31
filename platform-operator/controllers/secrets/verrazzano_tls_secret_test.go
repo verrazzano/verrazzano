@@ -436,6 +436,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 						vzconst.CABundleKey: originalBundleData,
 					},
 				},
+				clusterIssuerSecretUpdated,
 				&corev1.Namespace{
 					ObjectMeta: v1.ObjectMeta{Name: constants.VerrazzanoMultiClusterNamespace},
 				},
@@ -487,7 +488,11 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 				sourceSecretKey = tt.sourceSecretKey
 			}
 
-			got, err := r.reconcileVerrazzanoCABundleCopies(sourceSecret, sourceSecretKey)
+			got, err := r.reconcileVerrazzanoTLS(context.TODO(), types.NamespacedName{Namespace: sourceSecret.Namespace, Name: sourceSecret.Name}, sourceSecretKey)
+			assert.NoError(t, err)
+			assert.False(t, got.Requeue)
+
+			got, err = r.reconcileVerrazzanoCABundleCopies()
 			if !wantErr(t, err, "reconcileVerrazzanoCABundleCopies did not get expected error result") {
 				return
 			}
