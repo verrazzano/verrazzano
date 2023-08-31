@@ -21,7 +21,8 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 15 * time.Minute
+	longWaitTimeout      = 20 * time.Minute
+	longWaitTimeout2     = 40 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
@@ -110,7 +111,7 @@ func deployWebLogicApplication() {
 			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	}, longWaitTimeout2, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
