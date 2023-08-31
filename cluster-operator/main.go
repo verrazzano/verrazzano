@@ -85,8 +85,8 @@ func handleFlags() operatorinit.Properties {
 	flag.BoolVar(&enableQuickCreate, "quick-create", false, "If true, enables Quick Create Clusters")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
-	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", false,
-		"Runs the webhook initialization code")
+	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", true,
+		"Enables the registration of CAPI-based clusters with Rancher")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)

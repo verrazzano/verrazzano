@@ -48,7 +48,7 @@ func TestClusterRegistration(t *testing.T) {
 	request := newRequest(clusterName)
 
 	SetClusterRegistrationFunction(func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) (ctrl.Result, error) {
-		r.persistClusterStatus(ctx, cluster, "capi1Id", registrationCompleted)
+		r.persistClusterStatus(ctx, cluster, "capi1Id", registrationInitiated)
 		return ctrl.Result{}, nil
 	})
 	defer SetDefaultClusterRegistrationFunction()
@@ -59,7 +59,7 @@ func TestClusterRegistration(t *testing.T) {
 	clusterRegistrationSecret := &v1.Secret{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, clusterRegistrationSecret)
 	asserts.NoError(err)
-	asserts.Equal(registrationCompleted, string(clusterRegistrationSecret.Data[clusterRegistrationStatusKey]))
+	asserts.Equal(registrationInitiated, string(clusterRegistrationSecret.Data[clusterRegistrationStatusKey]))
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
@@ -89,7 +89,7 @@ func TestClusterUnregistration(t *testing.T) {
 			Name:      clusterName + clusterStatusSuffix,
 			Namespace: constants.VerrazzanoCAPINamespace,
 		},
-		Data: map[string][]byte{clusterIDKey: []byte("capi1Id"), clusterRegistrationStatusKey: []byte(registrationCompleted)},
+		Data: map[string][]byte{clusterIDKey: []byte("capi1Id"), clusterRegistrationStatusKey: []byte(registrationInitiated)},
 	}
 
 	cluster := newCAPICluster(clusterName)
