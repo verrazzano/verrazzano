@@ -330,7 +330,7 @@ func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.Certifi
 		if err != nil {
 			return err
 		}
-		if isFound == true {
+		if isFound {
 			caCrtList = append(caCrtList, *caCrtInfoForCert)
 		}
 
