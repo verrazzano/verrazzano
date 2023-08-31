@@ -6,7 +6,6 @@ package keycloak
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"path/filepath"
 
@@ -262,35 +261,4 @@ func (c KeycloakComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
-}
-
-// isDeleteStatefulSetRequired determines whether deleting the Keycloak StatefulSet is required
-func isDeleteStatefulSetRequired(ctx spi.ComponentContext) (bool, error) {
-	isDeleteRequired := true
-	if ctx.ActualCR() != nil {
-		installedVersion, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
-		if err != nil {
-			return isDeleteRequired, nil
-		}
-		ctx.Log().Infof("Verrazzano version installed: %s", installedVersion)
-		versionToUpgrade, err := semver.NewSemVersion(ctx.ActualCR().Spec.Version)
-		if err != nil {
-			return isDeleteRequired, nil
-		}
-		ctx.Log().Infof("Verrazzano version for upgrade: %s", versionToUpgrade)
-
-		minVersion, err := semver.NewSemVersion(constants.VerrazzanoVersion1_5_0)
-		if err != nil {
-			return isDeleteRequired, nil
-		}
-
-		// Deleting the Keycloak StatefulSet during pre-upgrade is required only when the version installed is pre 1.5.0
-		// (with Keycloak version 15.0.2) and version to upgrade is 1.5.0 or later(with Keycloak version 20.0.1)
-		if (installedVersion.IsLessThan(minVersion) && versionToUpgrade.IsLessThan(minVersion)) ||
-			!installedVersion.IsLessThan(minVersion) {
-			ctx.Log().Info("Deleting Keycloak StatefulSet is not during pre-upgrade")
-			isDeleteRequired = false
-		}
-	}
-	return isDeleteRequired, nil
 }
