@@ -162,6 +162,8 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), grafanadashboards.ComponentName)
 	i++
+	a.Equal(comps[i].Name(), dex.ComponentName)
+	i++
 	a.Equal(comps[i].Name(), authproxy.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), coherence.ComponentName)
@@ -201,8 +203,6 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), thanos.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), clusteragent.ComponentName)
-	i++
-	a.Equal(comps[i].Name(), dex.ComponentName)
 }
 
 // TestGetComponents tests getting the components

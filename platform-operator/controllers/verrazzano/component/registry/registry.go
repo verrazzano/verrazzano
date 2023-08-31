@@ -91,6 +91,7 @@ func InitRegistry() {
 		opensearchdashboards.NewComponent(),
 		grafana.NewComponent(),
 		grafanadashboards.NewComponent(),
+		dex.NewComponent(),
 		authproxy.NewComponent(),
 		coherence.NewComponent(),
 		mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
@@ -111,7 +112,6 @@ func InitRegistry() {
 		argocd.NewComponent(),
 		thanos.NewComponent(),
 		clusteragent.NewComponent(),
-		dex.NewComponent(),
 	}
 	getComponentsMap = make(map[string]spi.Component)
 }

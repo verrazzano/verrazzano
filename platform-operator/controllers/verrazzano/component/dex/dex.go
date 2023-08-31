@@ -115,7 +115,7 @@ const staticClientTemplate = `config:
   staticClients:
 `
 
-const clientTemplate = `  - id: "{{.ClientId}}"
+const clientTemplate = `  - id: "{{.ClientID}}"
     name: "{{.ClientName}}"
     secret: {{.ClientSecret}}
     {{.RedirectURIs}}
@@ -130,7 +130,7 @@ const staticPasswordTemplate = `config:
 const passwordTemplate = `  - email: "{{.Email}}"
     hash: "{{.Hash}}"
     username: "{{.UserName}}"
-    userID: "{{.userID}}"
+    userID: "{{.UserID}}"
 `
 
 // GetOverrides gets the installation overrides for the Dex component
