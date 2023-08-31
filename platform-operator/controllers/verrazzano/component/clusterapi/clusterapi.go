@@ -328,7 +328,8 @@ func deleteRBACComponents(ctx spi.ComponentContext, components []unstructured.Un
 				ctx.Log().Errorf("Unexpected error getting %s %s: %v", component.GetKind(), component.GetName(), err)
 				return err
 			}
-			return ctx.Log().ErrorfThrottledNewErr("Waiting for cluster-api RBAC resources to be deleted before upgrade")
+			ctx.Log().Progress("Waiting for cluster-api RBAC resources to be deleted before upgrade")
+			return err
 		}
 	}
 	return nil
