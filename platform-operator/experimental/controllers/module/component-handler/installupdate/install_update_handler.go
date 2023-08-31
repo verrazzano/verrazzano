@@ -46,6 +46,8 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // CheckDependencies checks if the dependencies are ready
 func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	_, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -55,7 +57,7 @@ func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) resul
 	if res, deps := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
 		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
 		msg := fmt.Sprintf("Waiting for dependencies %v", deps)
-		h.updateReadyConditionMessage(ctx, msg, true)
+		modulestatus.UpdateReadyConditionFailed(ctx, module, h.getStartedReason(), msg)
 		return res
 	}
 	return result.NewResult()
@@ -64,16 +66,6 @@ func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) resul
 // PreWorkUpdateStatus does the pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
-	var reason moduleapi.ModuleConditionReason
-	var cond vzapi.ConditionType
-
-	if h.action == InstallAction {
-		reason = moduleapi.ReadyReasonInstallStarted
-		cond = vzapi.CondInstallStarted
-	} else {
-		reason = moduleapi.ReadyReasonUpdateStarted
-		cond = vzapi.CondInstallStarted
-	}
 
 	// Update the Verrazzano component status
 	nsn, err := common.GetVerrazzanoNSN(ctx)
@@ -82,9 +74,9 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	}
 	sd := common.StatusData{
 		Vznsn:    *nsn,
-		CondType: cond,
+		CondType: vzapi.CondInstallStarted,
 		CompName: module.Spec.ModuleName,
-		Msg:      string(cond),
+		Msg:      string(vzapi.CondInstallStarted),
 		Ready:    false,
 	}
 	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
@@ -93,11 +85,13 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	}
 
 	// Update the module status
-	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
+	return modulestatus.UpdateReadyConditionReconciling(ctx, module, h.getStartedReason())
 }
 
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -106,11 +100,11 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	// Do the pre-install
 	if err := comp.PreInstall(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			h.updateReadyConditionMessage(ctx, err.Error(), true)
+			modulestatus.UpdateReadyConditionFailed(ctx, module, h.getStartedReason(), err.Error())
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	h.updateReadyConditionMessage(ctx, "", false)
+	modulestatus.UpdateReadyConditionReconciling(ctx, module, h.getStartedReason())
 	return result.NewResult()
 }
 
@@ -121,6 +115,8 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 
 // DoWork installs the module using Helm
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -128,11 +124,12 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 	if err := comp.Install(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			h.updateReadyConditionMessage(ctx, err.Error(), true)
+			module := ctx.CR.(*moduleapi.Module)
+			modulestatus.UpdateReadyConditionFailed(ctx, module, h.getStartedReason(), err.Error())
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	h.updateReadyConditionMessage(ctx, "", false)
+	modulestatus.UpdateReadyConditionReconciling(ctx, module, h.getStartedReason())
 	return result.NewResult()
 }
 
@@ -154,17 +151,19 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 
 // PostWork does installation post-work
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	if err := comp.PostInstall(compCtx); err != nil {
 		if !vzerrors.IsRetryableError(err) {
-			h.updateReadyConditionMessage(ctx, err.Error(), true)
+			modulestatus.UpdateReadyConditionFailed(ctx, module, h.getStartedReason(), err.Error())
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	h.updateReadyConditionMessage(ctx, "", false)
+	modulestatus.UpdateReadyConditionReconciling(ctx, module, h.getStartedReason())
 	return result.NewResult()
 }
 
@@ -205,20 +204,10 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, reason)
 }
 
-// updateReadyConditionReconcilingOrFailed updates the ready condition
-func (h ComponentHandler) updateReadyConditionMessage(ctx handlerspi.HandlerContext, msg string, failed bool) result.Result {
-	module := ctx.CR.(*moduleapi.Module)
-	var reason moduleapi.ModuleConditionReason
-
+func (h ComponentHandler) getStartedReason() moduleapi.ModuleConditionReason {
 	if h.action == InstallAction {
-		reason = moduleapi.ReadyReasonInstallStarted
+		return moduleapi.ReadyReasonInstallStarted
 	} else {
-		reason = moduleapi.ReadyReasonUpdateStarted
+		return moduleapi.ReadyReasonUpdateStarted
 	}
-
-	// Update the module status
-	if failed {
-		return modulestatus.UpdateReadyConditionFailed(ctx, module, reason, msg)
-	}
-	return modulestatus.UpdateReadyConditionReconciling(ctx, module, reason)
 }
