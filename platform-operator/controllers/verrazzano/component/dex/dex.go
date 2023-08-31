@@ -130,7 +130,7 @@ const staticPasswordTemplate = `config:
 const passwordTemplate = `  - email: "{{.Email}}"
     hash: "{{.Hash}}"
     username: "{{.UserName}}"
-    userID: "{{.UserId}}"
+    userID: "{{.userID}}"
 `
 
 // GetOverrides gets the installation overrides for the Dex component
