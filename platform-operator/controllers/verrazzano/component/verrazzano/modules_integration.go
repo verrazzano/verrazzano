@@ -16,6 +16,6 @@ import (
 // GetWatchDescriptors Returns a watch on the whole VZ CR spec, as the VZ "module" looks at a lot of settings; for now
 // just watch for any changes and trigger this to reconcile
 func (c verrazzanoComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	wd :=  watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, authproxy.ComponentName, fluentoperator.ComponentName})
+	wd := watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, authproxy.ComponentName, fluentoperator.ComponentName})
 	return append(wd, watch.GetVerrazzanoSpecWatch()...)
 }
