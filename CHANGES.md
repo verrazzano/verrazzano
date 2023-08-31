@@ -1,3 +1,8 @@
+### v1.6.6
+Features:
+
+- Added support for Kubernetes v1.27
+
 ### v1.6.4
 
 Component version updates:
