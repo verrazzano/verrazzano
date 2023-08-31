@@ -5,7 +5,7 @@ package reconcile
 
 import (
 	"context"
-
+	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -41,6 +41,9 @@ const (
 
 	// vzStateUninstallComponents is the state where the components are being uninstalled
 	vzStateUninstallComponents uninstallState = "vzStateUninstallComponents"
+
+	// vzStateWaitModulesDeleted waits until all modules are deleted
+	vzStateWaitModulesDeleted = "vzStateWaitModulesDeleted"
 
 	// vzStateUninstallCleanup is the state where the final cleanup is performed for a full uninstall
 	vzStateUninstallCleanup uninstallState = "vzStateUninstallCleanup"
@@ -149,6 +152,17 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			res, err := r.uninstallComponents(log, cr, tracker)
 			if err != nil || res.Requeue {
 				return res, err
+			}
+			tracker.vzState = vzStateWaitModulesDeleted
+
+		case vzStateWaitModulesDeleted:
+			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			exist, err := r.modulesExist(spiCtx)
+			if err != nil || exist {
+				return ctrl.Result{Requeue: true}, err
 			}
 			tracker.vzState = vzStateUninstallCleanup
 
@@ -479,4 +493,28 @@ func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// modulesExist returns true if any modules exists
+func (r *Reconciler) modulesExist(ctx spi.ComponentContext) (bool, error) {
+	for _, comp := range registry.GetComponents() {
+		if !comp.IsEnabled(ctx.EffectiveCR()) {
+			continue
+		}
+		if !comp.ShouldUseModule() {
+			continue
+		}
+		module := moduleapi.Module{}
+		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
+		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			ctx.Log().ErrorfThrottled("Failed to get Module %s, retrying: %v", comp.Name(), err)
+			return false, err
+		}
+		return true, nil
+	}
+	return false, nil
 }

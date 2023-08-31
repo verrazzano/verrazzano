@@ -238,6 +238,23 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 	return false
 }
 
+// doesInnoDBClusterExist returns true if the InnoDBCluster resource exists
+func DoesInnoDBClusterExist(ctx spi.ComponentContext) (bool, error) {
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+
+	// the InnoDBCluster resource name is the helm release name
+	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: helmReleaseName}
+	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+		return false, err
+	}
+	return true, nil
+}
+
 // appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()

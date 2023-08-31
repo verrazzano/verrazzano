@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
 )
 
@@ -44,6 +43,21 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 	return installed, result.NewResult()
 }
 
+// CheckDependencies checks if the dependencies are ready
+func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
+	_, comp, err := common.GetComponentAndContext(ctx, string(constants.UpgradeOperation))
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Check if dependencies are ready
+	if res, _ := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
+		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
+		return res
+	}
+	return result.NewResult()
+}
+
 // PreWorkUpdateStatus updates the status for the pre-work state
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
@@ -73,12 +87,6 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
 	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	// Wait for dependencies
-	if !registry.ComponentDependenciesMet(comp, compCtx) {
-		ctx.Log.Oncef("Component %s is waiting for dependenct components to be installed", comp.Name())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
