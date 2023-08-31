@@ -110,8 +110,15 @@ func TestReconcileConfiguredCASecret(t *testing.T) {
 		return cmClient.CertmanagerV1(), nil
 	})
 
+	// First reconcile the change to the ClusterIssuer secret
 	request := newRequest(caSecret.Namespace, caSecret.Name)
 	result, err := r.Reconcile(context.TODO(), request)
+	asserts.NoError(err)
+	asserts.NotNil(result)
+
+	// Next reconcile the change to the verrazzano-tls-ca secret
+	request = newRequest(v8oTLSCASecret.Namespace, v8oTLSCASecret.Name)
+	result, err = r.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
 	asserts.NotNil(result)
 
