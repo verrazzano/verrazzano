@@ -1842,9 +1842,8 @@ func TestAddRealmRoleToUser(t *testing.T) {
 
 // TestIsDeleteSTSRequired tests the call to isDeleteStatefulSetRequired
 // GIVEN a Keycloak component
-//
-//	WHEN I call isDeleteStatefulSetRequired
-//	THEN the correct value is returned based on the version installed and version for upgrade
+// WHEN I call isDeleteStatefulSetRequired
+// THEN the correct value is returned based on the version installed and version for upgrade
 func TestIsDeleteSTSRequired(t *testing.T) {
 	versionInstalled := "v1.4.6"
 	versionForUpgrade := "v1.4.7"
@@ -1867,7 +1866,7 @@ func TestIsDeleteSTSRequired(t *testing.T) {
 
 // getCompContext returns ComponentContext by setting the spec:version and  status:version using the input
 func getCompContext(versionInstalled, versionForUpgrade string) spi.ComponentContext {
-	pvc100Gi, _ := resource.ParseQuantity("1Gi")
+	pvc1Gi, _ := resource.ParseQuantity("1Gi")
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: vzapi.ProfileType("dev"),
@@ -1876,7 +1875,7 @@ func getCompContext(versionInstalled, versionForUpgrade string) spi.ComponentCon
 				Spec: v1.PersistentVolumeClaimSpec{
 					Resources: v1.ResourceRequirements{
 						Requests: v1.ResourceList{
-							"storage": pvc100Gi,
+							"storage": pvc1Gi,
 						},
 					},
 				},
