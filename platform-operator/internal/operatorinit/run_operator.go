@@ -5,7 +5,6 @@ package operatorinit
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module"
@@ -13,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusterissuers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
@@ -26,16 +24,11 @@ import (
 	integrationsingle "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/single"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	"sync"
-
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
 	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
-
-	"os"
-	"strings"
-	"time"
+	"sync"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -43,7 +36,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strings"
+	"time"
 )
 
 const vpoHelmChartConfigMapName = "vpo-helm-chart"
@@ -139,15 +135,6 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 		}
-	}
-
-	// Setup ClusterIssuer reconciler
-	if err = (&clusterissuers.Reconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		StatusUpdater: statusUpdater,
-	}).SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller VerrazzanoClusterIssuers")
 	}
 
 	// Setup secrets reconciler
