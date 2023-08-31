@@ -178,7 +178,7 @@ func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates() error {
 	// Renew each certificate that was issued by the Verrazzano ClusterIssuer
 	for i, cert := range certList.Items {
 		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
-			r.Log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
+			zap.S().Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
 			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.Log, &certList.Items[i]); err != nil {
 				return err
 			}
