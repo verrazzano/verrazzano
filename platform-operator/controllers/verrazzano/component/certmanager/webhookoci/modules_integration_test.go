@@ -49,6 +49,11 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
+					"issuerConfig": {
+					  "ca": {
+						"secretName": "ca-secret"
+					  }
+					},
 					"clusterResourceNamespace": "ca-namespace"
 				  }
 				}
@@ -88,6 +93,11 @@ func TestGetModuleSpec(t *testing.T) {
 						"module": {
 						  "spec": {
 							"ociConfigSecret": "oci",
+							"issuerConfig": {
+							  "ca": {
+								"secretName": "ca-secret"
+							  }
+							},
 							"clusterResourceNamespace": "ca-namespace"
 						  }
 						}
@@ -128,6 +138,11 @@ func TestGetModuleSpec(t *testing.T) {
 				  "verrazzano": {
 					"module": {
 					  "spec": {
+						"issuerConfig": {
+						  "ca": {
+							"secretName": "ca-secret"
+						  }
+						},
 						"clusterResourceNamespace": "ca-namespace"
 					  }
 					}

@@ -15,8 +15,9 @@ import (
 
 // webhookOCIValuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type webhookOCIValuesConfig struct {
-	OCIConfigSecret          string `json:"ociConfigSecret,omitempty"`
-	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
+	OCIConfigSecret          string                `json:"ociConfigSecret,omitempty"`
+	ClusterResourceNamespace string                `json:"clusterResourceNamespace,omitempty"`
+	IssuerConfig             v1alpha1.IssuerConfig `json:"issuerConfig"`
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON webhookOCIValuesConfig representing the portion of the Verrazzano CR that corresponds to the module
@@ -41,6 +42,7 @@ func (c certManagerWebhookOCIComponent) GetModuleConfigAsHelmValues(effectiveCR 
 	configSnippet := webhookOCIValuesConfig{
 		OCIConfigSecret:          ociConfigSecret,
 		ClusterResourceNamespace: clusterResourceNamespace,
+		IssuerConfig:             clusterIssuer.IssuerConfig,
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
