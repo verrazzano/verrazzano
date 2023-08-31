@@ -319,7 +319,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		// get all the resource that will be deleted and recreated
 		components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
 		if err != nil {
-			ctx.Log().Errorf("Error generating CAPI components to be upgraded")
+			ctx.Log().ErrorfThrottled("Error generating cluster-api provider components to be upgraded")
 			return err
 		}
 

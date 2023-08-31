@@ -310,7 +310,7 @@ func deleteRBACComponents(ctx spi.ComponentContext, components []unstructured.Un
 		if component.GroupVersionKind().Group == rbacGroup {
 			err := ctx.Client().Delete(context.TODO(), &component)
 			if err != nil && !errors.IsNotFound(err) {
-				ctx.Log().Errorf("Error setting deletion timestamp on %s %s: %v", component.GetKind(), component.GetName(), err)
+				ctx.Log().Errorf("Unexpected error deleting %s %s: %v", component.GetKind(), component.GetName(), err)
 				return err
 			}
 		}
@@ -323,13 +323,12 @@ func deleteRBACComponents(ctx spi.ComponentContext, components []unstructured.Un
 				types.NamespacedName{Name: component.GetName(), Namespace: component.GetNamespace()}, &component)
 			if errors.IsNotFound(err) {
 				continue
-			} else if err != nil {
+			}
+			if err != nil {
 				ctx.Log().Errorf("Unexpected error getting %s %s: %v", component.GetKind(), component.GetName(), err)
 				return err
-			} else {
-				ctx.Log().Progress("Waiting for CAPI RBAC resources to be deleted before upgrade")
-				return err
 			}
+			return ctx.Log().ErrorfThrottledNewErr("Waiting for cluster-api RBAC resources to be deleted before upgrade")
 		}
 	}
 	return nil
