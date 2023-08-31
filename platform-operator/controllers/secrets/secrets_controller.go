@@ -79,7 +79,6 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
 			return result, err
 		}
-		// - verrazzano-tls-ca updated in this block
 		return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, corev1.TLSCertKey)
 	}
 

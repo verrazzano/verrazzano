@@ -67,7 +67,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 //
 // These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies() (ctrl.Result, error) {
-	// Use private bundle secret to update copies from here
+	// Use private bundle secret to update copies
 	privateBundleSecret := &corev1.Secret{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
 	if otherErr := client.IgnoreNotFound(err); otherErr != nil {
