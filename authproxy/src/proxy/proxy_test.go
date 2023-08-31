@@ -33,13 +33,13 @@ const (
 // THEN  the handler exists and there is no error
 func TestConfigureKubernetesAPIProxy(t *testing.T) {
 	c := fake.NewClientBuilder().Build()
-	authproxy := InitializeProxy(8777, c)
+	authproxy := InitializeProxy(8777)
 	log := zap.S()
 
 	getConfigFunc = testConfig
 	defer func() { getConfigFunc = k8sutil.GetConfigFromController }()
 
-	err := ConfigureKubernetesAPIProxy(authproxy, log)
+	err := ConfigureKubernetesAPIProxy(authproxy, c, log)
 	assert.NoError(t, err)
 	assert.NotNil(t, authproxy.Handler)
 }

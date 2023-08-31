@@ -30,6 +30,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("Initializing the proxy server")
+	authproxy := proxy.InitializeProxy(proxyPort)
+
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	opts := ctrl.Options{
@@ -37,12 +40,13 @@ func main() {
 	}
 	// create a controller manager in order to create a K8S in-cluster client
 	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), opts)
-
-	log.Info("Initializing the proxy server")
-	authproxy := proxy.InitializeProxy(proxyPort, mgr.GetClient())
+	if err != nil {
+		log.Errorf("Failed to initialize the controller manager")
+		os.Exit(1)
+	}
 
 	log.Info("Configuring the proxy Kubernetes API client")
-	err = proxy.ConfigureKubernetesAPIProxy(authproxy, log)
+	err = proxy.ConfigureKubernetesAPIProxy(authproxy, mgr.GetClient(), log)
 	if err != nil {
 		os.Exit(1)
 	}

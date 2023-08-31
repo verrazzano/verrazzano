@@ -39,7 +39,6 @@ var getConfigFunc = k8sutil.GetConfigFromController
 // AuthProxy wraps the server instance
 type AuthProxy struct {
 	http.Server
-	K8sClient client.Client
 }
 
 type handlerFuncType func(w http.ResponseWriter, r *http.Request)
@@ -59,36 +58,35 @@ const callbackPath = "/_authentication_callback"
 const logoutPath = "/_logout"
 
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy(port int, k8sClient client.Client) *AuthProxy {
+func InitializeProxy(port int) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
 			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},
-		K8sClient: k8sClient,
 	}
 }
 
 // ConfigureKubernetesAPIProxy configures the server handler and the proxy client for the AuthProxy instance
-func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) error {
-	config, err := getConfigFunc()
+func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, log *zap.SugaredLogger) error {
+	restConfig, err := getConfigFunc()
 	if err != nil {
 		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
 		return err
 	}
 
-	rootCA, err := loadCAData(config, log)
+	rootCA, err := loadCAData(restConfig, log)
 	if err != nil {
 		return err
 	}
 
 	httpClient := GetHTTPClientWithCABundle(rootCA)
 	authproxy.Handler = Handler{
-		URL:       config.Host,
+		URL:       restConfig.Host,
 		Client:    httpClient,
 		Log:       log,
-		K8sClient: authproxy.K8sClient,
+		K8sClient: k8sClient,
 	}
 	return nil
 }
