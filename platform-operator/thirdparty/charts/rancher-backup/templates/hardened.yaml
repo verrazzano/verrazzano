@@ -57,10 +57,10 @@ rules:
   - apiGroups: ["policy"]
     resources: ["podsecuritypolicies"]
     verbs:     ["use"]
-{{- end }}
-{{- end }}
     resourceNames:
       - {{ include "backupRestore.fullname" . }}-patch-sa
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
