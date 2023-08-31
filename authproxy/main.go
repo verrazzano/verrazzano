@@ -7,6 +7,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/proxy"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
@@ -14,12 +15,16 @@ import (
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+var proxyPort int
+
 func main() {
 	handleFlags()
 	log := zap.S()
 
+	config.InitConfiguration(log)
+
 	log.Info("Initializing the proxy server")
-	authproxy := proxy.InitializeProxy()
+	authproxy := proxy.InitializeProxy(proxyPort)
 
 	log.Info("Configuring the proxy Kubernetes API client")
 	err := proxy.ConfigureKubernetesAPIProxy(authproxy, log)
@@ -36,6 +41,8 @@ func main() {
 
 // handleFlags sets up the CLI flags, parses them, and initializes loggers
 func handleFlags() {
+	flag.IntVar(&proxyPort, "proxy-port", 8777, "Port for incoming request to the Auth Proxy.")
+
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
