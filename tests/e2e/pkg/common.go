@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/ioutil"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -263,6 +264,12 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			if isReadyAndRunning(pod) {
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
+				// check to see if the pod IP is misconfigured
+				podIP := pod.Status.PodIP
+				Log(Debug, fmt.Sprintf("Pod %s IP: %s", pod.Name, podIP))
+				if !isIPAddressValid(pod.Name, podIP) {
+					return false, fmt.Errorf("pod %s does not have a valid IP address: %s", pod.Name, podIP)
+				}
 				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
 			}
 		}
@@ -728,4 +735,15 @@ func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
 			},
 		},
 	}
+}
+
+// isIPAddressValid checks whether the IP is a valid address. If an empty string is passed in then the assumption is
+// that an IP address has yet to be assigned and a 'true' response is returned to allow for processing to continue.
+func isIPAddressValid(podName string, ip string) bool {
+	if len(ip) > 0 {
+		return net.ParseIP(ip) != nil
+	} else if len(ip) == 0 {
+		Log(Info, fmt.Sprintf("Pod IP is not set for pod %s", podName))
+	}
+	return true
 }
