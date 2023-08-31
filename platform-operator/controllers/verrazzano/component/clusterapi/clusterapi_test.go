@@ -4,13 +4,14 @@
 package clusterapi
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -101,7 +102,6 @@ func TestToSkipSettingUpgradeOptions(t *testing.T) {
       }
     },
     "oci": {
-      "version": "v0.8.2",
       "image": {
         "repository": "oci-repo",
         "registry": "myreg2.io",

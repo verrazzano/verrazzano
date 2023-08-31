@@ -301,7 +301,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230713135924-c39455f",
+              "tag": "v2.0.0-20230825101211-f2937ea",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -375,7 +375,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "1.5.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -409,7 +409,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "1.5.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -950,6 +950,7 @@
   "supportedKubernetesVersions": [
     "v1.24.0",
     "v1.25.0",
-    "v1.26.0"
+    "v1.26.0",
+    "v1.27.0"
   ]
 }

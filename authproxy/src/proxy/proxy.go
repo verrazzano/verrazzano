@@ -6,6 +6,7 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,10 +15,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 )
 
@@ -44,10 +46,10 @@ type Handler struct {
 var _ http.Handler = Handler{}
 
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy() *AuthProxy {
+func InitializeProxy(port int) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
-			Addr:         ":8777",
+			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},
@@ -62,13 +64,9 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
-	rootCA := common.CertPool(config.CAData)
-	if len(config.CAData) < 1 {
-		rootCA, err = cert.NewPool(config.CAFile)
-		if err != nil {
-			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
-			return err
-		}
+	rootCA, err := loadCAData(config, log)
+	if err != nil {
+		return err
 	}
 
 	transport := http.DefaultTransport
@@ -100,15 +98,14 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	ingressHost := getIngressHost(req)
-	if statusCode, err := addCORSHeaders(req, rw, ingressHost); err != nil {
+	if statusCode, err := cors.AddCORSHeaders(req, rw, ingressHost); err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
 	}
 
 	if req.Method == http.MethodOptions {
-		if statusCode, err := handleOptionsRequest(req, rw); err != nil {
-			http.Error(rw, err.Error(), statusCode)
-		}
+		rw.Header().Set("Content-Length", "0")
+		rw.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -148,15 +145,6 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func handleOptionsRequest(req *http.Request, rw http.ResponseWriter) (int, error) {
-	return http.StatusOK, nil
-}
-
-func addCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (int, error) {
-	// TODO get origin header, check if it is an allowed origin, add CORS response headers
-	return http.StatusOK, nil
-}
-
 func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
@@ -174,6 +162,23 @@ func getIngressHost(req *http.Request) string {
 		return host
 	}
 	return "invalid-hostname"
+}
+
+// loadCAData returns the config CA data from the byte array or from the file name
+func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, error) {
+	if len(config.CAData) < 1 {
+		rootCA, err := cert.NewPool(config.CAFile)
+		if err != nil {
+			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+		}
+		return rootCA, err
+	}
+
+	rootCA, err := cert.NewPoolFromBytes(config.CAData)
+	if err != nil {
+		log.Errorf("Failed to load CA data from the Kubeconfig")
+	}
+	return rootCA, err
 }
 
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
@@ -218,10 +223,7 @@ func obfuscateRequestData(req *http.Request) *http.Request {
 	hiddenReq := req.Clone(context.TODO())
 	authKey := "Authorization"
 	for i := range hiddenReq.Header[authKey] {
-		// List of authorization schemes compiled from
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication#authentication_schemes
-		authRegEx := "(Bearer|Basic|Digest|HOBA|Mutual|Negotiate|NTLM|VAPID|SCRAM|AWS4-HMAC-SHA256)"
-		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction(authRegEx)(hiddenReq.Header[authKey][i])
+		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction("")(hiddenReq.Header[authKey][i])
 	}
 	return hiddenReq
 }

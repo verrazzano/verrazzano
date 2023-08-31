@@ -5,9 +5,6 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -51,16 +48,6 @@ func (o opensearchComponent) Namespace() string {
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
 func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
-}
-
-// ShouldUseModule returns true if component is implemented using a Module
-func (o opensearchComponent) ShouldUseModule() bool {
-	return config.Get().ModuleIntegration
-}
-
-// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (o opensearchComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
-	return nil, nil
 }
 
 // GetDependencies returns the dependencies of the OpenSearch component

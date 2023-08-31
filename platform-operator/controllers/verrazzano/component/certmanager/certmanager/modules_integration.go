@@ -16,7 +16,6 @@ import (
 // certManagerModuleConfig Internal component configuration used to communicate Verrazzano CR config for CertManager to
 // this component through the Module interface as Helm values
 type certManagerModuleConfig struct {
-	//v1alpha1.Certificate     `json:"certificate"`
 	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
 }
 
@@ -37,7 +36,6 @@ func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 	}
 	return spi.NewModuleConfigHelmValuesWrapper(
 		certManagerModuleConfig{
-			//Certificate:              compConfig.Certificate,
 			ClusterResourceNamespace: clusterResourceNamespace,
 		},
 	)

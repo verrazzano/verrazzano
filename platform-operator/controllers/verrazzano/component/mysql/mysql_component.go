@@ -154,6 +154,10 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
+	// Validate the DefaultVolumeSource of mySQL
+	if err := validateDefaultVolumeSource(&convertedNewVZ); err != nil {
+		return err
+	}
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
@@ -172,7 +176,28 @@ func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
 		return err
 	}
+	// Validate the DefaultVolumeSource of mySQL
+	if err := validateDefaultVolumeSource(new); err != nil {
+		return err
+	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+func (c mysqlComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	convertedOldVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedOldVZ); err != nil {
+		return err
+	}
+	if err := validateDefaultVolumeSource(&convertedOldVZ); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateInstall(vz)
+}
+
+func (c mysqlComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := validateDefaultVolumeSource(vz); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 // validatePersistenceSpecificChanges validates if there are any persistence related changes done via the install overrides
@@ -208,4 +233,14 @@ func (c mysqlComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+// validateDefaultVolumeSource Verifies that the defaultVolumeSource emptyDir is not left blank. Verrazzano does not support this behavior.
+func validateDefaultVolumeSource(vz *v1beta1.Verrazzano) error {
+	if vz.Spec.DefaultVolumeSource != nil && vz.Spec.Components.MySQLOperator != nil {
+		if vz.Spec.DefaultVolumeSource.EmptyDir != nil && !*vz.Spec.Components.MySQLOperator.Enabled {
+			return fmt.Errorf("defaultVolumeSource: emptyDir was set, this is not supported")
+		}
+	}
+	return nil
 }
