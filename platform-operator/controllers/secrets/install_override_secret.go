@@ -40,7 +40,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileInstallOverrideSecret(ctx context
 			return newRequeueWithDelay(), err
 		}
 
-		if result, err := r.initLogger(*secret); err != nil {
+		if result, err := r.initLogger(req.NamespacedName, secret); err != nil {
 			return result, err
 		}
 

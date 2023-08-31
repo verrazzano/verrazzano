@@ -74,9 +74,9 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Renew all certificates issued by ClusterIssuer when it's secret changes
 	clusterIssuer := effectiveCR.Spec.Components.ClusterIssuer
 	if isClusterIssuerSecret(req.NamespacedName, clusterIssuer) {
-		if err = r.renewClusterIssuerCertificates(); err != nil {
+		if result, err = r.renewClusterIssuerCertificates(req, vz); err != nil {
 			zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
-			return newRequeueWithDelay(), err
+			return result, err
 		}
 		return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, corev1.TLSCertKey)
 	}
@@ -117,13 +117,13 @@ func (r *VerrazzanoSecretsReconciler) getVZ(ctx context.Context) (*installv1alph
 }
 
 // initialize secret logger
-func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Result, error) {
+func (r *VerrazzanoSecretsReconciler) initLogger(nsName types.NamespacedName, obj client.Object) (ctrl.Result, error) {
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-		Name:           secret.Name,
-		Namespace:      secret.Namespace,
-		ID:             string(secret.UID),
-		Generation:     secret.Generation,
+		Name:           nsName.Name,
+		Namespace:      nsName.Namespace,
+		ID:             string(obj.GetUID()),
+		Generation:     obj.GetGeneration(),
 		ControllerName: "secrets",
 	})
 	if err != nil {
@@ -163,26 +163,30 @@ func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
 }
 
-func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates() error {
+func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates(req ctrl.Request, obj client.Object) (ctrl.Result, error) {
+	if result, err := r.initLogger(req.NamespacedName, obj); err != nil {
+		return result, err
+	}
+
 	// List the certificates
 	certList := &certv1.CertificateList{}
 	if err := r.List(context.TODO(), certList); err != nil {
-		return err
+		return newRequeueWithDelay(), err
 	}
 
 	cmClient, err := issuer.GetCMClientFunc()()
 	if err != nil {
-		return err
+		return newRequeueWithDelay(), err
 	}
 
 	// Renew each certificate that was issued by the Verrazzano ClusterIssuer
 	for i, cert := range certList.Items {
 		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
-			zap.S().Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
+			r.Log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
 			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.Log, &certList.Items[i]); err != nil {
-				return err
+				return newRequeueWithDelay(), err
 			}
 		}
 	}
-	return nil
+	return ctrl.Result{}, nil
 }

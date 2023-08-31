@@ -45,7 +45,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	zap.S().Debugf("Fetched secret %s/%s ", secret.Namespace, secret.Name)
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
-	if result, err := r.initLogger(caSecret); err != nil {
+	if result, err := r.initLogger(secret, &caSecret); err != nil {
 		return result, err
 	}
 
