@@ -130,10 +130,6 @@ func (g grafanaComponent) Exists(context spi.ComponentContext) (bool, error) {
 	return g.IsInstalled(context)
 }
 
-func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return (&ready.AvailabilityObjects{DeploymentNames: newDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
-}
-
 // IsReady returns true if the Grafana component is ready
 func (g grafanaComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isGrafanaReady(ctx)

@@ -223,16 +223,6 @@ func (h HelmComponent) Exists(ctx spi.ComponentContext) (bool, error) {
 	return releaseExists, nil
 }
 
-// IsAvailable Indicates whether a component is available for end users
-// Components should implement comprehensive availability checks, supplying an appropriate reason
-// if the check fails.
-func (h HelmComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
-	if h.AvailabilityObjects != nil {
-		return h.AvailabilityObjects.IsAvailable(context.Log(), context.Client())
-	}
-	return "", v1alpha1.ComponentAvailable
-}
-
 // IsReady Indicates whether a component is available and ready
 func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {

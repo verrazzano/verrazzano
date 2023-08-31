@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
@@ -14,17 +14,15 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -38,14 +36,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	gofake "k8s.io/client-go/kubernetes/fake"
@@ -58,7 +55,7 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
-//ingress list constants
+// ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
 const esURL = "elasticsearch." + dnsDomain
