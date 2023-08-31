@@ -22,23 +22,23 @@ type authProxyValues struct {
 }
 
 type proxyValues struct {
-	OidcRealm                         string `json:"OidcRealm,omitempty"`
-	PKCEClientID                      string `json:"PKCEClientID,omitempty"`
-	OIDCClientID                      string `json:"OIDCClientID,omitempty"`
-	PGClientID                        string `json:"PGClientID,omitempty"`
-	RequiredRealmRole                 string `json:"RequiredRealmRole,omitempty"`
-	OidcCallbackPath                  string `json:"OidcCallbackPath,omitempty"`
-	OidcLogoutCallbackPath            string `json:"OidcLogoutCallbackPath,omitempty"`
-	OidcSingleLogoutCallbackPath      string `json:"OidcSingleLogoutCallbackPath,omitempty"`
-	OidcProviderHostKeycloak          string `json:"OidcProviderHostKeycloak,omitempty"`
-	OidcProviderHostInClusterKeycloak string `json:"OidcProviderHostInClusterKeycloak,omitempty"`
-	OidcProviderHostDex               string `json:"OidcProviderHostDex,omitempty"`
-	OidcProviderHostInClusterDex      string `json:"OidcProviderHostInClusterDex,omitempty"`
-	OidcProviderForConsole            string `json:"OidcProviderForConsole,omitempty"`
-	OidcClientSecret                  string `json:"OidcClientSecret,omitempty"`
-	AuthnStateTTL                     string `json:"AuthnStateTTL,omitempty"`
-	MaxRequestSize                    string `json:"MaxRequestSize,omitempty"`
-	ProxyBufferSize                   string `json:"ProxyBufferSize,omitempty"`
+	OidcRealm                    string `json:"OidcRealm,omitempty"`
+	PKCEClientID                 string `json:"PKCEClientID,omitempty"`
+	OIDCClientID                 string `json:"OIDCClientID,omitempty"`
+	PGClientID                   string `json:"PGClientID,omitempty"`
+	RequiredRealmRole            string `json:"RequiredRealmRole,omitempty"`
+	OidcCallbackPath             string `json:"OidcCallbackPath,omitempty"`
+	OidcLogoutCallbackPath       string `json:"OidcLogoutCallbackPath,omitempty"`
+	OidcSingleLogoutCallbackPath string `json:"OidcSingleLogoutCallbackPath,omitempty"`
+	OidcProviderHost             string `json:"OidcProviderHost,omitempty"`
+	OidcProviderHostInCluster    string `json:"OidcProviderHostInCluster,omitempty"`
+	AuthnStateTTL                string `json:"AuthnStateTTL,omitempty"`
+	MaxRequestSize               string `json:"MaxRequestSize,omitempty"`
+	ProxyBufferSize              string `json:"ProxyBufferSize,omitempty"`
+	OidcProviderHostDex          string `json:"OidcProviderHostDex,omitempty"`
+	OidcProviderHostInClusterDex string `json:"OidcProviderHostInClusterDex,omitempty"`
+	OidcProviderForConsole       string `json:"OidcProviderForConsole,omitempty"`
+	OidcClientSecret             string `json:"OidcClientSecret,omitempty"`
 }
 
 type configValues struct {

@@ -91,9 +91,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	overrides.Proxy = &proxyValues{
-		OidcProviderHostKeycloak:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
-		OidcProviderHostInClusterKeycloak: keycloakInClusterURL,
-		PKCEClientID:                      adminClusterOidcID,
+		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
+		OidcProviderHostInCluster: keycloakInClusterURL,
+		PKCEClientID:              adminClusterOidcID,
 	}
 	if len(mgdClusterOidcClient) > 0 {
 		overrides.Proxy.OIDCClientID = mgdClusterOidcClient

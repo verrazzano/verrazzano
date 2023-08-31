@@ -179,8 +179,8 @@ data:
     local requiredRole = "{{ .RequiredRealmRole }}"
 
     local authStateTtlInSec = tonumber("{{ .AuthnStateTTL }}")
-    local oidcProviderHostKeycloak = "{{ .OidcProviderHostKeycloak }}"
-    local oidcProviderHostInClusteKeycloak = "{{ .OidcProviderHostKeycloakInCluster }}"
+    local oidcProviderHost = "{{ .OidcProviderHost }}"
+    local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
     local oidcProviderHostDex = "{{ .OidcProviderHostDex }}"
     local oidcProviderHostInClusterDex = "{{ .OidcProviderHostDexInCluster }}"
     local oidcProviderForConsole = "{{ .OidcProviderForConsole }}"
@@ -231,19 +231,19 @@ data:
 
     function me.initOidcProvider(oidcProvider)
         me.oidcProvider = oidcProvider
-        local oidcProviderHost = ""
-        local oidcProviderHostInCluster = ""
+        local oidcProviderHostForRequest = ""
+        local oidcProviderHostInClusterForRequest = ""
         if me.oidcProvider == "dex" then
-            oidcProviderHost = oidcProviderHostDex
-            oidcProviderHostInCluster = oidcProviderHostInClusterDex
+            oidcProviderHostForRequest = oidcProviderHostDex
+            oidcProviderHostInClusterForRequest = oidcProviderHostInClusterDex
         else
-            oidcProviderHost = oidcProviderHostKeycloak
-            oidcProviderHostInCluster = oidcProviderHostInClusteKeycloak
+            oidcProviderHostForRequest = oidcProviderHost
+            oidcProviderHostInClusterForRequest = oidcProviderHostInCluster
         end
         
-        me.oidcProviderUri = "https://" .. oidcProviderHost
-        if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
-            me.oidcProviderInClusterUri = "http://" .. oidcProviderHostInCluster
+        me.oidcProviderUri = "https://" .. oidcProviderHostForRequest
+        if oidcProviderHostInClusterForRequest and oidcProviderHostInClusterForRequest ~= "" then
+            me.oidcProviderInClusterUri = "http://" .. oidcProviderHostInClusterForRequest
         end
 
         local oidcProviderURL = me.read_file("/api-config/" .. oidcProvider .. "-url")
