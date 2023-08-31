@@ -65,15 +65,16 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	Log(Info, "Create Hello Helidon application resource")
 	gomega.Eventually(func() error {
-		bytes, err := os.ReadFile(helidonAppYaml)
-		if err != nil {
-			return fmt.Errorf("failed to read test data file: %w", err)
-		}
-		Log(Info, "HelidonAppYaml"+string(bytes))
+
 		file, err := FindTestDataFile(helidonAppYaml)
 		if err != nil {
 			return err
 		}
+		bytes, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read test data file: %w", err)
+		}
+		Log(Info, "HelidonAppYaml"+string(bytes))
 		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 }
