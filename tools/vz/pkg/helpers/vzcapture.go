@@ -335,8 +335,6 @@ func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.Certifi
 		}
 
 	}
-	//Debug tomorrow
-	fmt.Println(caCrtList)
 	if len(caCrtList) > 0 {
 		LogMessage(fmt.Sprintf("ca.crts in namespace: %s ...\n", namespace))
 		if err := createFile(caCrtList, namespace, "caCrtInfo.json", captureDir, vzHelper); err != nil {
