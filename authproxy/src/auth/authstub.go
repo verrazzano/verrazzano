@@ -36,7 +36,7 @@ func NewFakeAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger,
 	return &FakeAuthenticator{oidcConfig: oidcConfig, Log: log, K8sClient: client}
 }
 
-// Authenticate authenticates the given request. If a redirect or error has been processed, then
+// AuthenticateRequest authenticates the given request. If a redirect or error has been processed, then
 // return true to indicate the request has been fully processed. Otherwise return false to indicate
 // that request processing should continue
 func (a FakeAuthenticator) AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error) {

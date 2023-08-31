@@ -39,6 +39,7 @@ var getConfigFunc = k8sutil.GetConfigFromController
 // AuthProxy wraps the server instance
 type AuthProxy struct {
 	http.Server
+	K8sClient client.Client
 }
 
 type handlerFuncType func(w http.ResponseWriter, r *http.Request)
