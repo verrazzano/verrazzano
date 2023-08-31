@@ -25,6 +25,32 @@ type StatusData struct {
 	Ready       bool
 }
 
+// UpdateVerrazzanoComponentStatusToDisabled updates the component status to disabled
+func UpdateVerrazzanoComponentStatusToDisabled(ctx handlerspi.HandlerContext, Vznsn types.NamespacedName, compName string) result.Result {
+	// Always get the latest module from the controller-runtime cache to try and avoid conflict error
+	vzcr := &vzapi.Verrazzano{}
+	if err := ctx.Client.Get(context.TODO(), Vznsn, vzcr); err != nil {
+		ctx.Log.Progress("Failed getting Verrazzano CR, retrying...")
+		return result.NewResultShortRequeueDelay()
+	}
+	if vzcr.Status.Components == nil {
+		vzcr.Status.Components = vzapi.ComponentStatusMap{}
+	}
+	compStatus := &vzapi.ComponentStatusDetails{
+		Name:  compName,
+		State: vzapi.CompStateDisabled,
+	}
+	vzcr.Status.Components[compName] = compStatus
+
+	if err := ctx.Client.Status().Update(context.TODO(), vzcr); err != nil {
+		if !errors.IsConflict(err) {
+			ctx.Log.Progress("Failed to update Verrazzano component status, retrying: %v", err)
+		}
+		return result.NewResultShortRequeueDelay()
+	}
+	return result.NewResult()
+}
+
 // UpdateVerrazzanoComponentStatus updates the component status
 func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.Result {
 	// Always get the latest module from the controller-runtime cache to try and avoid conflict error
