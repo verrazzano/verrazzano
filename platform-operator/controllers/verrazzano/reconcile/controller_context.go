@@ -14,27 +14,6 @@ var vzControllerContext VerrazzanoControllerContext
 type VerrazzanoControllerContext struct {
 	LegacyUninstallPreWorkDone atomic.Bool
 	ModuleCreateOrUpdateDone   atomic.Bool
-	ModuleUninstallDone        atomic.Bool
-}
-
-// SetModuleCreateOrUpdateDone sets the value of ModuleCreateOrUpdateDone
-func SetModuleCreateOrUpdateDone(val bool) {
-	vzControllerContext.ModuleCreateOrUpdateDone.Store(val)
-}
-
-// IsModuleCreateOrUpdateDone returns true if the Module createOrUpdate is done
-func IsModuleCreateOrUpdateDone() bool {
-	return vzControllerContext.ModuleCreateOrUpdateDone.Load()
-}
-
-// SetModuleUninstallDone set the value of ModuleUninstallDone
-func SetModuleUninstallDone(val bool) {
-	vzControllerContext.ModuleUninstallDone.Store(true)
-}
-
-// IsModuleUninstallDone returns true if the Module uninstall is done
-func IsModuleUninstallDone() bool {
-	return vzControllerContext.ModuleUninstallDone.Load()
 }
 
 // SetLegacyUninstallPreWorkDone set the value of LegacyUninstallPreWorkDone

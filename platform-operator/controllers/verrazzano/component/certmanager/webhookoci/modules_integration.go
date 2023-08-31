@@ -4,8 +4,11 @@
 package webhookoci
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -41,4 +44,9 @@ func (c certManagerWebhookOCIComponent) GetModuleConfigAsHelmValues(effectiveCR 
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c certManagerWebhookOCIComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return watch.GetModuleInstalledWatches([]string{cmconstants.CertManagerComponentName})
 }

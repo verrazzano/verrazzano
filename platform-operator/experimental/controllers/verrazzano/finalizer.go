@@ -53,10 +53,6 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 		return result.NewResultShortRequeueDelay()
 	}
 
-	// Let legacy Verrazzano controller know that modules are uninstalled
-	// This is just temporary until the legacy controller is removed
-	vzreconcile.SetModuleUninstallDone(true)
-
 	// Always requeue, the legacy verrazzano controller will delete the finalizer and the VZ CR will go away.
 	return result.NewResultShortRequeueDelay()
 }

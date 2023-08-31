@@ -35,6 +35,11 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 	return true, result.NewResult()
 }
 
+// CheckDependencies checks if the dependencies are ready
+func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
+	return result.NewResult()
+}
+
 // PreWorkUpdateStatus does the lifecycle pre-Work status update
 func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
