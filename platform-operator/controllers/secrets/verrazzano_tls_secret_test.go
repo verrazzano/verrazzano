@@ -108,7 +108,7 @@ func TestReconcileVerrazzanoTLS(t *testing.T) {
 			r := &VerrazzanoSecretsReconciler{
 				Client:        tt.cli,
 				Scheme:        scheme,
-				Log:           log,
+				log:           log,
 				StatusUpdater: updater,
 			}
 			wantErr := defaultWantErr
@@ -454,7 +454,7 @@ func TestReconcileVerrazzanoCABundleCopies(t *testing.T) {
 			r := &VerrazzanoSecretsReconciler{
 				Client:        tt.cli,
 				Scheme:        scheme,
-				Log:           log,
+				log:           log,
 				StatusUpdater: updater,
 			}
 			wantErr := defaultWantErr

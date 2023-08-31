@@ -44,9 +44,9 @@ func (r *VerrazzanoSecretsReconciler) reconcileInstallOverrideSecret(ctx context
 			return result, err
 		}
 
-		componentCtx, err := spi.NewContext(r.Log, r.Client, vz, nil, false)
+		componentCtx, err := spi.NewContext(r.log, r.Client, vz, nil, false)
 		if err != nil {
-			r.Log.Errorf("Failed to construct component context: %v", err)
+			r.log.Errorf("Failed to construct component context: %v", err)
 			return newRequeueWithDelay(), err
 		}
 
@@ -78,10 +78,10 @@ func (r *VerrazzanoSecretsReconciler) reconcileInstallOverrideSecret(ctx context
 
 			err := controllers.UpdateVerrazzanoForInstallOverrides(r.StatusUpdater, componentCtx, componentName)
 			if err != nil {
-				r.Log.ErrorfThrottled("Failed to reconcile Secret: %v", err)
+				r.log.ErrorfThrottled("Failed to reconcile Secret: %v", err)
 				return newRequeueWithDelay(), err
 			}
-			r.Log.Infof("Updated Verrazzano Resource")
+			r.log.Infof("Updated Verrazzano Resource")
 		}
 	}
 	return ctrl.Result{}, nil

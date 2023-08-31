@@ -34,7 +34,7 @@ import (
 type VerrazzanoSecretsReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
-	Log           vzlog.VerrazzanoLogger
+	log           vzlog.VerrazzanoLogger
 	StatusUpdater vzstatus.Updater
 }
 
@@ -78,21 +78,13 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
 			return result, err
 		}
+		// - verrazzano-tls-ca updated in this block
 		return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, corev1.TLSCertKey)
 	}
 
-	// Ingress secret was updated, or if there's a CA crt update the verrazzano-tls-ca copy; this will trigger
-	// a reconcile which will update any upstream copies
-	// - Cert-Manager rotates the CA cert in the self-signed/custom CA case causing it to be updated in leaf cert secret,
-	//   and we update the copy in the verrazzano-system/verrazzano-tls-ca secret
-	// - the ClusterIssuerComponent updates the verrazzano-system/verrazzano-tls-ca secret
-	letsEncrypt, err := clusterIssuer.IsLetsEncryptIssuer()
-	if err != nil {
-		zap.S().Errorf("Failed to determine if Let's Encrypt certificates are configured: %s", err.Error())
-		return newRequeueWithDelay(), err
-	}
-	if letsEncrypt && isVerrazzanoIngressSecretName(req.NamespacedName) {
-		return r.reconcileVerrazzanoTLS(ctx, req.NamespacedName, vzconst.CACertKey)
+	// catch verrazzano-tls-ca change here and process
+	if isVerrazzanoPrivateCABundle(req.NamespacedName) {
+		return r.reconcileVerrazzanoCABundleCopies()
 	}
 
 	res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
@@ -130,12 +122,12 @@ func (r *VerrazzanoSecretsReconciler) initLogger(nsName types.NamespacedName, ob
 		zap.S().Errorf("Failed to create resource logger for VerrazzanoSecrets controller: %v", err)
 		return newRequeueWithDelay(), err
 	}
-	r.Log = log
+	r.log = log
 	return ctrl.Result{}, nil
 }
 
-func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
-	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
+func isVerrazzanoPrivateCABundle(secretName types.NamespacedName) bool {
+	return secretName.Name == vzconst.PrivateCABundle && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func isClusterIssuerSecret(secretName types.NamespacedName, clusterIssuer *installv1alpha1.ClusterIssuerComponent) bool {
@@ -152,9 +144,9 @@ func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
 		return true
 	}
 	if !apierrors.IsNotFound(err) {
-		r.Log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
+		r.log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
 	}
-	r.Log.Debugf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
+	r.log.Debugf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
 	return false
 }
 
@@ -182,8 +174,8 @@ func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates(req ctrl.Re
 	// Renew each certificate that was issued by the Verrazzano ClusterIssuer
 	for i, cert := range certList.Items {
 		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
-			r.Log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
-			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.Log, &certList.Items[i]); err != nil {
+			r.log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
+			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.log, &certList.Items[i]); err != nil {
 				return newRequeueWithDelay(), err
 			}
 		}

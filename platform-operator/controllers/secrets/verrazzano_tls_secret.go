@@ -49,8 +49,13 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		return result, err
 	}
 
-	// Update the copies
-	return r.reconcileVerrazzanoCABundleCopies(&caSecret, caKey)
+	// Update the Verrazzano private CA bundle; the source of truth from a VZ perspective
+	_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
+		vzconst.CABundleKey, caKey, &caSecret, false)
+	if err != nil {
+		return newRequeueWithDelay(), nil
+	}
+	return ctrl.Result{}, nil
 }
 
 // reconcileVerrazzanoCABundleCopies - The configured CA secret has changed. Propagate that change into the following:
@@ -62,17 +67,10 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 // once during VZ resource reconciliation until if/when the VZ issuer configuration is changed.
 //
 // These copies are only maintained when private CA configurations are involved; self-signed, custom CA, and Let's Encrypt staging configurations
-func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies(caSecret *corev1.Secret, caKey string) (ctrl.Result, error) {
-	// Update the Verrazzano private CA bundle; the source of truth from a VZ perspective
-	_, err := r.updateSecret(vzconst.VerrazzanoSystemNamespace, vzconst.PrivateCABundle,
-		vzconst.CABundleKey, caKey, caSecret, false)
-	if err != nil {
-		return newRequeueWithDelay(), nil
-	}
-
+func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies() (ctrl.Result, error) {
 	// Use private bundle secret to update copies from here
 	privateBundleSecret := &corev1.Secret{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vzconst.PrivateCABundle, Namespace: vzconst.VerrazzanoSystemNamespace}, privateBundleSecret)
 	if otherErr := client.IgnoreNotFound(err); otherErr != nil {
 		return newRequeueWithDelay(), otherErr
 	}
@@ -114,11 +112,11 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	}, &secret)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			r.Log.Errorf(fetchSecretFailureTemplate, namespace, name, err)
+			r.log.Errorf(fetchSecretFailureTemplate, namespace, name, err)
 			return controllerutil.OperationResultNone, err
 		}
 		if !isCreateAllowed {
-			r.Log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
+			r.log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
 			return controllerutil.OperationResultNone, nil
 		}
 		// Secret was not found, make a new one
@@ -147,11 +145,11 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	})
 
 	if err != nil {
-		r.Log.ErrorfThrottled("Failed to create or update secret %s/%s: %s", name, namespace, err.Error())
+		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s", name, namespace, err.Error())
 		return controllerutil.OperationResultNone, err
 	}
 
-	r.Log.Debugf("Created or updated secret %s/%s (result: %v)", name, namespace, result)
+	r.log.Debugf("Created or updated secret %s/%s (result: %v)", name, namespace, result)
 	return result, nil
 }
 
@@ -161,11 +159,11 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
 		Name: rancherDeploymentName}, &deployment); err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Log.Debugf("Rancher deployment %s/%s not found, nothing to do",
+			r.log.Debugf("Rancher deployment %s/%s not found, nothing to do",
 				vzconst.RancherSystemNamespace, rancherDeploymentName)
 			return nil
 		}
-		r.Log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
+		r.log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
 			vzconst.RancherSystemNamespace, rancherDeploymentName, err)
 		return err
 	}
@@ -179,7 +177,7 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	if err := r.Update(context.TODO(), &deployment); err != nil {
 		return log.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
 	}
-	r.Log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+	r.log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
 		deployment.Namespace, deployment.Name)
 	return nil
 }
