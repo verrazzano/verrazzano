@@ -15,5 +15,5 @@ import (
 //	THEN the watch descriptors have the correct number of watches
 func TestGetWatchDescriptors(t *testing.T) {
 	wd := NewComponent().GetWatchDescriptors()
-	assert.Len(t, wd, 1)
+	assert.Len(t, wd, 2)
 }
