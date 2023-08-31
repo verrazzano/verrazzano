@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package coherence
@@ -109,7 +109,8 @@ func (c coherenceComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := webhook.DeleteValidatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-validating-webhook-configuration"); err != nil {
 		return err
 	}
-	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-mutating-webhook-configuration"); err != nil {
+	webhooks := []string{"coherence-operator-mutating-webhook-configuration"}
+	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks); err != nil {
 		return err
 	}
 	return nil
