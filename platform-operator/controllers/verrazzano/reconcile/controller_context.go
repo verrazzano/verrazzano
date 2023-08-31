@@ -31,7 +31,7 @@ func SetModuleCreateOrUpdateDoneGen(gen int64) {
 	vzControllerContext.ModuleCreateOrUpdateDoneGen.Store(gen)
 }
 
-// IsModuleCreateOrUpdateDoneGen returns true if the generation matches
+// IsModuleCreateOrUpdateDoneGen returns the generation for ModuleCreateOrUpdateDoneGen
 func GetModuleCreateOrUpdateDoneGen() int64 {
 	return vzControllerContext.ModuleCreateOrUpdateDoneGen.Load()
 }

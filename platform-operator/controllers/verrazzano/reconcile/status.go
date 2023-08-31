@@ -382,7 +382,7 @@ func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
 			continue
 		}
 		if GetModuleCreateOrUpdateDoneGen() != ctx.EffectiveCR().Generation {
-			continue
+			return false, nil
 		}
 
 		module := moduleapi.Module{}
