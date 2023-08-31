@@ -74,6 +74,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Renew all certificates issued by ClusterIssuer when it's secret changes
 	clusterIssuer := effectiveCR.Spec.Components.ClusterIssuer
 	if isClusterIssuerSecret(req.NamespacedName, clusterIssuer) {
+		zap.S().Infof("MGIANATA Reconciling ClusterIssuer secret %s/%s", req.Namespace, req.Name)
 		if result, err = r.renewClusterIssuerCertificates(req, vz); err != nil {
 			zap.S().Errorf("Failed to new all certificates issued by ClusterIssuer %s: %s", vzconst.VerrazzanoClusterIssuerName, err.Error())
 			return result, err
@@ -84,6 +85,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// catch verrazzano-tls-ca change here and process
 	if isVerrazzanoPrivateCABundle(req.NamespacedName) {
+		zap.S().Infof("MGIANATA Reconciling Verrazzano source of truth secret %s/%s", req.Namespace, req.Name)
 		return r.reconcileVerrazzanoCABundleCopies()
 	}
 
