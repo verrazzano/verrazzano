@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package grafana
@@ -124,6 +124,10 @@ func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsInstalled returns true if the Grafana component is installed
 func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
+}
+
+func (g grafanaComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return g.IsInstalled(context)
 }
 
 // IsReady returns true if the Grafana component is ready
