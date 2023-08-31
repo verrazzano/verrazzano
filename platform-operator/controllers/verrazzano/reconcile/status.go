@@ -381,6 +381,9 @@ func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
 		if !comp.ShouldUseModule() {
 			continue
 		}
+		if GetModuleCreateOrUpdateDoneGen() != ctx.EffectiveCR().Generation {
+			continue
+		}
 
 		module := moduleapi.Module{}
 		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}

@@ -189,6 +189,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 
 	// This is not uninstall, clear the sync flags
 	SetLegacyUninstallPreWorkDone(false)
+	SetModuleCreateOrUpdateDoneGen(0)
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)

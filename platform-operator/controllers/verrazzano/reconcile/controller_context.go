@@ -12,8 +12,8 @@ var vzControllerContext VerrazzanoControllerContext
 // VerrazzanoControllerContext is used to synchronize the two Verrazzano controllers, the legacy controller and
 // the module-based controller.  This will be removed when we finally have a single controller.
 type VerrazzanoControllerContext struct {
-	LegacyUninstallPreWorkDone atomic.Bool
-	ModuleCreateOrUpdateDone   atomic.Bool
+	LegacyUninstallPreWorkDone  atomic.Bool
+	ModuleCreateOrUpdateDoneGen atomic.Int64
 }
 
 // SetLegacyUninstallPreWorkDone set the value of LegacyUninstallPreWorkDone
@@ -24,4 +24,14 @@ func SetLegacyUninstallPreWorkDone(val bool) {
 // IsLegacyUninstallPreWorkDone returns true if the Legacy uninstall prework is done
 func IsLegacyUninstallPreWorkDone() bool {
 	return vzControllerContext.LegacyUninstallPreWorkDone.Load()
+}
+
+// SetModuleCreateOrUpdateDoneGen set the value of ModuleCreateOrUpdateDoneGen
+func SetModuleCreateOrUpdateDoneGen(gen int64) {
+	vzControllerContext.ModuleCreateOrUpdateDoneGen.Store(gen)
+}
+
+// IsModuleCreateOrUpdateDoneGen returns true if the generation matches
+func GetModuleCreateOrUpdateDoneGen() int64 {
+	return vzControllerContext.ModuleCreateOrUpdateDoneGen.Load()
 }
