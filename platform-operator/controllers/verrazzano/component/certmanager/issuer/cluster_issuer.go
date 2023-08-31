@@ -699,7 +699,14 @@ func (c clusterIssuerComponent) createOrUpdateClusterIssuer(compContext spi.Comp
 	}
 	// CertManager configuration was updated, cleanup any old resources from previous configuration
 	// and renew certificates against the new ClusterIssuer
-	return cleanupUnusedResources(compContext, isCAValue)
+	if err := cleanupUnusedResources(compContext, isCAValue); err != nil {
+		return err
+	}
+	if err := checkRenewAllCertificates(compContext.Log(), compContext.Client(), clusterIssuerConfig); err != nil {
+		compContext.Log().Errorf("Error requesting certificate renewal: %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 func (c clusterIssuerComponent) createOrUpdatePrivateCABundleSecret(ctx spi.ComponentContext) error {
