@@ -191,15 +191,9 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 		responseBody = resp.Body
 	}
 
-	_, err = io.Copy(rw, responseBody)
-	if err != nil {
-		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
-		return
-	}
-
 	if _, ok := resp.Header[contentTypeHeader]; ok {
 		for _, h := range resp.Header[contentTypeHeader] {
-			rw.Header().Add(contentTypeHeader, h)
+			rw.Header().Set(contentTypeHeader, h)
 		}
 	} else {
 		bodyData, err := io.ReadAll(responseBody)
@@ -208,7 +202,13 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		rw.Header().Add(contentTypeHeader, http.DetectContentType(bodyData))
+		rw.Header().Set(contentTypeHeader, http.DetectContentType(bodyData))
+	}
+
+	_, err = io.Copy(rw, responseBody)
+	if err != nil {
+		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
+		return
 	}
 }
 

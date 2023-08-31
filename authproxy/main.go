@@ -25,7 +25,10 @@ func main() {
 	handleFlags()
 	log := zap.S()
 
-	config.InitConfiguration(log)
+	err := config.InitConfiguration(log)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
