@@ -120,7 +120,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// only process CAPI cluster instances not managed by Rancher/container driver
 	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
 	if ok {
-		r.Log.Debugf("CAPI cluster created by Rancher, nothing to do", req.NamespacedName)
+		r.Log.Infof("CAPI cluster %v created by Rancher is registered via VMC processing", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
