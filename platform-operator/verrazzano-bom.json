@@ -271,7 +271,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230724214803-d6adc4e",
+              "tag": "v2.0.0-20230828163609-10891b3",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -301,7 +301,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230713135924-c39455f",
+              "tag": "v2.0.0-20230825101211-f2937ea",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -375,7 +375,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "1.5.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -409,7 +409,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "1.5.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -419,6 +419,23 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verrazzano-authproxy",
+      "version": "2.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-authproxy",
+          "images": [
+            {
+              "image": "VERRAZZANO_AUTHPROXY_IMAGE",
+              "tag": "VERRAZZANO_AUTHPROXY_TAG",
+              "helmFullImageKey": "v2.image"
             }
           ]
         }
@@ -952,6 +969,7 @@
   "supportedKubernetesVersions": [
     "v1.24.0",
     "v1.25.0",
-    "v1.26.0"
+    "v1.26.0",
+    "v1.27.0"
   ]
 }

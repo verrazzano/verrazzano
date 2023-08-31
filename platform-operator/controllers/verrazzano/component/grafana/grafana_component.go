@@ -5,10 +5,6 @@ package grafana
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -63,21 +59,6 @@ func (g grafanaComponent) Namespace() string {
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
 func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
-}
-
-// ShouldUseModule returns true if component is implemented using a Module
-func (g grafanaComponent) ShouldUseModule() bool {
-	return config.Get().ModuleIntegration
-}
-
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
-}
-
-// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
-	return nil, nil
 }
 
 // GetDependencies returns the dependencies of the Grafana component
@@ -150,6 +131,10 @@ func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsInstalled returns true if the Grafana component is installed
 func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
+}
+
+func (g grafanaComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return g.IsInstalled(context)
 }
 
 func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {

@@ -92,7 +92,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 				// Always requeue to get a fresh copy of status and avoid potential conflict
 				return newRequeueWithDelay(), err
 			}
-			SetPreModuleWorkDone(true)
 			tracker.vzState = vzStateUpgradeComponents
 
 		case vzStateUpgradeComponents:
@@ -177,7 +176,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			done = true
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
-			SetModuleCreateOrUpdateDone(false)
 		}
 	}
 	// Upgrade done, no need to requeue
@@ -260,8 +258,6 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 			compMap: make(map[string]*componentTrackerContext),
 		}
 		upgradeTrackerMap[key] = vuc
-		SetPreModuleWorkDone(false)
-
 	}
 	return vuc
 }

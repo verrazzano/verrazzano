@@ -63,6 +63,7 @@ api:
   name: verrazzano-authproxy
   port: 8775
   grpcPort: 8776
+  v2Port: 8777
 
 config:
   envName:

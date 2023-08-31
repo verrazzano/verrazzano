@@ -6,6 +6,7 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,8 +14,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/cert"
 )
 
 const (
@@ -33,19 +39,19 @@ type AuthProxy struct {
 // Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
 	URL    string
-	Client *http.Client
+	Client *retryablehttp.Client
 	Log    *zap.SugaredLogger
 }
 
 var _ http.Handler = Handler{}
 
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy() *AuthProxy {
+func InitializeProxy(port int) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
-			Addr:         ":8777",
+			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			WriteTimeout: 30 * time.Second,
 		},
 	}
 }
@@ -58,25 +64,31 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 		return err
 	}
 
-	transport := http.DefaultTransport
-	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true, //nolint:gosec //#gosec G101
+	rootCA, err := loadCAData(config, log)
+	if err != nil {
+		return err
 	}
 
+	transport := http.DefaultTransport
+	transport.(*http.Transport).TLSClientConfig = &tls.Config{
+		RootCAs:    rootCA,
+		MinVersion: tls.VersionTLS12,
+	}
+
+	client := retryablehttp.NewClient()
+	client.HTTPClient.Transport = transport
+
 	authproxy.Handler = Handler{
-		URL: config.Host,
-		Client: &http.Client{
-			Timeout:   time.Minute,
-			Transport: transport,
-		},
-		Log: log,
+		URL:    config.Host,
+		Client: client,
+		Log:    log,
 	}
 	return nil
 }
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", req)
+	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
 	err := validateRequest(req)
 
 	if err != nil {
@@ -86,15 +98,14 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	ingressHost := getIngressHost(req)
-	if statusCode, err := addCORSHeaders(req, rw, ingressHost); err != nil {
+	if statusCode, err := cors.AddCORSHeaders(req, rw, ingressHost); err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
 	}
 
 	if req.Method == http.MethodOptions {
-		if statusCode, err := handleOptionsRequest(req, rw); err != nil {
-			http.Error(rw, err.Error(), statusCode)
-		}
+		rw.Header().Set("Content-Length", "0")
+		rw.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -108,7 +119,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return
 	}
-	h.Log.Debug("Outgoing request: %+v", reformattedReq)
+	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(reformattedReq.Request))
 
 	resp, err := h.Client.Do(reformattedReq)
 	if err != nil {
@@ -134,15 +145,6 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func handleOptionsRequest(req *http.Request, rw http.ResponseWriter) (int, error) {
-	return http.StatusOK, nil
-}
-
-func addCORSHeaders(req *http.Request, rw http.ResponseWriter, ingressHost string) (int, error) {
-	// TODO get origin header, check if it is an allowed origin, add CORS response headers
-	return http.StatusOK, nil
-}
-
 func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
@@ -162,8 +164,25 @@ func getIngressHost(req *http.Request) string {
 	return "invalid-hostname"
 }
 
+// loadCAData returns the config CA data from the byte array or from the file name
+func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, error) {
+	if len(config.CAData) < 1 {
+		rootCA, err := cert.NewPool(config.CAFile)
+		if err != nil {
+			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+		}
+		return rootCA, err
+	}
+
+	rootCA, err := cert.NewPoolFromBytes(config.CAData)
+	if err != nil {
+		log.Errorf("Failed to load CA data from the Kubeconfig")
+	}
+	return rootCA, err
+}
+
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
-func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
+func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
 	formattedReq := req.Clone(context.TODO())
 	formattedReq.Host = kubernetesAPIServerHostname
 	formattedReq.RequestURI = ""
@@ -182,7 +201,13 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*http.Request, error) {
 	}
 	formattedReq.URL = formattedURL
 
-	return formattedReq, nil
+	retryableReq, err := retryablehttp.FromRequest(formattedReq)
+	if err != nil {
+		h.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
+		return retryableReq, err
+	}
+
+	return retryableReq, nil
 }
 
 // validateRequest performs request validation before the request is processed
@@ -191,4 +216,14 @@ func validateRequest(req *http.Request) error {
 		return fmt.Errorf("request path: '%v' does not have expected cluster path, i.e. '/clusters/local/api/v1'", req.URL.Path)
 	}
 	return nil
+}
+
+// obfuscateRequestData removes the Authorization header data from the request before logging
+func obfuscateRequestData(req *http.Request) *http.Request {
+	hiddenReq := req.Clone(context.TODO())
+	authKey := "Authorization"
+	for i := range hiddenReq.Header[authKey] {
+		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction("")(hiddenReq.Header[authKey][i])
+	}
+	return hiddenReq
 }
