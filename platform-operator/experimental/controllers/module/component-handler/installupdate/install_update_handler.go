@@ -207,7 +207,6 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 func (h ComponentHandler) getStartedReason() moduleapi.ModuleConditionReason {
 	if h.action == InstallAction {
 		return moduleapi.ReadyReasonInstallStarted
-	} else {
-		return moduleapi.ReadyReasonUpdateStarted
 	}
+	return moduleapi.ReadyReasonUpdateStarted
 }
