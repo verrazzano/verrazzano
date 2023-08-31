@@ -542,7 +542,7 @@ func newSecretsReconciler(c client.Client) VerrazzanoSecretsReconciler {
 	reconciler := VerrazzanoSecretsReconciler{
 		Client:        c,
 		Scheme:        scheme,
-		log:           vzlog.DefaultLogger(),
+		Log:           vzlog.DefaultLogger(),
 		StatusUpdater: &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler

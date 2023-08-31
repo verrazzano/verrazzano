@@ -114,11 +114,11 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	}, &secret)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			r.log.Errorf(fetchSecretFailureTemplate, namespace, name, err)
+			r.Log.Errorf(fetchSecretFailureTemplate, namespace, name, err)
 			return controllerutil.OperationResultNone, err
 		}
 		if !isCreateAllowed {
-			r.log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
+			r.Log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
 			return controllerutil.OperationResultNone, nil
 		}
 		// Secret was not found, make a new one
@@ -147,11 +147,11 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 	})
 
 	if err != nil {
-		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s", name, namespace, err.Error())
+		r.Log.ErrorfThrottled("Failed to create or update secret %s/%s: %s", name, namespace, err.Error())
 		return controllerutil.OperationResultNone, err
 	}
 
-	r.log.Debugf("Created or updated secret %s/%s (result: %v)", name, namespace, result)
+	r.Log.Debugf("Created or updated secret %s/%s (result: %v)", name, namespace, result)
 	return result, nil
 }
 
@@ -161,11 +161,11 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.RancherSystemNamespace,
 		Name: rancherDeploymentName}, &deployment); err != nil {
 		if apierrors.IsNotFound(err) {
-			r.log.Debugf("Rancher deployment %s/%s not found, nothing to do",
+			r.Log.Debugf("Rancher deployment %s/%s not found, nothing to do",
 				vzconst.RancherSystemNamespace, rancherDeploymentName)
 			return nil
 		}
-		r.log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
+		r.Log.ErrorfThrottled("Failed getting Rancher deployment %s/%s to restart pod: %v",
 			vzconst.RancherSystemNamespace, rancherDeploymentName, err)
 		return err
 	}
@@ -179,7 +179,7 @@ func (r *VerrazzanoSecretsReconciler) restartRancherPod() error {
 	if err := r.Update(context.TODO(), &deployment); err != nil {
 		return log.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, zap.S())
 	}
-	r.log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
+	r.Log.Infof("Updated Rancher deployment %s/%s with restart annotation to force a pod restart",
 		deployment.Namespace, deployment.Name)
 	return nil
 }

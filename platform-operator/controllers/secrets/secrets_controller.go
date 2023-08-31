@@ -34,7 +34,7 @@ import (
 type VerrazzanoSecretsReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
-	log           vzlog.VerrazzanoLogger
+	Log           vzlog.VerrazzanoLogger
 	StatusUpdater vzstatus.Updater
 }
 
@@ -130,7 +130,7 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 		zap.S().Errorf("Failed to create resource logger for VerrazzanoSecrets controller: %v", err)
 		return newRequeueWithDelay(), err
 	}
-	r.log = log
+	r.Log = log
 	return ctrl.Result{}, nil
 }
 
@@ -152,9 +152,9 @@ func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
 		return true
 	}
 	if !apierrors.IsNotFound(err) {
-		r.log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
+		r.Log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
 	}
-	r.log.Debugf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
+	r.Log.Debugf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
 	return false
 }
 
@@ -178,8 +178,8 @@ func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates() error {
 	// Renew each certificate that was issued by the Verrazzano ClusterIssuer
 	for i, cert := range certList.Items {
 		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
-			r.log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
-			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.log, &certList.Items[i]); err != nil {
+			r.Log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
+			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.Log, &certList.Items[i]); err != nil {
 				return err
 			}
 		}
