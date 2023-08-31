@@ -1121,6 +1121,10 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 // forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
 // this is applied at the end of a successful VZ CR reconcile.
 func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *installv1alpha1.Verrazzano) error {
+	if !config.Get().ModuleIntegration {
+		// only do this with modules integration enabled
+		return nil
+	}
 	targetVersion := actualCR.Spec.Version
 	componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 	for compName, componentStatus := range actualCR.Status.Components {

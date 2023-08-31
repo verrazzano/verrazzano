@@ -317,7 +317,7 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
 	asserts.False(*fakeCompUpdated)
-	asserts.Equal(int64(3), vz.Status.Components[fakeCompReleaseName].LastReconciledGeneration)
+	asserts.Equal(lastReconciledGeneration, vz.Status.Components[fakeCompReleaseName].LastReconciledGeneration)
 	asserts.False(result.Requeue)
 	assertKeycloakAuthConfig(asserts, ctx)
 	assertArgoCDConfig(asserts, ctx)
