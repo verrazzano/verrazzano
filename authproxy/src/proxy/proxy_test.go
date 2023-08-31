@@ -6,7 +6,6 @@ package proxy
 import (
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
