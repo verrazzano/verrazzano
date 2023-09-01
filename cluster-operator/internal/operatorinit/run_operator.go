@@ -39,14 +39,14 @@ const (
 )
 
 type Properties struct {
-	Scheme                        *runtime.Scheme
-	CertificateDir                string
-	MetricsAddress                string
-	ProbeAddress                  string
-	IngressHost                   string
-	EnableLeaderElection          bool
-	EnableQuickCreate             bool
-	EnableCAPIRancherRegistration bool
+	Scheme                         *runtime.Scheme
+	CertificateDir                 string
+	MetricsAddress                 string
+	ProbeAddress                   string
+	IngressHost                    string
+	EnableLeaderElection           bool
+	EnableQuickCreate              bool
+	DisableCAPIRancherRegistration bool
 }
 
 // StartClusterOperator Cluster operator execution entry point
@@ -110,7 +110,7 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 	}
 
 	// only start the CAPI cluster controller if the clusters CRD is installed and the controller is enabled
-	if capiCrdInstalled && props.EnableCAPIRancherRegistration {
+	if capiCrdInstalled && !props.DisableCAPIRancherRegistration {
 		log.Infof("Starting CAPI Cluster controller")
 		if err = (&capi.CAPIClusterReconciler{
 			Client:             mgr.GetClient(),
