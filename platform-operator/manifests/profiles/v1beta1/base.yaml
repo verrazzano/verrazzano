@@ -90,6 +90,8 @@ spec:
     dns:
       wildcard:
         domain: nip.io
+    dex:
+      enabled: true
     fluentd:
       enabled: true
       opensearchSecret: verrazzano-es-internal

@@ -28,6 +28,8 @@ spec:
       enabled: false
     console:
       enabled: false
+    dex:
+      enabled: false
     fluentd:
       enabled: false
     fluentOperator:

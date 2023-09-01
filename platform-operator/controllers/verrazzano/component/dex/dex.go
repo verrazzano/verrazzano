@@ -115,7 +115,7 @@ const staticClientTemplate = `config:
   staticClients:
 `
 
-const clientTemplate = `  - id: "{{.ClientId}}"
+const clientTemplate = `  - id: "{{.ClientID}}"
     name: "{{.ClientName}}"
     secret: {{.ClientSecret}}
     {{.RedirectURIs}}
@@ -130,7 +130,7 @@ const staticPasswordTemplate = `config:
 const passwordTemplate = `  - email: "{{.Email}}"
     hash: "{{.Hash}}"
     username: "{{.UserName}}"
-    userID: "{{.UserId}}"
+    userID: "{{.UserID}}"
 `
 
 // GetOverrides gets the installation overrides for the Dex component
@@ -161,6 +161,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build Dex image overrides from the Verrazzano BOM: %v", err)
 	}
 	kvs = append(kvs, image...)
+	ctx.Log().Infof("AppendDexOverrides: Dex image %s", image)
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())

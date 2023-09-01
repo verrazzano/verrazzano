@@ -122,11 +122,11 @@ func (c DexComponent) PreInstall(ctx spi.ComponentContext) error {
 	}, secret)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			ctx.Log().Progressf("Component Dex waiting for the Verrazzano password %s/%s to exist",
+			ctx.Log().Progressf("Component Dex waiting for the Verrazzano secret %s/%s to exist",
 				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
 			return ctrlerrors.RetryableError{Source: ComponentName}
 		}
-		ctx.Log().Errorf("Component Dex failed to get the Verrazzano password %s/%s: %v",
+		ctx.Log().Errorf("Component Dex failed to get the Verrazzano secret %s/%s: %v",
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
