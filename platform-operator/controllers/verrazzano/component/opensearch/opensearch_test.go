@@ -440,7 +440,9 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
-	expected := nodesToObjectKeys(vz)
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, vz, nil, false)
+	expected := nodesToObjectKeys(ctx)
 	actual := &ready.AvailabilityObjects{}
 	assert.Equal(t, expected, actual)
 
@@ -454,8 +456,9 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
+	ctx = spi.NewFakeContext(c, vztwo, nil, false)
 	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node1-0"}, {Namespace: vzsys, Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
-	expected = nodesToObjectKeys(vztwo)
+	expected = nodesToObjectKeys(ctx)
 	assert.Equal(t, expected, actual)
 
 	// nil replicas should have no availability objects
@@ -472,8 +475,9 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
+	ctx = spi.NewFakeContext(c, vzthree, nil, false)
 	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName(nil), DeploymentNames: []types.NamespacedName(nil), DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
-	expected = nodesToObjectKeys(vzthree)
+	expected = nodesToObjectKeys(ctx)
 	assert.Equal(t, expected, actual)
 }
 

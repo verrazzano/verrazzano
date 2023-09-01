@@ -6,6 +6,7 @@ package opensearchdashboards
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -22,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 )
 
 const (
@@ -71,7 +71,7 @@ func (d opensearchDashboardsComponent) GetModuleConfigAsHelmValues(effectiveCR *
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName, fluentoperator.ComponentName}
+	return []string{opensearchoperator.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
@@ -126,24 +126,12 @@ func NewComponent() spi.Component {
 // PreInstall OpenSearch-Dashboards component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	// create or update backup VMI secret
-	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
-		return err
-	}
-	ctx.Log().Debug("OpenSearch-Dashboards pre-install")
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch-Dashboards : %v", ComponentNamespace, err)
-	}
 	return nil
 }
 
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	return nil
 }
 
 func (d opensearchDashboardsComponent) IsOperatorUninstallSupported() bool {
@@ -167,17 +155,16 @@ func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContex
 
 // PreUpgrade OpenSearch-Dashboards component pre-upgrade processing
 func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	return common.EnsureVMISecret(ctx.Client())
+	return nil
 }
 
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	return nil
 }
 
 func (d opensearchDashboardsComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
+	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments(ctx)}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check

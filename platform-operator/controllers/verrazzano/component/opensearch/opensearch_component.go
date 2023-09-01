@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -22,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 )
 
 const (
@@ -71,7 +71,7 @@ func (o opensearchComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verr
 
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, opensearchoperator.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component
@@ -122,24 +122,12 @@ func NewComponent() spi.Component {
 // PreInstall OpenSearch component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	// create or update backup VMI secret
-	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
-		return err
-	}
-	ctx.Log().Debug("OpenSearch pre-install")
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch : %v", ComponentNamespace, err)
-	}
 	return nil
 }
 
 // Install OpenSearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	return nil
 }
 
 func (o opensearchComponent) IsOperatorUninstallSupported() bool {
@@ -163,17 +151,16 @@ func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
 
 // PreUpgrade OpenSearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	return common.EnsureVMISecret(ctx.Client())
+	return nil
 }
 
 // Upgrade OpenSearch component upgrade processing
 func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	return nil
 }
 
 func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
+	return nodesToObjectKeys(ctx).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check

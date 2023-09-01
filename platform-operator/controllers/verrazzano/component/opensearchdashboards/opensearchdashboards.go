@@ -5,6 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -15,11 +16,20 @@ import (
 
 const kibanaDeployment = "vmi-system-osd"
 
-func getOSDDeployments() []types.NamespacedName {
+func getOSDDeployments(ctx spi.ComponentContext) []types.NamespacedName {
+	isLegacyOSD := common.IsLegacyOSD(ctx)
+	if isLegacyOSD {
+		return []types.NamespacedName{
+			{
+				Name:      kibanaDeployment,
+				Namespace: ComponentNamespace,
+			},
+		}
+	}
 	return []types.NamespacedName{
 		{
-			Name:      kibanaDeployment,
-			Namespace: ComponentNamespace,
+			Name:      "opensearch-dashboards",
+			Namespace: constants.VerrazzanoLoggingNamespace,
 		},
 	}
 }
@@ -28,7 +38,7 @@ func getOSDDeployments() []types.NamespacedName {
 func isOSDReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
-		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(), 1, prefix) {
+		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(ctx), 1, prefix) {
 			return false
 		}
 	}

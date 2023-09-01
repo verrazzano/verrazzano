@@ -38,10 +38,18 @@ type proxyValues struct {
 }
 
 type configValues struct {
-	EnvName                   string `json:"envName,omitempty"`
-	DNSSuffix                 string `json:"dnsSuffix,omitempty"`
-	PrometheusOperatorEnabled bool   `json:"prometheusOperatorEnabled,omitempty"`
-	IngressClassName          string `json:"ingressClassName,omitempty"`
+	EnvName                   string            `json:"envName,omitempty"`
+	DNSSuffix                 string            `json:"dnsSuffix,omitempty"`
+	PrometheusOperatorEnabled bool              `json:"prometheusOperatorEnabled,omitempty"`
+	IngressClassName          string            `json:"ingressClassName,omitempty"`
+	OpenSearch                *opensearchValues `json:"opensearch,omitempty"`
+}
+
+type opensearchValues struct {
+	Protocol   string `json:"protocol,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	Service    string `json:"service,omitempty"`
+	OSDService string `json:"osdService,omitempty"`
 }
 
 type dnsValues struct {

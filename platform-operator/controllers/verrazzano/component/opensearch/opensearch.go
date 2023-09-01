@@ -5,6 +5,7 @@ package opensearch
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -55,18 +56,24 @@ func isOSReady(ctx spi.ComponentContext) bool {
 	return common.IsVMISecretReady(ctx)
 }
 
-func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
+func nodesToObjectKeys(ctx spi.ComponentContext) *ready.AvailabilityObjects {
 	objects := &ready.AvailabilityObjects{}
+	vz := ctx.EffectiveCR()
 	if vzcr.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
+		isLegacyOS := common.IsLegacyOS(ctx)
+		ns := ComponentNamespace
+		if !isLegacyOS {
+			ns = constants.VerrazzanoLoggingNamespace
+		}
 		for _, node := range vz.Spec.Components.Elasticsearch.Nodes {
 			if node.Replicas == nil || *node.Replicas < 1 {
 				continue
 			}
-			nodeControllerName := getNodeControllerName(node)
-			if hasRole(node.Roles, vmov1.MasterRole) {
+			nodeControllerName := getNodeControllerName(node, isLegacyOS)
+			if !isLegacyOS || hasRole(node.Roles, vmov1.MasterRole) {
 				objects.StatefulsetNames = append(objects.StatefulsetNames, types.NamespacedName{
 					Name:      nodeControllerName,
-					Namespace: ComponentNamespace,
+					Namespace: ns,
 				})
 				continue
 			}
@@ -87,13 +94,19 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	if node.Replicas == nil || *node.Replicas < 1 {
 		return true
 	}
-	nodeControllerName := getNodeControllerName(node)
+	isLegacyOS := common.IsLegacyOS(ctx)
+	ns := ComponentNamespace
+	if !isLegacyOS {
+		ns = constants.VerrazzanoLoggingNamespace
+	}
+	nodeControllerName := getNodeControllerName(node, isLegacyOS)
 
 	// If a node has the master role, it is a statefulset
-	if hasRole(node.Roles, vmov1.MasterRole) {
+	// If the operator is managing OS, then all nodes are statefulset
+	if !isLegacyOS || hasRole(node.Roles, vmov1.MasterRole) {
 		return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
-			Namespace: ComponentNamespace,
+			Namespace: ns,
 		}}, *node.Replicas, prefix)
 	}
 
@@ -109,8 +122,11 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	}}, *node.Replicas, prefix)
 }
 
-func getNodeControllerName(node vzapi.OpenSearchNode) string {
-	return fmt.Sprintf(nodeNamePrefix, node.Name)
+func getNodeControllerName(node vzapi.OpenSearchNode, isLegacyOS bool) string {
+	if isLegacyOS {
+		return fmt.Sprintf(nodeNamePrefix, node.Name)
+	}
+	return fmt.Sprintf("opensearch-%s", node.Name)
 }
 
 func dataDeploymentObjectKeys(node vzapi.OpenSearchNode, nodeControllerName string) []types.NamespacedName {

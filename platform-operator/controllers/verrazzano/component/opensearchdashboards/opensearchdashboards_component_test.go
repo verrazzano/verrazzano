@@ -77,7 +77,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 //	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
-	expArray := []string{"verrazzano-monitoring-operator", fluentoperator.ComponentName}
+	expArray := []string{"opensearch-operator", fluentoperator.ComponentName}
 	assert.Equal(t, expArray, strArray)
 
 }

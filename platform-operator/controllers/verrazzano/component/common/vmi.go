@@ -78,6 +78,36 @@ func DeleteVMI(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// isLegacyOS returns true if the OS that is running is managed by VMO
+func IsLegacyOS(ctx spi.ComponentContext) bool {
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) {
+		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI)
+		if err != nil && errors.IsNotFound(err) {
+			return false
+		}
+		if systemVMI.Spec.Opensearch.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
+// isLegacyOSD returns true if the OSD that is running is managed by VMO
+func IsLegacyOSD(ctx spi.ComponentContext) bool {
+	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
+		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI)
+		if err != nil && errors.IsNotFound(err) {
+			return false
+		}
+		if systemVMI.Spec.OpensearchDashboards.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
 // CreateOrUpdateVMI instantiates the VMI resource
 func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
 	if !vzcr.IsVMOEnabled(ctx.EffectiveCR()) {

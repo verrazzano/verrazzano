@@ -288,6 +288,8 @@ spec:
       enabled: true
     oam:
       enabled: true
+    opensearchOperator:
+      enabled: true
     prometheus:
       enabled: true
     prometheusOperator:

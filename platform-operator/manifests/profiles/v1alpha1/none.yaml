@@ -64,6 +64,8 @@ spec:
       enabled: false
     oam:
       enabled: false
+    opensearchOperator:
+      enabled: false
     prometheus:
       enabled: false
     prometheusAdapter:

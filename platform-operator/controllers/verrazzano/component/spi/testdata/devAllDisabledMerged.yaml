@@ -104,6 +104,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
     fluentd:
       enabled: false
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
@@ -264,6 +265,8 @@ spec:
       enabled: false
       replicas: 1
     oam:
+      enabled: true
+    opensearchOperator:
       enabled: true
     prometheus:
       enabled: false

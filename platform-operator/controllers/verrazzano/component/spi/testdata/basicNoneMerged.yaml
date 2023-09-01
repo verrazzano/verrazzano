@@ -309,4 +309,6 @@ spec:
       enabled: false
     weblogicOperator:
       enabled: false
+    opensearchOperator:
+      enabled: false
 

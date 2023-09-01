@@ -281,7 +281,7 @@ func createVZWithOSDisabledAndJaegerOverride(json string) *vzapi.Verrazzano {
 func newIngress() *k8net.Ingress {
 	ingress := &k8net.Ingress{}
 	ingress.Namespace = constants.VerrazzanoSystemNamespace
-	ingress.Name = vmiIngest
+	ingress.Name = operatorOSIngress
 	rule := k8net.IngressRule{Host: "jaeger.unit-test.com"}
 	ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 	return ingress

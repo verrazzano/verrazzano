@@ -64,6 +64,8 @@ spec:
             - master
     opensearchDashboards:
       enabled: false
+    opensearchOperator:
+      enabled: false
     prometheus:
       enabled: false
     prometheusAdapter:
