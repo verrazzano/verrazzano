@@ -29,10 +29,6 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	// there is a window where finalizer.go might set uninstall done after the legacy reconciler has
-	// reset the flag (see controller.go).  Ensure that this field is set to false.
-	vzreconcile.SetModuleUninstallDone(false)
-
 	actualCR := &vzapi.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -76,7 +72,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 
 	// All the modules have been reconciled and are ready
-	vzreconcile.SetModuleCreateOrUpdateDone(true)
+	vzreconcile.SetModuleCreateOrUpdateDoneGen(actualCR.Generation)
 	return result.NewResult()
 }
 
@@ -109,9 +105,10 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 				Namespace: vzconst.VerrazzanoInstallNamespace,
 			},
 		}
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
 		})
+		log.Debugf("Module %s update result: %v", module.Name, opResult)
 		if err != nil {
 			if !errors.IsConflict(err) {
 				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)

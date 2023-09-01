@@ -5,7 +5,6 @@ package pkg
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -333,17 +333,7 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 	if err != nil {
 		return nil, err
 	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:    ca,
-			MinVersion: tls.VersionTLS12},
-		Proxy: http.ProxyFromEnvironment,
-	}
-
-	// disable the custom DNS resolver
-	// setupCustomDNSResolver(tr, kubeconfigPath)
-
-	return &http.Client{Transport: tr}, nil
+	return httputil.GetHTTPClientWithRootCA(ca), nil
 }
 
 // getVerrazzanoCACert returns the Verrazzano CA cert in the specified cluster

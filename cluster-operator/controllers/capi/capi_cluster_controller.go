@@ -38,8 +38,8 @@ const (
 	clusterStatusSuffix          = "-cluster-status"
 	clusterIDKey                 = "clusterId"
 	clusterRegistrationStatusKey = "clusterRegistration"
-	registrationStarted          = "started"
-	registrationCompleted        = "completed"
+	registrationRetrieved        = "started"
+	registrationInitiated        = "completed"
 )
 
 type CAPIClusterReconciler struct {
@@ -120,7 +120,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// only process CAPI cluster instances not managed by Rancher/container driver
 	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
 	if ok {
-		r.Log.Debugf("CAPI cluster created by Rancher, nothing to do", req.NamespacedName)
+		r.Log.Infof("CAPI cluster %v created by Rancher is registered via VMC processing", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
@@ -156,7 +156,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	if registrationCompleted != r.getClusterRegistrationStatus(ctx, cluster) {
+	if registrationInitiated != r.getClusterRegistrationStatus(ctx, cluster) {
 		// wait for kubeconfig and complete registration on workload cluster
 		if result, err := clusterRegistrationFn(ctx, r, cluster); err != nil {
 			return result, err
@@ -205,7 +205,7 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 	clusterID := r.getClusterID(ctx, cluster)
 	registryYaml, clusterID, registryErr := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterID, log)
 	// persist the cluster ID, if present, even if the registry yaml was not returned
-	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationStarted)
+	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationRetrieved)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -235,7 +235,7 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
 		return ctrl.Result{}, err
 	}
-	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationCompleted)
+	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationInitiated)
 	if err != nil {
 		r.Log.Infof("Failed to perist cluster status")
 		return ctrl.Result{}, err
@@ -269,7 +269,7 @@ func (r *CAPIClusterReconciler) getClusterID(ctx context.Context, cluster *unstr
 
 // getClusterRegistrationStatus returns the Rancher registration status for the cluster
 func (r *CAPIClusterReconciler) getClusterRegistrationStatus(ctx context.Context, cluster *unstructured.Unstructured) string {
-	clusterStatus := registrationStarted
+	clusterStatus := registrationRetrieved
 
 	regStatusSecret, err := r.getClusterRegistrationStatusSecret(ctx, cluster)
 	if err != nil {
@@ -303,7 +303,7 @@ func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluste
 			Namespace: constants.VerrazzanoCAPINamespace,
 		},
 	}
-	_, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, clusterRegistrationStatusSecret, func() error {
+	_, err := ctrl.CreateOrUpdate(ctx, r.Client, clusterRegistrationStatusSecret, func() error {
 		// Build the secret data
 		if clusterRegistrationStatusSecret.Data == nil {
 			clusterRegistrationStatusSecret.Data = make(map[string][]byte)
