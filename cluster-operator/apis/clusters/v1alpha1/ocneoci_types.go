@@ -34,6 +34,9 @@ type OCNEOCIQuickCreateList struct {
 type (
 	OCIOCNEClusterSpec struct {
 		CommonClusterSpec `json:",inline"`
+		// +optional
+		// +kubebuilder:default:={clusterNetwork:{podCIDR: "10.244.0.0/16",serviceCIDR: "10.96.0.0/16"}}
+
 		// Kubernetes settings.
 		KubernetesBase `json:"kubernetes"`
 		// OCNE settings.
@@ -55,6 +58,7 @@ type (
 	}
 	Network struct {
 		// +optional
+		// +kubebuilder:default:=false
 
 		// If true, a new VCN is created for the cluster.
 		// The default is false.

@@ -86,6 +86,7 @@ type (
 	}
 	OCNEDependencies struct {
 		// +optional
+		// +kubebuilder:default:=false
 
 		// Whether to skip OCNE dependency installation.
 		// The default is `false`.

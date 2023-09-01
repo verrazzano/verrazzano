@@ -101,6 +101,7 @@ spec:
                           or OCI_VCN_IP_NATIVE.
                         type: string
                       createVCN:
+                        default: false
                         description: If true, a new VCN is created for the cluster.
                           The default is false.
                         type: boolean

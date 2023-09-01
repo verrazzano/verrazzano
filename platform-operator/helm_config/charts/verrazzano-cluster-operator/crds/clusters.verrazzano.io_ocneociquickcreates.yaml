@@ -56,6 +56,10 @@ spec:
                 - namespace
                 type: object
               kubernetes:
+                default:
+                  clusterNetwork:
+                    podCIDR: 10.244.0.0/16
+                    serviceCIDR: 10.96.0.0/16
                 description: Kubernetes settings.
                 properties:
                   clusterNetwork:
@@ -126,6 +130,7 @@ spec:
                     description: OCI Network settings.
                     properties:
                       createVCN:
+                        default: false
                         description: If true, a new VCN is created for the cluster.
                           The default is false.
                         type: boolean
@@ -205,6 +210,7 @@ spec:
                     description: OCNE dependency settings.
                     properties:
                       skipInstall:
+                        default: false
                         description: Whether to skip OCNE dependency installation.
                           The default is `false`.
                         type: boolean
@@ -259,7 +265,6 @@ spec:
                 type: object
             required:
             - identityRef
-            - kubernetes
             - oci
             - ocne
             type: object
