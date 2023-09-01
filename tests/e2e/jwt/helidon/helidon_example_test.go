@@ -117,8 +117,8 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 	// Verify Hello Helidon app is working
 	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig with ingress trait are created with AuthorizationPolicy
-	// THEN the application endpoint must not be accessible without token.
+	// WHEN the component and appconfig with ingress trait are created
+	// THEN the application endpoint must be accessible
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 
 		t.It("Access /greet App Url with valid token", func() {
@@ -141,7 +141,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				return appEndpointAccess(url, host, token, true)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
-		
+
 		t.It("Access /greet App Url w/o token and get RBAC denial", func() {
 			if skipVerify {
 				Skip(skipVerifications)
@@ -151,7 +151,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				return appEndpointAccess(url, host, "", false)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
-
 	})
 
 	// Verify Prometheus scraped targets
