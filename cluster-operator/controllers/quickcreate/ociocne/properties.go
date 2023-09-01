@@ -9,6 +9,7 @@ import (
 	"fmt"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
+	ocinetwork "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci/network"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +42,7 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		return nil, err
 	}
 	// Try to load the credentials, if allowed
-	creds, err := loader.GetCredentialsIfAllowed(ctx, cli, q.Spec.IdentityRef, q.Namespace)
+	creds, err := loader.GetCredentialsIfAllowed(ctx, cli, q.Spec.IdentityRef.AsNamespacedName(), q.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 	}
 	// If there's no OCI network, check if the network has created
 	if !props.HasOCINetwork() {
-		network, _ := oci.GetNetwork(ctx, cli, q)
+		network, err := ocinetwork.GetNetwork(ctx, cli, q)
 		if err == nil {
 			props.Network = network
 		}
@@ -73,7 +74,7 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		}
 	}
 	// Set LoadBalancerSubnet for simple lookup. Will be empty string if the network has not created yet.
-	props.LoadBalancerSubnet = oci.GetLoadBalancerSubnet(props.Network)
+	props.LoadBalancerSubnet = ocinetwork.GetLoadBalancerSubnet(props.Network)
 	return props, nil
 }
 

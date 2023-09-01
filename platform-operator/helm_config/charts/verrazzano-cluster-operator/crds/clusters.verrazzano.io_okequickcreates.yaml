@@ -42,9 +42,13 @@ spec:
                 properties:
                   name:
                     description: Name of the ref.
+                    maxLength: 63
+                    minLength: 1
                     type: string
                   namespace:
                     description: Namespace of the ref.
+                    maxLength: 63
+                    minLength: 1
                     type: string
                 required:
                 - name
@@ -54,6 +58,9 @@ spec:
                 description: Kubernetes settings.
                 properties:
                   clusterNetwork:
+                    default:
+                      podCIDR: 10.244.0.0/16
+                      serviceCIDR: 10.96.0.0/16
                     description: Kubernetes network settings.
                     properties:
                       podCIDR:
@@ -64,15 +71,11 @@ spec:
                         description: IP range for Kubernetes service addresses. The
                           default is `10.96.0.0/16`.
                         type: string
-                    required:
-                    - podCIDR
-                    - serviceCIDR
                     type: object
                   version:
                     description: Kubernetes version.
                     type: string
                 required:
-                - clusterNetwork
                 - version
                 type: object
               oke:
@@ -98,8 +101,12 @@ spec:
                           or OCI_VCN_IP_NATIVE.
                         type: string
                       createVCN:
+                        description: If true, a new VCN is created for the cluster.
+                          The default is false.
                         type: boolean
                       subnets:
+                        description: List of existing subnets that will be used by
+                          the cluster.
                         items:
                           properties:
                             id:
@@ -114,10 +121,11 @@ spec:
                           type: object
                         type: array
                       vcn:
+                        description: OCID of an existing VCN to create the cluster
+                          inside.
                         type: string
                     required:
                     - cniType
-                    - createVCN
                     type: object
                   nodePools:
                     description: List of Node pools.
@@ -125,24 +133,34 @@ spec:
                       properties:
                         bootVolumeGbs:
                           description: Size of node boot volume, in gigabytes.
+                          maximum: 32000
+                          minimum: 50
                           type: integer
                         memoryGbs:
                           description: Amount of memory per node, in gigabytes, when
                             using flex shapes.
+                          maximum: 999
+                          minimum: 1
                           type: integer
                         name:
                           type: string
                         ocpus:
                           description: Number of OCPUs per node, when using flex shapes.
+                          maximum: 999
+                          minimum: 1
                           type: integer
                         replicas:
                           description: Number of nodes to create.
+                          maximum: 999
+                          minimum: 1
                           type: integer
                         shape:
                           description: Node pool Shape.
                           type: string
                       required:
                       - name
+                      - replicas
+                      - shape
                       type: object
                     type: array
                   region:
@@ -170,9 +188,13 @@ spec:
                     properties:
                       name:
                         description: Name of the ref.
+                        maxLength: 63
+                        minLength: 1
                         type: string
                       namespace:
                         description: Namespace of the ref.
+                        maxLength: 63
+                        minLength: 1
                         type: string
                     required:
                     - name
@@ -182,7 +204,6 @@ spec:
                     description: Private registry URL.
                     type: string
                 required:
-                - credentialSecret
                 - url
                 type: object
               proxy:
@@ -200,7 +221,6 @@ spec:
                 required:
                 - httpProxy
                 - httpsProxy
-                - noProxy
                 type: object
             required:
             - identityRef
