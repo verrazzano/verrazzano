@@ -25,6 +25,7 @@ data:
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutPath = "{{ .OidcLogoutCallbackPath }}"
     local singleLogoutPath = "{{ .OidcSingleLogoutCallbackPath }}"
+    local oidcProviderForConsole = "{{ .OidcProviderForConsole }}"
 
     local auth = require("auth").config({
         hostSuffix = '.'..clusterHostSuffix,
@@ -183,7 +184,6 @@ data:
     local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
     local oidcProviderHostDex = "{{ .OidcProviderHostDex }}"
     local oidcProviderHostInClusterDex = "{{ .OidcProviderHostDexInCluster }}"
-    local oidcProviderForConsole = "{{ .OidcProviderForConsole }}"
     local oidcClientSecret = "{{ .OidcProviderClientSecret }}"
 
 
