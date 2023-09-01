@@ -11,6 +11,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"time"
 )
 
 type migrationHandler struct {
@@ -46,21 +47,40 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	}
 	compStatus, ok := vzcr.Status.Components[comp.Name()]
 	if !ok {
-		// no status update needed
+		// This is a new component being installed, No status update needed
 		return result.NewResult()
 	}
-	var installed bool
-	for _, compCond := range compStatus.Conditions {
-		if compCond.Type == vzapi.CondInstallComplete {
-			installed = true
-			break
-		}
-	}
-	if !installed {
+	// Get the latest condition and see if it is InstallComplete. The latest is
+	// needed since the user make have installed, uninstalled or installed, uninstalled, re-installed
+	cond := getLatestCondition(ctx, compStatus)
+	if cond == nil || cond.Type != vzapi.CondInstallComplete {
 		// no status update needed
 		return result.NewResult()
 	}
 
 	// Set the module status condition, installed generation and installed version
 	return modulestatus.UpdateModuleStatusToInstalled(ctx, module, "v0.0.0", 0)
+}
+
+// Get the latest condition based on the time stamp
+func getLatestCondition(ctx handlerspi.HandlerContext, compStatus *vzapi.ComponentStatusDetails) *vzapi.Condition {
+	var latestCond *vzapi.Condition
+	var latestTime *time.Time
+	for i, cond := range compStatus.Conditions {
+		// Sample vz cond time layout "2006-01-02T15:04:15Z"
+		condTime, err := time.Parse(time.RFC3339, cond.LastTransitionTime)
+		if err != nil {
+			// nothing we can do in the case, return nil so an install is triggered
+			ctx.Log.Oncef("Failed parsing Verrazzano condition time %s for component %s", cond.LastTransitionTime, compStatus.Name)
+			return nil
+		}
+		if latestTime == nil {
+			latestTime = &condTime
+		}
+		if latestCond == nil || condTime.After(*latestTime) {
+			latestCond = &compStatus.Conditions[i]
+			latestTime = &condTime
+		}
+	}
+	return latestCond
 }

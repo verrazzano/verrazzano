@@ -149,20 +149,13 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	// Update the Verrazzano component status
-	nsn, err := common.GetVerrazzanoNSN(ctx)
+	// Update the Verrazzano component status to disabled
+	vzNSN, err := common.GetVerrazzanoNSN(ctx)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	sd := common.StatusData{
-		Vznsn:       *nsn,
-		CondType:    vzapi.CondUninstallComplete,
-		CompName:    module.Spec.ModuleName,
-		CompVersion: module.Spec.Version,
-		Msg:         string(vzapi.CondUninstallComplete),
-		Ready:       true,
-	}
-	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
+
+	res := common.UpdateVerrazzanoComponentStatusToDisabled(ctx, *vzNSN, module.Spec.ModuleName)
 	if res.ShouldRequeue() {
 		return res
 	}

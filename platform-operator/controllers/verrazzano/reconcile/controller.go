@@ -184,6 +184,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Check if uninstalling
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		SetModuleCreateOrUpdateDoneGen(0)
 		return r.procDelete(ctx, log, vz)
 	}
 
