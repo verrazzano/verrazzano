@@ -1,0 +1,13 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: OCIClusterIdentity
+metadata:
+  name: test
+  namespace: test
+spec:
+  type: UserPrincipal
+  principalSecret:
+    name: test
+    namespace: test

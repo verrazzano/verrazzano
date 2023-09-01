@@ -128,3 +128,22 @@ func getComponentByNameAndContext(ctx handlerspi.HandlerContext, vz *vzapi.Verra
 
 	return compCtx.Operation(operation), comp, nil
 }
+
+// CheckDependencies checks if the dependencies are ready
+func CheckDependencies(ctx handlerspi.HandlerContext, action string, reason moduleapi.ModuleConditionReason) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
+	_, comp, err := GetComponentAndContext(ctx, string(action))
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Check if dependencies are ready
+	if res, deps := AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
+		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
+		msg := fmt.Sprintf("Waiting for dependencies %v", deps)
+		modulestatus.UpdateReadyConditionFailed(ctx, module, reason, msg)
+		return res
+	}
+	return result.NewResult()
+}

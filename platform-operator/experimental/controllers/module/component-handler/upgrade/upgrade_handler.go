@@ -8,6 +8,7 @@ import (
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
+	vzerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
@@ -45,17 +46,7 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // CheckDependencies checks if the dependencies are ready
 func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
-	_, comp, err := common.GetComponentAndContext(ctx, string(constants.UpgradeOperation))
-	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	// Check if dependencies are ready
-	if res, _ := common.AreDependenciesReady(ctx, comp.GetDependencies()); res.ShouldRequeue() {
-		ctx.Log.Oncef("Component %s is waiting for dependent components to be installed", comp.Name())
-		return res
-	}
-	return result.NewResult()
+	return common.CheckDependencies(ctx, string(constants.UpgradeOperation), moduleapi.ReadyReasonUpgradeStarted)
 }
 
 // PreWorkUpdateStatus updates the status for the pre-work state
@@ -85,6 +76,8 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 
 // PreWork does the pre-work
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -92,6 +85,9 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 
 	// Do the pre-upgrade
 	if err := comp.PreUpgrade(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			modulestatus.UpdateReadyConditionFailed(ctx, module, moduleapi.ReadyReasonUpgradeStarted, err.Error())
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()
@@ -104,12 +100,17 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 
 // DoWork upgrades the module using Helm
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	if err := comp.Upgrade(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			modulestatus.UpdateReadyConditionFailed(ctx, module, moduleapi.ReadyReasonUpgradeStarted, err.Error())
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()
@@ -133,11 +134,16 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 
 // PostWork does installation pre-work
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
+	module := ctx.CR.(*moduleapi.Module)
+
 	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	if err := comp.PostUpgrade(compCtx); err != nil {
+		if !vzerrors.IsRetryableError(err) {
+			modulestatus.UpdateReadyConditionFailed(ctx, module, moduleapi.ReadyReasonUpgradeStarted, err.Error())
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()
