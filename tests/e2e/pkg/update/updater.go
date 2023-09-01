@@ -340,7 +340,7 @@ func IsCRReadyAfterUpdate(cr *v1beta1.Verrazzano, updatedTime time.Time) bool {
 			}
 		}
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not find condition of type '%s' or '%s', transitioned after '%s'",
-			vzapi.CondInstallComplete, vzapi.CondUpgradeComplete, updatedTime.String()))
+			v1beta1.CondInstallComplete, v1beta1.CondUpgradeComplete, updatedTime.String()))
 	}
 	// Return true if the state is ready and there are no conditions updated in the status.
 	return len(cr.Status.Conditions) == 0
