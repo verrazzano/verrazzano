@@ -24,7 +24,6 @@ import (
 const (
 	waitTimeout            = 5 * time.Minute
 	pollingInterval        = 10 * time.Second
-	longWaitTimeout        = 20 * time.Minute
 	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
 	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
 	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
@@ -223,8 +222,8 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(func() bool {
 				return updateClusterAPIOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version)) == nil
 			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, longWaitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
