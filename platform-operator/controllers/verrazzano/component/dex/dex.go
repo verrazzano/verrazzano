@@ -7,6 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+	"text/template"
+
 	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	v8oconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -19,16 +23,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/crypto/bcrypt"
-	"io/fs"
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"text/template"
 )
 
 var writeFileFunc = os.WriteFile
@@ -81,7 +82,7 @@ type redirectURIsData struct {
 
 const pkceClientUrisTemplate = `redirectURIs: [
       "https://verrazzano.{{.DNSSubDomain}}/*",
-      "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
+      "https://verrazzano.{{.DNSSubDomain}}/_authentication_callback",
       "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
       "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
       "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
