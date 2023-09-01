@@ -957,7 +957,6 @@
             {
               "image": "dex-jenkins",
               "tag": "20230831075555-f539c308",
-              "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
