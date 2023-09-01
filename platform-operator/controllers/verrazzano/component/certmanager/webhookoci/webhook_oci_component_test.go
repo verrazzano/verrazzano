@@ -5,6 +5,7 @@ package webhookoci
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -221,48 +222,6 @@ var simpleValidationTests = []validationTestStruct{
 		},
 		wantErr: false,
 	},
-	//{
-	//	name: "Webhook disabled Issuer Enabled with OCI DNS and LetsEncrypt",
-	//	old:  &vzapi.Verrazzano{},
-	//	new: &vzapi.Verrazzano{
-	//		Spec: vzapi.VerrazzanoSpec{
-	//			Components: vzapi.ComponentSpec{
-	//				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
-	//					Enabled: &bf,
-	//				},
-	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
-	//					Enabled: &bt,
-	//					IssuerConfig: vzapi.IssuerConfig{
-	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{},
-	//					},
-	//				},
-	//				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
-	//			},
-	//		},
-	//	},
-	//	wantErr: true,
-	//},
-	//{
-	//	name: "Webhook disabled Issuer Enabled with OCI DNS and LetsEncrypt",
-	//	old:  &vzapi.Verrazzano{},
-	//	new: &vzapi.Verrazzano{
-	//		Spec: vzapi.VerrazzanoSpec{
-	//			Components: vzapi.ComponentSpec{
-	//				CertManagerWebhookOCI: &vzapi.CertManagerWebhookOCIComponent{
-	//					Enabled: &bf,
-	//				},
-	//				ClusterIssuer: &vzapi.ClusterIssuerComponent{
-	//					Enabled: &bt,
-	//					IssuerConfig: vzapi.IssuerConfig{
-	//						LetsEncrypt: &vzapi.LetsEncryptACMEIssuer{},
-	//					},
-	//				},
-	//				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{}},
-	//			},
-	//		},
-	//	},
-	//	wantErr: true,
-	//},
 }
 
 // TestValidateInstall tests the ValidateInstall function
@@ -333,30 +292,111 @@ func TestCertManagerPreInstallOCIDNS(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostInstallAcme tests the PostInstall function
+// TestPreInstallAcme tests the PreInstall function
 // GIVEN a call to PostInstall
 //
 //	WHEN the cert type is Acme
-//	THEN no error is returned
-func TestPostInstallAcme(t *testing.T) {
+//	THEN no error is returned and the OCI DNS secret has been copied into the CM namespace
+func TestPreInstallAcme(t *testing.T) {
+	runPreInstallUpgradeTest(t, false)
+}
+
+// TestPreInstallAcme tests the PreUpgrade function
+// GIVEN a call to PostInstall
+//
+//	WHEN the cert type is Acme
+//	THEN no error is returned and the OCI DNS secret has been copied into the CM namespace
+func TestPreUpgradeAcme(t *testing.T) {
+	runPreInstallUpgradeTest(t, true)
+}
+
+func runPreInstallUpgradeTest(t *testing.T, isUpgrade bool) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	// set OCI DNS secret value and create secret
+	ociSecretName := "ociDNSSecret"
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
-			OCIConfigSecret: "ociDNSSecret",
+			OCIConfigSecret: ociSecretName,
 			DNSZoneName:     "example.dns.io",
 		},
 	}
 	_ = client.Create(context.TODO(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ociDNSSecret",
-			Namespace: ComponentNamespace,
+			Name:      ociSecretName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			"oci.yaml": []byte("foo"),
 		},
 	})
-	err := NewComponent().PostInstall(spi.NewFakeContext(client, localvz, nil, false))
+	var err error
+	c := NewComponent()
+	if isUpgrade {
+		err = c.PreUpgrade(spi.NewFakeContext(client, localvz, nil, false))
+	} else {
+		err = c.PreInstall(spi.NewFakeContext(client, localvz, nil, false))
+	}
 	assert.NoError(t, err)
+
+	targetSecret := &corev1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: ociSecretName, Namespace: constants.CertManagerNamespace}, targetSecret)
+	assert.NoError(t, err, "Error checking for secret creation")
+}
+
+// TestPostUninstallACME tests the PostUninstall function
+// GIVEN a call to PostUninstall
+//
+//	WHEN the cert type is Acme and the OCI DNS secret copy exists in the clusterResourceNamespace
+//	THEN no error is returned and the OCI DNS secret has been deleted from the CM namespace
+func TestPostUninstallACME(t *testing.T) {
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.Acme = acme
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	// set OCI DNS secret value and create secret
+	ociSecretName := "ociDNSSecret"
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: &vzapi.OCI{
+			OCIConfigSecret: ociSecretName,
+			DNSZoneName:     "example.dns.io",
+		},
+	}
+	_ = client.Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			// In the default case, the secret/clusterResourceNamespace is the CM namespace
+			Namespace: constants.CertManagerNamespace,
+			Name:      ociSecretName,
+		},
+		Data: map[string][]byte{
+			"oci.yaml": []byte("foo"),
+		},
+	})
+	assert.NoError(t, NewComponent().PostUninstall(spi.NewFakeContext(client, localvz, nil, false)))
+
+	targetSecret := &corev1.Secret{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: ociSecretName, Namespace: constants.CertManagerNamespace}, targetSecret)
+	assert.Error(t, err, "Secret still exists")
+	assert.True(t, errors.IsNotFound(err))
+}
+
+// TestPostUninstall tests the PostUninstall function
+// GIVEN a call to PostUninstall
+//
+//	WHEN the cert type is not ACME
+//	THEN no error is returned and the OCI DNS secret does not exist in the CM namespace
+func TestPostUninstall(t *testing.T) {
+	localvz := vz.DeepCopy()
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	// set OCI DNS secret value and create secret
+	ociSecretName := "ociDNSSecret"
+
+	assert.NoError(t, NewComponent().PostUninstall(spi.NewFakeContext(client, localvz, nil, false)))
+
+	targetSecret := &corev1.Secret{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: ociSecretName, Namespace: constants.CertManagerNamespace}, targetSecret)
+	assert.Error(t, err, "Secret still exists")
+	assert.True(t, errors.IsNotFound(err))
 }
 
 // TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage

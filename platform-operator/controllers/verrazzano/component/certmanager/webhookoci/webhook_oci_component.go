@@ -74,11 +74,11 @@ func NewComponent() spi.Component {
 }
 
 func (c certManagerWebhookOCIComponent) PreInstall(ctx spi.ComponentContext) error {
-	effectiveCR := ctx.EffectiveCR()
-	if err := common.CopyOCIDNSSecret(ctx, getClusterResourceNamespace(effectiveCR)); err != nil {
-		return err
-	}
-	return nil
+	return common.CopyOCIDNSSecret(ctx, getClusterResourceNamespace(ctx.EffectiveCR()))
+}
+
+func (c certManagerWebhookOCIComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return c.PreInstall(ctx)
 }
 
 // IsEnabled returns true if the component is explicitly enabled OR if OCI DNS/LetsEncrypt are configured
@@ -139,9 +139,6 @@ func (c certManagerWebhookOCIComponent) ValidateInstall(vz *vzapi.Verrazzano) er
 
 // ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerWebhookOCIComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
-	if err := c.validateConfiguration(vz); err != nil {
-		return err
-	}
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
@@ -161,29 +158,5 @@ func (c certManagerWebhookOCIComponent) ValidateUpdate(old *vzapi.Verrazzano, ne
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerWebhookOCIComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	if err := c.validateConfiguration(new); err != nil {
-		return err
-	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
-}
-
-func (c certManagerWebhookOCIComponent) validateConfiguration(_ *v1beta1.Verrazzano) error {
-	//acmeConfig, err := vzcr.IsLetsEncryptConfig(new)
-	//if err != nil {
-	//	return err
-	//}
-
-	// NOTE: this validation doesn't seem to work right now, will need to revisit
-
-	//explicitlyDisabled := false
-	//if new.Spec.Components.CertManagerWebhookOCI != nil {
-	//	explicitlyDisabled = !*new.Spec.Components.CertManagerWebhookOCI.Enabled
-	//}
-	//// If OCI DNS/LetsEncrypt and the ClusterIssuer are enabled, the OCI DNS webhook is required
-	//// Note: we implicitly deploy this under required circumstances, but we want to ensure that users know this is
-	//// an illegal configuration
-	//if explicitlyDisabled && vzcr.IsOCIDNSEnabled(new) && acmeConfig && vzcr.IsClusterIssuerEnabled(new) {
-	//	return fmt.Errorf("the %s component is required when using OCI DNS with an LetsEncrypt certificate issuer configuration", ComponentJSONName)
-	//}
-	return nil
 }
