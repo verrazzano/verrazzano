@@ -5,6 +5,7 @@ package opensearch
 
 import (
 	"fmt"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"helm.sh/helm/v3/pkg/action"
@@ -440,7 +441,7 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(newVMI()).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 	expected := nodesToObjectKeys(ctx)
 	actual := &ready.AvailabilityObjects{}
@@ -606,6 +607,7 @@ func TestIsOSNodeReady(t *testing.T) {
 		},
 	}
 	singleMasterClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newVMI(),
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -664,6 +666,7 @@ func TestIsOSNodeReady(t *testing.T) {
 	rs2 := rs.DeepCopy()
 	rs2.Name = "vmi-system-es-data-1-95d8c5d96"
 	dataNodeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newVMI(),
 		dataDeployment,
 		dataDeployment2,
 		readyPod,
@@ -704,5 +707,17 @@ func TestIsOSNodeReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.ready, isOSNodeReady(tt.ctx, tt.node, tt.name))
 		})
+	}
+}
+
+func newVMI() *vmov1.VerrazzanoMonitoringInstance {
+	return &vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      system,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			Opensearch: vmov1.Opensearch{Enabled: true},
+		},
 	}
 }
