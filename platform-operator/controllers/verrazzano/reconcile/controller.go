@@ -1125,7 +1125,6 @@ func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *installv1a
 		// only do this with modules integration enabled
 		return nil
 	}
-	targetVersion := actualCR.Spec.Version
 	componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 	for compName, componentStatus := range actualCR.Status.Components {
 		if componentStatus.State == installv1alpha1.CompStateReady {
@@ -1136,7 +1135,6 @@ func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *installv1a
 	// Update the status with the new version and component generations
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Components: componentsToUpdate,
-		Version:    &targetVersion,
 	})
 	return nil
 }
