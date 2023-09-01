@@ -119,6 +119,31 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
+	t.It("Access /greet App Url with valid token", func() {
+		if skipVerify {
+			Skip(skipVerifications)
+		}
+		kc, err := pkg.NewKeycloakAdminRESTClient()
+		Expect(err).To(BeNil())
+		password := pkg.GetRequiredEnvVarOrFail("REALM_USER_PASSWORD")
+		realmName := pkg.GetRequiredEnvVarOrFail("REALM_NAME")
+		// check for realm
+		_, err = kc.GetRealm(realmName)
+		Expect(err).To(BeNil())
+		var token string
+		token, err = kc.GetToken(realmName, "testuser", password, "appsclient", t.Logs)
+		Expect(err).To(BeNil())
+		t.Logs.Debugf("Obtained token: %v", token)
+		url := fmt.Sprintf("https://%s/greet", host)
+		Eventually(func() bool {
+			return appEndpointAccess(url, host, token, true)
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	})
+
+	// Verify Hello Helidon app is working
+	// GIVEN OAM hello-helidon app is deployed
+	// WHEN the component and appconfig with ingress trait are created with AuthorizationPolicy
+	// THEN the application endpoint must not be accessible without token.
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 		t.It("Access /greet App Url w/o token and get RBAC denial", func() {
 			if skipVerify {
@@ -130,26 +155,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		t.It("Access /greet App Url with valid token", func() {
-			if skipVerify {
-				Skip(skipVerifications)
-			}
-			kc, err := pkg.NewKeycloakAdminRESTClient()
-			Expect(err).To(BeNil())
-			password := pkg.GetRequiredEnvVarOrFail("REALM_USER_PASSWORD")
-			realmName := pkg.GetRequiredEnvVarOrFail("REALM_NAME")
-			// check for realm
-			_, err = kc.GetRealm(realmName)
-			Expect(err).To(BeNil())
-			var token string
-			token, err = kc.GetToken(realmName, "testuser", password, "appsclient", t.Logs)
-			Expect(err).To(BeNil())
-			t.Logs.Debugf("Obtained token: %v", token)
-			url := fmt.Sprintf("https://%s/greet", host)
-			Eventually(func() bool {
-				return appEndpointAccess(url, host, token, true)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
 	})
 
 	// Verify Prometheus scraped targets
