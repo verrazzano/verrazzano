@@ -21,7 +21,6 @@ import (
 	"strings"
 )
 
-const vmiIngest = "vmi-system-os-ingest"
 const operatorOSIngress = "opensearch"
 const defaultSecretName = "verrazzano"
 

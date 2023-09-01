@@ -168,6 +168,9 @@ func buildNodePoolOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom
 	nodePoolOverrides, err := yaml.Marshal(OpenSearch{
 		OpenSearchCluster{NodePools: convertedNodes},
 	})
+	if err != nil {
+		return kvs, err
+	}
 
 	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
 	if err != nil {
