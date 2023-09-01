@@ -246,7 +246,7 @@ data:
             me.oidcProviderInClusterUri = "http://" .. oidcProviderHostInClusterForRequest
         end
 
-        local oidcProviderURL = me.read_file("/api-config/" .. oidcProvider .. "-url")
+        local oidcProviderURL = me.read_file("/api-config/" .. me.oidcProvider .. "-url")
         if oidcProviderURL and oidcProviderURL ~= "" then
             me.debug(oidcProviderURL .. "-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
 
