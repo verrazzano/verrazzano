@@ -27,15 +27,15 @@ import (
 var (
 	scheme = runtime.NewScheme()
 
-	metricsAddr                   string
-	enableLeaderElection          bool
-	probeAddr                     string
-	runWebhooks                   bool
-	runWebhookInit                bool
-	certDir                       string
-	ingressHost                   string
-	enableQuickCreate             bool
-	enableCAPIRancherRegistration bool
+	metricsAddr                    string
+	enableLeaderElection           bool
+	probeAddr                      string
+	runWebhooks                    bool
+	runWebhookInit                 bool
+	certDir                        string
+	ingressHost                    string
+	enableQuickCreate              bool
+	disableCAPIRancherRegistration bool
 )
 
 func init() {
@@ -85,8 +85,8 @@ func handleFlags() operatorinit.Properties {
 	flag.BoolVar(&enableQuickCreate, "quick-create", false, "If true, enables Quick Create Clusters")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
-	flag.BoolVar(&enableCAPIRancherRegistration, "enable-capi-rancher-registration", true,
-		"Enables the registration of CAPI-based clusters with Rancher")
+	flag.BoolVar(&disableCAPIRancherRegistration, "disable-capi-rancher-registration", false,
+		"Disables the registration of CAPI-based clusters with Rancher")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -96,13 +96,13 @@ func handleFlags() operatorinit.Properties {
 	vzlog.InitLogs(opts)
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts)))
 	return operatorinit.Properties{
-		Scheme:                        scheme,
-		CertificateDir:                certDir,
-		MetricsAddress:                metricsAddr,
-		ProbeAddress:                  probeAddr,
-		IngressHost:                   ingressHost,
-		EnableLeaderElection:          enableLeaderElection,
-		EnableQuickCreate:             enableQuickCreate,
-		EnableCAPIRancherRegistration: enableCAPIRancherRegistration,
+		Scheme:                         scheme,
+		CertificateDir:                 certDir,
+		MetricsAddress:                 metricsAddr,
+		ProbeAddress:                   probeAddr,
+		IngressHost:                    ingressHost,
+		EnableLeaderElection:           enableLeaderElection,
+		EnableQuickCreate:              enableQuickCreate,
+		DisableCAPIRancherRegistration: disableCAPIRancherRegistration,
 	}
 }
