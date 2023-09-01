@@ -221,14 +221,12 @@ func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, polli
 			return false
 		}
 		addWarningHandlerIfNecessary(m, config)
-		client, err := vpoClient.NewForConfig(config)
+		vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
-		}
-		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-		if err != nil {
+		}	
+		if err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
@@ -264,14 +262,12 @@ func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, polling
 			return false
 		}
 		addWarningHandlerIfNecessary(m, config)
-		client, err := vpoClient.NewForConfig(config)
+		vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-		if err != nil {
+		if err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
@@ -304,14 +300,12 @@ func UpdateCRExpectError(m CRModifier) error {
 		return err
 	}
 	addWarningHandlerIfNecessary(m, config)
-	client, err := vpoClient.NewForConfig(config)
+	vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	if err != nil {
+	if verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
