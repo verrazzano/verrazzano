@@ -225,7 +225,7 @@ func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, polli
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
-		}	
+		}
 		if err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
