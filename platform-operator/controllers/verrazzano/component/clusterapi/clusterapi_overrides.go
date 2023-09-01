@@ -5,16 +5,15 @@ package clusterapi
 
 import (
 	"fmt"
-	"os"
-	"path"
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"os"
+	"path"
+	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
 
@@ -58,30 +57,21 @@ type OverridesInterface interface {
 	GetClusterAPITag() string
 	GetClusterAPIURL() string
 	GetClusterAPIVersion() string
-	GetClusterAPIOverridesVersion() string
-	GetClusterAPIBomVersion() string
 	GetOCIRepository() string
 	GetOCIControllerFullImagePath() string
 	GetOCITag() string
 	GetOCIURL() string
 	GetOCIVersion() string
-	GetOCIOverridesVersion() string
-	GetOCIBomVersion() string
 	GetOCNEBootstrapRepository() string
 	GetOCNEBootstrapControllerFullImagePath() string
 	GetOCNEBootstrapTag() string
 	GetOCNEBootstrapURL() string
 	GetOCNEBootstrapVersion() string
-	GetOCNEBootstrapOverridesVersion() string
-	GetOCNEBootstrapBomVersion() string
 	GetOCNEControlPlaneRepository() string
 	GetOCNEControlPlaneControllerFullImagePath() string
 	GetOCNEControlPlaneTag() string
 	GetOCNEControlPlaneURL() string
 	GetOCNEControlPlaneVersion() string
-	GetOCNEControlPlaneOverridesVersion() string
-	GetOCNEControlPlaneBomVersion() string
-	IncludeImagesHeader() bool
 }
 
 func newOverridesContext(overrides *capiOverrides) OverridesInterface {
@@ -108,14 +98,6 @@ func (c capiOverrides) GetClusterAPIVersion() string {
 	return getProviderVersion(c.DefaultProviders.Core)
 }
 
-func (c capiOverrides) GetClusterAPIOverridesVersion() string {
-	return c.DefaultProviders.Core.Version
-}
-
-func (c capiOverrides) GetClusterAPIBomVersion() string {
-	return c.DefaultProviders.Core.Image.BomVersion
-}
-
 func (c capiOverrides) GetOCIRepository() string {
 	return getRepositoryForProvider(c, c.DefaultProviders.OCI)
 }
@@ -130,14 +112,6 @@ func (c capiOverrides) GetOCIURL() string {
 
 func (c capiOverrides) GetOCIVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCI)
-}
-
-func (c capiOverrides) GetOCIOverridesVersion() string {
-	return c.DefaultProviders.OCI.Version
-}
-
-func (c capiOverrides) GetOCIBomVersion() string {
-	return c.DefaultProviders.OCI.Image.BomVersion
 }
 
 func (c capiOverrides) GetOCNEBootstrapRepository() string {
@@ -156,14 +130,6 @@ func (c capiOverrides) GetOCNEBootstrapVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCNEBootstrap)
 }
 
-func (c capiOverrides) GetOCNEBootstrapOverridesVersion() string {
-	return c.DefaultProviders.OCNEBootstrap.Version
-}
-
-func (c capiOverrides) GetOCNEBootstrapBomVersion() string {
-	return c.DefaultProviders.OCNEBootstrap.Image.BomVersion
-}
-
 func (c capiOverrides) GetOCNEControlPlaneRepository() string {
 	return getRepositoryForProvider(c, c.DefaultProviders.OCNEControlPlane)
 }
@@ -178,24 +144,6 @@ func (c capiOverrides) GetOCNEControlPlaneURL() string {
 
 func (c capiOverrides) GetOCNEControlPlaneVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCNEControlPlane)
-}
-
-func (c capiOverrides) GetOCNEControlPlaneOverridesVersion() string {
-	return c.DefaultProviders.OCNEControlPlane.Version
-}
-
-func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
-	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
-}
-
-// IncludeImagesHeader returns true if the overrides version for any of the default providers is not specified.
-// Otherwise, returns false.
-func (c capiOverrides) IncludeImagesHeader() bool {
-	if len(c.GetClusterAPIOverridesVersion()) == 0 || len(c.GetOCIOverridesVersion()) == 0 ||
-		len(c.GetOCNEBootstrapOverridesVersion()) == 0 || len(c.GetOCNEControlPlaneOverridesVersion()) == 0 {
-		return true
-	}
-	return false
 }
 
 func (c capiOverrides) GetClusterAPIControllerFullImagePath() string {
