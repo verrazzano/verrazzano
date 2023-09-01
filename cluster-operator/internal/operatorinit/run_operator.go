@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/ociocne"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/oke"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
@@ -133,9 +134,13 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 	}
 	if props.EnableQuickCreate {
 		if err = (&ociocne.ClusterReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-			Logger: log,
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			Logger:            log,
+			CredentialsLoader: oci.CredentialsLoaderImpl{},
+			OCIClientGetter: func(credentials *oci.Credentials) (oci.Client, error) {
+				return oci.NewClient(credentials)
+			},
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "Failed to setup controller OCNEOCIQuickCreate")
 			os.Exit(1)
