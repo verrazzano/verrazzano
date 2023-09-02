@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -168,4 +169,19 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) 
 		return statusVersion.IsLessThan(bomVersion), nil
 	}
 	return false, nil
+}
+
+// initForVzResource initializes CR fields as needed.  This happens once when the CR is created
+func (r *Reconciler) initForVzResource(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano) result.Result {
+	// Add our finalizer if not already added
+	if !vzstring.SliceContainsString(actualCR.ObjectMeta.Finalizers, finalizerName) {
+		log.Debugf("Adding finalizer %s", finalizerName)
+		actualCR.ObjectMeta.Finalizers = append(actualCR.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Client.Update(context.TODO(), actualCR); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
+
+	// Pre-populate the component status fields
+	return r.initializeComponentStatus(log, actualCR)
 }
