@@ -12,8 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	modulelog "github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapibeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzv1alpha1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -32,7 +32,7 @@ const (
 
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
-func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
+func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
 	var err error
 	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
 	if err != nil {
@@ -44,10 +44,10 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 	// Get component override list (either v1alpha1 or v1beta1)
 	compOverrideList := comp.GetOverrides(effectiveCR)
 	switch castType := compOverrideList.(type) {
-	case []vzapi.Overrides:
+	case []vzv1alpha1.Overrides:
 		overrideList := castType
 		for _, o := range overrideList {
-			var b vzapibeta1.Overrides
+			var b vzv1alpha1beta1.Overrides
 			b.Values = o.Values
 			b.SecretRef = o.SecretRef
 			b.ConfigMapRef = o.ConfigMapRef
@@ -56,7 +56,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 			}
 		}
 
-	case []vzapibeta1.Overrides:
+	case []vzv1alpha1beta1.Overrides:
 		overrideList := castType
 		for _, o := range overrideList {
 			if err := r.setModuleValuesForOneOverride(log, o, effectiveCR, module); err != nil {
@@ -72,7 +72,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 }
 
 // Set the module values or valuesFrom for a single override struct
-func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzapibeta1.Overrides, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) error {
+func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzv1alpha1beta1.Overrides, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module) error {
 
 	if err := r.mergedModuleValuesOverrides(module, overrides); err != nil {
 		return err
@@ -118,7 +118,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 	return nil
 }
 
-func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzapibeta1.Overrides) error {
+func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzv1alpha1beta1.Overrides) error {
 	if overrides.Values == nil {
 		return nil
 	}
@@ -208,7 +208,7 @@ func getConfigResourceName(moduleName string, resourceName string) string {
 }
 
 // getOverrideResourceNames returns the configuration override configMap or secret names used by the vz cr
-func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType) map[string]bool {
+func getOverrideResourceNames(effectiveCR *vzv1alpha1.Verrazzano, ovType overrideType) map[string]bool {
 	names := make(map[string]bool)
 
 	for _, comp := range registry.GetComponents() {
@@ -220,7 +220,7 @@ func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType
 		}
 		compOverrideList := comp.GetOverrides(effectiveCR)
 		switch castType := compOverrideList.(type) {
-		case []vzapi.Overrides:
+		case []vzv1alpha1.Overrides:
 			overrideList := castType
 			for _, o := range overrideList {
 				if o.SecretRef != nil && ovType == secretType {
@@ -230,7 +230,7 @@ func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType
 					names[o.ConfigMapRef.Name] = true
 				}
 			}
-		case []vzapibeta1.Overrides:
+		case []vzv1alpha1beta1.Overrides:
 			overrideList := castType
 			for _, o := range overrideList {
 				if o.SecretRef != nil && ovType == secretType {

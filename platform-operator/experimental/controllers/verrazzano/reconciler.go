@@ -5,15 +5,12 @@ package verrazzano
 
 import (
 	"context"
-	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -33,7 +30,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	log := spictx.Log
 
 	// Convert the unstructured to a Verrazzano CR
-	actualCR := &vzapi.Verrazzano{}
+	actualCR := &vzv1alpha1.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
 		// This is a fatal error which should never happen, don't requeue
@@ -79,11 +76,24 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	return result.NewResult()
 }
 
-func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
+	// since it is needed for the subsequent step to syncLocalRegistration secret.
+	if err := r.createVerrazzanoSystemNamespace(context.TODO(), effectiveCR, log); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
+	// admin cluster without needing a VMC.
+	if err := r.syncLocalRegistrationSecret(); err != nil {
+		log.Errorf("Failed to sync the local registration secret: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
 	return result.NewResult()
 }
 
-func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
@@ -97,12 +107,12 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verraz
 	return result.NewResult()
 }
 
-func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	return result.NewResult()
 }
 
 // createOrUpdateModules creates or updates all the modules
-func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
 	if err != nil {
 		log.ErrorfThrottled("Error loading module catalog: %v", err)
@@ -145,7 +155,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 }
 
 // mutateModule mutates the module for the create or update callback
-func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
@@ -164,39 +174,8 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	return r.setModuleValues(log, effectiveCR, module, comp)
 }
 
-// isUpgradeRequired Returns true if we detect that an upgrade is required but not (at least) in progress:
-//   - if the Spec version IS NOT empty is less than the BOM version, an upgrade is required
-//   - if the Spec version IS empty the Status version is less than the BOM, then an upgrade is required (upgrade of initial install scenario)
-//
-// If we return true here, it means we should stop reconciling until an upgrade has been requested
-func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) {
-	if actualCR == nil {
-		return false, fmt.Errorf("no Verrazzano CR provided")
-	}
-	bomVersion, err := validators.GetCurrentBomVersion()
-	if err != nil {
-		return false, err
-	}
-
-	if len(actualCR.Spec.Version) > 0 {
-		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
-		if err != nil {
-			return false, err
-		}
-		return specVersion.IsLessThan(bomVersion), nil
-	}
-	if len(actualCR.Status.Version) > 0 {
-		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
-		if err != nil {
-			return false, err
-		}
-		return statusVersion.IsLessThan(bomVersion), nil
-	}
-	return false, nil
-}
-
 // initVzResource initializes CR fields as needed.  This happens once when the CR is created
-func (r *Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano) result.Result {
+func (r *Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(actualCR.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
