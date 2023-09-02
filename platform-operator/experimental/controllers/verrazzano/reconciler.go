@@ -9,7 +9,7 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -30,6 +30,9 @@ import (
 
 // Reconcile reconciles the Verrazzano CR
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	log := spictx.Log
+
+	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzapi.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -37,21 +40,21 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return result.NewResult()
 	}
 
-	// Wait for legacy verrazzano controller to initialize status
-	if actualCR.Status.Components == nil {
-		return result.NewResultShortRequeueDelay()
+	// Do CR initialization
+	if res := r.initVzResource(spictx.Log, actualCR); res.ShouldRequeue() {
+		return res
 	}
 
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not started an upgrade of the Verrazzano install.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
 		// return an error if encountered, otherwise returns an empty result to stop reconciling
-		spictx.Log.Progressf("Upgrade required before reconciling modules")
+		spictx.Log.Oncef("Upgrade required before reconciling modules")
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
 	// Get effective CR and set the effective CR status with the actual status
-	// Note that the reconciler code only udpdate the status, which is why the effective
+	// Note that the reconciler code only udpdates the status, which is why the effective
 	// CR is passed.  If was ever to update the spec, then the actual CR would need to be used.
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
@@ -59,8 +62,28 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 	effectiveCR.Status = actualCR.Status
 
-	log := vzlog.DefaultLogger()
+	if res := r.preWork(log, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
 
+	if res := r.doWork(log, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	if res := r.postWork(log, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	// All the modules have been reconciled and are ready
+	vzreconcile.SetModuleCreateOrUpdateDoneGen(actualCR.Generation)
+	return result.NewResult()
+}
+
+func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+	return result.NewResult()
+}
+
+func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
@@ -71,9 +94,10 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	if res1.ShouldRequeue() || res2.ShouldRequeue() {
 		return result.NewResultShortRequeueDelay()
 	}
+	return result.NewResult()
+}
 
-	// All the modules have been reconciled and are ready
-	vzreconcile.SetModuleCreateOrUpdateDoneGen(actualCR.Generation)
+func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
 	return result.NewResult()
 }
 
@@ -171,8 +195,8 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) 
 	return false, nil
 }
 
-// initForVzResource initializes CR fields as needed.  This happens once when the CR is created
-func (r *Reconciler) initForVzResource(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano) result.Result {
+// initVzResource initializes CR fields as needed.  This happens once when the CR is created
+func (r *Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano) result.Result {
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(actualCR.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)

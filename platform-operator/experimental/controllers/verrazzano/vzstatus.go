@@ -6,7 +6,8 @@ package verrazzano
 import (
 	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	vpovzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -21,7 +22,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
 
-	newContext, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+	newContext, err := spi.NewContext(vpovzlog.DefaultLogger(), r.Client, cr, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
