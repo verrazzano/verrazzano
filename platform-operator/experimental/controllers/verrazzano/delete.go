@@ -19,7 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// deleteModules deletes all the modules, optionally only deleting ones that disabled
+// deleteModules deletes all the modules, optionally only deleting ones that disabled.
+// return result.ShouldRequeue == true if all disabled CRs have been deleted (gone from etcd)
 func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	var reterr error
 	var deletedCount int

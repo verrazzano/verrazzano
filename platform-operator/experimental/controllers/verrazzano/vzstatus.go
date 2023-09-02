@@ -86,8 +86,10 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actua
 	return result.NewResult()
 }
 
-// checkInstallComplete checks to see if the install is complete
-func (r *Reconciler) checkInstallComplete(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) (bool, error) {
+TODO func initStatusToInstallingReconcilingOrUpgrading
+
+// checkReconcileComplete checks to see if the reconcile is complete
+func (r *Reconciler) checkReconcileComplete(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) (bool, error) {
 	ready, err := r.checkComponentReadyState(log, actualCR)
 	if err != nil {
 		return false, err
@@ -95,6 +97,8 @@ func (r *Reconciler) checkInstallComplete(log vzlog.VerrazzanoLogger, actualCR *
 	if !ready {
 		return false, nil
 	}
+
+	TODO - Write upgrade message and any module was upgraded (check module condition or component condistions)
 	// Set install complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano install completed successfully"
 	// Status update must be performed on the actual actualCR.read from K8S
@@ -271,7 +275,6 @@ func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *vzv1alph
 
 // checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
 func (r *Reconciler) checkComponentReadyState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) (bool, error) {
-
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
 		spiCtx, err := spi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
