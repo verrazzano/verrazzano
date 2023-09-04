@@ -44,7 +44,6 @@ const (
 	pkceClient      = "verrazzano-pkce"
 	pgClient        = "verrazzano-pg"
 
-	adminEmail      = "verrazzano@verrazzano.io"
 	httpPrefix      = "http://"
 	dexClientSecret = "clientSecret"
 
@@ -213,7 +212,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		return nil, err
 	}
 	userOverridePattern := tmpFilePrefix + "user-" + "*." + tmpSuffix
-	userOverridesFile, err := generateOverridesFile(ctx, staticUserData.Bytes(), userOverridePattern)
+	userOverridesFile, err := generateOverridesFile(staticUserData.Bytes(), userOverridePattern)
 	if err != nil {
 		return kvs, fmt.Errorf("failed generating Dex overrides file: %v", err)
 	}
@@ -225,7 +224,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		return nil, err
 	}
 	clientOverridePattern := tmpFilePrefix + "client-" + "*." + tmpSuffix
-	clientOverridesFile, err := generateOverridesFile(ctx, staticClientData.Bytes(), clientOverridePattern)
+	clientOverridesFile, err := generateOverridesFile(staticClientData.Bytes(), clientOverridePattern)
 	if err != nil {
 		return kvs, fmt.Errorf("failed generating Dex overrides file: %v", err)
 	}
@@ -324,7 +323,6 @@ func populateStaticPasswords(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	}
 
 	data := userData{}
-	data.Email = adminEmail
 	err = populateAdminUserData(ctx, &data)
 	if err != nil {
 		return b, fmt.Errorf("failed populating user data for admin: %v", err)
@@ -366,6 +364,10 @@ func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 	data.Hash = pwdHash
 	data.UserName = string(vzUser)
 	data.UserID = uuid.New().String()
+
+	// Setting the verrazzano user for e-mail. There is no validation for e-mail in Dex as of now
+	// This is used to prompt for the user-name in the Dex screen, even though the input is e-mail.
+	data.Email = string(vzUser)
 	return nil
 }
 
@@ -467,7 +469,7 @@ func populateRedirectURIs(tmpl, dnsSubDomain string) (string, error) {
 }
 
 // generateOverridesFile creates the helm overrides file for Dex, using the contents
-func generateOverridesFile(ctx spi.ComponentContext, contents []byte, filePattern string) (string, error) {
+func generateOverridesFile(contents []byte, filePattern string) (string, error) {
 	file, err := os.CreateTemp(os.TempDir(), filePattern)
 	if err != nil {
 		return "", err

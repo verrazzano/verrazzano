@@ -323,7 +323,7 @@ spec:
     clusterAPI:
       enabled: true
     dex:
-      enabled: true
+      enabled: false
   defaultVolumeSource:
     emptyDir: {}
   environmentName: default

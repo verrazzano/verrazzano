@@ -284,4 +284,4 @@ spec:
     clusterAPI:
       enabled: false
     dex:
-      enabled: true
+      enabled: false
