@@ -6,6 +6,7 @@ import (
 	"context"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"testing"
 
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -79,7 +80,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 //	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
-	expArray := []string{"opensearch-operator", fluentoperator.ComponentName}
+	expArray := []string{networkpolicies.ComponentName, "opensearch-operator", fluentoperator.ComponentName}
 	assert.Equal(t, expArray, strArray)
 
 }

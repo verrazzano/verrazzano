@@ -48,23 +48,6 @@ var (
 	GetControllerRuntimeClient = GetClient
 )
 
-// GetOverrides gets the list of overrides
-func GetOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
-		if effectiveCR.Spec.Components.OpenSearchOperator != nil {
-			return effectiveCR.Spec.Components.OpenSearchOperator.ValueOverrides
-		}
-		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.OpenSearchOperator != nil {
-			return effectiveCR.Spec.Components.OpenSearchOperator.ValueOverrides
-		}
-		return []installv1beta1.Overrides{}
-	}
-
-	return []vzapi.Overrides{}
-}
-
 // AppendOverrides appends the additional overrides for install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// TODO: Image overrides once the BFS images are done

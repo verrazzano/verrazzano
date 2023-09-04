@@ -175,8 +175,7 @@ func convertOpenSearchOperatorFromV1Beta1(in *v1beta1.OpenSearchOperatorComponen
 		return nil
 	}
 	return &OpenSearchOperatorComponent{
-		Enabled:          in.Enabled,
-		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+		Enabled: in.Enabled,
 	}
 }
 

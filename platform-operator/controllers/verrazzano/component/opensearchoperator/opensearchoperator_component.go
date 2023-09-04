@@ -53,7 +53,6 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, nginx.ComponentName},
-			GetInstallOverridesFunc:   GetOverrides,
 			AppendOverridesFunc:       AppendOverrides,
 		},
 	}
@@ -121,15 +120,4 @@ func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error
 		return err
 	}
 	return nil
-}
-
-// MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (o opensearchOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	if ctx.EffectiveCR().Spec.Components.OpenSearchOperator != nil {
-		if ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges != nil {
-			return *ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges
-		}
-		return true
-	}
-	return false
 }
