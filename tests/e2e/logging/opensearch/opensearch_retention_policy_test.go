@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"time"
 )
@@ -27,8 +28,16 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				Fail(err.Error())
 			})
 		}
+		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+		if err != nil {
+			t.It(description, func() {
+				Fail(err.Error())
+			})
+		}
+		operatorEnabled := vzcr.IsComponentStatusEnabled(cr, "opensearch-operator")
 		// Only run tests if Verrazzano is at least version 1.3.0
-		if supported {
+		// And if the operator is not enabled since operator managed OS doesn't support ISM policies yet
+		if supported && !operatorEnabled {
 			t.It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
