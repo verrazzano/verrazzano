@@ -37,22 +37,23 @@ type (
 		// OCNE settings.
 		OCNE OCNE `json:"ocne"`
 		// OCI infrastructure settings.
-		OCI OCI `json:"oci,omitempty"`
+		OCI OCI `json:"oci"`
 	}
 	OCI struct {
-		CommonOCISpec CommonOCI `json:",inline"`
+		CommonOCI `json:",inline"`
 		// Control Plane node settings.
 		ControlPlane NodeConfig `json:"controlPlane"`
 		// List of worker nodes.
 		Workers []NodeConfig `json:"workers,omitempty"`
 		// OCI Network settings.
-		Network *Network `json:"network,omitempty"`
+		Network *Network `json:"network"`
 	}
 	Network struct {
-		VCN     string   `json:"string,omitempty"`
-		Subnets []Subnet `json:"subnets,omitempty"`
+		CreateVCN bool     `json:"createVCN"`
+		VCN       string   `json:"vcn,omitempty"`
+		Subnets   []Subnet `json:"subnets,omitempty"`
 	}
 	OCNEOCIQuickCreateStatus struct {
-		QuickCreateStatus QuickCreateStatus `json:",inline"`
+		Phase QuickCreatePhase `json:"phase"`
 	}
 )

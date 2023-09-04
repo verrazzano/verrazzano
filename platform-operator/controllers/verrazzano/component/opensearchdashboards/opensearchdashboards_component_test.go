@@ -4,6 +4,7 @@ package opensearchdashboards
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"testing"
 
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -77,7 +78,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 //	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
-	expArray := []string{"verrazzano-monitoring-operator", fluentoperator.ComponentName}
+	expArray := []string{networkpolicies.ComponentName, "verrazzano-monitoring-operator", fluentoperator.ComponentName}
 	assert.Equal(t, expArray, strArray)
 
 }

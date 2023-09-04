@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Requires the env var INSTALL_CONFIG_FILE_KIND be defined at a minimum for KIND installs
@@ -32,6 +32,11 @@ if [ -n "${VZ_ENVIRONMENT_NAME}" ]; then
 fi
 if [ -n "${DNS_WILDCARD_DOMAIN}" ]; then
   yq -i eval ".spec.components.dns.wildcard.domain = \"${DNS_WILDCARD_DOMAIN}\"" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
+# Enable Dex in the Verrazzano CR, if environment variable ENABLE_DEX is set to true
+if [ "ENABLE_DEX" == "true" ]; then
+  yq -i eval ".spec.components.dex.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
 if [ "$VZ_ENVIRONMENT_NAME" == "admin" ] && [ "$EXTERNAL_ELASTICSEARCH" == "true" ] && [ "$API_VERSION" == "v1alpha1" ]; then

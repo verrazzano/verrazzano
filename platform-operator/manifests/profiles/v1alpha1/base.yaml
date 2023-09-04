@@ -90,7 +90,7 @@ spec:
       wildcard:
         domain: "nip.io"
     dex:
-      enabled: true
+      enabled: false
     elasticsearch:
       enabled: true
     fluentd:

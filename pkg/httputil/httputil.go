@@ -1,9 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package httputil
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -54,4 +56,18 @@ func integerSliceContains(slice []int, i int) bool {
 		}
 	}
 	return false
+}
+
+func GetHTTPClientWithRootCA(ca *x509.CertPool) *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:    ca,
+			MinVersion: tls.VersionTLS12},
+		Proxy: http.ProxyFromEnvironment,
+	}
+
+	// disable the custom DNS resolver
+	// setupCustomDNSResolver(tr, kubeconfigPath)
+
+	return &http.Client{Transport: tr}
 }

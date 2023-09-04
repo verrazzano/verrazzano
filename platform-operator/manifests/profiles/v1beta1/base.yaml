@@ -91,7 +91,7 @@ spec:
       wildcard:
         domain: nip.io
     dex:
-      enabled: true
+      enabled: false
     fluentd:
       enabled: true
       opensearchSecret: verrazzano-es-internal
