@@ -206,12 +206,18 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
 
-	// Add override for static user
-	staticUserData, err := populateStaticPasswords(ctx)
+	staticUserData, err := populateStaticPasswordsTemplate(ctx)
+	if err != nil {
+		ctx.Log().Errorf("Component Dex failed to populate static user template: %v", err)
+		return nil, err
+	}
+	err = populateAdminUser(ctx, &staticUserData)
 	if err != nil {
 		ctx.Log().Errorf("Component Dex failed to configure static users: %v", err)
 		return nil, err
 	}
+
+	// Populate other users as appropriate, before creating the overrides file
 	userOverridePattern := tmpFilePrefix + "user-" + "*." + tmpSuffix
 	userOverridesFile, err := generateOverridesFile(staticUserData.Bytes(), userOverridePattern)
 	if err != nil {
@@ -219,9 +225,21 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	}
 	kvs = append(kvs, bom.KeyValue{Value: userOverridesFile, IsFile: true})
 
-	staticClientData, err := populateStaticClients(ctx, dnsSubDomain)
+	staticClientData, err := populateStaticClientsTemplate(ctx)
 	if err != nil {
-		ctx.Log().Errorf("Component Dex failed to configure static clients: %v", err)
+		ctx.Log().Errorf("Component Dex failed to populate static client template: %v", err)
+		return nil, err
+	}
+
+	err = populatePKCEClient(ctx, dnsSubDomain, &staticClientData)
+	if err != nil {
+		ctx.Log().Errorf("Component Dex failed to configure PKCE client: %v", err)
+		return nil, err
+	}
+
+	err = populatePGClient(ctx, &staticClientData)
+	if err != nil {
+		ctx.Log().Errorf("Component Dex failed to configure PG client: %v", err)
 		return nil, err
 	}
 	clientOverridePattern := tmpFilePrefix + "client-" + "*." + tmpSuffix
@@ -310,8 +328,8 @@ func updateDexIngress(ctx spi.ComponentContext) error {
 	return err
 }
 
-// populateStaticPasswords populates the data for the admin user, created as static password  in Dex
-func populateStaticPasswords(ctx spi.ComponentContext) (bytes.Buffer, error) {
+// populateStaticPasswordsTemplate populates the static password template
+func populateStaticPasswordsTemplate(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	var b bytes.Buffer
 	t, err := template.New("").Parse(staticPasswordTemplate)
 	if err != nil {
@@ -322,27 +340,11 @@ func populateStaticPasswords(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	if err != nil {
 		return b, fmt.Errorf("failed applying static password template: %v", err)
 	}
-
-	data := userData{}
-	err = populateAdminUserData(ctx, &data)
-	if err != nil {
-		return b, fmt.Errorf("failed populating user data for admin: %v", err)
-	}
-
-	t, err = template.New("").Parse(passwordTemplate)
-	if err != nil {
-		return b, fmt.Errorf("failed parsing password template: %v", err)
-	}
-
-	err = t.Execute(&b, data)
-	if err != nil {
-		return b, fmt.Errorf("failed applying password template: %v", err)
-	}
 	return b, nil
 }
 
-// populateAdminUserData populates the data for the admin user
-func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
+// populateStaticPasswords populates the data for the admin user, created as static password  in Dex
+func populateAdminUser(ctx spi.ComponentContext, b *bytes.Buffer) error {
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: constants.VerrazzanoSystemNamespace,
@@ -357,6 +359,8 @@ func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 	vzUser := secret.Data[adminUsernameKey]
 	vzPwd := secret.Data[adminPasswordKey]
 
+	data := userData{}
+
 	// Dex expects bcrypt hash of the password
 	pwdHash, err := generateBCCryptHash(ctx, vzPwd)
 	if err != nil {
@@ -369,6 +373,16 @@ func populateAdminUserData(ctx spi.ComponentContext, data *userData) error {
 	// Setting the verrazzano user for e-mail. There is no validation for e-mail in Dex as of now
 	// This is used to prompt for the user-name in the Dex screen, even though the input is e-mail.
 	data.Email = string(vzUser)
+
+	t, err := template.New("").Parse(passwordTemplate)
+	if err != nil {
+		return fmt.Errorf("failed parsing password template: %v", err)
+	}
+
+	err = t.Execute(b, data)
+	if err != nil {
+		return fmt.Errorf("failed applying password template: %v", err)
+	}
 	return nil
 }
 
@@ -383,7 +397,7 @@ func generateBCCryptHash(ctx spi.ComponentContext, password []byte) (string, err
 }
 
 // populateStaticClients populates the helm overrides to configure clients verrazzano-pkce and verrazzano-pg
-func populateStaticClients(ctx spi.ComponentContext, dnsSubDomain string) (bytes.Buffer, error) {
+func populateStaticClientsTemplate(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	var b bytes.Buffer
 	t, err := template.New("").Parse(staticClientTemplate)
 
@@ -395,10 +409,14 @@ func populateStaticClients(ctx spi.ComponentContext, dnsSubDomain string) (bytes
 	if err != nil {
 		return b, fmt.Errorf("failed applying static client template: %v", err)
 	}
+	return b, nil
+}
 
+// populateStaticClients populates the helm overrides to configure clients verrazzano-pkce and verrazzano-pg
+func populatePKCEClient(ctx spi.ComponentContext, dnsSubDomain string, b *bytes.Buffer) error {
 	redirectURIs, err := populateRedirectURIs(pkceClientUrisTemplate, dnsSubDomain)
 	if err != nil {
-		return b, fmt.Errorf("failed populating redirect URIs for client:%s :%v", pkceClient, err)
+		return fmt.Errorf("failed populating redirect URIs for client:%s :%v", pkceClient, err)
 	}
 
 	pkceSecret := types.NamespacedName{
@@ -407,7 +425,7 @@ func populateStaticClients(ctx spi.ComponentContext, dnsSubDomain string) (bytes
 	}
 	cs, err := generateClientSecret(ctx, pkceSecret)
 	if err != nil {
-		return b, fmt.Errorf("failed generating client secret for client:%s :%v", pkceClient, err)
+		return fmt.Errorf("failed generating client secret for client:%s :%v", pkceClient, err)
 	}
 
 	cData := clientData{}
@@ -416,40 +434,43 @@ func populateStaticClients(ctx spi.ComponentContext, dnsSubDomain string) (bytes
 	cData.ClientSecret = cs
 	cData.RedirectURIs = redirectURIs
 
-	t, err = template.New("").Parse(clientTemplate)
+	t, err := template.New("").Parse(clientTemplate)
 	if err != nil {
-		return b, fmt.Errorf("failed parsing static client template: %v", err)
+		return fmt.Errorf("failed parsing static client template: %v", err)
 	}
 
-	err = t.Execute(&b, cData)
+	err = t.Execute(b, cData)
 	if err != nil {
-		return b, fmt.Errorf("failed applying static client template: %v", err)
+		return fmt.Errorf("failed applying static client template: %v", err)
 	}
+	return nil
+}
 
+func populatePGClient(ctx spi.ComponentContext, b *bytes.Buffer) error {
 	pgSecret := types.NamespacedName{
 		Namespace: ComponentNamespace,
 		Name:      pgClient,
 	}
-	cs, err = generateClientSecret(ctx, pgSecret)
+	cs, err := generateClientSecret(ctx, pgSecret)
 	if err != nil {
-		return b, fmt.Errorf("failed generating client secret for client:%s :%v", pkceClient, err)
+		return fmt.Errorf("failed generating client secret for client:%s :%v", pkceClient, err)
 	}
 
-	cData = clientData{}
+	cData := clientData{}
 	cData.ClientID = pgClient
 	cData.ClientName = pgClient
 	cData.ClientSecret = cs
 	cData.RedirectURIs = ""
 
-	t, err = template.New("").Parse(clientTemplate)
+	t, err := template.New("").Parse(clientTemplate)
 	if err != nil {
-		return b, fmt.Errorf("failed parsing static client template: %v", err)
+		return fmt.Errorf("failed parsing static client template: %v", err)
 	}
-	err = t.Execute(&b, cData)
+	err = t.Execute(b, cData)
 	if err != nil {
-		return b, fmt.Errorf("failed applying static client template: %v", err)
+		return fmt.Errorf("failed applying static client template: %v", err)
 	}
-	return b, nil
+	return nil
 }
 
 // populateRedirectURIs populates the redirect URIs for the given template
@@ -511,5 +532,5 @@ func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedN
 		ctx.Log().Infof("Created secret %s successfully", clientName)
 		return pw, nil
 	}
-	return "", err
+	return string(secret.Data[dexClientSecret][:]), err
 }

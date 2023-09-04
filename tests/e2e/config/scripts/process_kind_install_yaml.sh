@@ -35,8 +35,10 @@ if [ -n "${DNS_WILDCARD_DOMAIN}" ]; then
 fi
 
 # Enable Dex in the Verrazzano CR, if environment variable ENABLE_DEX is set to true
-if [ "ENABLE_DEX" == "true" ]; then
+if [ "${ENABLE_DEX}" == "true" ]; then
   yq -i eval ".spec.components.dex.enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+else
+  echo "Environment variable ENABLE_DEX is not set"
 fi
 
 if [ "$VZ_ENVIRONMENT_NAME" == "admin" ] && [ "$EXTERNAL_ELASTICSEARCH" == "true" ] && [ "$API_VERSION" == "v1alpha1" ]; then
