@@ -45,7 +45,6 @@ var (
 		{Name: fmt.Sprintf("%s-master-cert", clusterName), Namespace: ComponentNamespace},
 		{Name: fmt.Sprintf("%s-node-cert", clusterName), Namespace: ComponentNamespace}}
 
-	dashboardDeployment        = fmt.Sprintf("%s-dashboards", clusterName)
 	GetControllerRuntimeClient = GetClient
 )
 
