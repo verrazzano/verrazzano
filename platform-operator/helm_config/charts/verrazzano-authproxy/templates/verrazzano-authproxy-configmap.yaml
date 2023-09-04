@@ -560,13 +560,13 @@ data:
         elseif backend == 'thanos-ruler' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-ruler', '9090')
         elseif backend == 'kibana' then
-            serverUrl = me.makeLoggingComponentBackendUrl('osdService', '5601')
+            serverUrl = me.makeLoggingComponentBackendUrl(osdService, '5601')
         elseif backend == 'osd' then
-            serverUrl = me.makeLoggingComponentBackendUrl('osdService', '5601')
+            serverUrl = me.makeLoggingComponentBackendUrl(osdService, '5601')
         elseif backend == 'elasticsearch' then
-            serverUrl = me.makeLoggingComponentBackendUrl('opensearchService', '9200')
+            serverUrl = me.makeLoggingComponentBackendUrl(opensearchService, '9200')
         elseif backend == 'opensearch' then
-            serverUrl = me.makeLoggingComponentBackendUrl('opensearchService', '9200')
+            serverUrl = me.makeLoggingComponentBackendUrl(opensearchService, '9200')
         elseif backend == 'opensearch-logging' then
             serverUrl = me.makeLoggingComponentBackendUrl('opensearch', '9200')
         elseif backend == 'osd-logging' then
