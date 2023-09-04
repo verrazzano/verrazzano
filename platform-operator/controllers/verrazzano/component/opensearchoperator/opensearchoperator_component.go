@@ -112,6 +112,9 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	if err := handleLegacyOpenSearch(ctx); err != nil {
 		return err
 	}
+	if err := common.MergeSecretData(ctx); err != nil {
+		return err
+	}
 
 	return o.HelmComponent.PreInstall(ctx)
 }
