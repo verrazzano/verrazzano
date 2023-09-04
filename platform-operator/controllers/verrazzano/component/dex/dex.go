@@ -531,5 +531,5 @@ func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedN
 		ctx.Log().Infof("Created secret %s successfully", clientName)
 		return pw, nil
 	}
-	return "", err
+	return string(secret.Data[dexClientSecret][:]), err
 }
