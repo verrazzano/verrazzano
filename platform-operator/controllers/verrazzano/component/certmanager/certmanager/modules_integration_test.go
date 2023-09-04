@@ -136,3 +136,13 @@ func TestGetModuleSpec(t *testing.T) {
 		})
 	}
 }
+
+// TestGetWatchDescriptors tests the GetWatchDescriptors function impl for this component
+// GIVEN a call to GetWatchDescriptors
+//
+//	WHEN a new component is created
+//	THEN the watch descriptors have the correct number of watches
+func TestGetWatchDescriptors(t *testing.T) {
+	wd := NewComponent().GetWatchDescriptors()
+	assert.Len(t, wd, 1)
+}

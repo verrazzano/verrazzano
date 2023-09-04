@@ -10,7 +10,7 @@ type (
 		// +patchStrategy=merge,retainKeys
 		// Role of subnet within the cluster.
 		Role SubnetRole `json:"role" patchStrategy:"merge,retainKeys" patchMergeKey:"role"`
-		// The Id of the subnet.
+		// The ID of the subnet.
 		ID string `json:"id"`
 	}
 	CommonClusterSpec struct {
@@ -25,14 +25,14 @@ type (
 	}
 	CommonOCI struct {
 		// OCI region where the cluster will be created.
-		Region string `json:"region"`
-		// OCI Compartment id where the compartment will be created
-		Compartment string `json:"compartment"`
+		Region string `json:"region,omitempty"`
+		// OCI Compartment id where the cluster will be created
+		Compartment string `json:"compartment,omitempty"`
 		// SSH public key for node ssh.
 		SSHPublicKey *string `json:"sshPublicKey,omitempty"`
 		// Node image id.
 		// The default is the latest OL8 image in the provided compartment.
-		ImageName string `json:"imageName"`
+		ImageID string `json:"imageId,omitempty"`
 		// Cloud-init script to run during node startup.
 		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}
@@ -57,9 +57,9 @@ type (
 		Dependencies OCNEDependencies `json:"dependencies"`
 	}
 	OCNEDependencies struct {
-		// Whether to install OCNE dependencies.
+		// Whether to skip OCNE dependency installation.
 		// The default is `true`.
-		Install bool `json:"install"`
+		SkipInstall bool `json:"skipInstall"`
 	}
 	NodeConfig struct {
 		// +patchMergeKey=name
@@ -67,11 +67,11 @@ type (
 		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 		// Node pool Shape.
 		Shape *string `json:"shape,omitempty"`
-		// Number of OCPUs per node.
+		// Number of OCPUs per node, when using flex shapes.
 		OCPUs *int `json:"ocpus,omitempty"`
 		// Amount of memory per node, in gigabytes, when using flex shapes.
 		MemoryGbs *int `json:"memoryGbs,omitempty"`
-		// Size of node boot volume, in gigabytes, when using flex shapes.
+		// Size of node boot volume, in gigabytes.
 		BootVolumeGbs *int `json:"bootVolumeGbs,omitempty"`
 		// Number of nodes to create.
 		Replicas *int `json:"replicas,omitempty"`
@@ -96,9 +96,6 @@ type (
 		// Namespace of the ref.
 		Namespace string `json:"namespace"`
 	}
-	QuickCreateStatus struct {
-		Phase QuickCreatePhase `json:"phase"`
-	}
 	QuickCreatePhase string
 )
 
@@ -115,6 +112,6 @@ const (
 
 	// QuickCreatePhaseProvisioning means the Quick Create is in progress.
 	QuickCreatePhaseProvisioning QuickCreatePhase = "Provisioning"
-	// QuickCreatePhaseComplete means the Quick Create has finished.
+	// QuickCreatePhaseComplete means the Quick Create has finished. Quick Create CR cleanup is started once this phase is reached.
 	QuickCreatePhaseComplete QuickCreatePhase = "Complete"
 )

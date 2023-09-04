@@ -1,0 +1,126 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: OCNEControlPlane
+metadata:
+    name:  {{.Name}}-control-plane
+    namespace: {{.Namespace}}
+spec:
+    verrazzanoPlatformOperator:
+        enabled: false
+    moduleOperator:
+        enabled: true
+    {{- if .PrivateRegistry }}
+        image:
+            repository: {{ .PrivateRegistry.URL }}/verrazzano/module-operator
+    {{- end }}
+    {{- if and .PrivateRegistry .PrivateRegistry.CredentialSecret.Name }}
+        imagePullSecrets:
+            - name: verrazzano-container-registry
+    {{- end }}
+    machineTemplate:
+        infrastructureRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: OCIMachineTemplate
+            name: {{.Name}}-control-plane
+            namespace: {{.Namespace}}
+    replicas: {{.OCI.ControlPlane.Replicas}}
+    version: {{.Kubernetes.Version}}
+    controlPlaneConfig:
+        imageConfiguration:
+            dependencies:
+                skipInstall: {{.OCNE.Dependencies.SkipInstall}}
+            {{- if .Proxy }}
+            proxy:
+                httpProxy: {{.Proxy.HTTPProxy}}
+                httpsProxy: {{.Proxy.HTTPSProxy}}
+                {{- if .Proxy.NoProxy }}
+                noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
+                {{- else }}
+                noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}}
+                {{- end }}
+            {{- end }}
+        clusterConfiguration:
+            apiServer:
+                certSANs:
+                    - localhost
+                    - 127.0.0.1
+            dns:
+        {{- if .PrivateRegistry }}
+                imageRepository: {{.PrivateRegistry.URL}}/olcne
+        {{- else }}
+                imageRepository: container-registry.oracle.com/olcne
+        {{- end }}
+                imageTag: {{.ContainerImages.CoreDNS}}
+            etcd:
+                local:
+          {{- if .PrivateRegistry }}
+                    imageRepository: {{.PrivateRegistry.URL}}/olcne
+          {{- else }}
+                    imageRepository: container-registry.oracle.com/olcne
+          {{- end }}
+                    imageTag: {{.ContainerImages.ETCD}}
+            networking: {}
+            scheduler: {}
+      {{- if .PrivateRegistry }}
+            imageRepository: {{.PrivateRegistry.URL}}/olcne
+      {{- else }}
+            imageRepository: container-registry.oracle.com/olcne
+      {{- end }}
+        initConfiguration:
+            nodeRegistration:
+                criSocket: /var/run/crio/crio.sock
+                kubeletExtraArgs:
+                    cloud-provider: external
+                    provider-id: {{.ProviderID}}
+        joinConfiguration:
+            discovery: {}
+            nodeRegistration:
+                criSocket: /var/run/crio/crio.sock
+                kubeletExtraArgs:
+                    cloud-provider: external
+                    provider-id: {{.ProviderID}}
+    {{- if .OCI.CloudInitScript }}
+        preOCNECommands:
+    {{- range .OCI.CloudInitScript }}
+            - {{.}}
+    {{- end }}
+    {{- end }}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha1
+kind: OCNEConfigTemplate
+metadata:
+    name:  {{.Name}}
+    namespace: {{.Namespace}}
+spec:
+    template:
+        spec:
+      {{- if .PrivateRegistry }}
+            clusterConfiguration:
+                imageRepository: {{.PrivateRegistry.URL}}/olcne
+      {{- end }}
+            imageConfiguration:
+                dependencies:
+                    skipInstall: {{.OCNE.Dependencies.SkipInstall}}
+                {{- if .Proxy }}
+                proxy:
+                    httpProxy: {{.Proxy.HTTPProxy}}
+                    httpsProxy: {{.Proxy.HTTPSProxy}}
+                    {{- if .Proxy.NoProxy }}
+                    noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
+                    {{- else }}
+                    noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}}
+                    {{- end }}
+                {{- end }}
+            joinConfiguration:
+                nodeRegistration:
+                    kubeletExtraArgs:
+                        cloud-provider: external
+                        provider-id: {{.ProviderID}}
+        {{- if .OCI.CloudInitScript }}
+            preOCNECommands:
+        {{- range .OCI.CloudInitScript }}
+            - {{.}}
+        {{- end }}
+        {{- end }}

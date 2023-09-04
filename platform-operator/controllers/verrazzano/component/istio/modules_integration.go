@@ -6,6 +6,8 @@ package istio
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -37,5 +39,5 @@ func (i istioComponent) ShouldUseModule() bool {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (i istioComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName})
 }

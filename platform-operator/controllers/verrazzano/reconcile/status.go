@@ -8,6 +8,7 @@ import (
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -380,13 +381,17 @@ func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
 		if !comp.ShouldUseModule() {
 			continue
 		}
-		if !IsModuleCreateOrUpdateDone() {
+		if GetModuleCreateOrUpdateDoneGen() != ctx.EffectiveCR().Generation {
 			return false, nil
 		}
+
 		module := moduleapi.Module{}
 		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
 		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
 		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
 			ctx.Log().ErrorfThrottled("Failed to get Module %s, retrying: %v", comp.Name(), err)
 			return false, err
 		}

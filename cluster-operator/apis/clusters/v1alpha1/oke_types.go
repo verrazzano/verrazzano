@@ -38,7 +38,7 @@ type (
 		OKESpec `json:"oke,omitempty"`
 	}
 	OKESpec struct {
-		CommonOCISpec CommonOCI `json:",inline"`
+		CommonOCI `json:",inline"`
 		// List of Node pools.
 		NodePools []NodeConfig `json:"nodePools,omitempty"`
 		// List of Virtual Node pools.
@@ -58,7 +58,7 @@ type (
 		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	}
 	OKEQuickCreateStatus struct {
-		QuickCreateStatus QuickCreateStatus `json:",inline"`
+		Phase QuickCreatePhase `json:"phase"`
 	}
 )
 

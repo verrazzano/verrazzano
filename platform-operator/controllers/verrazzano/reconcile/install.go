@@ -133,7 +133,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			tracker.vzState = vzStatePreInstall
 
 		case vzStateSetGlobalInstallStatus:
-			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
+			spiCtx.Log().Progressf("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
 			if err := r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
 				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
@@ -171,6 +171,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 					return ctrl.Result{Requeue: true}, err
 				}
 			}
+			if err := r.forceSyncComponentReconciledGeneration(spiCtx.ActualCR()); err != nil {
+				return newRequeueWithDelay(), err
+			}
 			tracker.vzState = vzStateReconcileEnd
 		}
 	}
@@ -190,7 +193,7 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 				return true
 			}
 			if checkConfigUpdated(spiCtx, componentStatus) && comp.MonitorOverrides(spiCtx) {
-				spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
+				spiCtx.Log().Progressf("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
 					spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
 				return true
 			}

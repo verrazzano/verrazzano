@@ -444,7 +444,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	SetModuleCreateOrUpdateDone(true)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
@@ -1966,7 +1965,6 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
-		SetModuleCreateOrUpdateDone(true)
 		result, err = reconciler.Reconcile(context.TODO(), request)
 		if err != nil || !result.Requeue {
 			break
