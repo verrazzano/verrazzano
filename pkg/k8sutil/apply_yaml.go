@@ -104,6 +104,10 @@ func (y *YAMLApplier) ApplyDT(directory string, args any) error {
 	return nil
 }
 
+func (y *YAMLApplier) ApplyBT(b []byte, args any) error {
+	return y.doTemplatedBytesAction(b, y.applyAction, args)
+}
+
 // ApplyF applies a file spec to Kubernetes
 func (y *YAMLApplier) ApplyF(filePath string) error {
 	return y.doFileAction(filePath, y.applyAction)
@@ -317,6 +321,21 @@ func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args any)
 		Option("missingkey=error"). // Treat any missing keys as errors
 		Funcs(funcMap).
 		ParseFiles(filePath)
+	if err != nil {
+		return err
+	}
+	buffer := &bytes.Buffer{}
+	if err = tmpl.Execute(buffer, args); err != nil {
+		return err
+	}
+	return y.doAction(bufio.NewReader(buffer), f)
+}
+
+func (y *YAMLApplier) doTemplatedBytesAction(b []byte, f action, args any) error {
+	tmpl, err := template.New("bytetemplate").
+		Option("missingkey=error"). // Treat any missing keys as errors
+		Funcs(funcMap).
+		Parse(string(b))
 	if err != nil {
 		return err
 	}

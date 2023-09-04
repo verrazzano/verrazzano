@@ -5,13 +5,6 @@ package grafana
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -24,6 +17,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -63,21 +58,6 @@ func (g grafanaComponent) Namespace() string {
 // ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
 func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 	return false
-}
-
-// ShouldUseModule returns true if component is implemented using a Module
-func (g grafanaComponent) ShouldUseModule() bool {
-	return config.Get().ModuleIntegration
-}
-
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
-}
-
-// GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
-func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
-	return nil, nil
 }
 
 // GetDependencies returns the dependencies of the Grafana component

@@ -173,15 +173,23 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Delete the StatefulSet before the upgrade
-	if err := deleteStatefulSet(ctx); err != nil {
+	isDeleteRequired, err := isDeleteStatefulSetRequired(ctx)
+	if err != nil {
 		return err
 	}
 
-	// Delete the headless service before the upgrade
-	if err := deleteHeadlessService(ctx); err != nil {
-		return err
+	if isDeleteRequired {
+		// Delete the StatefulSet before the upgrade
+		if err := deleteStatefulSet(ctx); err != nil {
+			return err
+		}
+
+		// Delete the headless service before the upgrade
+		if err := deleteHeadlessService(ctx); err != nil {
+			return err
+		}
 	}
+
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 

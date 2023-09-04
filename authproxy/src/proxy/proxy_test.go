@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -15,12 +16,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
 	apiPath          = "/api/v1/pods"
 	testAPIServerURL = "https://api-server.io"
+	caCertFile       = "./testdata/test-ca.crt"
 )
 
 // TestConfigureKubernetesAPIProxy tests the configuration of the API proxy
@@ -28,13 +32,14 @@ const (
 // WHEN  the Kubernetes API proxy is configured
 // THEN  the handler exists and there is no error
 func TestConfigureKubernetesAPIProxy(t *testing.T) {
-	authproxy := InitializeProxy()
+	c := fake.NewClientBuilder().Build()
+	authproxy := InitializeProxy(8777)
 	log := zap.S()
 
 	getConfigFunc = testConfig
 	defer func() { getConfigFunc = k8sutil.GetConfigFromController }()
 
-	err := ConfigureKubernetesAPIProxy(authproxy, log)
+	err := ConfigureKubernetesAPIProxy(authproxy, c, log)
 	assert.NoError(t, err)
 	assert.NotNil(t, authproxy.Handler)
 }
@@ -53,9 +58,9 @@ func TestServeHTTP(t *testing.T) {
 		expectedStatus   int
 		expectedRespHdrs map[string]string
 	}{
-		{"POST request with no added headers", http.MethodPost, map[string]string{}, http.StatusOK, map[string]string{}},
+		{"POST request with no added headers", http.MethodPost, map[string]string{}, http.StatusOK, map[string]string{contentTypeHeader: runtime.ContentTypeJSON}},
 		{"GET request with Host header", http.MethodPost, map[string]string{"Host": ingressHost}, http.StatusOK, map[string]string{}},
-		{"GET request with valid Origin and Host headers", http.MethodGet, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Access-Control-Allow-Origin": originVal}},
+		{"GET request with valid Origin and Host headers", http.MethodGet, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Access-Control-Allow-Origin": originVal, contentTypeHeader: runtime.ContentTypeJSON}},
 		{"OPTIONS request with valid Origin and Host headers", http.MethodOptions, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Content-Length": "0", "Access-Control-Allow-Origin": originVal}},
 		{"POST request with Host and invalid Origin header", http.MethodPost, map[string]string{"Host": ingressHost, "Origin": "https://notvalid"}, http.StatusForbidden, map[string]string{}},
 	}
@@ -69,6 +74,7 @@ func TestServeHTTP(t *testing.T) {
 				body, err := io.ReadAll(r.Body)
 				assert.NoError(t, err)
 				assert.Equal(t, testBody, string(body))
+				w.Header().Add(contentTypeHeader, runtime.ContentTypeJSON)
 			}))
 			defer server.Close()
 
@@ -106,29 +112,46 @@ func TestReformatAPIRequest(t *testing.T) {
 		Log:    zap.S(),
 	}
 
-	// GIVEN a request to the Auth proxy server
-	// WHEN  the request is formatted correctly
-	// THEN  the request is properly formatted to be sent to the API server
-	url := fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath)
-	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	assert.NoError(t, err)
+	tests := []struct {
+		name        string
+		url         string
+		expectedURL string
+	}{
+		// GIVEN a request to the Auth proxy server
+		// WHEN  the request is formatted correctly
+		// THEN  the request is properly formatted to be sent to the API server
+		{
+			name:        "test cluster path",
+			url:         fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath),
+			expectedURL: fmt.Sprintf("%s%s", handler.URL, apiPath),
+		},
+		// GIVEN a request to the Auth proxy server
+		// WHEN  the request is malformed
+		// THEN  a malformed request is returned
+		{
+			name:        "test malformed request",
+			url:         "malformed-request1234",
+			expectedURL: fmt.Sprintf("%s/%s", handler.URL, "malformed-request1234"),
+		},
+		// GIVEN a request to the Auth proxy server
+		// WHEN  the request has a query param
+		// THEN  the query param is added to the outgoing request
+		{
+			name:        "test query param",
+			url:         fmt.Sprintf("https://authproxy.io/clusters/local%s?watch=1", apiPath),
+			expectedURL: fmt.Sprintf("%s%s?watch=1", handler.URL, apiPath),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, tt.url, strings.NewReader(""))
+			assert.NoError(t, err)
 
-	formattedReq, err := handler.reformatAPIRequest(req)
-	assert.NoError(t, err)
-	expectedURL := fmt.Sprintf("%s%s", handler.URL, apiPath)
-	assert.Equal(t, expectedURL, formattedReq.URL.String())
-
-	// GIVEN a request to the Auth proxy server
-	// WHEN  the request is malformed
-	// THEN  a malformed request is returned
-	url = "malformed-request1234"
-	req, err = http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	assert.NoError(t, err)
-
-	formattedReq, err = handler.reformatAPIRequest(req)
-	assert.NoError(t, err)
-	expectedURL = fmt.Sprintf("%s/%s", handler.URL, url)
-	assert.Equal(t, expectedURL, formattedReq.URL.String())
+			formattedReq, err := handler.reformatAPIRequest(req)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedURL, formattedReq.URL.String())
+		})
+	}
 }
 
 // TestValidateRequest tests the request validation for the Auth Proxy
@@ -152,6 +175,10 @@ func TestValidateRequest(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestObfuscateTestData tests that request authorization headers get scrubbed
+// GIVEN a request with an authorization header
+// WHEN  the request is scrubbed
+// THEN  the header contains a different value
 func TestObfuscateTestData(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, testAPIServerURL, strings.NewReader(""))
 	assert.NoError(t, err)
@@ -166,11 +193,41 @@ func TestObfuscateTestData(t *testing.T) {
 	assert.NotEqual(t, tokenAuth, obfReq.Header[authKey][1])
 }
 
+// TestLoadCAData tests that the CA data is properly loaded from sources
+func TestLoadCAData(t *testing.T) {
+	// GIVEN a config with the CA Data populated
+	// WHEN  the cert pool is generated
+	// THEN  no error is returned
+	caData, err := os.ReadFile(caCertFile)
+	assert.NoError(t, err)
+	config := &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: caData,
+		},
+	}
+	log := zap.S()
+	pool, err := loadCAData(config, log)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, pool)
+
+	// GIVEN a config with the CA File populated
+	// WHEN  the cert pool is generated
+	// THEN  no error is returned
+	config = &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			CAFile: caCertFile,
+		},
+	}
+	pool, err = loadCAData(config, log)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, pool)
+}
+
 func testConfig() (*rest.Config, error) {
 	return &rest.Config{
 		Host: "test-host",
 		TLSClientConfig: rest.TLSClientConfig{
-			CAFile: "./testdata/test-ca.crt",
+			CAFile: caCertFile,
 		},
 	}, nil
 }

@@ -30,6 +30,8 @@ spec:
           port: 8775
         - protocol: TCP
           port: 8776
+        - protocol: TCP
+          port: 8777
     - from:
         - namespaceSelector:
             matchLabels:

@@ -167,6 +167,16 @@ func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) e
 		return ctrlerrors.RetryableError{Source: ComponentName}
 	}
 
+	// Wait until innoDB is gone
+	icExists, err := doesInnoDBClusterExist(compContext)
+	if err != nil {
+		return err
+	}
+	if icExists {
+		compContext.Log().Progressf("Waiting for mysql innoDB to be deleted")
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+
 	// MySQL is not installed, safe to uninstall MySQL operator
 	return c.HelmComponent.PreUninstall(compContext)
 }

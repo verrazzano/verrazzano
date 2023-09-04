@@ -4,8 +4,11 @@
 package externaldns
 
 import (
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -37,4 +40,9 @@ func (c externalDNSComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 	configSnippet.IstioEnabled = vzcr.IsIstioEnabled(effectiveCR)
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c externalDNSComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName})
 }

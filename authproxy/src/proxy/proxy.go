@@ -6,6 +6,7 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,18 +15,23 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
+	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	localClusterPrefix = "/clusters/local"
 
 	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
+
+	contentTypeHeader = "Content-Type"
 )
 
 var getConfigFunc = k8sutil.GetConfigFromController
@@ -35,20 +41,27 @@ type AuthProxy struct {
 	http.Server
 }
 
+type handlerFuncType func(w http.ResponseWriter, r *http.Request)
+
 // Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
-	URL    string
-	Client *retryablehttp.Client
-	Log    *zap.SugaredLogger
+	URL        string
+	Client     *retryablehttp.Client
+	Log        *zap.SugaredLogger
+	OIDCConfig map[string]string
+	K8sClient  client.Client
 }
 
 var _ http.Handler = Handler{}
 
+const callbackPath = "/_authentication_callback"
+const logoutPath = "/_logout"
+
 // InitializeProxy returns a configured AuthProxy instance
-func InitializeProxy() *AuthProxy {
+func InitializeProxy(port int) *AuthProxy {
 	return &AuthProxy{
 		Server: http.Server{
-			Addr:         ":8777",
+			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},
@@ -56,22 +69,29 @@ func InitializeProxy() *AuthProxy {
 }
 
 // ConfigureKubernetesAPIProxy configures the server handler and the proxy client for the AuthProxy instance
-func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) error {
-	config, err := getConfigFunc()
+func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, log *zap.SugaredLogger) error {
+	restConfig, err := getConfigFunc()
 	if err != nil {
 		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
 		return err
 	}
 
-	rootCA := common.CertPool(config.CAData)
-	if len(config.CAData) < 1 {
-		rootCA, err = cert.NewPool(config.CAFile)
-		if err != nil {
-			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
-			return err
-		}
+	rootCA, err := loadCAData(restConfig, log)
+	if err != nil {
+		return err
 	}
 
+	httpClient := GetHTTPClientWithCABundle(rootCA)
+	authproxy.Handler = Handler{
+		URL:       restConfig.Host,
+		Client:    httpClient,
+		Log:       log,
+		K8sClient: k8sClient,
+	}
+	return nil
+}
+
+func GetHTTPClientWithCABundle(rootCA *x509.CertPool) *retryablehttp.Client {
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
 		RootCAs:    rootCA,
@@ -80,20 +100,41 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) e
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient.Transport = transport
+	return client
+}
 
-	authproxy.Handler = Handler{
-		URL:    config.Host,
-		Client: client,
-		Log:    log,
+func (h Handler) findPathHandler(req *http.Request) handlerFuncType {
+	switch req.URL.Path {
+	case callbackPath:
+		return h.handleAuthCallback
+	case logoutPath:
+		return h.handleLogout
+	default:
+		return h.handleAPIRequest
 	}
-	return nil
 }
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
-	err := validateRequest(req)
 
+	handlerFunc := h.findPathHandler(req)
+	handlerFunc(rw, req)
+}
+
+// handleAuthCallback is the http handler for authentication callback
+func (h Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
+
+}
+
+// handleLogout is the http handler for logout
+func (h Handler) handleLogout(rw http.ResponseWriter, req *http.Request) {
+
+}
+
+// handleAPIRequest is the http handler for API requests
+func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
+	err := validateRequest(req)
 	if err != nil {
 		h.Log.Debugf("Failed to validate request: %s", err.Error())
 		http.Error(rw, err.Error(), http.StatusUnprocessableEntity)
@@ -112,8 +153,14 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if statusCode, err := handleAuth(req, rw); err != nil {
-		http.Error(rw, err.Error(), statusCode)
+	oidcConfig := auth.OIDCConfiguration{
+		IssuerURL:   config.GetIssuerURL(),
+		ClientID:    config.GetClientID(),
+		CallbackURL: fmt.Sprintf("https://%s%s", ingressHost, callbackPath),
+	}
+	authenticator := auth.NewAuthenticator(oidcConfig, h.Log, h.K8sClient)
+	requestProcessed := authenticator.Authenticate(req, rw)
+	if requestProcessed {
 		return
 	}
 
@@ -142,18 +189,25 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		responseBody = resp.Body
 	}
 
+	if _, ok := resp.Header[contentTypeHeader]; ok {
+		for _, h := range resp.Header[contentTypeHeader] {
+			rw.Header().Set(contentTypeHeader, h)
+		}
+	} else {
+		bodyData, err := io.ReadAll(responseBody)
+		if err != nil {
+			h.Log.Errorf("Failed to read response body for content type detection: %v", err)
+			return
+		}
+
+		rw.Header().Set(contentTypeHeader, http.DetectContentType(bodyData))
+	}
+
 	_, err = io.Copy(rw, responseBody)
 	if err != nil {
 		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
+		return
 	}
-}
-
-func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
-	authHeader := req.Header.Get("Authorization")
-	if authHeader == "" {
-		// TODO Handle callback/logout cases and if needed, perform authentication flow
-	}
-	return http.StatusOK, nil
 }
 
 // getIngressHost determines the ingress host from the request headers
@@ -165,6 +219,23 @@ func getIngressHost(req *http.Request) string {
 		return host
 	}
 	return "invalid-hostname"
+}
+
+// loadCAData returns the config CA data from the byte array or from the file name
+func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, error) {
+	if len(config.CAData) < 1 {
+		rootCA, err := cert.NewPool(config.CAFile)
+		if err != nil {
+			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+		}
+		return rootCA, err
+	}
+
+	rootCA, err := cert.NewPoolFromBytes(config.CAData)
+	if err != nil {
+		log.Errorf("Failed to load CA data from the Kubeconfig")
+	}
+	return rootCA, err
 }
 
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
@@ -185,6 +256,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, 
 		h.Log.Errorf("Failed to format incoming url: %v", err)
 		return nil, err
 	}
+	formattedURL.RawQuery = req.URL.RawQuery
 	formattedReq.URL = formattedURL
 
 	retryableReq, err := retryablehttp.FromRequest(formattedReq)
@@ -209,10 +281,7 @@ func obfuscateRequestData(req *http.Request) *http.Request {
 	hiddenReq := req.Clone(context.TODO())
 	authKey := "Authorization"
 	for i := range hiddenReq.Header[authKey] {
-		// List of authorization schemes compiled from
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication#authentication_schemes
-		authRegEx := "(Bearer|Basic|Digest|HOBA|Mutual|Negotiate|NTLM|VAPID|SCRAM|AWS4-HMAC-SHA256)"
-		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction(authRegEx)(hiddenReq.Header[authKey][i])
+		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction("")(hiddenReq.Header[authKey][i])
 	}
 	return hiddenReq
 }

@@ -49,6 +49,11 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
+					"issuerConfig": {
+					  "ca": {
+						"secretName": "ca-secret"
+					  }
+					},
 					"clusterResourceNamespace": "ca-namespace"
 				  }
 				}
@@ -88,6 +93,11 @@ func TestGetModuleSpec(t *testing.T) {
 						"module": {
 						  "spec": {
 							"ociConfigSecret": "oci",
+							"issuerConfig": {
+							  "ca": {
+								"secretName": "ca-secret"
+							  }
+							},
 							"clusterResourceNamespace": "ca-namespace"
 						  }
 						}
@@ -128,6 +138,11 @@ func TestGetModuleSpec(t *testing.T) {
 				  "verrazzano": {
 					"module": {
 					  "spec": {
+						"issuerConfig": {
+						  "ca": {
+							"secretName": "ca-secret"
+						  }
+						},
 						"clusterResourceNamespace": "ca-namespace"
 					  }
 					}
@@ -145,4 +160,14 @@ func TestGetModuleSpec(t *testing.T) {
 			assert.JSONEq(t, tt.want, string(got.Raw))
 		})
 	}
+}
+
+// TestGetWatchDescriptors tests the GetWatchDescriptors function impl for this component
+// GIVEN a call to GetWatchDescriptors
+//
+//	WHEN a new component is created
+//	THEN the watch descriptors have the correct number of watches
+func TestGetWatchDescriptors(t *testing.T) {
+	wd := NewComponent().GetWatchDescriptors()
+	assert.Len(t, wd, 1)
 }

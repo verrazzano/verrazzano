@@ -9,7 +9,7 @@ export CLUSTER_NAME ?= kind
 setup-kind: export INSTALL_CONFIG_FILE_KIND ?= ${TEST_SCRIPTS_DIR}/v1beta1/install-verrazzano-kind.yaml
 setup-kind: export CREATE_CLUSTER_USE_CALICO ?= false
 setup-kind: export TESTS_EXECUTED_FILE ?= ${WORKSPACE}/tests_executed_file.tmp
-setup-kind: export KUBERNETES_CLUSTER_VERSION ?= 1.26
+setup-kind: export KUBERNETES_CLUSTER_VERSION ?= 1.27
 .PHONY: setup-kind
 setup-kind:
 	@echo "Setup KIND cluster and install Verrazzano Platform Operator"
