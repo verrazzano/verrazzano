@@ -186,7 +186,6 @@ func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) err
 func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
 	return common.CheckIngressesAndCerts(ctx, d)
-
 }
 
 // IsEnabled OpenSearch-Dashboards specific enabled check for installation
@@ -248,9 +247,13 @@ func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext)
 	var ingressNames []types.NamespacedName
 
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		name := constants.OpensearchDashboardsIngress
+		if common.IsLegacyOSD(ctx) {
+			name = constants.LegacyOpensearchDashboardsIngress
+		}
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.OpensearchDashboardsIngress,
+			Name:      name,
 		})
 	}
 

@@ -9,8 +9,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -139,187 +137,8 @@ func TestOpensearchOperatorEnabled(t *testing.T) {
 	}
 }
 
-// TestGetIngressNames tests the GetIngressNames for the OpenSearchOperator component
-func TestGetIngressNames(t *testing.T) {
-	enabled := true
-	disabled := false
-
-	scheme := k8scheme.Scheme
-
-	var tests = []struct {
-		name     string
-		vz       v1alpha1.Verrazzano
-		ingNames []types.NamespacedName
-	}{
-		// GIVEN a call to GetIngressNames
-		// WHEN all components are disabled
-		// THEN no ingresses are returned
-		{
-			name: "TestGetIngress when all disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy:          &v1alpha1.AuthProxyComponent{Enabled: &disabled},
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &disabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &disabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN NGINX is disabled
-		// THEN no ingresses are returned
-		{
-			name: "TestGetIngress when NGINX disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy:          &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &disabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN the authproxy is disabled
-		// THEN and ingress in the verrazzano-system namespace is returned
-		{
-			name: "TestGetIngress when Authproxy disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy:          &v1alpha1.AuthProxyComponent{Enabled: &disabled},
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-			ingNames: []types.NamespacedName{
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: osIngressName},
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: osdIngressName},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN all components are enabled
-		// THEN an ingress in the authproxy namespace is returned
-		{
-			name: "TestGetIngress when all enabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy:          &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-			ingNames: []types.NamespacedName{
-				{Namespace: authproxy.ComponentNamespace, Name: osIngressName},
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: osdIngressName},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN opensearch and opensearchDashboards are disabled
-		// THEN no ingress is returned
-		{
-			name: "TestGetIngress when all disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy:     &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:       &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						Elasticsearch: &v1alpha1.ElasticsearchComponent{Enabled: &disabled},
-						Kibana:        &v1alpha1.KibanaComponent{Enabled: &disabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN all opensearch is disabled via overrides
-		// THEN an only osd ingress in the authproxy namespace is returned
-		{
-			name: "TestGetIngress when all opensearch disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy:     &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:       &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						Elasticsearch: &v1alpha1.ElasticsearchComponent{Enabled: &disabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-			ingNames: []types.NamespacedName{
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: osdIngressName},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN all osd is disabled via the overrides
-		// THEN only opensearch ingress in the authproxy namespace is returned
-		{
-			name: "TestGetIngress when all osd disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						AuthProxy: &v1alpha1.AuthProxyComponent{Enabled: &enabled},
-						Ingress:   &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						Kibana:    &v1alpha1.KibanaComponent{Enabled: &disabled},
-						DNS: &v1alpha1.DNSComponent{
-							OCI: &v1alpha1.OCI{
-								DNSZoneName: fakeDomain,
-							},
-						},
-					},
-				},
-			},
-			ingNames: []types.NamespacedName{
-				{Namespace: authproxy.ComponentNamespace, Name: osIngressName},
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			ctx := spi.NewFakeContext(client, &test.vz, nil, false)
-			nsn := NewComponent().GetIngressNames(ctx)
-			assert.Equal(t, nsn, test.ingNames)
-		})
-	}
-}
-
 // TestGetCertificateName tests the GetCertificateNames for the OpenSearchOperator component
 func TestGetCertificateName(t *testing.T) {
-	enabled := true
 	disabled := false
 
 	scheme := k8scheme.Scheme
@@ -329,20 +148,6 @@ func TestGetCertificateName(t *testing.T) {
 		vz    v1alpha1.Verrazzano
 		certs []types.NamespacedName
 	}{
-		// GIVEN a call to GetIngressNames
-		// WHEN all components are disabled
-		// THEN no certs are returned
-		{
-			name: "TestGetCertificate when all disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &disabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &disabled},
-					},
-				},
-			},
-		},
 		// GIVEN a call to GetCertificate
 		// WHEN OpenSearchOperator is disabled
 		// THEN no certs are returned
@@ -351,48 +156,18 @@ func TestGetCertificateName(t *testing.T) {
 			vz: v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &enabled},
 						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &disabled},
 					},
 				},
 			},
 		},
-		// GIVEN a call to GetIngressNames
-		// WHEN NGINX is disabled
-		// THEN ingress certs are not are returned
+		// GIVEN a call to GetCertificate
+		// WHEN OpenSearchOperator is enabled
+		// THEN cluster certs are returned
 		{
 			name: "TestGetIngress when NGINX disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &disabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
-					},
-				},
-			},
+			vz:   v1alpha1.Verrazzano{},
 			certs: []types.NamespacedName{
-				{Name: fmt.Sprintf("%s-admin-cert", clusterName), Namespace: ComponentNamespace},
-				{Name: fmt.Sprintf("%s-dashboards-cert", clusterName), Namespace: ComponentNamespace},
-				{Name: fmt.Sprintf("%s-master-cert", clusterName), Namespace: ComponentNamespace},
-				{Name: fmt.Sprintf("%s-node-cert", clusterName), Namespace: ComponentNamespace},
-			},
-		},
-		// GIVEN a call to GetIngressNames
-		// WHEN nginx is enabled
-		// THEN all certs are returned
-		{
-			name: "TestGetIngress when Authproxy disabled",
-			vz: v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						Ingress:            &v1alpha1.IngressNginxComponent{Enabled: &enabled},
-						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{Enabled: &enabled},
-					},
-				},
-			},
-			certs: []types.NamespacedName{
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: "system-tls-osd"},
-				{Namespace: constants.VerrazzanoSystemNamespace, Name: "system-tls-os-ingest"},
 				{Name: fmt.Sprintf("%s-admin-cert", clusterName), Namespace: ComponentNamespace},
 				{Name: fmt.Sprintf("%s-dashboards-cert", clusterName), Namespace: ComponentNamespace},
 				{Name: fmt.Sprintf("%s-master-cert", clusterName), Namespace: ComponentNamespace},
@@ -569,15 +344,16 @@ func TestMonitorOverrides(t *testing.T) {
 
 func getNotReadyObjects() *fake.ClientBuilder {
 	return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&appsv1.StatefulSet{
+		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "opensearch-es-master", Namespace: ComponentNamespace,
+				Namespace: ComponentNamespace,
+				Name:      opensearchOperatorDeploymentName,
 			},
-			Spec: appsv1.StatefulSetSpec{
+			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{clusterLabel: clusterName},
+					MatchLabels: map[string]string{"control-plane": "controller-manager"},
 				}},
-			Status: appsv1.StatefulSetStatus{
+			Status: appsv1.DeploymentStatus{
 				Replicas: 1, AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: 0},
 		},
 	)
@@ -585,34 +361,6 @@ func getNotReadyObjects() *fake.ClientBuilder {
 
 func getReadyObjects() *fake.ClientBuilder {
 	return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "opensearch-es-master", Namespace: ComponentNamespace,
-			},
-			Spec: appsv1.StatefulSetSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{clusterLabel: clusterName},
-				}},
-			Status: appsv1.StatefulSetStatus{
-				Replicas: 1, AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: 1},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "opensearch-es-master-0",
-				Labels: map[string]string{
-					"controller-revision-hash": "opensearch-es-master-6bd9858b57",
-					clusterLabel:               clusterName,
-				},
-			},
-		},
-		&appsv1.ControllerRevision{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "opensearch-es-master-6bd9858b57",
-			},
-			Revision: 1,
-		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -644,41 +392,6 @@ func getReadyObjects() *fake.ClientBuilder {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        opensearchOperatorDeploymentName + "-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      dashboardDeployment,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{dashboardLabelSelector: clusterName},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				ReadyReplicas:     1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      dashboardDeployment + "-95d8c5d93-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel:   "95d8c5d93",
-					dashboardLabelSelector: clusterName,
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        dashboardDeployment + "-95d8c5d93",
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},

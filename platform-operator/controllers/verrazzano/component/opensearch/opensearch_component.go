@@ -251,9 +251,13 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	var ingressNames []types.NamespacedName
 
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		name := constants.OpensearchIngress
+		if common.IsLegacyOS(ctx) {
+			name = constants.LegacyOpensearchIngress
+		}
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.OpensearchIngress,
+			Name:      name,
 		})
 	}
 

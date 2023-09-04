@@ -5,7 +5,6 @@ package opensearchoperator
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -71,62 +70,19 @@ func (o opensearchOperatorComponent) IsReady(context spi.ComponentContext) bool 
 }
 
 func (o opensearchOperatorComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
-	var sts []types.NamespacedName
-	for _, node := range context.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-		if node.Replicas == nil || *node.Replicas <= 0 {
-			continue
-		}
-		sts = append(sts, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      fmt.Sprintf("%s-%s", clusterName, node.Name),
-		})
-	}
 	deployments := getEnabledDeployments(context)
 	actualAvailabilityObjects := ready.AvailabilityObjects{
-		DeploymentNames:  deployments,
-		StatefulsetNames: sts,
+		DeploymentNames: deployments,
 	}
 	return actualAvailabilityObjects.IsAvailable(context.Log(), context.Client())
 }
 
-// GetIngressNames returns the list of ingress for this component
-func (o opensearchOperatorComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var ingressNames []types.NamespacedName
-	if !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		return ingressNames
-	}
-	if ok := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()); ok {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Name:      osIngressName,
-			Namespace: constants.VerrazzanoSystemNamespace,
-		})
-	}
-
-	if ok := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()); ok {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Name:      osdIngressName,
-			Namespace: constants.VerrazzanoSystemNamespace,
-		})
-	}
-	return ingressNames
-}
-
 // GetCertificateNames returns the list of certificates for this component
 func (o opensearchOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var certs []types.NamespacedName
 	if !vzcr.IsOpenSearchOperatorEnabled(ctx.EffectiveCR()) {
-		return certs
+		return nil
 	}
-	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-		if ok := vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()); ok {
-			certs = append(certs, types.NamespacedName{Name: "system-tls-osd", Namespace: constants.VerrazzanoSystemNamespace})
-		}
-		if ok := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()); ok {
-			certs = append(certs, types.NamespacedName{Name: "system-tls-os-ingest", Namespace: constants.VerrazzanoSystemNamespace})
-		}
-	}
-	certs = append(certs, clusterCertificates...)
-	return certs
+	return clusterCertificates
 }
 
 // PreInstall runs before component is installed

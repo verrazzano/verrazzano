@@ -374,18 +374,6 @@ func appendOSIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain
 
 // isReady checks if all the sts and deployments for OpenSearch are ready or not
 func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
-	for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-		if node.Replicas == nil || *node.Replicas <= 0 {
-			continue
-		}
-		sts := []types.NamespacedName{{
-			Namespace: ComponentNamespace,
-			Name:      fmt.Sprintf("%s-%s", clusterName, node.Name),
-		}}
-		if !ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), sts, *node.Replicas, getPrefix(ctx)) {
-			return false
-		}
-	}
 	deployments := getEnabledDeployments(ctx)
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, getPrefix(ctx))
 }
@@ -439,19 +427,12 @@ func newScheme() *runtime.Scheme {
 
 // getEnabledDeployments returns the enabled deployments for this component
 func getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {
-	deployments := []types.NamespacedName{
+	return []types.NamespacedName{
 		{
 			Name:      opensearchOperatorDeploymentName,
 			Namespace: ComponentNamespace,
 		},
 	}
-	if ok := vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()); ok {
-		deployments = append(deployments, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      dashboardDeployment,
-		})
-	}
-	return deployments
 }
 
 func buildOSHostnameForDomain(dnsDomain string) string {
