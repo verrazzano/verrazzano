@@ -547,7 +547,7 @@ const argocdClientTmpl = `
 const pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
-	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
+	  "https://verrazzano.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
