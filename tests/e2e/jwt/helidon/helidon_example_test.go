@@ -30,6 +30,7 @@ const (
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
 	nodeExporterJobName      = "node-exporter"
+	jwtHelidonAppYaml        = "testdata/jwt/helidon/hello-helidon-app.yaml"
 )
 
 var (
@@ -42,7 +43,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", "")
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "", jwtHelidonAppYaml)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
@@ -97,15 +98,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
-		t.It("Access /greet App Url w/o token and get RBAC denial", func() {
-			if skipVerify {
-				Skip(skipVerifications)
-			}
-			url := fmt.Sprintf("https://%s/greet", host)
-			Eventually(func() bool {
-				return appEndpointAccess(url, host, "", false)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
 
 		t.It("Access /greet App Url with valid token", func() {
 			if skipVerify {
@@ -125,6 +117,16 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
 				return appEndpointAccess(url, host, token, true)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+
+		t.It("Access /greet App Url w/o token and get RBAC denial", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
+			url := fmt.Sprintf("https://%s/greet", host)
+			Eventually(func() bool {
+				return appEndpointAccess(url, host, "", false)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
