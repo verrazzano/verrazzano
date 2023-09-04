@@ -187,6 +187,10 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return true
 					}
 					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
 					isVersionAbove2_0_0, err := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
@@ -296,6 +300,10 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return true
 					}
 					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
 					isVersionAbove2_0_0, err := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
