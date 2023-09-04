@@ -150,6 +150,8 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
 	i++
+	a.Equal(comps[i].Name(), opensearchoperator.ComponentName)
+	i++
 	a.Equal(comps[i].Name(), verrazzano.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), vmo.ComponentName)
@@ -157,8 +159,6 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), opensearch.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), opensearchdashboards.ComponentName)
-	i++
-	a.Equal(comps[i].Name(), opensearchoperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), grafana.ComponentName)
 	i++
