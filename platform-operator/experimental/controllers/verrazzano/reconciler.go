@@ -74,7 +74,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	return result.NewResult()
 }
 
-func (r Reconciler) preWork(log vzlog.VerrazzanoLogger,  actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	if err := r.updateStateToReconcilingOrUpgrading(actualCR); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -106,6 +106,11 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 	if res1.ShouldRequeue() || res2.ShouldRequeue() {
 		return result.NewResultShortRequeueDelay()
 	}
+
+	if !r.areModulesDoneReconciling(log, actualCR) {
+		return result.NewResultShortRequeueDelay()
+	}
+
 	return result.NewResult()
 }
 

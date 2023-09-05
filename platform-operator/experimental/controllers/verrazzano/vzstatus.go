@@ -332,34 +332,40 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *vzv1a
 	return r.updateStatus(log, vz, msg, newCondition, nil)
 }
 
-// The new Verrazzano controller actualCR.ates Modules for components.  Make sure those modules are ready.
-func (r *Reconciler) modulesReady(compCtx spi.ComponentContext) (bool, error) {
+// areModulesDoneReconciling returns true if modules are ready, this includes deleted modules being removed.
+func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) bool {
 	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(compCtx.EffectiveCR()) {
-			continue
+		compCtx, err := spi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, false)
+		if err != nil {
+			compCtx.Log().Errorf("Failed to create component context: %v", err)
+			return false
 		}
 
 		module := moduleapi.Module{}
 		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
-		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
-		if err != nil {
+		if err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
-				return false, nil
+				// if module is disabled and not found, that means module is done uninstalling (i.e. ready)
+				if !comp.IsEnabled(compCtx.EffectiveCR()) {
+					continue
+				}
+				// component enabled but not found, return false since it must exist
+				return false
 			}
 			compCtx.Log().ErrorfThrottled("Failed to get Module %s, retrying: %v", comp.Name(), err)
-			return false, err
+			return false
 		}
 
 		cond := modulestatus.GetReadyCondition(&module)
-		if cond == nil {
-			return false, nil
+		if cond == nil || cond.Status != corev1.ConditionTrue {
+			return false
 		}
 		if module.Status.LastSuccessfulGeneration != module.Generation {
-			return false, nil
+			return false
 		}
 		if module.Status.LastSuccessfulVersion != module.Spec.Version {
-			return false, nil
+			return false
 		}
 	}
-	return true, nil
+	return true
 }
