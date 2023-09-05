@@ -86,7 +86,7 @@ func (r Reconciler) createVerrazzanoCROverridesForModule(comp spi.Component, eff
 		return []moduleapi.ValuesFromSource{}, err
 	}
 
-	overridesSecretName := fmt.Sprintf("%s-overrides", module.Name)
+	overridesSecretName := r.generateOverridesSecretNameForModule(module)
 	overridesSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      overridesSecretName,
@@ -115,6 +115,10 @@ func (r Reconciler) createVerrazzanoCROverridesForModule(comp spi.Component, eff
 	return []moduleapi.ValuesFromSource{
 		overridesValue,
 	}, nil
+}
+
+func (r Reconciler) generateOverridesSecretNameForModule(module *moduleapi.Module) string {
+	return fmt.Sprintf("%s-overrides", module.Name)
 }
 
 // Set the module values or valuesFrom for a single override struct
