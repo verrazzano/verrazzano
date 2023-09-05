@@ -123,6 +123,12 @@ rules:
       - list
       - watch
   - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+    resources:
+      - ociclusteridentities
+    verbs:
+      - get
+  - apiGroups:
       - cluster.x-k8s.io
     resources:
       - clusters
