@@ -6,29 +6,28 @@ package opensearchoperator
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"io/fs"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"os"
-	"sigs.k8s.io/yaml"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -250,7 +249,7 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 // Like OpenSearchRoles, OpenSearchUserRolesBindings
 // Since the operator adds a finalizer to these resources, they need to deleted before the operator is uninstalled
 func (o opensearchOperatorComponent) deleteRelatedResource() error {
-	client, err := pkg.GetDynamicClient()
+	client, err := k8sutil.GetDynamicClient()
 	if err != nil {
 		return err
 	}
@@ -274,7 +273,7 @@ func (o opensearchOperatorComponent) deleteRelatedResource() error {
 
 // areRelatedResourcesDeleted checks if the related resources are deleted or not
 func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
-	client, err := pkg.GetDynamicClient()
+	client, err := k8sutil.GetDynamicClient()
 	if err != nil {
 		return err
 	}
