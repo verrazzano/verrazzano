@@ -346,9 +346,19 @@ func (r *Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg s
 	cond := newCondition(msg, conditionType)
 	conditions := append(actualCR.Status.Conditions, cond)
 
+	version := actualCR.Status.Version
+	if len(version) == 0 {
+		var err error
+		version, err = getBomVersion()
+		if err != nil {
+			return err
+		}
+	}
+
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: actualCR,
 		Conditions: conditions,
+		Version:    &version,
 		State:      vzv1alpha1.VzStateReady,
 	})
 	return nil
@@ -436,18 +446,6 @@ func (r *Reconciler) setUpgradingState(log vzlog.VerrazzanoLogger, vz *vzv1alpha
 	return r.updateStatus(log, vz, "Verrazzano upgrade in progress", vzv1alpha1.CondUpgradeStarted, &version)
 }
 
-// setInstallingState
-func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *vzv1alpha1.Verrazzano) error {
-	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := validators.GetCurrentBomVersion()
-	if err != nil {
-		return err
-	}
-
-	version := bomSemVer.ToString()
-	return r.updateStatus(log, vz, "Verrazzano install in progress", vzv1alpha1.CondInstallStarted, &version)
-}
-
 // checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
 func (r *Reconciler) checkComponentReadyState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) (bool, error) {
 	// Return false if any enabled component is not ready
@@ -533,4 +531,14 @@ func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1
 		Components: componentsToUpdate,
 	})
 	return nil
+}
+
+func getBomVersion() (string, error) {
+	// Set the version in the status.  This will be updated when the starting install condition is updated.
+	bomSemVer, err := validators.GetCurrentBomVersion()
+	if err != nil {
+		return "", err
+	}
+
+	return bomSemVer.ToString(), err
 }

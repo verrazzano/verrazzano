@@ -80,7 +80,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// Note: updating the VZ state to reconciling is done by the module shim, see vzcomponent_status.go, UpdateVerrazzanoComponentStatus
 	if r.isUpgrading(actualCR) {
-		if err := r.updateStatusToUpgradeStarted(log, actualCR); err != nil {
+		if err := r.updateUpgradingConditionAndState(log, actualCR); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
@@ -115,7 +115,7 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 
 	if !r.areModulesDoneReconciling(log, actualCR) {
 		if !r.isUpgrading(actualCR) {
-			if err := r.updateStatusToInstallStarted(log, actualCR); err != nil {
+			if err := r.updateInstallingConditionAndState(log, actualCR); err != nil {
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
 		}
@@ -141,9 +141,12 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := r.updateStatusToDone(log, actualCR); err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
+	if r.isUpgrading(actualCR) {
+		r.updateUpgradingConditionAndState(log, actualCR)
+	} else {
+		r.updateInstallingConditionAndState(log, actualCR)
 	}
+
 	return result.NewResult()
 }
 
