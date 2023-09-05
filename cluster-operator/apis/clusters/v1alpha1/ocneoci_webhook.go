@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	// OCNEOCIQuickCreate should be both a validating and defaulting webhook
 	_ webhook.Validator = &OCNEOCIQuickCreate{}
 )
 

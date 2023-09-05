@@ -20,7 +20,6 @@ type (
 		Ctx               context.Context
 		Cli               clipkg.Client
 		OCIClientGetter   func(creds *oci.Credentials) (oci.Client, error)
-		OCIClient         oci.Client
 		CredentialsLoader oci.CredentialsLoader
 		Errors            *vzerror.ErrorAggregator
 	}
@@ -39,10 +38,8 @@ func newValidationContext() (*validationContext, error) {
 		Ctx:               context.Background(),
 		Cli:               cli,
 		CredentialsLoader: oci.CredentialsLoaderImpl{},
-		OCIClientGetter: func(creds *oci.Credentials) (oci.Client, error) {
-			return oci.NewClient(creds)
-		},
-		Errors: vzerror.NewAggregator("\n"),
+		OCIClientGetter:   oci.NewClient,
+		Errors:            vzerror.NewAggregator("\n"),
 	}, nil
 }
 
