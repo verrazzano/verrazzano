@@ -12,13 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultWatchInterval = time.Minute
+
 // these can be changed for unit testing
 var (
 	serviceURLFilename  = "/etc/config/oidcServiceURL"
 	externalURLFilename = "/etc/config/oidcExternalURL"
 	clientIDFilename    = "/etc/config/oidcClientID"
 
-	watchInterval = time.Minute
+	watchInterval atomic.Uint64
 	keepWatching  atomic.Bool
 )
 
@@ -129,6 +131,7 @@ func InitConfiguration(log *zap.SugaredLogger) error {
 		return err
 	}
 
+	watchInterval.Store(uint64(defaultWatchInterval))
 	keepWatching.Store(true)
 	go watchConfigForChanges(log)
 	return nil
@@ -141,7 +144,7 @@ func watchConfigForChanges(log *zap.SugaredLogger) {
 		if err := reloadConfigWhenChanged(log); err != nil {
 			log.Warnf("Error reloading configuration: %v", err)
 		}
-		time.Sleep(watchInterval)
+		time.Sleep(time.Duration(watchInterval.Load()))
 	}
 }
 

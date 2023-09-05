@@ -51,9 +51,9 @@ func TestInitConfiguration(t *testing.T) {
 	clientIDFilename = clientIDFile.Name()
 
 	// override the watch interval
-	oldWatchInterval := watchInterval
-	defer func() { watchInterval = oldWatchInterval }()
-	watchInterval = 500 * time.Millisecond
+	oldWatchInterval := watchInterval.Load()
+	defer func() { watchInterval.Store(oldWatchInterval) }()
+	watchInterval.Store(uint64(500 * time.Millisecond))
 
 	// GIVEN initial configuration files
 	// WHEN the InitConfiguration function is called
@@ -108,7 +108,7 @@ func eventually(f func() bool) bool {
 		if f() == true {
 			return true
 		}
-		time.Sleep(watchInterval)
+		time.Sleep(500 * time.Millisecond)
 	}
 	return false
 }
