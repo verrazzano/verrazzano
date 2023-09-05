@@ -14,7 +14,7 @@ import (
 
 // these can be changed for unit testing
 var (
-	issuerURLFilename   = "/etc/config/oidcIssuerURL"
+	serviceURLFilename  = "/etc/config/oidcServiceURL"
 	externalURLFilename = "/etc/config/oidcExternalURL"
 	clientIDFilename    = "/etc/config/oidcClientID"
 
@@ -23,22 +23,22 @@ var (
 )
 
 var (
-	issuerURL   string
+	serviceURL  string
 	externalURL string
 	clientID    string
 
-	issuerURLFileModTime   time.Time
+	serviceURLFileModTime  time.Time
 	externalURLFileModTime time.Time
 	clientIDFileModTime    time.Time
 
 	mutex sync.RWMutex
 )
 
-// GetIssuerURL returns the issuer URL
-func GetIssuerURL() string {
+// GetServiceURL returns the in-cluster service URL of the OIDC provider
+func GetServiceURL() string {
 	mutex.RLock()
 	defer mutex.RUnlock()
-	return issuerURL
+	return serviceURL
 }
 
 // GetExternalURL returns the external URL of the OIDC provider
@@ -55,18 +55,18 @@ func GetClientID() string {
 	return clientID
 }
 
-// loadIssuerURL loads the issuer URL from a file and stores the file modification time
-func loadIssuerURL() error {
+// loadServiceURL loads the in-cluster service URL from a file and stores the file modification time
+func loadServiceURL() error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	value, modTime, err := loadConfigValue(issuerURLFilename)
+	value, modTime, err := loadConfigValue(serviceURLFilename)
 	if err != nil {
 		return err
 	}
 
-	issuerURL = value
-	issuerURLFileModTime = *modTime
+	serviceURL = value
+	serviceURLFileModTime = *modTime
 	return nil
 }
 
@@ -119,7 +119,7 @@ func loadConfigValue(filename string) (string, *time.Time, error) {
 // InitConfiguration loads the configuration from files and starts a goroutine to watch for configuration changes and reloads
 // config values when changes are detected
 func InitConfiguration(log *zap.SugaredLogger) error {
-	if err := loadIssuerURL(); err != nil {
+	if err := loadServiceURL(); err != nil {
 		return err
 	}
 	if err := loadExternalURL(); err != nil {
@@ -147,14 +147,14 @@ func watchConfigForChanges(log *zap.SugaredLogger) {
 
 // reloadConfigWhenChanged compares the config file modification times and reloads config values
 func reloadConfigWhenChanged(log *zap.SugaredLogger) error {
-	fileInfo, err := os.Stat(issuerURLFilename)
+	fileInfo, err := os.Stat(serviceURLFilename)
 	if err != nil {
 		return err
 	}
-	if fileInfo.ModTime().After(issuerURLFileModTime) {
+	if fileInfo.ModTime().After(serviceURLFileModTime) {
 		// file has changed
-		log.Debugf("Detected change in file %s, reloading contents", issuerURLFilename)
-		if err := loadIssuerURL(); err != nil {
+		log.Debugf("Detected change in file %s, reloading contents", serviceURLFilename)
+		if err := loadServiceURL(); err != nil {
 			return err
 		}
 	}

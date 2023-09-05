@@ -154,7 +154,7 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	oidcConfig := auth.OIDCConfiguration{
-		IssuerURL:   config.GetIssuerURL(),
+		IssuerURL:   config.GetServiceURL(),
 		ClientID:    config.GetClientID(),
 		CallbackURL: fmt.Sprintf("https://%s%s", ingressHost, callbackPath),
 	}

@@ -132,6 +132,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	// Append auth proxy v2 overrides
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcServiceURL", Value: keycloakInClusterURL})
 	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcProviderHost})
 
 	return appendAuthProxyImageOverrides(kvs), nil

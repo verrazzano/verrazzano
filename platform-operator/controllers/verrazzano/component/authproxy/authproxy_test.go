@@ -176,7 +176,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test default configuration of AuthProxy with no overrides",
 			expectedYAML: "testdata/noOverrideValues.yaml",
 			actualCR:     "testdata/noOverrideVz.yaml",
-			numKeyValues: 3,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -184,7 +184,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test override of replica count",
 			expectedYAML: "testdata/replicasOverrideValues.yaml",
 			actualCR:     "testdata/replicasOverrideVz.yaml",
-			numKeyValues: 3,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -192,7 +192,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test override of affinity configuration for AuthProxy",
 			expectedYAML: "testdata/affinityOverrideValues.yaml",
 			actualCR:     "testdata/affinityOverrideVz.yaml",
-			numKeyValues: 3,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -200,7 +200,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding DNS wildcard domain",
 			expectedYAML: "testdata/dnsWildcardDomainOverrideValues.yaml",
 			actualCR:     "testdata/dnsWildcardDomainOverrideVz.yaml",
-			numKeyValues: 3,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -208,7 +208,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding AuthProxy to be disabled",
 			expectedYAML: "testdata/enabledOverrideValues.yaml",
 			actualCR:     "testdata/enabledOverrideVz.yaml",
-			numKeyValues: 3,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -259,9 +259,9 @@ func TestAppendOverrides(t *testing.T) {
 			cleanTempFiles(fakeContext)
 
 			// Check authproxy image
-			if len(kvs) >= 2 {
-				asserts.Equal("v2.image", kvs[2].Key)
-				asserts.Equal(testImageVar, kvs[2].Value)
+			if len(kvs) >= 3 {
+				asserts.Equal("v2.image", kvs[3].Key)
+				asserts.Equal(testImageVar, kvs[3].Value)
 			}
 
 		})
