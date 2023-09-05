@@ -8,7 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	ocnemeta "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	vzerror "github.com/verrazzano/verrazzano/cluster-operator/internal/errors"
-	"k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/url"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,11 +45,13 @@ func newValidationContext() (*validationContext, error) {
 }
 
 func getWebhookClient() (clipkg.Client, error) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		return nil, err
 	}
-	return clipkg.New(config, clipkg.Options{Scheme: scheme.Scheme})
+	return clipkg.New(config, clipkg.Options{Scheme: scheme})
 }
 
 func addOCINodeErrors(ctx *validationContext, n OCINode, field string) {
