@@ -4,7 +4,6 @@
 package reconcile
 
 import (
-	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
@@ -12,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -230,13 +230,19 @@ func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 // this is applied at the end of a successful VZ CR reconcile.
 func (r *Reconciler) forceSyncComponentReconciledGeneration(ctx spi.ComponentContext) error {
 	actualCR := ctx.ActualCR()
-	for compName, compStatus := range ctx.ActualCR().Status.Components {
-		if compStatus.State == vzapi.CompStateReady && r.monitorChanges(ctx, compName) {
+	componentsToUpdate := map[string]*vzapi.ComponentStatusDetails{}
+	for compName, componentStatus := range actualCR.Status.Components {
+		if componentStatus.State == vzapi.CompStateReady && r.monitorChanges(ctx, compName) {
 			ctx.Log().Debugf("Updating last reconciled generation for %s", compName)
-			compStatus.LastReconciledGeneration = actualCR.Generation
+			componentStatus.LastReconciledGeneration = actualCR.Generation
+			componentsToUpdate[compName] = componentStatus
 		}
 	}
-	return ctx.Client().Status().Update(context.TODO(), actualCR)
+	// Update the status with the new version and component generations
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Components: componentsToUpdate,
+	})
+	return nil
 }
 
 func (r *Reconciler) monitorChanges(ctx spi.ComponentContext, compName string) bool {
