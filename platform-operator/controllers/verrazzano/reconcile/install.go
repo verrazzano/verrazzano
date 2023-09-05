@@ -4,15 +4,14 @@
 package reconcile
 
 import (
+	"context"
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -170,9 +169,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-			}
-			if err := r.forceSyncComponentReconciledGeneration(spiCtx.ActualCR()); err != nil {
-				return newRequeueWithDelay(), err
+				if err := r.forceSyncComponentReconciledGeneration(spiCtx); err != nil {
+					return newRequeueWithDelay(), err
+				}
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}
@@ -225,4 +224,24 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
+}
+
+// forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
+// this is applied at the end of a successful VZ CR reconcile.
+func (r *Reconciler) forceSyncComponentReconciledGeneration(ctx spi.ComponentContext) error {
+	actualCR := ctx.ActualCR()
+	for compName, compStatus := range ctx.ActualCR().Status.Components {
+		if compStatus.State == vzapi.CompStateReady && r.monitorChanges(ctx, compName) {
+			ctx.Log().Debugf("Updating last reconciled generation for %s", compName)
+			compStatus.LastReconciledGeneration = actualCR.Generation
+		}
+	}
+	return ctx.Client().Status().Update(context.TODO(), actualCR)
+}
+
+func (r *Reconciler) monitorChanges(ctx spi.ComponentContext, compName string) bool {
+	if found, comp := registry.FindComponent(compName); found {
+		return comp.MonitorOverrides(ctx)
+	}
+	return true
 }
