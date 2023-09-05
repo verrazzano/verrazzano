@@ -6,13 +6,14 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,8 +88,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		mgdClusterOidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
 	}
 
+	oidcProviderHost := fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix)
 	overrides.Proxy = &proxyValues{
-		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
+		OidcProviderHost:          oidcProviderHost,
 		OidcProviderHostInCluster: keycloakInClusterURL,
 		PKCEClientID:              adminClusterOidcID,
 	}
@@ -128,6 +130,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
+	// Append auth proxy v2 overrides
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcProviderHost})
 
 	return appendAuthProxyImageOverrides(kvs), nil
 }

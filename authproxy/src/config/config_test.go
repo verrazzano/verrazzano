@@ -15,12 +15,19 @@ import (
 // TestInitConfiguration tests the InitConfiguration function
 func TestInitConfiguration(t *testing.T) {
 	const testIssuerURL = "http://issuer.com"
+	const testExternalURL = "https://issuer.com"
 	const testClientID = "unit-test-client-id"
 
 	// create temporary files with test data and override the filenames
 	issuerURLFile, err := makeTempFile(testIssuerURL)
 	if issuerURLFile != nil {
 		defer os.Remove(issuerURLFile.Name())
+	}
+	assert.NoError(t, err)
+
+	externalURLFile, err := makeTempFile(testExternalURL)
+	if externalURLFile != nil {
+		defer os.Remove(externalURLFile.Name())
 	}
 	assert.NoError(t, err)
 
@@ -34,6 +41,10 @@ func TestInitConfiguration(t *testing.T) {
 	oldIssuerURLFilename := issuerURLFilename
 	defer func() { issuerURLFilename = oldIssuerURLFilename }()
 	issuerURLFilename = issuerURLFile.Name()
+
+	oldExternalURLFilename := externalURLFilename
+	defer func() { externalURLFilename = oldExternalURLFilename }()
+	externalURLFilename = externalURLFile.Name()
 
 	oldClientIDFilename := clientIDFilename
 	defer func() { clientIDFilename = oldClientIDFilename }()
@@ -51,23 +62,28 @@ func TestInitConfiguration(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, testIssuerURL, GetIssuerURL())
+	assert.Equal(t, testExternalURL, GetExternalURL())
 	assert.Equal(t, testClientID, GetClientID())
 
 	// GIVEN the file contents are changed
 	// WHEN we fetch the configuration values
 	// THEN the values eventually match the expected updated file contents
 	const newTestIssuerURL = "http://new-issuer.com"
+	const newTestExternalURL = "https://new-issuer.com"
 	const newTestClientID = "new-unit-test-client-id"
 
 	// update the file contents and validate that the new values are loaded
 	err = os.WriteFile(issuerURLFilename, []byte(newTestIssuerURL), 0)
 	assert.NoError(t, err)
 
+	err = os.WriteFile(externalURLFilename, []byte(newTestExternalURL), 0)
+	assert.NoError(t, err)
+
 	err = os.WriteFile(clientIDFilename, []byte(newTestClientID), 0)
 	assert.NoError(t, err)
 
 	eventually(func() bool { return GetIssuerURL() == newTestIssuerURL })
-
+	eventually(func() bool { return GetExternalURL() == newTestExternalURL })
 	eventually(func() bool { return GetClientID() == newTestClientID })
 
 	// stop the goroutine

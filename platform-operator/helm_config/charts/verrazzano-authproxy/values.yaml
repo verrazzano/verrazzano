@@ -46,5 +46,7 @@ v2:
   port: 8777
 
   oidcIssuerURL: placeholder
+  # The URL to access the OIDC provider from outside of the cluster
+  oidcExternalURL:
   oidcClientID: verrazzano-pkce
   oidcConfigSecret: verrazzano-authproxy-oidc-config

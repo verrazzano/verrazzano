@@ -14,19 +14,22 @@ import (
 
 // these can be changed for unit testing
 var (
-	issuerURLFilename = "/etc/config/oidcIssuerURL"
-	clientIDFilename  = "/etc/config/oidcClientID"
+	issuerURLFilename   = "/etc/config/oidcIssuerURL"
+	externalURLFilename = "/etc/config/oidcExternalURL"
+	clientIDFilename    = "/etc/config/oidcClientID"
 
 	watchInterval = time.Minute
 	keepWatching  atomic.Bool
 )
 
 var (
-	issuerURL string
-	clientID  string
+	issuerURL   string
+	externalURL string
+	clientID    string
 
-	issuerURLFileModTime time.Time
-	clientIDFileModTime  time.Time
+	issuerURLFileModTime   time.Time
+	externalURLFileModTime time.Time
+	clientIDFileModTime    time.Time
 
 	mutex sync.RWMutex
 )
@@ -36,6 +39,13 @@ func GetIssuerURL() string {
 	mutex.RLock()
 	defer mutex.RUnlock()
 	return issuerURL
+}
+
+// GetExternalURL returns the external URL of the OIDC provider
+func GetExternalURL() string {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	return externalURL
 }
 
 // GetClientID returns the client ID
@@ -57,6 +67,21 @@ func loadIssuerURL() error {
 
 	issuerURL = value
 	issuerURLFileModTime = *modTime
+	return nil
+}
+
+// loadExternalURL loads the external URL from a file and stores the file modification time
+func loadExternalURL() error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	value, modTime, err := loadConfigValue(externalURLFilename)
+	if err != nil {
+		return err
+	}
+
+	externalURL = value
+	externalURLFileModTime = *modTime
 	return nil
 }
 
@@ -97,6 +122,9 @@ func InitConfiguration(log *zap.SugaredLogger) error {
 	if err := loadIssuerURL(); err != nil {
 		return err
 	}
+	if err := loadExternalURL(); err != nil {
+		return err
+	}
 	if err := loadClientID(); err != nil {
 		return err
 	}
@@ -127,6 +155,18 @@ func reloadConfigWhenChanged(log *zap.SugaredLogger) error {
 		// file has changed
 		log.Debugf("Detected change in file %s, reloading contents", issuerURLFilename)
 		if err := loadIssuerURL(); err != nil {
+			return err
+		}
+	}
+
+	fileInfo, err = os.Stat(externalURLFilename)
+	if err != nil {
+		return err
+	}
+	if fileInfo.ModTime().After(externalURLFileModTime) {
+		// file has changed
+		log.Debugf("Detected change in file %s, reloading contents", externalURLFilename)
+		if err := loadExternalURL(); err != nil {
 			return err
 		}
 	}

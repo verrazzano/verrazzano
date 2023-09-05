@@ -8,4 +8,5 @@ metadata:
 type: Opaque
 data:
   oidcIssuerURL: {{ .Values.v2.oidcIssuerURL | b64enc | quote }}
+  oidcExternalURL: {{ .Values.v2.oidcExternalURL | b64enc | quote }}
   oidcClientID: {{ .Values.v2.oidcClientID | b64enc | quote }}
