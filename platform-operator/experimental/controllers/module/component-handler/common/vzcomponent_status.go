@@ -90,7 +90,7 @@ func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusDat
 	addOrReplaceCondition(compStatus, cond)
 
 	// Change state to reconciling if needed
-	if vzcr.Status.State == vzapi.VzStateReady && sd.CondType == vzapi.CondInstallStarted {
+	if (vzcr.Status.State == "" || vzcr.Status.State == vzapi.VzStateReady) && sd.CondType == vzapi.CondInstallStarted {
 		vzcr.Status.State = vzapi.VzStateReconciling
 	}
 
