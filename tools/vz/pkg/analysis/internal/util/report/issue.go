@@ -123,6 +123,7 @@ const (
 	CertificateExpired                               = "CertificateExpired"
 	CertificateExperiencingIssuesInCluster           = "CertificateExperiencingIssuesInCluster"
 	ClusterAPIClusterIssues                          = "ClusterAPIClusterIssues"
+	CaCrtExpiredInCluster                            = "CaCrtExpiredInCluster"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -157,6 +158,7 @@ var knownIssues = map[string]Issue{
 	CertificateExpired:                     {Type: CertificateExpired, Summary: "A certificate in the cluster is currently expired", Informational: true, Impact: 10, Confidence: 10},
 	CertificateExperiencingIssuesInCluster: {Type: CertificateExperiencingIssuesInCluster, Summary: "A certificate in the cluster is experiencing issues, but it is not expired", Informational: true, Impact: 10, Confidence: 10},
 	ClusterAPIClusterIssues:                {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
+	CaCrtExpiredInCluster:                  {Type: CaCrtExpiredInCluster, Summary: "A ca.crt value in the cluster is expired", Informational: true, Impact: 10, Confidence: 10},
 }
 
 // NewKnownIssueSupportingData adds a known issue
