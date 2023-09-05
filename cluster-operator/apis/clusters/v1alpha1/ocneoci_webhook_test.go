@@ -19,7 +19,7 @@ var (
 	testValidOCIOCNECR []byte
 	//go:embed testdata/ociocnequickcreate_invalid.yaml
 	testInvalidOCIOCNECR []byte
-	testId               = "test"
+	testID               = "test"
 )
 
 func TestValidateCreateOCNEOCI(t *testing.T) {
@@ -28,7 +28,7 @@ func TestValidateCreateOCNEOCI(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(cm).Build()
 	ociClient := &ocifake.ClientImpl{
 		VCN: &core.Vcn{
-			Id: &testId,
+			Id: &testID,
 		},
 	}
 
