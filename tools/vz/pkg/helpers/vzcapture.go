@@ -8,12 +8,15 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -45,6 +48,11 @@ var isVerbose bool
 
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
+
+type CaCrtInfo struct {
+	Name    string `json:"name"`
+	Expired bool   `json:"expired"`
+}
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
@@ -908,4 +916,36 @@ func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
 		podList = removePod(podList, p)
 	}
 	return podList
+}
+
+func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*CaCrtInfo, bool, error) {
+	correspondingSecretName := cert.Spec.SecretName
+	secretForCertificate := &corev1.Secret{}
+	err := client.Get(context.Background(), clipkg.ObjectKey{
+		Namespace: namespace,
+		Name:      correspondingSecretName,
+	}, secretForCertificate)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtData, ok := secretForCertificate.Data["ca.crt"]
+	if !ok {
+		return nil, false, nil
+	}
+	caCrtDataPemDecoded, _ := pem.Decode(caCrtData)
+	if caCrtDataPemDecoded == nil {
+		return nil, false, fmt.Errorf("Failure to PEM Decode Certificate")
+	}
+	certificate, err := x509.ParseCertificate(caCrtDataPemDecoded.Bytes)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtInfoForCert := CaCrtInfo{Name: correspondingSecretName, Expired: false}
+	expirationDateOfCert := certificate.NotAfter
+
+	if time.Now().Unix() > expirationDateOfCert.Unix() {
+		caCrtInfoForCert.Expired = true
+
+	}
+	return &caCrtInfoForCert, true, nil
 }

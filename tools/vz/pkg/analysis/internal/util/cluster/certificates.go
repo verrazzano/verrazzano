@@ -7,6 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
 	"math"
 	"os"
@@ -66,6 +67,20 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 			}
 
 		}
+		caCrtFile := files.FindFileInNamespace(clusterRoot, namespace, "caCrtInfo.json")
+		caCrtListForNamespace, err := getCaCertInfoFromFile(log, caCrtFile)
+		if err != nil {
+			return err
+		}
+		if caCrtListForNamespace == nil {
+			continue
+		}
+		for _, caCrtInfo := range *caCrtListForNamespace {
+			if caCrtInfo.Expired {
+				reportCaCrtExpirationIssue(log, clusterRoot, caCrtInfo, &issueReporter, caCrtFile, namespace)
+			}
+		}
+
 	}
 	issueReporter.Contribute(log, clusterRoot)
 	return nil
@@ -109,6 +124,26 @@ func getCertificateList(log *zap.SugaredLogger, path string) (certificateList *c
 		return nil, err
 	}
 	return certList, err
+}
+func getCaCertInfoFromFile(log *zap.SugaredLogger, path string) (caCrtInfo *[]helpers.CaCrtInfo, err error) {
+	caCrtList := &[]helpers.CaCrtInfo{}
+	file, err := os.Open(path)
+	if err != nil {
+		log.Debug("file %s not found", path)
+		return nil, nil
+	}
+	defer file.Close()
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Error("Failed reading Certificates.json file %s", path)
+		return nil, err
+	}
+	err = encjson.Unmarshal(fileBytes, &caCrtList)
+	if err != nil {
+		log.Error("Failed to unmarshal CertificateList at %s", path)
+		return nil, err
+	}
+	return caCrtList, err
 }
 
 // getLatestCondition returns the latest condition in a certificate, if one exists
@@ -155,6 +190,11 @@ func reportGenericCertificateIssue(log *zap.SugaredLogger, clusterRoot string, c
 	files := []string{certificateFile}
 	message := []string{fmt.Sprintf("The certificate named %s in namespace %s is not valid and experiencing issues", certificate.ObjectMeta.Name, certificate.ObjectMeta.Namespace)}
 	issueReporter.AddKnownIssueMessagesFiles(report.CertificateExperiencingIssuesInCluster, clusterRoot, message, files)
+}
+func reportCaCrtExpirationIssue(log *zap.SugaredLogger, clusterRoot string, caCrtInfoEntry helpers.CaCrtInfo, issueReporter *report.IssueReporter, caCertInfoFile string, namespace string) {
+	files := []string{caCertInfoFile}
+	message := []string{fmt.Sprintf("The ca.crt that is in secret %s in namespace %s is expired", caCrtInfoEntry.Name, namespace)}
+	issueReporter.AddKnownIssueMessagesFiles(report.CaCrtExpiredInCluster, clusterRoot, message, files)
 }
 
 // determineIfVZClientIsHangingDueToCerts determines if the VZ client is currently hanging due to certificate issues
