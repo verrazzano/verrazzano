@@ -38,7 +38,7 @@ type proxyValues struct {
 	OidcProviderHostDex          string `json:"OidcProviderHostDex,omitempty"`
 	OidcProviderHostInClusterDex string `json:"OidcProviderHostInClusterDex,omitempty"`
 	OidcProviderForConsole       string `json:"OidcProviderForConsole,omitempty"`
-	OidcClientSecret             string `json:"OidcClientSecret,omitempty"`
+	OidcProviderClientSecret     string `json:"OidcProviderClientSecret,omitempty"`
 }
 
 type configValues struct {

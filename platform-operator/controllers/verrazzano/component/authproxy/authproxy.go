@@ -108,7 +108,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 			return nil, err
 		}
 
-		overrides.Proxy.OidcClientSecret = string(clientSecret)
+		overrides.Proxy.OidcProviderClientSecret = string(clientSecret)
 		overrides.Proxy.OidcProviderForConsole = dexProvider
 		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", dexProvider, overrides.Config.EnvName, dnsSuffix)
 		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, dexProvider)
