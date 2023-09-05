@@ -174,9 +174,8 @@ func (c DexComponent) PostUpgrade(ctx spi.ComponentContext) error {
 func (c DexComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-	// TODO: Reject other edits
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
@@ -184,7 +183,7 @@ func (c DexComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 func (c DexComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }

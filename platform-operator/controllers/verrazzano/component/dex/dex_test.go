@@ -91,8 +91,6 @@ func TestAppendDexOverrides(t *testing.T) {
 			Namespace: constants.VerrazzanoSystemNamespace}}, createTestNginxService(),
 	).Build()
 
-	//c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build()
-
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendDexOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
 
@@ -126,6 +124,9 @@ func TestAppendDexOverrides(t *testing.T) {
 }
 
 // TestPreInstallUpgrade tests the preInstallUpgrade function.
+// GIVEN a Verrazzano CR
+// WHEN I call preInstallUpgrade
+// THEN the namespace of Dex component is created.
 func TestPreInstallUpgrade(t *testing.T) {
 	// GIVEN the Prometheus Operator is being installed or upgraded
 	// WHEN the preInstallUpgrade function is called
@@ -142,6 +143,10 @@ func TestPreInstallUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestUpdateDexIngress tests the preInstallUpgrade function.
+// GIVEN a Verrazzano CR
+// WHEN I call updateDexIngress
+// THEN there is no error returned.
 func TestUpdateDexIngress(t *testing.T) {
 	ingress := &networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: constants.DexIngress, Namespace: constants.DexNamespace},
@@ -157,6 +162,10 @@ func TestUpdateDexIngress(t *testing.T) {
 	// Add more validation
 }
 
+// TestPopulateAdminUserData tests the populateAdminUser function.
+// GIVEN a Verrazzano CR
+// WHEN I call populateAdminUser
+// THEN it populates the data for the admin user, created as static password  in Dex
 func TestPopulateAdminUserData(t *testing.T) {
 	const env = "test-env"
 	vz := &vzapi.Verrazzano{
@@ -170,7 +179,7 @@ func TestPopulateAdminUserData(t *testing.T) {
 	).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 
-	staticUserData, err := populateStaticPasswordsTemplate(ctx)
+	staticUserData, err := populateStaticPasswordsTemplate()
 	assert.NoError(t, err)
 	err = populateAdminUser(ctx, &staticUserData)
 	assert.NoError(t, err)
@@ -178,6 +187,10 @@ func TestPopulateAdminUserData(t *testing.T) {
 	// Add more validations
 }
 
+// TestPopulateClients tests the functions to populate client data.
+// GIVEN a Verrazzano CR
+// WHEN I call populatePKCEClient and populatePGClient
+// THEN it populates the respective client data
 func TestPopulateClients(t *testing.T) {
 	assert.True(t, true)
 	const env = "test-env"
@@ -204,3 +217,6 @@ func TestPopulateClients(t *testing.T) {
 	assert.True(t, strings.Contains(clientDataStr, pgClient))
 	assert.True(t, strings.Contains(clientDataStr, "https://verrazzano."+dnsHost+"/*"))
 }
+
+// Add unit tests for
+//    the error returned from generateClientSecret

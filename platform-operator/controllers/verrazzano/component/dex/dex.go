@@ -32,8 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var writeFileFunc = os.WriteFile
-
 const (
 	configIssuer    = "config.issuer"
 	ingressClassKey = "ingress.className"
@@ -48,7 +46,7 @@ const (
 	httpsPrefix     = "https://"
 	dexClientSecret = "clientSecret"
 
-	// ES secret keys
+	// Admin user credentials
 	adminUsernameKey = "username"
 	adminPasswordKey = "password"
 
@@ -60,6 +58,7 @@ const (
 	tmpFileCleanPattern = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
+// Structure to hold Dex Static Password
 type userData struct {
 	Email    string
 	Hash     string
@@ -67,11 +66,14 @@ type userData struct {
 	UserID   string
 }
 
+// Structure to hold Dex client
+// TODO: Evaluate TrustedPeers
 type clientData struct {
 	ClientID     string
 	RedirectURIs string
 	ClientName   string
 	ClientSecret string
+	Public       bool
 }
 
 type redirectURIsData struct {
@@ -118,6 +120,7 @@ const staticClientTemplate = `config:
 const clientTemplate = `  - id: "{{.ClientID}}"
     name: "{{.ClientName}}"
     secret: {{.ClientSecret}}
+    public: {{.Public}}
     {{.RedirectURIs}}
 `
 
@@ -206,7 +209,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
 
-	staticUserData, err := populateStaticPasswordsTemplate(ctx)
+	staticUserData, err := populateStaticPasswordsTemplate()
 	if err != nil {
 		ctx.Log().Errorf("Component Dex failed to populate static user template: %v", err)
 		return nil, err
@@ -279,6 +282,10 @@ func ensureDexNamespace(ctx spi.ComponentContext) error {
 			namespace.Labels = map[string]string{}
 		}
 		namespace.Labels[v8oconst.LabelVerrazzanoNamespace] = constants.DexNamespace
+		//istio := ctx.EffectiveCR().Spec.Components.Istio
+		//if istio != nil && istio.IsInjectionEnabled() {
+		//	namespace.Labels["istio-injection"] = "enabled"
+		//}
 		return nil
 	})
 	if err != nil {
@@ -329,7 +336,7 @@ func updateDexIngress(ctx spi.ComponentContext) error {
 }
 
 // populateStaticPasswordsTemplate populates the static password template
-func populateStaticPasswordsTemplate(ctx spi.ComponentContext) (bytes.Buffer, error) {
+func populateStaticPasswordsTemplate() (bytes.Buffer, error) {
 	var b bytes.Buffer
 	t, err := template.New("").Parse(staticPasswordTemplate)
 	if err != nil {
@@ -412,61 +419,52 @@ func populateStaticClientsTemplate(ctx spi.ComponentContext) (bytes.Buffer, erro
 	return b, nil
 }
 
-// populateStaticClients populates the helm overrides to configure clients verrazzano-pkce and verrazzano-pg
+// populatePKCEClient populates the helm overrides to configure clients verrazzano-pkce
 func populatePKCEClient(ctx spi.ComponentContext, dnsSubDomain string, b *bytes.Buffer) error {
 	redirectURIs, err := populateRedirectURIs(pkceClientUrisTemplate, dnsSubDomain)
 	if err != nil {
 		return fmt.Errorf("failed populating redirect URIs for client:%s :%v", pkceClient, err)
 	}
-
-	pkceSecret := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      pkceClient,
-	}
-	cs, err := generateClientSecret(ctx, pkceSecret)
+	err = generateClientData(ctx, pkceClient, redirectURIs, true, b)
 	if err != nil {
-		return fmt.Errorf("failed generating client secret for client:%s :%v", pkceClient, err)
-	}
-
-	cData := clientData{}
-	cData.ClientID = pkceClient
-	cData.ClientName = pkceClient
-	cData.ClientSecret = cs
-	cData.RedirectURIs = redirectURIs
-
-	t, err := template.New("").Parse(clientTemplate)
-	if err != nil {
-		return fmt.Errorf("failed parsing static client template: %v", err)
-	}
-
-	err = t.Execute(b, cData)
-	if err != nil {
-		return fmt.Errorf("failed applying static client template: %v", err)
+		return err
 	}
 	return nil
 }
 
+// populatePKCEClient populates the helm overrides to configure clients verrazzano-pg
 func populatePGClient(ctx spi.ComponentContext, b *bytes.Buffer) error {
-	pgSecret := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      pgClient,
-	}
-	cs, err := generateClientSecret(ctx, pgSecret)
+	err := generateClientData(ctx, pgClient, "", true, b)
 	if err != nil {
-		return fmt.Errorf("failed generating client secret for client:%s :%v", pkceClient, err)
+		return err
+	}
+	return nil
+}
+
+// generateClientData generates client data for the given clientName
+func generateClientData(ctx spi.ComponentContext, clientName, redirectURIs string, isPublic bool, b *bytes.Buffer) error {
+	clSecret := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      clientName,
 	}
 
-	cData := clientData{}
-	cData.ClientID = pgClient
-	cData.ClientName = pgClient
-	cData.ClientSecret = cs
-	cData.RedirectURIs = ""
+	cs, err := generateClientSecret(ctx, clSecret)
+	if err != nil {
+		return fmt.Errorf("failed generating client secret for client:%s :%v", clientName, err)
+	}
+	clData := clientData{}
+	clData.ClientID = clientName
+	clData.ClientName = clientName
+	clData.ClientSecret = cs
+	clData.RedirectURIs = redirectURIs
+	clData.Public = isPublic
 
 	t, err := template.New("").Parse(clientTemplate)
 	if err != nil {
 		return fmt.Errorf("failed parsing static client template: %v", err)
 	}
-	err = t.Execute(b, cData)
+
+	err = t.Execute(b, clData)
 	if err != nil {
 		return fmt.Errorf("failed applying static client template: %v", err)
 	}
@@ -498,7 +496,7 @@ func generateOverridesFile(contents []byte, filePattern string) (string, error) 
 	}
 
 	overridesFileName := file.Name()
-	if err := writeFileFunc(overridesFileName, contents, fs.ModeAppend); err != nil {
+	if err := os.WriteFile(overridesFileName, contents, fs.ModeAppend); err != nil {
 		return "", err
 	}
 	return overridesFileName, nil
@@ -529,6 +527,7 @@ func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedN
 		if err != nil {
 			return "", fmt.Errorf("unable to create or update the secret for the client %s: %v", clientName.Name, err)
 		}
+		// TODO: Make it debug
 		ctx.Log().Infof("Created secret %s successfully", clientName)
 		return pw, nil
 	}
