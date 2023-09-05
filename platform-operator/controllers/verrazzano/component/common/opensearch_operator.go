@@ -14,7 +14,7 @@ import (
 
 const (
 	secretName         = "securityconfig-secret"
-	namespace          = "verrazzano-logging"
+	loggingNamespace   = "verrazzano-logging"
 	securityConfigYaml = "/verrazzano/platform-operator/thirdparty/manifests/opensearch-securityconfig.yaml"
 )
 
@@ -32,7 +32,7 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(loggingNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		fmt.Println("Error")
 		return err
@@ -90,9 +90,10 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	adminSecret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), "admin-credentials-secret", metav1.GetOptions{})
+	adminSecret, err := clientset.CoreV1().Secrets(loggingNamespace).Get(context.TODO(), "admin-credentials-secret", metav1.GetOptions{})
 	if err != nil {
 		fmt.Println("Error")
+		return err
 	}
 	adminHash := getAdminHash(adminSecret)
 	// Merge the config.yml data
@@ -110,7 +111,7 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	// Assign the YAML byte slice to the secret data
 	secret.Data["config.yml"] = mergedUsersYAML
 
-	clientset.CoreV1().Secrets(namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
+	clientset.CoreV1().Secrets(loggingNamespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 
 	return nil
 }
@@ -171,10 +172,12 @@ func mergeUserData(data1, data2 map[interface{}]interface{}, hashFromSecret stri
 	// Update the 'hash' field in mergedData1
 	adminData, ok := data1["admin"].(map[interface{}]interface{})
 	if !ok {
+		fmt.Println("Error")
 		return nil, fmt.Errorf("user data structure mismatch")
 	}
 	adminData["hash"] = hashFromSecret
 	for key1, val1 := range data1 {
+		fmt.Println(key1)
 		if key1 == "admin" {
 			mergedData[key1.(string)] = adminData
 		} else {
