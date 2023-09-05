@@ -265,32 +265,70 @@ func (r *Reconciler) updateStatusToDone(log vzlog.VerrazzanoLogger, actualCR *vz
 		vzv1alpha1.CondInstallComplete, &actualCR.Spec.Version)
 }
 
-// addUpgradingCondition
-func (r *Reconciler) updateUpgradingCondition(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
-	var upgradeConditionsToRemove = map[vzv1alpha1.ConditionType]bool{
+// updateUpgradingConditionAndState adds upgrading condition and sets the state
+func (r *Reconciler) updateUpgradingConditionAndState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
 		vzv1alpha1.CondUpgradeStarted:  true,
 		vzv1alpha1.CondUpgradeComplete: true,
 		vzv1alpha1.CondUpgradePaused:   true,
 		vzv1alpha1.CondUpgradeFailed:   true,
 	}
 
-	if findConditionByType(actualCR, vzv1alpha1.CondUpgradeComplete) != nil {
-		removePreviousConditions(actualCR, upgradeConditionsToRemove)
+	var conditionsToSearch = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondUpgradeComplete: true,
+		vzv1alpha1.CondUpgradePaused:   true,
+		vzv1alpha1.CondUpgradeFailed:   true,
 	}
 
-	if findConditionByType(actualCR, vzv1alpha1.CondUpgradeStarted) != nil {
-		cond := newCondition(actualCR, fmt.Sprintf("Verrazzano upgrade to version %s in progress", actualCR.Spec.Version), vzv1alpha1.CondUpgradeStarted)
-		r.removePreviousConditions(actualCR, upgradeConditionsToRemove)
+	// Remove old upgrade conditions if a previous upgrade occurred
+	conditions := actualCR.Status.Conditions
+	if doesAnyConditionExist(actualCR, conditionsToSearch) {
+		conditions = removePreviousConditions(actualCR, conditionsToRemove)
 	}
 
-	if actualCR.Status.State != vzv1alpha1.VzStateReconciling {
-		// state is already determinined
-		return nil
+	// Add new upgrading conditions if one doesn't exist
+	if findConditionByType(actualCR, vzv1alpha1.CondUpgradeStarted) {
+		cond := newCondition(fmt.Sprintf("Verrazzano upgrade to version %s in progress", actualCR.Spec.Version), vzv1alpha1.CondUpgradeStarted)
+		conditions = append(conditions, cond)
 	}
 
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: actualCR,
-		State:      vzv1alpha1.VzStateReconciling,
+		Conditions: conditions,
+		State:      vzv1alpha1.VzStateUpgrading,
+	})
+	return nil
+}
+
+// updateInstallingConditionAndState adds upgrading condition and sets the state
+func (r *Reconciler) updateInstallingConditionAndState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondInstallStarted:  true,
+		vzv1alpha1.CondInstallComplete: true,
+		vzv1alpha1.CondInstallFailed:   true,
+	}
+
+	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondInstallComplete: true,
+		vzv1alpha1.CondInstallFailed:   true,
+	}
+
+	// Remove old upgrade conditions if a previous upgrade occurred
+	conditions := actualCR.Status.Conditions
+	if doesAnyConditionExist(actualCR, conditionToSearch) {
+		conditions = removePreviousConditions(actualCR, conditionsToRemove)
+	}
+
+	// Add new upgrading conditions if one doesn't exist
+	if findConditionByType(actualCR, vzv1alpha1.CondInstallStarted) {
+		cond := newCondition(fmt.Sprintf("Verrazzano install is in progress", actualCR.Spec.Version), vzv1alpha1.CondInstallStarted)
+		conditions = append(conditions, cond)
+	}
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		Conditions: conditions,
+		State:      vzv1alpha1.VzStateUpgrading,
 	})
 	return nil
 }
@@ -314,22 +352,31 @@ func newCondition(message string, conditionType vzv1alpha1.ConditionType) vzv1al
 }
 
 // removePreviousConditions removes previous conditions for the current work (installStarted/installComplete)
-func removePreviousConditions(actualCR *vzv1alpha1.Verrazzano, removeConditions map[vzv1alpha1.ConditionType]bool) (newConditions []vzv1alpha1.ConditionType) {
+func removePreviousConditions(actualCR *vzv1alpha1.Verrazzano, removeConditions map[vzv1alpha1.ConditionType]bool) (newConditions []vzv1alpha1.Condition) {
 	for i, cond := range actualCR.Status.Conditions {
 		if _, ok := removeConditions[cond.Type]; !ok {
-			newConditions = append(newConditions, actualCR.Status.Conditions[i].Type)
+			newConditions = append(newConditions, actualCR.Status.Conditions[i])
 		}
 	}
 	return
 }
 
-func findConditionByType(actualCR *vzv1alpha1.Verrazzano, target vzv1alpha1.ConditionType) *vzv1alpha1.Condition {
-	for i, cond := range actualCR.Status.Conditions {
-		if target == cond.Type {
-			return &actualCR.Status.Conditions[i]
+func doesAnyConditionExist(actualCR *vzv1alpha1.Verrazzano, targets map[vzv1alpha1.ConditionType]bool) bool {
+	for _, cond := range actualCR.Status.Conditions {
+		if _, ok := targets[cond.Type]; ok {
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+func findConditionByType(actualCR *vzv1alpha1.Verrazzano, condType vzv1alpha1.ConditionType) bool {
+	for _, cond := range actualCR.Status.Conditions {
+		if cond.Type == condType {
+			return true
+		}
+	}
+	return false
 }
 
 // updateDoneConditionAndState
