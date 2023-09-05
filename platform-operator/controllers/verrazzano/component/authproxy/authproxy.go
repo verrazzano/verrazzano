@@ -5,7 +5,6 @@ package authproxy
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"os"
@@ -367,7 +366,7 @@ func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
 	}
 
 	if data, ok := secret.Data["clientSecret"]; ok {
-		return base64.StdEncoding.DecodeString(string(data))
+		return data, nil
 	}
 
 	return nil, fmt.Errorf("client secret not present in %s/%s secret", dexProvider, adminClusterOidcID)

@@ -1420,6 +1420,8 @@ data:
         return true
     end
 
+    -- Implementation of openidc_pem_from_rsa_n_and_e from lua-resty-openidc to generate public key from
+    -- modulus and operand values of token
     function me.generate_key(n, e)
         me.debug("getting PEM public key from n and e parameters of json public key")
         local der_key = {
