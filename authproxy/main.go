@@ -25,7 +25,7 @@ func main() {
 	handleFlags()
 	log := zap.S()
 
-	err := config.InitConfiguration(log)
+	err := config.InitConfiguration(log, nil)
 	if err != nil {
 		os.Exit(1)
 	}
