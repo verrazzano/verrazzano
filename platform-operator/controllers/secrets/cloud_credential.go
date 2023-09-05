@@ -67,6 +67,8 @@ func (r *VerrazzanoSecretsReconciler) checkClusterCredentials(updatedSecret *cor
 		zap.S().Debugf("Is ocne cloud credential secret")
 		ocneClustersList, err := r.getOCNEClustersList()
 		if err != nil {
+			zap.S().Debugf("RETURNED ERROR FROM OCNEGETLCUSTERS")
+			zap.S().Errorf("RETURNED ERROR FROM OCNEGETLCUSTERS")
 			return err
 		}
 		zap.S().Debugf("got ocne clusters list")
@@ -112,6 +114,14 @@ func (r *VerrazzanoSecretsReconciler) checkClusterCredentials(updatedSecret *cor
 func (r *VerrazzanoSecretsReconciler) getOCNEClustersList() (*unstructured.UnstructuredList, error) {
 	var ocneClustersList *unstructured.UnstructuredList
 	gvr := GetOCNEClusterAPIGVRForResource("clusters")
+	zap.S().Debugf("GOT THE OCNE CLUSTER APIGVR FOR RESOURCE")
+	if r.DynamicClient == nil {
+		return nil, fmt.Errorf("dynamic client is nil")
+	}
+	rec := VerrazzanoSecretsReconciler{}
+	if *r == rec {
+		return nil, fmt.Errorf("VerrazzanoSecretsReconciler is empty")
+	}
 	ocneClustersList, err := r.DynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list %s/%s/%s: %v", gvr.Resource, gvr.Group, gvr.Version, err)

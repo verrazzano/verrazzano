@@ -87,7 +87,7 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 			ociCapiTenancyField:     []byte("test-tenancy"),
 			ociCapiRegionField:      []byte("test-region"),
 		},
-	}
+	}g
 
 	vz := &vzapi.Verrazzano{}
 
