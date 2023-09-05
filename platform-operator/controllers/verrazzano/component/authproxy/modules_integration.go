@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -62,5 +63,8 @@ func (c authProxyComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Ve
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c authProxyComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, fluentoperator.ComponentName})
+	return append(
+		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, fluentoperator.ComponentName}),
+		watch.GetSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret)...,
+	)
 }

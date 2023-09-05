@@ -77,3 +77,16 @@ func GetVerrazzanoSpecWatch() []controllerspi.WatchDescriptor {
 	})
 	return watches
 }
+
+// GetSecretWatch watches for a secret with the specified name
+func GetSecretWatch(name, namespace string) []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches = []controllerspi.WatchDescriptor{}
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			return wev.NewWatchedObject.GetNamespace() == namespace && wev.NewWatchedObject.GetName() == name
+		},
+	})
+	return watches
+}

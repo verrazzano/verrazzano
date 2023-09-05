@@ -5,11 +5,15 @@ package fluentbitosoutput
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c fluentbitOpensearchOutput) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName})
+	return append(
+		watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName}),
+		watch.GetSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret)...,
+	)
 }
