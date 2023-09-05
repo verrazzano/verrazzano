@@ -34,7 +34,7 @@ func (o *OCNEOCIQuickCreate) ValidateCreate() error {
 	nsn := o.Spec.IdentityRef.AsNamespacedName()
 	creds, err := ctx.CredentialsLoader.GetCredentialsIfAllowed(ctx.Ctx, ctx.Cli, nsn, o.Namespace)
 	if err != nil {
-		return fmt.Errorf("cannot access credentials %s/%s", nsn.Namespace, nsn.Name)
+		return fmt.Errorf("cannot access credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
 	}
 	ociClient, err := ctx.OCIClientGetter(creds)
 	if err != nil {
