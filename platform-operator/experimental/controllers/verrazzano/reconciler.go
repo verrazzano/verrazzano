@@ -116,10 +116,12 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 		return result.NewResultShortRequeueDelay()
 	}
 
+	// If modules are not done reconciling the update the status if needed
 	if !r.areModulesDoneReconciling(log, actualCR) {
 		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
 			return res
 		}
+		return result.NewResultShortRequeueDelay()
 	}
 
 	return result.NewResult()
