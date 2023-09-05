@@ -45,7 +45,7 @@ const (
 	pkceClient      = "verrazzano-pkce"
 	pgClient        = "verrazzano-pg"
 
-	httpPrefix      = "http://"
+	httpsPrefix     = "https://"
 	dexClientSecret = "clientSecret"
 
 	// ES secret keys
@@ -175,7 +175,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 
 	kvs = append(kvs, bom.KeyValue{
 		Key:       configIssuer,
-		Value:     httpPrefix + host,
+		Value:     httpsPrefix + host,
 		SetString: true,
 	})
 
