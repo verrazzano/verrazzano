@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -132,8 +133,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	// Append auth proxy v2 overrides
-	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcServiceURL", Value: keycloakInClusterURL})
-	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcProviderHost})
+	kvs = appendOIDCOverrides(kvs, keycloakInClusterURL, oidcProviderHost, vzconst.VerrazzanoOIDCSystemRealm)
 
 	return appendAuthProxyImageOverrides(kvs), nil
 }
@@ -341,5 +341,18 @@ func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 			Value: envImageOverride,
 		})
 	}
+	return kvs
+}
+
+// appendOIDCOverrides appends overrides related to OIDC configuration
+func appendOIDCOverrides(kvs []bom.KeyValue, oidcServiceHost, oidcExternalHost, realm string) []bom.KeyValue {
+	realmPath := "/auth/realms/" + realm
+
+	oidcServiceURL := fmt.Sprintf("http://%s/%s", oidcServiceHost, realmPath)
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcServiceURL", Value: oidcServiceURL})
+
+	oidcExternalURL := fmt.Sprintf("https://%s/%s", oidcExternalHost, realmPath)
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcExternalURL})
+
 	return kvs
 }

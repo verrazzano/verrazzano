@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -25,7 +26,6 @@ const (
 	pollingInterval   = 30 * time.Second
 	keycloakNamespace = "keycloak"
 	vzUser            = "verrazzano"
-	vzSysRealm        = "verrazzano-system"
 	realmMgmt         = "realm-management"
 	viewUsersRole     = "view-users"
 	osdURI            = "osd.vmi.system."
@@ -254,7 +254,7 @@ var _ = t.Describe("Verify client role", Label("f:platform-lcm.install"), func()
 })
 
 func verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect() bool {
-	return verifyKeycloakRealmPasswordPolicyIsCorrect(vzSysRealm)
+	return verifyKeycloakRealmPasswordPolicyIsCorrect(constants.VerrazzanoOIDCSystemRealm)
 }
 
 func verifyKeycloakMasterRealmPasswordPolicyIsCorrect() bool {
@@ -324,7 +324,7 @@ func verifyKeycloakClientURIs() bool {
 	}
 
 	// Get the Client ID JSON array
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", "clients", "-r", vzSysRealm, "--fields", "id,clientId")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", "clients", "-r", constants.VerrazzanoOIDCSystemRealm, "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
@@ -425,7 +425,7 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 	// Get the client Info
 	client := "clients/" + id
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", client, "-r", vzSysRealm)
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", client, "-r", constants.VerrazzanoOIDCSystemRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		err := fmt.Errorf("error retrieving clientID json: %s", err)
@@ -644,7 +644,7 @@ func verifyUserClientRole(user, userRole string) bool {
 	}
 
 	// Get the roles for the user
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get-roles", "-r", constants.VerrazzanoOIDCSystemRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))
