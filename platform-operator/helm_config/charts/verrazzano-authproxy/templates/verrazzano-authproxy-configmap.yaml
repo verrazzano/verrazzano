@@ -183,7 +183,7 @@ data:
     local oidcProviderHost = "{{ .OidcProviderHost }}"
     local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
     local oidcProviderHostDex = "{{ .OidcProviderHostDex }}"
-    local oidcProviderHostInClusterDex = "{{ .OidcProviderHostDexInCluster }}"
+    local oidcProviderHostInClusterDex = "{{ .OidcProviderHostInClusterDex }}"
     local oidcClientSecret = "{{ .OidcProviderClientSecret }}"
 
 
