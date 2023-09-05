@@ -80,7 +80,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// Note: updating the VZ state to reconciling is done by the module shim, see vzcomponent_status.go, UpdateVerrazzanoComponentStatus
 	if r.isUpgrading(actualCR) {
-		if err := r.updateUpgradingConditionAndState(log, actualCR); err != nil {
+		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
@@ -110,16 +110,16 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 
 	// Requeue if any of the previous operations indicate a requeue is needed
 	if res1.ShouldRequeue() || res2.ShouldRequeue() {
+		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
+			return res
+		}
 		return result.NewResultShortRequeueDelay()
 	}
 
 	if !r.areModulesDoneReconciling(log, actualCR) {
-		if !r.isUpgrading(actualCR) {
-			if err := r.updateInstallingConditionAndState(log, actualCR); err != nil {
-				return result.NewResultShortRequeueDelayWithError(err)
-			}
+		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
+			return res
 		}
-		return result.NewResultShortRequeueDelay()
 	}
 
 	return result.NewResult()
@@ -142,11 +142,20 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 	}
 
 	if r.isUpgrading(actualCR) {
-		r.updateUpgradingConditionAndState(log, actualCR)
+		r.updateStatusUpgradeComplete(actualCR)
 	} else {
-		r.updateInstallingConditionAndState(log, actualCR)
+		r.updateStatusInstallComplete(actualCR)
 	}
 
+	return result.NewResult()
+}
+
+func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
+	if !r.isUpgrading(actualCR) {
+		if err := r.updateStatusInstalling(log, actualCR); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
 	return result.NewResult()
 }
 
