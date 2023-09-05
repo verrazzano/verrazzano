@@ -32,6 +32,10 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 		return result.NewResult()
 	}
 
+	log := vzlog.DefaultLogger()
+
+	r.updateStatusUninstalling(log, actualCR)
+
 	// Get effective CR and set the effective CR status with the actual status
 	// Note that the reconciler code only udpdate the status, which is why the effective
 	// CR is passed.  If was ever to update the spec, then the actual CR would need to be used.
@@ -40,8 +44,6 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	effectiveCR.Status = actualCR.Status
-
-	log := vzlog.DefaultLogger()
 
 	// Delete modules that are enabled and update status
 	// Don't block status update of component if delete failed
@@ -55,13 +57,7 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 	log.Oncef("Removing finalizer %s", finalizerName)
 	actualCR.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(actualCR.ObjectMeta.Finalizers, finalizerName)
 	if err := r.Client.Update(context.TODO(), actualCR); err != nil {
-		// Seeing timing problem where the VZ CR webhook rejects the following CondUninstallComplete update because
-		// the VZ CR is in uninstalling state.  Set the state to Ready and requeue to pick up a fresh VZ CR
-		if actualCR.Status.State != vzv1alpha1.VzStateReady {
-			actualCR.Status.State = vzv1alpha1.VzStateReady
-			r.Client.Status().Update(context.TODO(), actualCR)
-			return result.NewResultShortRequeueDelay()
-		}
+		r.updateStatusUninstallComplete(actualCR)
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 

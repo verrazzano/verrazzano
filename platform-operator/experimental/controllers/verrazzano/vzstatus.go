@@ -101,6 +101,64 @@ func (r *Reconciler) updateWorkingConditionAndState(log vzlog.VerrazzanoLogger, 
 	return nil
 }
 
+// updateStatusInstalling adds installing condition and sets the state
+func (r *Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondInstallStarted:  true,
+		vzv1alpha1.CondInstallComplete: true,
+		vzv1alpha1.CondInstallFailed:   true,
+	}
+
+	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondInstallComplete: true,
+		vzv1alpha1.CondInstallFailed:   true,
+	}
+
+	// Remove old install conditions if a previous install occurred
+	conditions := actualCR.Status.Conditions
+	if doesAnyConditionExist(actualCR, conditionToSearch) {
+		conditions = removePreviousConditions(actualCR, conditionsToRemove)
+	}
+
+	// Return if condition already added
+	if findConditionByType(conditions, vzv1alpha1.CondInstallStarted) {
+		return nil
+	}
+
+	cond := newCondition(fmt.Sprintf("Verrazzano install is in progress"), vzv1alpha1.CondInstallStarted)
+	conditions = append(conditions, cond)
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		Conditions: conditions,
+		State:      vzv1alpha1.VzStateReconciling,
+	})
+	return nil
+}
+
+// updateStatusUninstalling adds uninstalling condition and sets the state
+func (r *Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondUninstallStarted:  true,
+		vzv1alpha1.CondUninstallComplete: true,
+	}
+
+	// For uninstall return if uninstall or complete already writtne
+	if doesAnyConditionExist(actualCR, conditionToSearch) {
+		return nil
+	}
+
+	cond := newCondition(fmt.Sprintf("Verrazzano uninstall is in progress"), vzv1alpha1.CondUninstallStarted)
+	conditions := append(actualCR.Status.Conditions, cond)
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		Conditions: conditions,
+		State:      vzv1alpha1.VzStateUninstalling,
+	})
+	return nil
+}
+
 // updateStatusUpgrading adds upgrading condition and sets the state
 func (r *Reconciler) updateStatusUpgrading(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
 	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
@@ -138,41 +196,6 @@ func (r *Reconciler) updateStatusUpgrading(log vzlog.VerrazzanoLogger, actualCR 
 	return nil
 }
 
-// updateStatusInstalling adds installing condition and sets the state
-func (r *Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
-	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
-		vzv1alpha1.CondInstallStarted:  true,
-		vzv1alpha1.CondInstallComplete: true,
-		vzv1alpha1.CondInstallFailed:   true,
-	}
-
-	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
-		vzv1alpha1.CondInstallComplete: true,
-		vzv1alpha1.CondInstallFailed:   true,
-	}
-
-	// Remove old install conditions if a previous install occurred
-	conditions := actualCR.Status.Conditions
-	if doesAnyConditionExist(actualCR, conditionToSearch) {
-		conditions = removePreviousConditions(actualCR, conditionsToRemove)
-	}
-
-	// Return if condition already added
-	if findConditionByType(conditions, vzv1alpha1.CondInstallStarted) {
-		return nil
-	}
-
-	cond := newCondition(fmt.Sprintf("Verrazzano install is in progress"), vzv1alpha1.CondInstallStarted)
-	conditions = append(conditions, cond)
-	
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Verrazzano: actualCR,
-		Conditions: conditions,
-		State:      vzv1alpha1.VzStateReconciling,
-	})
-	return nil
-}
-
 // updateStatusInstallComplete updates the status condition and state for install complete
 func (r *Reconciler) updateStatusInstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
 	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano install complete"), vzv1alpha1.CondInstallComplete)
@@ -180,7 +203,7 @@ func (r *Reconciler) updateStatusInstallComplete(actualCR *vzv1alpha1.Verrazzano
 
 // updateStatusUninstallComplete updates the status condition and state for uninstall complete
 func (r *Reconciler) updateStatusUninstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
-	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano upgrade complete"), vzv1alpha1.CondUninstallComplete)
+	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano uninstall complete"), vzv1alpha1.CondUninstallComplete)
 }
 
 // updateStatusInstallComplete updates the status condition and state for upgrade complete
