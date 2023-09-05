@@ -7,6 +7,8 @@ config:
     config:
       inCluster: true
   enablePasswordDB: true
+  oauth2:
+    skipApprovalScreen: true
 
 envVars:
   - name: PASSWORD_DB_USERNAME_PROMPT
@@ -35,6 +37,11 @@ ingress:
     - hosts:
         - "{{ .Values.tlsHosts }}"
       secretName: "dex-tls"
+
+service:
+  ports:
+    http:
+      port: 80
 
 securityContext:
   allowPrivilegeEscalation: false
