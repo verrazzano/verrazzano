@@ -1168,8 +1168,8 @@ data:
             if key.kid and key.x5c then
                 certs[key.kid] = key.x5c
             elseif key.kty == "RSA" and key.n and key.e then
-                moduli[kid] = key.n
-                exponents[kid] = key.e
+                moduli[key.kid] = key.n
+                exponents[key.kid] = key.e
             end
         end
         return certs[kid], moduli[kid], exponents[kid]
