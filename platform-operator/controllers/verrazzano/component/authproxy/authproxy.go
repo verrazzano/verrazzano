@@ -346,12 +346,10 @@ func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 
 // appendOIDCOverrides appends overrides related to OIDC configuration
 func appendOIDCOverrides(kvs []bom.KeyValue, oidcServiceHost, oidcExternalHost, realm string) []bom.KeyValue {
-	realmPath := "/auth/realms/" + realm
-
-	oidcServiceURL := fmt.Sprintf("http://%s/%s", oidcServiceHost, realmPath)
+	oidcServiceURL := fmt.Sprintf("http://%s/auth/realms/%s", oidcServiceHost, realm)
 	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcServiceURL", Value: oidcServiceURL})
 
-	oidcExternalURL := fmt.Sprintf("https://%s/%s", oidcExternalHost, realmPath)
+	oidcExternalURL := fmt.Sprintf("https://%s/auth/realms/%s", oidcExternalHost, realm)
 	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcExternalURL})
 
 	return kvs
