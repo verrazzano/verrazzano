@@ -4,8 +4,6 @@
 package v1alpha1
 
 import (
-	"fmt"
-	vzerror "github.com/verrazzano/verrazzano/cluster-operator/internal/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -184,14 +182,5 @@ func (n NamespacedRef) AsNamespacedName() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: n.Namespace,
 		Name:      n.Name,
-	}
-}
-
-func (n NamespacedRef) Validate(e *vzerror.ErrorAggregator, field string) {
-	if len(n.Name) < 1 {
-		e.Add(fmt.Errorf("%s.name is required", field))
-	}
-	if len(n.Namespace) < 1 {
-		e.Add(fmt.Errorf("%s.namespace is required", field))
 	}
 }
