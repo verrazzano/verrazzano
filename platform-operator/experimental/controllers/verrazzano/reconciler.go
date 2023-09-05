@@ -75,9 +75,8 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	if err := r.updateStateToReconcilingOrUpgrading(actualCR); err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
+	// Note: updating the VZ state to reconciling is done by the module shim, see vzcomponent_status.go, UpdateVerrazzanoComponentStatus
+	r.updateStateToUpgradingIfNeeded(actualCR)
 
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.

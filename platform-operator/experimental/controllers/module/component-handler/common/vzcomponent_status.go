@@ -51,7 +51,7 @@ func UpdateVerrazzanoComponentStatusToDisabled(ctx handlerspi.HandlerContext, Vz
 	return result.NewResult()
 }
 
-// UpdateVerrazzanoComponentStatus updates the component status
+// UpdateVerrazzanoComponentStatus updates the Verrazzano component status
 func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.Result {
 	// Always get the latest module from the controller-runtime cache to try and avoid conflict error
 	vzcr := &vzapi.Verrazzano{}
@@ -88,6 +88,11 @@ func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusDat
 		Message: sd.Msg,
 	}
 	addOrReplaceCondition(compStatus, cond)
+
+	// Change state to reconciling if needed
+	if vzcr.Status.State == vzapi.VzStateReady && sd.CondType == vzapi.CondInstallStarted {
+		vzcr.Status.State = vzapi.VzStateReconciling
+	}
 
 	if err := ctx.Client.Status().Update(context.TODO(), vzcr); err != nil {
 		if !errors.IsConflict(err) {

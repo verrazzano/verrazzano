@@ -237,28 +237,19 @@ func conditionToVzState(currentCondition vzv1alpha1.ConditionType) vzv1alpha1.Vz
 	return vzv1alpha1.VzStateReady
 }
 
-// updateStateToReconcilingOrUpgrading updates the state to Reconciling or Upgrading, only if the state is Ready.
-// This is done until we can determine (from modules status) what other state and condition to use.
-func (r *Reconciler) updateStateToReconcilingOrUpgrading(actualCR *vzv1alpha1.Verrazzano) error {
-	state := vzv1alpha1.VzStateReconciling
+// updateStateToUpgradingIfNeeded updates the state to Upgrading.
+func (r *Reconciler) updateStateToUpgradingIfNeeded(actualCR *vzv1alpha1.Verrazzano) error {
 	if actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version {
-		state = vzv1alpha1.VzStateUpgrading
+		return nil
 	}
-
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Verrazzano: actualCR,
-		State:      state,
-	})
-	return nil
+	actualCR.Status.State = vzv1alpha1.VzStateUpgrading
+	return r.Client.Update(context.TODO(), actualCR)
 }
 
 // updateStateToReady updates the state to Ready.
 func (r *Reconciler) updateStateToReady(actualCR *vzv1alpha1.Verrazzano) error {
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Verrazzano: actualCR,
-		State:      vzv1alpha1.VzStateReady,
-	})
-	return nil
+	actualCR.Status.State = vzv1alpha1.VzStateReady
+	return r.Client.Update(context.TODO(), actualCR)
 }
 
 // updateConditionAndState
