@@ -4,13 +4,17 @@
 package opensearchoperator
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io/fs"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"sigs.k8s.io/yaml"
 
@@ -46,6 +50,25 @@ var (
 		{Name: fmt.Sprintf("%s-node-cert", clusterName), Namespace: ComponentNamespace}}
 
 	GetControllerRuntimeClient = GetClient
+	clusterGVR                 = schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchclusters",
+		Version:  "v1",
+	}
+
+	roleGVR = schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchroles",
+		Version:  "v1",
+	}
+
+	rolesMappingGVR = schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Resource: "opensearchuserrolebindings",
+		Version:  "v1",
+	}
+
+	gvrList = []schema.GroupVersionResource{clusterGVR, roleGVR, rolesMappingGVR}
 )
 
 // AppendOverrides appends the additional overrides for install
@@ -221,6 +244,52 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 		}
 	}
 	return nodePools, nil
+}
+
+// deleteRelatedResource deletes the resources handled by the opensearchOperator
+// Like OpenSearchRoles, OpenSearchUserRolesBindings
+// Since the operator adds a finalizer to these resources, they need to deleted before the operator is uninstalled
+func (o opensearchOperatorComponent) deleteRelatedResource() error {
+	client, err := pkg.GetDynamicClient()
+	if err != nil {
+		return err
+	}
+
+	for _, gvr := range gvrList {
+		resourceClient := client.Resource(gvr)
+		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		for _, obj := range objList.Items {
+			err = resourceClient.Namespace(ComponentNamespace).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// areRelatedResourcesDeleted checks if the related resources are deleted or not
+func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
+	client, err := pkg.GetDynamicClient()
+	if err != nil {
+		return err
+	}
+
+	for _, gvr := range gvrList {
+		resourceClient := client.Resource(gvr)
+		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+		if len(objList.Items) > 0 {
+			return fmt.Errorf("waiting for all %s to be deleted", gvr.String())
+		}
+	}
+	return nil
 }
 
 func getActualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {

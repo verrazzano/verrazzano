@@ -121,3 +121,14 @@ func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error
 	}
 	return nil
 }
+
+func (o opensearchOperatorComponent) PreUninstall(ctx spi.ComponentContext) error {
+	return o.deleteRelatedResource()
+}
+
+func (o opensearchOperatorComponent) Uninstall(ctx spi.ComponentContext) error {
+	if err := o.areRelatedResourcesDeleted(); err != nil {
+		return err
+	}
+	return o.HelmComponent.Uninstall(ctx)
+}
