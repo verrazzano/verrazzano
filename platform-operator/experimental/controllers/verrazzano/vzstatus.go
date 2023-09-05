@@ -126,15 +126,7 @@ func (r *Reconciler) checkUpgradeComplete(log vzlog.VerrazzanoLogger, actualCR *
 
 // updateStatus updates the status in the Verrazzano CR
 func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, message string, conditionType vzv1alpha1.ConditionType, version *string) error {
-	t := time.Now().UTC()
-	condition := vzv1alpha1.Condition{
-		Type:    conditionType,
-		Status:  corev1.ConditionTrue,
-		Message: message,
-		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-			t.Year(), t.Month(), t.Day(),
-			t.Hour(), t.Minute(), t.Second()),
-	}
+	condition := newCondition(message, conditionType)
 	conditions := appendConditionIfNecessary(log, actualCR.Name, actualCR.Status.Conditions, condition)
 
 	// Set the state of resource
@@ -238,18 +230,6 @@ func conditionToVzState(currentCondition vzv1alpha1.ConditionType) vzv1alpha1.Vz
 	return vzv1alpha1.VzStateReady
 }
 
-// updateStatusToUpgradeStarted updates the condition and state for upgrade started.
-func (r *Reconciler) updateStatusToUpgradeStarted(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
-	return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano upgrade to version %s in progress", actualCR.Spec.Version),
-		vzv1alpha1.CondUpgradeStarted, nil)
-}
-
-// updateStatusToInstallStarted updates the condition and state for install started.
-func (r *Reconciler) updateStatusToInstallStarted(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
-	return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano install in progress"),
-		vzv1alpha1.CondInstallStarted, nil)
-}
-
 // isUpgrading returns true if spec indicates upgrade.
 func (r *Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
 	return actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version
@@ -263,6 +243,16 @@ func (r *Reconciler) updateStatusToDone(log vzlog.VerrazzanoLogger, actualCR *vz
 	}
 	return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano install in progress"),
 		vzv1alpha1.CondInstallComplete, &actualCR.Spec.Version)
+}
+
+// updateWorkingConditionAndState
+func (r *Reconciler) updateWorkingConditionAndState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	if r.isUpgrading(actualCR) {
+		r.updateUpgradingConditionAndState(log, actualCR)
+	} else {
+		r.updateInstallingConditionAndState(log, actualCR)
+	}
+	return nil
 }
 
 // updateUpgradingConditionAndState adds upgrading condition and sets the state
@@ -328,14 +318,50 @@ func (r *Reconciler) updateInstallingConditionAndState(log vzlog.VerrazzanoLogge
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: actualCR,
 		Conditions: conditions,
-		State:      vzv1alpha1.VzStateUpgrading,
+		State:      vzv1alpha1.VzStateReconciling,
 	})
 	return nil
 }
 
-// updateWorkingConditionAndState
-func updateWorkingConditionAndState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+// updateStatusInstallComplete updates the status condition and state for install complete
+func (r *Reconciler) updateStatusInstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
+	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano install complete"), vzv1alpha1.CondInstallComplete)
+}
+
+// updateStatusUninstallComplete updates the status condition and state for uninstall complete
+func (r *Reconciler) updateStatusUninstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
+	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano upgrade complete"), vzv1alpha1.CondUninstallComplete)
+}
+
+// updateStatusInstallComplete updates the status condition and state for upgrade complete
+func (r *Reconciler) updateStatusUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) error {
+	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano upgrade complete"), vzv1alpha1.CondUpgradeComplete)
+}
+
+// updateStatusInstallComplete updates the status condition and state for install complete
+func (r *Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg string, conditionType vzv1alpha1.ConditionType) error {
+	if findConditionByType(actualCR, conditionType) {
+		return nil
+	}
+	cond := newCondition(msg, conditionType)
+	conditions := append(actualCR.Status.Conditions, cond)
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		Conditions: conditions,
+		State:      vzv1alpha1.VzStateReady,
+	})
 	return nil
+}
+
+// appendConditionIfNotExist appends a condition if it doesn't exist
+func (r *Reconciler) appendConditionIfNotExist(actualCR *vzv1alpha1.Verrazzano, msg string, conditionType vzv1alpha1.ConditionType) []vzv1alpha1.Condition {
+	// Add new upgrading conditions if one doesn't exist
+	if findConditionByType(actualCR, conditionType) {
+		return nil
+	}
+	cond := newCondition(msg, conditionType)
+	return append(actualCR.Status.Conditions, cond)
 }
 
 // newCondition creates a new condition
