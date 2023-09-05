@@ -12,8 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultWatchInterval = time.Minute
-
 // these can be changed for unit testing
 var (
 	serviceURLFilename  = "/etc/config/oidcServiceURL"
@@ -35,6 +33,11 @@ var (
 
 	mutex sync.RWMutex
 )
+
+func init() {
+	watchInterval.Store(uint64(time.Minute))
+	keepWatching.Store(true)
+}
 
 // GetServiceURL returns the in-cluster service URL of the OIDC provider
 func GetServiceURL() string {
@@ -131,8 +134,6 @@ func InitConfiguration(log *zap.SugaredLogger) error {
 		return err
 	}
 
-	watchInterval.Store(uint64(defaultWatchInterval))
-	keepWatching.Store(true)
 	go watchConfigForChanges(log)
 	return nil
 }
