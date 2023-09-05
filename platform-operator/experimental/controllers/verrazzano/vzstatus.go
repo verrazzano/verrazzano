@@ -86,8 +86,6 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actua
 	return result.NewResult()
 }
 
-TODO func initStatusToInstallingReconcilingOrUpgrading
-
 // checkReconcileComplete checks to see if the reconcile is complete
 func (r *Reconciler) checkReconcileComplete(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) (bool, error) {
 	ready, err := r.checkComponentReadyState(log, actualCR)
@@ -98,7 +96,6 @@ func (r *Reconciler) checkReconcileComplete(log vzlog.VerrazzanoLogger, actualCR
 		return false, nil
 	}
 
-	TODO - Write upgrade message and any module was upgraded (check module condition or component condistions)
 	// Set install complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano install completed successfully"
 	// Status update must be performed on the actual actualCR.read from K8S
@@ -220,27 +217,6 @@ func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string,
 	return append(newConditionsList, newCondition)
 }
 
-func checkCondtitionType(currentCondition vzv1alpha1.ConditionType) vzv1alpha1.CompStateType {
-	switch currentCondition {
-	case vzv1alpha1.CondPreInstall:
-		return vzv1alpha1.CompStatePreInstalling
-	case vzv1alpha1.CondInstallStarted:
-		return vzv1alpha1.CompStateInstalling
-	case vzv1alpha1.CondUninstallStarted:
-		return vzv1alpha1.CompStateUninstalling
-	case vzv1alpha1.CondUpgradeStarted:
-		return vzv1alpha1.CompStateUpgrading
-	case vzv1alpha1.CondUpgradePaused:
-		return vzv1alpha1.CompStateUpgrading
-	case vzv1alpha1.CondUninstallComplete:
-		return vzv1alpha1.CompStateUninstalled
-	case vzv1alpha1.CondInstallFailed, vzv1alpha1.CondUpgradeFailed, vzv1alpha1.CondUninstallFailed:
-		return vzv1alpha1.CompStateFailed
-	}
-	// Return ready for vzv1alpha1.CondInstallComplete, vzv1alpha1.CondUpgradeComplete
-	return vzv1alpha1.CompStateReady
-}
-
 // Convert a condition to a VZ State
 func conditionToVzState(currentCondition vzv1alpha1.ConditionType) vzv1alpha1.VzStateType {
 	switch currentCondition {
@@ -261,7 +237,62 @@ func conditionToVzState(currentCondition vzv1alpha1.ConditionType) vzv1alpha1.Vz
 	return vzv1alpha1.VzStateReady
 }
 
-// setInstallStartedCondition
+// updateStateToReconcilingOrUpgrading updates the state to Reconciling or Upgrading, only if the state is Ready.
+// This is done until we can determine (from modules status) what other state and condition to use.
+func (r *Reconciler) updateStateToReconcilingOrUpgrading(actualCR *vzv1alpha1.Verrazzano) error {
+	state := vzv1alpha1.VzStateReconciling
+	if actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version {
+		state = vzv1alpha1.VzStateUpgrading
+	}
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		State:      state,
+	})
+	return nil
+}
+
+// updateStateToReady updates the state to Ready.
+func (r *Reconciler) updateStateToReady(actualCR *vzv1alpha1.Verrazzano) error {
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		State:      vzv1alpha1.VzStateReady,
+	})
+	return nil
+}
+
+// updateConditionAndState
+func (r *Reconciler) updateWorkingConditionAndState(actualCR *vzv1alpha1.Verrazzano) error {
+	if actualCR.Status.State != vzv1alpha1.VzStateReconciling {
+		// state is already determinined
+		return nil
+	}
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		State:      vzv1alpha1.VzStateReconciling,
+	})
+	return nil
+}
+
+// deriveStateAndConditionFromModules determines what the VZ state and condition should be based on modules
+func (r Reconciler) deriveStateAndConditionFromModules() {
+
+}
+
+// setUpgradingState
+func (r *Reconciler) setUpgradingState(log vzlog.VerrazzanoLogger, vz *vzv1alpha1.Verrazzano) error {
+	// Set the version in the status.  This will be updated when the starting install condition is updated.
+	bomSemVer, err := validators.GetCurrentBomVersion()
+	if err != nil {
+		return err
+	}
+
+	version := bomSemVer.ToString()
+	return r.updateStatus(log, vz, "Verrazzano upgrade in progress", vzv1alpha1.CondUpgradeStarted, &version)
+}
+
+// setInstallingState
 func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *vzv1alpha1.Verrazzano) error {
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
 	bomSemVer, err := validators.GetCurrentBomVersion()

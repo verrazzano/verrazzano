@@ -4,11 +4,12 @@
 package verrazzano
 
 import (
+	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzreconcile "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,10 +25,6 @@ func (r Reconciler) GetName() string {
 // PreRemoveFinalizer is called when the resource is being deleted, before the finalizer
 // is removed.  Use this method to delete Kubernetes resources, etc.
 func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	if !vzreconcile.IsLegacyUninstallPreWorkDone() {
-		return result.NewResultShortRequeueDelay()
-	}
-
 	actualCR := &vzv1alpha1.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		spictx.Log.ErrorfThrottled(err.Error())
@@ -53,8 +50,23 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 		return result.NewResultShortRequeueDelay()
 	}
 
+	// All install related resources have been deleted, delete the finalizer so that the Verrazzano
+	// resource can get removed from etcd.
+	log.Oncef("Removing finalizer %s", finalizerName)
+	actualCR.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(actualCR.ObjectMeta.Finalizers, finalizerName)
+	if err := r.Client.Update(context.TODO(), actualCR); err != nil {
+		// Seeing timing problem where the VZ CR webhook rejects the following CondUninstallComplete update because
+		// the VZ CR is in uninstalling state.  Set the state to Ready and requeue to pick up a fresh VZ CR
+		if actualCR.Status.State != vzv1alpha1.VzStateReady {
+			actualCR.Status.State = vzv1alpha1.VzStateReady
+			r.Client.Status().Update(context.TODO(), actualCR)
+			return result.NewResultShortRequeueDelay()
+		}
+		return result.NewResultShortRequeueDelayIfError(err)
+	}
+
 	// Always requeue, the legacy verrazzano controller will delete the finalizer and the VZ CR will go away.
-	return result.NewResultShortRequeueDelay()
+	return result.NewResult()
 }
 
 // PostRemoveFinalizer is called after the finalizer is successfully removed.

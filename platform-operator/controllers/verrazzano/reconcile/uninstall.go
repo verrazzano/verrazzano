@@ -144,7 +144,6 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err := r.deleteMCResources(spiCtx); err != nil {
 				return ctrl.Result{}, err
 			}
-			SetLegacyUninstallPreWorkDone(true)
 			tracker.vzState = vzStateUninstallComponents
 
 		case vzStateUninstallComponents:

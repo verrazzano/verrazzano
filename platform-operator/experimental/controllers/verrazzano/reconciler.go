@@ -58,15 +58,15 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 	effectiveCR.Status = actualCR.Status
 
-	if res := r.preWork(log, effectiveCR); res.ShouldRequeue() {
+	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
 	}
 
-	if res := r.doWork(log, effectiveCR); res.ShouldRequeue() {
+	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
 	}
 
-	if res := r.postWork(log, effectiveCR); res.ShouldRequeue() {
+	if res := r.postWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
 	}
 
@@ -74,7 +74,11 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	return result.NewResult()
 }
 
-func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) preWork(log vzlog.VerrazzanoLogger,  actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	if err := r.updateStateToReconcilingOrUpgrading(actualCR); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	if err := r.createVerrazzanoSystemNamespace(context.TODO(), effectiveCR, log); err != nil {
@@ -91,7 +95,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.
 	return result.NewResult()
 }
 
-func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
@@ -105,7 +109,11 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.V
 	return result.NewResult()
 }
 
-func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+
+	if err := r.updateStateToReady(actualCR); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
 	return result.NewResult()
 }
 
