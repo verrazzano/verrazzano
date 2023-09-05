@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	modulehelm "github.com/verrazzano/verrazzano-modules/pkg/helm"
@@ -31,21 +32,23 @@ import (
 type overrideType string
 
 const (
-	secretType    overrideType = "secret"
-	configMapType overrideType = "configmap"
+	secretType     overrideType = "secret"
+	configMapType  overrideType = "configmap"
+	vzOverridesKey              = "verrazzano-generated-overrides"
 )
 
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
-
 func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component) error {
-	var err error
-	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
+
+	// Stores component/module overrides based on Verrazzano CR configuration and stores them in an overrides secret
+	valuesFromCR, err := r.createVerrazzanoCROverridesForModule(comp, effectiveCR, module)
 	if err != nil {
 		return err
 	}
 
-	module.Spec.ValuesFrom = nil
+	module.Spec.Values = nil
+	module.Spec.ValuesFrom = valuesFromCR
 
 	// Use the Actual VZ CR instance to get the component user overrides list (either v1alpha1 or v1beta1)
 	compOverrideList := comp.GetOverrides(actualCR)
@@ -75,6 +78,43 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzv1al
 		return err
 	}
 	return nil
+}
+
+func (r Reconciler) createVerrazzanoCROverridesForModule(comp spi.Component, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) ([]moduleapi.ValuesFromSource, error) {
+	overridesAsHelmValues, err := comp.GetModuleConfigAsHelmValues(effectiveCR)
+	if err != nil || overridesAsHelmValues == nil || overridesAsHelmValues.Size() == 0 {
+		return []moduleapi.ValuesFromSource{}, err
+	}
+
+	overridesSecretName := fmt.Sprintf("%s-overrides", module.Name)
+	overridesSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      overridesSecretName,
+			Namespace: module.Namespace,
+		},
+	}
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, overridesSecret, func() error {
+		overridesSecret.StringData = map[string]string{
+			vzOverridesKey: string(overridesAsHelmValues.Raw),
+		}
+		return nil
+	}); err != nil {
+		return []moduleapi.ValuesFromSource{}, err
+	}
+
+	//optional := true
+	overridesValue := moduleapi.ValuesFromSource{
+		SecretRef: &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: overridesSecretName,
+			},
+			Key: vzOverridesKey,
+			//Optional: &optional,
+		},
+	}
+	return []moduleapi.ValuesFromSource{
+		overridesValue,
+	}, nil
 }
 
 // Set the module values or valuesFrom for a single override struct

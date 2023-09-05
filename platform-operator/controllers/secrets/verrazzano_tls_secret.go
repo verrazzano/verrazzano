@@ -120,7 +120,9 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 			return controllerutil.OperationResultNone, err
 		}
 		if !isCreateAllowed {
-			r.log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
+			if r.log != nil {
+				r.log.Debugf("Secret %s/%s not found, nothing to do", namespace, name)
+			}
 			return controllerutil.OperationResultNone, nil
 		}
 		// Secret was not found, make a new one
