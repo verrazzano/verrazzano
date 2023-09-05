@@ -5,16 +5,16 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 
 	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/proxy"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -43,6 +43,11 @@ func main() {
 	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), opts)
 	if err != nil {
 		log.Errorf("Failed to initialize the controller manager")
+		os.Exit(1)
+	}
+
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Errorf("Failed starting controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
 

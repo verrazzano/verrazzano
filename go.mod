@@ -181,7 +181,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.26.1 // indirect
+	k8s.io/apiserver v0.26.1
 	k8s.io/cluster-bootstrap v0.25.0 // indirect
 	k8s.io/component-base v0.26.1 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
@@ -200,7 +200,9 @@ require (
 	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
+	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
+	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )
 
 replace (
