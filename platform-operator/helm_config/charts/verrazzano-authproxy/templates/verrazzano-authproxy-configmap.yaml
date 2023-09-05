@@ -88,6 +88,8 @@ data:
 
     if (backend == 'console' or backend == 'verrazzano') then
     	auth.initOidcProvider(oidcProviderForConsole)
+    else
+        auth.initOidcProvider("keycloak")
     end
 
     local authHeader = ngx.req.get_headers()["authorization"]
