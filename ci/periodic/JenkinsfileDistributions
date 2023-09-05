@@ -110,7 +110,7 @@ pipeline {
                 """
                 script {
                 sh """
-                    echo "Some text" >> images-sizes.txt
+                    echo "Some text" >> ${WORKSPACE}/image-sizes.txt
                 """
                     IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                 }
