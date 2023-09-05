@@ -87,7 +87,7 @@ spec:
                       type: string
                     type: array
                   compartment:
-                    description: OCI Compartment id where the cluster will be created
+                    description: OCI Compartment OCID where the cluster will be created
                     type: string
                   controlPlane:
                     description: Control Plane node settings.
@@ -121,7 +121,7 @@ spec:
                     - shape
                     type: object
                   imageId:
-                    description: Node image id. The default is the latest OL8 image
+                    description: Node image OCID. The default is the latest OL8 image
                       in the provided compartment.
                     type: string
                   network:

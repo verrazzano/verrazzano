@@ -82,7 +82,7 @@ stringData:
                     calicoNetwork:
                         bgp: Disabled
                         ipPools:
-                            - cidr: {{ .Kubernetes.ClusterNetwork.PodCIDR }}
+                            - cidr: {{ .KubernetesBase.ClusterNetwork.PodCIDR }}
                               encapsulation: VXLAN
                     {{- if .PrivateRegistry }}
                     registry: {{.PrivateRegistry.URL}}

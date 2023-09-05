@@ -19,7 +19,6 @@ type (
 	Client interface {
 		GetSubnetByID(ctx context.Context, id, role string) (*Subnet, error)
 		GetVCNByID(ctx context.Context, id string) (*core.Vcn, error)
-		GetImageByID(ctx context.Context, id string) (*core.Image, error)
 	}
 	// ClientImpl OCI Client implementation
 	ClientImpl struct {
@@ -83,16 +82,6 @@ func (c *ClientImpl) GetVCNByID(ctx context.Context, id string) (*core.Vcn, erro
 		return nil, err
 	}
 	return &response.Vcn, nil
-}
-
-func (c *ClientImpl) GetImageByID(ctx context.Context, id string) (*core.Image, error) {
-	response, err := c.computeClient.GetImage(ctx, core.GetImageRequest{
-		ImageId: &id,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &response.Image, nil
 }
 
 // subnetAccess returns public or private, depending on a subnet's access type

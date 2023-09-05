@@ -36,9 +36,9 @@ spec:
                 httpProxy: {{.Proxy.HTTPProxy}}
                 httpsProxy: {{.Proxy.HTTPSProxy}}
                 {{- if .Proxy.NoProxy }}
-                noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
+                noProxy: {{.KubernetesBase.ClusterNetwork.ServiceCIDR}},{{.KubernetesBase.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
                 {{- else }}
-                noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}}
+                noProxy: {{.KubernetesBase.ClusterNetwork.ServiceCIDR}},{{.KubernetesBase.ClusterNetwork.PodCIDR}}
                 {{- end }}
             {{- end }}
         clusterConfiguration:
@@ -108,9 +108,9 @@ spec:
                     httpProxy: {{.Proxy.HTTPProxy}}
                     httpsProxy: {{.Proxy.HTTPSProxy}}
                     {{- if .Proxy.NoProxy }}
-                    noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
+                    noProxy: {{.KubernetesBase.ClusterNetwork.ServiceCIDR}},{{.KubernetesBase.ClusterNetwork.PodCIDR}},{{.Proxy.NoProxy}}
                     {{- else }}
-                    noProxy: {{.Kubernetes.ClusterNetwork.ServiceCIDR}},{{.Kubernetes.ClusterNetwork.PodCIDR}}
+                    noProxy: {{.KubernetesBase.ClusterNetwork.ServiceCIDR}},{{.KubernetesBase.ClusterNetwork.PodCIDR}}
                     {{- end }}
                 {{- end }}
             joinConfiguration:

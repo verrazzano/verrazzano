@@ -16,6 +16,8 @@ type (
 		// +patchStrategy=merge,retainKeys
 		// Role of subnet within the cluster.
 		Role SubnetRole `json:"role" patchStrategy:"merge,retainKeys" patchMergeKey:"role"`
+		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+
 		// The ID of the subnet.
 		ID string `json:"id"`
 	}
@@ -34,13 +36,17 @@ type (
 	CommonOCI struct {
 		// OCI region where the cluster will be created.
 		Region string `json:"region,omitempty"`
-		// OCI Compartment id where the cluster will be created
+		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+
+		// OCI Compartment OCID where the cluster will be created
 		Compartment string `json:"compartment,omitempty"`
 		// +optional
 
 		// SSH public key for node ssh.
 		SSHPublicKey *string `json:"sshPublicKey,omitempty"`
-		// Node image id.
+		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+
+		// Node image OCID.
 		// The default is the latest OL8 image in the provided compartment.
 		ImageID string `json:"imageId,omitempty"`
 		// +optional

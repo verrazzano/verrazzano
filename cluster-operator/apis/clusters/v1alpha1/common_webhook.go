@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	ocnemeta "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	vzerror "github.com/verrazzano/verrazzano/cluster-operator/internal/errors"
@@ -55,28 +54,36 @@ func getWebhookClient() (clipkg.Client, error) {
 }
 
 func addOCINodeErrors(ctx *validationContext, n OCINode, field string) {
-	if !strings.Contains(*n.Shape, "Flex") {
+	if n.Shape == nil {
+		ctx.Errors.Addf("%s.shape is required", field)
+	} else if !strings.Contains(*n.Shape, "Flex") {
 		if n.OCPUs != nil {
-			ctx.Errors.Add(fmt.Errorf("%s.ocpus should only be specified when using flex shapes", field))
+			ctx.Errors.Addf("%s.ocpus should only be specified when using flex shapes", field)
 		}
 		if n.MemoryGbs != nil {
-			ctx.Errors.Add(fmt.Errorf("%s.memoryGbs should only be specified when using flex shapes", field))
+			ctx.Errors.Addf("%s.memoryGbs should only be specified when using flex shapes", field)
 		}
 	}
 }
 
 func addOCINetworkErrors(ctx *validationContext, ociClient oci.Client, network *Network, field string) {
+	if network == nil {
+		return
+	}
 	// If creating a new VCN, pre-existing VCN and subnet information should not be specified
 	if network.CreateVCN {
 		if len(network.VCN) > 0 {
-			ctx.Errors.Add(fmt.Errorf("%s.vcn should not be specified when creating a new VCN", field))
+			ctx.Errors.Addf("%s.vcn should not be specified when creating a new VCN", field)
 		}
 		if len(network.Subnets) > 0 {
-			ctx.Errors.Add(fmt.Errorf("%s.subnets should not be specified when creating a new VCN", field))
+			ctx.Errors.Addf("%s.subnets should not be specified when creating a new VCN", field)
 		}
 	} else { // If using an existing VCN and subnets, validate that these resources are accessible using the provided credentials.
+		if len(network.Subnets) != 4 {
+			ctx.Errors.Addf("%s.subnets should have 1 subnet each for worker, service-lb, control-plane, and control-plane-endpoint subnet roles.", field)
+		}
 		if _, err := ociClient.GetVCNByID(ctx.Ctx, network.VCN); err != nil {
-			ctx.Errors.Add(fmt.Errorf("%s.vcn [%s] is not accessible", field, network.VCN))
+			ctx.Errors.Addf("%s.vcn [%s] is not accessible", field, network.VCN)
 		}
 		subnetCache := map[string]bool{}
 		for i, subnet := range network.Subnets {
@@ -85,7 +92,7 @@ func addOCINetworkErrors(ctx *validationContext, ociClient oci.Client, network *
 			}
 			ociSubnet, err := ociClient.GetSubnetByID(ctx.Ctx, subnet.ID, string(subnet.Role))
 			if err != nil {
-				ctx.Errors.Add(fmt.Errorf("%s.subnets[%d] : [%s] is not accessible", field, i, subnet.ID))
+				ctx.Errors.Addf("%s.subnets[%d] : [%s] is not accessible", field, i, subnet.ID)
 			} else {
 				subnetCache[ociSubnet.ID] = true
 			}
@@ -93,15 +100,9 @@ func addOCINetworkErrors(ctx *validationContext, ociClient oci.Client, network *
 	}
 }
 
-func addOCICommonErrors(ctx *validationContext, ociClient oci.Client, commonOCI CommonOCI, field string) {
-	if _, err := ociClient.GetImageByID(ctx.Ctx, commonOCI.ImageID); err != nil {
-		ctx.Errors.Add(fmt.Errorf("%s.imageId [%s] is not accessible", field, commonOCI.ImageID))
-	}
-}
-
 func addOCNEErrors(ctx *validationContext, ocne OCNE, field string) {
 	if _, err := ocnemeta.GetVersionDefaults(ctx.Ctx, ctx.Cli, ocne.Version); err != nil {
-		ctx.Errors.Add(fmt.Errorf("%s.version [%s] is not a known OCNE version", field, ocne.Version))
+		ctx.Errors.Addf("%s.version [%s] is not a known OCNE version", field, ocne.Version)
 	}
 }
 
@@ -109,10 +110,10 @@ func addProxyErrors(ctx *validationContext, proxy *Proxy, field string) {
 	if proxy == nil {
 		return
 	}
-	if _, err := url.Parse(proxy.HTTPSProxy); err != nil {
+	if _, err := url.ParseRequestURI(proxy.HTTPSProxy); err != nil {
 		ctx.Errors.Addf("%s.httpProxy is not a valid URL", field)
 	}
-	if _, err := url.Parse(proxy.HTTPProxy); err != nil {
+	if _, err := url.ParseRequestURI(proxy.HTTPProxy); err != nil {
 		ctx.Errors.Addf("%s.httpProxy is not a valid URL", field)
 	}
 }
@@ -121,7 +122,7 @@ func addPrivateRegistryErrors(ctx *validationContext, privateRegistry *PrivateRe
 	if privateRegistry == nil {
 		return
 	}
-	if _, err := url.Parse(privateRegistry.URL); err != nil {
+	if _, err := url.ParseRequestURI(privateRegistry.URL); err != nil {
 		ctx.Errors.Addf("%s.url is not a valid URL", field)
 	}
 }

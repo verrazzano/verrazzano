@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -23,6 +24,9 @@ func (o *OCNEOCIQuickCreate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
+// ValidateCreate validates the OCNEOCIQuickCreate input.
+// We do not provide a deep validation of OCI cloud resources, because the provided
+// credentials may not have the necessary policies to do so.
 func (o *OCNEOCIQuickCreate) ValidateCreate() error {
 	ctx, err := NewValidationContext()
 	if err != nil {
@@ -37,8 +41,6 @@ func (o *OCNEOCIQuickCreate) ValidateCreate() error {
 	if err != nil {
 		return fmt.Errorf("failed to create OCI Client: %w", err)
 	}
-	// Validate the general OCI spec
-	addOCICommonErrors(ctx, ociClient, o.Spec.OCI.CommonOCI, "spec.oci")
 	// Validate the OCI Network
 	addOCINetworkErrors(ctx, ociClient, o.Spec.OCI.Network, "spec.oci.network")
 	// Validate the OCI Nodes
@@ -55,18 +57,15 @@ func (o *OCNEOCIQuickCreate) ValidateCreate() error {
 	return nil
 }
 
+// ValidateUpdate rejects any changes to the quick create spec.
 func (o *OCNEOCIQuickCreate) ValidateUpdate(old runtime.Object) error {
 	oldCluster, ok := old.(*OCNEOCIQuickCreate)
 	if !ok {
 		return errors.New("update resource must be of kind OCNEOCIQuickCreate")
 	}
-	if err := o.updateAllowed(oldCluster); err != nil {
-		return err
+	if !reflect.DeepEqual(o.Spec, oldCluster.Spec) {
+		return errors.New("spec updates are not permitted")
 	}
-	return nil
-}
-
-func (o *OCNEOCIQuickCreate) updateAllowed(other *OCNEOCIQuickCreate) error {
 	return nil
 }
 

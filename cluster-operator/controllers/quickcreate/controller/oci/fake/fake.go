@@ -17,8 +17,7 @@ type (
 		Credentials *oci.Credentials
 	}
 	ClientImpl struct {
-		VCN   *core.Vcn
-		Image *core.Image
+		VCN *core.Vcn
 	}
 )
 
@@ -41,11 +40,4 @@ func (c *ClientImpl) GetVCNByID(_ context.Context, id string) (*core.Vcn, error)
 		return c.VCN, nil
 	}
 	return nil, errors.New("vcn not found")
-}
-
-func (c *ClientImpl) GetImageByID(_ context.Context, id string) (*core.Image, error) {
-	if id == *c.Image.Id {
-		return c.Image, nil
-	}
-	return nil, errors.New("image not found")
 }
