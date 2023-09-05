@@ -9,9 +9,12 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	vpovzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
@@ -76,7 +79,11 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 
 func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// Note: updating the VZ state to reconciling is done by the module shim, see vzcomponent_status.go, UpdateVerrazzanoComponentStatus
-	r.updateStateToUpgradingIfNeeded(actualCR)
+	if r.isUpgrading(actualCR) {
+		if err := r.updateStatusToUpgradeStarted(log, actualCR); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
 
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
@@ -107,6 +114,11 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 	}
 
 	if !r.areModulesDoneReconciling(log, actualCR) {
+		if !r.isUpgrading(actualCR) {
+			if err := r.updateStatusToInstallStarted(log, actualCR); err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+		}
 		return result.NewResultShortRequeueDelay()
 	}
 
@@ -114,8 +126,22 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 }
 
 func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	spiCtx, err := componentspi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
 
-	if err := r.updateStateToReady(actualCR); err != nil {
+	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if err := r.forceSyncComponentReconciledGeneration(spiCtx.ActualCR()); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := r.updateStatusToDone(log, actualCR); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()

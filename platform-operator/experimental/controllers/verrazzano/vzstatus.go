@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -237,23 +238,102 @@ func conditionToVzState(currentCondition vzv1alpha1.ConditionType) vzv1alpha1.Vz
 	return vzv1alpha1.VzStateReady
 }
 
-// updateStateToUpgradingIfNeeded updates the state to Upgrading.
-func (r *Reconciler) updateStateToUpgradingIfNeeded(actualCR *vzv1alpha1.Verrazzano) error {
-	if actualCR.Spec.Version == "" || actualCR.Spec.Version == actualCR.Status.Version {
+// updateStatusToUpgradeStarted updates the condition and state for upgrade started.
+func (r *Reconciler) updateStatusToUpgradeStarted(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano upgrade to version %s in progress", actualCR.Spec.Version),
+		vzv1alpha1.CondUpgradeStarted, nil)
+}
+
+// updateStatusToInstallStarted updates the condition and state for install started.
+func (r *Reconciler) updateStatusToInstallStarted(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano install in progress"),
+		vzv1alpha1.CondInstallStarted, nil)
+}
+
+// isUpgrading returns true if spec indicates upgrade.
+func (r *Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
+	return actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version
+}
+
+// updateStatusToDone updates the state to Ready and InstallComplete or UpgradeComplete
+func (r *Reconciler) updateStatusToDone(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	if r.isUpgrading(actualCR) {
+		return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano install in progress"),
+			vzv1alpha1.CondUpgradeComplete, &actualCR.Spec.Version)
+	}
+	return r.updateStatus(log, actualCR, fmt.Sprintf("Verrazzano install in progress"),
+		vzv1alpha1.CondInstallComplete, &actualCR.Spec.Version)
+}
+
+// addUpgradingCondition
+func (r *Reconciler) updateUpgradingCondition(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	var upgradeConditionsToRemove = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondUpgradeStarted:  true,
+		vzv1alpha1.CondUpgradeComplete: true,
+		vzv1alpha1.CondUpgradePaused:   true,
+		vzv1alpha1.CondUpgradeFailed:   true,
+	}
+
+	if findConditionByType(actualCR, vzv1alpha1.CondUpgradeComplete) != nil {
+		removePreviousConditions(actualCR, upgradeConditionsToRemove)
+	}
+
+	if findConditionByType(actualCR, vzv1alpha1.CondUpgradeStarted) != nil {
+		cond := newCondition(actualCR, fmt.Sprintf("Verrazzano upgrade to version %s in progress", actualCR.Spec.Version), vzv1alpha1.CondUpgradeStarted)
+		r.removePreviousConditions(actualCR, upgradeConditionsToRemove)
+	}
+
+	if actualCR.Status.State != vzv1alpha1.VzStateReconciling {
+		// state is already determinined
 		return nil
 	}
-	actualCR.Status.State = vzv1alpha1.VzStateUpgrading
-	return r.Client.Status().Update(context.TODO(), actualCR)
+
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: actualCR,
+		State:      vzv1alpha1.VzStateReconciling,
+	})
+	return nil
 }
 
-// updateStateToReady updates the state to Ready.
-func (r *Reconciler) updateStateToReady(actualCR *vzv1alpha1.Verrazzano) error {
-	actualCR.Status.State = vzv1alpha1.VzStateReady
-	return r.Client.Status().Update(context.TODO(), actualCR)
+// updateWorkingConditionAndState
+func updateWorkingConditionAndState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+	return nil
 }
 
-// updateConditionAndState
-func (r *Reconciler) updateWorkingConditionAndState(actualCR *vzv1alpha1.Verrazzano) error {
+// newCondition creates a new condition
+func newCondition(message string, conditionType vzv1alpha1.ConditionType) vzv1alpha1.Condition {
+	t := time.Now().UTC()
+	return vzv1alpha1.Condition{
+		Type:    conditionType,
+		Status:  corev1.ConditionTrue,
+		Message: message,
+		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+			t.Year(), t.Month(), t.Day(),
+			t.Hour(), t.Minute(), t.Second()),
+	}
+}
+
+// removePreviousConditions removes previous conditions for the current work (installStarted/installComplete)
+func removePreviousConditions(actualCR *vzv1alpha1.Verrazzano, removeConditions map[vzv1alpha1.ConditionType]bool) (newConditions []vzv1alpha1.ConditionType) {
+	for i, cond := range actualCR.Status.Conditions {
+		if _, ok := removeConditions[cond.Type]; !ok {
+			newConditions = append(newConditions, actualCR.Status.Conditions[i].Type)
+		}
+	}
+	return
+}
+
+func findConditionByType(actualCR *vzv1alpha1.Verrazzano, target vzv1alpha1.ConditionType) *vzv1alpha1.Condition {
+	for i, cond := range actualCR.Status.Conditions {
+		if target == cond.Type {
+			return &actualCR.Status.Conditions[i]
+		}
+	}
+	return nil
+}
+
+// updateDoneConditionAndState
+func (r *Reconciler) updateDoneConditionAndState(actualCR *vzv1alpha1.Verrazzano) error {
 	if actualCR.Status.State != vzv1alpha1.VzStateReconciling {
 		// state is already determinined
 		return nil
@@ -359,4 +439,25 @@ func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actua
 		}
 	}
 	return true
+}
+
+// forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
+// this is applied at the end of a successful VZ CR reconcile.
+func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1.Verrazzano) error {
+	if !config.Get().ModuleIntegration {
+		// only do this with modules integration enabled
+		return nil
+	}
+	componentsToUpdate := map[string]*vzv1alpha1.ComponentStatusDetails{}
+	for compName, componentStatus := range actualCR.Status.Components {
+		if componentStatus.State == vzv1alpha1.CompStateReady {
+			componentStatus.LastReconciledGeneration = actualCR.Generation
+			componentsToUpdate[compName] = componentStatus
+		}
+	}
+	// Update the status with the new version and component generations
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Components: componentsToUpdate,
+	})
+	return nil
 }
