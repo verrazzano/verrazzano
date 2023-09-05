@@ -324,7 +324,7 @@ func verifyKeycloakClientURIs() bool {
 	}
 
 	// Get the Client ID JSON array
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", "clients", "-r", constants.VerrazzanoOIDCSystemRealm, "--fields", "id,clientId")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", "clients", "-r", constants.VerrazzanoOIDCSystemRealm, "--fields", "id,clientId") //nolint:gosec //#nosec G204
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
@@ -425,7 +425,7 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 	// Get the client Info
 	client := "clients/" + id
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", client, "-r", constants.VerrazzanoOIDCSystemRealm)
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get", client, "-r", constants.VerrazzanoOIDCSystemRealm) //nolint:gosec //#nosec G204
 	out, err := cmd.Output()
 	if err != nil {
 		err := fmt.Errorf("error retrieving clientID json: %s", err)
@@ -644,7 +644,7 @@ func verifyUserClientRole(user, userRole string) bool {
 	}
 
 	// Get the roles for the user
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get-roles", "-r", constants.VerrazzanoOIDCSystemRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", kcAdminScript, "get-roles", "-r", constants.VerrazzanoOIDCSystemRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name") //nolint:gosec //#nosec G204
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))
