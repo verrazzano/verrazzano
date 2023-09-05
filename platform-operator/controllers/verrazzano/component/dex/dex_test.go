@@ -5,11 +5,12 @@ package dex
 
 import (
 	"context"
+	"strings"
+	"testing"
+
 	networkv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"strings"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -119,7 +120,7 @@ func TestAppendDexOverrides(t *testing.T) {
 	})
 	a.Contains(kvs, bom.KeyValue{
 		Key:       configIssuer,
-		Value:     httpPrefix + testDexIngressHost,
+		Value:     httpsPrefix + testDexIngressHost,
 		SetString: true,
 	})
 }
