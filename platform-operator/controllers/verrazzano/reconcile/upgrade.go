@@ -34,9 +34,6 @@ const (
 	// vzStateUpgradeComponents is the state where the components are being upgraded
 	vzStateUpgradeComponents VerrazzanoUpgradeState = "vzUpgradeComponents"
 
-	// vzStateWaitModulesReady wait for components upgraded using Modules to be ready
-	vzStateUpgradeModulesReady VerrazzanoUpgradeState = "vzUpgradeModulesReady"
-
 	// vzStatePostUpgrade is the state where Verrazzano is doing a post-upgrade
 	vzStatePostUpgrade VerrazzanoUpgradeState = "vzDoPostUpgrade"
 
