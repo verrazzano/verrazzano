@@ -14,11 +14,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzv1alpha1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -38,7 +37,7 @@ const (
 
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
-func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
+func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component) error {
 	var err error
 	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
 	if err != nil {
@@ -53,7 +52,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzv
 	case []vzv1alpha1.Overrides:
 		overrideList := castType
 		for _, o := range overrideList {
-			var b vzv1alpha1beta1.Overrides
+			var b vzv1beta1.Overrides
 			b.Values = o.Values
 			b.SecretRef = o.SecretRef
 			b.ConfigMapRef = o.ConfigMapRef
@@ -62,7 +61,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzv
 			}
 		}
 
-	case []vzv1alpha1beta1.Overrides:
+	case []vzv1beta1.Overrides:
 		overrideList := castType
 		for _, o := range overrideList {
 			if err := r.setModuleValuesForOneOverride(log, o, effectiveCR, module); err != nil {
@@ -78,7 +77,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzv
 }
 
 // Set the module values or valuesFrom for a single override struct
-func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzv1alpha1beta1.Overrides, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module) error {
+func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzv1beta1.Overrides, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module) error {
 
 	if err := r.mergedModuleValuesOverrides(module, overrides); err != nil {
 		return err
@@ -124,7 +123,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 	return nil
 }
 
-func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzv1alpha1beta1.Overrides) error {
+func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzv1beta1.Overrides) error {
 	if overrides.Values == nil {
 		return nil
 	}
@@ -175,7 +174,7 @@ func (r Reconciler) copySecret(secretRef *corev1.SecretKeySelector, secretName s
 		if secret.Labels == nil {
 			secret.Labels = make(map[string]string)
 		}
-		secret.Labels[constants.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
+		secret.Labels[vzconst.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
 		return nil
 	})
 
@@ -201,7 +200,7 @@ func (r Reconciler) copyConfigMap(cmRef *corev1.ConfigMapKeySelector, cmName str
 		if cm.Labels == nil {
 			cm.Labels = make(map[string]string)
 		}
-		cm.Labels[constants.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
+		cm.Labels[vzconst.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
 		return nil
 	})
 
@@ -236,7 +235,7 @@ func getOverrideResourceNames(effectiveCR *vzv1alpha1.Verrazzano, ovType overrid
 					names[o.ConfigMapRef.Name] = true
 				}
 			}
-		case []vzv1alpha1beta1.Overrides:
+		case []vzv1beta1.Overrides:
 			overrideList := castType
 			for _, o := range overrideList {
 				if o.SecretRef != nil && ovType == secretType {

@@ -92,15 +92,15 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 	}
 
 	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
-	r.updateStatusUninstallComplete(actualCR)
-	return result.NewResult()
+	if err := r.updateStatusUninstallComplete(actualCR); err != nil {
+		return result.NewResultShortRequeueDelayIfError(err)
+	}
 
 	// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 	// resource can get removed from etcd.
 	log.Oncef("Removing finalizer %s", finalizerName)
 	actualCR.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(actualCR.ObjectMeta.Finalizers, finalizerName)
 	if err := r.Client.Update(context.TODO(), actualCR); err != nil {
-		r.updateStatusUninstallComplete(actualCR)
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 

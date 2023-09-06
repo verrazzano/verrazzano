@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
@@ -33,7 +32,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actua
 		actualCR.Status.Components = make(map[string]*vzv1alpha1.ComponentStatusDetails)
 	}
 
-	newContext, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+	newContext, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -96,16 +95,6 @@ func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *v
 // isUpgrading returns true if spec indicates upgrade.
 func (r *Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
 	return actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version
-}
-
-// updateWorkingConditionAndState
-func (r *Reconciler) updateWorkingConditionAndState(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
-	if r.isUpgrading(actualCR) {
-		r.updateStatusUpgrading(log, actualCR)
-	} else {
-		r.updateStatusInstalling(log, actualCR)
-	}
-	return nil
 }
 
 // updateStatusInstalling adds installing condition and sets the state
@@ -307,7 +296,7 @@ func findConditionByType(conditions []vzv1alpha1.Condition, condType vzv1alpha1.
 // areModulesDoneReconciling returns true if modules are ready, this includes deleted modules being removed.
 func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) bool {
 	for _, comp := range registry.GetComponents() {
-		compCtx, err := spi.NewContext(log, r.Client, actualCR, nil, false)
+		compCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, false)
 		if err != nil {
 			compCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false
