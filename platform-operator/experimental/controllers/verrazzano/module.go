@@ -1,6 +1,3 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
-// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 package verrazzano
 
 import (
@@ -11,13 +8,78 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	corev1 "k8s.io/api/core/v1"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+// createOrUpdateModules creates or updates all the modules
+func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
+	if err != nil {
+		log.ErrorfThrottled("Error loading module catalog: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Create or Update a Module for each enabled resource
+	for _, comp := range registry.GetComponents() {
+		if !comp.IsEnabled(effectiveCR) {
+			continue
+		}
+		if !comp.ShouldUseModule() {
+			continue
+		}
+
+		version := catalog.GetVersion(comp.Name())
+		if version == nil {
+			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+
+		module := moduleapi.Module{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      comp.Name(),
+				Namespace: vzconst.VerrazzanoInstallNamespace,
+			},
+		}
+		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
+		})
+		log.Debugf("Module %s update result: %v", module.Name, opResult)
+		if err != nil {
+			if !errors.IsConflict(err) {
+				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
+			}
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
+	return result.NewResult()
+}
+
+// mutateModule mutates the module for the create or update callback
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
+	if module.Annotations == nil {
+		module.Annotations = make(map[string]string)
+	}
+	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
+	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
+
+	if module.Labels == nil {
+		module.Labels = make(map[string]string)
+	}
+	module.Labels[vzconst.VerrazzanoOwnerLabel] = string(effectiveCR.UID)
+
+	module.Spec.ModuleName = module.Name
+	module.Spec.TargetNamespace = comp.Namespace()
+	module.Spec.Version = moduleVersion
+
+	return r.setModuleValues(log, effectiveCR, module, comp)
+}
 
 // deleteModules deletes all the modules, optionally only deleting ones that disabled
 func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
@@ -89,47 +151,5 @@ func (r Reconciler) deleteModules(log vzlog.VerrazzanoLogger, effectiveCR *vzv1a
 	}
 
 	// All modules have been deleted and the Module CRs are gone
-	return result.NewResult()
-}
-
-// deleteConfigSecrets deletes all the module config secrets
-func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
-	secretList := &corev1.SecretList{}
-	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
-	selector := labels.NewSelector().Add(*req)
-	if err := r.Client.List(context.TODO(), secretList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
-		log.Infof("Failed getting secrets in %s namespace, retrying: %v", namespace, err)
-	}
-
-	for i, s := range secretList.Items {
-		err := r.Client.Delete(context.TODO(), &secretList.Items[i])
-		if err != nil {
-			if errors.IsNotFound(err) {
-				continue
-			}
-			log.Errorf("Failed deleting secret %s/%s, retrying: %v", namespace, s.Name, err)
-		}
-	}
-	return result.NewResult()
-}
-
-// deleteConfigMaps deletes all the module config maps
-func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
-	configMapList := &corev1.ConfigMapList{}
-	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
-	selector := labels.NewSelector().Add(*req)
-	if err := r.Client.List(context.TODO(), configMapList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
-		log.Infof("Failed getting configMaps in %s namespace, retrying: %v", namespace, err)
-	}
-
-	for i, s := range configMapList.Items {
-		err := r.Client.Delete(context.TODO(), &configMapList.Items[i])
-		if err != nil {
-			if errors.IsNotFound(err) {
-				continue
-			}
-			log.Errorf("Failed deleting configMap %s/%s, retrying: %v", namespace, s.Name, err)
-		}
-	}
 	return result.NewResult()
 }

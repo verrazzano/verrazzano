@@ -15,7 +15,9 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -229,6 +231,11 @@ func (r *Reconciler) updateStatusUpgradeComplete(actualCR *vzv1alpha1.Verrazzano
 
 // updateStatusInstallComplete updates the status condition and state for install complete
 func (r *Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg string, conditionType vzv1alpha1.ConditionType) error {
+	spiCtx, err := componentspi.NewContext(vzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return err
+	}
+
 	if findConditionByType(actualCR.Status.Conditions, conditionType) {
 		return nil
 	}
@@ -248,11 +255,12 @@ func (r *Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg s
 	compponents := r.forceSyncComponentReconciledGeneration(actualCR)
 
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Verrazzano: actualCR,
-		Conditions: conditions,
-		Version:    &version,
-		Components: compponents,
-		State:      vzv1alpha1.VzStateReady,
+		Verrazzano:   actualCR,
+		Conditions:   conditions,
+		Version:      &version,
+		Components:   compponents,
+		InstanceInfo: vzinstance.GetInstanceInfo(spiCtx),
+		State:        vzv1alpha1.VzStateReady,
 	})
 	return nil
 }

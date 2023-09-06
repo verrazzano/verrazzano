@@ -8,18 +8,24 @@ import (
 	"encoding/json"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	modulehelm "github.com/verrazzano/verrazzano-modules/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	modulelog "github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzv1alpha1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -243,4 +249,46 @@ func getOverrideResourceNames(effectiveCR *vzv1alpha1.Verrazzano, ovType overrid
 		}
 	}
 	return names
+}
+
+// deleteConfigSecrets deletes all the module config secrets
+func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
+	secretList := &corev1.SecretList{}
+	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	selector := labels.NewSelector().Add(*req)
+	if err := r.Client.List(context.TODO(), secretList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
+		log.Infof("Failed getting secrets in %s namespace, retrying: %v", namespace, err)
+	}
+
+	for i, s := range secretList.Items {
+		err := r.Client.Delete(context.TODO(), &secretList.Items[i])
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Errorf("Failed deleting secret %s/%s, retrying: %v", namespace, s.Name, err)
+		}
+	}
+	return result.NewResult()
+}
+
+// deleteConfigMaps deletes all the module config maps
+func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
+	configMapList := &corev1.ConfigMapList{}
+	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	selector := labels.NewSelector().Add(*req)
+	if err := r.Client.List(context.TODO(), configMapList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
+		log.Infof("Failed getting configMaps in %s namespace, retrying: %v", namespace, err)
+	}
+
+	for i, s := range configMapList.Items {
+		err := r.Client.Delete(context.TODO(), &configMapList.Items[i])
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Errorf("Failed deleting configMap %s/%s, retrying: %v", namespace, s.Name, err)
+		}
+	}
+	return result.NewResult()
 }
