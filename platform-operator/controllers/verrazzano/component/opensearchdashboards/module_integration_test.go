@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package operator
+package opensearchdashboards
 
 import (
 	"fmt"
@@ -56,19 +56,15 @@ func TestGetModuleSpec(t *testing.T) {
 						},
 					},
 					Components: vzapi.ComponentSpec{
-						Grafana: &vzapi.GrafanaComponent{
-							Database: &vzapi.DatabaseInfo{
-								Host: "dbhost",
-								Name: "grafanadb",
-							},
-							Enabled:  &enabled,
+						Kibana: &vzapi.KibanaComponent{
+							Enabled:  &trueValue,
 							Replicas: &replicas,
-							SMTP: &vmov1.SMTPInfo{
-								Enabled:        &enabled,
-								Host:           "smtphost.foo.com",
-								ExistingSecret: "secret",
-								FromAddress:    "me@foo.com",
-								FromName:       "Mike",
+							Plugins: vmov1.OpenSearchDashboardsPlugins{
+								Enabled: false,
+								InstallList: []string{
+									"foo",
+									"bar",
+								},
 							},
 						},
 						Ingress: &vzapi.IngressNginxComponent{
@@ -102,15 +98,6 @@ func TestGetModuleSpec(t *testing.T) {
 						Thanos: &vzapi.ThanosComponent{
 							Enabled: &trueValue,
 						},
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{Values: &apiextensionsv1.JSON{Raw: []byte("somevalue")}},
-								},
-							},
-						},
 						AuthProxy: &vzapi.AuthProxyComponent{
 							Enabled: &trueValue,
 							Kubernetes: &vzapi.AuthProxyKubernetesSection{
@@ -138,6 +125,14 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
+					"replicas": 3,
+					"plugins": {
+					  "enabled": false,
+					  "installList": [
+						"foo",
+						"bar"
+					  ]
+					},
 					"ingress": {
 					  "enabled": true,
 					  "ingressClassName": "myclass",
@@ -162,8 +157,6 @@ func TestGetModuleSpec(t *testing.T) {
 					  }
 					},
 					"environmentName": "Myenv",
-					"keycloakEnabled": true,
-					"prometheusEnabled": true,
 					"defaultVolumeSource": {
 					  "persistentVolumeClaim": {
 						"claimName": "vmi"
@@ -193,7 +186,7 @@ func TestGetModuleSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent().(jaegerOperatorComponent)
+			c := NewComponent()
 			got, err := c.GetModuleConfigAsHelmValues(tt.effectiveCR)
 			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return

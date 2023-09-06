@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearchdashboards
+package opensearch
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 //	THEN the generated helm values JSON snippet is valid
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
-	var replicas int32 = 3
+	age := "1d"
 
 	ingressClassName := "myclass"
 	tests := []struct {
@@ -56,16 +56,28 @@ func TestGetModuleSpec(t *testing.T) {
 						},
 					},
 					Components: vzapi.ComponentSpec{
-						Kibana: &vzapi.KibanaComponent{
-							Enabled:  &trueValue,
-							Replicas: &replicas,
-							Plugins: vmov1.OpenSearchDashboardsPlugins{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: createInstallArgs(3, 3, 3),
+							Nodes: []vzapi.OpenSearchNode{
+								createNG("a", 1, nil),
+								createNG("b", 2, nil),
+								createNG("c", 3, nil),
+							},
+							Policies: []vmov1.IndexManagementPolicy{
+								{
+									PolicyName:   "my-policy",
+									IndexPattern: "pattern",
+									MinIndexAge:  &age,
+								},
+							},
+							Plugins: vmov1.OpenSearchPlugins{
 								Enabled: false,
 								InstallList: []string{
 									"foo",
 									"bar",
 								},
 							},
+							DisableDefaultPolicy: true,
 						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled:          &trueValue,
@@ -125,7 +137,28 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
-					"replicas": 3,
+					"nodes": [
+					  {
+						"name": "a",
+						"replicas": 1
+					  },
+					  {
+						"name": "b",
+						"replicas": 2
+					  },
+					  {
+						"name": "c",
+						"replicas": 3
+					  }
+					],
+					"policies": [
+					  {
+						"policyName": "my-policy",
+						"indexPattern": "pattern",
+						"minIndexAge": "1d",
+						"rollover": {}
+					  }
+					],
 					"plugins": {
 					  "enabled": false,
 					  "installList": [
@@ -133,6 +166,21 @@ func TestGetModuleSpec(t *testing.T) {
 						"bar"
 					  ]
 					},
+					"disableDefaultPolicy": true,
+					"installArgs": [
+					  {
+						"name": "nodes.master.replicas",
+						"value": "3"
+					  },
+					  {
+						"name": "nodes.data.replicas",
+						"value": "3"
+					  },
+					  {
+						"name": "nodes.ingest.replicas",
+						"value": "3"
+					  }
+					],
 					"ingress": {
 					  "enabled": true,
 					  "ingressClassName": "myclass",
@@ -194,14 +242,4 @@ func TestGetModuleSpec(t *testing.T) {
 			assert.JSONEq(t, tt.want, string(got.Raw))
 		})
 	}
-}
-
-// TestGetWatchDescriptors tests the GetWatchDescriptors function impl for this component
-// GIVEN a call to GetWatchDescriptors
-//
-//	WHEN a new component is created
-//	THEN the watch descriptors have the correct number of watches
-func TestGetWatchDescriptors(t *testing.T) {
-	wd := NewComponent().GetWatchDescriptors()
-	assert.Len(t, wd, 1)
 }
