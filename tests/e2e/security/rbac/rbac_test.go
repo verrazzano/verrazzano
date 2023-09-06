@@ -5,10 +5,11 @@ package rbac
 
 import (
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strconv"
 	"strings"
 	"time"
+
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -453,7 +454,7 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 				return crole, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-			Expect(len(crole.Rules) == 2).To(BeTrue(),
+			Expect(len(crole.Rules) == 3).To(BeTrue(),
 				fmt.Sprintf("FAIL: The cluster role %v expected to contain two rules, found %d.", crole, len(crole.Rules)))
 
 			crule := crole.Rules[0]
