@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Delete multicluster related resources
+// DeleteMCResources deletes multicluster related resources
 func DeleteMCResources(componentCtx componentspi.ComponentContext) error {
 	// Check if this is not managed cluster
 	managed, err := isManagedCluster(componentCtx.Client(), componentCtx.Log())

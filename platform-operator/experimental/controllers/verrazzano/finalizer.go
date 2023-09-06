@@ -174,7 +174,7 @@ func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentContext) result.Result {
+func (r Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentContext) result.Result {
 	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -200,7 +200,7 @@ func (r *Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentCon
 }
 
 // deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
-func (r *Reconciler) deleteIstioCARootCert(ctx componentspi.ComponentContext) error {
+func (r Reconciler) deleteIstioCARootCert(ctx componentspi.ComponentContext) error {
 	namespaces := corev1.NamespaceList{}
 	err := ctx.Client().List(context.TODO(), &namespaces)
 	if err != nil {
@@ -224,7 +224,7 @@ func (r *Reconciler) deleteIstioCARootCert(ctx componentspi.ComponentContext) er
 
 // nodeExporterCleanup cleans up any resources from the old node-exporter that was
 // replaced with the node-exporter from the prometheus-operator
-func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+func (r Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
 	err := resource.Resource{
 		Name:   nodeExporterName,
 		Client: r.Client,

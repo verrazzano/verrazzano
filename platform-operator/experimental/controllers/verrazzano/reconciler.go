@@ -237,7 +237,7 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 }
 
 // initVzResource initializes CR fields as needed.  This happens once when the CR is created
-func (r *Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(actualCR.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
@@ -283,7 +283,7 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzv1alpha1.Verrazzano) (bool, er
 }
 
 // doesOCIDNSConfigSecretExist returns true if the DNS secret exists
-func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) doesOCIDNSConfigSecretExist(vz *vzv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vzconst.VerrazzanoInstallNamespace}, secret)

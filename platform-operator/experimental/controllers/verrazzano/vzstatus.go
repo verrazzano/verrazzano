@@ -27,7 +27,7 @@ import (
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based installation.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
-func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
 	if actualCR.Status.Components == nil {
 		actualCR.Status.Components = make(map[string]*vzv1alpha1.ComponentStatusDetails)
 	}
@@ -93,12 +93,12 @@ func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *v
 }
 
 // isUpgrading returns true if spec indicates upgrade.
-func (r *Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
+func (r Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
 	return actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version
 }
 
 // updateStatusInstalling adds installing condition and sets the state
-func (r *Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
 	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
 		vzv1alpha1.CondInstallStarted:  true,
 		vzv1alpha1.CondInstallComplete: true,
@@ -133,7 +133,7 @@ func (r *Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR
 }
 
 // updateStatusUninstalling adds uninstalling condition and sets the state
-func (r *Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
 	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
 		vzv1alpha1.CondUninstallStarted:  true,
 		vzv1alpha1.CondUninstallComplete: true,
@@ -156,7 +156,7 @@ func (r *Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actual
 }
 
 // updateStatusUpgrading adds upgrading condition and sets the state
-func (r *Reconciler) updateStatusUpgrading(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) updateStatusUpgrading(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
 	var conditionsToRemove = map[vzv1alpha1.ConditionType]bool{
 		vzv1alpha1.CondUpgradeStarted:  true,
 		vzv1alpha1.CondUpgradeComplete: true,
@@ -192,7 +192,7 @@ func (r *Reconciler) updateStatusUpgrading(log vzlog.VerrazzanoLogger, actualCR 
 	return nil
 }
 
-func (r *Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) {
+func (r Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) {
 	// Set complete status
 	if r.isUpgrading(actualCR) {
 		r.updateStatusUpgradeComplete(actualCR)
@@ -202,22 +202,22 @@ func (r *Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Ver
 }
 
 // updateStatusInstallComplete updates the status condition and state for install complete
-func (r *Reconciler) updateStatusInstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) updateStatusInstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
 	return r.updateStatusComplete(actualCR, "Verrazzano install complete", vzv1alpha1.CondInstallComplete)
 }
 
 // updateStatusUninstallComplete updates the status condition and state for uninstall complete
-func (r *Reconciler) updateStatusUninstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) updateStatusUninstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
 	return r.updateStatusComplete(actualCR, "Verrazzano uninstall complete", vzv1alpha1.CondUninstallComplete)
 }
 
 // updateStatusInstallComplete updates the status condition and state for upgrade complete
-func (r *Reconciler) updateStatusUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) updateStatusUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) error {
 	return r.updateStatusComplete(actualCR, "Verrazzano upgrade complete", vzv1alpha1.CondUpgradeComplete)
 }
 
 // updateStatusInstallComplete updates the status condition and state for install complete
-func (r *Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg string, conditionType vzv1alpha1.ConditionType) error {
+func (r Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg string, conditionType vzv1alpha1.ConditionType) error {
 	spiCtx, err := componentspi.NewContext(vzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return err
@@ -294,7 +294,7 @@ func findConditionByType(conditions []vzv1alpha1.Condition, condType vzv1alpha1.
 }
 
 // areModulesDoneReconciling returns true if modules are ready, this includes deleted modules being removed.
-func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) bool {
+func (r Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) bool {
 	for _, comp := range registry.GetComponents() {
 		compCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, false)
 		if err != nil {
@@ -333,7 +333,7 @@ func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actua
 
 // forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
 // this is applied at the end of a successful VZ CR reconcile.
-func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1.Verrazzano) map[string]*vzv1alpha1.ComponentStatusDetails {
+func (r Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1.Verrazzano) map[string]*vzv1alpha1.ComponentStatusDetails {
 	componentsToUpdate := map[string]*vzv1alpha1.ComponentStatusDetails{}
 	for compName, componentStatus := range actualCR.Status.Components {
 		if componentStatus.State == vzv1alpha1.CompStateReady {
