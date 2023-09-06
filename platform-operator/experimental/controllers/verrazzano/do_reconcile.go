@@ -89,9 +89,8 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	if r.isUpgrading(actualCR) {
 		return r.postUpgrade(log, actualCR)
-	} else {
-		return r.postInstall(log, actualCR)
 	}
+	return r.postInstall(log, actualCR)
 }
 
 // postInstallUpdate does all the global post-work for install and update

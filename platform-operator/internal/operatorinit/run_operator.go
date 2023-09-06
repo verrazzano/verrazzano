@@ -20,8 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	integrationcascade "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/cascade"
-	integrationsingle "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/single"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
@@ -269,26 +267,5 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 			return err
 		}
 	}
-	return nil
-}
-
-// initModuleControllers creates the integration controllers
-func initIntegrationControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-	// single module integration controller
-	if err := integrationsingle.InitController(integrationsingle.IntegrationControllerConfig{
-		ControllerManager: mgr,
-	}); err != nil {
-		log.Errorf("Failed to start the integration controller:%v", err)
-		return err
-	}
-
-	// other modules integration controller
-	if err := integrationcascade.InitController(integrationcascade.IntegrationControllerConfig{
-		ControllerManager: mgr,
-	}); err != nil {
-		log.Errorf("Failed to start the integration controller:%v", err)
-		return err
-	}
-
 	return nil
 }

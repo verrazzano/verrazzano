@@ -24,4 +24,3 @@ func MergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	}
 	return mergedMap, updated
 }
-

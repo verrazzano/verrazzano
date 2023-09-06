@@ -25,8 +25,6 @@ import (
 	"time"
 )
 
-var unitesting bool
-
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based installation.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
@@ -134,7 +132,7 @@ func (r *Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR
 		return nil
 	}
 
-	cond := newCondition(fmt.Sprintf("Verrazzano install is in progress"), vzv1alpha1.CondInstallStarted)
+	cond := newCondition("Verrazzano install is in progress", vzv1alpha1.CondInstallStarted)
 	conditions = append(conditions, cond)
 
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
@@ -157,7 +155,7 @@ func (r *Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actual
 		return nil
 	}
 
-	cond := newCondition(fmt.Sprintf("Verrazzano uninstall is in progress"), vzv1alpha1.CondUninstallStarted)
+	cond := newCondition("Verrazzano uninstall is in progress", vzv1alpha1.CondUninstallStarted)
 	conditions := append(actualCR.Status.Conditions, cond)
 
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
@@ -216,17 +214,17 @@ func (r *Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Ver
 
 // updateStatusInstallComplete updates the status condition and state for install complete
 func (r *Reconciler) updateStatusInstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
-	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano install complete"), vzv1alpha1.CondInstallComplete)
+	return r.updateStatusComplete(actualCR, "Verrazzano install complete", vzv1alpha1.CondInstallComplete)
 }
 
 // updateStatusUninstallComplete updates the status condition and state for uninstall complete
 func (r *Reconciler) updateStatusUninstallComplete(actualCR *vzv1alpha1.Verrazzano) error {
-	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano uninstall complete"), vzv1alpha1.CondUninstallComplete)
+	return r.updateStatusComplete(actualCR, "Verrazzano uninstall complete", vzv1alpha1.CondUninstallComplete)
 }
 
 // updateStatusInstallComplete updates the status condition and state for upgrade complete
 func (r *Reconciler) updateStatusUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) error {
-	return r.updateStatusComplete(actualCR, fmt.Sprintf("Verrazzano upgrade complete"), vzv1alpha1.CondUpgradeComplete)
+	return r.updateStatusComplete(actualCR, "Verrazzano upgrade complete", vzv1alpha1.CondUpgradeComplete)
 }
 
 // updateStatusInstallComplete updates the status condition and state for install complete
