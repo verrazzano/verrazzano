@@ -74,6 +74,11 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoCABundleCopies() (ctrl.
 		return newRequeueWithDelay(), otherErr
 	}
 
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	if result, err := r.initLogger(client.ObjectKeyFromObject(privateBundleSecret), privateBundleSecret); err != nil {
+		return result, err
+	}
+
 	// Update the Rancher TLS CA secret
 	result, err := r.updateSecret(vzconst.RancherSystemNamespace, vzconst.RancherTLSCA,
 		vzconst.RancherTLSCAKey, vzconst.CABundleKey, privateBundleSecret, false)
