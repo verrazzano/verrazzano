@@ -228,6 +228,7 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	// apply registration yaml to managed cluster
 	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
 	err = yamlApplier.ApplyS(registryYaml)
@@ -235,6 +236,19 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
 		return ctrl.Result{}, err
 	}
+
+	// get and label the cattle-system namespace
+	ns := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: common.CattleSystem}}
+	if _, err := ctrl.CreateOrUpdate(context.TODO(), workloadClient, ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels[constants.LabelVerrazzanoNamespace] = common.CattleSystem
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, err
+	}
+	
 	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationInitiated)
 	if err != nil {
 		r.Log.Infof("Failed to perist cluster status")
