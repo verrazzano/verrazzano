@@ -75,7 +75,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
 		} else {
 			var rancherYAML string
-			rancherYAML, clusterID, err = RegisterManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
+			rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
 			if err != nil {
 				msg := "Failed to register managed cluster with Rancher"
 				// Even if there was a failure, if the cluster id was retrieved and is currently empty
