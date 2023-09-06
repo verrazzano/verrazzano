@@ -16,7 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
-	resource2 "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -123,7 +123,7 @@ func (r Reconciler) PostRemoveFinalizer(spictx controllerspi.ReconcileContext, u
 
 // preUninstall does all the global preUninstall
 func (r Reconciler) preUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	if res := resource2.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
+	if res := custom.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
 	}
 
@@ -192,11 +192,11 @@ func (r *Reconciler) postUninstallCleanup(ctx spi.ComponentContext) result.Resul
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
 	// installed explicitly.
 	if !rancherProvisioned {
-		if err := r.runRancherPostUninstall(ctx); err != nil {
+		if err := custom.RunRancherPostUninstall(ctx); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
-	return r.deleteNamespaces(ctx, rancherProvisioned)
+	return custom.DeleteNamespaces(ctx, rancherProvisioned)
 }
 
 // deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster

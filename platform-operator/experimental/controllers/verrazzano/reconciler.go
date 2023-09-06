@@ -22,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/util"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -128,7 +127,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 
 	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
 	// admin cluster without needing a VMC.
-	if err := r.syncLocalRegistrationSecret(); err != nil {
+	if err := custom.SyncLocalRegistrationSecret(r.Client); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -138,7 +137,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	r.createRancherIngressAndCertCopies(spiCtx)
+	custom.CreateRancherIngressAndCertCopies(spiCtx)
 
 	return result.NewResult()
 }

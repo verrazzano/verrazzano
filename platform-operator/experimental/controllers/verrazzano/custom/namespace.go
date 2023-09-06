@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +68,7 @@ func CreateVerrazzanoSystemNamespace(cli client.Client, cr *installv1alpha1.Verr
 			return err
 		}
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
-		vzSystemNS.Labels, _ = util.MergeMaps(nil, systemNamespaceLabels)
+		vzSystemNS.Labels, _ = MergeMaps(nil, systemNamespaceLabels)
 		log.Oncef("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
 		if err := cli.Create(context.TODO(), &vzSystemNS); err != nil {
 			log.Errorf("Failed to create namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
@@ -81,7 +80,7 @@ func CreateVerrazzanoSystemNamespace(cli client.Client, cr *installv1alpha1.Verr
 	// Namespace exists, see if we need to add the label
 	log.Oncef("Updating Verrazzano system namespace")
 	var updated bool
-	vzSystemNS.Labels, updated = util.MergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
+	vzSystemNS.Labels, updated = MergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
 	if !updated {
 		return nil
 	}
@@ -107,9 +106,9 @@ func DeleteNamespace(cli client.Client, log vzlog.VerrazzanoLogger, namespace st
 	return nil
 }
 
-// deleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
+// DeleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
 // - returns an error or a requeue with delay result
-func deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
+func DeleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
 	log := ctx.Log()
 	// check on whether cluster is OCNE container driver provisioned
 	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
