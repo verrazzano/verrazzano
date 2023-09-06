@@ -11,12 +11,15 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	vpovzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -134,6 +137,15 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 
 // postWork does all the global post-work for install and upgrade
 func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	if r.isUpgrading(actualCR) {
+		return r.postUpgrade(log, actualCR)
+	} else {
+		return r.postInstallUpdate(log, actualCR)
+	}
+}
+
+// postInstallUpdate does all the global post-work for install and update
+func (r Reconciler) postInstallUpdate(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
 	spiCtx, err := componentspi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -142,6 +154,7 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
 	if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -149,12 +162,47 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 	return result.NewResult()
 }
 
-func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
-	if !r.isUpgrading(actualCR) {
-		if err := r.updateStatusInstalling(log, actualCR); err != nil {
+// postUpgrade does all the global post-work for upgrade
+func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
+	spiCtx, err := componentspi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := restart.RestartComponents(vpovzlog.DefaultLogger(), config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade Rancher configure auth providers: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := restart.RestartComponents(vpovzlog.DefaultLogger(), config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	log.Oncef("Doing post-upgrade MySQL cleanup")
+	if err := mysql.PostUpgradeCleanup(vpovzlog.DefaultLogger(), spiCtx.Client()); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade MySQL cleanup: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if !r.areModulesDoneReconciling(log, actualCR) {
+		log.Progress("Waiting for modules to be done in Verrazzano post-upgrade processing")
+		return result.NewResultShortRequeueDelay()
+	}
+
+	if vzcr.IsApplicationOperatorEnabled(spiCtx.EffectiveCR()) && vzcr.IsIstioEnabled(spiCtx.EffectiveCR()) {
+		err := restart.RestartApps(vpovzlog.DefaultLogger(), r.Client, actualCR.Generation)
+		if err != nil {
+			log.ErrorfThrottled("Failed Verrazzano post-upgrade application restarts: %v", err)
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+
 	return result.NewResult()
 }
 

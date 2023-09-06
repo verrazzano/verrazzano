@@ -85,6 +85,15 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actua
 	return result.NewResult()
 }
 
+func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
+	if !r.isUpgrading(actualCR) {
+		if err := r.updateStatusInstalling(log, actualCR); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
+	return result.NewResult()
+}
+
 // isUpgrading returns true if spec indicates upgrade.
 func (r *Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
 	return actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version
