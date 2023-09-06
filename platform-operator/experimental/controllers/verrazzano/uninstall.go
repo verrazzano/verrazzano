@@ -52,7 +52,14 @@ func (r Reconciler) doUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 
 // postUninstall does all the global postUninstall
 func (r Reconciler) postUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	spiCtx, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
 
+	if res := r.postUninstallCleanup(spiCtx); res.ShouldRequeue() {
+		return res
+	}
 	return result.NewResult()
 }
 
@@ -209,7 +216,12 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
+func (r *Reconciler) postUninstallCleanup(ctx spi.ComponentContext) result.Result {
+	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
 	if err := r.deleteIstioCARootCert(ctx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
