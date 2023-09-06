@@ -48,6 +48,8 @@ type (
 		CommonOCI `json:",inline"`
 		// Control Plane node settings.
 		ControlPlane OCINode `json:"controlPlane"`
+		// +optional
+
 		// List of worker nodes.
 		Workers []NamedOCINode `json:"workers"`
 		// +kubebuilder:default:={createVCN: false}
