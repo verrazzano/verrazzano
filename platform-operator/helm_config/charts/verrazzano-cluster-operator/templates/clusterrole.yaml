@@ -129,10 +129,27 @@ rules:
     verbs:
       - get
   - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+      - controlplane.cluster.x-k8s.io
+      - bootstrap.cluster.x-k8s.io
+      - addons.cluster.x-k8s.io
+    resources:
+      - ociclusters
+      - ocimachinetemplates
+      - ocnecontrolplanes
+      - ocneconfigtemplates
+      - clusterresourcesets
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
       - cluster.x-k8s.io
     resources:
       - clusters
+      - machinedeployments
     verbs:
+      - create
       - update
       - get
       - list

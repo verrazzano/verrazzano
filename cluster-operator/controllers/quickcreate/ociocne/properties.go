@@ -90,10 +90,13 @@ func (p *Properties) ApplyTemplate(cli clipkg.Client, templates ...[]byte) error
 
 // HasOCINetwork returns true if the OCI Network is present
 func (p *Properties) HasOCINetwork() bool {
-	return p.Network != nil
+	return p.Network != nil && len(p.LoadBalancerSubnet) > 0
 }
 
 func (p *Properties) IsQuickCreate() bool {
+	if p.Network == nil {
+		return true
+	}
 	return p.Network.CreateVCN
 }
 
