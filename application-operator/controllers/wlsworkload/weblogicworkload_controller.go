@@ -371,11 +371,15 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 	}
 
 	// Create or update Cluster resources
-	for i := range *cus {
-		if err = r.createOrUpdateResource(ctx, workload, log, &((*cus)[i]), func(_ interface{}) error {
+	for i := range cus {
+		if err = r.createOrUpdateResource(ctx, workload, log, cus[i], func(specCopy interface{}) error {
+			if err := unstructured.SetNestedField(cus[i].Object, specCopy, specField); err != nil {
+				return err
+			}
+
 			return nil
 		}); err != nil {
-			log.Errorf("Failed creating or updating WebLogic CR: %v", err)
+			log.Errorf("Failed creating or updating WebLogic cluster CR: %v", err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -397,7 +401,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 
 		return nil
 	}); err != nil {
-		log.Errorf("Failed creating or updating WebLogic CR: %v", err)
+		log.Errorf("Failed creating or updating WebLogic domaiin CR: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -424,8 +428,8 @@ func (r *Reconciler) initializeDomain(workload *vzapi.VerrazzanoWebLogicWorkload
 	return &u, nil
 }
 
-func (r *Reconciler) initializeClusters(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (*[]unstructured.Unstructured, error) {
-	var clus []unstructured.Unstructured
+func (r *Reconciler) initializeClusters(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) ([]*unstructured.Unstructured, error) {
+	var clus []*unstructured.Unstructured
 	for i := range workload.Spec.Clusters {
 		var u unstructured.Unstructured
 		err := r.initializeResource(&u, workload, &workload.Spec.Clusters[i], log)
@@ -437,10 +441,10 @@ func (r *Reconciler) initializeClusters(workload *vzapi.VerrazzanoWebLogicWorklo
 			u.SetAPIVersion(APIVersionV1)
 		}
 		u.SetKind(ClusterKind)
-		clus = append(clus, u)
+		clus = append(clus, &u)
 	}
 
-	return &clus, nil
+	return clus, nil
 }
 
 func (r *Reconciler) initializeResource(u *unstructured.Unstructured, workload *vzapi.VerrazzanoWebLogicWorkload, resource *vzapi.VerrazzanoWebLogicWorkloadTemplate, log vzlog.VerrazzanoLogger) error {
