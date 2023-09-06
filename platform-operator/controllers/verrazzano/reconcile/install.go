@@ -32,9 +32,6 @@ const (
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
 
-	// vzStateWaitModulesReady wait for components installed using Modules to be ready
-	vzStateWaitModulesReady reconcileState = "vzWaitModulesReady"
-
 	// vzStatePostInstall is the global PostInstall state
 	vzStatePostInstall reconcileState = "vzPostInstall"
 
@@ -150,15 +147,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
 			if err != nil || res.Requeue {
 				return res, err
-			}
-			tracker.vzState = vzStateWaitModulesReady
-
-		case vzStateWaitModulesReady:
-			if !preUpgrade {
-				ready, err := r.modulesReady(spiCtx)
-				if err != nil || !ready {
-					return ctrl.Result{Requeue: true}, err
-				}
 			}
 			tracker.vzState = vzStatePostInstall
 
