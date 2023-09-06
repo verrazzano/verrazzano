@@ -74,3 +74,6 @@ priorityClassName: ""
 # options: Always, Never, IfNotPresent
 # Defaults to Always
 imagePullPolicy: "Always"
+
+psp:
+  enabled: false
