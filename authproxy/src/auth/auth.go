@@ -47,6 +47,7 @@ type verifier interface {
 	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
 }
 
+// NewAuthenticator returns a new OIDC authenticator with an initialized verifier
 func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, client k8sclient.Client) (*OIDCAuthenticator, error) {
 	authenticator := &OIDCAuthenticator{
 		Log:        log,
@@ -63,6 +64,8 @@ func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, cli
 	return authenticator, nil
 }
 
+// AuthenticateRequest performs login redirect if the authorization header is not provided.
+// If the header is provided, the bearer token is validated against the OIDC key
 func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error) {
 	authHeader := req.Header.Get(authHeaderKey)
 
@@ -87,6 +90,7 @@ func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respon
 	return a.AuthenticateToken(req.Context(), token)
 }
 
+// AuthenticateToken verifies a given bearer token against the OIDC key and verifies the issuer is correct
 func (a OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string) (bool, error) {
 	verifier := a.loadVerifier()
 
@@ -107,11 +111,12 @@ func (a OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string) 
 	return true, nil
 }
 
+// SetCallbackURL sets the OIDC Callback URL for redirects
 func (a OIDCAuthenticator) SetCallbackURL(url string) {
 	a.oidcConfig.CallbackURL = url
 }
 
-// AuthHeader returns the authorization header on the request
+// getTokenFromAuthHeader returns the bearer token from the authorization header
 func getTokenFromAuthHeader(authHeader string) (string, error) {
 	splitHeader := strings.SplitN(authHeader, " ", 2)
 
@@ -211,6 +216,8 @@ func (a OIDCAuthenticator) Verify(req *http.Request, rw http.ResponseWriter) boo
 	return true
 }
 
+// storeVerifier creates an OIDC provider using the Service URL
+// and populates the authenticator with a verifier
 func (a OIDCAuthenticator) storeVerifier() error {
 	provider, err := oidc.NewProvider(context.TODO(), a.oidcConfig.ServiceURL)
 	if err != nil {
@@ -230,6 +237,7 @@ func (a OIDCAuthenticator) storeVerifier() error {
 	return nil
 }
 
+// loadVerifier returns the stored value and casts it to a verifier object
 func (a OIDCAuthenticator) loadVerifier() verifier {
 	return a.verifier.Load().(verifier)
 }
