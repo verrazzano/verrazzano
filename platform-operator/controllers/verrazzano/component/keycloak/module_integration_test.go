@@ -15,16 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TestGetWatchDescriptors tests the GetWatchDescriptors function impl for this component
-// GIVEN a call to GetWatchDescriptors
-//
-//	WHEN a new component is created
-//	THEN the watch descriptors have the correct number of watches
-func TestGetWatchDescriptors(t *testing.T) {
-	wd := NewComponent().GetWatchDescriptors()
-	assert.Len(t, wd, 1)
-}
-
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // TestGetModuleSpec tests the GetModuleConfigAsHelmValues function impl for this component
