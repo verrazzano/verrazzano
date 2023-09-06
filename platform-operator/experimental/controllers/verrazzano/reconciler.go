@@ -26,10 +26,12 @@ import (
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -113,6 +115,19 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	if err := r.createVerrazzanoSystemNamespace(context.TODO(), effectiveCR, log); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Delete leftover MySQL backup job if we find one.
+	if err := r.cleanupMysqlBackupJob(log); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// if an OCI DNS installation, make sure the secret required exists before proceeding
+	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
+		err := r.doesOCIDNSConfigSecretExist(actualCR)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
 	}
 
 	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
@@ -339,4 +354,15 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzv1alpha1.Verrazzano) (bool, er
 		return statusVersion.IsLessThan(bomVersion), nil
 	}
 	return false, nil
+}
+
+// doesOCIDNSConfigSecretExist returns true if the DNS secret exists
+func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *vzv1alpha1.Verrazzano) error {
+	// ensure the secret exists before proceeding
+	secret := &corev1.Secret{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vzconst.VerrazzanoInstallNamespace}, secret)
+	if err != nil {
+		return err
+	}
+	return nil
 }
