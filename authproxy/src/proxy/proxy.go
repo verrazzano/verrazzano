@@ -39,7 +39,6 @@ var getConfigFunc = k8sutil.GetConfigFromController
 // AuthProxy wraps the server instance
 type AuthProxy struct {
 	http.Server
-	K8sClient client.Client
 }
 
 type handlerFuncType func(w http.ResponseWriter, r *http.Request)
@@ -88,7 +87,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		ServiceURL:  config.GetServiceURL(),
 		ClientID:    config.GetClientID(),
 	}
-	authenticator := auth.NewFakeAuthenticator(&oidcConfig, log, k8sClient)
+	authenticator := auth.NewAuthenticator(&oidcConfig, log, k8sClient)
 
 	httpClient := GetHTTPClientWithCABundle(rootCA)
 	authproxy.Handler = Handler{
@@ -134,7 +133,10 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // handleAuthCallback is the http handler for authentication callback
 func (h Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
-
+	// ingressHost := getIngressHost(req)
+	// authenticator := auth.NewAuthenticator(createOidcConfig(ingressHost), h.Log, h.K8sClient)
+	// authenticator.Verify(req, rw)
+	// set cookies
 }
 
 // handleLogout is the http handler for logout
@@ -165,7 +167,11 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 
 	h.Authenticator.SetCallbackURL(fmt.Sprintf("https://%s%s", ingressHost, callbackPath))
 	requestProcessed, err := h.Authenticator.AuthenticateRequest(req, rw)
-	if requestProcessed || err != nil {
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if requestProcessed {
 		return
 	}
 
