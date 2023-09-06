@@ -6,18 +6,18 @@ package verify
 import (
 	"context"
 	"fmt"
-	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
@@ -100,14 +100,19 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 			istio.Ingress.Kubernetes.Replicas = 3
 			istio.Egress.Kubernetes.Replicas = 3
 
-			vzclient, err := pkg.GetVerrazzanoClientset()
+			config, err := k8sutil.GetKubeConfig()
+			if err != nil {
+				t.Fail(fmt.Sprintf("Error getting kubeconfig: %s", err.Error()))
+				return
+			}
+			vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 			if err != nil {
 				t.Fail(fmt.Sprintf("Error getting Verrazzano client: %s", err.Error()))
 				return
 			}
 
 			// This should fail with a webhook validation error
-			_, err = vzclient.VerrazzanoV1alpha1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, v1.UpdateOptions{})
+			err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, vz)
 			t.Logs.Infof("Returned error: %s", err.Error())
 			Expect(err).Should(Not(BeNil()))
 		})
