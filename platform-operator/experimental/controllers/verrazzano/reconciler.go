@@ -139,15 +139,14 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 	if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := r.forceSyncComponentReconciledGeneration(spiCtx.ActualCR()); err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
 
+	// Set complete status
 	if r.isUpgrading(actualCR) {
 		r.updateStatusUpgradeComplete(actualCR)
 	} else {
 		r.updateStatusInstallComplete(actualCR)
 	}
+
 
 	return result.NewResult()
 }

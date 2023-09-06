@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -228,10 +227,14 @@ func (r *Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg s
 		}
 	}
 
+	// Make sure all components have the correct reconciled generation
+	compponents := r.forceSyncComponentReconciledGeneration(actualCR)
+
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: actualCR,
 		Conditions: conditions,
 		Version:    &version,
+		Components: compponents,
 		State:      vzv1alpha1.VzStateReady,
 	})
 	return nil
@@ -318,11 +321,7 @@ func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actua
 
 // forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
 // this is applied at the end of a successful VZ CR reconcile.
-func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1.Verrazzano) error {
-	if !config.Get().ModuleIntegration {
-		// only do this with modules integration enabled
-		return nil
-	}
+func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1.Verrazzano) map[string]*vzv1alpha1.ComponentStatusDetails {
 	componentsToUpdate := map[string]*vzv1alpha1.ComponentStatusDetails{}
 	for compName, componentStatus := range actualCR.Status.Components {
 		if componentStatus.State == vzv1alpha1.CompStateReady {
@@ -330,11 +329,7 @@ func (r *Reconciler) forceSyncComponentReconciledGeneration(actualCR *vzv1alpha1
 			componentsToUpdate[compName] = componentStatus
 		}
 	}
-	// Update the status with the new version and component generations
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Components: componentsToUpdate,
-	})
-	return nil
+	return componentsToUpdate
 }
 
 func getBomVersion() (string, error) {
