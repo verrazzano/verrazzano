@@ -6,6 +6,8 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -68,6 +70,21 @@ func (r *Reconciler) mutateLocalRegistrationSecret(secret *corev1.Secret) error 
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
 		constants2.ManagedClusterNameKey: []byte(constants.MCLocalCluster),
+	}
+	return nil
+}
+
+// deleteSecret deletes a Kubernetes secret
+func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+	}
+	log.Oncef("Deleting multicluster secret %s:%s", namespace, name)
+	if err := r.Client.Delete(context.TODO(), &secret); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
 	}
 	return nil
 }

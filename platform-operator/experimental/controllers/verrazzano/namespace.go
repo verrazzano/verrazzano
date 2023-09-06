@@ -2,13 +2,15 @@ package verrazzano
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // systemNamespaceLabels the verrazzano-system namespace labels required
@@ -55,6 +57,21 @@ func (r Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *ins
 	}
 	if err := r.Client.Update(ctx, &vzSystemNS); err != nil {
 		log.Errorf("Failed to update namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
+		return err
+	}
+	return nil
+}
+
+// deleteNamespace deletes a namespace
+func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string) error {
+	ns := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace, // required by the controller Delete call
+		},
+	}
+	err := r.Client.Delete(ctx, &ns, &client.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Failed deleting namespace %s: %v", ns.Name, err)
 		return err
 	}
 	return nil

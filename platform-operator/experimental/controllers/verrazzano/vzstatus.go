@@ -9,8 +9,7 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
-	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
-	vpovzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -34,7 +33,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actua
 		actualCR.Status.Components = make(map[string]*vzv1alpha1.ComponentStatusDetails)
 	}
 
-	newContext, err := spi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
+	newContext, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -302,7 +301,7 @@ func findConditionByType(conditions []vzv1alpha1.Condition, condType vzv1alpha1.
 // areModulesDoneReconciling returns true if modules are ready, this includes deleted modules being removed.
 func (r *Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) bool {
 	for _, comp := range registry.GetComponents() {
-		compCtx, err := spi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, false)
+		compCtx, err := spi.NewContext(log, r.Client, actualCR, nil, false)
 		if err != nil {
 			compCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false

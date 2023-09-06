@@ -9,7 +9,7 @@ import (
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulehelm "github.com/verrazzano/verrazzano-modules/pkg/helm"
-	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	modulelog "github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
