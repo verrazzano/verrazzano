@@ -21,7 +21,7 @@ type valuesConfig struct {
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
-func (f fluentdComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
+func (c fluentdComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
 	if effectiveCR == nil {
 		return nil, nil
 	}

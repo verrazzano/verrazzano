@@ -33,6 +33,6 @@ func (c ThanosComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verra
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (t ThanosComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+func (c ThanosComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName})
 }
