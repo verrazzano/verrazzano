@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -93,13 +94,11 @@ func UpdateCR(m CRModifier) error {
 		return err
 	}
 	addWarningHandlerIfNecessary(m, config)
-	client, err := vpoClient.NewForConfig(config)
+	vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 	if err != nil {
 		return err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	return err
+	return verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr)
 }
 
 // UpdateCRV1beta1WithRetries updates the CR with the given CRModifierV1beta1.
@@ -222,14 +221,12 @@ func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, polli
 			return false
 		}
 		addWarningHandlerIfNecessary(m, config)
-		client, err := vpoClient.NewForConfig(config)
+		vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-		if err != nil {
+		if err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
@@ -265,14 +262,12 @@ func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, polling
 			return false
 		}
 		addWarningHandlerIfNecessary(m, config)
-		client, err := vpoClient.NewForConfig(config)
+		vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-		if err != nil {
+		if err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
@@ -305,14 +300,12 @@ func UpdateCRExpectError(m CRModifier) error {
 		return err
 	}
 	addWarningHandlerIfNecessary(m, config)
-	client, err := vpoClient.NewForConfig(config)
+	vzClient, err := pkg.GetV1Beta1ControllerRuntimeClient(config)
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	if err != nil {
+	if verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
@@ -341,7 +334,7 @@ func IsCRReadyAfterUpdate(cr *v1beta1.Verrazzano, updatedTime time.Time) bool {
 			}
 		}
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not find condition of type '%s' or '%s', transitioned after '%s'",
-			vzapi.CondInstallComplete, vzapi.CondUpgradeComplete, updatedTime.String()))
+			v1beta1.CondInstallComplete, v1beta1.CondUpgradeComplete, updatedTime.String()))
 	}
 	// Return true if the state is ready and there are no conditions updated in the status.
 	return len(cr.Status.Conditions) == 0

@@ -34,13 +34,15 @@ type OKEQuickCreateList struct {
 type (
 	OKEQuickCreateSpec struct {
 		CommonClusterSpec `json:",inline"`
+		// Kubernetes settings.
+		Kubernetes `json:"kubernetes"`
 		// OKE Cluster settings.
 		OKESpec `json:"oke,omitempty"`
 	}
 	OKESpec struct {
 		CommonOCI `json:",inline"`
 		// List of Node pools.
-		NodePools []NodeConfig `json:"nodePools,omitempty"`
+		NodePools []NamedOCINode `json:"nodePools,omitempty"`
 		// List of Virtual Node pools.
 		VirtualNodePools []VirtualNodePool `json:"virtualNodePools,omitempty"`
 		// Network settings for the OKE Cluster.

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,11 +78,13 @@ func TestServeHTTP(t *testing.T) {
 				w.Header().Add(contentTypeHeader, runtime.ContentTypeJSON)
 			}))
 			defer server.Close()
-
+			c := fake.NewClientBuilder().Build()
+			oidcConfig := auth.OIDCConfiguration{}
 			handler := Handler{
-				URL:    server.URL,
-				Client: retryablehttp.NewClient(),
-				Log:    zap.S(),
+				URL:           server.URL,
+				Client:        retryablehttp.NewClient(),
+				Log:           zap.S(),
+				Authenticator: auth.NewFakeAuthenticator(&oidcConfig, zap.S(), c),
 			}
 
 			url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
