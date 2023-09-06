@@ -9,6 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -30,6 +32,23 @@ import (
 )
 
 const finalizerName = "install.verrazzano.io"
+
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
+	istioRootCertName   = "istio-ca-root-cert"
+)
+
+// sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
+var sharedNamespaces = []string{
+	vzconst.VerrazzanoMonitoringNamespace,
+	constants.CertManagerNamespace,
+	constants.VerrazzanoSystemNamespace,
+	vzconst.KeycloakNamespace,
+	monitoringNamespace,
+}
 
 // GetName returns the name of the finalizer
 func (r Reconciler) GetName() string {
@@ -291,4 +310,86 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 		return false, log.ErrorfNewErr("Failed to fetch the multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
 	}
 	return true, nil
+}
+
+// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
+	if err := r.deleteIstioCARootCert(ctx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Run Rancher Post Uninstall explicitly to delete any remaining Rancher resources; this may be needed in case
+	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
+	// installed explicitly.
+	if !rancherProvisioned {
+		if err := r.runRancherPostUninstall(ctx); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
+	return r.deleteNamespaces(ctx, rancherProvisioned)
+}
+
+// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
+func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
+	namespaces := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &namespaces)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the cluster namespaces: %v", err)
+	}
+
+	for _, ns := range namespaces.Items {
+		err := resource.Resource{
+			Name:      istioRootCertName,
+			Namespace: ns.GetName(),
+			Client:    r.Client,
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) runRancherPostUninstall(ctx spi.ComponentContext) error {
+	// Look up the Rancher component and call PostUninstall explicitly, without checking if it's installed;
+	// this is to catch any lingering managed cluster resources
+	if found, comp := registry.FindComponent(rancher.ComponentName); found {
+		err := comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
+		if err != nil {
+			ctx.Log().Once("Waiting for Rancher post-uninstall cleanup to be done")
+			return err
+		}
+	}
+	return nil
+}
+
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

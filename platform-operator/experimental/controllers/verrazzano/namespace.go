@@ -2,9 +2,17 @@ package verrazzano
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -75,4 +83,73 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLo
 		return err
 	}
 	return nil
+}
+
+// deleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
+// - returns an error or a requeue with delay result
+func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
+	log := ctx.Log()
+	// check on whether cluster is OCNE container driver provisioned
+	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
+	if err != nil {
+		return result.NewResult()
+	}
+	// Load a set of all component namespaces plus shared namespaces
+	nsSet := make(map[string]bool)
+	for _, comp := range registry.GetComponents() {
+		// Don't delete the rancher component namespace if cluster was provisioned by Rancher.
+		if (rancherProvisioned || ocneContainerDriverProvisioned) && comp.Namespace() == rancher.ComponentNamespace {
+			continue
+		}
+		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
+			log.Oncef("Cert-Manager not enabled, skip namespace cleanup")
+			continue
+		}
+		nsSet[comp.Namespace()] = true
+	}
+	for i, ns := range sharedNamespaces {
+		if ns == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
+			log.Oncef("Cert-Manager not enabled, skip namespace cleanup")
+			continue
+		}
+		nsSet[sharedNamespaces[i]] = true
+	}
+
+	// Delete all the namespaces
+	for ns := range nsSet {
+		// Clean up any remaining CM resources in Verrazzano-managed namespaces
+		if err := cmissuer.UninstallCleanup(ctx.Log(), ctx.Client(), ns); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+		err := resource.Resource{
+			Name:   ns,
+			Client: r.Client,
+			Object: &corev1.Namespace{},
+			Log:    log,
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			ctx.Log().Errorf("Error during namespace deletion: %v", err)
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
+
+	// Wait for all the namespaces to be deleted
+	waiting := false
+	for ns := range nsSet {
+		err := r.Client.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+		waiting = true
+		log.Oncef("Waiting for namespace %s to terminate", ns)
+	}
+	if waiting {
+		log.Oncef("Namespace terminations still in progress")
+		return result.NewResultShortRequeueDelay()
+	}
+	log.Once("Namespaces terminated successfully")
+	return result.NewResult()
 }
