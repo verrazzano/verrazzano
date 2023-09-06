@@ -328,7 +328,7 @@ func TestSecretNotFound(t *testing.T) {
 	for i, tt := range tests {
 		asserts := assert.New(t)
 		cli := fake.NewClientBuilder().WithObjects(&testVZ).WithScheme(newScheme()).Build()
-
+		config.Set(config.OperatorConfig{CloudCredentialWatchEnabled: false})
 		config.TestProfilesDir = "../../manifests/profiles"
 		defer func() { config.TestProfilesDir = "" }()
 
