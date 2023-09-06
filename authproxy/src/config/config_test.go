@@ -79,6 +79,9 @@ func TestInitConfiguration(t *testing.T) {
 	err = os.WriteFile(externalURLFilename, []byte(newTestExternalURL), 0)
 	assert.NoError(t, err)
 
+	err = os.WriteFile(clientIDFilename, []byte(newTestClientID), 0)
+	assert.NoError(t, err)
+
 	updated := eventually(func() bool { return GetServiceURL() == newTestServiceURL })
 	assert.True(t, updated, "Expected service URL to be updated")
 
