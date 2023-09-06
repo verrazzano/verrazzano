@@ -11,8 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -158,9 +156,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-				if err := r.forceSyncComponentReconciledGeneration(spiCtx); err != nil {
-					return newRequeueWithDelay(), err
-				}
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}
@@ -208,29 +203,6 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
-}
-
-// forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
-// this is applied at the end of a successful VZ CR reconcile.
-func (r *Reconciler) forceSyncComponentReconciledGeneration(ctx spi.ComponentContext) error {
-	if !config.Get().ModuleIntegration {
-		// only do this with modules integration enabled
-		return nil
-	}
-	actualCR := ctx.ActualCR()
-	componentsToUpdate := map[string]*vzapi.ComponentStatusDetails{}
-	for compName, componentStatus := range actualCR.Status.Components {
-		if componentStatus.State == vzapi.CompStateReady && r.monitorChanges(ctx, compName) {
-			ctx.Log().Debugf("Updating last reconciled generation for %s", compName)
-			componentStatus.LastReconciledGeneration = actualCR.Generation
-			componentsToUpdate[compName] = componentStatus
-		}
-	}
-	// Update the status with the new version and component generations
-	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
-		Components: componentsToUpdate,
-	})
-	return nil
 }
 
 func (r *Reconciler) monitorChanges(ctx spi.ComponentContext, compName string) bool {
