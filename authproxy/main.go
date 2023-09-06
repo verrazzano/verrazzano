@@ -52,7 +52,7 @@ func main() {
 	}
 
 	log.Info("Configuring the proxy Kubernetes API client")
-	err = proxy.ConfigureKubernetesAPIProxy(authproxy, mgr.GetClient(), log)
+	err = proxy.ConfigureKubernetesAPIProxy(authproxy, log)
 	if err != nil {
 		os.Exit(1)
 	}

@@ -181,3 +181,88 @@ func randomBase64(size int) (string, error) {
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
+
+const authHeaderKey = "Authorization"
+
+type OIDCAuthenticator struct {
+	Log         *zap.SugaredLogger
+	serviceURL  string
+	externalURL string
+	client      *retryablehttp.Client
+	clientID    string
+	verifier    atomic.Value
+}
+
+func NewAuthenticator(log *zap.SugaredLogger) (*OIDCAuthenticator, error) {
+	authenticator := &OIDCAuthenticator{
+		Log:         log,
+		serviceURL:  "http://keycloak-http.keycloak.svc.cluster.local/auth/realms/verrazzano-system",
+		externalURL: "https://keycloak.default.172.18.0.231.nip.io/auth/realms/verrazzano-system",
+		client:      client.GetHTTPClientWithCABundle(&x509.CertPool{}),
+		clientID:    "verrazzano-pg",
+	}
+
+	if err := authenticator.storeVerifier(); err != nil {
+		log.Errorf("Failed to load verifier for the authenticator: %v", err)
+		return nil, err
+	}
+
+	return authenticator, nil
+}
+
+func (a *OIDCAuthenticator) AuthenticateRequest(req *http.Request) (bool, error) {
+	authHeader := strings.TrimSpace(req.Header.Get(authHeaderKey))
+	splitHeader := strings.SplitN(authHeader, " ", 2)
+
+	if len(splitHeader) < 2 || strings.ToLower(splitHeader[0]) != "bearer" {
+		err := fmt.Errorf("failed to verify authorization bearer header")
+		a.Log.Errorf("Failed to verify that authorization header had correct bearer format: %v", err)
+		return false, err
+	}
+
+	return a.AuthenticateToken(req.Context(), splitHeader[1])
+}
+
+func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string) (bool, error) {
+	verifier := a.loadVerifier()
+
+	idToken, err := verifier.Verify(ctx, token)
+	if err != nil {
+		a.Log.Errorf("Failed to verify JWT token: %v", err)
+		return false, err
+	}
+
+	// Do issuer check for external URL
+	// This is skipped in the go-oidc package because it could be the service or the ingress
+	if idToken.Issuer != a.externalURL || idToken.Issuer != a.serviceURL {
+		err := fmt.Errorf("failed to verify issuer, got %s, expected %s or %s", idToken.Issuer, a.serviceURL, a.externalURL)
+		a.Log.Errorf("Failed to validate JWT issuer: %v", err)
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (a *OIDCAuthenticator) storeVerifier() error {
+	provider, err := oidc.NewProvider(context.TODO(), a.serviceURL)
+	if err != nil {
+		a.Log.Errorf("Failed to load OIDC provider: %v", err)
+		return err
+	}
+
+	config := &oidc.Config{
+		ClientID:             a.clientID,
+		SkipIssuerCheck:      true,
+		SupportedSigningAlgs: []string{oidc.RS256},
+		Now:                  time.Now,
+	}
+
+	verifier := provider.Verifier(config)
+	a.verifier.Store(verifier)
+	return nil
+}
+
+func (a *OIDCAuthenticator) loadVerifier() *oidc.IDTokenVerifier {
+	verifier := a.verifier.Load()
+	return verifier.(*oidc.IDTokenVerifier)
+}
