@@ -46,13 +46,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Errorf("Failed starting controller-runtime manager: %v", err)
-		os.Exit(1)
-	}
+	log.Info("Starting manager")
+	go func() {
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			log.Errorf("Failed starting controller-runtime manager: %v", err)
+			os.Exit(1)
+		}
+	}()
 
 	log.Info("Configuring the proxy Kubernetes API client")
-	err = proxy.ConfigureKubernetesAPIProxy(authproxy, log)
+	err = proxy.ConfigureKubernetesAPIProxy(authproxy, mgr.GetClient(), log)
 	if err != nil {
 		os.Exit(1)
 	}
