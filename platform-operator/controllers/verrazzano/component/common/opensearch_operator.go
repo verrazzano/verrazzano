@@ -13,16 +13,17 @@ import (
 )
 
 const (
-	configName         = "securityconfig-secret"
-	configNamespace    = "verrazzano-logging"
-	securityConfigYaml = "/verrazzano/platform-operator/thirdparty/manifests/opensearch-securityconfig.yaml"
+	securitySecretName      = "securityconfig-secret"
+	securitySecretNamespace = "verrazzano-logging"
+	securityConfigYaml      = "/verrazzano/platform-operator/thirdparty/manifests/opensearch-securityconfig.yaml"
+	configYaml              = "config.yml"
+	usersYaml               = "internals_users.yml"
+	adminSecret             = "admin-credentials-secret"
 )
 
-// MergeSecurityConfigs merges a security config secret yamls and the helm
-// func MergeSecurityConfigs(actualCR *corev1.Secret, helmSecretYaml []byte) ([]byte, error) {
+// MergeSecretData merges a security config secret
 func MergeSecretData(ctx spi.ComponentContext) error {
-	// Read the contents of the first YAML file into a byte slice.
-	helmYaml, err := os.ReadFile(securityConfigYaml)
+	securityYaml, err := os.ReadFile(securityConfigYaml)
 	if err != nil {
 		return err
 	}
@@ -31,58 +32,44 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-
-	secret, err := clientset.CoreV1().Secrets(configNamespace).Get(context.TODO(), configName, metav1.GetOptions{})
+	scr, err := clientset.CoreV1().Secrets(securitySecretNamespace).Get(context.TODO(), securitySecretName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println("Error")
-		return err
-
-	}
-	// Unmarshal the first YAML data into a map[string]interface{}.
-	dataHelmSecret := make(map[string]interface{})
-	err = yaml.Unmarshal(helmYaml, &dataHelmSecret)
-	if err != nil {
-		fmt.Println("Error")
 		return err
 	}
-
+	securityYamlData := make(map[string]interface{})
+	err = yaml.Unmarshal(securityYaml, &securityYamlData)
+	if err != nil {
+		return err
+	}
 	// Get the YAML data from Helm Secret and Secret
-	configYamlHelm := getYamlData(dataHelmSecret, "config.yml")
-	configYamlSecret := getSecretData(secret, "config.yml")
+	configYamlFile, err := getYamlData(securityYamlData, configYaml)
+	configYamlSecret, err := getSecretData(scr, configYaml)
 
 	// Unmarshal the YAML data into maps
-	dataHelmConfig, err := unmarshalYAML(configYamlHelm)
+	dataFileConfig, err := unmarshalYAML(configYamlFile)
 	if err != nil {
-		fmt.Println("Error")
 		return err
 	}
 	dataSecretConfig, err := unmarshalYAML(configYamlSecret)
 	if err != nil {
-		fmt.Println("Error")
 		return err
 	}
-	// Merge the config.yml data
-	mergedConfig, err := mergeConfigData(dataSecretConfig, dataHelmConfig)
+	mergedConfig, err := mergeConfigYamlData(dataSecretConfig, dataFileConfig)
 	if err != nil {
-		fmt.Println("Error")
 		return err
 	}
-	// Convert the merged data back to YAML format
 	mergedConfigYAML, err := yaml.Marshal(mergedConfig)
 	if err != nil {
-		fmt.Println("Error")
 		return err
 	}
 
 	// Update the secret with the merged config data
-	secret.Data["config.yml"] = mergedConfigYAML
+	scr.Data[configYaml] = mergedConfigYAML
 
-	// Get the YAML data from Helm Secret and Secret
-	usersYamlHelm := getYamlData(dataHelmSecret, "internal_users.yml")
-	usersYamlSecret := getSecretData(secret, "internal_users.yml")
+	usersYamlFile, err := getYamlData(securityYamlData, usersYaml)
+	usersYamlSecret, err := getSecretData(scr, usersYaml)
 
-	// Unmarshal the YAML data into maps
-	dataHelmUsers, err := unmarshalYAML(usersYamlHelm)
+	dataHelmUsers, err := unmarshalYAML(usersYamlFile)
 	if err != nil {
 		return err
 	}
@@ -90,42 +77,42 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	adminSecret, err := clientset.CoreV1().Secrets(configNamespace).Get(context.TODO(), "admin-credentials-secret", metav1.GetOptions{})
-	if err != nil {
-		fmt.Println("Error")
-		return err
-	}
-	adminHash := getAdminHash(adminSecret)
-	// Merge the config.yml data
-	mergedUsers, err := mergeUserData(dataSecretUsers, dataHelmUsers, adminHash)
+	adminSecret, err := clientset.CoreV1().Secrets(securitySecretNamespace).Get(context.TODO(), adminSecret, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-
-	// Convert the merged data back to YAML format
+	adminHash, err := getAdminHash(adminSecret)
+	// Merge the internal_users.yml data
+	mergedUsers, err := mergeUserYamlData(dataHelmUsers, dataSecretUsers, adminHash)
+	if err != nil {
+		return err
+	}
 	mergedUsersYAML, err := yaml.Marshal(mergedUsers)
 	if err != nil {
 		return err
 	}
-
 	// Assign the YAML byte slice to the secret data
-	secret.Data["config.yml"] = mergedUsersYAML
+	scr.Data[usersYaml] = mergedUsersYAML
 
-	clientset.CoreV1().Secrets(configNamespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
+	// Update the secret
+	_, err = clientset.CoreV1().Secrets(securitySecretNamespace).Update(context.TODO(), scr, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func getAdminHash(secret *corev1.Secret) string {
+func getAdminHash(secret *corev1.Secret) (string, error) {
 	hashBytes, ok := secret.Data["hash"]
 	if !ok {
 		// Handle the case where the 'hash' key is not present in the secret
-		return "" // or return an error, depending on your use case
+		return "", fmt.Errorf("hash not found")
 	}
-	return string(hashBytes)
+	return string(hashBytes), nil
 }
 
-func getSecretData(secret *corev1.Secret, yamlName string) []byte {
+func getSecretData(secret *corev1.Secret, yamlName string) ([]byte, error) {
 	var byteYaml []byte
 	for key, val := range secret.Data {
 		if key == yamlName {
@@ -133,7 +120,7 @@ func getSecretData(secret *corev1.Secret, yamlName string) []byte {
 
 		}
 	}
-	return byteYaml
+	return byteYaml, nil
 }
 func unmarshalYAML(yamlData []byte) (map[interface{}]interface{}, error) {
 	var data map[interface{}]interface{}
@@ -143,17 +130,20 @@ func unmarshalYAML(yamlData []byte) (map[interface{}]interface{}, error) {
 	return data, nil
 }
 
-func getYamlData(helmMap map[string]interface{}, yamlName string) []byte {
-	stringData := helmMap["stringData"].(map[interface{}]interface{})[yamlName].(string)
-	return []byte(stringData)
+func getYamlData(helmMap map[string]interface{}, yamlName string) ([]byte, error) {
+	stringData, ok := helmMap["stringData"].(map[interface{}]interface{})[yamlName].(string)
+	if !ok {
+		return nil, fmt.Errorf("error finding config data")
+	}
+	return []byte(stringData), nil
 }
 
-func mergeConfigData(data1, data2 map[interface{}]interface{}) (map[interface{}]interface{}, error) {
+func mergeConfigYamlData(data1, data2 map[interface{}]interface{}) (map[interface{}]interface{}, error) {
 	mergedData := make(map[string]interface{})
 	values1, ok1 := data1["config"].(map[interface{}]interface{})["dynamic"].(map[interface{}]interface{})["authc"].(map[interface{}]interface{})
 	values2, ok2 := data2["config"].(map[interface{}]interface{})["dynamic"].(map[interface{}]interface{})["authc"].(map[interface{}]interface{})
 	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("config data structure mismatch")
+		return nil, fmt.Errorf("config not found")
 	}
 	for key1, val1 := range values1 {
 		mergedData[key1.(string)] = val1
@@ -167,17 +157,14 @@ func mergeConfigData(data1, data2 map[interface{}]interface{}) (map[interface{}]
 	data1["config"].(map[interface{}]interface{})["dynamic"].(map[interface{}]interface{})["authc"] = mergedData
 	return data1, nil
 }
-func mergeUserData(data1, data2 map[interface{}]interface{}, hashFromSecret string) (map[interface{}]interface{}, error) {
+func mergeUserYamlData(data1, data2 map[interface{}]interface{}, hashFromSecret string) (map[interface{}]interface{}, error) {
 	mergedData := make(map[interface{}]interface{})
-	// Update the 'hash' field in mergedData1
 	adminData, ok := data1["admin"].(map[interface{}]interface{})
 	if !ok {
-		fmt.Println("Error")
 		return nil, fmt.Errorf("user data structure mismatch")
 	}
 	adminData["hash"] = hashFromSecret
 	for key1, val1 := range data1 {
-		fmt.Println(key1)
 		if key1 == "admin" {
 			mergedData[key1.(string)] = adminData
 		} else {
@@ -185,7 +172,7 @@ func mergeUserData(data1, data2 map[interface{}]interface{}, hashFromSecret stri
 		}
 	}
 	for key2, val2 := range data2 {
-		if _, ok := mergedData[key2.(string)]; ok {
+		if _, exists := mergedData[key2.(string)]; exists {
 			continue
 		} else {
 			mergedData[key2.(string)] = val2
