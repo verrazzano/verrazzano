@@ -248,7 +248,7 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 	}); err != nil {
 		return ctrl.Result{}, err
 	}
-	
+
 	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationInitiated)
 	if err != nil {
 		r.Log.Infof("Failed to perist cluster status")
