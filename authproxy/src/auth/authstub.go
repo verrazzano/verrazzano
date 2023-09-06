@@ -16,6 +16,7 @@ var _ Authenticator = FakeAuthenticator{nil, nil, nil}
 type Authenticator interface {
 	AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error)
 	AuthenticateToken(ctx context.Context, token string) (bool, error)
+	SetCallbackURL(url string)
 }
 
 type OIDCConfiguration struct {
@@ -45,4 +46,8 @@ func (a FakeAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respon
 // AuthenticateToken authenticates the given token
 func (a FakeAuthenticator) AuthenticateToken(ctx context.Context, token string) (bool, error) {
 	return true, nil
+}
+
+func (a FakeAuthenticator) SetCallbackURL(url string) {
+	a.oidcConfig.CallbackURL = url
 }

@@ -45,11 +45,12 @@ type handlerFuncType func(w http.ResponseWriter, r *http.Request)
 
 // Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
-	URL        string
-	Client     *retryablehttp.Client
-	Log        *zap.SugaredLogger
-	OIDCConfig map[string]string
-	K8sClient  client.Client
+	URL           string
+	Client        *retryablehttp.Client
+	Log           *zap.SugaredLogger
+	OIDCConfig    map[string]string
+	Authenticator auth.Authenticator
+	K8sClient     client.Client
 }
 
 var _ http.Handler = Handler{}
@@ -81,12 +82,19 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		return err
 	}
 
+	oidcConfig := auth.OIDCConfiguration{
+		IssuerURL: config.GetServiceURL(),
+		ClientID:  config.GetClientID(),
+	}
+	authenticator := auth.NewFakeAuthenticator(&oidcConfig, log, k8sClient)
+
 	httpClient := GetHTTPClientWithCABundle(rootCA)
 	authproxy.Handler = Handler{
-		URL:       restConfig.Host,
-		Client:    httpClient,
-		Log:       log,
-		K8sClient: k8sClient,
+		URL:           restConfig.Host,
+		Client:        httpClient,
+		Log:           log,
+		K8sClient:     k8sClient,
+		Authenticator: authenticator,
 	}
 	return nil
 }
@@ -153,13 +161,8 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	oidcConfig := auth.OIDCConfiguration{
-		IssuerURL:   config.GetServiceURL(),
-		ClientID:    config.GetClientID(),
-		CallbackURL: fmt.Sprintf("https://%s%s", ingressHost, callbackPath),
-	}
-	authenticator := auth.NewFakeAuthenticator(&oidcConfig, h.Log, h.K8sClient)
-	requestProcessed, err := authenticator.AuthenticateRequest(req, rw)
+	h.Authenticator.SetCallbackURL(fmt.Sprintf("https://%s%s", ingressHost, callbackPath))
+	requestProcessed, err := h.Authenticator.AuthenticateRequest(req, rw)
 	if requestProcessed || err != nil {
 		return
 	}
