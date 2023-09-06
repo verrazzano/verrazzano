@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/oracle/oci-go-sdk/v53/common/auth"
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,7 +20,7 @@ import (
 
 type (
 	CredentialsLoader interface {
-		GetCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef vmcv1alpha1.NamespacedRef, namespace string) (*Credentials, error)
+		GetCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef types.NamespacedName, namespace string) (*Credentials, error)
 	}
 	CredentialsLoaderImpl struct{}
 	Credentials           struct {
@@ -69,7 +68,7 @@ const (
 
 // GetCredentialsIfAllowed fetches the OCI Credentials for an OCIClusterIdentity, if that OCIClusterIdentity exists, has a principal secret,
 // and allows access from a given namespace.
-func (c CredentialsLoaderImpl) GetCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef vmcv1alpha1.NamespacedRef, namespace string) (*Credentials, error) {
+func (c CredentialsLoaderImpl) GetCredentialsIfAllowed(ctx context.Context, cli clipkg.Client, identityRef types.NamespacedName, namespace string) (*Credentials, error) {
 	nsn := types.NamespacedName{
 		Name:      identityRef.Name,
 		Namespace: identityRef.Namespace,
