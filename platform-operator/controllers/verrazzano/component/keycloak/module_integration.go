@@ -18,8 +18,8 @@ import (
 func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, mysql.ComponentName, fluentoperator.ComponentName}),
-		watch.GetCreateSecretWatch(vzconst.VerrazzanoMonitoringNamespace, vzconst.ThanosInternalUserSecretName),
-		watch.GetUpdateSecretWatch(vzconst.VerrazzanoMonitoringNamespace, vzconst.ThanosInternalUserSecretName),
+		watch.GetCreateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
+		watch.GetUpdateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
 	)
 
 }

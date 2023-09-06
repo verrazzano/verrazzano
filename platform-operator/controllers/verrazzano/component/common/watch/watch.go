@@ -88,7 +88,10 @@ func GetCreateSecretWatch(name, namespace string) []controllerspi.WatchDescripto
 			if wev.WatchEventType != controllerspi.Created {
 				return false
 			}
-			return wev.NewWatchedObject.GetNamespace() == namespace && wev.NewWatchedObject.GetName() == name
+			objectNS := wev.NewWatchedObject.GetNamespace()
+			objectName := wev.NewWatchedObject.GetName()
+			result := objectNS == namespace && objectName == name
+			return result
 		},
 	})
 	return watches
@@ -104,7 +107,10 @@ func GetUpdateSecretWatch(name, namespace string) []controllerspi.WatchDescripto
 			if wev.WatchEventType != controllerspi.Updated {
 				return false
 			}
-			return wev.NewWatchedObject.GetNamespace() == namespace && wev.NewWatchedObject.GetName() == name
+			objectNS := wev.NewWatchedObject.GetNamespace()
+			objectName := wev.NewWatchedObject.GetName()
+			result := objectNS == namespace && objectName == name
+			return result
 		},
 	})
 	return watches
