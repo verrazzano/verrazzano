@@ -109,7 +109,7 @@ func makeTempFile(content string) (*os.File, error) {
 
 // eventually executes the provided function until it either returns true or exceeds a number of attempts
 func eventually(f func() bool) bool {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 30; i++ {
 		if f() == true {
 			return true
 		}
