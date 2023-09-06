@@ -361,7 +361,7 @@ func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: dexProvider, Name: adminClusterOidcID}, secret)
 	if err != nil {
 		errMsg := fmt.Sprintf("Unable to retrieve %s secret from %s namespace, %v", adminClusterOidcID, dexProvider, err)
-		ctx.Log().Errorf(errMsg)
+		ctx.Log().Once(errMsg)
 		return nil, fmt.Errorf(errMsg)
 	}
 

@@ -955,8 +955,8 @@
           "name": "dex",
           "images": [
             {
-              "image": "dex-jenkins",
-              "tag": "20230831075555-f539c308",
+              "image": "dex",
+              "tag": "v2.37.0-20230906042905-6f3a3c5d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -965,5 +965,10 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0",
+    "v1.27.0"
+  ]
 }

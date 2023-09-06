@@ -14,6 +14,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -114,7 +115,7 @@ func (c DexComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // PreInstall handles the pre-install operations for the Dex component
 func (c DexComponent) PreInstall(ctx spi.ComponentContext) error {
-	// Check Verrazzano Secret, return error to requeue
+	// Check Verrazzano Secret, create if it is not there
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: constants.VerrazzanoSystemNamespace,
@@ -122,9 +123,12 @@ func (c DexComponent) PreInstall(ctx spi.ComponentContext) error {
 	}, secret)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			ctx.Log().Progressf("Component Dex waiting for the Verrazzano secret %s/%s to exist",
+			// TODO: Remove this
+			ctx.Log().Oncef("Component Dex creating Verrazzano secret %s/%s",
 				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
-			return ctrlerrors.RetryableError{Source: ComponentName}
+			if err := common.EnsureVMISecret(ctx.Client()); err != nil {
+				return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf(err.Error())}
+			}
 		}
 		ctx.Log().Errorf("Component Dex failed to get the Verrazzano secret %s/%s: %v",
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
