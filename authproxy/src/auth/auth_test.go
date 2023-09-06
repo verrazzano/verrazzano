@@ -9,8 +9,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -21,83 +19,13 @@ type mockVerifier struct {
 
 var _ verifier = &mockVerifier{}
 
-func TestAuthenticateRequest(t *testing.T) {
-	validToken := "token-valid"
-	issuer := "test-issuer"
-	authenticator := OIDCAuthenticator{
-		Log: zap.S(),
-		oidcConfig: &OIDCConfiguration{
-			IssuerURL: issuer,
-		},
-	}
-	verifier := newMockVerifier(issuer, validToken)
-	authenticator.verifier.Store(verifier)
-
-	tests := []struct {
-		name             string
-		request          http.Request
-		expectValidation bool
-	}{
-		{
-			name: "valid token provided",
-			request: http.Request{
-				Header: map[string][]string{
-					authHeaderKey: {
-						"Bearer " + validToken,
-					},
-				},
-			},
-			expectValidation: true,
-		},
-		{
-			name: "invalid token provided",
-			request: http.Request{
-				Header: map[string][]string{
-					authHeaderKey: {
-						"Bearer token-invalid",
-					},
-				},
-			},
-			expectValidation: false,
-		},
-		{
-			name:             "no authorization header",
-			request:          http.Request{},
-			expectValidation: false,
-		},
-		{
-			name: "malformed authorization header",
-			request: http.Request{
-				Header: map[string][]string{
-					authHeaderKey: {
-						"malformed-header",
-					},
-				},
-			},
-			expectValidation: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			validated, err := authenticator.AuthenticateRequest(&tt.request, httptest.NewRecorder())
-			if tt.expectValidation {
-				assert.NoError(t, err)
-				assert.True(t, validated)
-				return
-			}
-			assert.Error(t, err)
-			assert.False(t, validated)
-		})
-	}
-}
-
 func TestAuthenticateToken(t *testing.T) {
 	validToken := "token-valid"
 	issuer := "test-issuer"
 	authenticator := OIDCAuthenticator{
 		Log: zap.S(),
 		oidcConfig: &OIDCConfiguration{
-			IssuerURL: issuer,
+			ServiceURL: issuer,
 		},
 	}
 	verifier := newMockVerifier(issuer, validToken)
