@@ -47,44 +47,51 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not started an upgrade of the Verrazzano install.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
-		// return an error if encountered, otherwise returns an empty result to stop reconciling
 		spictx.Log.Oncef("Upgrade required before reconciling modules")
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
-	// Get effective CR and set the effective CR status with the actual status
-	// Note that the reconciler code only udpdates the status, which is why the effective
-	// CR is passed.  If was ever to update the spec, then the actual CR would need to be used.
+	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
+	// Always use actualCR when updating status
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	effectiveCR.Status = actualCR.Status
 
-	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
-		return res
-	}
-
-	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
-		return res
-	}
-
-	if res := r.postWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
-		return res
-	}
-
-	// All the modules have been reconciled and are ready
-	return result.NewResult()
-}
-
-func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	// Note: updating the VZ state to reconciling is done by the module shim, see vzcomponent_status.go, UpdateVerrazzanoComponentStatus
+	// Note: updating the VZ state to reconciling is done by the module shim,
+	// See vzcomponent_status.go, UpdateVerrazzanoComponentStatus
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+	// Do global pre-work
+	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
 
+	// Do the actual install, update, and or upgrade.
+	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
+			return res
+		}
+		return res
+	}
+
+	// Do global post-work
+	if res := r.postWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	r.updateStatusInstallUpgradeComplete(actualCR)
+
+	// All the modules have been reconciled and are ready
+	return result.NewResult()
+}
+
+// preWork does all the global pre-work for install and upgrade
+func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	if err := r.createVerrazzanoSystemNamespace(context.TODO(), effectiveCR, log); err != nil {
@@ -101,6 +108,9 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	return result.NewResult()
 }
 
+// doWork performs the verrazzano install, update, upgrade by creating, updating, or deleting modules
+// Any combination of modules install, update, upgrade, and uninstall (delete) can be done at the same time.
+// Return a requeue true until all modules are done doing work
 func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
@@ -110,23 +120,18 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 
 	// Requeue if any of the previous operations indicate a requeue is needed
 	if res1.ShouldRequeue() || res2.ShouldRequeue() {
-		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
-			return res
-		}
 		return result.NewResultShortRequeueDelay()
 	}
 
-	// If modules are not done reconciling the update the status if needed
+	// Return if modules are not done reconciling
 	if !r.areModulesDoneReconciling(log, actualCR) {
-		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
-			return res
-		}
 		return result.NewResultShortRequeueDelay()
 	}
 
 	return result.NewResult()
 }
 
+// postWork does all the global post-work for install and upgrade
 func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	spiCtx, err := componentspi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
@@ -139,14 +144,6 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 	if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-
-	// Set complete status
-	if r.isUpgrading(actualCR) {
-		r.updateStatusUpgradeComplete(actualCR)
-	} else {
-		r.updateStatusInstallComplete(actualCR)
-	}
-
 
 	return result.NewResult()
 }
