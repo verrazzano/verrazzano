@@ -158,9 +158,9 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 		ClientID:    config.GetClientID(),
 		CallbackURL: fmt.Sprintf("https://%s%s", ingressHost, callbackPath),
 	}
-	authenticator := auth.NewAuthenticator(oidcConfig, h.Log, h.K8sClient)
-	requestProcessed := authenticator.Authenticate(req, rw)
-	if requestProcessed {
+	authenticator := auth.NewFakeAuthenticator(&oidcConfig, h.Log, h.K8sClient)
+	requestProcessed, err := authenticator.AuthenticateRequest(req, rw)
+	if requestProcessed || err != nil {
 		return
 	}
 
