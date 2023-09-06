@@ -401,7 +401,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 
 		return nil
 	}); err != nil {
-		log.Errorf("Failed creating or updating WebLogic domaiin CR: %v", err)
+		log.Errorf("Failed creating or updating WebLogic domain CR: %v", err)
 		return reconcile.Result{}, err
 	}
 
