@@ -58,8 +58,7 @@ func TestInitConfiguration(t *testing.T) {
 	// GIVEN initial configuration files
 	// WHEN the InitConfiguration function is called
 	// THEN the fetched configuration values match the file contents
-	ch := make(chan struct{})
-	err = InitConfiguration(zap.S(), ch)
+	err = InitConfiguration(zap.S())
 	assert.NoError(t, err)
 
 	assert.Equal(t, testServiceURL, GetServiceURL())
@@ -80,12 +79,14 @@ func TestInitConfiguration(t *testing.T) {
 	err = os.WriteFile(externalURLFilename, []byte(newTestExternalURL), 0)
 	assert.NoError(t, err)
 
-	err = os.WriteFile(clientIDFilename, []byte(newTestClientID), 0)
-	assert.NoError(t, err)
+	updated := eventually(func() bool { return GetServiceURL() == newTestServiceURL })
+	assert.True(t, updated, "Expected service URL to be updated")
 
-	eventually(func() bool { return GetServiceURL() == newTestServiceURL })
-	eventually(func() bool { return GetExternalURL() == newTestExternalURL })
-	eventually(func() bool { return GetClientID() == newTestClientID })
+	updated = eventually(func() bool { return GetExternalURL() == newTestExternalURL })
+	assert.True(t, updated, "Expected external URL to be updated")
+
+	updated = eventually(func() bool { return GetClientID() == newTestClientID })
+	assert.True(t, updated, "Expected client ID to be updated")
 
 	// stop the goroutine
 	keepWatching.Store(false)
@@ -101,4 +102,15 @@ func makeTempFile(content string) (*os.File, error) {
 
 	_, err = tmpFile.Write([]byte(content))
 	return tmpFile, err
+}
+
+// eventually executes the provided function until it either returns true or exceeds a number of attempts
+func eventually(f func() bool) bool {
+	for i := 0; i < 10; i++ {
+		if f() == true {
+			return true
+		}
+		time.Sleep(time.Duration(watchInterval.Load()))
+	}
+	return false
 }
