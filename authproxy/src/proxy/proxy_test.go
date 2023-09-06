@@ -79,7 +79,7 @@ func TestServeHTTP(t *testing.T) {
 			}))
 			defer server.Close()
 			c := fake.NewClientBuilder().Build()
-			oidcConfig := auth.OIDCConfiguration{"", "", "", ""}
+			oidcConfig := auth.OIDCConfiguration{}
 			handler := Handler{
 				URL:           server.URL,
 				Client:        retryablehttp.NewClient(),
