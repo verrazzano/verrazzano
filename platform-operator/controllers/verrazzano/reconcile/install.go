@@ -204,10 +204,3 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
 }
-
-func (r *Reconciler) monitorChanges(ctx spi.ComponentContext, compName string) bool {
-	if found, comp := registry.FindComponent(compName); found {
-		return comp.MonitorOverrides(ctx)
-	}
-	return true
-}
