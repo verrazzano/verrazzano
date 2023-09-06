@@ -63,8 +63,10 @@ func (c authProxyComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Ve
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c authProxyComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return append(
+	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, fluentoperator.ComponentName}),
-		watch.GetSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret)...,
+		watch.GetCreateSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret),
+		watch.GetUpdateSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret),
+		watch.GetDeleteSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret),
 	)
 }

@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
@@ -15,5 +16,10 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, mysql.ComponentName, fluentoperator.ComponentName})
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, mysql.ComponentName, fluentoperator.ComponentName}),
+		watch.GetCreateSecretWatch(vzconst.VerrazzanoMonitoringNamespace, vzconst.ThanosInternalUserSecretName),
+		watch.GetUpdateSecretWatch(vzconst.VerrazzanoMonitoringNamespace, vzconst.ThanosInternalUserSecretName),
+	)
+
 }

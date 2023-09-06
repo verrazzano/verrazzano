@@ -11,5 +11,9 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c fluentOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret)
+	return watch.CombineWatchDescriptors(
+		watch.GetCreateSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret),
+		watch.GetUpdateSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret),
+		watch.GetDeleteSecretWatch(vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret),
+	)
 }
