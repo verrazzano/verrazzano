@@ -496,7 +496,6 @@ pipeline {
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             ensureVZCleanupFromWorkloadCluster()
-            kubectl get cl -n ${CLUSTER_NAME} ${CLUSTER_NAME} -o yaml
             ensureCAPICleanup()
             deleteCluster()
         }
