@@ -6,10 +6,12 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
+// GetHTTPClientWithCABundle returns a retryable HTTP client with the given cert pool
 func GetHTTPClientWithCABundle(rootCA *x509.CertPool) *retryablehttp.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
