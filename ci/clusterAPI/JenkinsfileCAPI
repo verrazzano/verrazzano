@@ -451,7 +451,6 @@ pipeline {
                stage('Uninstall vz from workload cluster') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            ensureCAPICleanup()
                             sh """
                                 TS=\$(date +%Y%m%d%H%M%S%N)
                                 TEMPKUBECONFIGPATH=/tmp/${CLUSTER_NAME}-kubeconfig-\$TS
@@ -497,6 +496,8 @@ pipeline {
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             ensureVZCleanupFromWorkloadCluster()
+            kubectl get cl -n ${CLUSTER_NAME} ${CLUSTER_NAME} -o yaml
+            ensureCAPICleanup()
             deleteCluster()
         }
         failure {
@@ -927,6 +928,7 @@ def dumpCAPIPODLogs() {
         kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=bootstrap-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-bootstrap-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=control-plane-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-control-plane-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=infrastructure-oci > ${WORKSPACE}/capi-kubernetes-runtime/logs/capoci-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system logs -l app=verrazzano-cluster-operator > ${WORKSPACE}/capi-kubernetes-runtime/logs/verrazzano-cluster-operator.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=cluster-api > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=bootstrap-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-bootstrap-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=control-plane-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/ccapi-ocne-control-plane-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
