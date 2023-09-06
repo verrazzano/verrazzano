@@ -112,7 +112,7 @@ func addProxyErrors(ctx *validationContext, proxy *Proxy, field string) {
 		return
 	}
 	if _, err := url.ParseRequestURI(proxy.HTTPSProxy); err != nil {
-		ctx.Errors.Addf("%s.httpProxy is not a valid URL", field)
+		ctx.Errors.Addf("%s.httpsProxy is not a valid URL", field)
 	}
 	if _, err := url.ParseRequestURI(proxy.HTTPProxy); err != nil {
 		ctx.Errors.Addf("%s.httpProxy is not a valid URL", field)
