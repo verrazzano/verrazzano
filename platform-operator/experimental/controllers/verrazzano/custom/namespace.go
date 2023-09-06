@@ -1,11 +1,12 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package custom
 
 import (
 	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -24,14 +25,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
+	istioRootCertName   = "istio-ca-root-cert"
+)
+
+// sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
+var sharedNamespaces = []string{
+	vzconst.VerrazzanoMonitoringNamespace,
+	constants.CertManagerNamespace,
+	constants.VerrazzanoSystemNamespace,
+	vzconst.KeycloakNamespace,
+	monitoringNamespace,
+}
+
+
 // systemNamespaceLabels the verrazzano-system namespace labels required
 var systemNamespaceLabels = map[string]string{
 	"istio-injection":         "enabled",
 	"verrazzano.io/namespace": vzconst.VerrazzanoSystemNamespace,
 }
 
-// createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
-func (r Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+// CreateVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
+func CreateVerrazzanoSystemNamespace(cli client.Client, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 	// remove injection label if disabled
 	istio := cr.Spec.Components.Istio
 	if istio != nil && !istio.IsInjectionEnabled() {
@@ -42,7 +61,7 @@ func (r Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *ins
 
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
-	err := r.Client.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
 	if err != nil {
 		log.Debugf("Creating Verrazzano system namespace")
 		if !errors.IsNotFound(err) {
@@ -52,7 +71,7 @@ func (r Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *ins
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
 		vzSystemNS.Labels, _ = util.MergeMaps(nil, systemNamespaceLabels)
 		log.Oncef("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
-		if err := r.Client.Create(ctx, &vzSystemNS); err != nil {
+		if err := cli.Create(context.TODO(), &vzSystemNS); err != nil {
 			log.Errorf("Failed to create namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
 		}
@@ -66,21 +85,21 @@ func (r Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *ins
 	if !updated {
 		return nil
 	}
-	if err := r.Client.Update(ctx, &vzSystemNS); err != nil {
+	if err := cli.Update(context.TODO(), &vzSystemNS); err != nil {
 		log.Errorf("Failed to update namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 		return err
 	}
 	return nil
 }
 
-// deleteNamespace deletes a namespace
-func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string) error {
+// DeleteNamespace deletes a namespace
+func DeleteNamespace(cli client.Client, log vzlog.VerrazzanoLogger, namespace string) error {
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace, // required by the controller Delete call
 		},
 	}
-	err := r.Client.Delete(ctx, &ns, &client.DeleteOptions{})
+	err := cli.Delete(context.TODO(), &ns, &client.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		log.Errorf("Failed deleting namespace %s: %v", ns.Name, err)
 		return err
@@ -90,7 +109,7 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLo
 
 // deleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
 // - returns an error or a requeue with delay result
-func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
+func deleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
 	log := ctx.Log()
 	// check on whether cluster is OCNE container driver provisioned
 	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
@@ -126,7 +145,7 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 		}
 		err := resource.Resource{
 			Name:   ns,
-			Client: r.Client,
+			Client: ctx.Client(),
 			Object: &corev1.Namespace{},
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
@@ -139,7 +158,7 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	// Wait for all the namespaces to be deleted
 	waiting := false
 	for ns := range nsSet {
-		err := r.Client.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -155,4 +174,26 @@ func (r *Reconciler) deleteNamespaces(ctx spi.ComponentContext, rancherProvision
 	}
 	log.Once("Namespaces terminated successfully")
 	return result.NewResult()
+}
+
+// MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified
+func MergeMaps(to map[string]string, from map[string]string) (map[string]string, bool) {
+	mergedMap := to
+	if mergedMap == nil {
+		mergedMap = make(map[string]string)
+	}
+	var updated bool
+	for k, v := range from {
+		if existingVal, ok := mergedMap[k]; !ok {
+			mergedMap[k] = v
+			updated = true
+		} else {
+			// check to see if the value changed and, if it has, treat as an update
+			if v != existingVal {
+				mergedMap[k] = v
+				updated = true
+			}
+		}
+	}
+	return mergedMap, updated
 }

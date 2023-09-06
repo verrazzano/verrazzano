@@ -8,12 +8,18 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	resource2 "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -113,4 +119,130 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 func (r Reconciler) PostRemoveFinalizer(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) {
 	// Delete the tracker used for this CR
 	//statemachine.DeleteTracker(u)
+}
+
+// preUninstall does all the global preUninstall
+func (r Reconciler) preUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	if res := resource2.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	if res := r.preUninstallMC(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	return result.NewResult()
+}
+
+// doUninstall performs the verrazzano uninstall by deleting modules
+// Return a requeue true until all modules are gone
+func (r Reconciler) doUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	// Delete modules that are enabled and update status
+	// Don't block status update of component if delete failed
+	res := r.deleteModules(log, effectiveCR)
+	if res.ShouldRequeue() {
+		return result.NewResultShortRequeueDelay()
+	}
+
+	return result.NewResult()
+}
+
+// postUninstall does all the global postUninstall
+func (r Reconciler) postUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	spiCtx, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if res := r.postUninstallCleanup(spiCtx); res.ShouldRequeue() {
+		return res
+	}
+	return result.NewResult()
+}
+
+// preUninstallMC does MC pre-uninstall
+func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	spiCtx, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if err := custom.DeleteMCResources(spiCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	return result.NewResult()
+}
+
+// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
+func (r *Reconciler) postUninstallCleanup(ctx spi.ComponentContext) result.Result {
+	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := r.deleteIstioCARootCert(ctx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Run Rancher Post Uninstall explicitly to delete any remaining Rancher resources; this may be needed in case
+	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
+	// installed explicitly.
+	if !rancherProvisioned {
+		if err := r.runRancherPostUninstall(ctx); err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
+	return r.deleteNamespaces(ctx, rancherProvisioned)
+}
+
+// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
+func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
+	namespaces := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &namespaces)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the cluster namespaces: %v", err)
+	}
+
+	for _, ns := range namespaces.Items {
+		err := resource.Resource{
+			Name:      istioRootCertName,
+			Namespace: ns.GetName(),
+			Client:    r.Client,
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

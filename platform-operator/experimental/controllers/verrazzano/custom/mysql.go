@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package custom
 
 import (
 	"bufio"
@@ -23,11 +23,11 @@ import (
 	"strings"
 )
 
-// cleanupMysqlBackupJob checks for the existence of a stale MySQL restore job and deletes the job if one is found
-func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
+// CleanupMysqlBackupJob checks for the existence of a stale MySQL restore job and deletes the job if one is found
+func CleanupMysqlBackupJob(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	// Check if jobs for running the restore jobs exist
 	jobsFound := &batchv1.JobList{}
-	err := r.Client.List(context.TODO(), jobsFound, &client.ListOptions{Namespace: mysql.ComponentNamespace})
+	err := cli.List(context.TODO(), jobsFound, &client.ListOptions{Namespace: mysql.ComponentNamespace})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -40,7 +40,7 @@ func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
 		podReq, _ := kblabels.NewRequirement("job-name", selection.Equals, []string{job.Name})
 		podLabelSelector := kblabels.NewSelector()
 		podLabelSelector = podLabelSelector.Add(*podReq)
-		err := r.Client.List(context.TODO(), podList, &client.ListOptions{LabelSelector: podLabelSelector})
+		err := cli.List(context.TODO(), podList, &client.ListOptions{LabelSelector: podLabelSelector})
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
 				log.Debugf("Deleting stale backup job %s", job.Name)
 				propagationPolicy := metav1.DeletePropagationBackground
 				deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
-				err = r.Client.Delete(context.TODO(), &backupJob, deleteOptions)
+				err = cli.Delete(context.TODO(), &backupJob, deleteOptions)
 				if err != nil {
 					return err
 				}
