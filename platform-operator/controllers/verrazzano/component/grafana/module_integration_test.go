@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package kiali
+package grafana
 
 import (
 	"fmt"
@@ -24,7 +24,6 @@ var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 //	THEN the generated helm values JSON snippet is valid
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
-	enabled := true
 	var replicas int32 = 3
 
 	ingressClassName := "myclass"
@@ -94,7 +93,13 @@ func TestGetModuleSpec(t *testing.T) {
 								OCIConfigSecret:        "oci",
 							},
 						},
-						Kiali: &vzapi.KialiComponent{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+							Enabled: &trueValue,
+						},
+						Prometheus: &vzapi.PrometheusComponent{
+							Enabled: &trueValue,
+						},
+						Thanos: &vzapi.ThanosComponent{
 							Enabled: &trueValue,
 						},
 						AuthProxy: &vzapi.AuthProxyComponent{
@@ -124,6 +129,18 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
+					"database": {
+					  "host": "dbhost",
+					  "name": "grafanadb"
+					},
+					"replicas": 3,
+					"smtp": {
+					  "enabled": true,
+					  "host": "smtphost.foo.com",
+					  "existingSecret": "secret",
+					  "fromAddress": "me@foo.com",
+					  "fromName": "Mike"
+					},
 					"ingress": {
 					  "enabled": true,
 					  "ingressClassName": "myclass",
@@ -147,7 +164,30 @@ func TestGetModuleSpec(t *testing.T) {
 						"ociConfigSecret": "oci"
 					  }
 					},
-					"environmentName": "Myenv"
+					"environmentName": "Myenv",
+					"thanosEnabled": true,
+					"prometheusEnabled": true,
+					"prometheusOperatorEnabled": true,
+					"defaultVolumeSource": {
+					  "persistentVolumeClaim": {
+						"claimName": "vmi"
+					  }
+					},
+					"volumeClaimSpecTemplates": [
+					  {
+						"metadata": {
+						  "name": "vmi",
+						  "creationTimestamp": null
+						},
+						"spec": {
+						  "resources": {
+							"requests": {
+							  "storage": "100Gi"
+							}
+						  }
+						}
+					  }
+					]
 				  }
 				}
 			  }
@@ -157,7 +197,7 @@ func TestGetModuleSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent().(kialiComponent)
+			c := NewComponent()
 			got, err := c.GetModuleConfigAsHelmValues(tt.effectiveCR)
 			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return

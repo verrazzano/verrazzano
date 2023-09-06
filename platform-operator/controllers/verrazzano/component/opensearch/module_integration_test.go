@@ -1,17 +1,21 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package mysql
+package opensearch
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
+
+var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // TestGetModuleSpec tests the GetModuleConfigAsHelmValues function impl for this component
 // GIVEN a call to GetModuleConfigAsHelmValues
@@ -20,8 +24,9 @@ import (
 //	THEN the generated helm values JSON snippet is valid
 func TestGetModuleSpec(t *testing.T) {
 	trueValue := true
-	ingressClassName := "myclass"
+	age := "1d"
 
+	ingressClassName := "myclass"
 	tests := []struct {
 		name        string
 		effectiveCR *vzapi.Verrazzano
@@ -49,18 +54,31 @@ func TestGetModuleSpec(t *testing.T) {
 								},
 							},
 						},
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": pvc100Gi,
-									},
-								},
-							},
-						},
 					},
 					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: createInstallArgs(3, 3, 3),
+							Nodes: []vzapi.OpenSearchNode{
+								createNG("a", 1, nil),
+								createNG("b", 2, nil),
+								createNG("c", 3, nil),
+							},
+							Policies: []vmov1.IndexManagementPolicy{
+								{
+									PolicyName:   "my-policy",
+									IndexPattern: "pattern",
+									MinIndexAge:  &age,
+								},
+							},
+							Plugins: vmov1.OpenSearchPlugins{
+								Enabled: false,
+								InstallList: []string{
+									"foo",
+									"bar",
+								},
+							},
+							DisableDefaultPolicy: true,
+						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled:          &trueValue,
 							IngressClassName: &ingressClassName,
@@ -108,13 +126,8 @@ func TestGetModuleSpec(t *testing.T) {
 									{Values: &apiextensionsv1.JSON{Raw: []byte("somevalue")}},
 								},
 							},
-							MySQL: vzapi.MySQLComponent{
-								VolumeSource: &corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: "mysql",
-									},
-								},
-							},
+							KeycloakInstallArgs: nil,
+							MySQL:               vzapi.MySQLComponent{},
 						},
 					},
 				},
@@ -124,11 +137,74 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
-					"volumeSource": {
-					  "persistentVolumeClaim": {
-						"claimName": "mysql"
+					"nodes": [
+					  {
+						"name": "a",
+						"replicas": 1
+					  },
+					  {
+						"name": "b",
+						"replicas": 2
+					  },
+					  {
+						"name": "c",
+						"replicas": 3
+					  }
+					],
+					"policies": [
+					  {
+						"policyName": "my-policy",
+						"indexPattern": "pattern",
+						"minIndexAge": "1d",
+						"rollover": {}
+					  }
+					],
+					"plugins": {
+					  "enabled": false,
+					  "installList": [
+						"foo",
+						"bar"
+					  ]
+					},
+					"disableDefaultPolicy": true,
+					"installArgs": [
+					  {
+						"name": "nodes.master.replicas",
+						"value": "3"
+					  },
+					  {
+						"name": "nodes.data.replicas",
+						"value": "3"
+					  },
+					  {
+						"name": "nodes.ingest.replicas",
+						"value": "3"
+					  }
+					],
+					"ingress": {
+					  "enabled": true,
+					  "ingressClassName": "myclass",
+					  "ports": [
+						{
+						  "name": "myport",
+						  "protocol": "tcp",
+						  "port": 8000,
+						  "targetPort": 0,
+						  "nodePort": 80
+						}
+					  ],
+					  "type": "LoadBalancer"
+					},
+					"dns": {
+					  "oci": {
+						"dnsScope": "global",
+						"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
+						"dnsZoneOCID": "ocid..zone.myzone",
+						"dnsZoneName": "myzone",
+						"ociConfigSecret": "oci"
 					  }
 					},
+					"environmentName": "Myenv",
 					"defaultVolumeSource": {
 					  "persistentVolumeClaim": {
 						"claimName": "vmi"
@@ -138,19 +214,6 @@ func TestGetModuleSpec(t *testing.T) {
 					  {
 						"metadata": {
 						  "name": "vmi",
-						  "creationTimestamp": null
-						},
-						"spec": {
-						  "resources": {
-							"requests": {
-							  "storage": "100Gi"
-							}
-						  }
-						}
-					  },
-					  {
-						"metadata": {
-						  "name": "mysql",
 						  "creationTimestamp": null
 						},
 						"spec": {
