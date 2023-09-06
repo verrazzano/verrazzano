@@ -4,32 +4,51 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var _ Authenticator = FakeAuthenticator{nil, nil, nil}
+
+type Authenticator interface {
+	AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error)
+	AuthenticateToken(ctx context.Context, token string) (bool, error)
+	SetCallbackURL(url string)
+}
+
 type OIDCConfiguration struct {
-	IssuerURL   string
+	ExternalURL string
+	ServiceURL  string
 	ClientID    string
 	CallbackURL string
 }
 
-type Authenticator struct {
-	oidcConfig OIDCConfiguration
+type FakeAuthenticator struct {
+	oidcConfig *OIDCConfiguration
 	Log        *zap.SugaredLogger
 	K8sClient  client.Client
 }
 
-func NewAuthenticator(oidcConfig OIDCConfiguration, log *zap.SugaredLogger, client client.Client) *Authenticator {
-	return &Authenticator{oidcConfig: oidcConfig, Log: log, K8sClient: client}
+func NewFakeAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, client client.Client) *FakeAuthenticator {
+	return &FakeAuthenticator{oidcConfig: oidcConfig, Log: log, K8sClient: client}
 }
 
 // Authenticate authenticates the given request. If a redirect or error has been processed, then
 // return true to indicate the request has been fully processed. Otherwise return false to indicate
 // that request processing should continue
-func (a Authenticator) Authenticate(req *http.Request, rw http.ResponseWriter) bool {
+func (a FakeAuthenticator) AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error) {
 	// request is not processed
-	return false
+	return false, nil
+}
+
+// AuthenticateToken authenticates the given token
+func (a FakeAuthenticator) AuthenticateToken(ctx context.Context, token string) (bool, error) {
+	return true, nil
+}
+
+func (a FakeAuthenticator) SetCallbackURL(url string) {
+	a.oidcConfig.CallbackURL = url
 }

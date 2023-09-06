@@ -8,6 +8,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -22,6 +23,24 @@ type valuesConfig struct {
 	Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
 	DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
 	EnvironmentName string                       `json:"environmentName,omitempty"`
+}
+
+// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
+func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{
+			istio.ComponentName,
+			nginx.ComponentName,
+			cmconstants.CertManagerComponentName,
+			mysql.ComponentName,
+			fluentoperator.ComponentName,
+			// ArgoCD and Rancher require Keycloak to be re-reconciled to build the client IDs
+			common.ArgoCDName,
+			common.RancherName,
+		}),
+		watch.GetCreateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
+		watch.GetUpdateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
+	)
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
@@ -51,14 +70,4 @@ func (c KeycloakComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verraz
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
-}
-
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, mysql.ComponentName, fluentoperator.ComponentName}),
-		watch.GetCreateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
-		watch.GetUpdateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
-	)
-
 }
