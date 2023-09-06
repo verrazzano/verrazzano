@@ -16,7 +16,7 @@ import (
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +40,6 @@ var sharedNamespaces = []string{
 	vzconst.KeycloakNamespace,
 	monitoringNamespace,
 }
-
 
 // systemNamespaceLabels the verrazzano-system namespace labels required
 var systemNamespaceLabels = map[string]string{
@@ -108,8 +107,8 @@ func DeleteNamespace(cli client.Client, log vzlog.VerrazzanoLogger, namespace st
 
 // DeleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
 // - returns an error or a requeue with delay result
-func DeleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.Result {
-	log := ctx.Log()
+func DeleteNamespaces(componentCtx componentspi.ComponentContext, rancherProvisioned bool) result.Result {
+	log := componentCtx.Log()
 	// check on whether cluster is OCNE container driver provisioned
 	ocneContainerDriverProvisioned, err := rancher.IsClusterProvisionedByOCNEContainerDriver()
 	if err != nil {
@@ -122,14 +121,14 @@ func DeleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.
 		if (rancherProvisioned || ocneContainerDriverProvisioned) && comp.Namespace() == rancher.ComponentNamespace {
 			continue
 		}
-		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
+		if comp.Namespace() == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(componentCtx.EffectiveCR()) {
 			log.Oncef("Cert-Manager not enabled, skip namespace cleanup")
 			continue
 		}
 		nsSet[comp.Namespace()] = true
 	}
 	for i, ns := range sharedNamespaces {
-		if ns == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
+		if ns == cmcontroller.ComponentNamespace && !vzcr.IsCertManagerEnabled(componentCtx.EffectiveCR()) {
 			log.Oncef("Cert-Manager not enabled, skip namespace cleanup")
 			continue
 		}
@@ -139,17 +138,17 @@ func DeleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.
 	// Delete all the namespaces
 	for ns := range nsSet {
 		// Clean up any remaining CM resources in Verrazzano-managed namespaces
-		if err := cmissuer.UninstallCleanup(ctx.Log(), ctx.Client(), ns); err != nil {
+		if err := cmissuer.UninstallCleanup(componentCtx.Log(), componentCtx.Client(), ns); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 		err := resource.Resource{
 			Name:   ns,
-			Client: ctx.Client(),
+			Client: componentCtx.Client(),
 			Object: &corev1.Namespace{},
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
 		if err != nil {
-			ctx.Log().Errorf("Error during namespace deletion: %v", err)
+			componentCtx.Log().Errorf("Error during namespace deletion: %v", err)
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
@@ -157,7 +156,7 @@ func DeleteNamespaces(ctx spi.ComponentContext, rancherProvisioned bool) result.
 	// Wait for all the namespaces to be deleted
 	waiting := false
 	for ns := range nsSet {
-		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		err := componentCtx.Client().Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue

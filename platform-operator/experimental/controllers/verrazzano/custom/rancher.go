@@ -13,7 +13,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -29,24 +29,24 @@ import (
 // they exist. If there is a DNS update in progress, we want to do this so that the old DNS
 // continues to work as long as there is a good DNS entry, so that managed clusters can continue
 // connecting using the old Rancher DNS in their kubeconfig, until they are updated with the new DNS.
-func CreateRancherIngressAndCertCopies(ctx spi.ComponentContext) {
+func CreateRancherIngressAndCertCopies(componentCtx componentspi.ComponentContext) {
 	ok, rancherComp := registry.FindComponent(rancher.ComponentName)
 	if !ok {
 		return
 	}
 
-	dnsSuffix := getDNSSuffix(ctx.EffectiveCR())
+	dnsSuffix := getDNSSuffix(componentCtx.EffectiveCR())
 	if dnsSuffix == "" {
-		ctx.Log().Debug("Empty DNS suffix, skipping Rancher ingress copy")
+		componentCtx.Log().Debug("Empty DNS suffix, skipping Rancher ingress copy")
 		return
 	}
 
-	for _, ingressName := range rancherComp.GetIngressNames(ctx) {
+	for _, ingressName := range rancherComp.GetIngressNames(componentCtx) {
 		ing := netv1.Ingress{}
-		err := ctx.Client().Get(context.TODO(), ingressName, &ing)
+		err := componentCtx.Client().Get(context.TODO(), ingressName, &ing)
 		if err != nil {
 			if !errors.IsNotFound(err) {
-				ctx.Log().Infof("Cannot make a copy of Rancher ingress %s/%s - get ingress failed: %v", ingressName.Namespace, ingressName.Name, err)
+				componentCtx.Log().Infof("Cannot make a copy of Rancher ingress %s/%s - get ingress failed: %v", ingressName.Namespace, ingressName.Name, err)
 			}
 			continue
 		}
@@ -55,18 +55,18 @@ func CreateRancherIngressAndCertCopies(ctx spi.ComponentContext) {
 			continue
 		}
 		if strings.HasSuffix(ing.Spec.TLS[0].Hosts[0], dnsSuffix) {
-			ctx.Log().Debugf("Rancher ingress host %s has DNS suffix %s, skipping copy", ing.Spec.TLS[0].Hosts[0], dnsSuffix)
+			componentCtx.Log().Debugf("Rancher ingress host %s has DNS suffix %s, skipping copy", ing.Spec.TLS[0].Hosts[0], dnsSuffix)
 			continue
 		}
 
-		newIngressTLSList := createIngressCertSecretCopies(ctx, ing)
+		newIngressTLSList := createIngressCertSecretCopies(componentCtx, ing)
 		newIngressNSN := types.NamespacedName{Name: "vz-" + ing.Name, Namespace: ingressName.Namespace}
-		err = createIngressCopy(ctx.Client(), newIngressNSN, ing, newIngressTLSList)
+		err = createIngressCopy(componentCtx.Client(), newIngressNSN, ing, newIngressTLSList)
 		if err != nil {
-			ctx.Log().Infof("Failed to create a copy of Rancher ingress %s/%s - create ingress failed: %v", ingressName.Namespace, ingressName.Name, err)
+			componentCtx.Log().Infof("Failed to create a copy of Rancher ingress %s/%s - create ingress failed: %v", ingressName.Namespace, ingressName.Name, err)
 			continue
 		}
-		ctx.Log().Infof("Created copy of Rancher ingress %v, new ingress is %v", ingressName, newIngressNSN)
+		componentCtx.Log().Infof("Created copy of Rancher ingress %v, new ingress is %v", ingressName, newIngressNSN)
 	}
 }
 
@@ -91,17 +91,17 @@ func createIngressCopy(cli client.Client, newIngressName types.NamespacedName, e
 	return err
 }
 
-func createIngressCertSecretCopies(ctx spi.ComponentContext, ing netv1.Ingress) []netv1.IngressTLS {
+func createIngressCertSecretCopies(componentCtx componentspi.ComponentContext, ing netv1.Ingress) []netv1.IngressTLS {
 	newIngressTLSList := []netv1.IngressTLS{}
 	for _, ingTLS := range ing.Spec.TLS {
 		if ingTLS.SecretName != "" {
 			tlsSecret := corev1.Secret{}
 			tlsSecretName := types.NamespacedName{Namespace: ing.Namespace, Name: ingTLS.SecretName}
-			err := ctx.Client().Get(context.TODO(), tlsSecretName, &tlsSecret)
+			err := componentCtx.Client().Get(context.TODO(), tlsSecretName, &tlsSecret)
 			if err == nil {
 				newSecretNSN := types.NamespacedName{Name: "vz-" + tlsSecret.Name, Namespace: tlsSecret.Namespace}
-				if err := createSecretCopy(ctx.Client(), newSecretNSN, tlsSecret); err != nil {
-					ctx.Log().Infof("Failed to create copy %v of Rancher TLS secret %v", newSecretNSN, tlsSecretName)
+				if err := createSecretCopy(componentCtx.Client(), newSecretNSN, tlsSecret); err != nil {
+					componentCtx.Log().Infof("Failed to create copy %v of Rancher TLS secret %v", newSecretNSN, tlsSecretName)
 				}
 				newIngressTLS := ingTLS.DeepCopy()
 				newIngressTLS.SecretName = newSecretNSN.Name
@@ -160,11 +160,11 @@ func PreUninstallRancher(cli client.Client, log vzlog.VerrazzanoLogger, actualCR
 		return result.NewResult()
 	}
 
-	spiCtx, err := spi.NewContext(log, cli, actualCR, nil, false)
+	spicomponentCtx, err := componentspi.NewContext(log, cli, actualCR, nil, false)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	compContext := spiCtx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation)
+	compContext := spicomponentCtx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation)
 	installed, err := comp.IsInstalled(compContext)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -174,19 +174,19 @@ func PreUninstallRancher(cli client.Client, log vzlog.VerrazzanoLogger, actualCR
 	}
 	rancher.DeleteLocalCluster(log, cli)
 
-	if err := DeleteMCResources(spiCtx); err != nil {
+	if err := DeleteMCResources(spicomponentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	return result.NewResult()
 }
 
-func RunRancherPostUninstall(ctx spi.ComponentContext) error {
+func RunRancherPostUninstall(componentCtx componentspi.ComponentContext) error {
 	// Look up the Rancher component and call PostUninstall explicitly, without checking if it's installed;
 	// this is to catch any lingering managed cluster resources
 	if found, comp := registry.FindComponent(rancher.ComponentName); found {
-		err := comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
+		err := comp.PostUninstall(componentCtx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
 		if err != nil {
-			ctx.Log().Once("Waiting for Rancher post-uninstall cleanup to be done")
+			componentCtx.Log().Once("Waiting for Rancher post-uninstall cleanup to be done")
 			return err
 		}
 	}

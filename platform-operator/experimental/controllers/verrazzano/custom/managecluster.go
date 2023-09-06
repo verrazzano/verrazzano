@@ -9,7 +9,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,28 +20,28 @@ import (
 )
 
 // Delete multicluster related resources
-func DeleteMCResources(ctx spi.ComponentContext) error {
+func DeleteMCResources(componentCtx componentspi.ComponentContext) error {
 	// Check if this is not managed cluster
-	managed, err := isManagedCluster(ctx.Client(), ctx.Log())
+	managed, err := isManagedCluster(componentCtx.Client(), componentCtx.Log())
 	if err != nil {
 		return err
 	}
 
 	projects := vzappclusters.VerrazzanoProjectList{}
-	if err := ctx.Client().List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil && !meta.IsNoMatchError(err) {
-		return ctx.Log().ErrorfNewErr("Failed listing MC projects: %v", err)
+	if err := componentCtx.Client().List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil && !meta.IsNoMatchError(err) {
+		return componentCtx.Log().ErrorfNewErr("Failed listing MC projects: %v", err)
 	}
 	// Delete MC rolebindings for each project
 	for _, p := range projects.Items {
-		if err := deleteManagedClusterRoleBindings(ctx.Client(), p, ctx.Log()); err != nil {
+		if err := deleteManagedClusterRoleBindings(componentCtx.Client(), p, componentCtx.Log()); err != nil {
 			return err
 		}
 	}
 
-	ctx.Log().Oncef("Deleting all VMC resources")
+	componentCtx.Log().Oncef("Deleting all VMC resources")
 	vmcList := clustersapi.VerrazzanoManagedClusterList{}
-	if err := ctx.Client().List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil && !meta.IsNoMatchError(err) {
-		return ctx.Log().ErrorfNewErr("Failed listing VMCs: %v", err)
+	if err := componentCtx.Client().List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil && !meta.IsNoMatchError(err) {
+		return componentCtx.Log().ErrorfNewErr("Failed listing VMCs: %v", err)
 	}
 
 	for i, vmc := range vmcList.Items {
@@ -49,31 +49,31 @@ func DeleteMCResources(ctx spi.ComponentContext) error {
 		vmcSA := corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{Namespace: vmc.Namespace, Name: vmc.Spec.ServiceAccount},
 		}
-		if err := ctx.Client().Delete(context.TODO(), &vmcSA); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
+		if err := componentCtx.Client().Delete(context.TODO(), &vmcSA); err != nil {
+			return componentCtx.Log().ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
 		}
-		if err := ctx.Client().Delete(context.TODO(), &vmcList.Items[i]); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
+		if err := componentCtx.Client().Delete(context.TODO(), &vmcList.Items[i]); err != nil {
+			return componentCtx.Log().ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
 		}
 	}
 
 	// Delete VMC namespace only if there are no projects
 	if len(projects.Items) == 0 {
-		ctx.Log().Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
-		if err := DeleteNamespace(ctx.Client(), ctx.Log(), vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+		componentCtx.Log().Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
+		if err := DeleteNamespace(componentCtx.Client(), componentCtx.Log(), vzconst.VerrazzanoMultiClusterNamespace); err != nil {
 			return err
 		}
 	}
 
 	// Delete secrets on managed cluster.  Don't delete MC agent secret until the end since it tells us this is MC install
 	if managed {
-		if err := DeleteSecret(ctx.Client(), ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+		if err := DeleteSecret(componentCtx.Client(), componentCtx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := DeleteSecret(ctx.Client(), ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+		if err := DeleteSecret(componentCtx.Client(), componentCtx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := DeleteSecret(ctx.Client(), ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
+		if err := DeleteSecret(componentCtx.Client(), componentCtx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
 			return err
 		}
 	}

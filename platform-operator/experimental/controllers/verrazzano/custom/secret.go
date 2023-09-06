@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -69,7 +69,7 @@ func createOrUpdateLocalRegistrationSecret(cli client.Client, name string, names
 func mutateLocalRegistrationSecret(secret *corev1.Secret) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		constants2.ManagedClusterNameKey: []byte(constants.MCLocalCluster),
+		mcconstants.ManagedClusterNameKey: []byte(constants.MCLocalCluster),
 	}
 	return nil
 }

@@ -14,7 +14,7 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"go.uber.org/zap"
@@ -50,11 +50,11 @@ func (r Reconciler) GetName() string {
 
 // PreRemoveFinalizer is called when the resource is being deleted, before the finalizer
 // is removed.  Use this method to delete Kubernetes resources, etc.
-func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
-		spictx.Log.ErrorfThrottled(err.Error())
+		controllerCtx.Log.ErrorfThrottled(err.Error())
 		// This is a fatal error which should never happen, don't requeue
 		return result.NewResult()
 	}
@@ -116,7 +116,7 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 
 // PostRemoveFinalizer is called after the finalizer is successfully removed.
 // This method does garbage collection and other tasks that can never return an error
-func (r Reconciler) PostRemoveFinalizer(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) {
+func (r Reconciler) PostRemoveFinalizer(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) {
 	// Delete the tracker used for this CR
 	//statemachine.DeleteTracker(u)
 }
@@ -149,12 +149,12 @@ func (r Reconciler) doUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 
 // postUninstall does all the global postUninstall
 func (r Reconciler) postUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	spiCtx, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+	componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if res := r.postUninstallCleanup(spiCtx); res.ShouldRequeue() {
+	if res := r.postUninstallCleanup(componentCtx); res.ShouldRequeue() {
 		return res
 	}
 	return result.NewResult()
@@ -162,11 +162,11 @@ func (r Reconciler) postUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alph
 
 // preUninstallMC does MC pre-uninstall
 func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	spiCtx, err := spi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+	componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := custom.DeleteMCResources(spiCtx); err != nil {
+	if err := custom.DeleteMCResources(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -174,17 +174,17 @@ func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) postUninstallCleanup(ctx spi.ComponentContext) result.Result {
+func (r *Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentContext) result.Result {
 	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := r.deleteIstioCARootCert(ctx); err != nil {
+	if err := r.deleteIstioCARootCert(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+	if err := r.nodeExporterCleanup(componentCtx.Log()); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -192,15 +192,15 @@ func (r *Reconciler) postUninstallCleanup(ctx spi.ComponentContext) result.Resul
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
 	// installed explicitly.
 	if !rancherProvisioned {
-		if err := custom.RunRancherPostUninstall(ctx); err != nil {
+		if err := custom.RunRancherPostUninstall(componentCtx); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
-	return custom.DeleteNamespaces(ctx, rancherProvisioned)
+	return custom.DeleteNamespaces(componentCtx, rancherProvisioned)
 }
 
 // deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
-func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
+func (r *Reconciler) deleteIstioCARootCert(ctx componentspi.ComponentContext) error {
 	namespaces := corev1.NamespaceList{}
 	err := ctx.Client().List(context.TODO(), &namespaces)
 	if err != nil {
