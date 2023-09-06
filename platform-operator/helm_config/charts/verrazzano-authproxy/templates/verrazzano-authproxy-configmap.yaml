@@ -83,11 +83,11 @@ data:
 
     auth.debug("Processing request for backend '"..ingressHost.."'")
     if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
-    	auth.bad_request("Invalid request")
+        auth.bad_request("Invalid request")
     end
 
     if (backend == 'console' or backend == 'verrazzano') then
-    	auth.initOidcProvider(oidcProviderForConsole)
+        auth.initOidcProvider(oidcProviderForConsole)
     else
         auth.initOidcProvider("keycloak")
     end
