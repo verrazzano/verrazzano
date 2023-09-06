@@ -37,8 +37,8 @@ type OIDCAuthenticator struct {
 
 const (
 	authHeaderKey         = "Authorization"
-	AuthTypeBasic  string = "Basic"
-	AuthTypeBearer string = "Bearer"
+	authTypeBasic  string = "Basic"
+	authTypeBearer string = "Bearer"
 )
 
 // verifier interface
@@ -115,7 +115,7 @@ func (a OIDCAuthenticator) SetCallbackURL(url string) {
 func getTokenFromAuthHeader(authHeader string) (string, error) {
 	splitHeader := strings.SplitN(authHeader, " ", 2)
 
-	if len(splitHeader) < 2 || strings.ToLower(splitHeader[0]) != "bearer" {
+	if len(splitHeader) < 2 || strings.EqualFold(splitHeader[0], authTypeBearer) {
 		return "", fmt.Errorf("failed to verify authorization bearer header")
 	}
 

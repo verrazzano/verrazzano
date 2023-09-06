@@ -94,7 +94,6 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 	}
 
 	httpClient := GetHTTPClientWithCABundle(rootCA)
-
 	authproxy.Handler = Handler{
 		URL:           restConfig.Host,
 		Client:        httpClient,
