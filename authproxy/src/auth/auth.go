@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	"strings"
 	"time"
