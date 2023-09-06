@@ -38,6 +38,7 @@ def ociOsRegion = "us-phoenix-1"
 def ociOsBucket = "verrazzano-builds"
 def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
 def lastStableCommitFile = "last-stable-commit.txt"
+def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 
 pipeline {
     options {
@@ -53,7 +54,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "pipeline-job-large"
+            label "${agentLabel}"
         }
     }
 
