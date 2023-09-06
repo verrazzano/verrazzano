@@ -8,7 +8,7 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	modulelog "github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	vpovzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -109,6 +109,13 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	// create Rancher certs, etc.
+	spiCtx, err := componentspi.NewContext(vpovzlog.DefaultLogger(), r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	r.createRancherIngressAndCertCopies(spiCtx)
+
 	return result.NewResult()
 }
 
@@ -152,10 +159,12 @@ func (r Reconciler) postInstallUpdate(log vzlog.VerrazzanoLogger, actualCR *vzv1
 	}
 
 	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade Rancher configure auth providers: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -179,12 +188,16 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
 	if err := restart.RestartComponents(vpovzlog.DefaultLogger(), config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	log.Oncef("Doing post-upgrade MySQL cleanup")
 	if err := mysql.PostUpgradeCleanup(vpovzlog.DefaultLogger(), spiCtx.Client()); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade MySQL cleanup: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)

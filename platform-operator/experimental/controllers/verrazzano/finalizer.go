@@ -8,11 +8,26 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpovzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const finalizerName = "install.verrazzano.io"
@@ -45,12 +60,24 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 	}
 	effectiveCR.Status = actualCR.Status
 
-	// Delete modules that are enabled and update status
-	// Don't block status update of component if delete failed
-	res := r.deleteModules(log, effectiveCR)
-	if res.ShouldRequeue() {
-		return result.NewResultShortRequeueDelay()
+	// Do global pre-work
+	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
 	}
+
+	// Do the actual install, update, and or upgrade.
+	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	// Do global post-work
+	if res := r.postWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		return res
+	}
+
+	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
+	r.updateStatusUninstallComplete(actualCR)
+	return result.NewResult()
 
 	// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 	// resource can get removed from etcd.
@@ -70,4 +97,187 @@ func (r Reconciler) PreRemoveFinalizer(spictx controllerspi.ReconcileContext, u 
 func (r Reconciler) PostRemoveFinalizer(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) {
 	// Delete the tracker used for this CR
 	//statemachine.DeleteTracker(u)
+}
+
+// preUninstall does all the global preUninstall
+func (r Reconciler) preUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+
+	return result.NewResult()
+}
+
+// doUninstall performs the verrazzano uninstall by deleting modules
+// Return a requeue true until all modules are gone
+func (r Reconciler) doUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	// Delete modules that are enabled and update status
+	// Don't block status update of component if delete failed
+	res := r.deleteModules(log, effectiveCR)
+	if res.ShouldRequeue() {
+		return result.NewResultShortRequeueDelay()
+	}
+
+	return result.NewResult()
+}
+
+// postUninstall does all the global postUninstall
+func (r Reconciler) postUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+
+	return result.NewResult()
+}
+
+// uninstallRancherLocal does Rancher local uninstall
+func (r Reconciler) uninstallRancherLocal(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	defLog := vpovzlog.DefaultLogger()
+
+	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Don't remove Rancher local namespace if cluster was provisioned by Rancher (for example RKE2).  Removing
+	// will cause cluster corruption.
+	if rancherProvisioned {
+		return result.NewResult()
+	}
+	// If Rancher is installed, then delete local cluster
+	found, comp := registry.FindComponent(rancher.ComponentName)
+	if !found {
+		return result.NewResult()
+	}
+
+	spiCtx, err := spi.NewContext(defLog, r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	compContext := spiCtx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation)
+	installed, err := comp.IsInstalled(compContext)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if !installed {
+		return result.NewResult()
+	}
+	rancher.DeleteLocalCluster(defLog, r.Client)
+
+	if err := r.deleteMCResources(spiCtx); err != nil {
+		return ctrl.Result{}, err
+	}
+	tracker.vzState = vzStateUninstallComponents
+	return result.NewResult()
+}
+
+// uninstallRancherLocal does Rancher local uninstall
+func (r Reconciler) uninstallRancherLocal(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+	defLog := vpovzlog.DefaultLogger()
+
+	spiCtx, err := spi.NewContext(defLog, r.Client, actualCR, nil, r.DryRun)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if err := r.deleteMCResources(spiCtx); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	return result.NewResult()
+}
+
+
+// Delete multicluster related resources
+func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
+	// Check if this is not managed cluster
+	managed, err := r.isManagedCluster(ctx.Log())
+	if err != nil {
+		return err
+	}
+
+	projects := vzappclusters.VerrazzanoProjectList{}
+	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil && !meta.IsNoMatchError(err) {
+		return ctx.Log().ErrorfNewErr("Failed listing MC projects: %v", err)
+	}
+	// Delete MC rolebindings for each project
+	for _, p := range projects.Items {
+		if err := r.deleteManagedClusterRoleBindings(p, ctx.Log()); err != nil {
+			return err
+		}
+	}
+
+	ctx.Log().Oncef("Deleting all VMC resources")
+	vmcList := clustersapi.VerrazzanoManagedClusterList{}
+	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil && !meta.IsNoMatchError(err) {
+		return ctx.Log().ErrorfNewErr("Failed listing VMCs: %v", err)
+	}
+
+	for i, vmc := range vmcList.Items {
+		// Delete the VMC ServiceAccount (since managed cluster role bindings associated to it should now be deleted)
+		vmcSA := corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Namespace: vmc.Namespace, Name: vmc.Spec.ServiceAccount},
+		}
+		if err := r.Delete(context.TODO(), &vmcSA); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
+		}
+		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
+		}
+	}
+
+	// Delete VMC namespace only if there are no projects
+	if len(projects.Items) == 0 {
+		ctx.Log().Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
+		if err := r.deleteNamespace(context.TODO(), ctx.Log(), vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+			return err
+		}
+	}
+
+	// Delete secrets on managed cluster.  Don't delete MC agent secret until the end since it tells us this is MC install
+	if managed {
+		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+			return err
+		}
+		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, mcElasticSearchScrt); err != nil {
+			return err
+		}
+		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// deleteManagedClusterRoleBindings deletes the managed cluster rolebindings from each namespace
+// governed by the given project
+func (r *Reconciler) deleteManagedClusterRoleBindings(project vzappclusters.VerrazzanoProject, _ vzlog.VerrazzanoLogger) error {
+	for _, projectNSTemplate := range project.Spec.Template.Namespaces {
+		rbList := rbacv1.RoleBindingList{}
+		if err := r.List(context.TODO(), &rbList, &client.ListOptions{Namespace: projectNSTemplate.Metadata.Name}); err != nil {
+			return err
+		}
+		for i, rb := range rbList.Items {
+			if rb.RoleRef.Name == "verrazzano-managed-cluster" {
+				if err := r.Delete(context.TODO(), &rbList.Items[i]); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// isManagedCluster returns true if this is a managed cluster
+func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) {
+	var secret corev1.Secret
+	secretNsn := types.NamespacedName{
+		Namespace: vzconst.VerrazzanoSystemNamespace,
+		Name:      vzconst.MCAgentSecret,
+	}
+
+	// Get the MC agent secret and return if not found
+	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			log.Once("Determined that this is not a managed cluster")
+			return false, nil
+		}
+		return false, log.ErrorfNewErr("Failed to fetch the multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
+	}
+	return true, nil
 }
