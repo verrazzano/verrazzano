@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Reconcile reconciles the Verrazzano CR
+// Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
 func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	log := spictx.Log
 
@@ -45,7 +45,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
-	// has not started an upgrade of the Verrazzano install.
+	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
 		spictx.Log.Oncef("Upgrade required before reconciling modules")
 		return result.NewResultShortRequeueDelayIfError(err)
@@ -59,13 +59,15 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	}
 	effectiveCR.Status = actualCR.Status
 
-	// Note: updating the VZ state to reconciling is done by the module shim,
+	// Note: updating the VZ state to reconciling is done by the module shim to
+	// avoid a long delay before the user sees any CR action.
 	// See vzcomponent_status.go, UpdateVerrazzanoComponentStatus
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+
 	// Do global pre-work
 	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
@@ -84,9 +86,8 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 		return res
 	}
 
+	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
 	r.updateStatusInstallUpgradeComplete(actualCR)
-
-	// All the modules have been reconciled and are ready
 	return result.NewResult()
 }
 
