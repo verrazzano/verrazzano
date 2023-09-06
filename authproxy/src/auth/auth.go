@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"time"
 
@@ -192,26 +193,38 @@ type OIDCAuthenticator struct {
 	client      *retryablehttp.Client
 	clientID    string
 	verifier    atomic.Value
+	oidcConfig  *OIDCConfiguration
+	k8sClient   k8sclient.Client
 }
 
-func NewAuthenticator(log *zap.SugaredLogger) (*OIDCAuthenticator, error) {
+var _ Authenticator = OIDCAuthenticator{}
+
+// verifier interface
+// makes unit testing possible by allowing us to mock the verifier interface
+type verifier interface {
+	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
+}
+
+var _ verifier = &oidc.IDTokenVerifier{}
+
+func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, k8sClient k8sclient.Client) (*OIDCAuthenticator, error) {
 	authenticator := &OIDCAuthenticator{
-		Log:         log,
-		serviceURL:  "http://keycloak-http.keycloak.svc.cluster.local/auth/realms/verrazzano-system",
-		externalURL: "https://keycloak.default.172.18.0.231.nip.io/auth/realms/verrazzano-system",
-		client:      client.GetHTTPClientWithCABundle(&x509.CertPool{}),
-		clientID:    "verrazzano-pg",
+		Log:        log,
+		client:     client.GetHTTPClientWithCABundle(&x509.CertPool{}),
+		clientID:   "verrazzano-pg",
+		oidcConfig: oidcConfig,
+		k8sClient:  k8sClient,
 	}
 
 	if err := authenticator.storeVerifier(); err != nil {
-		log.Errorf("Failed to load verifier for the authenticator: %v", err)
+		log.Errorf("Failed to store verifier for the authenticator: %v", err)
 		return nil, err
 	}
 
 	return authenticator, nil
 }
 
-func (a *OIDCAuthenticator) AuthenticateRequest(req *http.Request) (bool, error) {
+func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error) {
 	authHeader := strings.TrimSpace(req.Header.Get(authHeaderKey))
 	splitHeader := strings.SplitN(authHeader, " ", 2)
 
@@ -235,7 +248,7 @@ func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string)
 
 	// Do issuer check for external URL
 	// This is skipped in the go-oidc package because it could be the service or the ingress
-	if idToken.Issuer != a.externalURL || idToken.Issuer != a.serviceURL {
+	if idToken.Issuer != a.oidcConfig.IssuerURL {
 		err := fmt.Errorf("failed to verify issuer, got %s, expected %s or %s", idToken.Issuer, a.serviceURL, a.externalURL)
 		a.Log.Errorf("Failed to validate JWT issuer: %v", err)
 		return false, err
@@ -244,7 +257,11 @@ func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string)
 	return true, nil
 }
 
-func (a *OIDCAuthenticator) storeVerifier() error {
+func (a OIDCAuthenticator) SetCallbackURL(url string) {
+	a.oidcConfig.CallbackURL = url
+}
+
+func (a OIDCAuthenticator) storeVerifier() error {
 	provider, err := oidc.NewProvider(context.TODO(), a.serviceURL)
 	if err != nil {
 		a.Log.Errorf("Failed to load OIDC provider: %v", err)
@@ -263,7 +280,6 @@ func (a *OIDCAuthenticator) storeVerifier() error {
 	return nil
 }
 
-func (a *OIDCAuthenticator) loadVerifier() *oidc.IDTokenVerifier {
-	verifier := a.verifier.Load()
-	return verifier.(*oidc.IDTokenVerifier)
+func (a OIDCAuthenticator) loadVerifier() verifier {
+	return a.verifier.Load().(verifier)
 }

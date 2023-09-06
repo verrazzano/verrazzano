@@ -8,22 +8,22 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"io"
 	"net/http"
 	"net/url"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
+	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -87,7 +87,11 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		ServiceURL:  config.GetServiceURL(),
 		ClientID:    config.GetClientID(),
 	}
-	authenticator := auth.NewAuthenticator(&oidcConfig, log, k8sClient)
+
+	authenticator, err := auth.NewAuthenticator(&oidcConfig, log, k8sClient)
+	if err != nil {
+		return err
+	}
 
 	httpClient := GetHTTPClientWithCABundle(rootCA)
 

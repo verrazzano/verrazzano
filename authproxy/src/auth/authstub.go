@@ -14,7 +14,7 @@ import (
 var _ Authenticator = FakeAuthenticator{nil, nil, nil}
 
 type Authenticator interface {
-	AuthenticateRequest(req *http.Request) (bool, error)
+	AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error)
 	AuthenticateToken(ctx context.Context, token string) (bool, error)
 	SetCallbackURL(url string)
 }
@@ -39,7 +39,7 @@ func NewFakeAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger,
 // AuthenticateRequest authenticates the given request. If a redirect or error has been processed, then
 // return true to indicate the request has been fully processed. Otherwise return false to indicate
 // that request processing should continue
-func (a FakeAuthenticator) AuthenticateRequest(req *http.Request) (bool, error) {
+func (a FakeAuthenticator) AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error) {
 	// request is not processed
 	return false, nil
 }
