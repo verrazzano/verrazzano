@@ -120,12 +120,15 @@ func loadConfigValue(filename string) (string, *time.Time, error) {
 // config values when changes are detected
 func InitConfiguration(log *zap.SugaredLogger) error {
 	if err := loadServiceURL(); err != nil {
+		log.Errorf("Failed to load Service URL: %v", err)
 		return err
 	}
 	if err := loadExternalURL(); err != nil {
+		log.Errorf("Failed to load External URL: %v", err)
 		return err
 	}
 	if err := loadClientID(); err != nil {
+		log.Errorf("Failed to load Client ID: %v", err)
 		return err
 	}
 
