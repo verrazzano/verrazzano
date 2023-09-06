@@ -247,3 +247,6 @@ const LetsEncryptProduction = "production"
 
 // LetsEncryptStaging - LetsEncrypt staging env
 const LetsEncryptStaging = "staging"
+
+// VerrazzanoOIDCSystemRealm is the OIDC realm used for Verrazzano system auth
+const VerrazzanoOIDCSystemRealm = "verrazzano-system"
