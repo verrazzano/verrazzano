@@ -194,11 +194,6 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
-
 		spiCtx.Log().Debugf("Reconciling watched component %s", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {

@@ -500,9 +500,7 @@ func (r *Reconciler) modulesExist(ctx spi.ComponentContext) (bool, error) {
 		if !comp.IsEnabled(ctx.EffectiveCR()) {
 			continue
 		}
-		if !comp.ShouldUseModule() {
-			continue
-		}
+
 		module := moduleapi.Module{}
 		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
 		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
