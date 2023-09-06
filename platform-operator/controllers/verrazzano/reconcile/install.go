@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -229,6 +230,10 @@ func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 // forceSyncComponentReconciledGeneration Force all Ready components' lastReconciledGeneration to match the VZ CR generation;
 // this is applied at the end of a successful VZ CR reconcile.
 func (r *Reconciler) forceSyncComponentReconciledGeneration(ctx spi.ComponentContext) error {
+	if !config.Get().ModuleIntegration {
+		// only do this with modules integration enabled
+		return nil
+	}
 	actualCR := ctx.ActualCR()
 	componentsToUpdate := map[string]*vzapi.ComponentStatusDetails{}
 	for compName, componentStatus := range actualCR.Status.Components {
