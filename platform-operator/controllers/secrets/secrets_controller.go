@@ -47,8 +47,6 @@ func (r *VerrazzanoSecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile the Secret
 func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.log = vzlog.DefaultLogger()
-
 	// One secret we care about is the verrazzano ingress tls secret (verrazzano-tls)
 	if ctx == nil {
 		ctx = context.TODO()
