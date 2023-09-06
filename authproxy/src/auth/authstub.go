@@ -20,7 +20,8 @@ type Authenticator interface {
 }
 
 type OIDCConfiguration struct {
-	IssuerURL   string
+	ExternalURL string
+	ServiceURL  string
 	ClientID    string
 	CallbackURL string
 }

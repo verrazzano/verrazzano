@@ -83,8 +83,9 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 	}
 
 	oidcConfig := auth.OIDCConfiguration{
-		IssuerURL: config.GetServiceURL(),
-		ClientID:  config.GetClientID(),
+		ExternalURL: config.GetExternalURL(),
+		ServiceURL:  config.GetServiceURL(),
+		ClientID:    config.GetClientID(),
 	}
 	authenticator := auth.NewFakeAuthenticator(&oidcConfig, log, k8sClient)
 
