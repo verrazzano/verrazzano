@@ -6,7 +6,7 @@ manager:
   image:
     repository: public.ecr.aws/opsterio/opensearch-operator
     ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
-    tag: "2.3.0"
+    tag: "2.4.0"
     pullPolicy: "IfNotPresent"
 
 ingress:
@@ -39,76 +39,3 @@ ingress:
     serviceName: verrazzano-authproxy
     portNumber: 8775
     tls: []
-
-opensearchCluster:
-  enabled: true
-  name: opensearch
-  security:
-    config:
-      adminCredentialsSecret:
-        name: admin-credentials-secret
-      securityConfigSecret:
-        name: securityconfig-secret
-      adminSecret:
-        name: opensearch-admin-cert
-    tls:
-      transport:
-        generate: false
-        secret:
-          name: opensearch-node-cert
-        adminDn: ["CN=admin,O=verrazzano"]
-        nodesDn: ["CN=opensearch,O=verrazzano"]
-      http:
-        generate: false
-        secret:
-          name: opensearch-master-cert
-  general:
-    image: "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:experimental"
-    httpPort: 9200
-    serviceName: opensearch
-    version: 2.3.0
-    drainDataNodes: true
-    setVMMaxMapCount: true
-  #    podSecurityContext:
-  #      securityContext:
-  #        seccompProfile:
-  #          type: RuntimeDefault
-  #    securityContext:
-  #      allowPrivilegeEscalation: false
-  #      capabilities:
-  #        drop:
-  #          - ALL
-  #      privileged: false
-  #      runAsUser: 1000
-  dashboards:
-    image: "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
-    opensearchCredentialsSecret:
-      name: admin-credentials-secret
-    additionalConfig:
-      server.name: opensearch-dashboards
-      opensearch_security.auth.type: "proxy"
-      opensearch_security.proxycache.user_header: "X-WEBAUTH-USER"
-      opensearch_security.proxycache.roles_header: "x-proxy-roles"
-      opensearch.requestHeadersAllowlist: "[\"securitytenant\",\"Authorization\",\"x-forwarded-for\",\"X-WEBAUTH-USER\",\"x-proxy-roles\"]"
-      opensearch_security.multitenancy.enabled: "false"
-    tls:
-      enable: true
-      generate: false
-      secret:
-        name: opensearch-dashboards-cert
-    version: 2.3.0
-    enable: true
-    replicas: 1
-#    securityContext:
-#      allowPrivilegeEscalation: false
-#      capabilities:
-#        drop:
-#          - ALL
-#      privileged: false
-#    podSecurityContext:
-#      fsGroup: 1000
-#      runAsGroup: 1000
-#      runAsNonRoot: true
-#      runAsUser: 1000
-#      seccompProfile:
-#        type: RuntimeDefault
