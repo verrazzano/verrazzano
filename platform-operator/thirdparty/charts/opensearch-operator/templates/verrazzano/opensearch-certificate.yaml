@@ -6,11 +6,11 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.opensearchCluster.name }}-admin-cert
+  name: opensearch-admin-cert
   namespace: {{ .Release.Namespace }}
 spec:
   commonName: admin
-  secretName: {{ .Values.opensearchCluster.name }}-admin-cert
+  secretName: opensearch-admin-cert
   privateKey:
     algorithm: RSA
     encoding: PKCS8
@@ -32,16 +32,16 @@ status: {}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.opensearchCluster.name }}-dashboards-cert
+  name: opensearch-dashboards-cert
   namespace: {{ .Release.Namespace }}
 spec:
-  commonName: {{ .Values.opensearchCluster.name }}
-  secretName: {{ .Values.opensearchCluster.name }}-dashboards-cert
+  commonName: opensearch
+  secretName: opensearch-dashboards-cert
   dnsNames:
-    - {{ .Values.opensearchCluster.name }}
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}.svc
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}.svc.cluster.local
+    - opensearch
+    - opensearch.{{ .Release.Namespace }}
+    - opensearch.{{ .Release.Namespace }}.svc
+    - opensearch.{{ .Release.Namespace }}.svc.cluster.local
   privateKey:
     algorithm: RSA
     encoding: PKCS8
@@ -63,17 +63,17 @@ status: {}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.opensearchCluster.name }}-master-cert
+  name: opensearch-master-cert
   namespace: {{ .Release.Namespace }}
 spec:
-  commonName: {{ .Values.opensearchCluster.name }}
-  secretName: {{ .Values.opensearchCluster.name }}-master-cert
+  commonName: opensearch
+  secretName: opensearch-master-cert
   dnsNames:
-    - {{ .Values.opensearchCluster.name }}
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}.svc
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}.svc.cluster.local
-    - {{ .Values.opensearchCluster.name }}-discovery
+    - opensearch
+    - opensearch.{{ .Release.Namespace }}
+    - opensearch.{{ .Release.Namespace }}.svc
+    - opensearch.{{ .Release.Namespace }}.svc.cluster.local
+    - opensearch-discovery
   privateKey:
     algorithm: RSA
     encoding: PKCS8
@@ -95,16 +95,16 @@ status: {}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.opensearchCluster.name }}-node-cert
+  name: opensearch-node-cert
   namespace: {{ .Release.Namespace }}
 spec:
-  commonName: {{ .Values.opensearchCluster.name }}
-  secretName: {{ .Values.opensearchCluster.name }}-node-cert
+  commonName: opensearch
+  secretName: opensearch-node-cert
   dnsNames:
-    - {{ .Values.opensearchCluster.name }}
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}.svc
-    - {{ .Values.opensearchCluster.name }}.{{ .Release.Namespace }}.svc.cluster.local
+    - opensearch
+    - opensearch.{{ .Release.Namespace }}
+    - opensearch.{{ .Release.Namespace }}.svc
+    - opensearch.{{ .Release.Namespace }}.svc.cluster.local
   privateKey:
     algorithm: RSA
     encoding: PKCS8
@@ -123,14 +123,15 @@ spec:
     name: verrazzano-cluster-issuer
 status: {}
 ---
+{{- if lookup "v1" "Namespace" "" "verrazzano-monitoring" }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.opensearchCluster.name }}-monitor-certs
+  name: opensearch-monitor-certs
   namespace: verrazzano-monitoring
 spec:
   commonName: prometheus-operator
-  secretName: {{ .Values.opensearchCluster.name }}-monitor-certs
+  secretName: opensearch-monitor-certs
   privateKey:
     algorithm: RSA
     encoding: PKCS8
@@ -148,3 +149,4 @@ spec:
     kind: ClusterIssuer
     name: verrazzano-cluster-issuer
 status: {}
+{{- end }}
