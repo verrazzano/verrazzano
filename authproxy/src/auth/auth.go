@@ -16,6 +16,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	authclient "github.com/verrazzano/verrazzano/authproxy/src/client"
 	"github.com/verrazzano/verrazzano/pkg/certs"
 	"go.uber.org/zap"
@@ -28,11 +29,12 @@ var _ Authenticator = OIDCAuthenticator{}
 
 // OIDCAuthenticator authenticates incoming requests against the Identity Provider
 type OIDCAuthenticator struct {
-	k8sClient  k8sclient.Client
-	oidcConfig *OIDCConfiguration
-	client     *retryablehttp.Client
-	verifier   atomic.Value
-	Log        *zap.SugaredLogger
+	k8sClient        k8sclient.Client
+	oidcConfig       *OIDCConfiguration
+	client           *retryablehttp.Client
+	ExternalProvider *oidc.Provider
+	verifier         atomic.Value
+	Log              *zap.SugaredLogger
 }
 
 const (
@@ -55,7 +57,8 @@ func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, cli
 		oidcConfig: oidcConfig,
 		k8sClient:  client,
 	}
-
+	// The OIDC provider might not be ready - we (indefinitely) retry till it is
+	retryInitExternalOIDCProvider(authenticator)
 	if err := authenticator.storeVerifier(); err != nil {
 		log.Errorf("Failed to store verifier for the authenticator: %v", err)
 		return nil, err
@@ -64,17 +67,32 @@ func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, cli
 	return authenticator, nil
 }
 
+func retryInitExternalOIDCProvider(authenticator *OIDCAuthenticator) {
+	var err error
+	sleep := 1
+	backoffFactor := 2
+	for {
+		err = authenticator.InitExternalOIDCProvider(authenticator.oidcConfig.ExternalURL)
+		if err != nil {
+			time.Sleep(time.Duration(sleep) * time.Second)
+			vzlog.DefaultLogger().Progressf("Could not initialize external OIDC Provider for authentication: %v", err)
+			sleep = sleep * backoffFactor
+			continue
+		}
+		break
+	}
+}
+
 // AuthenticateRequest performs login redirect if the authorization header is not provided.
 // If the header is provided, the bearer token is validated against the OIDC key
 func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error) {
 	authHeader := req.Header.Get(authHeaderKey)
 
-	provider, _, err := a.CreateOIDCProvider(a.oidcConfig.ExternalURL)
-	if err != nil {
-		return false, fmt.Errorf("Failed to create OIDC provider for authentication: %v", err)
+	if a.ExternalProvider == nil {
+		return false, fmt.Errorf("OIDC provider for authentication is not initialized!")
 	}
 	if authHeader == "" {
-		err := a.performLoginRedirect(req, rw, provider)
+		err := a.performLoginRedirect(req, rw, a.ExternalProvider)
 		if err != nil {
 			return false, fmt.Errorf("Could not redirect for login: %v", err)
 		}
@@ -153,14 +171,18 @@ func (a OIDCAuthenticator) ToOIDCConfig() *oidc.Config {
 	}
 }
 
-// CreateOIDCProvider creates an OIDC Provider for the given configuration
-func (a OIDCAuthenticator) CreateOIDCProvider(issuerURL string) (*oidc.Provider, context.Context, error) {
+// InitExternalOIDCProvider initializes the external URL based OIDC Provider in the given Authenticator
+func (a OIDCAuthenticator) InitExternalOIDCProvider(issuerURL string) error {
 	ctx, err := a.createContextWithHTTPClient()
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	provider, err := oidc.NewProvider(ctx, issuerURL)
-	return provider, ctx, err
+	if err != nil {
+		return err
+	}
+	a.ExternalProvider = provider
+	return nil
 }
 
 func (a OIDCAuthenticator) performLoginRedirect(req *http.Request, rw http.ResponseWriter, provider *oidc.Provider) error {
@@ -204,17 +226,6 @@ func (a OIDCAuthenticator) performLoginRedirect(req *http.Request, rw http.Respo
 	}
 	http.Redirect(rw, req, oauthConfig.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
 	return nil
-}
-
-func (a OIDCAuthenticator) Verify(req *http.Request, rw http.ResponseWriter) bool {
-	// provider, ctx, err := a.CreateOIDCProvider(a.oidcConfig.ServiceURL)
-	// if err != nil {
-	// 	http.Error(rw, err.Error(), http.StatusInternalServerError)
-	// }
-	// verifier := provider.Verifier(a.ToOIDCConfig())
-	// verifier.Verify(ctx, "")
-	// TODO actually verify
-	return true
 }
 
 // storeVerifier creates an OIDC provider using the Service URL
