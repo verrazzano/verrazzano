@@ -143,7 +143,7 @@ func (a OIDCAuthenticator) SetCallbackURL(url string) {
 func getTokenFromAuthHeader(authHeader string) (string, error) {
 	splitHeader := strings.SplitN(authHeader, " ", 3)
 
-	if len(splitHeader) < 2 || strings.EqualFold(splitHeader[0], authTypeBearer) {
+	if len(splitHeader) < 2 || !strings.EqualFold(splitHeader[0], authTypeBearer) {
 		return "", fmt.Errorf("failed to verify authorization bearer header")
 	}
 
