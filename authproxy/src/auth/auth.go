@@ -71,20 +71,21 @@ func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respon
 
 	provider, _, err := a.CreateOIDCProvider(a.oidcConfig.ExternalURL)
 	if err != nil {
-		return true, fmt.Errorf("Failed to create OIDC provider for authentication: %v", err)
+		return false, fmt.Errorf("Failed to create OIDC provider for authentication: %v", err)
 	}
 	if authHeader == "" {
 		err := a.performLoginRedirect(req, rw, provider)
 		if err != nil {
-			return true, fmt.Errorf("Could not redirect for login: %v", err)
+			return false, fmt.Errorf("Could not redirect for login: %v", err)
 		}
-		// we either redirected or are sending an error - either way, request processing is done
-		return true, nil
+		// we performed a redirect, so request processing is done and
+		// no further processing is needed
+		return false, nil
 	}
 
 	token, err := getTokenFromAuthHeader(authHeader)
 	if err != nil {
-		a.Log.Errorf("Failed to get token from authorization header: %v", err)
+		return false, fmt.Errorf("Failed to get token from authorization header: %v", err)
 	}
 
 	return a.AuthenticateToken(req.Context(), token)

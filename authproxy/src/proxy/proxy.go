@@ -170,12 +170,12 @@ func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	h.Authenticator.SetCallbackURL(fmt.Sprintf("https://%s%s", ingressHost, callbackPath))
-	requestProcessed, err := h.Authenticator.AuthenticateRequest(req, rw)
+	continueProcessing, err := h.Authenticator.AuthenticateRequest(req, rw)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	if requestProcessed {
+	if !continueProcessing {
 		return
 	}
 
