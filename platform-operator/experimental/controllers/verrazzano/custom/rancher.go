@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -128,7 +127,7 @@ func createSecretCopy(cli client.Client, newName types.NamespacedName, existingS
 	return err
 }
 
-func getDNSSuffix(effectiveCR *v1alpha1.Verrazzano) string {
+func getDNSSuffix(effectiveCR *vzv1alpha1.Verrazzano) string {
 	var dnsSuffix string
 
 	if effectiveCR.Spec.Components.DNS == nil || effectiveCR.Spec.Components.DNS.Wildcard != nil {

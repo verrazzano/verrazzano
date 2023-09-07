@@ -7,11 +7,9 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
@@ -22,23 +20,6 @@ import (
 )
 
 const finalizerName = "install.verrazzano.io"
-
-// old node-exporter constants replaced with prometheus-operator node-exporter
-const (
-	monitoringNamespace = "monitoring"
-	nodeExporterName    = "node-exporter"
-	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
-	istioRootCertName   = "istio-ca-root-cert"
-)
-
-// sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
-var sharedNamespaces = []string{
-	vzconst.VerrazzanoMonitoringNamespace,
-	constants.CertManagerNamespace,
-	constants.VerrazzanoSystemNamespace,
-	vzconst.KeycloakNamespace,
-	monitoringNamespace,
-}
 
 // GetName returns the name of the finalizer
 func (r Reconciler) GetName() string {
