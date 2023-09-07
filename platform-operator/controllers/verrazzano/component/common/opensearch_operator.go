@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	securitySecretName      = "securityconfig-secret"
-	securitySecretNamespace = "verrazzano-logging"
-	securityConfigYaml      = "/verrazzano/platform-operator/thirdparty/manifests/opensearch-securityconfig.yaml"
-	configYaml              = "config.yml"
-	usersYaml               = "internals_users.yml"
-	adminSecret             = "admin-credentials-secret"
+	securitySecretName = "securityconfig-secret"
+	securityNamespace  = "verrazzano-logging"
+	securityConfigYaml = "/verrazzano/platform-operator/thirdparty/manifests/opensearch-securityconfig.yaml"
+	configYaml         = "config.yml"
+	usersYaml          = "internals_users.yml"
+	adminName          = "admin-credentials-secret"
 )
 
 // MergeSecretData merges a security config secret
@@ -32,7 +32,7 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	scr, err := clientset.CoreV1().Secrets(securitySecretNamespace).Get(context.TODO(), securitySecretName, metav1.GetOptions{})
+	scr, err := clientset.CoreV1().Secrets(securityNamespace).Get(context.TODO(), securitySecretName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,13 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	}
 	// Get the YAML data from Helm Secret and Secret
 	configYamlFile, err := getYamlData(securityYamlData, configYaml)
+	if err != nil {
+		return err
+	}
 	configYamlSecret, err := getSecretData(scr, configYaml)
+	if err != nil {
+		return err
+	}
 
 	// Unmarshal the YAML data into maps
 	dataFileConfig, err := unmarshalYAML(configYamlFile)
@@ -67,7 +73,13 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	scr.Data[configYaml] = mergedConfigYAML
 
 	usersYamlFile, err := getYamlData(securityYamlData, usersYaml)
+	if err != nil {
+		return err
+	}
 	usersYamlSecret, err := getSecretData(scr, usersYaml)
+	if err != nil {
+		return err
+	}
 
 	dataHelmUsers, err := unmarshalYAML(usersYamlFile)
 	if err != nil {
@@ -77,11 +89,14 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	adminSecret, err := clientset.CoreV1().Secrets(securitySecretNamespace).Get(context.TODO(), adminSecret, metav1.GetOptions{})
+	adminSecret, err := clientset.CoreV1().Secrets(securityNamespace).Get(context.TODO(), adminName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	adminHash, err := getAdminHash(adminSecret)
+	if err != nil {
+		return err
+	}
 	// Merge the internal_users.yml data
 	mergedUsers, err := mergeUserYamlData(dataHelmUsers, dataSecretUsers, adminHash)
 	if err != nil {
@@ -95,7 +110,7 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	scr.Data[usersYaml] = mergedUsersYAML
 
 	// Update the secret
-	_, err = clientset.CoreV1().Secrets(securitySecretNamespace).Update(context.TODO(), scr, metav1.UpdateOptions{})
+	_, err = clientset.CoreV1().Secrets(securityNamespace).Update(context.TODO(), scr, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
