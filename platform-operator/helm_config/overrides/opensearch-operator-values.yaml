@@ -9,6 +9,9 @@ manager:
     tag: "2.4.0"
     pullPolicy: "IfNotPresent"
 
+kubeRbacProxy:
+  enable: false
+
 ingress:
   opensearch:
     enable: true
