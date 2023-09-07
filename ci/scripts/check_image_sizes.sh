@@ -18,3 +18,4 @@ diff ${WORKSPACE}/image-sizes-objectstore.txt ${WORKSPACE}/image-sizes.txt > ret
 if [ $? -eq 0 ] ; then
   rm returnvalue.txt
 fi
+
