@@ -55,6 +55,9 @@ var skipPods = map[string][]string{
 	"verrazzano-backup": {
 		"^restic.*$",
 	},
+	"verrazzano-monitoring": {
+		"^jaeger-operator-jaeger-es-index-cleaner.*$",
+	},
 }
 
 var skipContainers = []string{"jaeger-agent"}
