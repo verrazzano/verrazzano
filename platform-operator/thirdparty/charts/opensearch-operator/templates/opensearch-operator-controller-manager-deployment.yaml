@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: {{ include "opensearch-operator.fullname" . }}-controller-manager
+  name: opensearch-operator-controller-manager
 spec:
   replicas: 1
   selector:
@@ -70,5 +70,5 @@ spec:
 {{- toYaml .Values.tolerations | nindent 8 }}
       securityContext:
 {{- toYaml .Values.securityContext | nindent 8}}
-      serviceAccountName: {{ include "opensearch-operator.serviceAccountName" . }}
+      serviceAccountName: opensearch-operator-controller-manager
       terminationGracePeriodSeconds: 10
