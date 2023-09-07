@@ -123,7 +123,7 @@ func (h Handler) findPathHandler(req *http.Request) handlerFuncType {
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
 
-	err := h.InitializeAuthenticator()
+	err := InitializeAuthenticator(&h)
 	if err != nil {
 		h.Log.Errorf("Failed to initialize Authenticator: %v", err)
 		http.Error(rw, "Failed to initialize Authenticator", http.StatusInternalServerError)
@@ -232,6 +232,9 @@ func getIngressHost(req *http.Request) string {
 	if host := req.Header.Get("host"); host != "" {
 		return host
 	}
+	if host := req.Host; host != "" {
+		return host
+	}
 	return "invalid-hostname"
 }
 
@@ -282,7 +285,7 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, 
 	return retryableReq, nil
 }
 
-func (h Handler) InitializeAuthenticator() error {
+func InitializeAuthenticator(h *Handler) error {
 	if h.AuthInited.Load() {
 		return nil
 	}
@@ -301,11 +304,11 @@ func (h Handler) InitializeAuthenticator() error {
 		return nil
 	}
 
-	var err error
-	h.Authenticator, err = auth.NewAuthenticator(&oidcConfig, h.Log, h.K8sClient)
+	authenticator, err := auth.NewAuthenticator(&oidcConfig, h.Log, h.K8sClient)
 	if err != nil {
 		return err
 	}
+	h.Authenticator = authenticator
 	h.AuthInited.Store(true)
 	return nil
 }

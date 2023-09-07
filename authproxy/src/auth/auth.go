@@ -16,7 +16,6 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	authclient "github.com/verrazzano/verrazzano/authproxy/src/client"
 	"github.com/verrazzano/verrazzano/pkg/certs"
 	"go.uber.org/zap"
@@ -58,7 +57,7 @@ func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, cli
 		k8sClient:  client,
 	}
 
-	if err := authenticator.InitExternalOIDCProvider(oidcConfig.ExternalURL); err != nil {
+	if err := initExternalOIDCProvider(authenticator, oidcConfig.ExternalURL); err != nil {
 		log.Errorf("Failed to initialize OIDC provider for the authenticator: %v", err)
 		return nil, err
 	}
@@ -69,22 +68,6 @@ func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, cli
 	}
 
 	return authenticator, nil
-}
-
-func retryInitExternalOIDCProvider(authenticator *OIDCAuthenticator) {
-	var err error
-	sleep := 1
-	backoffFactor := 2
-	for {
-		err = authenticator.InitExternalOIDCProvider(authenticator.oidcConfig.ExternalURL)
-		if err != nil {
-			time.Sleep(time.Duration(sleep) * time.Second)
-			vzlog.DefaultLogger().Progressf("Could not initialize external OIDC Provider for authentication: %v", err)
-			sleep = sleep * backoffFactor
-			continue
-		}
-		break
-	}
 }
 
 // AuthenticateRequest performs login redirect if the authorization header is not provided.
@@ -175,8 +158,8 @@ func (a OIDCAuthenticator) ToOIDCConfig() *oidc.Config {
 	}
 }
 
-// InitExternalOIDCProvider initializes the external URL based OIDC Provider in the given Authenticator
-func (a OIDCAuthenticator) InitExternalOIDCProvider(issuerURL string) error {
+// initExternalOIDCProvider initializes the external URL based OIDC Provider in the given Authenticator
+func initExternalOIDCProvider(a *OIDCAuthenticator, issuerURL string) error {
 	ctx, err := a.createContextWithHTTPClient()
 	if err != nil {
 		return err
