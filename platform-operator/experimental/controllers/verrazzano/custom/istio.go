@@ -32,4 +32,3 @@ func DeleteIstioCARootCert(ctx componentspi.ComponentContext) error {
 	}
 	return nil
 }
-
