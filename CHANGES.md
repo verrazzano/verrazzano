@@ -1,3 +1,9 @@
+### v1.4.7
+Component version updates:
+
+- WebLogic Kubernetes Operator v3.4.10
+- WebLogic Monitoring Exporter v2.1.5
+
 ### v1.4.5
 Component version updates:
 
