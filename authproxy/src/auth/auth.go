@@ -57,8 +57,12 @@ func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, cli
 		oidcConfig: oidcConfig,
 		k8sClient:  client,
 	}
-	// The OIDC provider might not be ready - we (indefinitely) retry till it is
-	retryInitExternalOIDCProvider(authenticator)
+
+	if err := authenticator.InitExternalOIDCProvider(oidcConfig.ExternalURL); err != nil {
+		log.Errorf("Failed to initialize OIDC provider for the authenticator: %v", err)
+		return nil, err
+	}
+
 	if err := authenticator.storeVerifier(); err != nil {
 		log.Errorf("Failed to store verifier for the authenticator: %v", err)
 		return nil, err

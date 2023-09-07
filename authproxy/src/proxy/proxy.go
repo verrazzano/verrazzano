@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -35,6 +37,7 @@ const (
 )
 
 var getConfigFunc = k8sutil.GetConfigFromController
+var mutex sync.RWMutex
 
 // AuthProxy wraps the server instance
 type AuthProxy struct {
@@ -51,6 +54,7 @@ type Handler struct {
 	OIDCConfig    map[string]string
 	Authenticator auth.Authenticator
 	K8sClient     client.Client
+	AuthInited    atomic.Bool
 }
 
 var _ http.Handler = Handler{}
@@ -82,24 +86,12 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		return err
 	}
 
-	oidcConfig := auth.OIDCConfiguration{
-		ExternalURL: config.GetExternalURL(),
-		ServiceURL:  config.GetServiceURL(),
-		ClientID:    config.GetClientID(),
-	}
-
-	authenticator, err := auth.NewAuthenticator(&oidcConfig, log, k8sClient)
-	if err != nil {
-		return err
-	}
-
 	httpClient := GetHTTPClientWithCABundle(rootCA)
 	authproxy.Handler = Handler{
-		URL:           restConfig.Host,
-		Client:        httpClient,
-		Log:           log,
-		K8sClient:     k8sClient,
-		Authenticator: authenticator,
+		URL:       restConfig.Host,
+		Client:    httpClient,
+		Log:       log,
+		K8sClient: k8sClient,
 	}
 	return nil
 }
@@ -130,6 +122,13 @@ func (h Handler) findPathHandler(req *http.Request) handlerFuncType {
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
+
+	err := h.InitializeAuthenticator()
+	if err != nil {
+		h.Log.Errorf("Failed to initialize Authenticator: %v", err)
+		http.Error(rw, "Failed to initialize Authenticator", http.StatusInternalServerError)
+		return
+	}
 
 	handlerFunc := h.findPathHandler(req)
 	handlerFunc(rw, req)
@@ -281,6 +280,34 @@ func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, 
 	}
 
 	return retryableReq, nil
+}
+
+func (h Handler) InitializeAuthenticator() error {
+	if h.AuthInited.Load() {
+		return nil
+	}
+
+	oidcConfig := auth.OIDCConfiguration{
+		ExternalURL: config.GetExternalURL(),
+		ServiceURL:  config.GetServiceURL(),
+		ClientID:    config.GetClientID(),
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// double-check the condition in case it changed by the time we acquired the lock
+	if h.AuthInited.Load() {
+		return nil
+	}
+
+	var err error
+	h.Authenticator, err = auth.NewAuthenticator(&oidcConfig, h.Log, h.K8sClient)
+	if err != nil {
+		return err
+	}
+	h.AuthInited.Store(true)
+	return nil
 }
 
 // validateRequest performs request validation before the request is processed
