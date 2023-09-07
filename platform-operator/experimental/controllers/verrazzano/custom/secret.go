@@ -6,7 +6,9 @@ package custom
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -18,7 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Create a registration secret in the verrazzano-system namespace, with the managed cluster information.
+// SyncLocalRegistrationSecret creats a registration secret in the verrazzano-system namespace,
+// with the managed cluster information.
 // This secret will be used on the admin cluster to get information about itself, like the cluster name,
 // so that the admin cluster can manage multi-cluster resources without the need of a VMC.  In the
 // case of a cluster that is used as a managed cluster, this secret will still be created, but not used, and
@@ -85,6 +88,17 @@ func DeleteSecret(cli client.Client, log vzlog.VerrazzanoLogger, namespace strin
 			return nil
 		}
 		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
+	}
+	return nil
+}
+
+// DoesOCIDNSConfigSecretExist returns true if the DNS secret exists
+func DoesOCIDNSConfigSecretExist(cli client.Client, vz *vzv1alpha1.Verrazzano) error {
+	// ensure the secret exists before proceeding
+	secret := &corev1.Secret{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vzconst.VerrazzanoInstallNamespace}, secret)
+	if err != nil {
+		return err
 	}
 	return nil
 }

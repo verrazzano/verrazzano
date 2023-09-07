@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -24,10 +23,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
@@ -119,7 +116,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
-		err := r.doesOCIDNSConfigSecretExist(actualCR)
+		err := custom.DoesOCIDNSConfigSecretExist(r.Client, actualCR)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
@@ -280,15 +277,4 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzv1alpha1.Verrazzano) (bool, er
 		return statusVersion.IsLessThan(bomVersion), nil
 	}
 	return false, nil
-}
-
-// doesOCIDNSConfigSecretExist returns true if the DNS secret exists
-func (r Reconciler) doesOCIDNSConfigSecretExist(vz *vzv1alpha1.Verrazzano) error {
-	// ensure the secret exists before proceeding
-	secret := &corev1.Secret{}
-	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vzconst.VerrazzanoInstallNamespace}, secret)
-	if err != nil {
-		return err
-	}
-	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,8 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -180,11 +177,11 @@ func (r Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentCont
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := r.deleteIstioCARootCert(componentCtx); err != nil {
+	if err := custom.DeleteIstioCARootCert(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := r.nodeExporterCleanup(componentCtx.Log()); err != nil {
+	if err := custom.NodeExporterCleanup(componentCtx.Client(), componentCtx.Log()); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -197,52 +194,4 @@ func (r Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentCont
 		}
 	}
 	return custom.DeleteNamespaces(componentCtx, rancherProvisioned)
-}
-
-// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
-func (r Reconciler) deleteIstioCARootCert(ctx componentspi.ComponentContext) error {
-	namespaces := corev1.NamespaceList{}
-	err := ctx.Client().List(context.TODO(), &namespaces)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list the cluster namespaces: %v", err)
-	}
-
-	for _, ns := range namespaces.Items {
-		err := resource.Resource{
-			Name:      istioRootCertName,
-			Namespace: ns.GetName(),
-			Client:    r.Client,
-			Object:    &corev1.ConfigMap{},
-			Log:       ctx.Log(),
-		}.Delete()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// nodeExporterCleanup cleans up any resources from the old node-exporter that was
-// replaced with the node-exporter from the prometheus-operator
-func (r Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
-	err := resource.Resource{
-		Name:   nodeExporterName,
-		Client: r.Client,
-		Object: &rbacv1.ClusterRoleBinding{},
-		Log:    log,
-	}.Delete()
-	if err != nil {
-		return err
-	}
-	err = resource.Resource{
-		Name:   nodeExporterName,
-		Client: r.Client,
-		Object: &rbacv1.ClusterRole{},
-		Log:    log,
-	}.Delete()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
