@@ -20,8 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	integrationcascade "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/cascade"
-	integrationsingle "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/single"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
@@ -100,34 +98,12 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
 
-	// Setup Verrazzano controllers
-	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-	reconciler := reconcile.Reconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		DryRun:            vzconfig.DryRun,
-		WatchedComponents: map[string]bool{},
-		WatchMutex:        &sync.RWMutex{},
-		StatusUpdater:     statusUpdater,
-	}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller")
-	}
-	if vzconfig.HealthCheckPeriodSeconds > 0 {
-		healthCheck.Start()
-	}
-
-	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
-	// Use the new controller if module integration is enabled.  Also create the module controllers
+	// There are 2 verrazzano CR controllers, the new module-based controller and the original (legacy) one.
+	// Use the new module-base controllers if module integration is enabled otherwise use the legacy verrazzano one.
 	if vzconfig.ModuleIntegration {
 		if err := initModuleControllers(log, mgr); err != nil {
 			log.Errorf("Failed to start all module controllers", err)
 			return errors.Wrap(err, "Failed to initialize modules controllers for the components")
-		}
-
-		if err := initIntegrationControllers(log, mgr); err != nil {
-			log.Errorf("Failed to start all integration controllers", err)
-			return errors.Wrap(err, "Failed to initialize integration controllers")
 		}
 
 		// init verrazzano module controller
@@ -135,6 +111,25 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 		}
+	} else {
+		// init legacy verrazzano controller
+		reconciler := reconcile.Reconciler{
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			DryRun:            vzconfig.DryRun,
+			WatchedComponents: map[string]bool{},
+			WatchMutex:        &sync.RWMutex{},
+			StatusUpdater:     statusUpdater,
+		}
+		if err = reconciler.SetupWithManager(mgr); err != nil {
+			return errors.Wrap(err, "Failed to setup controller")
+		}
+	}
+
+	// Setup Verrazzano controllers
+	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+	if vzconfig.HealthCheckPeriodSeconds > 0 {
+		healthCheck.Start()
 	}
 	dynamicClient, err := k8sutil.GetDynamicClient()
 	if err != nil {
@@ -276,26 +271,5 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 			return err
 		}
 	}
-	return nil
-}
-
-// initModuleControllers creates the integration controllers
-func initIntegrationControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-	// single module integration controller
-	if err := integrationsingle.InitController(integrationsingle.IntegrationControllerConfig{
-		ControllerManager: mgr,
-	}); err != nil {
-		log.Errorf("Failed to start the integration controller:%v", err)
-		return err
-	}
-
-	// other modules integration controller
-	if err := integrationcascade.InitController(integrationcascade.IntegrationControllerConfig{
-		ControllerManager: mgr,
-	}); err != nil {
-		log.Errorf("Failed to start the integration controller:%v", err)
-		return err
-	}
-
 	return nil
 }

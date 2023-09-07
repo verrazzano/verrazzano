@@ -6,11 +6,6 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
-	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -370,42 +365,4 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 		}
 	}
 	return r.updateStatus(log, vz, msg, newCondition, nil)
-}
-
-// The new Verrazzano controller creates Modules for components.  Make sure those modules are ready.
-func (r *Reconciler) modulesReady(ctx spi.ComponentContext) (bool, error) {
-	for _, comp := range registry.GetComponents() {
-		if !comp.IsEnabled(ctx.EffectiveCR()) {
-			continue
-		}
-		if !comp.ShouldUseModule() {
-			continue
-		}
-		if GetModuleCreateOrUpdateDoneGen() != ctx.EffectiveCR().Generation {
-			return false, nil
-		}
-
-		module := moduleapi.Module{}
-		nsn := types.NamespacedName{Namespace: vzconst.VerrazzanoInstallNamespace, Name: comp.Name()}
-		err := r.Client.Get(context.TODO(), nsn, &module, &client.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
-			ctx.Log().ErrorfThrottled("Failed to get Module %s, retrying: %v", comp.Name(), err)
-			return false, err
-		}
-
-		cond := modulestatus.GetReadyCondition(&module)
-		if cond == nil {
-			return false, nil
-		}
-		if module.Status.LastSuccessfulGeneration != module.Generation {
-			return false, nil
-		}
-		if module.Status.LastSuccessfulVersion != module.Spec.Version {
-			return false, nil
-		}
-	}
-	return true, nil
 }

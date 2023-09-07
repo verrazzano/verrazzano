@@ -8,18 +8,23 @@ import (
 	"encoding/json"
 	"fmt"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	modulehelm "github.com/verrazzano/verrazzano-modules/pkg/helm"
 	modulelog "github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapibeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -32,7 +37,8 @@ const (
 
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
-func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
+
+func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component) error {
 	var err error
 	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
 	if err != nil {
@@ -44,10 +50,10 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzapi.
 	// Use the Actual VZ CR instance to get the component user overrides list (either v1alpha1 or v1beta1)
 	compOverrideList := comp.GetOverrides(actualCR)
 	switch castType := compOverrideList.(type) {
-	case []vzapi.Overrides:
+	case []vzv1alpha1.Overrides:
 		overrideList := castType
 		for _, o := range overrideList {
-			var b vzapibeta1.Overrides
+			var b vzv1beta1.Overrides
 			b.Values = o.Values
 			b.SecretRef = o.SecretRef
 			b.ConfigMapRef = o.ConfigMapRef
@@ -56,7 +62,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzapi.
 			}
 		}
 
-	case []vzapibeta1.Overrides:
+	case []vzv1beta1.Overrides:
 		overrideList := castType
 		for _, o := range overrideList {
 			if err := r.setModuleValuesForOneOverride(log, o, effectiveCR, module); err != nil {
@@ -72,7 +78,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzapi.
 }
 
 // Set the module values or valuesFrom for a single override struct
-func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzapibeta1.Overrides, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) error {
+func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, overrides vzv1beta1.Overrides, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module) error {
 
 	if err := r.mergedModuleValuesOverrides(module, overrides); err != nil {
 		return err
@@ -118,7 +124,7 @@ func (r Reconciler) setModuleValuesForOneOverride(log vzlog.VerrazzanoLogger, ov
 	return nil
 }
 
-func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzapibeta1.Overrides) error {
+func (r Reconciler) mergedModuleValuesOverrides(module *moduleapi.Module, overrides vzv1beta1.Overrides) error {
 	if overrides.Values == nil {
 		return nil
 	}
@@ -169,7 +175,7 @@ func (r Reconciler) copySecret(secretRef *corev1.SecretKeySelector, secretName s
 		if secret.Labels == nil {
 			secret.Labels = make(map[string]string)
 		}
-		secret.Labels[constants.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
+		secret.Labels[vzconst.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
 		return nil
 	})
 
@@ -195,7 +201,7 @@ func (r Reconciler) copyConfigMap(cmRef *corev1.ConfigMapKeySelector, cmName str
 		if cm.Labels == nil {
 			cm.Labels = make(map[string]string)
 		}
-		cm.Labels[constants.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
+		cm.Labels[vzconst.VerrazzanoModuleOwnerLabel] = module.Spec.ModuleName
 		return nil
 	})
 
@@ -208,7 +214,7 @@ func getConfigResourceName(moduleName string, resourceName string) string {
 }
 
 // getOverrideResourceNames returns the configuration override configMap or secret names used by the vz cr
-func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType) map[string]bool {
+func getOverrideResourceNames(effectiveCR *vzv1alpha1.Verrazzano, ovType overrideType) map[string]bool {
 	names := make(map[string]bool)
 
 	for _, comp := range registry.GetComponents() {
@@ -220,7 +226,7 @@ func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType
 		}
 		compOverrideList := comp.GetOverrides(effectiveCR)
 		switch castType := compOverrideList.(type) {
-		case []vzapi.Overrides:
+		case []vzv1alpha1.Overrides:
 			overrideList := castType
 			for _, o := range overrideList {
 				if o.SecretRef != nil && ovType == secretType {
@@ -230,7 +236,7 @@ func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType
 					names[o.ConfigMapRef.Name] = true
 				}
 			}
-		case []vzapibeta1.Overrides:
+		case []vzv1beta1.Overrides:
 			overrideList := castType
 			for _, o := range overrideList {
 				if o.SecretRef != nil && ovType == secretType {
@@ -243,4 +249,46 @@ func getOverrideResourceNames(effectiveCR *vzapi.Verrazzano, ovType overrideType
 		}
 	}
 	return names
+}
+
+// deleteConfigSecrets deletes all the module config secrets
+func (r Reconciler) deleteConfigSecrets(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
+	secretList := &corev1.SecretList{}
+	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	selector := labels.NewSelector().Add(*req)
+	if err := r.Client.List(context.TODO(), secretList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
+		log.Infof("Failed getting secrets in %s namespace, retrying: %v", namespace, err)
+	}
+
+	for i, s := range secretList.Items {
+		err := r.Client.Delete(context.TODO(), &secretList.Items[i])
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Errorf("Failed deleting secret %s/%s, retrying: %v", namespace, s.Name, err)
+		}
+	}
+	return result.NewResult()
+}
+
+// deleteConfigMaps deletes all the module config maps
+func (r Reconciler) deleteConfigMaps(log vzlog.VerrazzanoLogger, namespace string, moduleName string) result.Result {
+	configMapList := &corev1.ConfigMapList{}
+	req, _ := labels.NewRequirement(vzconst.VerrazzanoModuleOwnerLabel, selection.Equals, []string{moduleName})
+	selector := labels.NewSelector().Add(*req)
+	if err := r.Client.List(context.TODO(), configMapList, &client.ListOptions{Namespace: namespace, LabelSelector: selector}); err != nil {
+		log.Infof("Failed getting configMaps in %s namespace, retrying: %v", namespace, err)
+	}
+
+	for i, s := range configMapList.Items {
+		err := r.Client.Delete(context.TODO(), &configMapList.Items[i])
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			log.Errorf("Failed deleting configMap %s/%s, retrying: %v", namespace, s.Name, err)
+		}
+	}
+	return result.NewResult()
 }
