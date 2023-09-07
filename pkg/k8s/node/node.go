@@ -12,6 +12,7 @@ import (
 const (
 	controlPlaneTaint = "node-role.kubernetes.io/control-plane"
 	masterTaint       = "node-role.kubernetes.io/master"
+	loadBalancerTaint = "node.kubernetes.io/exclude-from-external-load-balancers"
 )
 
 // GetK8sNodeList returns a list of Kubernetes nodes.
@@ -31,7 +32,8 @@ func SetControlPlaneScheduling(ctx context.Context, k8sClient client.Client) err
 	if err != nil {
 		return err
 	}
-	for _, node := range nodes.Items {
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
 		var taints []v1.Taint
 		for _, taint := range node.Spec.Taints {
 			if !isControlPlaneNoScheduleTaint(taint) {
@@ -39,8 +41,8 @@ func SetControlPlaneScheduling(ctx context.Context, k8sClient client.Client) err
 			}
 		}
 		node.Spec.Taints = taints
-		delete(node.Labels, "node.kubernetes.io/exclude-from-external-load-balancers")
-		if err := k8sClient.Update(ctx, &node); err != nil {
+		delete(node.Labels, loadBalancerTaint)
+		if err := k8sClient.Update(ctx, node); err != nil {
 			return err
 		}
 	}
