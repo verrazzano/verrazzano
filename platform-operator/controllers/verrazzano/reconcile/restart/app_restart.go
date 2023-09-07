@@ -26,7 +26,7 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 	restartVersion := "upgrade-" + strconv.Itoa(int(generation))
 
 	// Start WebLogic domains that were shutdown
-	log.Infof("Starting WebLogic domains that were stopped pre-upgrade")
+	log.Debugf("Starting WebLogic domains that were stopped pre-upgrade")
 	if err := startDomainsStoppedByUpgrade(log, client, restartVersion); err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 	}
 
 	// Restart all other apps
-	log.Infof("Restarting all applications so they can get the new Envoy sidecar")
+	log.Debugf("Restarting all applications so they can get the new Envoy sidecar")
 	if err := restartAllApps(log, client, restartVersion); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func RestartDomainsIfOutdatedSidecars(log vzlog.VerrazzanoLogger, client clipkg.
 
 // Determine if the WebLogic domain needs to be stopped, if so then stop it
 func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string, matcher PodMatcher) error {
-	log.Progressf("StopWebLogicApps: checking if domain for workload %s needs to be stopped", wlName)
+	log.Debugf("StopWebLogicApps: checking if domain for workload %s needs to be stopped", wlName)
 
 	// Get the go client so we can bypass the cache and get directly from etcd
 	goClient, err := k8sutil.GetGoClient(log)
@@ -128,12 +128,13 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 		return nil
 	}
 
+	log.Infof("Stopping WebLogic domain %s/%s", appConfig.Namespace, wlName)
 	return stopDomain(client, appConfig.Namespace, wlName)
 }
 
 // Determine if the WebLogic domain needs to be restarted
 func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string, restartVersion string, podMatcher PodMatcher) error {
-	log.Progressf("RestartWebLogicApps: checking if domain for workload %s needs to be restarted", wlName)
+	log.Debugf("RestartWebLogicApps: checking if domain for workload %s needs to be restarted", wlName)
 
 	// Get the go client so we can bypass the cache and get directly from etcd
 	goClient, err := k8sutil.GetGoClient(log)
@@ -160,6 +161,7 @@ func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, app
 		return nil
 	}
 
+	log.Infof("Restarting WebLogic domain %s/%s", appConfig.Namespace, wlName)
 	return restartDomain(client, appConfig.Namespace, wlName, restartVersion)
 }
 
@@ -196,7 +198,7 @@ func restartDomain(client clipkg.Client, wlNamespace string, wlName string, rest
 
 // startDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
 func startDomainsStoppedByUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	log.Progressf("RestartApps: checking if any domains need to be started")
+	log.Debugf("RestartApps: checking if any domains need to be started")
 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
@@ -244,7 +246,7 @@ func startDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNam
 
 // restartAllApps restarts all the applications
 func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	log.Progressf("Restarting all OAM applications that have an old Istio proxy sidecar")
+	log.Debugf("Restarting all OAM applications that have an old Istio proxy sidecar")
 
 	// Get the latest Istio proxy image name from the bom
 	podMatcher := &AppPodMatcher{}
@@ -266,7 +268,7 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 
 	// check each app config to see if any of the pods have old Istio proxy images
 	for _, appConfig := range appConfigs.Items {
-		log.Oncef("Checking OAM Application %s pods for an old Istio proxy sidecar", appConfig.Name)
+		log.Debugf("Checking OAM Application %s pods for an old Istio proxy sidecar", appConfig.Name)
 
 		// Get the pods for this appconfig
 		appConfNameReq, _ := labels.NewRequirement("app.oam.dev/name", selection.Equals, []string{appConfig.Name})
@@ -302,7 +304,7 @@ func restartOAMApp(log vzlog.VerrazzanoLogger, appConfig oam.ApplicationConfigur
 		if ac.ObjectMeta.Annotations == nil {
 			ac.ObjectMeta.Annotations = make(map[string]string)
 		}
-		log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
+		log.Infof("Restarting application: Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
 			restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 		ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		return nil
