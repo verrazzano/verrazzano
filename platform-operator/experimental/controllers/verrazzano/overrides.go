@@ -32,7 +32,7 @@ const (
 
 // setModuleValues sets the Module values and valuesFrom fields.
 // All VZ CR config override secrets or configmaps need to be copied to the module namespace
-func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
+func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp spi.Component) error {
 	var err error
 	module.Spec.Values, err = comp.GetModuleConfigAsHelmValues(effectiveCR)
 	if err != nil {
@@ -41,8 +41,8 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, effectiveCR *vza
 
 	module.Spec.ValuesFrom = nil
 
-	// Get component override list (either v1alpha1 or v1beta1)
-	compOverrideList := comp.GetOverrides(effectiveCR)
+	// Use the Actual VZ CR instance to get the component user overrides list (either v1alpha1 or v1beta1)
+	compOverrideList := comp.GetOverrides(actualCR)
 	switch castType := compOverrideList.(type) {
 	case []vzapi.Overrides:
 		overrideList := castType

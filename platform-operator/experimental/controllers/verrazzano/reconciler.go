@@ -63,7 +63,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
-	res1 := r.createOrUpdateModules(log, effectiveCR)
+	res1 := r.createOrUpdateModules(log, actualCR, effectiveCR)
 	res2 := r.deleteModules(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed
@@ -77,7 +77,7 @@ func (r Reconciler) Reconcile(spictx controllerspi.ReconcileContext, u *unstruct
 }
 
 // createOrUpdateModules creates or updates all the modules
-func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano) result.Result {
+func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano, effectiveCR *vzapi.Verrazzano) result.Result {
 	catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
 	if err != nil {
 		log.ErrorfThrottled("Error loading module catalog: %v", err)
@@ -106,7 +106,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 			},
 		}
 		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
+			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
 		})
 		log.Debugf("Module %s update result: %v", module.Name, opResult)
 		if err != nil {
@@ -120,7 +120,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 }
 
 // mutateModule mutates the module for the create or update callback
-func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, actualCR *vzapi.Verrazzano, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
@@ -136,7 +136,7 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzapi.
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion
 
-	return r.setModuleValues(log, effectiveCR, module, comp)
+	return r.setModuleValues(log, actualCR, effectiveCR, module, comp)
 }
 
 // isUpgradeRequired Returns true if we detect that an upgrade is required but not (at least) in progress:
