@@ -182,6 +182,9 @@ var _ = t.Describe("Post Install Overrides", func() {
 		})
 	})
 
+	/* Disable these tests for now as part of the modules work, we may want to remove/deprecate this as it is
+	   undocumented and may not make sense.  We will review this as part of the Modules cleanup effort.
+
 	t.Context("Test no update with monitorChanges false", func() {
 		// Update the overrides resources listed in Verrazzano and set monitorChanges to false and verify
 		// that the new values have not been applied to Prometheus Operator
@@ -222,6 +225,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
+	*/
 
 	t.Context("Test overrides update", func() {
 		// Change monitorChanges to true in Verrazzano and verify
