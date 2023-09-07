@@ -14,13 +14,20 @@ import (
 
 // TestInitConfiguration tests the InitConfiguration function
 func TestInitConfiguration(t *testing.T) {
-	const testIssuerURL = "http://issuer.com"
+	const testServiceURL = "provider.namespace.svc.cluster.local"
+	const testExternalURL = "provider.com"
 	const testClientID = "unit-test-client-id"
 
 	// create temporary files with test data and override the filenames
-	issuerURLFile, err := makeTempFile(testIssuerURL)
-	if issuerURLFile != nil {
-		defer os.Remove(issuerURLFile.Name())
+	serviceURLFile, err := makeTempFile(testServiceURL)
+	if serviceURLFile != nil {
+		defer os.Remove(serviceURLFile.Name())
+	}
+	assert.NoError(t, err)
+
+	externalURLFile, err := makeTempFile(testExternalURL)
+	if externalURLFile != nil {
+		defer os.Remove(externalURLFile.Name())
 	}
 	assert.NoError(t, err)
 
@@ -31,9 +38,13 @@ func TestInitConfiguration(t *testing.T) {
 	assert.NoError(t, err)
 
 	// restore the filenames when this test is done
-	oldIssuerURLFilename := issuerURLFilename
-	defer func() { issuerURLFilename = oldIssuerURLFilename }()
-	issuerURLFilename = issuerURLFile.Name()
+	oldServiceURLFilename := serviceURLFilename
+	defer func() { serviceURLFilename = oldServiceURLFilename }()
+	serviceURLFilename = serviceURLFile.Name()
+
+	oldExternalURLFilename := externalURLFilename
+	defer func() { externalURLFilename = oldExternalURLFilename }()
+	externalURLFilename = externalURLFile.Name()
 
 	oldClientIDFilename := clientIDFilename
 	defer func() { clientIDFilename = oldClientIDFilename }()
@@ -50,24 +61,29 @@ func TestInitConfiguration(t *testing.T) {
 	err = InitConfiguration(zap.S())
 	assert.NoError(t, err)
 
-	assert.Equal(t, testIssuerURL, GetIssuerURL())
+	assert.Equal(t, testServiceURL, GetServiceURL())
+	assert.Equal(t, testExternalURL, GetExternalURL())
 	assert.Equal(t, testClientID, GetClientID())
 
 	// GIVEN the file contents are changed
 	// WHEN we fetch the configuration values
 	// THEN the values eventually match the expected updated file contents
-	const newTestIssuerURL = "http://new-issuer.com"
+	const newTestServiceURL = "new-provider.namespace.svc.cluster.local"
+	const newTestExternalURL = "new-provider.com"
 	const newTestClientID = "new-unit-test-client-id"
 
 	// update the file contents and validate that the new values are loaded
-	err = os.WriteFile(issuerURLFilename, []byte(newTestIssuerURL), 0)
+	err = os.WriteFile(serviceURLFilename, []byte(newTestServiceURL), 0)
+	assert.NoError(t, err)
+
+	err = os.WriteFile(externalURLFilename, []byte(newTestExternalURL), 0)
 	assert.NoError(t, err)
 
 	err = os.WriteFile(clientIDFilename, []byte(newTestClientID), 0)
 	assert.NoError(t, err)
 
-	eventually(func() bool { return GetIssuerURL() == newTestIssuerURL })
-
+	eventually(func() bool { return GetServiceURL() == newTestServiceURL })
+	eventually(func() bool { return GetExternalURL() == newTestExternalURL })
 	eventually(func() bool { return GetClientID() == newTestClientID })
 
 	// stop the goroutine

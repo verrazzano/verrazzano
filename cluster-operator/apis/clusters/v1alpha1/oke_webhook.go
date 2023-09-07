@@ -12,7 +12,6 @@ import (
 
 // OCNEOCIQuickCreate should be both a validating and defaulting webhook
 var _ webhook.Validator = &OKEQuickCreate{}
-var _ webhook.Defaulter = &OKEQuickCreate{}
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (o *OKEQuickCreate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -42,8 +41,4 @@ func (o *OKEQuickCreate) updateAllowed(other *OKEQuickCreate) error {
 
 func (o *OKEQuickCreate) ValidateDelete() error {
 	return nil
-}
-
-func (o *OKEQuickCreate) Default() {
-
 }

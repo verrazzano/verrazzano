@@ -16,11 +16,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -33,6 +35,7 @@ import (
 // This controller also manages install override sources from the Verrazzano CR
 type VerrazzanoSecretsReconciler struct {
 	client.Client
+	DynamicClient dynamic.Interface
 	Scheme        *runtime.Scheme
 	log           vzlog.VerrazzanoLogger
 	StatusUpdater vzstatus.Updater
@@ -86,6 +89,20 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if isVerrazzanoPrivateCABundle(req.NamespacedName) {
 		zap.S().Debugf("Reconciling changes to secret %s/%s", req.Namespace, req.Name)
 		return r.reconcileVerrazzanoCABundleCopies()
+	}
+
+	// updates capi credential if an ocne cloud credential has been updated
+	if config.Get().CloudCredentialWatchEnabled {
+		caSecret := corev1.Secret{}
+		if err := r.Get(ctx, req.NamespacedName, &caSecret); err != nil {
+			zap.S().Errorf("Failed to get Secret: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		// check if ocne cluster is using the updated secret and update cluster's copy of secret if necessary
+		if err := r.checkClusterCredentials(&caSecret); err != nil {
+			zap.S().Errorf("Failed to update Secret: %v", err)
+			return newRequeueWithDelay(), err
+		}
 	}
 
 	res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)

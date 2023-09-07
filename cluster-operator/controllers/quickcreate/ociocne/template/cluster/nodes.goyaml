@@ -80,5 +80,5 @@ spec:
               apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: OCIMachineTemplate
               name: {{.Name}}
-          version: {{$.Kubernetes.Version}}
+          version: {{$.KubernetesVersion}}
 {{- end }}

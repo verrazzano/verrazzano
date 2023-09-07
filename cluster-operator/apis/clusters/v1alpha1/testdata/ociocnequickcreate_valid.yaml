@@ -1,0 +1,43 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: OCNEOCIQuickCreate
+metadata:
+  name: test
+  namespace: default
+spec:
+  identityRef:
+    name: test
+    namespace: default
+  ocne:
+    version: "1.7"
+  oci:
+    compartment: test
+    region: us-ashburn-1
+    imageId: test
+    sshPublicKey: test
+    network:
+      vcn: test
+      subnets:
+        - id: test
+          role: service-lb
+        - id: test
+          role: control-plane
+        - id: test
+          role: control-plane-endpoint
+        - id: test
+          role: worker
+    controlPlane:
+      ocpus: 2
+      memoryGbs: 16
+      bootVolumeGbs: 50
+      replicas: 1
+      shape: VM.Standard.E4.Flex
+    workers:
+      - name: np-1
+        ocpus: 2
+        memoryGbs: 16
+        bootVolumeGbs: 50
+        replicas: 1
+        shape: VM.Standard.E4.Flex

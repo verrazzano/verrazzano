@@ -12,11 +12,11 @@ spec:
     clusterNetwork:
         pods:
             cidrBlocks:
-                - {{.Kubernetes.ClusterNetwork.PodCIDR}}
+                - {{.KubernetesBase.ClusterNetwork.PodCIDR}}
         serviceDomain: cluster.local
         services:
             cidrBlocks:
-                - {{.Kubernetes.ClusterNetwork.ServiceCIDR}}
+                - {{.KubernetesBase.ClusterNetwork.ServiceCIDR}}
     controlPlaneRef:
         apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
         kind: OCNEControlPlane
@@ -46,7 +46,7 @@ spec:
     networkSpec:
         vcn:
             name: {{.Name}}
-            cidr: {{.Kubernetes.ClusterNetwork.ServiceCIDR}}
+            cidr: {{.KubernetesBase.ClusterNetwork.ServiceCIDR}}
             networkSecurityGroup:
                 list:
                     - egressRules:
