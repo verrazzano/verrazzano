@@ -285,7 +285,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		}
 	}
 
-	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
+	if isInstallOrUpdate(compContext) {
 		userPwd, err := getOrCreateDBUserPassword(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -337,6 +337,11 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
+}
+
+func isInstallOrUpdate(compContext spi.ComponentContext) bool {
+	operationType := compContext.Init(ComponentName).GetOperation()
+	return operationType == vzconst.InstallOperation || operationType == vzconst.UpdateOperation
 }
 
 func getRegistrySettings(bomFile *bom.Bom) (bom.KeyValue, error) {
