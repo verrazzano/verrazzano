@@ -146,7 +146,7 @@ func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verr
 	// VZ components can be installed, updated, upgraded, or uninstalled independently
 	// Process all the components and only requeue are the end, so that operations
 	// (like uninstall) are not blocked by a different component's failure
-	res1 := r.createOrUpdateModules(log, effectiveCR)
+	res1 := r.createOrUpdateModules(log, actualCR, effectiveCR)
 	res2 := r.deleteModules(log, effectiveCR)
 
 	// Requeue if any of the previous operations indicate a requeue is needed

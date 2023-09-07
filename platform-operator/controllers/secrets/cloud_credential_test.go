@@ -56,8 +56,11 @@ func TestIsCloudCredentialSecret(t *testing.T) {
 	asserts.False(isOCNECloudCredential(ccInOtherNS))
 }
 
-// TestUpdateOCNEclusterCloudCreds tests TestUpdateOCNEclusterCloudCreds
-func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
+// TestUpdateOCNEclusterCloudCreds tests checkClusterCredentials
+// GIVEN an updated cloud credential secret and the cluster's expired copy of that secret
+// WHEN CheckClusterCredentials is called
+// THEN the cluster's copy of the secret should be updated to match the new cloud credential
+func TestCheckClusterCredentials(t *testing.T) {
 	scheme := k8scheme.Scheme
 	_ = vzapi.AddToScheme(scheme)
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme, newClusterRepoResources()...)
@@ -92,6 +95,50 @@ func TestUpdateOCNEclusterCloudCreds(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 
 	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(ccSecret, vz, clusterSecretCopy).Build()
+	r := &VerrazzanoSecretsReconciler{
+		Client:        fakeClient,
+		DynamicClient: dynamicClient,
+		Scheme:        scheme,
+		StatusUpdater: nil,
+	}
+
+	err := r.checkClusterCredentials(ccSecret)
+	assert.NoError(t, err)
+	updatedClusterSecretCopy := &corev1.Secret{}
+	err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: "cluster", Name: "cluster-principal"}, updatedClusterSecretCopy)
+	assert.NoError(t, err)
+	assert.Equalf(t, updatedClusterSecretCopy.Data[ociCapiFingerprintField], ccSecret.Data[rancherCcFingerprintField], "Expected fingerprint field of cloud credential copy to match updated cloud credential secret")
+	assert.Equalf(t, updatedClusterSecretCopy.Data[ociCapiTenancyField], ccSecret.Data[rancherCcTenancyField], "Expected tenancy field of cloud credential copy to match updated cloud credential secret")
+	assert.NotEqualf(t, updatedClusterSecretCopy.Data[ociCapiRegionField], ccSecret.Data[rancherCcRegionField], "Expected region field of cloud credential copy to not match updated cloud credential secret")
+}
+
+// TestUpdateOCNEclusterCloudCreds tests checkClusterCredentials
+// GIVEN an updated cloud credential secret
+// WHEN CheckClusterCredentials is called
+// THEN the a secret should be created to match the new cloud credential, if one doesn't already exist
+func TestCheckClusterCredentialsNoCopyOfSecret(t *testing.T) {
+	scheme := k8scheme.Scheme
+	_ = vzapi.AddToScheme(scheme)
+	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme, newClusterRepoResources()...)
+	gvr := GetOCNEClusterAPIGVRForResource("clusters")
+	// add dynamic elements to scheme
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Group: gvr.Group, Version: gvr.Version, Kind: "Cluster" + "List"}, &unstructured.Unstructured{})
+	ccSecretName := "test-secret"
+	ccSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ccSecretName,
+			Namespace: rancher.CattleGlobalDataNamespace,
+		},
+		Data: map[string][]byte{
+			rancherCcFingerprintField: []byte("fingerprint-new"),
+			rancherCcTenancyField:     []byte("test-tenancy-new"),
+			rancherCcRegionField:      []byte("test-region-new"),
+		},
+	}
+
+	vz := &vzapi.Verrazzano{}
+
+	fakeClient := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(ccSecret, vz).Build()
 	r := &VerrazzanoSecretsReconciler{
 		Client:        fakeClient,
 		DynamicClient: dynamicClient,

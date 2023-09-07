@@ -22,7 +22,7 @@ import (
 )
 
 // createOrUpdateModules creates or updates all the modules
-func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	catalog, err := moduleCatalog.NewCatalog(config.GetCatalogPath())
 	if err != nil {
 		log.ErrorfThrottled("Error loading module catalog: %v", err)
@@ -51,7 +51,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 			},
 		}
 		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return r.mutateModule(log, effectiveCR, &module, comp, version.ToString())
+			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
 		})
 		log.Debugf("Module %s update result: %v", module.Name, opResult)
 		if err != nil {
@@ -65,7 +65,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, effectiveC
 }
 
 // mutateModule mutates the module for the create or update callback
-func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
+func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
 	if module.Annotations == nil {
 		module.Annotations = make(map[string]string)
 	}
@@ -81,7 +81,7 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, effectiveCR *vzv1al
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion
 
-	return r.setModuleValues(log, effectiveCR, module, comp)
+	return r.setModuleValues(log, actualCR, effectiveCR, module, comp)
 }
 
 // deleteModules deletes all the modules, optionally only deleting ones that disabled
