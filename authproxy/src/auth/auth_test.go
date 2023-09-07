@@ -6,10 +6,11 @@ package auth
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"testing"
 )
 
 type mockVerifier struct {
