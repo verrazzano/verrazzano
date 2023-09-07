@@ -136,10 +136,14 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 		}
 	}
-
+	dynamicClient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		return errors.Wrapf(err, "Failed to get Dynamic Client")
+	}
 	// Setup secrets reconciler
 	if err = (&secrets.VerrazzanoSecretsReconciler{
 		Client:        mgr.GetClient(),
+		DynamicClient: dynamicClient,
 		Scheme:        mgr.GetScheme(),
 		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {

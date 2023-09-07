@@ -70,13 +70,6 @@ func StartWebhookServer(log *zap.SugaredLogger, props Properties) error {
 		log.Errorf("Failed to update VerrazzanoManagedCluster validation webhook configuration: %v", err)
 		os.Exit(1)
 	}
-	// Cluster Operator mutating webhook
-	err = updateMutatingWebhookConfiguration(kubeClient, certificate.WebhookName)
-	if err != nil {
-		log.Errorf("Failed to update OCNEOCIQuickCreate validation webhook configuration: %v", err)
-		os.Exit(1)
-	}
-
 	// Set up VMC Webhook Listener
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {

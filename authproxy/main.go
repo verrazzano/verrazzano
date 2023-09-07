@@ -12,9 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -34,10 +34,11 @@ func main() {
 	authproxy := proxy.InitializeProxy(proxyPort)
 
 	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 	opts := ctrl.Options{
 		Scheme: scheme,
 	}
+
 	// create a controller manager in order to create a K8S in-cluster client
 	mgr, err := ctrl.NewManager(k8sutil.GetConfigOrDieFromController(), opts)
 	if err != nil {
@@ -50,6 +51,14 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
+
+	log.Info("Starting manager")
+	go func() {
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			log.Errorf("Failed starting controller-runtime manager: %v", err)
+			os.Exit(1)
+		}
+	}()
 
 	log.Info("Starting up proxy server to listen for requests")
 	err = authproxy.ListenAndServe()

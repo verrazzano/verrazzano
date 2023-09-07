@@ -6,9 +6,6 @@ package opensearchoperator
 import (
 	"context"
 	"fmt"
-	"io/fs"
-	"os"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -70,66 +67,80 @@ var (
 	gvrList = []schema.GroupVersionResource{clusterGVR, roleGVR, rolesMappingGVR}
 )
 
-// AppendOverrides appends the additional overrides for install
-func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// TODO: Image overrides once the BFS images are done
+func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{}, error) {
+	args := make(map[string]interface{})
+
+	masterNode := getMasterNode(ctx)
+	effectiveCR := ctx.EffectiveCR()
+
+	args["isOpenSearchEnabled"] = vzcr.IsOpenSearchEnabled(effectiveCR)
+	args["isOpenSearchDashboardsEnabled"] = vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)
 
 	// Bootstrap pod overrides
+	args["bootstrapConfig"] = ""
 	if IsUpgrade(ctx) || IsSingleMasterNodeCluster(ctx) {
-		kvs = append(kvs, bom.KeyValue{
-			Key:   `opensearchCluster.bootstrap.additionalConfig.cluster\.initial_master_nodes`,
-			Value: fmt.Sprintf("%s-%s-0", clusterName, getMasterNode(ctx)),
-		})
+		args["bootstrapConfig"] = fmt.Sprintf("cluster.initial_master_nodes: %s-%s-0", clusterName, masterNode)
 	}
+
+	// Append OSD replica count from current OSD config
+	osd := effectiveCR.Spec.Components.Kibana
+	if osd != nil {
+		osdReplica := osd.Replicas
+		if osdReplica != nil {
+			args["osdReplicas"] = osdReplica
+		}
+	}
+
+	// Append plugins list for Opensearch
+	opensearch := effectiveCR.Spec.Components.Elasticsearch
+	if opensearch != nil {
+		osPlugins := opensearch.Plugins
+		if osPlugins.Enabled && len(osPlugins.InstallList) > 0 {
+			pluginList, err := yaml.Marshal(osPlugins.InstallList)
+			if err != nil {
+				return args, nil
+			}
+			args["osPluginsEnabled"] = true
+			args["osPluginsList"] = string(pluginList)
+		} else {
+			args["osPluginsEnabled"] = false
+		}
+	}
+
+	// Append plugins list for OSD
+	if osd != nil {
+		osdPlugins := osd.Plugins
+		if osdPlugins.Enabled && len(osdPlugins.InstallList) > 0 {
+			pluginList, err := yaml.Marshal(osdPlugins.InstallList)
+			if err != nil {
+				return args, nil
+			}
+			args["osdPluginsEnabled"] = true
+			args["osdPluginsList"] = string(pluginList)
+		} else {
+			args["osdPluginsEnabled"] = false
+		}
+	}
+
+	err := buildNodePoolOverrides(ctx, args, masterNode)
+	if err != nil {
+		return args, ctx.Log().ErrorfNewErr("Failed to build nodepool overrides: %v", err)
+	}
+
+	// Test images
+	// TODO:- Get from BOM once BFS images are done
+	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:experimental"
+	args["osdImage"] = "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
+
+	return args, nil
+}
+
+// AppendOverrides appends the additional overrides for install
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
 	kvs, err := buildIngressOverrides(ctx, kvs)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build ingress overrides: %v", err)
-	}
-
-	// Append OSD replica count from current OSD config
-	// This will later go as part CR conversion
-	osd := ctx.EffectiveCR().Spec.Components.Kibana
-	if osd != nil {
-		osdReplica := osd.Replicas
-		if osdReplica != nil {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   "opensearchCluster.dashboards.replicas",
-				Value: fmt.Sprint(*osdReplica),
-			})
-		}
-	}
-
-	// Append plugins list
-	// This will later go as part of CR conversion
-	os := ctx.EffectiveCR().Spec.Components.Elasticsearch
-	if os != nil {
-		osPlugins := os.Plugins
-		if osPlugins.Enabled && len(osPlugins.InstallList) > 0 {
-			for i, plugin := range osPlugins.InstallList {
-				kvs = append(kvs, bom.KeyValue{
-					Key:   fmt.Sprintf("opensearchCluster.general.pluginsList[%d]", i),
-					Value: plugin,
-				})
-			}
-		}
-	}
-
-	if osd != nil {
-		osdPlugins := osd.Plugins
-		if osdPlugins.Enabled && len(osdPlugins.InstallList) > 0 {
-			for i, plugin := range osdPlugins.InstallList {
-				kvs = append(kvs, bom.KeyValue{
-					Key:   fmt.Sprintf("opensearchCluster.dashboards.pluginsList[%d]", i),
-					Value: plugin,
-				})
-			}
-		}
-	}
-
-	kvs, err = buildNodePoolOverrides(ctx, kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to build nodepool overrides: %v", err)
 	}
 
 	return kvs, nil
@@ -163,35 +174,22 @@ type PersistenceSource struct {
 	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 }
 
-func buildNodePoolOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	convertedNodes, err := convertOSNodesToNodePools(ctx)
+func buildNodePoolOverrides(ctx spi.ComponentContext, args map[string]interface{}, masterNode string) error {
+	convertedNodes, err := convertOSNodesToNodePools(ctx, masterNode)
 	if err != nil {
-		return kvs, err
+		return err
 	}
 
-	nodePoolOverrides, err := yaml.Marshal(OpenSearch{
-		OpenSearchCluster{NodePools: convertedNodes},
-	})
+	nodePoolOverrides, err := yaml.Marshal(convertedNodes)
 	if err != nil {
-		return kvs, err
+		return err
 	}
-
-	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
-	if err != nil {
-		return kvs, err
-	}
-
-	overridesFileName := file.Name()
-	if err := os.WriteFile(overridesFileName, nodePoolOverrides, fs.ModeAppend); err != nil {
-		return kvs, err
-	}
-
-	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
-	return kvs, nil
+	args["nodePools"] = string(nodePoolOverrides)
+	return nil
 }
 
 // convertOSNodesToNodePools converts OpenSearchNode to NodePool type
-func convertOSNodesToNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
+func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]NodePool, error) {
 	var nodePools []NodePool
 
 	effectiveCR := ctx.EffectiveCR()
@@ -239,7 +237,7 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext) ([]NodePool, error) {
 	}
 	if IsSingleMasterNodeCluster(ctx) {
 		nodePools[0].AdditionalConfig = map[string]string{
-			"cluster.initial_master_nodes": fmt.Sprintf("%s-%s-0", clusterName, nodePools[0].Component),
+			"cluster.initial_master_nodes": fmt.Sprintf("%s-%s-0", clusterName, masterNode),
 		}
 	}
 	return nodePools, nil
