@@ -27,8 +27,9 @@ const (
 	imagePullWaitTimeout     = 20 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 
-	appConfiguration  = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-cluster-app.yaml"
-	compConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-cluster-comp.yaml"
+	appConfiguration        = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-cluster-app.yaml"
+	compConfiguration       = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-cluster-comp.yaml"
+	compUpdateConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-cluster-comp-update.yaml"
 
 	appURL         = "hello/weblogic/greetings/message"
 	welcomeMessage = "Hello WebLogic"
@@ -37,6 +38,7 @@ const (
 	wlDomain          = "hellodomain"
 	wlsAdminServer    = "hellodomain-adminserver"
 	wlsManagedServer1 = "hellodomain-managedserver1"
+	wlsManagedServer2 = "hellodomain-managedserver2"
 	trait             = "hello-domain-trait"
 
 	helloDomainRepoCreds     = "hellodomain-repo-credentials"
@@ -124,6 +126,38 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		}
 		return result
 	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Secret does not exist")
+
+	// Update the component to specify replicas of 2 for clusters
+	Eventually(func() error {
+		file, err := pkg.FindTestDataFile(compUpdateConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
+	}, shortWaitTimeout, shortPollingInterval, "Failed to update component resources for WebLogic application").ShouldNot(HaveOccurred())
+
+	// Container image pull check
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, []string{wlsManagedServer2})
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+
+	// check expected managed server 2 pod is running after changing the cluster replicas to 2
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{wlsManagedServer2})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("WebLogic managed server pod is not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Managed server pod is not ready")
+
+	// check expected managed service 2 is running after changing the cluster replicas to 2
+	Eventually(func() bool {
+		result, err := pkg.DoesServiceExist(namespace, wlsManagedServer2)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Managed Service %s is not running in the namespace: %v, error: %v", wlsManagedServer2, namespace, err))
+		}
+		return result
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application: Managed service is not running")
 
 	var err error
 	// Get the host from the Istio gateway resource.
@@ -232,7 +266,7 @@ func undeployWebLogicApp() {
 
 	// Wait for pod to terminate
 	Eventually(func() bool {
-		podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPods)
+		podsTerminated, _ := pkg.PodsNotRunning(namespace, append(expectedPods, wlsManagedServer2))
 		return podsTerminated
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
