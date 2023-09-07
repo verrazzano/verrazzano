@@ -229,7 +229,7 @@ func (r Reconciler) updateStatusComplete(actualCR *vzv1alpha1.Verrazzano, msg st
 	cond := newCondition(msg, conditionType)
 	conditions := append(actualCR.Status.Conditions, cond)
 
-	version := actualCR.Status.Version
+	version := actualCR.Spec.Version
 	if len(version) == 0 {
 		var err error
 		version, err = getBomVersion()
