@@ -21,17 +21,19 @@ prometheusOperator:
     override: "true"
 `
 
-var newCMData = `
-prometheusOperator:
-  podLabels:
-    override: "false"
-`
-
-var newSecretData = `
-prometheusOperator:
-  podAnnotations:
-    override: "false"
-`
+// Disabled these tests temporarily until we decide what to do with the monitorChanges behavior/tests
+//
+//var newCMData = `
+//prometheusOperator:
+//  podLabels:
+//    override: "false"
+//`
+//
+//var newSecretData = `
+//prometheusOperator:
+//  podAnnotations:
+//    override: "false"
+//`
 
 var oldInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"true\"}}}"
 
