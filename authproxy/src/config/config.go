@@ -119,6 +119,15 @@ func loadConfigValue(filename string) (string, *time.Time, error) {
 // InitConfiguration loads the configuration from files and starts a goroutine to watch for configuration changes and reloads
 // config values when changes are detected
 func InitConfiguration(log *zap.SugaredLogger) error {
+	if envVal := os.Getenv("OVERRIDE_SVC_URL"); envVal != "" {
+		serviceURL = envVal
+	}
+	if envVal := os.Getenv("OVERRIDE_EXTERNAL_URL"); envVal != "" {
+		externalURL = envVal
+	}
+	if externalURL != "" && serviceURL != "" {
+		return nil
+	}
 	if err := loadServiceURL(); err != nil {
 		log.Errorf("Failed to load Service URL: %v", err)
 		return err

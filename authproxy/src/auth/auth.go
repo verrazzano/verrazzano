@@ -163,7 +163,7 @@ func (a OIDCAuthenticator) createContextWithHTTPClient() (context.Context, error
 	}
 	httpClient := authclient.GetHTTPClientWithCABundle(certPool)
 	ctx := context.Background()
-	return context.WithValue(ctx, oauth2.HTTPClient, httpClient), nil
+	return context.WithValue(ctx, oauth2.HTTPClient, httpClient.HTTPClient), nil
 }
 
 func (a OIDCAuthenticator) ToOIDCConfig() *oidc.Config {
