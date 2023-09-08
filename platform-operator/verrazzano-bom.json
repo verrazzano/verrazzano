@@ -172,8 +172,8 @@
           "name": "additional-rancher",
           "images": [
             {
-              "image": "rancher-shell",
-              "tag": "v0.1.18-20230403204343-4124528"
+              "image": "rancher-shell-jenkins",
+              "tag": "20230906130019-96ef483"
             },
             {
               "image": "rancher-webhook",
