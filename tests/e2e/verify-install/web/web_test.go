@@ -7,6 +7,8 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"net/http"
 	"time"
 
@@ -31,6 +33,7 @@ var t = framework.NewTestFramework("web")
 var serverURL string
 var isManagedClusterProfile bool
 var isTestSupported bool
+var isDexEnabled bool
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var ingress *networkingv1.Ingress
@@ -62,6 +65,15 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
+	}
+
+	isDexSupported, _ := pkg.IsVerrazzanoMinVersion(constants.VerrazzanoVersion2_0_0, kubeconfigPath)
+	if isDexSupported {
+		inClusterVZ, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
+		}
+		isDexEnabled = vzcr.IsDexEnabled(inClusterVZ)
 	}
 })
 

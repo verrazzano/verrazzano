@@ -200,11 +200,8 @@ data:
             return table.concat(id_token.payload.realm_access.roles, ",")
         end
 
-        if me.oidcProvider == "dex" and id_token and id_token.payload and id_token.payload.name then
-            local username = id_token.payload.name
-            if username == "verrazzano" then
-                return "offline_access,vz_api_access,vz_opensearch_admin,uma_authorization,default-roles-verrazzano-system"
-            end
+        if me.oidcProvider == "dex" then
+            return "offline_access,vz_api_access,vz_opensearch_admin,uma_authorization,default-roles-verrazzano-system"
         end
         return ""
     end

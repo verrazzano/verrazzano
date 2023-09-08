@@ -45,7 +45,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		AbortSuite(fmt.Sprintf("Failed to get Verrazzano from the cluster: %v", err))
 	}
 	isDexInstalled = vzcr.IsDexEnabled(inClusterVZ)
-	fmt.Println("Is Dex enabled ", isDexInstalled)
 })
 
 var _ = t.AfterEach(func() {})

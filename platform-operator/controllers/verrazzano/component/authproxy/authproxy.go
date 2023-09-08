@@ -109,7 +109,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 		overrides.Proxy.OidcProviderClientSecret = string(clientSecret)
 		overrides.Proxy.OidcProviderForConsole = dexProvider
-		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", dexProvider, overrides.Config.EnvName, dnsSuffix)
+		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", constants.DexHostPrefix, overrides.Config.EnvName, dnsSuffix)
 		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, dexProvider)
 	} else {
 		overrides.Proxy.OidcProviderForConsole = "keycloak"

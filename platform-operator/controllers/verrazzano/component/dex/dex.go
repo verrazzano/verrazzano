@@ -35,7 +35,6 @@ import (
 const (
 	configIssuer    = "config.issuer"
 	ingressClassKey = "ingress.className"
-	dnsTarget       = "dnsTarget"
 	hostsHost       = "host"
 	tlsHosts        = "tlsHosts"
 	tlsSecret       = "dexSecret"
@@ -67,7 +66,6 @@ type userData struct {
 }
 
 // Structure to hold Dex client
-// TODO: Evaluate TrustedPeers
 type clientData struct {
 	ClientID     string
 	RedirectURIs string
@@ -174,17 +172,11 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	}
 	ctx.Log().Infof("AppendDexOverrides: DNSDomain returned %s", dnsSubDomain)
 
-	host := "dex." + dnsSubDomain
+	host := constants.DexHostPrefix + "." + dnsSubDomain
 
 	kvs = append(kvs, bom.KeyValue{
 		Key:       configIssuer,
 		Value:     httpsPrefix + host,
-		SetString: true,
-	})
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:       dnsTarget,
-		Value:     host,
 		SetString: true,
 	})
 
@@ -317,7 +309,7 @@ func updateDexIngress(ctx spi.ComponentContext) error {
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
 		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
-			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
+			constants.DexHostPrefix, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
 		ingress.Annotations["cert-manager.io/cluster-issuer"] = v8oconst.VerrazzanoClusterIssuerName
 		// update target annotation on Dex Ingress for external DNS
 		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
@@ -527,8 +519,7 @@ func generateClientSecret(ctx spi.ComponentContext, clientName types.NamespacedN
 		if err != nil {
 			return "", fmt.Errorf("unable to create or update the secret for the client %s: %v", clientName.Name, err)
 		}
-		// TODO: Make it debug
-		ctx.Log().Infof("Created secret %s successfully", clientName)
+		ctx.Log().Debugf("Created secret %s successfully", clientName)
 		return pw, nil
 	}
 	return string(secret.Data[dexClientSecret][:]), err

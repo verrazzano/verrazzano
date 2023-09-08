@@ -25,7 +25,7 @@ import (
 
 const (
 	testBomFilePath      = "../../testdata/test_bom.json"
-	testDexIngressHost   = "dex.test-env.192.132.111.122.nip.io"
+	testDexIngressHost   = "auth.test-env.192.132.111.122.nip.io"
 	profilesRelativePath = "../../../../manifests/profiles"
 	ingressClass         = "verrazzano-nginx"
 )
@@ -95,12 +95,6 @@ func TestAppendDexOverrides(t *testing.T) {
 	kvs, err := AppendDexOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
 
 	a.NoError(err, "AppendDexOverrides returned an error")
-
-	a.Contains(kvs, bom.KeyValue{
-		Key:       dnsTarget,
-		Value:     testDexIngressHost,
-		SetString: true,
-	})
 
 	a.Contains(kvs, bom.KeyValue{
 		Key:   ingressClassKey,
@@ -217,6 +211,3 @@ func TestPopulateClients(t *testing.T) {
 	assert.True(t, strings.Contains(clientDataStr, pgClient))
 	assert.True(t, strings.Contains(clientDataStr, "https://verrazzano."+dnsHost+"/*"))
 }
-
-// Add unit tests for
-//    the error returned from generateClientSecret

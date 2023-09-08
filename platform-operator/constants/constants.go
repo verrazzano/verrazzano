@@ -302,3 +302,6 @@ const DexNamespace = "dex"
 
 // DexIngress - the name of the ingress for Dex
 const DexIngress = "dex"
+
+// DexHostPrefix - the prefix of the Dex host
+const DexHostPrefix = "auth"

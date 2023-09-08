@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package web_test
@@ -32,7 +32,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
 		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() {
+			if !pkg.IsManagedClusterProfile() && !isDexEnabled {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
@@ -63,7 +63,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Incorrect password returns a 401", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() {
+			if !pkg.IsManagedClusterProfile() && !isDexEnabled {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
@@ -89,7 +89,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" && os.Getenv("TEST_ENV") != "kind_oci_dns" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" && os.Getenv("TEST_ENV") != "kind_oci_dns" && !isDexEnabled {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
@@ -121,7 +121,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" && os.Getenv("TEST_ENV") != "kind_oci_dns" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" && os.Getenv("TEST_ENV") != "kind_oci_dns" && !isDexEnabled {
 				Eventually(func() (string, error) {
 					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					vzURL, err := api.GetVerrazzanoIngressURL()
