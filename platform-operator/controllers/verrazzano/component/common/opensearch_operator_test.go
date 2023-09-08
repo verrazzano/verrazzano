@@ -10,11 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -24,15 +21,15 @@ func TestMergeSecurityConfigsError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	const secretName = "securityconfig-secret"
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
-	// fake client needed to get secret
-	getClientFunc = func(ctx spi.ComponentContext) (client.Client, error) {
-		return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: "verrazzano-logging"},
-			},
-		).Build(), nil
-	}
-	defer func() { getClientFunc = getClient }()
+	//// fake client needed to get secret
+	//getClientFunc = func(ctx spi.ComponentContext) (client.Client, error) {
+	//	return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+	//		&corev1.Secret{
+	//			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: "verrazzano-logging"},
+	//		},
+	//	).Build(), nil
+	//}
+	//defer func() { getClientFunc = getClient }()
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-logging", Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
