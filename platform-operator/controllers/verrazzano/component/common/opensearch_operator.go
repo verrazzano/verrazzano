@@ -6,11 +6,11 @@ package common
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
@@ -18,24 +18,22 @@ import (
 const (
 	securitySecretName = "securityconfig-secret"
 	securityNamespace  = "verrazzano-logging"
-	securityConfigYaml = "/verrazzano/platform-operator/thirdparty/manifests/opensearch-securityconfig.yaml"
+	securityConfigYaml = "../../../../thirdparty/manifests/opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml         = "config.yml"
-	usersYaml          = "internals_users.yml"
+	usersYaml          = "internal_users.yml"
 	adminName          = "admin-credentials-secret"
 )
+
+var getClientFunc = getClient
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient(ctx spi.ComponentContext) (client.Client, error) {
+	return ctx.Client(), nil
+}
 
 // MergeSecretData merges a security config secret
 func MergeSecretData(ctx spi.ComponentContext) error {
 	securityYaml, err := os.ReadFile(securityConfigYaml)
-	if err != nil {
-		return err
-	}
-	// Get the kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return err
-	}
-	scr, err := clientset.CoreV1().Secrets(securityNamespace).Get(context.TODO(), securitySecretName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -44,12 +42,20 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	// Get the YAML data from Helm Secret and Secret
 	configYamlFile, err := getYamlData(securityYamlData, configYaml)
 	if err != nil {
 		return err
 	}
-	configYamlSecret, err := getSecretData(scr, configYaml)
+	client, err := getClient(ctx)
+	if err != nil {
+		return err
+	}
+	var scr corev1.Secret
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr); err != nil {
+		return err
+	}
+
+	configYamlSecret, err := getSecretData(&scr, configYaml)
 	if err != nil {
 		return err
 	}
@@ -79,12 +85,12 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	usersYamlSecret, err := getSecretData(scr, usersYaml)
+	usersYamlSecret, err := getSecretData(&scr, usersYaml)
 	if err != nil {
 		return err
 	}
 
-	dataHelmUsers, err := unmarshalYAML(usersYamlFile)
+	dataFileUsers, err := unmarshalYAML(usersYamlFile)
 	if err != nil {
 		return err
 	}
@@ -92,16 +98,17 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	adminSecret, err := clientset.CoreV1().Secrets(securityNamespace).Get(context.TODO(), adminName, metav1.GetOptions{})
-	if err != nil {
+	var adminSecret corev1.Secret
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: adminName}, &adminSecret); err != nil {
 		return err
 	}
-	adminHash, err := getAdminHash(adminSecret)
+
+	adminHash, err := getAdminHash(&adminSecret)
 	if err != nil {
 		return err
 	}
 	// Merge the internal_users.yml data
-	mergedUsers, err := mergeUserYamlData(dataHelmUsers, dataSecretUsers, adminHash)
+	mergedUsers, err := mergeUserYamlData(dataFileUsers, dataSecretUsers, adminHash)
 	if err != nil {
 		return err
 	}
@@ -113,11 +120,9 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	scr.Data[usersYaml] = mergedUsersYAML
 
 	// Update the secret
-	_, err = clientset.CoreV1().Secrets(securityNamespace).Update(context.TODO(), scr, metav1.UpdateOptions{})
-	if err != nil {
+	if err := client.Update(context.TODO(), &scr); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -140,8 +145,8 @@ func getSecretData(secret *corev1.Secret, yamlName string) ([]byte, error) {
 	}
 	return byteYaml, nil
 }
-func unmarshalYAML(yamlData []byte) (map[interface{}]interface{}, error) {
-	var data map[interface{}]interface{}
+func unmarshalYAML(yamlData []byte) (map[string]interface{}, error) {
+	var data map[string]interface{}
 	if err := yaml.Unmarshal(yamlData, &data); err != nil {
 		return nil, err
 	}
@@ -149,51 +154,51 @@ func unmarshalYAML(yamlData []byte) (map[interface{}]interface{}, error) {
 }
 
 func getYamlData(helmMap map[string]interface{}, yamlName string) ([]byte, error) {
-	stringData, ok := helmMap["stringData"].(map[interface{}]interface{})[yamlName].(string)
+	stringData, ok := helmMap["stringData"].(map[string]interface{})[yamlName].(string)
 	if !ok {
 		return nil, fmt.Errorf("error finding config data")
 	}
 	return []byte(stringData), nil
 }
 
-func mergeConfigYamlData(data1, data2 map[interface{}]interface{}) (map[interface{}]interface{}, error) {
+func mergeConfigYamlData(data1, data2 map[string]interface{}) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
-	values1, ok1 := data1["config"].(map[interface{}]interface{})["dynamic"].(map[interface{}]interface{})["authc"].(map[interface{}]interface{})
-	values2, ok2 := data2["config"].(map[interface{}]interface{})["dynamic"].(map[interface{}]interface{})["authc"].(map[interface{}]interface{})
+	values1, ok1 := data1["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
+	values2, ok2 := data2["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("config not found")
 	}
 	for key1, val1 := range values1 {
-		mergedData[key1.(string)] = val1
+		mergedData[key1] = val1
 	}
 	for key2, val2 := range values2 {
-		if _, ok := mergedData[key2.(string)]; ok && strings.HasPrefix(key2.(string), "vz") {
+		if _, ok := mergedData[key2]; ok && strings.HasPrefix(key2, "vz") {
 			continue
 		}
-		mergedData[key2.(string)] = val2
+		mergedData[key2] = val2
 	}
-	data1["config"].(map[interface{}]interface{})["dynamic"].(map[interface{}]interface{})["authc"] = mergedData
+	data1["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"] = mergedData
 	return data1, nil
 }
-func mergeUserYamlData(data1, data2 map[interface{}]interface{}, hashFromSecret string) (map[interface{}]interface{}, error) {
-	mergedData := make(map[interface{}]interface{})
-	adminData, ok := data1["admin"].(map[interface{}]interface{})
+func mergeUserYamlData(data1, data2 map[string]interface{}, hashFromSecret string) (map[string]interface{}, error) {
+	mergedData := make(map[string]interface{})
+	adminData, ok := data1["admin"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("user data structure mismatch")
+		return nil, fmt.Errorf("user not found")
 	}
 	adminData["hash"] = hashFromSecret
 	for key1, val1 := range data1 {
 		if key1 == "admin" {
-			mergedData[key1.(string)] = adminData
+			mergedData[key1] = adminData
 		} else {
-			mergedData[key1.(string)] = val1
+			mergedData[key1] = val1
 		}
 	}
 	for key2, val2 := range data2 {
-		if _, exists := mergedData[key2.(string)]; exists {
+		if _, exists := mergedData[key2]; exists {
 			continue
 		} else {
-			mergedData[key2.(string)] = val2
+			mergedData[key2] = val2
 		}
 	}
 	return mergedData, nil
