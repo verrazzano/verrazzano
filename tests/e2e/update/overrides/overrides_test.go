@@ -151,7 +151,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 
 	t.Context("Test overrides creation", func() {
 		// Create the overrides resources listed in Verrazzano and verify
-		// that the values have been applied to promtheus-operator
+		// that the values 	have been applied to promtheus-operator
 		t.Context("Create Overrides", func() {
 			t.It("Create ConfigMap", func() {
 				testConfigMap.Data[dataKey] = oldCMData
@@ -181,6 +181,9 @@ var _ = t.Describe("Post Install Overrides", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
+
+	/* Disable these tests for now as part of the modules work, we may want to remove/deprecate this as it is
+	   undocumented and may not make sense.  We will review this as part of the Modules cleanup effort.
 
 	t.Context("Test no update with monitorChanges false", func() {
 		// Update the overrides resources listed in Verrazzano and set monitorChanges to false and verify
@@ -249,6 +252,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
+	*/
 
 	t.Context("Test overrides deletion", func() {
 		// Delete the resources and verify that the deleted

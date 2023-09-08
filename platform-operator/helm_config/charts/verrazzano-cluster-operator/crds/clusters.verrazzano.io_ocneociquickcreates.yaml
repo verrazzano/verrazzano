@@ -199,7 +199,6 @@ spec:
                     type: array
                 required:
                 - controlPlane
-                - workers
                 type: object
               ocne:
                 description: OCNE settings.
