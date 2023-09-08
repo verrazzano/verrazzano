@@ -256,7 +256,7 @@ func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, er
 }
 
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
-func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
+func (h *Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
 	formattedReq := req.Clone(context.TODO())
 	formattedReq.Host = kubernetesAPIServerHostname
 	formattedReq.RequestURI = ""

@@ -76,7 +76,7 @@ func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respon
 	authHeader := req.Header.Get(authHeaderKey)
 
 	if a.ExternalProvider == nil {
-		return false, fmt.Errorf("the OIDC provider for authentication is not initialized!")
+		return false, fmt.Errorf("the OIDC provider for authentication is not initialized")
 	}
 	if authHeader == "" {
 		err := a.performLoginRedirect(req, rw, a.ExternalProvider)
