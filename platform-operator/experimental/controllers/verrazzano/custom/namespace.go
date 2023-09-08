@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 	cmissuer "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/issuer"
@@ -45,49 +44,6 @@ var sharedNamespaces = []string{
 var systemNamespaceLabels = map[string]string{
 	"istio-injection":         "enabled",
 	"verrazzano.io/namespace": vzconst.VerrazzanoSystemNamespace,
-}
-
-// CreateVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
-func CreateVerrazzanoSystemNamespace(cli client.Client, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
-	// remove injection label if disabled
-	istio := cr.Spec.Components.Istio
-	if istio != nil && !istio.IsInjectionEnabled() {
-		log.Infof("Disabling istio sidecar injection for Verrazzano system components")
-		systemNamespaceLabels["istio-injection"] = "disabled"
-	}
-	log.Debugf("Verrazzano system namespace labels: %v", systemNamespaceLabels)
-
-	// First check if VZ system namespace exists. If not, create it.
-	var vzSystemNS corev1.Namespace
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
-	if err != nil {
-		log.Debugf("Creating Verrazzano system namespace")
-		if !errors.IsNotFound(err) {
-			log.Errorf("Failed to get namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
-			return err
-		}
-		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
-		vzSystemNS.Labels, _ = MergeMaps(nil, systemNamespaceLabels)
-		log.Oncef("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
-		if err := cli.Create(context.TODO(), &vzSystemNS); err != nil {
-			log.Errorf("Failed to create namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
-			return err
-		}
-		return nil
-	}
-
-	// Namespace exists, see if we need to add the label
-	log.Oncef("Updating Verrazzano system namespace")
-	var updated bool
-	vzSystemNS.Labels, updated = MergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
-	if !updated {
-		return nil
-	}
-	if err := cli.Update(context.TODO(), &vzSystemNS); err != nil {
-		log.Errorf("Failed to update namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
-		return err
-	}
-	return nil
 }
 
 // DeleteNamespace deletes a namespace
