@@ -1,4 +1,4 @@
-### v1.4.7
+### v1.4.8
 Component version updates:
 
 - WebLogic Kubernetes Operator v3.4.10
