@@ -40,12 +40,6 @@ var sharedNamespaces = []string{
 	monitoringNamespace,
 }
 
-// systemNamespaceLabels the verrazzano-system namespace labels required
-var systemNamespaceLabels = map[string]string{
-	"istio-injection":         "enabled",
-	"verrazzano.io/namespace": vzconst.VerrazzanoSystemNamespace,
-}
-
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(cli client.Client, log vzlog.VerrazzanoLogger, namespace string) error {
 	ns := corev1.Namespace{
