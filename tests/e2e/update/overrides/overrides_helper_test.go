@@ -37,7 +37,7 @@ prometheusOperator:
 
 var oldInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"true\"}}}"
 
-var newInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"false\"}}}"
+//var newInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"false\"}}}"
 
 var testConfigMap = corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{

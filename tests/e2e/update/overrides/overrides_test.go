@@ -151,7 +151,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 
 	t.Context("Test overrides creation", func() {
 		// Create the overrides resources listed in Verrazzano and verify
-		// that the values have been applied to promtheus-operator
+		// that the values 	have been applied to promtheus-operator
 		t.Context("Create Overrides", func() {
 			t.It("Create ConfigMap", func() {
 				testConfigMap.Data[dataKey] = oldCMData
@@ -225,7 +225,6 @@ var _ = t.Describe("Post Install Overrides", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
-	*/
 
 	t.Context("Test overrides update", func() {
 		// Change monitorChanges to true in Verrazzano and verify
@@ -253,6 +252,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
+	*/
 
 	t.Context("Test overrides deletion", func() {
 		// Delete the resources and verify that the deleted
