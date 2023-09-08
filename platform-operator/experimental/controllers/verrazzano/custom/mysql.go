@@ -52,7 +52,7 @@ func CleanupMysqlBackupJob(log vzlog.VerrazzanoLogger, cli client.Client) error 
 				// persist the job logs
 				persisted := persistJobLog(backupJob, jobPod, log)
 				if !persisted {
-					log.Infof("Unable to persist job log for %s", backupJob.Name)
+					log.Oncef("Unable to persist job log for %s", backupJob.Name)
 				}
 				// can delete job since pod has completed
 				log.Debugf("Deleting stale backup job %s", job.Name)
