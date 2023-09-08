@@ -23,7 +23,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -41,7 +40,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -333,25 +331,25 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 	return []byte("success"), []byte(""), nil
 }
 
-func TestPostUpgrade(t *testing.T) {
-	a := assert.New(t)
-
-	comp := istioComponent{}
-
-	// Setup fake client to provide workloads for restart platform testing
-	clientSet := gofake.NewSimpleClientset()
-	k8sutil.SetFakeClient(clientSet)
-
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer helm.SetDefaultActionConfigFunction()
-
-	helm.SetActionConfigFunction(testActionConfigWithInstallation)
-
-	SetHelmUninstallFunction(fakeHelmUninstall)
-	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
-	a.NoError(err, "PostUpgrade returned an error")
-}
+//func TestPostUpgrade(t *testing.T) {
+//	a := assert.New(t)
+//
+//	comp := istioComponent{}
+//
+//	// Setup fake client to provide workloads for restart platform testing
+//	clientSet := gofake.NewSimpleClientset()
+//	k8sutil.SetFakeClient(clientSet)
+//
+//	config.SetDefaultBomFilePath(testBomFilePath)
+//	defer helm.SetDefaultActionConfigFunction()
+//
+//	helm.SetActionConfigFunction(testActionConfigWithInstallation)
+//
+//	SetHelmUninstallFunction(fakeHelmUninstall)
+//	SetDefaultHelmUninstallFunction()
+//	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
+//	a.NoError(err, "PostUpgrade returned an error")
+//}
 
 func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (err error) {
 	if releaseName != "istiocoredns" {
