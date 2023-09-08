@@ -76,12 +76,12 @@ func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respon
 	authHeader := req.Header.Get(authHeaderKey)
 
 	if a.ExternalProvider == nil {
-		return false, fmt.Errorf("OIDC provider for authentication is not initialized!")
+		return false, fmt.Errorf("the OIDC provider for authentication is not initialized!")
 	}
 	if authHeader == "" {
 		err := a.performLoginRedirect(req, rw, a.ExternalProvider)
 		if err != nil {
-			return false, fmt.Errorf("Could not redirect for login: %v", err)
+			return false, fmt.Errorf("could not redirect for login: %v", err)
 		}
 		// we performed a redirect, so request processing is done and
 		// no further processing is needed
@@ -90,7 +90,7 @@ func (a OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respon
 
 	token, err := getTokenFromAuthHeader(authHeader)
 	if err != nil {
-		return false, fmt.Errorf("Failed to get token from authorization header: %v", err)
+		return false, fmt.Errorf("failed to get token from authorization header: %v", err)
 	}
 
 	return a.AuthenticateToken(req.Context(), token)
@@ -138,7 +138,7 @@ func (a OIDCAuthenticator) createContextWithHTTPClient() (context.Context, error
 	if err != nil {
 		return nil, err
 	}
-	var certPool *x509.CertPool = nil
+	var certPool *x509.CertPool
 	if caBundleData != nil {
 		if certPool, err = cert.NewPoolFromBytes(caBundleData); err != nil {
 			return nil, err
@@ -239,14 +239,6 @@ func (a OIDCAuthenticator) storeVerifier() error {
 // loadVerifier returns the stored value and casts it to a verifier object
 func (a OIDCAuthenticator) loadVerifier() verifier {
 	return a.verifier.Load().(verifier)
-}
-
-func authType(authHeader string) string {
-	authHeaderParts := strings.Split(authHeader, " ")
-	if len(authHeaderParts) > 0 {
-		return authHeaderParts[0]
-	}
-	return ""
 }
 
 func randomBase64(size int) (string, error) {

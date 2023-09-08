@@ -23,8 +23,6 @@ type mockVerifier struct {
 	token  string
 }
 
-type mockProvider struct{}
-
 var _ verifier = &mockVerifier{}
 
 func TestAuthenticateToken(t *testing.T) {

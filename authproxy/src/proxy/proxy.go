@@ -57,7 +57,7 @@ type Handler struct {
 	AuthInited    atomic.Bool
 }
 
-var _ http.Handler = Handler{}
+var _ http.Handler = &Handler{}
 
 const callbackPath = "/_authentication_callback"
 const logoutPath = "/_logout"
@@ -87,7 +87,7 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 	}
 
 	httpClient := GetHTTPClientWithCABundle(rootCA)
-	authproxy.Handler = Handler{
+	authproxy.Handler = &Handler{
 		URL:       restConfig.Host,
 		Client:    httpClient,
 		Log:       log,
@@ -108,7 +108,7 @@ func GetHTTPClientWithCABundle(rootCA *x509.CertPool) *retryablehttp.Client {
 	return client
 }
 
-func (h Handler) findPathHandler(req *http.Request) handlerFuncType {
+func (h *Handler) findPathHandler(req *http.Request) handlerFuncType {
 	switch req.URL.Path {
 	case callbackPath:
 		return h.handleAuthCallback
@@ -120,10 +120,10 @@ func (h Handler) findPathHandler(req *http.Request) handlerFuncType {
 }
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
-func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
 
-	err := InitializeAuthenticator(&h)
+	err := InitializeAuthenticator(h)
 	if err != nil {
 		h.Log.Errorf("Failed to initialize Authenticator: %v", err)
 		http.Error(rw, "Failed to initialize Authenticator", http.StatusInternalServerError)
@@ -135,7 +135,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // handleAuthCallback is the http handler for authentication callback
-func (h Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	// ingressHost := getIngressHost(req)
 	// authenticator := auth.NewAuthenticator(createOidcConfig(ingressHost), h.Log, h.K8sClient)
 	// authenticator.Verify(req, rw)
@@ -143,12 +143,12 @@ func (h Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
 }
 
 // handleLogout is the http handler for logout
-func (h Handler) handleLogout(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) handleLogout(rw http.ResponseWriter, req *http.Request) {
 
 }
 
 // handleAPIRequest is the http handler for API requests
-func (h Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 	err := validateRequest(req)
 	if err != nil {
 		h.Log.Debugf("Failed to validate request: %s", err.Error())
