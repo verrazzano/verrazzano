@@ -16,6 +16,8 @@ rules:
       - rolebindings
       - serviceaccounts
       - services
+      - persistentvolumeclaims
+      - persistentvolumes
     verbs:
       - create
       - delete
