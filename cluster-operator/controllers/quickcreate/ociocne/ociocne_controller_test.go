@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	ocifake "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci/fake"
 	corev1 "k8s.io/api/core/v1"
@@ -102,7 +103,9 @@ func testOCNEConfigMap() *corev1.ConfigMap {
 
 func testReconciler(cli clipkg.Client) *ClusterReconciler {
 	return &ClusterReconciler{
-		Client:            cli,
+		Base: &controller.Base{
+			Client: cli,
+		},
 		Scheme:            scheme,
 		Logger:            nil,
 		CredentialsLoader: testLoader,
