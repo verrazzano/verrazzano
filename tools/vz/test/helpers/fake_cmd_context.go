@@ -138,3 +138,15 @@ func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.
 	}
 	return discoveryClient, nil
 }
+
+func (rc *FakeRootCmdContext) VerifyCLIArgsNil(cmd *cobra.Command) error {
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		// In unit-tests the TestName is an arg. So to avoid tests failing because of the TestName
+		// we're now checking that the arg list is greater than 1.
+		if len(args) > 1 {
+			return fmt.Errorf("invalid arguments specified: %s", args)
+		}
+		return nil
+	}
+	return nil
+}

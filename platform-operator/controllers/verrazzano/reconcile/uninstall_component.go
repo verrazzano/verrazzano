@@ -50,15 +50,6 @@ func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha
 	// Don't block uninstalling the next component if the current one has an error.
 	// It is normal for a component to return an error if it is waiting for some condition.
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Requeue until the module is gone
-			if !IsModuleUninstallDone() {
-				requeue = true
-			}
-			// Ignore if this component is being handled by a Module
-			continue
-		}
-
 		uninstallContext := tracker.getComponentUninstallContext(comp.Name())
 		result, err := r.uninstallSingleComponent(spiCtx, uninstallContext, comp)
 		if err != nil || result.Requeue {
@@ -96,14 +87,14 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				UninstallContext.uninstallState = compStateUninstallEnd
 				continue
 			}
-			// Check if component is installed, if not continue
-			installed, err := comp.IsInstalled(compContext)
+			// Check if component is ex, if not continue
+			exists, err := comp.Exists(compContext)
 			if err != nil {
-				compLog.Errorf("Failed checking if component %s is installed: %v", compName, err)
+				compLog.Errorf("Failed checking if component %s exists in the cluster: %v", compName, err)
 				return ctrl.Result{}, err
 			}
-			if !installed {
-				compLog.Debugf("Component %s is not installed, nothing to do for uninstall", compName)
+			if !exists {
+				compLog.Debugf("Component %s does not exist in cluster, nothing to do for uninstall", compName)
 				UninstallContext.uninstallState = compStateUninstallEnd
 				continue
 			}

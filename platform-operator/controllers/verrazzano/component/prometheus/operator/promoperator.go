@@ -241,7 +241,7 @@ func getPrometheusPersistentVolumes(ctx spi.ComponentContext) (*corev1.Persisten
 // "retain" so that we can migrate it to the new Prometheus. Now that it has been migrated, we reset the reclaim policy
 // to its original value.
 func resetVolumeReclaimPolicy(ctx spi.ComponentContext) error {
-	ctx.Log().Info("Resetting reclaim policy on Prometheus persistent volume if a volume exists")
+	ctx.Log().Progressf("Resetting reclaim policy on Prometheus persistent volume if a volume exists")
 
 	pvList, err := getPrometheusPersistentVolumes(ctx)
 	if err != nil {

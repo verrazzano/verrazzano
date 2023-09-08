@@ -6,13 +6,15 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,8 +89,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		mgdClusterOidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
 	}
 
+	oidcProviderHost := fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix)
 	overrides.Proxy = &proxyValues{
-		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
+		OidcProviderHost:          oidcProviderHost,
 		OidcProviderHostInCluster: keycloakInClusterURL,
 		PKCEClientID:              adminClusterOidcID,
 	}
@@ -129,7 +132,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
-	return kvs, nil
+	// Append auth proxy v2 overrides
+	kvs = appendOIDCOverrides(kvs, keycloakInClusterURL, oidcProviderHost, vzconst.VerrazzanoOIDCSystemRealm)
+
+	return appendAuthProxyImageOverrides(kvs), nil
 }
 
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
@@ -324,4 +330,27 @@ func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	if err := ctx.Client().Delete(context.TODO(), service); err != nil && !apierrors.IsNotFound(err) {
 		ctx.Log().Errorf("Unable to delete deprecated ES service: %s, %v", service.Name, err)
 	}
+}
+
+// If the Auth Proxy image is specified in the env vars, add it as a Helm argument to override the image
+func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
+	envImageOverride := os.Getenv(constants.VerrazzanoAuthProxyImageEnvVar)
+	if len(envImageOverride) > 0 {
+		return append(kvs, bom.KeyValue{
+			Key:   "v2.image",
+			Value: envImageOverride,
+		})
+	}
+	return kvs
+}
+
+// appendOIDCOverrides appends overrides related to OIDC configuration
+func appendOIDCOverrides(kvs []bom.KeyValue, oidcServiceHost, oidcExternalHost, realm string) []bom.KeyValue {
+	oidcServiceURL := fmt.Sprintf("http://%s/auth/realms/%s", oidcServiceHost, realm)
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcServiceURL", Value: oidcServiceURL})
+
+	oidcExternalURL := fmt.Sprintf("https://%s/auth/realms/%s", oidcExternalHost, realm)
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcExternalURL})
+
+	return kvs
 }

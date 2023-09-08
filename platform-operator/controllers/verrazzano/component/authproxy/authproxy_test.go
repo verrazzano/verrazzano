@@ -6,14 +6,15 @@ package authproxy
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	netv1 "k8s.io/api/networking/v1"
 
@@ -153,6 +154,15 @@ func TestAppendOverrides(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
+
+	testImageVar := "test-image"
+	err := os.Setenv(vpoconst.VerrazzanoAuthProxyImageEnvVar, testImageVar)
+	assert.NoError(t, err)
+	defer func() {
+		err := os.Unsetenv(vpoconst.VerrazzanoAuthProxyImageEnvVar)
+		assert.NoError(t, err)
+	}()
+
 	tests := []struct {
 		name         string
 		description  string
@@ -166,7 +176,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test default configuration of AuthProxy with no overrides",
 			expectedYAML: "testdata/noOverrideValues.yaml",
 			actualCR:     "testdata/noOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -174,7 +184,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test override of replica count",
 			expectedYAML: "testdata/replicasOverrideValues.yaml",
 			actualCR:     "testdata/replicasOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -182,7 +192,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test override of affinity configuration for AuthProxy",
 			expectedYAML: "testdata/affinityOverrideValues.yaml",
 			actualCR:     "testdata/affinityOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -190,7 +200,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding DNS wildcard domain",
 			expectedYAML: "testdata/dnsWildcardDomainOverrideValues.yaml",
 			actualCR:     "testdata/dnsWildcardDomainOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -198,7 +208,7 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding AuthProxy to be disabled",
 			expectedYAML: "testdata/enabledOverrideValues.yaml",
 			actualCR:     "testdata/enabledOverrideVz.yaml",
-			numKeyValues: 1,
+			numKeyValues: 4,
 			expectedErr:  nil,
 		},
 		{
@@ -247,6 +257,13 @@ func TestAppendOverrides(t *testing.T) {
 			_, err = os.Stat(tempFilePath)
 			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
 			cleanTempFiles(fakeContext)
+
+			// Check authproxy image
+			if len(kvs) >= 3 {
+				asserts.Equal("v2.image", kvs[3].Key)
+				asserts.Equal(testImageVar, kvs[3].Value)
+			}
+
 		})
 	}
 	// Verify temp files are deleted

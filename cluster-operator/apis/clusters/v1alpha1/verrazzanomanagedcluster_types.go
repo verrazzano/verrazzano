@@ -163,7 +163,3 @@ type VerrazzanoManagedClusterList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []VerrazzanoManagedCluster `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&VerrazzanoManagedCluster{}, &VerrazzanoManagedClusterList{})
-}

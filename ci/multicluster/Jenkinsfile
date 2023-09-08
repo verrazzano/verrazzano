@@ -48,11 +48,11 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.26.2", "v1.25.4", "v1.24.1"])
+                choices: [ "v1.27.2", "v1.26.2", "v1.25.4", "v1.24.1"])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.26", "1.25", "1.24" ])
+                choices: [ "1.27", "1.26", "1.25", "1.24" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -101,11 +101,8 @@ pipeline {
     environment {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
-        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')

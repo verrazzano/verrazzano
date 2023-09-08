@@ -32,7 +32,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for Admin KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.26", "1.25", "1.24" ])
+                choices: [ "1.27", "1.26", "1.25", "1.24" ])
         choice (name: 'OCNE_KUBERNETES_CLUSTER_VERSION',
                         description: 'Kubernetes Version for OCNE Cluster',
                         // 1st choice is the default value
@@ -927,6 +927,7 @@ def dumpCAPIPODLogs() {
         kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=bootstrap-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-bootstrap-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=control-plane-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-control-plane-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi logs -l cluster.x-k8s.io/provider=infrastructure-oci > ${WORKSPACE}/capi-kubernetes-runtime/logs/capoci-controller-manager-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system logs -l app=verrazzano-cluster-operator > ${WORKSPACE}/capi-kubernetes-runtime/logs/verrazzano-cluster-operator.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=cluster-api > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=bootstrap-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/capi-ocne-bootstrap-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         kubectl -n verrazzano-capi describe pod -l cluster.x-k8s.io/provider=control-plane-ocne > ${WORKSPACE}/capi-kubernetes-runtime/logs/ccapi-ocne-control-plane-controller-manager-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}

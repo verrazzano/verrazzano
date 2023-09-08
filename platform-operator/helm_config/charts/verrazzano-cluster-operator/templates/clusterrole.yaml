@@ -9,6 +9,7 @@ rules:
     - admissionregistration.k8s.io
     resources:
     - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
     verbs:
     - create
     - get
@@ -40,6 +41,10 @@ rules:
     resources:
       - verrazzanomanagedclusters
       - verrazzanomanagedclusters/status
+      - ocneociquickcreates
+      - ocneociquickcreates/status
+      - okequickcreates
+      - okequickcreates/status
     verbs:
       - create
       - update
@@ -118,10 +123,33 @@ rules:
       - list
       - watch
   - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+    resources:
+      - ociclusteridentities
+    verbs:
+      - get
+  - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+      - controlplane.cluster.x-k8s.io
+      - bootstrap.cluster.x-k8s.io
+      - addons.cluster.x-k8s.io
+    resources:
+      - ociclusters
+      - ocimachinetemplates
+      - ocnecontrolplanes
+      - ocneconfigtemplates
+      - clusterresourcesets
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
       - cluster.x-k8s.io
     resources:
       - clusters
+      - machinedeployments
     verbs:
+      - create
       - update
       - get
       - list

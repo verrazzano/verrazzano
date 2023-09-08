@@ -155,15 +155,15 @@
               "image": "rancher",
               "dashboard": "v2.7.5-20230818161107-07044c506",
               "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.23.0",
-              "ocneDriverChecksum": "e410fd9b7ac5533b656277e82f1a321a995a5cd5e0329c2e79091e26e2516313",
-              "tag": "v2.7.5-20230818162112-c6f745626",
+              "ocneDriverVersion": "v0.24.0",
+              "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
+              "tag": "v2.7.5-20230831191011-c6f745626",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.5-20230818162112-c6f745626"
+              "tag": "v2.7.5-20230831191011-c6f745626"
             }
           ]
         },
@@ -271,7 +271,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230724214803-d6adc4e",
+              "tag": "v2.0.0-20230828163609-10891b3",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -301,7 +301,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230713135924-c39455f",
+              "tag": "v2.0.0-20230825101211-f2937ea",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -375,7 +375,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "1.5.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -409,7 +409,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "1.5.0",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -425,8 +425,25 @@
       ]
     },
     {
+      "name": "verrazzano-authproxy",
+      "version": "2.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-authproxy",
+          "images": [
+            {
+              "image": "VERRAZZANO_AUTHPROXY_IMAGE",
+              "tag": "VERRAZZANO_AUTHPROXY_TAG",
+              "helmFullImageKey": "v2.image"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "weblogic-operator",
-      "version": "4.1.0",
+      "version": "4.1.2",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -434,12 +451,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.1.0",
+              "tag": "4.1.2",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.4",
+              "tag": "2.1.5",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -933,6 +950,7 @@
   "supportedKubernetesVersions": [
     "v1.24.0",
     "v1.25.0",
-    "v1.26.0"
+    "v1.26.0",
+    "v1.27.0"
   ]
 }

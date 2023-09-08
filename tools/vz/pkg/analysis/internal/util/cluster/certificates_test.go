@@ -88,3 +88,21 @@ func TestCertificatesAreNotGrantedReturnsNoError(t *testing.T) {
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
 }
+
+func TestCaCertInfoFileWithNoIssueReturnsNoError(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCaCertsNotExpired/cluster-snapshot")
+	assert.Nil(t, err)
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.True(t, len(reportedIssues) == 0)
+}
+
+func TestCaCertInfoFileWithExpirationReportsAnIssue(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCaCertsExpired/cluster-snapshot")
+	assert.Nil(t, err)
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.True(t, len(reportedIssues) == 1)
+}

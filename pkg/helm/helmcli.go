@@ -139,9 +139,8 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
-			log.Errorf("Failed running Helm command for release %s",
-				releaseName)
-			return nil, err
+			return nil, log.ErrorfThrottledNewErr("Failed running Helm command for release %s, error: %s",
+				releaseName, err.Error())
 		}
 	} else {
 		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
@@ -260,6 +259,26 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 		return false, err
 	}
 	return release.StatusDeployed == helmRelease.Info.Status, nil
+}
+
+// ReleaseExists returns true if the helm Release exists in the cluster in any state
+func ReleaseExists(releaseName string, namespace string) (found bool, err error) {
+	settings := cli.New()
+	settings.SetNamespace(namespace)
+	actionConfig, err := actionConfigFn(vzlog.DefaultLogger(), settings, namespace)
+	if err != nil {
+		return false, err
+	}
+
+	client := action.NewStatus(actionConfig)
+	helmRelease, err := client.Run(releaseName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return false, nil
+		}
+		return false, err
+	}
+	return len(helmRelease.Info.Status) > 0, nil
 }
 
 // getChartStatus extracts the Helm deployment status of the specified chart from the JSON output as a string

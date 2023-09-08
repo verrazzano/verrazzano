@@ -5,10 +5,8 @@ package reconcile
 
 import (
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -26,11 +24,11 @@ const (
 	// vzStateSetGlobalInstallStatus is the state where the VZ Install Started status is written
 	vzStateSetGlobalInstallStatus reconcileState = "vzSetGlobalInstallStatus"
 
+	// vzStatePreInstall is the global preinstall state
+	vzStatePreInstall reconcileState = "vzPreInstall"
+
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
-
-	// vzStateWaitModulesReady wait for components installed using Modules to be ready
-	vzStateWaitModulesReady reconcileState = "vzWaitModulesReady"
 
 	// vzStatePostInstall is the global PostInstall state
 	vzStatePostInstall reconcileState = "vzPostInstall"
@@ -126,30 +124,25 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				continue
 			}
 			// if the VZ state is not Ready, it must be Reconciling or Upgrading
-			// in either case, go right to installComponents
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			// in either case, go right to PreInstall
+			tracker.vzState = vzStatePreInstall
 
 		case vzStateSetGlobalInstallStatus:
-			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
+			spiCtx.Log().Progressf("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
 			if err := r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
 				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = vzStateInstallComponents
-			r.beforeInstallComponents(spiCtx)
+			tracker.vzState = vzStatePreInstall
 			// since we updated the status, requeue to pick up new changes
 			return ctrl.Result{Requeue: true}, nil
 
+		case vzStatePreInstall:
+			r.beforeInstallComponents(spiCtx)
+			tracker.vzState = vzStateInstallComponents
+
 		case vzStateInstallComponents:
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
-			if err != nil || res.Requeue {
-				return res, err
-			}
-			tracker.vzState = vzStateWaitModulesReady
-
-		case vzStateWaitModulesReady:
-			res, err := r.waitForModulesReady(spiCtx)
 			if err != nil || res.Requeue {
 				return res, err
 			}
@@ -175,10 +168,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 // checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) {
 			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 			if !ok {
@@ -187,7 +176,7 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 				return true
 			}
 			if checkConfigUpdated(spiCtx, componentStatus) && comp.MonitorOverrides(spiCtx) {
-				spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
+				spiCtx.Log().Progressf("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
 					spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
 				return true
 			}
@@ -200,11 +189,6 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
-
 		spiCtx.Log().Debugf("Reconciling watched component %s", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {
@@ -219,21 +203,4 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 
 func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
 	r.createRancherIngressAndCertCopies(ctx)
-}
-func (r *Reconciler) waitForModulesReady(compContext spi.ComponentContext) (ctrl.Result, error) {
-	// Loop through all the Verrazzano components being handled by Modules and check if ready
-	for _, comp := range registry.GetComponents() {
-		if !comp.ShouldUseModule() {
-			// Ignore if this component is NOT being handled by a Module
-			continue
-		}
-		if !comp.IsEnabled(compContext.EffectiveCR()) {
-			continue
-		}
-		if !comp.IsReady(compContext) {
-			compContext.Log().Oncef("Waiting for the module %s to be ready", comp.Name())
-			return newRequeueWithDelay(), nil
-		}
-	}
-	return ctrl.Result{}, nil
 }

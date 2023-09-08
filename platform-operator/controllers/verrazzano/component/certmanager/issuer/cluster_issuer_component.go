@@ -4,7 +4,6 @@
 package issuer
 
 import (
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -58,6 +57,10 @@ func (c clusterIssuerComponent) IsInstalled(ctx spi.ComponentContext) (bool, err
 		return true, nil
 	}
 	return c.verrazzanoCertManagerResourcesReady(ctx), nil
+}
+
+func (c clusterIssuerComponent) Exists(context spi.ComponentContext) (bool, error) {
+	return c.IsInstalled(context)
 }
 
 // PreInstall runs before cert-manager-config component is executed
@@ -182,11 +185,6 @@ func (c clusterIssuerComponent) ShouldInstallBeforeUpgrade() bool {
 // ShouldUseModule returns true if component is implemented using a Module, default false
 func (c clusterIssuerComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
-}
-
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (c clusterIssuerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
 }
 
 func (c clusterIssuerComponent) GetDependencies() []string {

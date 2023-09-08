@@ -1,0 +1,282 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: ocneociquickcreates.clusters.verrazzano.io
+spec:
+  group: clusters.verrazzano.io
+  names:
+    kind: OCNEOCIQuickCreate
+    listKind: OCNEOCIQuickCreateList
+    plural: ocneociquickcreates
+    singular: ocneociquickcreate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: OCNEOCIQuickCreate specifies the API for quick-create OCI OCNE
+          Clusters.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: The desired state of an OCNEOCIQuickCreate resource.
+            properties:
+              identityRef:
+                description: Reference for cloud authentication.
+                properties:
+                  name:
+                    description: Name of the ref.
+                    maxLength: 63
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: Namespace of the ref.
+                    maxLength: 63
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              kubernetes:
+                default:
+                  clusterNetwork:
+                    podCIDR: 10.244.0.0/16
+                    serviceCIDR: 10.96.0.0/16
+                description: Kubernetes settings.
+                properties:
+                  clusterNetwork:
+                    default:
+                      podCIDR: 10.244.0.0/16
+                      serviceCIDR: 10.96.0.0/16
+                    description: Kubernetes network settings.
+                    properties:
+                      podCIDR:
+                        description: IP range for Kubernetes pods. The default is
+                          `10.244.0.0/16`
+                        type: string
+                      serviceCIDR:
+                        description: IP range for Kubernetes service addresses. The
+                          default is `10.96.0.0/16`.
+                        type: string
+                    type: object
+                type: object
+              oci:
+                description: OCI infrastructure settings.
+                properties:
+                  cloudInitScript:
+                    description: Cloud-init script to run during node startup.
+                    items:
+                      type: string
+                    type: array
+                  compartment:
+                    description: OCI Compartment OCID where the cluster will be created
+                    type: string
+                  controlPlane:
+                    description: Control Plane node settings.
+                    properties:
+                      bootVolumeGbs:
+                        description: Size of node boot volume, in gigabytes.
+                        maximum: 32000
+                        minimum: 50
+                        type: integer
+                      memoryGbs:
+                        description: Amount of memory per node, in gigabytes, when
+                          using flex shapes.
+                        maximum: 999
+                        minimum: 1
+                        type: integer
+                      ocpus:
+                        description: Number of OCPUs per node, when using flex shapes.
+                        maximum: 999
+                        minimum: 1
+                        type: integer
+                      replicas:
+                        description: Number of nodes to create.
+                        maximum: 999
+                        minimum: 1
+                        type: integer
+                      shape:
+                        description: Node pool Shape.
+                        type: string
+                    required:
+                    - replicas
+                    - shape
+                    type: object
+                  imageId:
+                    description: Node image OCID. The default is the latest OL8 image
+                      in the provided compartment.
+                    type: string
+                  network:
+                    default:
+                      createVCN: false
+                    description: OCI Network settings.
+                    properties:
+                      createVCN:
+                        default: false
+                        description: If true, a new VCN is created for the cluster.
+                          The default is false.
+                        type: boolean
+                      subnets:
+                        description: List of existing subnets that will be used by
+                          the cluster.
+                        items:
+                          properties:
+                            id:
+                              description: The ID of the subnet.
+                              type: string
+                            role:
+                              description: Role of subnet within the cluster.
+                              type: string
+                          required:
+                          - id
+                          - role
+                          type: object
+                        type: array
+                      vcn:
+                        description: OCID of an existing VCN to create the cluster
+                          inside.
+                        type: string
+                    type: object
+                  region:
+                    description: OCI region where the cluster will be created.
+                    type: string
+                  sshPublicKey:
+                    description: SSH public key for node ssh.
+                    type: string
+                  workers:
+                    description: List of worker nodes.
+                    items:
+                      properties:
+                        bootVolumeGbs:
+                          description: Size of node boot volume, in gigabytes.
+                          maximum: 32000
+                          minimum: 50
+                          type: integer
+                        memoryGbs:
+                          description: Amount of memory per node, in gigabytes, when
+                            using flex shapes.
+                          maximum: 999
+                          minimum: 1
+                          type: integer
+                        name:
+                          type: string
+                        ocpus:
+                          description: Number of OCPUs per node, when using flex shapes.
+                          maximum: 999
+                          minimum: 1
+                          type: integer
+                        replicas:
+                          description: Number of nodes to create.
+                          maximum: 999
+                          minimum: 1
+                          type: integer
+                        shape:
+                          description: Node pool Shape.
+                          type: string
+                      required:
+                      - name
+                      - replicas
+                      - shape
+                      type: object
+                    type: array
+                required:
+                - controlPlane
+                type: object
+              ocne:
+                description: OCNE settings.
+                properties:
+                  dependencies:
+                    default:
+                      skipInstall: false
+                    description: OCNE dependency settings.
+                    properties:
+                      skipInstall:
+                        default: false
+                        description: Whether to skip OCNE dependency installation.
+                          The default is `false`.
+                        type: boolean
+                    type: object
+                  version:
+                    description: OCNE Version.
+                    type: string
+                required:
+                - version
+                type: object
+              privateRegistry:
+                description: Private Registry settings for the workload cluster.
+                properties:
+                  credentialSecret:
+                    description: Reference to private registry credentials secret.
+                    properties:
+                      name:
+                        description: Name of the ref.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: Namespace of the ref.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  url:
+                    description: Private registry URL.
+                    type: string
+                required:
+                - url
+                type: object
+              proxy:
+                description: HTTP Proxy settings.
+                properties:
+                  httpProxy:
+                    description: HTTP Proxy string.
+                    type: string
+                  httpsProxy:
+                    description: HTTPS Proxy string.
+                    type: string
+                  noProxy:
+                    description: No Proxy string.
+                    type: string
+                required:
+                - httpProxy
+                - httpsProxy
+                type: object
+            required:
+            - identityRef
+            - oci
+            - ocne
+            type: object
+          status:
+            description: The observed state of an OCNEOCIQuickCreate resource.
+            properties:
+              phase:
+                type: string
+            required:
+            - phase
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
