@@ -2,9 +2,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: v1
-name: weblogic-operator
+appVersion: 3.4.10
 description: Helm chart for configuring the WebLogic operator.
-
+name: weblogic-operator
 type: application
-version: 3.4.7
-appVersion: 3.4.7
+version: 3.4.10
