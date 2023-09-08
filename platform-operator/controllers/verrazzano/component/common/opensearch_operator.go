@@ -24,8 +24,6 @@ const (
 	adminName          = "admin-credentials-secret"
 )
 
-var getClientFunc = getClient
-
 // getClient returns a controller runtime client for the Verrazzano resource
 func getClient(ctx spi.ComponentContext) (client.Client, error) {
 	return ctx.Client(), nil

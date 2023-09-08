@@ -21,16 +21,6 @@ func TestMergeSecurityConfigsError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	const secretName = "securityconfig-secret"
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
-	//// fake client needed to get secret
-	//getClientFunc = func(ctx spi.ComponentContext) (client.Client, error) {
-	//	return fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-	//		&corev1.Secret{
-	//			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: "verrazzano-logging"},
-	//		},
-	//	).Build(), nil
-	//}
-	//defer func() { getClientFunc = getClient }()
-
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-logging", Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
 		secret.Name = secretName
