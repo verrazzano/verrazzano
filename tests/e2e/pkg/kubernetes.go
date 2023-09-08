@@ -18,6 +18,7 @@ import (
 	"github.com/onsi/gomega"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	vcoClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -34,6 +35,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -43,6 +45,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/remotecommand"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -585,6 +588,26 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 	return k8sutil.GetDynamicClientInCluster(kubeconfigPath)
 }
 
+// GetV1Beta1ControllerRuntimeClient, given a kubeconfig,
+// returns a controller runtime client with verrazzano v1beta1 as part of its scheme.
+func GetV1Beta1ControllerRuntimeClient(config *restclient.Config) (client.Client, error) {
+	scheme := runtime.NewScheme()
+	if err := v1beta1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	options := client.Options{
+		Scheme: scheme,
+		// The default SuppressWarnings=false will override whatever WarningHandler was used by the config.
+		// Set this to true to use whatever WarningHandler was passed into this function.
+		Opts: client.WarningHandlerOptions{SuppressWarnings: true},
+	}
+	vzClient, err := client.New(config, options)
+	if err != nil {
+		return nil, err
+	}
+	return vzClient, nil
+}
+
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
 // (there should only be 1 per cluster)
 func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Verrazzano, error) {
@@ -592,12 +615,11 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	if err != nil {
 		return nil, err
 	}
-	client, err := vpoClient.NewForConfig(config)
+	vzClient, err := GetV1Beta1ControllerRuntimeClient(config)
 	if err != nil {
 		return nil, err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos("")
-	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
+	vzList, err := verrazzano.ListV1Alpha1(context.TODO(), vzClient)
 
 	if err != nil {
 		return nil, fmt.Errorf("error listing out Verrazzano instances: %v", err)

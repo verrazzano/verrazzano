@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package oci
+package oci_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -92,7 +93,7 @@ func TestLoadCredentials(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := CredentialsLoaderImpl{}.GetCredentialsIfAllowed(context.TODO(), tt.cli, testRef, clusterNamespace)
+			c, err := oci.CredentialsLoaderImpl{}.GetCredentialsIfAllowed(context.TODO(), tt.cli, testRef.AsNamespacedName(), clusterNamespace)
 			if tt.hasError {
 				assert.Error(t, err)
 				assert.Nil(t, c)

@@ -34,9 +34,6 @@ const (
 	// vzStateUpgradeComponents is the state where the components are being upgraded
 	vzStateUpgradeComponents VerrazzanoUpgradeState = "vzUpgradeComponents"
 
-	// vzStateWaitModulesReady wait for components upgraded using Modules to be ready
-	vzStateUpgradeModulesReady VerrazzanoUpgradeState = "vzUpgradeModulesReady"
-
 	// vzStatePostUpgrade is the state where Verrazzano is doing a post-upgrade
 	vzStatePostUpgrade VerrazzanoUpgradeState = "vzDoPostUpgrade"
 
@@ -100,13 +97,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			res, err := r.upgradeComponents(log, cr, tracker)
 			if err != nil || res.Requeue {
 				return res, err
-			}
-			tracker.vzState = vzStateUpgradeModulesReady
-
-		case vzStateUpgradeModulesReady:
-			ready, err := r.modulesReady(spiCtx)
-			if err != nil || !ready {
-				return ctrl.Result{Requeue: true}, err
 			}
 			tracker.vzState = vzStatePostUpgrade
 

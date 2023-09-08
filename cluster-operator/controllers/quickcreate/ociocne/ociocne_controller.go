@@ -9,10 +9,13 @@ import (
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
+	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
+	"github.com/verrazzano/verrazzano/pkg/k8s/node"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -109,6 +112,12 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNE
 		if err := ocne.ApplyTemplate(r.Client, addonsTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
+		// If the cluster only has control plane nodes, set them for scheduling
+		if ocne.IsControlPlaneOnly() {
+			if err := r.setControlPlaneSchedulable(ctx, q); err != nil {
+				return controller.RequeueDelay(), nil
+			}
+		}
 		q.Status.Phase = vmcv1alpha1.QuickCreatePhaseComplete
 		return r.updateStatus(ctx, q)
 	}
@@ -121,6 +130,17 @@ func (r *ClusterReconciler) updateStatus(ctx context.Context, q *vmcv1alpha1.OCN
 		return controller.RequeueDelay(), err
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ClusterReconciler) setControlPlaneSchedulable(ctx context.Context, q *vmcv1alpha1.OCNEOCIQuickCreate) error {
+	cli, err := capi.GetClusterClient(ctx, r.Client, types.NamespacedName{
+		Namespace: q.Namespace,
+		Name:      q.Name,
+	}, r.Scheme)
+	if err != nil {
+		return err
+	}
+	return node.SetControlPlaneScheduling(ctx, cli)
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
