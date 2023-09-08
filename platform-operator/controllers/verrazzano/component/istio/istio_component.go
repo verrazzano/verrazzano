@@ -81,11 +81,11 @@ const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
 const istioRevisionMutatingWebhook = "istio-revision-tag-default"
 
-var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
-
 // for unit testing
 type funcCreateNamespaces func(ctx spi.ComponentContext) error
+
 var callCreateNamespaces funcCreateNamespaces = common.CreateAndLabelNamespaces
+var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
 const (
 	// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
