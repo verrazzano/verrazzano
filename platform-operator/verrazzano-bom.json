@@ -443,7 +443,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.1.0",
+      "version": "4.1.2",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -451,12 +451,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.1.0",
+              "tag": "4.1.2",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.4",
+              "tag": "2.1.5",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
