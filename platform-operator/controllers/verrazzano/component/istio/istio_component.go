@@ -456,12 +456,21 @@ func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks)
 }
 
-func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
-	err := deleteIstioCoreDNS(context)
+func (i istioComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	// Make sure namespaces get updated with Istio Enabled
+	common.CreateAndLabelNamespaces(compContext)
+
+	// During upgrade there is a window where the latest Istio envoy sidecar container is not included in a pod.
+	// Restart system components that are missing the sidecar.
+	if err := restart.RestartComponents(compContext.Log(), config.GetInjectedSystemNamespaces(), compContext.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
+		return err
+	}
+
+	err := deleteIstioCoreDNS(compContext)
 	if err != nil {
 		return err
 	}
-	err = removeIstioHelmSecrets(context)
+	err = removeIstioHelmSecrets(compContext)
 	if err != nil {
 		return err
 	}
