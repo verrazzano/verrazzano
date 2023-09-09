@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -15,6 +16,7 @@ import (
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/equality"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -100,6 +102,24 @@ func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+	// Add the module as an owner-ref to the generated secret
+	overridesSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.generateOverridesSecretNameForModule(&moduleToUpdate),
+			Namespace: moduleToUpdate.Namespace,
+		},
+	}
+	controllerutil.CreateOrUpdate(context.TODO(), r.Client, &overridesSecret, func() error {
+		overridesSecret.OwnerReferences = []metav1.OwnerReference{
+			{
+				Name:       moduleToUpdate.Name,
+				Kind:       moduleToUpdate.Kind,
+				APIVersion: moduleToUpdate.APIVersion,
+				UID:        moduleToUpdate.UID,
+			},
+		}
+		return nil
+	})
 
 	// Update the status IFF the module has been updated
 	if r.moduleDeepEqual(currentModule, &moduleToUpdate) {

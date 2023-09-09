@@ -80,7 +80,7 @@ func (r Reconciler) setModuleValues(log vzlog.VerrazzanoLogger, actualCR *vzv1al
 	return nil
 }
 
-func (r Reconciler) createVerrazzanoCROverridesForModule(comp spi.Component, effectiveCR *vzapi.Verrazzano, module *moduleapi.Module) ([]moduleapi.ValuesFromSource, error) {
+func (r Reconciler) createVerrazzanoCROverridesForModule(comp componentspi.Component, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module) ([]moduleapi.ValuesFromSource, error) {
 	overridesAsHelmValues, err := comp.GetModuleConfigAsHelmValues(effectiveCR)
 	if err != nil || overridesAsHelmValues == nil || overridesAsHelmValues.Size() == 0 {
 		return []moduleapi.ValuesFromSource{}, err
