@@ -36,7 +36,15 @@ type APIRequest struct {
 }
 
 // ForwardAPIRequest forwards a given API request to the API server
-func (a APIRequest) ForwardAPIRequest() {
+func (a *APIRequest) ForwardAPIRequest() {
+	reformattedReq, err := a.preprocessAPIRequest()
+	if err != nil || reformattedReq == nil {
+		return
+	}
+	a.SendAndReturnAPIRequest(reformattedReq)
+}
+
+func (a *APIRequest) preprocessAPIRequest() (*retryablehttp.Request, error) {
 	rw := a.RW
 	req := a.Request
 
@@ -44,38 +52,74 @@ func (a APIRequest) ForwardAPIRequest() {
 	if err != nil {
 		a.Log.Debugf("Failed to validate request: %s", err.Error())
 		http.Error(rw, err.Error(), http.StatusUnprocessableEntity)
-		return
+		return nil, err
 	}
 
 	ingressHost := getIngressHost(req)
 	if statusCode, err := cors.AddCORSHeaders(req, rw, ingressHost); err != nil {
 		http.Error(rw, err.Error(), statusCode)
-		return
+		return nil, err
 	}
 
 	if req.Method == http.MethodOptions {
 		rw.Header().Set("Content-Length", "0")
 		rw.WriteHeader(http.StatusOK)
-		return
+		return nil, err
 	}
 
 	a.Authenticator.SetCallbackURL(fmt.Sprintf("https://%s%s", ingressHost, a.CallbackPath))
 	continueProcessing, err := a.Authenticator.AuthenticateRequest(req, rw)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusUnauthorized)
-		return
+		return nil, err
 	}
 	if !continueProcessing {
 		http.Error(rw, "request was not authenticated", http.StatusUnauthorized)
-		return
+		return nil, fmt.Errorf("failed to authenticate request")
 	}
 
 	reformattedReq, err := a.reformatAPIRequest(req)
 	if err != nil {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
-		return
+		return nil, err
 	}
 	a.Log.Debug("Outgoing request: %+v", httputil.ObfuscateRequestData(reformattedReq.Request))
+
+	return reformattedReq, nil
+}
+
+// reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
+func (a *APIRequest) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
+	formattedReq := req.Clone(context.TODO())
+	formattedReq.Host = kubernetesAPIServerHostname
+	formattedReq.RequestURI = ""
+
+	path := strings.Replace(req.URL.Path, localClusterPrefix, "", 1)
+	newReq, err := url.JoinPath(a.APIServerURL, path)
+	if err != nil {
+		a.Log.Errorf("Failed to format request path for path %s: %v", path, err)
+		return nil, err
+	}
+
+	formattedURL, err := url.Parse(newReq)
+	if err != nil {
+		a.Log.Errorf("Failed to format incoming url: %v", err)
+		return nil, err
+	}
+	formattedURL.RawQuery = req.URL.RawQuery
+	formattedReq.URL = formattedURL
+
+	retryableReq, err := retryablehttp.FromRequest(formattedReq)
+	if err != nil {
+		a.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
+		return retryableReq, err
+	}
+
+	return retryableReq, nil
+}
+
+func (a *APIRequest) SendAndReturnAPIRequest(reformattedReq *retryablehttp.Request) {
+	rw := a.RW
 
 	resp, err := a.Client.Do(reformattedReq)
 	if err != nil {
@@ -114,36 +158,6 @@ func (a APIRequest) ForwardAPIRequest() {
 		a.Log.Errorf("Failed to copy server response to read writer: %v", err)
 		return
 	}
-}
-
-// reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
-func (a APIRequest) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
-	formattedReq := req.Clone(context.TODO())
-	formattedReq.Host = kubernetesAPIServerHostname
-	formattedReq.RequestURI = ""
-
-	path := strings.Replace(req.URL.Path, localClusterPrefix, "", 1)
-	newReq, err := url.JoinPath(a.APIServerURL, path)
-	if err != nil {
-		a.Log.Errorf("Failed to format request path for path %s: %v", path, err)
-		return nil, err
-	}
-
-	formattedURL, err := url.Parse(newReq)
-	if err != nil {
-		a.Log.Errorf("Failed to format incoming url: %v", err)
-		return nil, err
-	}
-	formattedURL.RawQuery = req.URL.RawQuery
-	formattedReq.URL = formattedURL
-
-	retryableReq, err := retryablehttp.FromRequest(formattedReq)
-	if err != nil {
-		a.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
-		return retryableReq, err
-	}
-
-	return retryableReq, nil
 }
 
 // getIngressHost determines the ingress host from the request headers
