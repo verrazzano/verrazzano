@@ -14,8 +14,10 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testserver"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type mockVerifier struct {
@@ -25,48 +27,28 @@ type mockVerifier struct {
 
 var _ verifier = &mockVerifier{}
 
-func TestAuthenticateToken(t *testing.T) {
-	validToken := "token-valid"
-	issuer := "test-issuer"
-	authenticator := OIDCAuthenticator{
-		Log: zap.S(),
-		oidcConfig: &OIDCConfiguration{
-			ServiceURL: issuer,
-		},
-	}
-	verifier := newMockVerifier(issuer, validToken)
-	authenticator.verifier.Store(verifier)
+func TestNewAuthenticator(t *testing.T) {
+	server := testserver.FakeOIDCProviderServer(t)
 
-	tests := []struct {
-		name             string
-		token            string
-		expectValidation bool
-	}{
-		{
-			name:             "valid token provided",
-			token:            validToken,
-			expectValidation: true,
-		},
-		{
-			name:             "invalid token provided",
-			token:            "token-invalid",
-			expectValidation: false,
-		},
+	config := &OIDCConfiguration{
+		ExternalURL: server.URL,
+		ServiceURL:  server.URL,
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			validated, err := authenticator.AuthenticateToken(context.TODO(), tt.token)
-			if tt.expectValidation {
-				assert.NoError(t, err)
-				assert.True(t, validated)
-				return
-			}
-			assert.Error(t, err)
-			assert.False(t, validated)
-		})
-	}
+	client := fake.NewClientBuilder().Build()
+
+	authenticator, err := NewAuthenticator(config, zap.S(), client)
+	assert.NoError(t, err)
+	assert.NotNil(t, authenticator)
+	assert.Equal(t, config, authenticator.oidcConfig)
+	assert.Equal(t, client, authenticator.k8sClient)
+	assert.NotNil(t, authenticator.client)
+	assert.Implements(t, (*verifier)(nil), authenticator.verifier.Load())
 }
 
+// TestAuthenticaterRequest tests that the login redirect can be performed for a given request
+// GIVEN a request without an authorization header
+// WHEN the request is processed
+// THEN the redirect should occur
 func TestAuthenticateRequest(t *testing.T) {
 	const configURI = "/.well-known/openid-configuration"
 	const authURI = "/auth"
@@ -124,18 +106,4 @@ func TestAuthenticateRequest(t *testing.T) {
 	assert.Equal(t, testClientID, redirURL.Query().Get("client_id"))
 	assert.Equal(t, "code", redirURL.Query().Get("response_type"))
 	assert.NotEmpty(t, redirURL.Query().Get("nonce"))
-}
-
-func (m mockVerifier) Verify(_ context.Context, rawIDToken string) (*oidc.IDToken, error) {
-	if rawIDToken != m.token {
-		return nil, fmt.Errorf("provided token does not match the mocked token")
-	}
-	return &oidc.IDToken{Issuer: m.issuer}, nil
-}
-
-func newMockVerifier(issuer, token string) *mockVerifier {
-	return &mockVerifier{
-		issuer: issuer,
-		token:  token,
-	}
 }

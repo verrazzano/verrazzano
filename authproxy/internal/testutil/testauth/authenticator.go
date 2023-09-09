@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package testutil
+package testauth
 
 import (
 	"context"
@@ -10,11 +10,13 @@ import (
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 )
 
+// FakeAuthenticator returns a fake implementation of the Authenticator interface
 type FakeAuthenticator struct {
 	authenticateTokenFunc   func() (bool, error)
 	authenticateRequestFunc func() (bool, error)
 }
 
+// NewFakeAuthenticator returns a new FakeAuthenticator object with authentication set to true
 func NewFakeAuthenticator() *FakeAuthenticator {
 	return &FakeAuthenticator{
 		authenticateTokenFunc:   AuthenticateTrue,
