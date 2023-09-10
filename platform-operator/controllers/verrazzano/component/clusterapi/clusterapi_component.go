@@ -6,8 +6,12 @@ package clusterapi
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -279,11 +283,27 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
 		IncludeNamespace:        true,
 	}
-	return capiClient.Delete(deleteOptions)
+	err = capiClient.Delete(deleteOptions)
+	if err != nil {
+		// Gross hack to catch case where CAPI delete is in a broken state; declare the operation successful and
+		// delete the namespace explicitly in post-install
+		if strings.Contains(err.Error(), "failed to identify the namespace") {
+			ctx.Log().Infof("Caught expected error, allowing delete to continue: %s", err.Error())
+			return nil
+		}
+	}
+	return err
 }
 
-func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
-	return nil
+func (c clusterAPIComponent) PostUninstall(componentCtx spi.ComponentContext) error {
+	componentCtx.Log().Info("Deleting namespace %s", ComponentNamespace)
+	err := resource.Resource{
+		Name:   ComponentNamespace,
+		Client: componentCtx.Client(),
+		Object: &corev1.Namespace{},
+		Log:    componentCtx.Log(),
+	}.RemoveFinalizersAndDelete()
+	return client.IgnoreNotFound(err)
 }
 
 func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
