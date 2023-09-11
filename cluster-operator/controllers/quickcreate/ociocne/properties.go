@@ -100,6 +100,10 @@ func (p *Properties) IsQuickCreate() bool {
 	return p.Network.CreateVCN
 }
 
+func (p *Properties) IsControlPlaneOnly() bool {
+	return len(p.OCI.Workers) < 1
+}
+
 func (p *Properties) HasImagePullSecret() bool {
 	return p.PrivateRegistry != nil && len(p.PrivateRegistry.CredentialsSecret.Name) > 0
 }

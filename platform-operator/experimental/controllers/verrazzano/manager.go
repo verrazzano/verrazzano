@@ -7,7 +7,7 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/basecontroller"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzv1alpha1v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
@@ -50,5 +50,5 @@ func InitController(mgr ctrlruntime.Manager) error {
 
 // GetReconcileObject returns the kind of object being reconciled
 func (r Reconciler) GetReconcileObject() client.Object {
-	return &vzapiv1beta1.Verrazzano{}
+	return &vzv1alpha1v1beta1.Verrazzano{}
 }

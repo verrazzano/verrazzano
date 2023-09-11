@@ -184,12 +184,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Check if uninstalling
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		SetModuleCreateOrUpdateDoneGen(0)
 		return r.procDelete(ctx, log, vz)
 	}
-
-	// This is not uninstall, clear the sync flags
-	SetLegacyUninstallPreWorkDone(false)
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)

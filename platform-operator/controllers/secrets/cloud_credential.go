@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 )
 
@@ -63,39 +63,42 @@ func (r *VerrazzanoSecretsReconciler) updateCAPISecret(updatedSecret *corev1.Sec
 
 // checkClusterCredentials checks whether the updated credential is being used by any OCNE cluster. If a cluster is using that credential, the OCNE cluster's copy of the credential also gets updated
 func (r *VerrazzanoSecretsReconciler) checkClusterCredentials(updatedSecret *corev1.Secret) error {
-	if isOCNECloudCredential(updatedSecret) {
-		ocneClustersList, err := r.getOCNEClustersList()
+	ocneClustersList, err := r.getOCNEClustersList()
+	if err != nil {
+		zap.S().Errorf("Failed to get OCNE Cluster list")
+		return err
+	}
+	for _, cluster := range ocneClustersList.Items {
+		var rancherMgmtCluster rancherMgmtCluster
+		clusterJSON, err := cluster.MarshalJSON()
 		if err != nil {
-			zap.S().Errorf("Failed to get OCNE Cluster list")
 			return err
 		}
-		for _, cluster := range ocneClustersList.Items {
-			var rancherMgmtCluster rancherMgmtCluster
-			clusterJSON, err := cluster.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			if err = json.Unmarshal(clusterJSON, &rancherMgmtCluster); err != nil {
-				return err
-			}
-			// if the cluster is an OCNE cluster
-			if rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID != "" {
-				// extract cloud credential name from CloudCredentialID field
-				capiCredential := strings.Split(rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID, ":")
-				// if cloud credential name matches updatedSecret name, get and update the cc copy held by the cluster
-				if len(capiCredential) >= 2 {
-					if capiCredential[1] == updatedSecret.Name {
-						secretName := fmt.Sprintf("%s-principal", rancherMgmtCluster.Metadata.Name)
-						clusterCredential := &corev1.Secret{}
-						if err = r.Client.Get(context.TODO(), client.ObjectKey{Namespace: rancherMgmtCluster.Metadata.Name, Name: secretName}, clusterCredential); err != nil {
-							zap.S().Errorf("Failed to get OCNE cluster's CAPI secret")
-							return err
-						}
-						// update cluster's cloud credential copy
-						if err = r.updateCAPISecret(updatedSecret, clusterCredential); err != nil {
-							zap.S().Errorf("Failed to update CAPI secret")
-							return err
-						}
+		if err = json.Unmarshal(clusterJSON, &rancherMgmtCluster); err != nil {
+			return err
+		}
+		// if the cluster is an OCNE cluster
+		if rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID != "" {
+			// extract cloud credential name from CloudCredentialID field
+			capiCredential := strings.Split(rancherMgmtCluster.Spec.GenericEngineConfig.CloudCredentialID, ":")
+			// if cloud credential name matches updatedSecret name, get and update the cc copy held by the cluster
+			if len(capiCredential) >= 2 {
+				if capiCredential[1] == updatedSecret.Name {
+					secretName := fmt.Sprintf("%s-principal", rancherMgmtCluster.Metadata.Name)
+					clusterCredential := &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      secretName,
+							Namespace: rancherMgmtCluster.Metadata.Name,
+						},
+					}
+					// update cluster's cloud credential copy
+					_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, clusterCredential, func() error {
+						r.updateCAPISecret(updatedSecret, clusterCredential)
+						return nil
+					})
+					if err != nil {
+						zap.S().Errorf("Failed to update CAPI secret")
+						return err
 					}
 				}
 			}

@@ -6,7 +6,7 @@ package verrazzano
 import (
 	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -32,7 +32,7 @@ func (r Reconciler) ShouldSecretTriggerReconcile(cli client.Client, wev controll
 	if wev.NewWatchedObject.GetNamespace() != wev.ReconcilingResource.Namespace {
 		return false
 	}
-	vzcr := vzapi.Verrazzano{}
+	vzcr := vzv1alpha1.Verrazzano{}
 	if err := r.Client.Get(context.TODO(), wev.ReconcilingResource, &vzcr); err != nil {
 		return false
 	}
@@ -46,7 +46,7 @@ func (r Reconciler) ShouldConfigMapTriggerReconcile(cli client.Client, wev contr
 	if wev.NewWatchedObject.GetNamespace() != wev.ReconcilingResource.Namespace {
 		return false
 	}
-	vzcr := vzapi.Verrazzano{}
+	vzcr := vzv1alpha1.Verrazzano{}
 	if err := r.Client.Get(context.TODO(), wev.ReconcilingResource, &vzcr); err != nil {
 		return false
 	}
