@@ -50,6 +50,8 @@ declare -A imagename_sizes_filenew
 image_data_fileprev=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
 image_data_filenew=$(process_file "${WORKSPACE}/image-sizes.txt")
 
+IMAGE_SIZE_DIFF_FOUND="false"
+
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r imagename imagesize; do
   imagename_sizes_fileprev["$imagename"]=$imagesize
@@ -60,14 +62,21 @@ while IFS=: read -r imagename imagesize; do
 done <<< "$image_data_filenew"
 
 # Print the contents of the associative arrays for the files
-echo "Image sizes for ${WORKSPACE}/image-sizes-objectstore.txt:"
-for imagename in "${!imagename_sizes_fileprev[@]}"; do
-  echo "$imagename: ${imagename_sizes_fileprev[$imagename]}"
-done
+#echo "Image sizes for ${WORKSPACE}/image-sizes-objectstore.txt:"
+#for imagename in "${!imagename_sizes_fileprev[@]}"; do
+#  echo "$imagename: ${imagename_sizes_fileprev[$imagename]}"
+#done
 
-echo "Image sizes for ${WORKSPACE}/image-sizes.txt:"
+#echo "Image sizes for ${WORKSPACE}/image-sizes.txt:"
+#for imagename in "${!imagename_sizes_filenew[@]}"; do
+#  echo "$imagename: ${imagename_sizes_filenew[$imagename]}"
+#done
+
+# Check if imagenames in filenew are not in fileprev
 for imagename in "${!imagename_sizes_filenew[@]}"; do
-  echo "$imagename: ${imagename_sizes_filenew[$imagename]}"
+  if [[ ! "${imagename_sizes_fileprev[$imagename]}" ]]; then
+    echo "The image-sizes.txt base file contains an image with image name: $imagename that is not in the newly generated image-sizes.txt."
+  fi
 done
 
 # Compare sizes between the two files
@@ -75,7 +84,13 @@ for imagename in "${!imagename_sizes_fileprev[@]}"; do
   size1="${imagename_sizes_fileprev[$imagename]}"
   size2="${imagename_sizes_filenew[$imagename]}"
 
-  if [ -n "$size1" ] && [ -n "$size2" ] && [ "$size2" -gt 0 ] && [ "$size2" -gt "$size1" ]; then
-    echo "Image size for $imagename has increased "
+# Check if image size has increased by 0.1MB
+  if [ -n "$size1" ] && [ -n "$size2" ] && [ "$size2" -gt 0 ] && [ "$size2+100000" -gt "$size1" ]; then
+    IMAGE_SIZE_DIFF_FOUND="true"
+    echo "Image size for $imagename has increased from $size1/1000000 MB to $size2/1000000 MB "
   fi
 done
+
+if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
+    exit 1
+fi

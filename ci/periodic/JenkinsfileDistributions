@@ -109,10 +109,14 @@ pipeline {
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                 """
                 script {
-                sh """
-                    echo "Some text" >> ${WORKSPACE}/image-sizes.txt
-                """
-                    IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
+                    // IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
+                    try{
+                        IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
+                    }
+                    catch(error){
+                        echo"Image Sizes have increased"
+                        slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${DEV_LRE_SUSPECT_LIST} ${PIPELINE_OWNERS}\n" )
+                    }
                 }
                 sh """
                     echo "IMAGE_SIZE_DIFF Return value:  ${IMAGE_SIZE_DIFF} "
