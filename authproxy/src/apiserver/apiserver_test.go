@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testauth"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"go.uber.org/zap"
 )
 

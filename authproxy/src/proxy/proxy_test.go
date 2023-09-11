@@ -5,7 +5,6 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/file"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/file"
 	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testserver"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
