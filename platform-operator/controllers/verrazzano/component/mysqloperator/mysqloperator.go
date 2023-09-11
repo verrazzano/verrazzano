@@ -4,15 +4,22 @@
 package mysqloperator
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"io"
 	"k8s.io/api/batch/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -132,7 +139,7 @@ func doesInnoDBClusterExist(ctx spi.ComponentContext) (bool, error) {
 func IsMysqlOperatorJob(c client.Client, job batchv1.Job, log vzlog.VerrazzanoLogger) bool {
 
 	// Filter events to only be for the MySQL namespace
-	if job.Namespace != mysql.ComponentNamespace {
+	if job.Namespace != constants2.KeycloakNamespace {
 		return false
 	}
 
@@ -162,4 +169,97 @@ func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.Verraz
 	}
 	log.Debug("Resource created by MySQL Operator")
 	return true
+}
+
+// CleanupMysqlBackupJob checks for the existence of a stale MySQL restore job and deletes the job if one is found
+func CleanupMysqlBackupJob(log vzlog.VerrazzanoLogger, cli client.Client) error {
+	// Check if jobs for running the restore jobs exist
+	jobsFound := &batchv1.JobList{}
+	err := cli.List(context.TODO(), jobsFound, &client.ListOptions{Namespace: constants2.KeycloakNamespace})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	for _, job := range jobsFound.Items {
+		// get and inspect the job pods to see if restore container is completed
+		podList := &corev1.PodList{}
+		podReq, _ := labels.NewRequirement("job-name", selection.Equals, []string{job.Name})
+		podLabelSelector := labels.NewSelector()
+		podLabelSelector = podLabelSelector.Add(*podReq)
+		err := cli.List(context.TODO(), podList, &client.ListOptions{LabelSelector: podLabelSelector})
+		if err != nil {
+			return err
+		}
+		backupJob := job
+		for i := range podList.Items {
+			jobPod := &podList.Items[i]
+			if isJobExecutionContainerCompleted(jobPod) {
+				// persist the job logs
+				persisted := persistJobLog(backupJob, jobPod, log)
+				if !persisted {
+					log.Infof("Unable to persist job log for %s", backupJob.Name)
+				}
+				// can delete job since pod has completed
+				log.Debugf("Deleting stale backup job %s", job.Name)
+				propagationPolicy := v12.DeletePropagationBackground
+				deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
+				err = cli.Delete(context.TODO(), &backupJob, deleteOptions)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			return fmt.Errorf("Pod %s has not completed the database backup", backupJob.Name)
+		}
+	}
+
+	return nil
+}
+
+// persistJobLog will persist the backup job log to the VPO log
+func persistJobLog(backupJob batchv1.Job, jobPod *corev1.Pod, log vzlog.VerrazzanoLogger) bool {
+	containerName := BackupContainerName
+	if strings.Contains(backupJob.Name, "-schedule-") {
+		containerName = containerName + "-cron"
+	}
+	podLogOpts := corev1.PodLogOptions{Container: containerName}
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return false
+	}
+	req := clientSet.CoreV1().Pods(jobPod.Namespace).GetLogs(jobPod.Name, &podLogOpts)
+	podLogs, err := req.Stream(context.TODO())
+	if err != nil {
+		return false
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return false
+	}
+	scanner := bufio.NewScanner(buf)
+	scanner.Split(bufio.ScanLines)
+	log.Debugf("---------- Begin backup job %s log ----------", backupJob.Name)
+	for scanner.Scan() {
+		log.Debug(scanner.Text())
+	}
+	log.Debugf("---------- End backup job %s log ----------", backupJob.Name)
+
+	return true
+}
+
+// isJobExecutionContainerCompleted checks to see whether the backup container has terminated with an exit code of 0
+func isJobExecutionContainerCompleted(pod *corev1.Pod) bool {
+	for _, container := range pod.Status.ContainerStatuses {
+		if strings.HasPrefix(container.Name, BackupContainerName) && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+			return true
+		}
+	}
+	return false
 }
