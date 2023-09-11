@@ -35,6 +35,7 @@ type APIRequest struct {
 	Client        *retryablehttp.Client
 	APIServerURL  string
 	CallbackPath  string
+	BearerToken   string
 	Log           *zap.SugaredLogger
 }
 
@@ -117,6 +118,7 @@ func (a *APIRequest) reformatAPIRequest(req *http.Request) (*retryablehttp.Reque
 		a.Log.Errorf("Failed to set impersonation headers for request: %v", err)
 		return nil, err
 	}
+	formattedReq.Header.Set("Authorization", "Bearer "+a.BearerToken)
 
 	retryableReq, err := retryablehttp.FromRequest(formattedReq)
 	if err != nil {

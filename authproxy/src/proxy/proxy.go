@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -51,6 +52,7 @@ type Handler struct {
 	Authenticator auth.Authenticator
 	K8sClient     client.Client
 	AuthInited    atomic.Bool
+	BearerToken   string
 }
 
 var _ http.Handler = &Handler{}
@@ -79,12 +81,15 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		return err
 	}
 
+	bearerToken, err := loadBearerToken(restConfig, log)
+
 	httpClient := httputil.GetHTTPClientWithCABundle(rootCA)
 	authproxy.Handler = &Handler{
-		URL:       restConfig.Host,
-		Client:    httpClient,
-		Log:       log,
-		K8sClient: k8sClient,
+		URL:         restConfig.Host,
+		Client:      httpClient,
+		Log:         log,
+		K8sClient:   k8sClient,
+		BearerToken: bearerToken,
 	}
 	return nil
 }
@@ -135,6 +140,7 @@ func (h *Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 		Client:        h.Client,
 		APIServerURL:  h.URL,
 		CallbackPath:  callbackPath,
+		BearerToken:   h.BearerToken,
 		Log:           h.Log,
 	}
 	apiRequest.ForwardAPIRequest()
@@ -180,6 +186,24 @@ func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, er
 		log.Errorf("Failed to load CA data from the Kubeconfig")
 	}
 	return rootCA, err
+}
+
+// loadBearerToken loads the bearer token from the config or from the specified file
+func loadBearerToken(config *rest.Config, log *zap.SugaredLogger) (string, error) {
+	if config.BearerToken != "" {
+		return config.BearerToken, nil
+	}
+
+	if config.BearerTokenFile != "" {
+		data, err := os.ReadFile(config.BearerTokenFile)
+		if err != nil {
+			log.Errorf("Failed to read bearer token file: %v", err)
+			return "", err
+		}
+		return string(data), nil
+	}
+
+	return "", nil
 }
 
 // getOIDCConfiguration returns an OIDC configuration populated from the config package
