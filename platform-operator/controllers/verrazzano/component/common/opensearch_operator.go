@@ -190,11 +190,11 @@ func mergeConfigYamlData(dataSecret, dataFile map[string]interface{}) (map[strin
 		return nil, fmt.Errorf("config not found")
 	}
 	authcSecret := make(map[string]interface{})
-	dynamicSecret, ok := dataSecret["config"].(map[string]interface{})
+	configSecret, ok := dataSecret["config"].(map[string]interface{})
 	if ok {
-		dynamicSecret, ok := dynamicSecret["dynamic"].(map[string]interface{})
+		dynamicSecret, ok := configSecret["dynamic"].(map[string]interface{})
 		if ok {
-			authcSecret, ok = dynamicSecret["authc"].(map[string]interface{})
+			authcSecret = dynamicSecret["authc"].(map[string]interface{})
 		}
 	}
 	for key1, val1 := range authcFile {
