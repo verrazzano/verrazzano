@@ -50,8 +50,7 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 	}
 	var scr corev1.Secret
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr)
-	fmt.Println(err)
-	if err.Error() == "secrets \"securityconfig-secret\" not found" {
+	if err != nil && err.Error() == "secrets \"securityconfig-secret\" not found" {
 		return nil
 	}
 	if err != nil {
