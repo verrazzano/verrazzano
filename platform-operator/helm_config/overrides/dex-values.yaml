@@ -9,6 +9,11 @@ config:
   enablePasswordDB: true
   oauth2:
     skipApprovalScreen: true
+  frontend:
+    issuer: dex
+    logoURL: theme/logo.svg
+    dir: /srv/dex/web
+    theme: verrazzano
 
 envVars:
   - name: PASSWORD_DB_USERNAME_PROMPT
