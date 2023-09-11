@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -17,13 +16,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -297,14 +294,15 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) PostUninstall(componentCtx spi.ComponentContext) error {
-	componentCtx.Log().Info("Deleting namespace %s", ComponentNamespace)
-	err := resource.Resource{
-		Name:   ComponentNamespace,
-		Client: componentCtx.Client(),
-		Object: &corev1.Namespace{},
-		Log:    componentCtx.Log(),
-	}.RemoveFinalizersAndDelete()
-	return client.IgnoreNotFound(err)
+	//componentCtx.Log().Info("Deleting namespace %s", ComponentNamespace)
+	//err := resource.Resource{
+	//	Name:   ComponentNamespace,
+	//	Client: componentCtx.Client(),
+	//	Object: &corev1.Namespace{},
+	//	Log:    componentCtx.Log(),
+	//}.RemoveFinalizersAndDelete()
+	//return client.IgnoreNotFound(err)
+	return nil
 }
 
 func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
