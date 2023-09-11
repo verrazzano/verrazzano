@@ -435,6 +435,13 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
+
+                        sh """
+                            helm get values -n keycloak mysql
+                        """
+                        sh """
+                            k get innodbclusters.mysql.oracle.com -n keycloak mysql -o yaml
+                        """
                     }
                     post {
                         always {
@@ -1569,6 +1576,8 @@ def dumpK8sSpecificCluster(count, dumpDirectory) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
+
+                helm get values -n keycloak mysql
             """
         }
     }
