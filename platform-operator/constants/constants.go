@@ -305,6 +305,3 @@ const DexIngress = "dex"
 
 // DexHostPrefix - the prefix of the Dex host
 const DexHostPrefix = "auth"
-
-// DexAdminSecret - the secret used for local admin user
-const DexAdminSecret = "dex-local-admin"

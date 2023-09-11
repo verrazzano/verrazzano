@@ -243,38 +243,7 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 
 	// Create the dex namespace if not already created
 	ctx.Log().Debugf("Creating namespace %s for Dex", constants.DexNamespace)
-	if err := ensureDexNamespace(ctx); err != nil {
-		return err
-	}
-
-	// Create the secret containing the credentials of local admin user in Dex
-	ctx.Log().Debugf("Creating secret %s for Dex local admin", constants.DexNamespace)
-	return ensureDexAdminSecret(ctx)
-}
-
-// ensureDexAdminSecret ensures that the dex namespace is created with the right labels.
-func ensureDexAdminSecret(ctx spi.ComponentContext) error {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.DexAdminSecret,
-			Namespace: constants.DexNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
-		if secret.Data[usernameData] == nil || secret.Data[passwordData] == nil {
-			secret.Data[usernameData] = []byte(constants.DexAdminSecret)
-			pw, err := vzpassword.GeneratePassword(16)
-			if err != nil {
-				return err
-			}
-			secret.Data[passwordData] = []byte(pw)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
+	return ensureDexNamespace(ctx)
 }
 
 // ensureDexNamespace ensures that the dex namespace is created with the right labels.
@@ -358,12 +327,12 @@ func populateStaticPasswordsTemplate() (bytes.Buffer, error) {
 func populateAdminUser(ctx spi.ComponentContext, b *bytes.Buffer) error {
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: constants.DexNamespace,
-		Name:      constants.DexAdminSecret,
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.Verrazzano,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Component Dex failed to get the admin password %s/%s: %v",
-			constants.DexNamespace, constants.DexAdminSecret, err)
+		ctx.Log().Errorf("Component Dex failed to get the Verrazzano password %s/%s: %v",
+			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
 

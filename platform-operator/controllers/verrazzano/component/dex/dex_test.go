@@ -87,8 +87,8 @@ func TestAppendDexOverrides(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.DexAdminSecret,
-			Namespace: constants.DexNamespace}}, createTestNginxService(),
+		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.Verrazzano,
+			Namespace: constants.VerrazzanoSystemNamespace}}, createTestNginxService(),
 	).Build()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendDexOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
@@ -127,11 +127,6 @@ func TestPreInstallUpgrade(t *testing.T) {
 	ns := v1.Namespace{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.NoError(t, err)
-
-	err = ctx.Client().Get(context.TODO(),
-		types.NamespacedName{Name: constants.DexAdminSecret, Namespace: constants.DexNamespace},
-		&v1.Secret{})
-	assert.NoError(t, err)
 }
 
 // TestUpdateDexIngress tests the updateDexIngress function.
@@ -164,8 +159,8 @@ func TestPopulateAdminUserData(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.DexAdminSecret,
-			Namespace: constants.DexNamespace}}, createTestNginxService(),
+		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.Verrazzano,
+			Namespace: constants.VerrazzanoSystemNamespace}}, createTestNginxService(),
 	).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 
@@ -189,8 +184,8 @@ func TestPopulateClients(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.DexNamespace,
-			Namespace: constants.DexAdminSecret}}, createTestNginxService(),
+		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.Verrazzano,
+			Namespace: constants.VerrazzanoSystemNamespace}}, createTestNginxService(),
 	).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 	dnsHost := "test.nip.io"
