@@ -241,6 +241,10 @@ func (r *VerrazzanoManagedClusterReconciler) mutateArgoCDClusterSecret(secret *c
 	}
 	secret.StringData["name"] = clusterName
 	secret.StringData["server"] = rancherURL
+	valueToIndicateIfClusterIsRegistered, ok := secret.ObjectMeta.Labels["argocd.argoproj.io/secret-type"]
+	if !ok || valueToIndicateIfClusterIsRegistered != "cluster" {
+		secret.ObjectMeta.Labels["argocd.argoproj.io/secret-type"] = "cluster"
+	}
 
 	rancherConfig := &ArgoCDRancherConfig{
 		BearerToken: token,

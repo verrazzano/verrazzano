@@ -483,7 +483,7 @@ func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 		})
 	}
 }
-func TestMutateArgoCDSecretLabelDoesNotChange(t *testing.T) {
+func TestMutateArgoCDSecretLabelDoesNotGetRemovedandCorrectSecretLabelIsAdded(t *testing.T) {
 	// clear any cached user auth tokens when the test completes
 	defer rancherutil.DeleteStoredTokens()
 
@@ -546,5 +546,5 @@ func TestMutateArgoCDSecretLabelDoesNotChange(t *testing.T) {
 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
-	assert.Equal(t, secret.Labels, map[string]string{"testlabel": "shouldnotbedeleted"})
+	assert.Equal(t, secret.Labels, map[string]string{"testlabel": "shouldnotbedeleted", "argocd.argoproj.io/secret-type": "cluster"})
 }
