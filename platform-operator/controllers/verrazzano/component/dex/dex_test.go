@@ -5,6 +5,7 @@ package dex
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"strings"
 	"testing"
 
@@ -25,9 +26,9 @@ import (
 
 const (
 	testBomFilePath      = "../../testdata/test_bom.json"
-	testDexIngressHost   = "auth.test-env.192.132.111.122.nip.io"
 	profilesRelativePath = "../../../../manifests/profiles"
 	ingressClass         = "verrazzano-nginx"
+	testEnv              = "test-env"
 )
 
 var testVZ = &vzapi.Verrazzano{
@@ -64,7 +65,7 @@ func createTestNginxService() *v1.Service {
 		Status: v1.ServiceStatus{
 			LoadBalancer: v1.LoadBalancerStatus{
 				Ingress: []v1.LoadBalancerIngress{
-					{IP: "192.132.111.122",
+					{IP: ip.RandomIP(),
 						Hostname: ""},
 				},
 			},
@@ -79,10 +80,9 @@ func createTestNginxService() *v1.Service {
 func TestAppendDexOverrides(t *testing.T) {
 	a := assert.New(t)
 
-	const env = "test-env"
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
-			EnvironmentName: env,
+			EnvironmentName: testEnv,
 		},
 	}
 
@@ -100,6 +100,10 @@ func TestAppendDexOverrides(t *testing.T) {
 		Value: ingressClass,
 	})
 
+	dnsDomain, err := getDNSDomain(c, vz)
+	assert.NoError(t, err)
+
+	testDexIngressHost := "auth." + dnsDomain
 	a.Contains(kvs, bom.KeyValue{
 		Key:   tlsHosts,
 		Value: testDexIngressHost,
@@ -152,10 +156,9 @@ func TestUpdateDexIngress(t *testing.T) {
 // WHEN I call populateAdminUser
 // THEN it populates the data for the admin user, created as static password  in Dex
 func TestPopulateAdminUserData(t *testing.T) {
-	const env = "test-env"
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
-			EnvironmentName: env,
+			EnvironmentName: testEnv,
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -177,10 +180,9 @@ func TestPopulateAdminUserData(t *testing.T) {
 // THEN it populates the PKCE client data
 func TestPopulateClients(t *testing.T) {
 	assert.True(t, true)
-	const env = "test-env"
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
-			EnvironmentName: env,
+			EnvironmentName: testEnv,
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -188,7 +190,7 @@ func TestPopulateClients(t *testing.T) {
 			Namespace: constants.VerrazzanoSystemNamespace}}, createTestNginxService(),
 	).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
-	dnsHost := "test.nip.io"
+	dnsHost := "test.dns.io"
 
 	staticClientData, err := populateStaticClientsTemplate(ctx)
 	assert.NoError(t, err)

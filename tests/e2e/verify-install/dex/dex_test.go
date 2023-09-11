@@ -46,6 +46,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	isDexInstalled = vzcr.IsDexEnabled(inClusterVZ)
 })
 
+// AfterEach wraps Ginkgo AfterEach to emit a metric
 var _ = t.AfterEach(func() {})
 
 var _ = BeforeSuite(beforeSuite)
