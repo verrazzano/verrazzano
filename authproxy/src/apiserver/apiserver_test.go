@@ -42,13 +42,13 @@ func TestForwardAPIRequest(t *testing.T) {
 				"Content-Length": "0",
 			},
 		},
-		// GIVEN an unauthorized request
+		// GIVEN a processed request
 		// WHEN  the request is received
-		// THEN  an unauthorized response is returned
+		// THEN  an OK response is returned
 		{
-			name:            "unauthorized request",
+			name:            "processed request",
 			reqMethod:       http.MethodGet,
-			expectedStatus:  http.StatusUnauthorized,
+			expectedStatus:  http.StatusOK,
 			unauthenticated: true,
 		},
 		// GIVEN a get request

@@ -118,10 +118,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // handleAuthCallback is the http handler for authentication callback
 func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
-	// ingressHost := getIngressHost(req)
-	// authenticator := auth.NewAuthenticator(createOidcConfig(ingressHost), h.Log, h.K8sClient)
-	// authenticator.Verify(req, rw)
-	// set cookies
+
 }
 
 // handleLogout is the http handler for logout

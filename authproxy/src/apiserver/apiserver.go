@@ -75,8 +75,7 @@ func (a *APIRequest) preprocessAPIRequest() (*retryablehttp.Request, error) {
 		return nil, err
 	}
 	if !continueProcessing {
-		http.Error(rw, "request was not authenticated", http.StatusUnauthorized)
-		return nil, fmt.Errorf("failed to authenticate request")
+		return nil, nil
 	}
 
 	reformattedReq, err := a.reformatAPIRequest(req)
