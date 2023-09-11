@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 	"strings"
@@ -18,7 +20,7 @@ import (
 const (
 	securitySecretName = "securityconfig-secret"
 	securityNamespace  = "verrazzano-logging"
-	securityConfigYaml = "../../../../thirdparty/manifests/opensearch-operator/opensearch-securityconfig.yaml"
+	securityConfigYaml = "opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml         = "config.yml"
 	usersYaml          = "internal_users.yml"
 	adminName          = "admin-credentials-secret"
@@ -31,7 +33,8 @@ func getClient(ctx spi.ComponentContext) (client.Client, error) {
 
 // MergeSecretData merges a security config secret
 func MergeSecretData(ctx spi.ComponentContext) error {
-	securityYaml, err := os.ReadFile(securityConfigYaml)
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), securityConfigYaml)
+	securityYaml, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
