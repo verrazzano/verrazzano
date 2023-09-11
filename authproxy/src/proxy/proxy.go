@@ -82,6 +82,9 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 	}
 
 	bearerToken, err := loadBearerToken(restConfig, log)
+	if err != nil {
+		return err
+	}
 
 	httpClient := httputil.GetHTTPClientWithCABundle(rootCA)
 	authproxy.Handler = &Handler{
