@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"reflect"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -78,12 +79,15 @@ func DeleteVMI(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// isLegacyOS returns true if the OS that is running is managed by VMO
+// IsLegacyOS returns true if the OS that is running is managed by VMO
 func IsLegacyOS(ctx spi.ComponentContext) bool {
 	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) {
 		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
-		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI)
-		if err != nil && errors.IsNotFound(err) {
+		if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI); err != nil {
+			if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
+				return false
+			}
+			ctx.Log().Errorf("Failed to get VMI, considering legacy OS to be disabled")
 			return false
 		}
 		if systemVMI.Spec.Opensearch.Enabled {
@@ -93,12 +97,15 @@ func IsLegacyOS(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// isLegacyOSD returns true if the OSD that is running is managed by VMO
+// IsLegacyOSD returns true if the OSD that is running is managed by VMO
 func IsLegacyOSD(ctx spi.ComponentContext) bool {
 	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
 		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
-		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI)
-		if err != nil && errors.IsNotFound(err) {
+		if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI); err != nil {
+			if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
+				return false
+			}
+			ctx.Log().Errorf("Failed to get VMI, considering legacy OSD to be disabled")
 			return false
 		}
 		if systemVMI.Spec.OpensearchDashboards.Enabled {

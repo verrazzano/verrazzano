@@ -37,7 +37,7 @@ spec:
         name: opensearch-dashboards-cert
     version: 2.3.0
   general:
-    drainDataNodes: true
+    drainDataNodes: {{ .drainDataNodes }}
     httpPort: 9200
     image: {{ .opensearchImage }}
     serviceName: opensearch
