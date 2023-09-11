@@ -282,6 +282,7 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
 		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
 		IncludeNamespace:        true,
+		IncludeCRDs:             false,
 	}
 	err = capiClient.Delete(deleteOptions)
 	if err != nil {
