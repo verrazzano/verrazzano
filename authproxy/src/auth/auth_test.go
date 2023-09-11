@@ -59,8 +59,6 @@ func TestAuthenticateRequest(t *testing.T) {
 
 	mockIdpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.NotNil(t, r)
-		// body, err := io.ReadAll(r.Body)
-		// assert.NoError(t, err)
 		serverURL := fmt.Sprintf("http://%s", r.Host)
 		if r.RequestURI == configURI {
 			respMap := map[string]string{
@@ -69,7 +67,8 @@ func TestAuthenticateRequest(t *testing.T) {
 			}
 			resp, err := json.Marshal(respMap)
 			assert.Nil(t, err)
-			w.Write(resp)
+			_, err = w.Write(resp)
+			assert.NoError(t, err)
 			w.Header().Add("Content-Type", runtime.ContentTypeJSON)
 		}
 	}))

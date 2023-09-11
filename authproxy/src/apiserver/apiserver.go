@@ -41,9 +41,10 @@ func (a *APIRequest) ForwardAPIRequest() {
 	if err != nil || reformattedReq == nil {
 		return
 	}
-	a.SendAndReturnAPIRequest(reformattedReq)
+	a.sendAndReturnAPIRequest(reformattedReq)
 }
 
+// preprocessAPIRequest validates and processes an incoming API request
 func (a *APIRequest) preprocessAPIRequest() (*retryablehttp.Request, error) {
 	rw := a.RW
 	req := a.Request
@@ -118,7 +119,8 @@ func (a *APIRequest) reformatAPIRequest(req *http.Request) (*retryablehttp.Reque
 	return retryableReq, nil
 }
 
-func (a *APIRequest) SendAndReturnAPIRequest(reformattedReq *retryablehttp.Request) {
+// sendAndReturnAPIRequest send the reformatted request to the API server and returns the result
+func (a *APIRequest) sendAndReturnAPIRequest(reformattedReq *retryablehttp.Request) {
 	rw := a.RW
 
 	resp, err := a.Client.Do(reformattedReq)
