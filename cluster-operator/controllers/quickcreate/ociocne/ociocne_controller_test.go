@@ -53,7 +53,16 @@ ghi
 		},
 	}
 	testOCIClientGetter = func(creds *oci.Credentials) (oci.Client, error) {
-		return &ocifake.ClientImpl{}, nil
+		return &ocifake.ClientImpl{
+			AvailabilityDomains: []oci.AvailabilityDomain{
+				{
+					Name: "x",
+					FaultDomains: []oci.FaultDomain{
+						{Name: "y"},
+					},
+				},
+			},
+		}, nil
 	}
 	privateRegistrySecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
