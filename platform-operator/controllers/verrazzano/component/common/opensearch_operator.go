@@ -49,10 +49,14 @@ func MergeSecretData(ctx spi.ComponentContext) error {
 		return err
 	}
 	var scr corev1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr); err != nil {
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr)
+	fmt.Println(err)
+	if err.Error() == "secrets \"securityconfig-secret\" not found" {
+		return nil
+	}
+	if err != nil {
 		return err
 	}
-
 	configYamlSecret, err := getSecretData(&scr, configYaml)
 	if err != nil {
 		return err
