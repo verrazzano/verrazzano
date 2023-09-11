@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -32,8 +31,8 @@ func getClient(ctx spi.ComponentContext) (client.Client, error) {
 }
 
 // MergeSecretData merges a security config secret
-func MergeSecretData(ctx spi.ComponentContext) error {
-	filePath := path.Join(config.GetThirdPartyManifestsDir(), securityConfigYaml)
+func MergeSecretData(ctx spi.ComponentContext, helmChartsDir string) error {
+	filePath := path.Join(helmChartsDir, securityConfigYaml)
 	securityYaml, err := os.ReadFile(filePath)
 	if err != nil {
 		return err

@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,11 +38,11 @@ func TestMergeSecurityConfigs(t *testing.T) {
 		return nil
 	})
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
-
-	err := MergeSecretData(fakeCtx)
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.NoError(err)
 }
-func TestMergeSecurityConfigsError(t *testing.T) {
+func TestMergeSecurityConfigsGetConfigError(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -49,10 +50,10 @@ func TestMergeSecurityConfigsError(t *testing.T) {
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-logging", Name: secretName}, gomock.Not(gomock.Nil()), gomock.Any()).Return(fmt.Errorf("test-error"))
-	err := MergeSecretData(fakeCtx)
+	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
 }
-func TestMergeSecurityConfigsError2(t *testing.T) {
+func TestMergeSecurityConfigsGetAdminError(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -67,10 +68,10 @@ func TestMergeSecurityConfigsError2(t *testing.T) {
 	})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-logging", Name: "admin-credentials-secret"}, gomock.Not(gomock.Nil()), gomock.Any()).Return(fmt.Errorf("test-error"))
-	err := MergeSecretData(fakeCtx)
+	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
 }
-func TestMergeSecurityConfigsError3(t *testing.T) {
+func TestMergeSecurityConfigsUpdateError(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -92,10 +93,10 @@ func TestMergeSecurityConfigsError3(t *testing.T) {
 	})
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error"))
 
-	err := MergeSecretData(fakeCtx)
+	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
 }
-func TestMergeSecurityConfigsError4(t *testing.T) {
+func TestMergeSecurityConfigsHashError(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -115,8 +116,7 @@ func TestMergeSecurityConfigsError4(t *testing.T) {
 		secret.Data = map[string][]byte{"hash1": []byte("abcdef")}
 		return nil
 	})
-	//mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error"))
 
-	err := MergeSecretData(fakeCtx)
+	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
 }
