@@ -178,21 +178,8 @@ pipeline {
                     chmod 600 $HOME/.netrc
                 """
 
-                script {
-                    try {
-                    sh """
-                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                    """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
+                performDockerLogin()
+
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -884,4 +871,22 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def performDockerLogin() {
+    script {
+        try {
+            sh """
+                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+            """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
 }
