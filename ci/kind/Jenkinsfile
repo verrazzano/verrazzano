@@ -228,6 +228,7 @@ pipeline {
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                         REALM_USER_PASSWORD = credentials('todo-mysql-password')
                         REALM_NAME = "test-realm"
+                        GITHUB_TOKEN = credentials('github-api-token-release-process')
                     }
                     steps {
                         script {
