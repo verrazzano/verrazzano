@@ -161,11 +161,11 @@ func getYamlData(helmMap map[string]interface{}, yamlName string) ([]byte, error
 
 func mergeConfigYamlData(data1, data2 map[string]interface{}) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
-	values1, ok1 := data1["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
-	values2, ok2 := data2["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
-	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("config not found")
-	}
+	values1 := data1["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
+	values2 := data2["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
+	//if !ok1 || !ok2 {
+	//	return nil, fmt.Errorf("config not found")
+	//}
 	for key1, val1 := range values1 {
 		mergedData[key1] = val1
 	}
@@ -180,10 +180,10 @@ func mergeConfigYamlData(data1, data2 map[string]interface{}) (map[string]interf
 }
 func mergeUserYamlData(data1, data2 map[string]interface{}, hashFromSecret string) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
-	adminData, ok := data1["admin"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("user not found")
-	}
+	adminData := data1["admin"].(map[string]interface{})
+	//if !ok {
+	//	return nil, fmt.Errorf("user not found")
+	//}
 	adminData["hash"] = hashFromSecret
 	for key1, val1 := range data1 {
 		if key1 == "admin" {
