@@ -157,38 +157,64 @@ func unmarshalYAML(yamlData []byte) (map[string]interface{}, error) {
 }
 
 func getYamlData(helmMap map[string]interface{}, yamlName string) ([]byte, error) {
-	stringData, ok := helmMap["stringData"].(map[string]interface{})[yamlName].(string)
+	// Check if "stringData" exists and is of the expected type
+	stringData, ok := helmMap["stringData"]
 	if !ok {
-		return nil, fmt.Errorf("error finding config data")
+		return nil, fmt.Errorf("stringData is not found in the yaml")
 	}
-	return []byte(stringData), nil
+
+	// Assert the type of stringData to map[interface{}]interface{}
+	stringDataMap, ok := stringData.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("stringData is not of type map[string]interface{}")
+	}
+
+	// Check if "yamlName" exists in stringDataMap
+	dataValue, ok := stringDataMap[yamlName]
+	if !ok {
+		return nil, fmt.Errorf("%s not found in stringData", yamlName)
+	}
+
+	// Convert dataValue to a string
+	stringValue, ok := dataValue.(string)
+	if !ok {
+		return nil, fmt.Errorf("%s is not a string", yamlName)
+	}
+	return []byte(stringValue), nil
 }
 
-func mergeConfigYamlData(data1, data2 map[string]interface{}) (map[string]interface{}, error) {
+func mergeConfigYamlData(dataSecret, dataFile map[string]interface{}) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
-	values1 := data1["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
-	values2 := data2["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
-	//if !ok1 || !ok2 {
-	//	return nil, fmt.Errorf("config not found")
-	//}
-	for key1, val1 := range values1 {
+	authcFile, ok := dataFile["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("config not found")
+	}
+	authcSecret := make(map[string]interface{})
+	dynamicSecret, ok := dataSecret["config"].(map[string]interface{})
+	if ok {
+		dynamicSecret, ok := dynamicSecret["dynamic"].(map[string]interface{})
+		if ok {
+			authcSecret, ok = dynamicSecret["authc"].(map[string]interface{})
+		}
+	}
+	for key1, val1 := range authcFile {
 		mergedData[key1] = val1
 	}
-	for key2, val2 := range values2 {
+	for key2, val2 := range authcSecret {
 		if _, ok := mergedData[key2]; ok && strings.HasPrefix(key2, "vz") {
 			continue
 		}
 		mergedData[key2] = val2
 	}
-	data1["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"] = mergedData
-	return data1, nil
+	dataSecret["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"] = mergedData
+	return dataSecret, nil
 }
 func mergeUserYamlData(data1, data2 map[string]interface{}, hashFromSecret string) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
-	adminData := data1["admin"].(map[string]interface{})
-	//if !ok {
-	//	return nil, fmt.Errorf("user not found")
-	//}
+	adminData, ok := data1["admin"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("user not found")
+	}
 	adminData["hash"] = hashFromSecret
 	for key1, val1 := range data1 {
 		if key1 == "admin" {

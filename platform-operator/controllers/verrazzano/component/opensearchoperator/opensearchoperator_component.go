@@ -116,7 +116,6 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
 		return err
 	}
-
 	return o.HelmComponent.PreInstall(ctx)
 }
 
