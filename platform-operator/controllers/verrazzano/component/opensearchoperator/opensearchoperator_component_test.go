@@ -38,6 +38,75 @@ const (
 	fakeDomain           = "mydomain.com"
 )
 
+// TestMonitorOverrides tests the MonitorOverrides function
+// GIVEN a call to MonitorOverrides
+// WHEN MonitorOverrides is called
+// THEN false is returned
+func TestMonitorOverrides(t *testing.T) {
+	trueValue := true
+	falseValue := false
+	c := NewComponent()
+	cli := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	tests := []struct {
+		name   string
+		vz     *v1alpha1.Verrazzano
+		result bool
+	}{
+		{
+			"OpenSearchOperator Component is nil",
+			&v1alpha1.Verrazzano{},
+			false,
+		},
+		{
+			"OpenSearchOperator component initialised",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly enabled in OpenSearchOperator component",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{
+							InstallOverrides: v1alpha1.InstallOverrides{
+								MonitorChanges: &trueValue},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly disabled in OpenSearchOperator component",
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						OpenSearchOperator: &v1alpha1.OpenSearchOperatorComponent{
+							InstallOverrides: v1alpha1.InstallOverrides{
+								MonitorChanges: &falseValue},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(cli, tt.vz, nil, false)
+			result := c.MonitorOverrides(ctx)
+			assert.Equal(t, tt.result, result)
+		})
+	}
+}
+
 // TestGetDependencies tests the GetDependencies function
 // GIVEN a call to GetDependencies
 // WHEN GetDependencies is called

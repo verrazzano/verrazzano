@@ -7,14 +7,13 @@ import (
 	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"strings"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
-	"k8s.io/apimachinery/pkg/api/meta"
 )
 
 const (
@@ -56,7 +55,7 @@ func handleLegacyOpenSearch(ctx spi.ComponentContext) error {
 	}
 
 	if err := createNewPVCs(ctx, nodes); err != nil {
-		return fmt.Errorf("falied creating new pvc: %v", err)
+		return fmt.Errorf("failed creating new pvc: %v", err)
 	}
 
 	if !arePVCsAndPVsBound(ctx) {
@@ -71,7 +70,7 @@ func vmiExists(ctx spi.ComponentContext) bool {
 	vmiList := vmov1.VerrazzanoMonitoringInstanceList{}
 	err := ctx.Client().List(context.TODO(), &vmiList)
 
-	if _, ok := err.(*meta.NoKindMatchError); ok {
+	if ok := meta.IsNoMatchError(err); ok {
 		ctx.Log().Debugf("VerrazzanoMonitoring kind does not exist, skipping disabling legacy OS and OSD")
 		return false
 	}

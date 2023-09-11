@@ -31,11 +31,9 @@ const (
 	opensearchOperatorDeploymentName = "opensearch-operator-controller-manager"
 	opensearchHostName               = "opensearch.vmi.system"
 	osdHostName                      = "osd.vmi.system"
-	osIngressName                    = "opensearch"
-	osdIngressName                   = "opensearch-dashboards"
-	tmpFilePrefix                    = "opensearch-operator-overrides-"
-	tmpSuffix                        = "yaml"
-	tmpFileCreatePattern             = tmpFilePrefix + "*." + tmpSuffix
+	// Certificate names
+	osdCertificateName = "system-tls-osd"
+	osCertificateName  = "system-tls-os-ingest"
 )
 
 var (
@@ -67,10 +65,30 @@ var (
 	gvrList = []schema.GroupVersionResource{clusterGVR, roleGVR, rolesMappingGVR}
 )
 
+// GetOverrides gets the list of overrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.OpenSearchOperator != nil {
+			return effectiveCR.Spec.Components.OpenSearchOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.OpenSearchOperator != nil {
+			return effectiveCR.Spec.Components.OpenSearchOperator.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
+	}
+
+	return []vzapi.Overrides{}
+}
+
 func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{}, error) {
 	args := make(map[string]interface{})
 
 	masterNode := getMasterNode(ctx)
+	if len(masterNode) <= 0 {
+		return args, fmt.Errorf("invalid cluster topology, no master node defined")
+	}
 	effectiveCR := ctx.EffectiveCR()
 
 	args["isOpenSearchEnabled"] = vzcr.IsOpenSearchEnabled(effectiveCR)
@@ -80,6 +98,13 @@ func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 	args["bootstrapConfig"] = ""
 	if IsUpgrade(ctx) || IsSingleMasterNodeCluster(ctx) {
 		args["bootstrapConfig"] = fmt.Sprintf("cluster.initial_master_nodes: %s-%s-0", clusterName, masterNode)
+	}
+
+	// Set drainDataNodes only when the cluster has at least 2 data nodes
+	if IsSingleDataNodeCluster(ctx) {
+		args["drainDataNodes"] = false
+	} else {
+		args["drainDataNodes"] = true
 	}
 
 	// Append OSD replica count from current OSD config
@@ -135,8 +160,8 @@ func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 	return args, nil
 }
 
-// AppendOverrides appends the additional overrides for install
-func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+// appendOverrides appends the additional overrides for install
+func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
 	kvs, err := buildIngressOverrides(ctx, kvs)
 	if err != nil {
@@ -289,6 +314,7 @@ func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
 	return nil
 }
 
+// getActualCRNodes returns the nodes from the actual CR
 func getActualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
 	nodeMap := map[string]vzapi.OpenSearchNode{}
 	if cr != nil && cr.Spec.Components.Elasticsearch != nil {
@@ -299,6 +325,7 @@ func getActualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
 	return nodeMap
 }
 
+// getMasterNode returns the first master node from the list of nodes
 func getMasterNode(ctx spi.ComponentContext) string {
 	for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 		for _, role := range node.Roles {
@@ -331,8 +358,11 @@ func buildIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.
 			ingressAnnotations[`external-dns\.alpha\.kubernetes\.io/ttl`] = "60"
 		}
 
-		kvs, _ = appendOSIngressOverrides(ingressAnnotations, dnsSubDomain, ingressClassName, kvs)
-		kvs, _ = appendOSDIngressOverrides(ingressAnnotations, dnsSubDomain, ingressClassName, kvs)
+		path := "ingress.opensearchDashboards"
+		kvs = appendIngressOverrides(ingressAnnotations, path, buildOSDHostnameForDomain(dnsSubDomain), osdCertificateName, ingressClassName, kvs)
+
+		path = "ingress.opensearch"
+		kvs = appendIngressOverrides(ingressAnnotations, path, buildOSHostnameForDomain(dnsSubDomain), osCertificateName, ingressClassName, kvs)
 
 	} else {
 		kvs = append(kvs, bom.KeyValue{
@@ -348,21 +378,19 @@ func buildIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.
 	return kvs, nil
 }
 
-// appendOSDIngressOverrides appends the additional overrides for OpenSearchDashboards ingress
-func appendOSDIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain, ingressClassName string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	osdHostName := buildOSDHostnameForDomain(dnsSubDomain)
-	ingressAnnotations[`cert-manager\.io/common-name`] = osdHostName
+// appendIngressOverrides appends the required overrides for the ingresses
+func appendIngressOverrides(ingressAnnotations map[string]string, path, hostName, tlsSecret, ingressClassName string, kvs []bom.KeyValue) []bom.KeyValue {
+	ingressAnnotations[`cert-manager\.io/common-name`] = hostName
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearchDashboards.ingressClassName",
+		Key:   fmt.Sprintf("%s.ingressClassName", path),
 		Value: ingressClassName,
 	})
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearchDashboards.host",
-		Value: osdHostName,
+		Key:   fmt.Sprintf("%s.host", path),
+		Value: hostName,
 	})
-
-	annotationsKey := "ingress.opensearchDashboards.annotations"
+	annotationsKey := fmt.Sprintf("%s.annotations", path)
 	for key, value := range ingressAnnotations {
 		kvs = append(kvs, bom.KeyValue{
 			Key:       fmt.Sprintf("%s.%s", annotationsKey, key),
@@ -370,54 +398,16 @@ func appendOSDIngressOverrides(ingressAnnotations map[string]string, dnsSubDomai
 			SetString: true,
 		})
 	}
-
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearchDashboards.tls[0].secretName",
-		Value: "system-tls-osd",
+		Key:   fmt.Sprintf("%s.tls[0].secretName", path),
+		Value: tlsSecret,
 	})
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearchDashboards.tls[0].hosts[0]",
-		Value: osdHostName,
+		Key:   fmt.Sprintf("%s.tls[0].hosts[0]", path),
+		Value: hostName,
 	})
-
-	return kvs, nil
-}
-
-// appendOSIngressOverrides appends the additional overrides for OpenSearch ingress
-func appendOSIngressOverrides(ingressAnnotations map[string]string, dnsSubDomain, ingressClassName string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	opensearchHostName := buildOSHostnameForDomain(dnsSubDomain)
-	ingressAnnotations[`cert-manager\.io/common-name`] = opensearchHostName
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearch.ingressClassName",
-		Value: ingressClassName,
-	})
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearch.host",
-		Value: opensearchHostName,
-	})
-
-	annotationsKey := "ingress.opensearch.annotations"
-	for key, value := range ingressAnnotations {
-		kvs = append(kvs, bom.KeyValue{
-			Key:       fmt.Sprintf("%s.%s", annotationsKey, key),
-			Value:     value,
-			SetString: true,
-		})
-	}
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearch.tls[0].secretName",
-		Value: "system-tls-os-ingest",
-	})
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "ingress.opensearch.tls[0].hosts[0]",
-		Value: opensearchHostName,
-	})
-
-	return kvs, nil
+	return kvs
 }
 
 // isReady checks if all the sts and deployments for OpenSearch are ready or not
@@ -426,13 +416,30 @@ func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, getPrefix(ctx))
 }
 
-// IsSingleMasterNodeCluster returns true if the cluster has a single mater node
+// IsSingleMasterNodeCluster returns true if the cluster has a single master node
 func IsSingleMasterNodeCluster(ctx spi.ComponentContext) bool {
 	var replicas int32
-	for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-		for _, role := range node.Roles {
-			if role == "master" && node.Replicas != nil {
-				replicas += *node.Replicas
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			for _, role := range node.Roles {
+				if role == "master" && node.Replicas != nil {
+					replicas += *node.Replicas
+				}
+			}
+		}
+	}
+	return replicas <= 1
+}
+
+// IsSingleDataNodeCluster returns true if the cluster has a single data node
+func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
+	var replicas int32
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			for _, role := range node.Roles {
+				if role == "data" && node.Replicas != nil {
+					replicas += *node.Replicas
+				}
 			}
 		}
 	}

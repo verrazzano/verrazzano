@@ -55,7 +55,8 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, nginx.ComponentName},
-			AppendOverridesFunc:       AppendOverrides,
+			AppendOverridesFunc:       appendOverrides,
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -156,4 +157,15 @@ func (o opensearchOperatorComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	return o.HelmComponent.Uninstall(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (o opensearchOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.OpenSearchOperator != nil {
+		if ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.OpenSearchOperator.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

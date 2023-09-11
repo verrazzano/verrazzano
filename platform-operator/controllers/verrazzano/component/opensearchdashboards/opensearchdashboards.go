@@ -14,7 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const kibanaDeployment = "vmi-system-osd"
+const (
+	kibanaDeployment = "vmi-system-osd"
+	osdDeployment    = "opensearch-dashboards"
+)
 
 func getOSDDeployments(ctx spi.ComponentContext) []types.NamespacedName {
 	isLegacyOSD := common.IsLegacyOSD(ctx)
@@ -28,7 +31,7 @@ func getOSDDeployments(ctx spi.ComponentContext) []types.NamespacedName {
 	}
 	return []types.NamespacedName{
 		{
-			Name:      "opensearch-dashboards",
+			Name:      osdDeployment,
 			Namespace: constants.VerrazzanoLoggingNamespace,
 		},
 	}

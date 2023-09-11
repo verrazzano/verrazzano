@@ -1,6 +1,10 @@
 ### v2.0.0
+Component version updates:
 
-Feature:
+- WebLogic Kubernetes Operator v4.1.2
+- WebLogic Monitoring Exporter v2.1.5
+
+Features:
 
 - Enabled status updates for Istio reconciled objects
 - Support for Thanos Ruler and Compactor

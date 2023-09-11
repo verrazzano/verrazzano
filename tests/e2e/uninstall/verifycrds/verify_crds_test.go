@@ -38,6 +38,7 @@ var verrazzanoiocrds = map[string]bool{
 var optionalverrazzanoiocrds = []string{
 	"verrazzanomanagedclusters.clusters.verrazzano.io",
 	"verrazzanos.install.verrazzano.io",
+	"modules.platform.verrazzano.io",
 }
 
 // Expected istio.io CRDs after uninstall

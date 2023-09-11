@@ -98,10 +98,12 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			zap.S().Errorf("Failed to get Secret: %v", err)
 			return newRequeueWithDelay(), err
 		}
-		// check if ocne cluster is using the updated secret and update cluster's copy of secret if necessary
-		if err := r.checkClusterCredentials(&caSecret); err != nil {
-			zap.S().Errorf("Failed to update Secret: %v", err)
-			return newRequeueWithDelay(), err
+		if isOCNECloudCredential(&caSecret) {
+			// check if ocne cluster is using the updated secret and update cluster's copy of secret if necessary
+			if err := r.checkClusterCredentials(&caSecret); err != nil {
+				zap.S().Errorf("Failed to update Secret: %v", err)
+				return newRequeueWithDelay(), err
+			}
 		}
 	}
 

@@ -253,6 +253,9 @@ function full_k8s_cluster_snapshot() {
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
   kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-resources.json || true
 
+  # Get the installed Verrazzano modules, in the verrazzano-install namespace
+  kubectl --insecure-skip-tls-verify get modules.platform.verrazzano.io --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-modules.json || true
+
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kubectl-version.json || true
     kubectl --insecure-skip-tls-verify get crd -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/crd.json || true
