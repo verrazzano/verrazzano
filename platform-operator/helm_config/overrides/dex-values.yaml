@@ -1,0 +1,60 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+config:
+  storage:
+    type: kubernetes
+    config:
+      inCluster: true
+  enablePasswordDB: true
+  oauth2:
+    skipApprovalScreen: true
+
+envVars:
+  - name: PASSWORD_DB_USERNAME_PROMPT
+    value: "Username"
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: "dex.${namespace}.svc.cluster.local"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
+    nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-name: "dex"
+    external-dns.alpha.kubernetes.io/ttl: "60"
+  hosts:
+    - host: "{{ .Values.host }}"
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - "{{ .Values.tlsHosts }}"
+      secretName: "dex-tls"
+
+service:
+  ports:
+    http:
+      port: 80
+
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 0
+  capabilities:
+    drop:
+      - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+replicas: 1
