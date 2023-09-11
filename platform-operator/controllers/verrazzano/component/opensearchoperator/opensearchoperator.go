@@ -14,7 +14,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
@@ -32,11 +31,9 @@ const (
 	opensearchOperatorDeploymentName = "opensearch-operator-controller-manager"
 	opensearchHostName               = "opensearch.vmi.system"
 	osdHostName                      = "osd.vmi.system"
-	osIngressName                    = "opensearch"
-	osdIngressName                   = "opensearch-dashboards"
-	tmpFilePrefix                    = "opensearch-operator-overrides-"
-	tmpSuffix                        = "yaml"
-	tmpFileCreatePattern             = tmpFilePrefix + "*." + tmpSuffix
+	// Certificate names
+	osdCertificateName = "system-tls-osd"
+	osCertificateName  = "system-tls-os-ingest"
 )
 
 var (
@@ -103,8 +100,8 @@ func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 		args["bootstrapConfig"] = fmt.Sprintf("cluster.initial_master_nodes: %s-%s-0", clusterName, masterNode)
 	}
 
-	// Set drainDataNodes only when the cluster has at least 2 data ndoes
-	if opensearch.IsSingleDataNodeCluster(ctx) {
+	// Set drainDataNodes only when the cluster has at least 2 data nodes
+	if IsSingleDataNodeCluster(ctx) {
 		args["drainDataNodes"] = false
 	} else {
 		args["drainDataNodes"] = true
@@ -361,13 +358,11 @@ func buildIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.
 			ingressAnnotations[`external-dns\.alpha\.kubernetes\.io/ttl`] = "60"
 		}
 
-		tlsSecret := "system-tls-osd"
 		path := "ingress.opensearchDashboards"
-		kvs = appendIngressOverrides(ingressAnnotations, path, buildOSDHostnameForDomain(dnsSubDomain), tlsSecret, ingressClassName, kvs)
+		kvs = appendIngressOverrides(ingressAnnotations, path, buildOSDHostnameForDomain(dnsSubDomain), osdCertificateName, ingressClassName, kvs)
 
-		tlsSecret = "system-tls-os-ingest"
 		path = "ingress.opensearch"
-		kvs = appendIngressOverrides(ingressAnnotations, path, buildOSHostnameForDomain(dnsSubDomain), tlsSecret, ingressClassName, kvs)
+		kvs = appendIngressOverrides(ingressAnnotations, path, buildOSHostnameForDomain(dnsSubDomain), osCertificateName, ingressClassName, kvs)
 
 	} else {
 		kvs = append(kvs, bom.KeyValue{
@@ -424,10 +419,27 @@ func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
 // IsSingleMasterNodeCluster returns true if the cluster has a single master node
 func IsSingleMasterNodeCluster(ctx spi.ComponentContext) bool {
 	var replicas int32
-	for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-		for _, role := range node.Roles {
-			if role == "master" && node.Replicas != nil {
-				replicas += *node.Replicas
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			for _, role := range node.Roles {
+				if role == "master" && node.Replicas != nil {
+					replicas += *node.Replicas
+				}
+			}
+		}
+	}
+	return replicas <= 1
+}
+
+// IsSingleDataNodeCluster returns true if the cluster has a single data node
+func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
+	var replicas int32
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			for _, role := range node.Roles {
+				if role == "data" && node.Replicas != nil {
+					replicas += *node.Replicas
+				}
 			}
 		}
 	}
