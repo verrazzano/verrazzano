@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
@@ -894,7 +893,7 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 		&source.Kind{Type: &batchv1.Job{}},
 		createReconcileEventHandler(namespace, name),
 		createPredicate(func(e event.CreateEvent) bool {
-			return r.isMysqlOperatorJob(e, log)
+			return mysqloperator.IsMysqlOperatorJob(r.Client, *e.Object.(*batchv1.Job), log)
 		}))
 	if err != nil {
 		return err
@@ -989,44 +988,6 @@ func (r *Reconciler) isThanosInternalUserSecret(o client.Object) bool {
 		return false
 	}
 	r.AddWatch(keycloak.ComponentJSONName)
-	return true
-}
-
-// isMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL operator
-func (r *Reconciler) isMysqlOperatorJob(e event.CreateEvent, log vzlog.VerrazzanoLogger) bool {
-	// Cast object to job
-	job := e.Object.(*batchv1.Job)
-
-	// Filter events to only be for the MySQL namespace
-	if job.Namespace != mysql.ComponentNamespace {
-		return false
-	}
-
-	// see if the job ownerReferences point to a cron job owned by the mysql operato
-	for _, owner := range job.GetOwnerReferences() {
-		if owner.Kind == "CronJob" {
-			// get the cronjob reference
-			cronJob := &batchv1.CronJob{}
-			err := r.Client.Get(context.TODO(), client.ObjectKey{Name: owner.Name, Namespace: job.Namespace}, cronJob)
-			if err != nil {
-				log.Errorf("Could not find cronjob %s to ascertain job source", owner.Name)
-				return false
-			}
-			return isResourceCreatedByMysqlOperator(cronJob.Labels, log)
-		}
-	}
-
-	// see if the job has been directly created by the mysql operator
-	return isResourceCreatedByMysqlOperator(job.Labels, log)
-}
-
-// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-operator"
-func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.VerrazzanoLogger) bool {
-	createdBy, ok := labels["app.kubernetes.io/created-by"]
-	if !ok || createdBy != constants.MySQLOperator {
-		return false
-	}
-	log.Debug("Resource created by MySQL Operator")
 	return true
 }
 

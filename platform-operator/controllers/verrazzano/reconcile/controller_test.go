@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"reflect"
 	"sync"
 	"testing"
@@ -60,7 +61,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -1771,7 +1771,7 @@ func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
 			Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 		},
 	}
-	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	isMysqlJob := mysqloperator.IsMysqlOperatorJob(reconciler.Client, *job, vzlog.DefaultLogger())
 	asserts.False(isMysqlJob)
 }
 
@@ -1805,7 +1805,7 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 			},
 		},
 	}
-	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	isMysqlJob := mysqloperator.IsMysqlOperatorJob(reconciler.Client, *job, vzlog.DefaultLogger())
 	asserts.True(isMysqlJob)
 }
 
@@ -1825,7 +1825,7 @@ func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
 			Labels:    map[string]string{"app.kubernetes.io/created-by": vzconst.MySQLOperator},
 		},
 	}
-	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	isMysqlJob := mysqloperator.IsMysqlOperatorJob(reconciler.Client, *job, vzlog.DefaultLogger())
 	asserts.True(isMysqlJob)
 }
 

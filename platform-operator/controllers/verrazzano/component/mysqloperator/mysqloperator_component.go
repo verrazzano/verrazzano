@@ -6,6 +6,7 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"path/filepath"
 	"strconv"
 
@@ -179,6 +180,16 @@ func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) e
 
 	// MySQL is not installed, safe to uninstall MySQL operator
 	return c.HelmComponent.PreUninstall(compContext)
+}
+
+// PostInstall runs after components are installed
+func (c mysqlOperatorComponent) PostInstall(compContext spi.ComponentContext) error {
+	return custom.CleanupMysqlBackupJob(compContext.Log(), compContext.Client())
+}
+
+// PostUpgrade runs after components are upgraded
+func (c mysqlOperatorComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	return custom.CleanupMysqlBackupJob(compContext.Log(), compContext.Client())
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed

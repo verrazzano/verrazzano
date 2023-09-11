@@ -6,8 +6,13 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -16,6 +21,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,4 +126,40 @@ func doesInnoDBClusterExist(ctx spi.ComponentContext) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// IsMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL operator
+func IsMysqlOperatorJob(c client.Client, job batchv1.Job, log vzlog.VerrazzanoLogger) bool {
+
+	// Filter events to only be for the MySQL namespace
+	if job.Namespace != mysql.ComponentNamespace {
+		return false
+	}
+
+	// see if the job ownerReferences point to a cron job owned by the mysql operato
+	for _, owner := range job.GetOwnerReferences() {
+		if owner.Kind == "CronJob" {
+			// get the cronjob reference
+			cronJob := &v1.CronJob{}
+			err := c.Get(context.TODO(), client.ObjectKey{Name: owner.Name, Namespace: job.Namespace}, cronJob)
+			if err != nil {
+				log.Errorf("Could not find cronjob %s to ascertain job source", owner.Name)
+				return false
+			}
+			return isResourceCreatedByMysqlOperator(cronJob.Labels, log)
+		}
+	}
+
+	// see if the job has been directly created by the mysql operator
+	return isResourceCreatedByMysqlOperator(job.Labels, log)
+}
+
+// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-operator"
+func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.VerrazzanoLogger) bool {
+	createdBy, ok := labels["app.kubernetes.io/created-by"]
+	if !ok || createdBy != constants2.MySQLOperator {
+		return false
+	}
+	log.Debug("Resource created by MySQL Operator")
+	return true
 }

@@ -12,5 +12,8 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c mysqlOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, fluentoperator.ComponentName})
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{istio.ComponentName, fluentoperator.ComponentName}),
+		watch.GetMySQLCreateJobWatch(),
+	)
 }

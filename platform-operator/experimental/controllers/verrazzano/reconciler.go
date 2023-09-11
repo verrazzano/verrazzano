@@ -109,10 +109,10 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	// Delete leftover MySQL backup job if we find one.
-	if err := custom.CleanupMysqlBackupJob(log, r.Client); err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
-	}
+	//// Delete leftover MySQL backup job if we find one.
+	//if err := custom.CleanupMysqlBackupJob(log, r.Client); err != nil {
+	//	return result.NewResultShortRequeueDelayWithError(err)
+	//}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {

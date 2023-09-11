@@ -7,8 +7,11 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -159,6 +162,22 @@ func GetUpdateNamespaceWatch(name string) []controllerspi.WatchDescriptor {
 				return false
 			}
 			return wev.NewWatchedObject.GetName() == name
+		},
+	})
+	return watches
+}
+
+// GetMySQLCreateJobWatch watches for a job creation from mysql operator
+func GetMySQLCreateJobWatch() []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches []controllerspi.WatchDescriptor
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &batchv1.Job{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			if wev.WatchEventType != controllerspi.Created {
+				return false
+			}
+			return mysqloperator.IsMysqlOperatorJob(cli, *wev.NewWatchedObject.(*batchv1.Job), vzlog.DefaultLogger())
 		},
 	})
 	return watches
