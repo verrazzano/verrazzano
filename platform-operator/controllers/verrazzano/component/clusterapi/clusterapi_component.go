@@ -6,26 +6,24 @@ package clusterapi
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -268,32 +266,34 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createOverrides(ctx)
-	if err != nil {
-		return err
-	}
+	//overrides, err := createOverrides(ctx)
+	//if err != nil {
+	//	return err
+	//}
 
-	overridesContext := newOverridesContext(overrides)
+	//overridesContext := newOverridesContext(overrides)
 
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
-		IncludeNamespace:        true,
-		IncludeCRDs:             false,
+		DeleteAll: true,
+		//CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
+		//BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
+		//ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
+		//InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
+		IncludeNamespace: true,
+		IncludeCRDs:      false,
 	}
-	err = capiClient.Delete(deleteOptions)
-	if err != nil {
-		// Gross hack to catch case where CAPI delete is in a broken state; declare the operation successful and
-		// delete the namespace explicitly in post-install
-		if strings.Contains(err.Error(), "failed to identify the namespace") {
-			ctx.Log().Infof("Caught expected error, allowing delete to continue: %s", err.Error())
-			return nil
-		}
-	}
-	return err
+	return capiClient.Delete(deleteOptions)
+	//err = capiClient.Delete(deleteOptions)
+	//if err != nil {
+	//	// Gross hack to catch case where CAPI delete is in a broken state; declare the operation successful and
+	//	// delete the namespace explicitly in post-install
+	//	if strings.Contains(err.Error(), "failed to identify the namespace") {
+	//		ctx.Log().Infof("Caught expected error, allowing delete to continue: %s", err.Error())
+	//		return nil
+	//	}
+	//}
+	//return err
 }
 
 func (c clusterAPIComponent) PostUninstall(componentCtx spi.ComponentContext) error {
