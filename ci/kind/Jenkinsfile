@@ -636,6 +636,15 @@ pipeline {
                     steps {
                         runGinkgo('clusterapi/capi-overrides')
                     }
+                    post {
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                            dumpK8sCluster('clusterAPI-override-tests-dump')
+                        }
+                        always {
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
+                        }
+                    }
                 }
             }
 

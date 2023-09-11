@@ -75,6 +75,8 @@ spec:
             - name: AUTH_PROXY_IMAGE
               value: {{ .Values.global.authProxyImage }}
             {{- end }}
+            - name: GOPROXY
+              value: direct
           resources:
             requests:
               memory: 72Mi
