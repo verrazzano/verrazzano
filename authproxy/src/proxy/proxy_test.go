@@ -140,7 +140,7 @@ func TestFindPathHandler(t *testing.T) {
 	// GIVEN a request
 	// WHEN the url has any path
 	// THEN the api server function is returned
-	apiReqURL, err := url.Parse(fmt.Sprintf("%s", testAPIServerURL))
+	apiReqURL, err := url.Parse(testAPIServerURL)
 	assert.NoError(t, err)
 	req = &http.Request{URL: apiReqURL}
 	handlerfunc = handler.findPathHandler(req)
