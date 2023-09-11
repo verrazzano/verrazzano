@@ -5,7 +5,10 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -158,6 +161,74 @@ func TestLoadVerifier(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, v)
 	assert.Implements(t, (*verifier)(nil), v)
+}
+
+// TestGetImpersonationHeadersFromRequest tests that the impersonation user and groups can be collected from a request
+func TestGetImpersonationHeadersFromRequest(t *testing.T) {
+	testUser := "user"
+	testGroups := []string{
+		"group1",
+		"group2",
+	}
+
+	testImp := ImpersonationHeaders{
+		User:   testUser,
+		Groups: testGroups,
+	}
+
+	impJSON, err := json.Marshal(testImp)
+	assert.NoError(t, err)
+	validToken := fmt.Sprintf("info.%s.info", base64.RawURLEncoding.EncodeToString(impJSON))
+
+	tests := []struct {
+		name           string
+		token          string
+		expectedUser   string
+		expectedGroups []string
+		expectError    bool
+	}{
+		// GIVEN a request with a valid token
+		// WHEN  the request is evaluated
+		// THEN  the expected users and groups are populated
+		{
+			name:           "valid token provided",
+			token:          validToken,
+			expectedUser:   testUser,
+			expectedGroups: testGroups,
+		},
+		// GIVEN a request with a bad JWT token
+		// WHEN  the request is evaluated
+		// THEN  an error is returned
+		{
+			name:        "malformed token provided",
+			token:       "token-invalid",
+			expectError: true,
+		},
+		// GIVEN a request with an empty token body
+		// WHEN  the request is evaluated
+		// THEN  no error is returned
+		{
+			name:  "empty token provided",
+			token: fmt.Sprintf("info.%s.info", base64.RawURLEncoding.EncodeToString([]byte("{}"))),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := http.Request{
+				Header: map[string][]string{
+					authHeaderKey: {"Bearer " + tt.token},
+				},
+			}
+			imp, err := GetImpersonationHeadersFromRequest(&req)
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedUser, imp.User)
+			assert.ElementsMatch(t, tt.expectedGroups, imp.Groups)
+		})
+	}
 }
 
 func (m mockVerifier) Verify(_ context.Context, rawIDToken string) (*oidc.IDToken, error) {

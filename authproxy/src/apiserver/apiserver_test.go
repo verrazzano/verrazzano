@@ -4,7 +4,10 @@
 package apiserver
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -89,6 +92,7 @@ func TestForwardAPIRequest(t *testing.T) {
 			for k, v := range tt.reqHeaders {
 				request.Header.Set(k, v)
 			}
+			setEmptyToken(request)
 			authenticator := testauth.NewFakeAuthenticator()
 
 			apiRequest := APIRequest{
@@ -143,8 +147,8 @@ func TestReformatAPIRequest(t *testing.T) {
 		// THEN  a malformed request is returned
 		{
 			name:        "test malformed request",
-			url:         "malformed-request1234",
-			expectedURL: fmt.Sprintf("%s/%s", apiRequest.APIServerURL, "malformed-request1234"),
+			url:         "https://authproxy.io/malformedrequest1234",
+			expectedURL: fmt.Sprintf("%s/%s", apiRequest.APIServerURL, "malformedrequest1234"),
 		},
 		// GIVEN a request to the Auth proxy server
 		// WHEN  the request has a query param
@@ -157,14 +161,62 @@ func TestReformatAPIRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequest(http.MethodGet, tt.url, strings.NewReader(""))
-			assert.NoError(t, err)
+			req := httptest.NewRequest(http.MethodGet, tt.url, strings.NewReader(""))
+			setEmptyToken(req)
 
 			formattedReq, err := apiRequest.reformatAPIRequest(req)
 			assert.NoError(t, err)
+			assert.NotNil(t, formattedReq.URL)
 			assert.Equal(t, tt.expectedURL, formattedReq.URL.String())
 		})
 	}
+}
+
+// TestSetImpersonationHeaders tests that the impersonation headers can be set for an API server request
+func TestSetImpersonationHeaders(t *testing.T) {
+	// GIVEN a request with a bad JWT token
+	// WHEN  the request is evaluated
+	// THEN  an error is returned
+	req := &http.Request{
+		Header: map[string][]string{
+			"Authorization": {
+				"bad-jwt-token",
+			},
+		},
+	}
+	err := setImpersonationHeaders(req)
+	assert.Error(t, err)
+
+	// GIVEN a request with a valid JWT token
+	// WHEN  the request is evaluated
+	// THEN  the request has the impersonation headers set
+	testUser := "test-user"
+	testGroups := []string{
+		"group1",
+		"group2",
+	}
+	headers := auth.ImpersonationHeaders{
+		User:   testUser,
+		Groups: testGroups,
+	}
+	tokenJSON, err := json.Marshal(headers)
+	assert.NoError(t, err)
+
+	tokenBase64 := base64.RawURLEncoding.EncodeToString(tokenJSON)
+	jwtToken := fmt.Sprintf("test.%s.test", tokenBase64)
+
+	req = &http.Request{
+		Header: map[string][]string{
+			"Authorization": {
+				"Bearer " + jwtToken,
+			},
+		},
+	}
+	err = setImpersonationHeaders(req)
+	assert.NoError(t, err)
+	assert.Len(t, req.Header.Values(userImpersontaionHeader), 1)
+	assert.Equal(t, testUser, req.Header.Get(userImpersontaionHeader))
+	assert.ElementsMatch(t, testGroups, req.Header.Values(groupImpersonationHeader))
 }
 
 // TestValidateRequest tests the request validation for the Auth Proxy
@@ -186,4 +238,9 @@ func TestValidateRequest(t *testing.T) {
 	assert.NoError(t, err)
 	err = validateRequest(req)
 	assert.NoError(t, err)
+}
+
+func setEmptyToken(req *http.Request) {
+	testToken := fmt.Sprintf("info.%s.info", base64.RawURLEncoding.EncodeToString([]byte("{}")))
+	req.Header.Set("Authorization", "Bearer "+testToken)
 }

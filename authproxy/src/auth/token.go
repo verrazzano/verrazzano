@@ -5,7 +5,10 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -89,4 +92,32 @@ func (a *OIDCAuthenticator) loadVerifier() (verifier, error) {
 	err := fmt.Errorf("object does not implement the verifier interface")
 	a.Log.Errorf("Failed to load verifier: %v", err)
 	return nil, err
+}
+
+// GetImpersonationHeadersFromRequest returns the user and group fields from the bearer token to be used as
+// impersonation headers for the API server request
+func GetImpersonationHeadersFromRequest(req *http.Request) (ImpersonationHeaders, error) {
+	var headers ImpersonationHeaders
+
+	token, err := getTokenFromAuthHeader(req.Header.Get(authHeaderKey))
+	if err != nil {
+		return headers, err
+	}
+
+	jwtParts := strings.SplitN(token, ".", 3)
+	if len(jwtParts) != 3 {
+		return headers, fmt.Errorf("malformed jwt token, found %d sections", len(jwtParts))
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(jwtParts[1])
+	if err != nil {
+		return headers, err
+	}
+
+	err = json.Unmarshal(payload, &headers)
+	if err != nil {
+		return headers, err
+	}
+
+	return headers, nil
 }
