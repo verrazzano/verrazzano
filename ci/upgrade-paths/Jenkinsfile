@@ -440,7 +440,7 @@ pipeline {
                             helm get values -n keycloak mysql
                         """
                         sh """
-                            k get innodbclusters.mysql.oracle.com -n keycloak mysql -o yaml
+                            kubectl get innodbclusters.mysql.oracle.com -n keycloak mysql -o yaml
                         """
                     }
                     post {
