@@ -1274,10 +1274,8 @@ data:
         if me.oidcProvider == "dex" and jwt_obj.payload and jwt_obj.payload.name then
             me.debug(("Adding name as Impersonate-User: " .. jwt_obj.payload.name))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.name)
-            if jwt_obj.payload.name == "verrazzano" then
-                me.debug("Adding verrazzano-admins as Impersonate-Group")
-                table.insert(groups, "verrazzano-admins")
-            end
+            me.debug("Adding verrazzano-admins as Impersonate-Group")
+            table.insert(groups, "verrazzano-admins")
         end
 
         if jwt_obj.payload and jwt_obj.payload.groups then
