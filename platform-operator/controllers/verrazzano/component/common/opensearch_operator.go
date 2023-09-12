@@ -93,7 +93,6 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 
 	// Update the secret with the merged config data
 	scr.Data[configYaml] = mergedConfigYAML
-
 	usersYamlFile, err := getYamlData(securityYamlData, usersYaml)
 	if err != nil {
 		return err
@@ -115,7 +114,6 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecName}, &adminSecret); err != nil {
 		return err
 	}
-
 	adminHash, err := getAdminHash(&adminSecret)
 	if err != nil {
 		return err
@@ -131,7 +129,6 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 	}
 	// Assign the YAML byte slice to the secret data
 	scr.Data[usersYaml] = mergedUsersYAML
-
 	// Update the secret
 	if err := client.Update(context.TODO(), &scr); err != nil {
 		return err
@@ -155,7 +152,6 @@ func getSecretYamlData(secret *corev1.Secret, yamlName string) ([]byte, error) {
 	for key, val := range secret.Data {
 		if key == yamlName {
 			byteYaml = val
-
 		}
 	}
 	return byteYaml, nil
@@ -227,25 +223,25 @@ func mergeConfigYamlData(dataSecret, dataFile map[string]interface{}) (map[strin
 }
 
 // mergeUserYamlData merges the internal_users.yml data from the secret and the helm config
-func mergeUserYamlData(data1, data2 map[string]interface{}, hashFromSecret string) (map[string]interface{}, error) {
+func mergeUserYamlData(dataFile, dataSecret map[string]interface{}, hashFromSecret string) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
-	adminData, ok := data1["admin"].(map[string]interface{})
+	adminData, ok := dataFile["admin"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("user not found")
 	}
 	adminData["hash"] = hashFromSecret
-	for key1, val1 := range data1 {
-		if key1 == "admin" {
-			mergedData[key1] = adminData
+	for keyFile, valFile := range dataFile {
+		if keyFile == "admin" {
+			mergedData[keyFile] = adminData
 		} else {
-			mergedData[key1] = val1
+			mergedData[keyFile] = valFile
 		}
 	}
-	for key2, val2 := range data2 {
-		if _, exists := mergedData[key2]; exists {
+	for keySecret, valSecret := range dataSecret {
+		if _, exists := mergedData[keySecret]; exists {
 			continue
 		} else {
-			mergedData[key2] = val2
+			mergedData[keySecret] = valSecret
 		}
 	}
 	return mergedData, nil
