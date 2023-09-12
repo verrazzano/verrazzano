@@ -98,7 +98,7 @@ func (c DexComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c DexComponent) isDexReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
-	// If a Dex component is enabled, ensure the deployment exists after Helm installation
+	// If a Dex component is enabled, ensure the deployment exists after the installation
 	deployments := []types.NamespacedName{
 		{
 			Name:      ComponentName,
@@ -108,7 +108,7 @@ func (c DexComponent) isDexReady(ctx spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-// IsEnabled Dex enabled check for installation
+// IsEnabled returns whether Dex is enabled
 func (c DexComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsDexEnabled(effectiveCR)
 }
