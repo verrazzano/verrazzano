@@ -929,7 +929,7 @@
     },
     {
       "name": "thanos",
-      "version": "v0.30.2",
+      "version": "v0.32.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -937,7 +937,7 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.30.2-20230525123422-4b7a94ea",
+              "tag": "v0.32.2-20230911193410-1e27f1f9",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
