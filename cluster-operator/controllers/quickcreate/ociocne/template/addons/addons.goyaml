@@ -186,7 +186,7 @@ metadata:
     name: {{.Name}}-image-pull-secret
     namespace: {{.Namespace}}
 stringData:
-    csi.yaml: |
+    registry-secret.yaml: |
         apiVersion: v1
         kind: Secret
         metadata:
