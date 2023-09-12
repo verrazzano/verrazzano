@@ -112,7 +112,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		overrides.Proxy.OidcProviderClientSecret = string(clientSecret)
 		overrides.Proxy.OidcProviderForConsole = dexProvider
 		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", constants.DexHostPrefix, overrides.Config.EnvName, dnsSuffix)
-		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, dexProvider)
+		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, constants.DexNamespace)
 	} else {
 		overrides.Proxy.OidcProviderForConsole = "keycloak"
 	}
@@ -362,10 +362,10 @@ func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 // getPKCEClientSecret retrieves the client secret for verrazzano-pkce client.
 func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
 	secret := &corev1.Secret{}
-	ctx.Log().Debugf("Retrieving the client secret from %s/%s secret", dexProvider, adminClusterOidcID)
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: dexProvider, Name: adminClusterOidcID}, secret)
+	ctx.Log().Debugf("Retrieving the client secret from %s/%s secret", constants.DexNamespace, adminClusterOidcID)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.DexNamespace, Name: adminClusterOidcID}, secret)
 	if err != nil {
-		errMsg := fmt.Sprintf("Unable to retrieve %s secret from %s namespace, %v", adminClusterOidcID, dexProvider, err)
+		errMsg := fmt.Sprintf("Unable to retrieve %s secret from %s namespace, %v", adminClusterOidcID, constants.DexNamespace, err)
 		ctx.Log().Once(errMsg)
 		return nil, fmt.Errorf(errMsg)
 	}
@@ -374,7 +374,7 @@ func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
 		return data, nil
 	}
 
-	return nil, fmt.Errorf("client secret not present in %s/%s secret", dexProvider, adminClusterOidcID)
+	return nil, fmt.Errorf("client secret not present in %s/%s secret", constants.DexNamespace, adminClusterOidcID)
 }
 
 // appendOIDCOverrides appends overrides related to OIDC configuration

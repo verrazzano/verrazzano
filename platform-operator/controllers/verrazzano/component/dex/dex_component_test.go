@@ -196,10 +196,7 @@ func TestDexEnabled(t *testing.T) {
 // THEN the Dex namespace is created
 func TestPreInstall(t *testing.T) {
 	trueValue := true
-	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.Verrazzano,
-			Namespace: constants.VerrazzanoSystemNamespace}}, createTestNginxService(),
-	).Build()
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build()
 
 	actualCR := vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{

@@ -20,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +37,7 @@ const (
 	hostsHost       = "host"
 	tlsHosts        = "tlsHosts"
 	pkceClient      = "verrazzano-pkce"
+	pgClient        = "verrazzano-pg"
 
 	httpsPrefix     = "https://"
 	dexClientSecret = "clientSecret"
@@ -75,46 +75,25 @@ type redirectURIsData struct {
 	OSHostExists bool
 }
 
-// Structure to redirect URIs of client verrazzano-pkce
+// Structure to hold redirect URIs of client verrazzano-pkce
 const pkceClientUrisTemplate = `redirectURIs: [
       "https://verrazzano.{{.DNSSubDomain}}/*",
-      "https://verrazzano.{{.DNSSubDomain}}/_authentication_callback",
-      "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
-      "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
-      "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
-      "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://osd.vmi.system.{{.DNSSubDomain}}/*",
-      "https://osd.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-      "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://thanos-query-store.{{.DNSSubDomain}}/*",
-      "https://thanos-query-store.{{.DNSSubDomain}}/_authentication_callback",
-      "https://opensearch.logging.{{.DNSSubDomain}}/_authentication_callback",
-      "https://opensearch.logging.{{.DNSSubDomain}}/*",
-      "https://osd.logging.{{.DNSSubDomain}}/*",
-      "https://osd.logging.{{.DNSSubDomain}}/_authentication_callback",
-      "https://thanos-query.{{.DNSSubDomain}}/*",
-      "https://thanos-query.{{.DNSSubDomain}}/_authentication_callback",
-      "https://thanos-ruler.{{.DNSSubDomain}}/*",
-      "https://thanos-ruler.{{.DNSSubDomain}}/_authentication_callback",
-      "https://jaeger.{{.DNSSubDomain}}/*",
-      "https://alertmanager.{{.DNSSubDomain}}/*",
-      "https://alertmanager.{{.DNSSubDomain}}/_authentication_callback"{{ if .OSHostExists}},
-      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-      "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
+      "https://verrazzano.{{.DNSSubDomain}}/_authentication_callback"
     ]`
 
 const staticClientTemplate = `config:
   staticClients:
 `
 
-const clientTemplate = `  - id: "{{.ClientID}}"
+const clientTemplateWithSecret = `  - id: "{{.ClientID}}"
     name: "{{.ClientName}}"
     secret: {{.ClientSecret}}
+    public: {{.Public}}
+    {{.RedirectURIs}}
+`
+
+const clientTemplateWithoutSecret = `  - id: "{{.ClientID}}"
+    name: "{{.ClientName}}"
     public: {{.Public}}
     {{.RedirectURIs}}
 `
@@ -149,16 +128,6 @@ func GetOverrides(object runtime.Object) interface{} {
 
 // AppendDexOverrides appends the default overrides for the Dex component
 func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, err
-	}
-
-	image, err := bomFile.BuildImageOverrides(ComponentName)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to build Dex image overrides from the Verrazzano BOM: %v", err)
-	}
-	kvs = append(kvs, image...)
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -209,18 +178,22 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	}
 	kvs = append(kvs, bom.KeyValue{Value: userOverridesFile, IsFile: true})
 
-	// Populate data for client verrazzano-pkce, used to configure the staticClient in Dex
-	staticClientData, err := populateStaticClientsTemplate(ctx)
+	// Populate data for client verrazzano-pkce and verrazzano-pg, used to configure the staticClient in Dex
+	staticClientData, err := populateStaticClientsTemplate()
 	if err != nil {
 		ctx.Log().Errorf("Component Dex failed to populate static client template: %v", err)
 		return nil, err
 	}
 	err = populatePKCEClient(ctx, dnsSubDomain, &staticClientData)
 	if err != nil {
-		ctx.Log().Errorf("Component Dex failed to configure PKCE client: %v", err)
+		ctx.Log().Errorf("Component Dex failed to configure verrazzano-pkce client: %v", err)
 		return nil, err
 	}
-
+	err = populatePGClient(ctx, &staticClientData)
+	if err != nil {
+		ctx.Log().Errorf("Component Dex failed to configure verrazzano-pg client: %v", err)
+		return nil, err
+	}
 	clientOverridePattern := tmpFilePrefix + "client-" + "*." + tmpSuffix
 	clientOverridesFile, err := generateOverridesFile(staticClientData.Bytes(), clientOverridePattern)
 	if err != nil {
@@ -375,7 +348,7 @@ func generateBCCryptHash(ctx spi.ComponentContext, password []byte) (string, err
 }
 
 // populateStaticClientsTemplate populates the client template
-func populateStaticClientsTemplate(ctx spi.ComponentContext) (bytes.Buffer, error) {
+func populateStaticClientsTemplate() (bytes.Buffer, error) {
 	var b bytes.Buffer
 	t, err := template.New("").Parse(staticClientTemplate)
 
@@ -396,7 +369,16 @@ func populatePKCEClient(ctx spi.ComponentContext, dnsSubDomain string, b *bytes.
 	if err != nil {
 		return fmt.Errorf("failed populating redirect URIs for client:%s :%v", pkceClient, err)
 	}
-	err = generateClientData(ctx, pkceClient, redirectURIs, true, b)
+	err = generateClientData(ctx, pkceClient, clientTemplateWithSecret, redirectURIs, true, b)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// populatePGClient populates the helm overrides to configure clients verrazzano-pg
+func populatePGClient(ctx spi.ComponentContext, b *bytes.Buffer) error {
+	err := generateClientData(ctx, pgClient, clientTemplateWithoutSecret, "", true, b)
 	if err != nil {
 		return err
 	}
@@ -404,20 +386,25 @@ func populatePKCEClient(ctx spi.ComponentContext, dnsSubDomain string, b *bytes.
 }
 
 // generateClientData generates client data for the given clientName
-func generateClientData(ctx spi.ComponentContext, clientName, redirectURIs string, isPublic bool, b *bytes.Buffer) error {
-	clSecret := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      clientName,
+func generateClientData(ctx spi.ComponentContext, clientName, clientTemplate, redirectURIs string, isPublic bool, b *bytes.Buffer) error {
+
+	clData := clientData{}
+	if clientTemplate == clientTemplateWithSecret {
+		clSecret := types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      clientName,
+		}
+
+		cs, err := generateClientSecret(ctx, clSecret)
+		if err != nil {
+			return fmt.Errorf("failed generating client secret for client:%s :%v", clientName, err)
+		}
+		clData.ClientSecret = cs
 	}
 
-	cs, err := generateClientSecret(ctx, clSecret)
-	if err != nil {
-		return fmt.Errorf("failed generating client secret for client:%s :%v", clientName, err)
-	}
-	clData := clientData{}
 	clData.ClientID = clientName
 	clData.ClientName = clientName
-	clData.ClientSecret = cs
+
 	clData.RedirectURIs = redirectURIs
 	clData.Public = isPublic
 

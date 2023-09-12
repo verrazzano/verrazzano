@@ -94,7 +94,6 @@ func TestAppendDexOverrides(t *testing.T) {
 	kvs, err := AppendDexOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
 
 	a.NoError(err, "AppendDexOverrides returned an error")
-
 	a.Contains(kvs, bom.KeyValue{
 		Key:   ingressClassKey,
 		Value: ingressClass,
@@ -176,8 +175,8 @@ func TestPopulateAdminUserData(t *testing.T) {
 
 // TestPopulateClients tests the functions to populate client data.
 // GIVEN a Verrazzano CR
-// WHEN I call populatePKCEClient
-// THEN it populates the PKCE client data
+// WHEN I call populatePKCEClient and populatePGClient
+// THEN it populates the respective client data
 func TestPopulateClients(t *testing.T) {
 	assert.True(t, true)
 	vz := &vzapi.Verrazzano{
@@ -192,11 +191,14 @@ func TestPopulateClients(t *testing.T) {
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 	dnsHost := "test.dns.io"
 
-	staticClientData, err := populateStaticClientsTemplate(ctx)
+	staticClientData, err := populateStaticClientsTemplate()
 	assert.NoError(t, err)
 	err = populatePKCEClient(ctx, dnsHost, &staticClientData)
 	assert.NoError(t, err)
+	err = populatePGClient(ctx, &staticClientData)
+	assert.NoError(t, err)
 	clientDataStr := staticClientData.String()
 	assert.True(t, strings.Contains(clientDataStr, pkceClient))
+	assert.True(t, strings.Contains(clientDataStr, pgClient))
 	assert.True(t, strings.Contains(clientDataStr, "https://verrazzano."+dnsHost+"/*"))
 }

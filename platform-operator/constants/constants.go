@@ -298,7 +298,7 @@ const VerrazzanoModuleEventLabel = "module.verrazzano.io/event"
 const AlertmanagerIngress = "alertmanager"
 
 // DexNamespace is the Dex namespace name
-const DexNamespace = "dex"
+const DexNamespace = "verrazzano-auth"
 
 // DexIngress - the name of the ingress for Dex
 const DexIngress = "dex"

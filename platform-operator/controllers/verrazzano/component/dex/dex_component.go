@@ -4,9 +4,7 @@
 package dex
 
 import (
-	"context"
 	"fmt"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -21,12 +19,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -116,21 +111,7 @@ func (c DexComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // PreInstall handles the pre-install operations for the Dex component
 func (c DexComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret, create if it is not there
-	secret := &corev1.Secret{}
-	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.Verrazzano,
-	}, secret)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			ctx.Log().Debugf("Component Dex creating Verrazzano secret %s/%s",
-				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
-			if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-				return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf(err.Error())}
-			}
-		}
-		ctx.Log().Errorf("Component Dex failed to get the Verrazzano secret %s/%s: %v",
-			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
+	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
 

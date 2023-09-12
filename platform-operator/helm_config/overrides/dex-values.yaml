@@ -10,10 +10,6 @@ config:
   oauth2:
     skipApprovalScreen: true
     passwordConnector: local
-  staticClients:
-  - id: verrazzano-pg
-    name: verrazzano-pg
-    public: true
   frontend:
     issuer: Verrazzano
     logoURL: theme/logo.svg
