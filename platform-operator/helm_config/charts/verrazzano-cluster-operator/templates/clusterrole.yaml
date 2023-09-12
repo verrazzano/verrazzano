@@ -135,7 +135,11 @@ rules:
       - addons.cluster.x-k8s.io
     resources:
       - ociclusters
+      - ocivirtualmachinepools
+      - ocimanagedclusters
+      - ocimanagedcontrolplanes
       - ocimachinetemplates
+      - ocimanagedmachinepool
       - ocnecontrolplanes
       - ocneconfigtemplates
       - clusterresourcesets
@@ -148,6 +152,7 @@ rules:
     resources:
       - clusters
       - machinedeployments
+      - machinepools
     verbs:
       - create
       - update
