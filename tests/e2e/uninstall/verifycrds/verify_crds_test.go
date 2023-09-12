@@ -111,6 +111,8 @@ var opensearchOperatorCRDs = map[string]bool{
 	"opensearchroles.opensearch.opster.io":            false,
 	"opensearchuserrolebindings.opensearch.opster.io": false,
 	"opensearchusers.opensearch.opster.io":            false,
+	"opensearchtenants.opensearch.opster.io":          false,
+	"opensearchactiongroups.opensearch.opster.io":     false,
 }
 
 var t = framework.NewTestFramework("uninstall verify crds")

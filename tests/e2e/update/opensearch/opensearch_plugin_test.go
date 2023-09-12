@@ -19,7 +19,7 @@ var _ = t.Describe("Update Plugins", Label("f:platform-plugin.update"), func() {
 	t.It("opensearch update plugin", func() {
 		m := OpenSearchPlugins{Enabled: true, InstanceList: "abc"}
 		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.MasterRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 0, false)
+		update.ValidatePods(string(vmov1.MasterRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 0, false)
 		m = OpenSearchPlugins{Enabled: false, InstanceList: "analysis-stempel"}
 		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
 	})

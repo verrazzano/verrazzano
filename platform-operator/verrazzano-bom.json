@@ -945,6 +945,24 @@
           ]
         }
       ]
+    },
+    {
+      "name": "opensearch-operator",
+      "version": "v2.4.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "opensearch-operator",
+          "images": [
+            {
+              "image": "opensearch-operator",
+              "tag": "v2.4.0-20230912073036-b2338d7",
+              "helmFullImageKey": "manager.image.repository",
+              "helmTagKey": "manager.image.tag"
+            }
+          ]
+        }
+      ]
     }
   ],
   "supportedKubernetesVersions": [
