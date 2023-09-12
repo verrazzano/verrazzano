@@ -89,11 +89,8 @@ func (g grafanaComponent) ShouldUseModule() bool {
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{vmo.ComponentName, grafanadashboards.ComponentName, fluentoperator.ComponentName})
-
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName}),
 		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName, grafanadashboards.ComponentName}),
-		watch.GetModuleUpgradedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName, grafanadashboards.ComponentName}),
 	)
 }

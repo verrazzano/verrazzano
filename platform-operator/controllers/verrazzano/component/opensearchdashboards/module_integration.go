@@ -80,6 +80,5 @@ func (d opensearchDashboardsComponent) GetWatchDescriptors() []controllerspi.Wat
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName}),
 		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName}),
-		watch.GetModuleUpgradedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName}),
 	)
 }
