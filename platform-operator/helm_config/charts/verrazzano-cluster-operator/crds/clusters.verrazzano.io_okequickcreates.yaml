@@ -131,7 +131,6 @@ spec:
                         type: object
                     required:
                     - cniType
-                    - config
                     type: object
                   nodePools:
                     description: List of Node pools.

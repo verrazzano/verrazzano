@@ -34,14 +34,14 @@ func (o *OCNEOCIQuickCreate) ValidateCreate() error {
 	nsn := o.Spec.IdentityRef.AsNamespacedName()
 	creds, err := ctx.CredentialsLoader.GetCredentialsIfAllowed(ctx.Ctx, ctx.Cli, nsn, o.Namespace)
 	if err != nil {
-		return fmt.Errorf("cannot access credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
+		return fmt.Errorf("cannot access OCI credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
 	}
 	ociClient, err := ctx.OCIClientGetter(creds)
 	if err != nil {
 		return fmt.Errorf("failed to create OCI Client: %w", err)
 	}
 	// Validate the OCI Network
-	addOCINetworkErrors(ctx, ociClient, o.Spec.OCI.Network, "spec.oci.network")
+	addOCINetworkErrors(ctx, ociClient, o.Spec.OCI.Network, 4, "spec.oci.network")
 	// Validate the OCI Nodes
 	addOCINodeErrors(ctx, o.Spec.OCI.ControlPlane, "spec.oci.controlPlane")
 	for i, worker := range o.Spec.OCI.Workers {

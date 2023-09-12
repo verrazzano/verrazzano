@@ -53,6 +53,8 @@ type (
 		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}
 	Kubernetes struct {
+		// +kubebuilder:validation:pattern:="^v([0-9]+\.){2}[0-9]+$"
+
 		// Kubernetes version.
 		Version        string `json:"version"`
 		KubernetesBase `json:",inline"`
