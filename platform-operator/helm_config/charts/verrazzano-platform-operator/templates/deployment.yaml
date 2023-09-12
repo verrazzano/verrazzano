@@ -71,6 +71,14 @@ spec:
             - name: CLUSTER_OPERATOR_IMAGE
               value: {{ .Values.global.clusterOperatorImage }}
             {{- end }}
+            - name: GOPROXY
+              value: direct
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: verrazzano-github-token
+                  key: GITHUB_TOKEN
+                  optional: true
           resources:
             requests:
               memory: 72Mi

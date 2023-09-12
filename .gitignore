@@ -39,6 +39,7 @@ out/
 **/*test-result.xml
 **/*-cluster-dump
 **/*.log
+**/*.test
 platform-operator/THIRD_PARTY_LICENSES.txt
 cluster-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
