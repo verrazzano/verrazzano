@@ -483,7 +483,12 @@ func TestUpdateArgoCDClusterRoleBindingTemplate(t *testing.T) {
 		})
 	}
 }
-func TestMutateArgoCDSecretLabelDoesNotGetRemovedandCorrectSecretLabelIsAdded(t *testing.T) {
+
+// TestMutateArgoCDSecretThatExistingLabelDoesNotGetRemovedandClusterSecretLabelIsAdded tests the update of the ArgoCD Cluster Secret for a user when an existing label is present, but the cluster label is not present
+// GIVEN a call to update the ArgoCD Cluster Secret when the secret has a user provided label, but does not have the ArgoCD provided cluster label
+//
+//	THEN the ArgoCD cluster secret is created/updated via API with no error and the existing label remains, but the ArgoCD cluster label is added
+func TestMutateArgoCDClusterSecretThatExistingLabelDoesNotGetRemovedandClusterSecretLabelIsAdded(t *testing.T) {
 	// clear any cached user auth tokens when the test completes
 	defer rancherutil.DeleteStoredTokens()
 
@@ -547,4 +552,213 @@ func TestMutateArgoCDSecretLabelDoesNotGetRemovedandCorrectSecretLabelIsAdded(t 
 	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
 	assert.NoError(t, err)
 	assert.Equal(t, secret.Labels, map[string]string{"testlabel": "shouldnotbedeleted", "argocd.argoproj.io/secret-type": "cluster"})
+}
+
+// TestMutateArgoCDClusterSecretThatClusterSecretLabelIsAdded tests the update of the ArgoCD Cluster Secret for a user when there are no labels present in the cluster secret
+// GIVEN a call to update the ArgoCD Cluster Secret when the secret does not have the ArgoCD provided cluster label/a label at all
+//
+//	THEN the ArgoCD cluster secret is created/updated via API with no error and the ArgoCD cluster label is added
+func TestMutateArgoCDClusterSecretThatClusterSecretLabelIsAdded(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
+	cli := generateClientObject()
+	log := vzlog.DefaultLogger()
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      "cluster",
+		},
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
+			RancherRegistration: v1alpha1.RancherRegistration{
+				ClusterID: clusterID,
+			},
+		},
+	}
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    vzlog.DefaultLogger(),
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "demo" + "-" + clusterSecretName,
+			Namespace:   constants.ArgoCDNamespace,
+			Annotations: map[string]string{createTimestamp: time.Now().Add(-10 * time.Hour).Format(time.RFC3339), expiresAtTimestamp: time.Now().Format(time.RFC3339)},
+		},
+		Data: map[string][]byte{
+			"password": []byte("foobar"),
+		},
+	}
+
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	httpMock = expectHTTPRequests(httpMock)
+	rancherutil.RancherHTTPClient = httpMock
+
+	caData := []byte("ca")
+
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
+	assert.NoError(t, err)
+
+	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
+	assert.NoError(t, err)
+	assert.Equal(t, secret.Labels, map[string]string{"argocd.argoproj.io/secret-type": "cluster"})
+}
+
+// TestMutateArgoCDClusterSecretThatExistingLabelRemainsAndClusterSecretLabelRemains tests the update of the ArgoCD Cluster Secret for a user when there is the user-provided labels and the ArgoCD cluster label
+// GIVEN a call to update the ArgoCD Cluster Secret when the secret has both a user-provided label and an ArgoCD Cluster label
+//
+//	THEN the ArgoCD cluster secret is created/updated via API with no error and both labels should remain
+func TestMutateArgoCDClusterSecretThatExistingLabelRemainsAndClusterSecretLabelRemains(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
+	cli := generateClientObject()
+	log := vzlog.DefaultLogger()
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      "cluster",
+		},
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
+			RancherRegistration: v1alpha1.RancherRegistration{
+				ClusterID: clusterID,
+			},
+		},
+	}
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    vzlog.DefaultLogger(),
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "demo" + "-" + clusterSecretName,
+			Namespace:   constants.ArgoCDNamespace,
+			Annotations: map[string]string{createTimestamp: time.Now().Add(-10 * time.Hour).Format(time.RFC3339), expiresAtTimestamp: time.Now().Format(time.RFC3339)},
+			Labels:      map[string]string{"testlabel": "shouldnotbedeleted", "argocd.argoproj.io/secret-type": "cluster"},
+		},
+		Data: map[string][]byte{
+			"password": []byte("foobar"),
+		},
+	}
+
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	httpMock = expectHTTPRequests(httpMock)
+	rancherutil.RancherHTTPClient = httpMock
+
+	caData := []byte("ca")
+
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
+	assert.NoError(t, err)
+
+	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
+	assert.NoError(t, err)
+	assert.Equal(t, secret.Labels, map[string]string{"testlabel": "shouldnotbedeleted", "argocd.argoproj.io/secret-type": "cluster"})
+}
+
+// TestMutateArgoCDClusterSecretThatClusterSecretLabelRemains tests the update of the ArgoCD Cluster Secret for a user when there is the ArgoCD cluster label
+// GIVEN a call to update the ArgoCD Cluster Secret when the secret has an ArgoCD Cluster label
+//
+//	THEN the ArgoCD cluster secret is created/updated via API with no error and the ArgoCD Cluster label should remain
+func TestMutateArgoCDClusterSecretThatClusterSecretLabelRemains(t *testing.T) {
+	// clear any cached user auth tokens when the test completes
+	defer rancherutil.DeleteStoredTokens()
+
+	cli := generateClientObject()
+	log := vzlog.DefaultLogger()
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      "cluster",
+		},
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
+			RancherRegistration: v1alpha1.RancherRegistration{
+				ClusterID: clusterID,
+			},
+		},
+	}
+	r := &VerrazzanoManagedClusterReconciler{
+		Client: cli,
+		log:    vzlog.DefaultLogger(),
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "demo" + "-" + clusterSecretName,
+			Namespace:   constants.ArgoCDNamespace,
+			Annotations: map[string]string{createTimestamp: time.Now().Add(-10 * time.Hour).Format(time.RFC3339), expiresAtTimestamp: time.Now().Format(time.RFC3339)},
+			Labels:      map[string]string{"argocd.argoproj.io/secret-type": "cluster"},
+		},
+		Data: map[string][]byte{
+			"password": []byte("foobar"),
+		},
+	}
+
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	httpMock = expectHTTPRequests(httpMock)
+	rancherutil.RancherHTTPClient = httpMock
+
+	caData := []byte("ca")
+
+	rc, err := rancherutil.NewRancherConfigForUser(cli, constants.ArgoCDClusterRancherUsername, "foobar", rancherutil.RancherIngressServiceHost(), log)
+	assert.NoError(t, err)
+
+	err = r.mutateArgoCDClusterSecret(secret, rc, vmc.Name, clusterID, rancherURL, caData)
+	assert.NoError(t, err)
+	assert.Equal(t, secret.Labels, map[string]string{"argocd.argoproj.io/secret-type": "cluster"})
 }
