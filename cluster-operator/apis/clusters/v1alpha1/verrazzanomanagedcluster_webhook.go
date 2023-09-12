@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -95,9 +94,7 @@ func getClient() (client.Client, error) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	AddToScheme(scheme)
-	scheme.AddKnownTypes(schema.GroupVersion{
-		Version: "v1",
-	}, &corev1.Secret{}, &corev1.ConfigMap{})
+	corev1.AddToScheme(scheme)
 	scheme.AddKnownTypes(v1beta1.SchemeGroupVersion, &v1beta1.Verrazzano{}, &v1beta1.VerrazzanoList{})
 	meta_v1.AddToGroupVersion(scheme, v1beta1.SchemeGroupVersion)
 

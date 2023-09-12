@@ -113,7 +113,7 @@ func (y *YAMLApplier) ApplyF(filePath string) error {
 	return y.doFileAction(filePath, y.applyAction)
 }
 
-// ApplyB applies a spec to Kubernetes via a byte slice
+// ApplyS applies a spec to Kubernetes via a string
 func (y *YAMLApplier) ApplyS(spec string) error {
 	return y.doStringAction(spec, y.applyAction)
 }
@@ -140,6 +140,11 @@ func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args any) error {
 // DeleteF deletes a file spec from Kubernetes
 func (y *YAMLApplier) DeleteF(filePath string) error {
 	return y.doFileAction(filePath, y.deleteAction)
+}
+
+// DeleteS deletes resources in a spec from Kubernetes via a string
+func (y *YAMLApplier) DeleteS(spec string) error {
+	return y.doStringAction(spec, y.deleteAction)
 }
 
 // DeleteFWithDependents deletes a file spec from Kubernetes along with other dependent objects in the background
