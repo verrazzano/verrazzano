@@ -100,33 +100,38 @@ spec:
                         description: CNI Type for cluster networking. May be FLANNEL_OVERLAY
                           or OCI_VCN_IP_NATIVE.
                         type: string
-                      createVCN:
-                        default: false
-                        description: If true, a new VCN is created for the cluster.
-                          The default is false.
-                        type: boolean
-                      subnets:
-                        description: List of existing subnets that will be used by
-                          the cluster.
-                        items:
-                          properties:
-                            id:
-                              description: The ID of the subnet.
-                              type: string
-                            role:
-                              description: Role of subnet within the cluster.
-                              type: string
-                          required:
-                          - id
-                          - role
-                          type: object
-                        type: array
-                      vcn:
-                        description: OCID of an existing VCN to create the cluster
-                          inside.
-                        type: string
+                      config:
+                        description: VCN and subnet settings for existing networks.
+                        properties:
+                          createVCN:
+                            default: false
+                            description: If true, a new VCN is created for the cluster.
+                              The default is false.
+                            type: boolean
+                          subnets:
+                            description: List of existing subnets that will be used
+                              by the cluster.
+                            items:
+                              properties:
+                                id:
+                                  description: The ID of the subnet.
+                                  type: string
+                                role:
+                                  description: Role of subnet within the cluster.
+                                  type: string
+                              required:
+                              - id
+                              - role
+                              type: object
+                            type: array
+                          vcn:
+                            description: OCID of an existing VCN to create the cluster
+                              inside.
+                            type: string
+                        type: object
                     required:
                     - cniType
+                    - config
                     type: object
                   nodePools:
                     description: List of Node pools.
@@ -176,52 +181,13 @@ spec:
                       properties:
                         name:
                           type: string
+                        replicas:
+                          type: integer
                       required:
                       - name
+                      - replicas
                       type: object
                     type: array
-                type: object
-              privateRegistry:
-                description: Private Registry settings for the workload cluster.
-                properties:
-                  credentialSecret:
-                    description: Reference to private registry credentials secret.
-                    properties:
-                      name:
-                        description: Name of the ref.
-                        maxLength: 63
-                        minLength: 1
-                        type: string
-                      namespace:
-                        description: Namespace of the ref.
-                        maxLength: 63
-                        minLength: 1
-                        type: string
-                    required:
-                    - name
-                    - namespace
-                    type: object
-                  url:
-                    description: Private registry URL.
-                    type: string
-                required:
-                - url
-                type: object
-              proxy:
-                description: HTTP Proxy settings.
-                properties:
-                  httpProxy:
-                    description: HTTP Proxy string.
-                    type: string
-                  httpsProxy:
-                    description: HTTPS Proxy string.
-                    type: string
-                  noProxy:
-                    description: No Proxy string.
-                    type: string
-                required:
-                - httpProxy
-                - httpsProxy
                 type: object
             required:
             - identityRef

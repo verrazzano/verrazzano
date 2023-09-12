@@ -6,11 +6,10 @@ package clusteragent
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c clusterAgentComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{oam.ComponentName, istio.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{oam.ComponentName})
 }
