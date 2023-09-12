@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -22,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,13 +33,32 @@ import (
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
+	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
+	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		controllerCtx.Log.ErrorfThrottled(err.Error())
 		// This is a fatal error which should never happen, don't requeue
 		return result.NewResult()
 	}
+	counterMetricObject.Inc()
 
+	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           actualCR.Name,
 		Namespace:      actualCR.Namespace,
@@ -46,6 +67,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
+		errorCounterMetricObject.Inc()
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
@@ -58,6 +80,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
 		controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
+		if err != nil {
+			errorCounterMetricObject.Inc()
+		}
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
@@ -65,6 +90,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// Always use actualCR when updating status
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
+		errorCounterMetricObject.Inc()
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	effectiveCR.Status = actualCR.Status
@@ -74,6 +100,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// See vzcomponent_status.go, UpdateVerrazzanoComponentStatus
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
+			errorCounterMetricObject.Inc()
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
