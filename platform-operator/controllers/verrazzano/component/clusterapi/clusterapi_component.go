@@ -263,45 +263,16 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	//overrides, err := createOverrides(ctx)
-	//if err != nil {
-	//	return err
-	//}
-
-	//overridesContext := newOverridesContext(overrides)
-
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		DeleteAll: true,
-		//CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		//BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		//ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		//InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
+		DeleteAll:        true,
 		IncludeNamespace: true,
 		IncludeCRDs:      false,
 	}
 	return capiClient.Delete(deleteOptions)
-	//err = capiClient.Delete(deleteOptions)
-	//if err != nil {
-	//	// Gross hack to catch case where CAPI delete is in a broken state; declare the operation successful and
-	//	// delete the namespace explicitly in post-install
-	//	if strings.Contains(err.Error(), "failed to identify the namespace") {
-	//		ctx.Log().Infof("Caught expected error, allowing delete to continue: %s", err.Error())
-	//		return nil
-	//	}
-	//}
-	//return err
 }
 
-func (c clusterAPIComponent) PostUninstall(componentCtx spi.ComponentContext) error {
-	//componentCtx.Log().Info("Deleting namespace %s", ComponentNamespace)
-	//err := resource.Resource{
-	//	Name:   ComponentNamespace,
-	//	Client: componentCtx.Client(),
-	//	Object: &corev1.Namespace{},
-	//	Log:    componentCtx.Log(),
-	//}.RemoveFinalizersAndDelete()
-	//return client.IgnoreNotFound(err)
+func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
