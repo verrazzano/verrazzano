@@ -85,7 +85,7 @@ for imagename in "${!imagename_sizes_fileprev[@]}"; do
   size2="${imagename_sizes_filenew[$imagename]}"
 
 # Check if image size has increased by 0.1MB
-  if [ -n "$size1" ] && [ -n "$size2" ] && [ "$size2" -gt 0 ] && [ "$((size2+100000))" -gt "$size1" ]; then
+  if [ -n "$size1" ] && [ -n "$size2" ] && [ "$size2" -gt 0 ] && [ "$size2" -gt "$((size1+100000))" ]; then
     IMAGE_SIZE_DIFF_FOUND="true"
     echo "Image size for $imagename has increased from $((size1/1000000))MB to $((size2/1000000))MB "
   fi
