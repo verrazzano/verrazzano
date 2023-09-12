@@ -22,6 +22,9 @@ const (
 	localClusterPrefix          = "/clusters/local"
 	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
 	contentTypeHeader           = "Content-Type"
+
+	userImpersontaionHeader  = "Impersonate-User"
+	groupImpersonationHeader = "Impersonate-Group"
 )
 
 // APIRequest stores the data necessary to make a request to the API server
@@ -32,6 +35,7 @@ type APIRequest struct {
 	Client        *retryablehttp.Client
 	APIServerURL  string
 	CallbackPath  string
+	BearerToken   string
 	Log           *zap.SugaredLogger
 }
 
@@ -109,6 +113,13 @@ func (a *APIRequest) reformatAPIRequest(req *http.Request) (*retryablehttp.Reque
 	formattedURL.RawQuery = req.URL.RawQuery
 	formattedReq.URL = formattedURL
 
+	err = setImpersonationHeaders(formattedReq)
+	if err != nil {
+		a.Log.Errorf("Failed to set impersonation headers for request: %v", err)
+		return nil, err
+	}
+	formattedReq.Header.Set("Authorization", "Bearer "+a.BearerToken)
+
 	retryableReq, err := retryablehttp.FromRequest(formattedReq)
 	if err != nil {
 		a.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
@@ -173,6 +184,20 @@ func getIngressHost(req *http.Request) string {
 		return host
 	}
 	return "invalid-hostname"
+}
+
+// setImpersonationHeaders sets the impersonation headers from the JWT token given a request
+func setImpersonationHeaders(req *http.Request) error {
+	impersonationHeaders, err := auth.GetImpersonationHeadersFromRequest(req)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set(userImpersontaionHeader, impersonationHeaders.User)
+	for _, group := range impersonationHeaders.Groups {
+		req.Header.Add(groupImpersonationHeader, group)
+	}
+	return nil
 }
 
 // validateRequest performs request validation before the request is processed

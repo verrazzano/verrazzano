@@ -1,0 +1,33 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+spec:
+  identityRef:
+    name: test
+    namespace: default
+  kubernetes:
+    version: "v1.26.2"
+  oke:
+    compartment: test
+    region: us-ashburn-1
+    imageId: test
+    sshPublicKey: ssh-rsa test
+    network:
+      cniType: FLANNEL_OVERLAY
+      config:
+        createVCN: false
+        vcn: test
+        subnets:
+          - id: test
+            role: service-lb
+          - id: test
+            role: control-plane-endpoint
+          - id: test
+            role: worker
+    nodePools:
+      - name: test
+        ocpus: 2
+        memoryGbs: 16
+        bootVolumeGbs: 50
+        replicas: 1
+        shape: VM.Standard.E4.Flex

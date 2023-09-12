@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/ociocne"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/oke"
@@ -134,7 +135,9 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 	}
 	if props.EnableQuickCreate {
 		if err = (&ociocne.ClusterReconciler{
-			Client:            mgr.GetClient(),
+			Base: &controller.Base{
+				Client: mgr.GetClient(),
+			},
 			Scheme:            mgr.GetScheme(),
 			Logger:            log,
 			CredentialsLoader: oci.CredentialsLoaderImpl{},
@@ -146,7 +149,13 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 			os.Exit(1)
 		}
 		if err = (&oke.ClusterReconciler{
-			Client: mgr.GetClient(),
+			Base: &controller.Base{
+				Client: mgr.GetClient(),
+			},
+			CredentialsLoader: oci.CredentialsLoaderImpl{},
+			OCIClientGetter: func(credentials *oci.Credentials) (oci.Client, error) {
+				return oci.NewClient(credentials)
+			},
 			Scheme: mgr.GetScheme(),
 			Logger: log,
 		}).SetupWithManager(mgr); err != nil {

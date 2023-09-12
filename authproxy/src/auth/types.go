@@ -40,3 +40,9 @@ type OIDCConfiguration struct {
 	ClientID    string
 	CallbackURL string
 }
+
+// ImpersonationHeaders returns the user and group impersonation headers from JWT tokens
+type ImpersonationHeaders struct {
+	User   string   `json:"preferred_username"`
+	Groups []string `json:"groups"`
+}
