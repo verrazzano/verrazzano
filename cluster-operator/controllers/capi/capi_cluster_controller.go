@@ -228,6 +228,7 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	// apply registration yaml to managed cluster
 	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
 	err = yamlApplier.ApplyS(registryYaml)
