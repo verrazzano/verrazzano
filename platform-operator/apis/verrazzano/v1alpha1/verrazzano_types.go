@@ -1195,8 +1195,10 @@ type DexComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
-	// but in the event of conflicting fields, the last override in the list takes precedence over any others.
-	// It is a placeholder for a future usage
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/dex/values.yaml %}} )
+	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }

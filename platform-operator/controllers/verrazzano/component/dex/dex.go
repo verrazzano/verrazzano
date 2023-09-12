@@ -75,6 +75,7 @@ type redirectURIsData struct {
 	OSHostExists bool
 }
 
+// Structure to redirect URIs of client verrazzano-pkce
 const pkceClientUrisTemplate = `redirectURIs: [
       "https://verrazzano.{{.DNSSubDomain}}/*",
       "https://verrazzano.{{.DNSSubDomain}}/_authentication_callback",
@@ -158,7 +159,6 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build Dex image overrides from the Verrazzano BOM: %v", err)
 	}
 	kvs = append(kvs, image...)
-	ctx.Log().Infof("AppendDexOverrides: Dex image %s", image)
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -166,7 +166,6 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		ctx.Log().Errorf("Component Dex failed retrieving DNS sub domain: %v", err)
 		return nil, err
 	}
-	ctx.Log().Infof("AppendDexOverrides: DNSDomain returned %s", dnsSubDomain)
 
 	host := constants.DexHostPrefix + "." + dnsSubDomain
 
@@ -191,6 +190,7 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
 
+	// Populate local admin user data, used to configure the staticPassword in Dex
 	staticUserData, err := populateStaticPasswordsTemplate()
 	if err != nil {
 		ctx.Log().Errorf("Component Dex failed to populate static user template: %v", err)
@@ -202,7 +202,6 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		return nil, err
 	}
 
-	// Populate other users as appropriate, before creating the overrides file
 	userOverridePattern := tmpFilePrefix + "user-" + "*." + tmpSuffix
 	userOverridesFile, err := generateOverridesFile(staticUserData.Bytes(), userOverridePattern)
 	if err != nil {
@@ -210,12 +209,12 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	}
 	kvs = append(kvs, bom.KeyValue{Value: userOverridesFile, IsFile: true})
 
+	// Populate data for client verrazzano-pkce, used to configure the staticClient in Dex
 	staticClientData, err := populateStaticClientsTemplate(ctx)
 	if err != nil {
 		ctx.Log().Errorf("Component Dex failed to populate static client template: %v", err)
 		return nil, err
 	}
-
 	err = populatePKCEClient(ctx, dnsSubDomain, &staticClientData)
 	if err != nil {
 		ctx.Log().Errorf("Component Dex failed to configure PKCE client: %v", err)
@@ -235,7 +234,6 @@ func AppendDexOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Dex Component
 func preInstallUpgrade(ctx spi.ComponentContext) error {
-	// Do nothing if dry run
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("Dex preInstallUpgrade dry run")
 		return nil
@@ -323,7 +321,7 @@ func populateStaticPasswordsTemplate() (bytes.Buffer, error) {
 	return b, nil
 }
 
-// populateStaticPasswords populates the data for the admin user, created as static password  in Dex
+// populateAdminUser populates the data for the admin user, created as static password in Dex
 func populateAdminUser(ctx spi.ComponentContext, b *bytes.Buffer) error {
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -351,7 +349,7 @@ func populateAdminUser(ctx spi.ComponentContext, b *bytes.Buffer) error {
 	data.UserID = uuid.New().String()
 
 	// Setting the verrazzano user for e-mail. There is no validation for e-mail in Dex as of now
-	// This is used to prompt for the user-name in the Dex screen, even though the input is e-mail.
+	// This is used to prompt for the user-name in the login screen.
 	data.Email = string(vzUser)
 
 	t, err := template.New("").Parse(passwordTemplate)
@@ -376,7 +374,7 @@ func generateBCCryptHash(ctx spi.ComponentContext, password []byte) (string, err
 	return string(hashedPassword), nil
 }
 
-// populateStaticClients populates the helm overrides to configure clients verrazzano-pkce and verrazzano-pg
+// populateStaticClientsTemplate populates the client template
 func populateStaticClientsTemplate(ctx spi.ComponentContext) (bytes.Buffer, error) {
 	var b bytes.Buffer
 	t, err := template.New("").Parse(staticClientTemplate)
