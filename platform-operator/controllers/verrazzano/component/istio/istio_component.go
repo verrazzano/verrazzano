@@ -461,9 +461,6 @@ func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) PostUpgrade(compContext spi.ComponentContext) error {
-	// Make sure namespaces get updated with Istio Enabled
-	callCreateNamespaces(compContext)
-
 	err := deleteIstioCoreDNS(compContext)
 	if err != nil {
 		return err
