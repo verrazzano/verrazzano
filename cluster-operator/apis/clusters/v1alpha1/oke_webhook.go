@@ -38,6 +38,7 @@ func (o *OKEQuickCreate) ValidateCreate() error {
 	}
 	// Validate the OCI Network
 	if o.Spec.OKE.Network != nil {
+		addCNITypeErrors(ctx, o.Spec.OKE.Network.CNIType, "spec.oke.network")
 		addOCINetworkErrors(ctx, ociClient, o.Spec.OKE.Network.Config, 3, "spec.oke.network.config")
 	}
 	for i, np := range o.Spec.OKE.NodePools {
@@ -47,6 +48,15 @@ func (o *OKEQuickCreate) ValidateCreate() error {
 		return ctx.Errors
 	}
 	return nil
+}
+
+func addCNITypeErrors(ctx *validationContext, cniType CNIType, field string) {
+	switch cniType {
+	case FlannelOverlay, VCNNative:
+		return
+	default:
+		ctx.Errors.Addf("%s.cniType is invalid", field)
+	}
 }
 
 func (o *OKEQuickCreate) ValidateUpdate(old runtime.Object) error {

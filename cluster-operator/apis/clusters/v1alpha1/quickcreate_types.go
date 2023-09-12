@@ -14,7 +14,7 @@ type (
 		// +patchStrategy=merge,retainKeys
 		// Role of subnet within the cluster.
 		Role SubnetRole `json:"role" patchStrategy:"merge,retainKeys" patchMergeKey:"role"`
-		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+		// +kubebuilder:validation:Pattern:=`^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$`
 
 		// The ID of the subnet.
 		ID string `json:"id"`
@@ -34,7 +34,7 @@ type (
 	CommonOCI struct {
 		// OCI region where the cluster will be created.
 		Region string `json:"region,omitempty"`
-		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+		// +kubebuilder:validation:Pattern:=`^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$`
 
 		// OCI Compartment OCID where the cluster will be created
 		Compartment string `json:"compartment,omitempty"`
@@ -42,7 +42,7 @@ type (
 
 		// SSH public key for node ssh.
 		SSHPublicKey *string `json:"sshPublicKey,omitempty"`
-		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+		// +kubebuilder:validation:Pattern:=`^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$`
 
 		// Node image OCID.
 		// The default is the latest OL8 image in the provided compartment.
@@ -53,7 +53,7 @@ type (
 		CloudInitScript []string `json:"cloudInitScript,omitempty"`
 	}
 	Kubernetes struct {
-		// +kubebuilder:validation:pattern:="^v([0-9]+\.){2}[0-9]+$"
+		// +kubebuilder:validation:Pattern:=`^v([0-9]+\.){2}[0-9]+$`
 
 		// Kubernetes version.
 		Version        string `json:"version"`
@@ -68,13 +68,13 @@ type (
 		ClusterNetwork ClusterNetwork `json:"clusterNetwork"`
 	}
 	ClusterNetwork struct {
-		// +kubebuilder:validation:pattern:="^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$"
+		// +kubebuilder:validation:Pattern:=`^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$`
 		// +optional
 
 		// IP range for Kubernetes pods.
 		// The default is `10.244.0.0/16`
 		PodCIDR string `json:"podCIDR"`
-		// +kubebuilder:validation:pattern:="^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$"
+		// +kubebuilder:validation:Pattern:=`^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$`
 		// +optional
 
 		// IP range for Kubernetes service addresses.
