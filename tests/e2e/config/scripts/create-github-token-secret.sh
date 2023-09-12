@@ -22,5 +22,5 @@ fi
 
 set +x # always disable shell debug for this
 kubectl create secret generic ${NAME} \
-                            --GITHUB_TOKEN=${GITHUB_TOKEN} \
+                            --from-literal=GITHUB_TOKEN="${GITHUB_TOKEN}" \
                             -n ${NAMESPACE}
