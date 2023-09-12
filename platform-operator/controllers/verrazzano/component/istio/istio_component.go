@@ -82,9 +82,6 @@ const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 const istioRevisionMutatingWebhook = "istio-revision-tag-default"
 
 // for unit testing
-type funcCreateNamespaces func(ctx spi.ComponentContext) error
-
-var callCreateNamespaces funcCreateNamespaces = common.CreateAndLabelNamespaces
 var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
 const (
