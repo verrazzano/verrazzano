@@ -7,13 +7,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"net/http"
 	"net/http/httptest"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 
@@ -21,7 +16,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testauth"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (

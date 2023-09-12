@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"github.com/verrazzano/verrazzano/authproxy/src/cors"
 	"go.uber.org/zap"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
