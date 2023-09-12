@@ -55,7 +55,7 @@ func getVersionMapping(ctx context.Context, cli clipkg.Client) (map[string]*Vers
 		return nil, err
 	}
 	if cm.Data == nil {
-		return nil, nil
+		return nil, errors.New("no OCNE Metadata")
 	}
 	mapping := cm.Data["mapping"]
 	if len(mapping) < 1 {
