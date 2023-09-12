@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -19,9 +19,8 @@ import (
 )
 
 const (
-	localClusterPrefix          = "/clusters/local"
-	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
-	contentTypeHeader           = "Content-Type"
+	clusterPrefix     = "/clusters"
+	contentTypeHeader = "Content-Type"
 
 	userImpersontaionHeader  = "Impersonate-User"
 	groupImpersonationHeader = "Impersonate-Group"
@@ -36,6 +35,7 @@ type APIRequest struct {
 	APIServerURL  string
 	CallbackPath  string
 	BearerToken   string
+	K8sClient     k8sclient.Client
 	Log           *zap.SugaredLogger
 }
 
@@ -95,38 +95,18 @@ func (a *APIRequest) preprocessAPIRequest() (*retryablehttp.Request, error) {
 // reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
 func (a *APIRequest) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
 	formattedReq := req.Clone(context.TODO())
-	formattedReq.Host = kubernetesAPIServerHostname
 	formattedReq.RequestURI = ""
 
-	path := strings.Replace(req.URL.Path, localClusterPrefix, "", 1)
-	newReq, err := url.JoinPath(a.APIServerURL, path)
+	clusterName, err := getClusterName(req)
 	if err != nil {
-		a.Log.Errorf("Failed to format request path for path %s: %v", path, err)
+		a.Log.Errorf("Failed to get cluster name from the request path: %v", err)
 		return nil, err
 	}
 
-	formattedURL, err := url.Parse(newReq)
-	if err != nil {
-		a.Log.Errorf("Failed to format incoming url: %v", err)
-		return nil, err
+	if clusterName == "local" {
+		return a.reformatLocalClusterRequest(req)
 	}
-	formattedURL.RawQuery = req.URL.RawQuery
-	formattedReq.URL = formattedURL
-
-	err = setImpersonationHeaders(formattedReq)
-	if err != nil {
-		a.Log.Errorf("Failed to set impersonation headers for request: %v", err)
-		return nil, err
-	}
-	formattedReq.Header.Set("Authorization", "Bearer "+a.BearerToken)
-
-	retryableReq, err := retryablehttp.FromRequest(formattedReq)
-	if err != nil {
-		a.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
-		return retryableReq, err
-	}
-
-	return retryableReq, nil
+	return a.reformatManagedClusterRequest(req, clusterName)
 }
 
 // sendAndReturnAPIRequest send the reformatted request to the API server and returns the result
@@ -202,7 +182,7 @@ func setImpersonationHeaders(req *http.Request) error {
 
 // validateRequest performs request validation before the request is processed
 func validateRequest(req *http.Request) error {
-	if !strings.HasPrefix(req.URL.Path, localClusterPrefix) {
+	if !strings.HasPrefix(req.URL.Path, clusterPrefix) {
 		return fmt.Errorf("request path: '%v' does not have expected cluster path, i.e. '/clusters/local/api/v1'", req.URL.Path)
 	}
 	return nil

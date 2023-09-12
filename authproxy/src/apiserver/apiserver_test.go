@@ -7,8 +7,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"net/http"
 	"net/http/httptest"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 
@@ -32,6 +37,7 @@ func TestForwardAPIRequest(t *testing.T) {
 		reqHeaders       map[string]string
 		expectedStatus   int
 		expectedRespHdrs map[string]string
+		clusterPath      string
 		unauthenticated  bool
 	}{
 		// GIVEN an options request
@@ -44,6 +50,7 @@ func TestForwardAPIRequest(t *testing.T) {
 			expectedRespHdrs: map[string]string{
 				"Content-Length": "0",
 			},
+			clusterPath: localClusterPrefix,
 		},
 		// GIVEN a processed request
 		// WHEN  the request is received
@@ -52,6 +59,7 @@ func TestForwardAPIRequest(t *testing.T) {
 			name:            "processed request",
 			reqMethod:       http.MethodGet,
 			expectedStatus:  http.StatusOK,
+			clusterPath:     localClusterPrefix,
 			unauthenticated: true,
 		},
 		// GIVEN a get request
@@ -61,6 +69,7 @@ func TestForwardAPIRequest(t *testing.T) {
 			name:           "get request",
 			reqMethod:      http.MethodGet,
 			expectedStatus: http.StatusOK,
+			clusterPath:    localClusterPrefix,
 		},
 		// GIVEN a post request with headers
 		// WHEN  the request is forwarded
@@ -73,6 +82,20 @@ func TestForwardAPIRequest(t *testing.T) {
 				"test2": "header2",
 			},
 			expectedStatus: http.StatusOK,
+			clusterPath:    localClusterPrefix,
+		},
+		// GIVEN a managed cluster request
+		// WHEN  the request is forwarded
+		// THEN  the managed cluster processing is done correctly
+		{
+			name:      "managed cluster request",
+			reqMethod: http.MethodDelete,
+			reqHeaders: map[string]string{
+				"test1": "header1",
+				"test2": "header2",
+			},
+			expectedStatus: http.StatusOK,
+			clusterPath:    "/clusters/managed1",
 		},
 	}
 	for _, tt := range tests {
@@ -85,7 +108,22 @@ func TestForwardAPIRequest(t *testing.T) {
 			}))
 			defer server.Close()
 
-			url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
+			scheme := k8scheme.Scheme
+			err := v1alpha1.AddToScheme(scheme)
+			assert.NoError(t, err)
+			k8sCli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+				&v1alpha1.VerrazzanoManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "managed1",
+						Namespace: constants.VerrazzanoMultiClusterNamespace,
+					},
+					Status: v1alpha1.VerrazzanoManagedClusterStatus{
+						APIUrl: server.URL,
+					},
+				},
+			).Build()
+
+			url := fmt.Sprintf("%s%s%s", testAPIServerURL, localClusterPrefix, apiPath)
 			w := httptest.NewRecorder()
 			cli := retryablehttp.NewClient()
 			request := httptest.NewRequest(tt.reqMethod, url, strings.NewReader(""))
@@ -101,6 +139,7 @@ func TestForwardAPIRequest(t *testing.T) {
 				Client:        cli,
 				Authenticator: authenticator,
 				APIServerURL:  server.URL,
+				K8sClient:     k8sCli,
 				Log:           zap.S(),
 			}
 
@@ -133,6 +172,7 @@ func TestReformatAPIRequest(t *testing.T) {
 		name        string
 		url         string
 		expectedURL string
+		expectError bool
 	}{
 		// GIVEN a request to the Auth proxy server
 		// WHEN  the request is formatted correctly
@@ -144,11 +184,11 @@ func TestReformatAPIRequest(t *testing.T) {
 		},
 		// GIVEN a request to the Auth proxy server
 		// WHEN  the request is malformed
-		// THEN  a malformed request is returned
+		// THEN  a processing error is returned
 		{
 			name:        "test malformed request",
 			url:         "https://authproxy.io/malformedrequest1234",
-			expectedURL: fmt.Sprintf("%s/%s", apiRequest.APIServerURL, "malformedrequest1234"),
+			expectError: true,
 		},
 		// GIVEN a request to the Auth proxy server
 		// WHEN  the request has a query param
@@ -165,6 +205,11 @@ func TestReformatAPIRequest(t *testing.T) {
 			setEmptyToken(req)
 
 			formattedReq, err := apiRequest.reformatAPIRequest(req)
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+
 			assert.NoError(t, err)
 			assert.NotNil(t, formattedReq.URL)
 			assert.Equal(t, tt.expectedURL, formattedReq.URL.String())
@@ -242,5 +287,9 @@ func TestValidateRequest(t *testing.T) {
 
 func setEmptyToken(req *http.Request) {
 	testToken := fmt.Sprintf("info.%s.info", base64.RawURLEncoding.EncodeToString([]byte("{}")))
+	if req.Header == nil {
+		req.Header = make(map[string][]string)
+	}
+
 	req.Header.Set("Authorization", "Bearer "+testToken)
 }

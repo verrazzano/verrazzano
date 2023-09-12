@@ -144,6 +144,7 @@ func (h *Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
 		APIServerURL:  h.URL,
 		CallbackPath:  callbackPath,
 		BearerToken:   h.BearerToken,
+		K8sClient:     h.K8sClient,
 		Log:           h.Log,
 	}
 	apiRequest.ForwardAPIRequest()
