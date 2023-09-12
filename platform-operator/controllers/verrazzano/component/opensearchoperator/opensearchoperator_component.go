@@ -122,19 +122,21 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	ctx.Log().Infof("Applying OpensearchCluster CR")
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) {
+		ctx.Log().Infof("Applying OpensearchCluster CR")
 
-	args, err := buildArgsForOpenSearchCR(ctx)
-	if err != nil {
-		return err
-	}
-	// substitute template values to all files in the directory and apply the resulting YAML
-	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-	err = yamlApplier.ApplyFT(filePath, args)
+		args, err := buildArgsForOpenSearchCR(ctx)
+		if err != nil {
+			return err
+		}
+		// substitute template values to all files in the directory and apply the resulting YAML
+		filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+		yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+		err = yamlApplier.ApplyFT(filePath, args)
 
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to substitute template values for System Monitors: %v", err)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
+		}
 	}
 
 	return nil

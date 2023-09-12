@@ -5,10 +5,10 @@ package ociocne
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
+	ocicommon "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci/common"
 	ocinetwork "github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci/network"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -20,17 +20,12 @@ import (
 type (
 	//Properties contains all the properties for rendering OCI OCNE Cluster templates.
 	Properties struct {
-		*ocne.VersionDefaults `json:",inline"`
-		*oci.Credentials      `json:",inline"` //nolint:gosec //#gosec G101
-		*vmcv1alpha1.Network
-		Name                           string
-		Namespace                      string
-		vmcv1alpha1.OCIOCNEClusterSpec `json:",inline"`
-		LoadBalancerSubnet             string
-		ProviderID                     string
-		ExistingSubnets                []oci.Subnet
-		OCIClientGetter                func(creds *oci.Credentials) (oci.Client, error)
-		DockerConfigJSON               string
+		ocicommon.Values
+		*ocne.VersionDefaults
+		vmcv1alpha1.OCIOCNEClusterSpec
+		LoadBalancerSubnet string
+		ProviderID         string
+		DockerConfigJSON   string
 	}
 )
 
@@ -47,26 +42,19 @@ func NewProperties(ctx context.Context, cli clipkg.Client, loader oci.Credential
 		return nil, err
 	}
 	props := &Properties{
+		Values: ocicommon.Values{
+			Name:            q.Name,
+			Namespace:       q.Namespace,
+			Credentials:     creds,
+			Network:         q.Spec.OCI.Network,
+			OCIClientGetter: ociClientGetter,
+		},
 		VersionDefaults:    versions,
-		Credentials:        creds,
-		Name:               q.Name,
-		Namespace:          q.Namespace,
 		OCIOCNEClusterSpec: q.Spec,
-		Network:            q.Spec.OCI.Network,
 		ProviderID:         oci.ProviderID,
-		OCIClientGetter:    ociClientGetter,
 	}
-	// If there's no OCI network, check if the network has created
-	if !props.HasOCINetwork() {
-		network, err := ocinetwork.GetNetwork(ctx, cli, q)
-		if err == nil {
-			props.Network = network
-		}
-	}
-	if !props.IsQuickCreate() {
-		if err := props.SetExistingSubnets(ctx); err != nil {
-			return nil, err
-		}
+	if err := props.SetCommonValues(ctx, cli, q, ocinetwork.GVKOCICluster); err != nil {
+		return nil, err
 	}
 	if props.HasImagePullSecret() {
 		if err := props.SetDockerConfigJSON(ctx, cli); err != nil {
@@ -88,44 +76,12 @@ func (p *Properties) ApplyTemplate(cli clipkg.Client, templates ...[]byte) error
 	return nil
 }
 
-// HasOCINetwork returns true if the OCI Network is present
-func (p *Properties) HasOCINetwork() bool {
-	return p.Network != nil && len(p.LoadBalancerSubnet) > 0
-}
-
-func (p *Properties) IsQuickCreate() bool {
-	if p.Network == nil {
-		return true
-	}
-	return p.Network.CreateVCN
-}
-
 func (p *Properties) IsControlPlaneOnly() bool {
 	return len(p.OCI.Workers) < 1
 }
 
 func (p *Properties) HasImagePullSecret() bool {
 	return p.PrivateRegistry != nil && len(p.PrivateRegistry.CredentialsSecret.Name) > 0
-}
-
-func (p *Properties) SetExistingSubnets(ctx context.Context) error {
-	if p.Credentials == nil {
-		return errors.New("no credentials")
-	}
-	ociClient, err := p.OCIClientGetter(p.Credentials)
-	if err != nil {
-		return err
-	}
-	var subnetList []oci.Subnet
-	for _, sn := range p.Network.Subnets {
-		subnet, err := ociClient.GetSubnetByID(ctx, sn.ID, string(sn.Role))
-		if err != nil {
-			return err
-		}
-		subnetList = append(subnetList, *subnet)
-	}
-	p.ExistingSubnets = subnetList
-	return nil
 }
 
 func (p *Properties) SetDockerConfigJSON(ctx context.Context, cli clipkg.Client) error {

@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/file"
 	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testserver"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -76,6 +77,45 @@ func TestLoadCAData(t *testing.T) {
 	pool, err = loadCAData(config, log)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, pool)
+}
+
+// TestLoadBearerToken tests that the bearer token is properly loaded from the config
+func TestLoadBearerToken(t *testing.T) {
+	log := zap.S()
+
+	// GIVEN a config with Bearer Token populated
+	// WHEN  the bearer token is loaded
+	// THEN  the handler gets the bearer token data
+	testToken := "test-token"
+	config := &rest.Config{
+		BearerToken: testToken,
+	}
+	bearerToken, err := loadBearerToken(config, log)
+	assert.NoError(t, err)
+	assert.Equal(t, testToken, bearerToken)
+
+	// GIVEN a config with the Bearer Token file populated
+	// WHEN  the bearer token is loaded
+	// THEN  the handler gets the bearer token data
+	testTokenFile, err := file.MakeTempFile(testToken)
+	if testTokenFile != nil {
+		defer os.Remove(testTokenFile.Name())
+	}
+	assert.NoError(t, err)
+	config = &rest.Config{
+		BearerTokenFile: testTokenFile.Name(),
+	}
+	bearerToken, err = loadBearerToken(config, log)
+	assert.NoError(t, err)
+	assert.Equal(t, testToken, bearerToken)
+
+	// GIVEN a config with no bearer information
+	// WHEN  the bearer token is loaded
+	// THEN  the handler gets not bearer token data
+	config = &rest.Config{}
+	bearerToken, err = loadBearerToken(config, log)
+	assert.NoError(t, err)
+	assert.Empty(t, bearerToken)
 }
 
 // TestInitializeAuthenticator tests that the authenticator gets initialized if it has not previously
