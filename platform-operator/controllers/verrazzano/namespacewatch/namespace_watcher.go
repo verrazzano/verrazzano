@@ -106,7 +106,7 @@ func (nw *NamespacesWatcher) MoveSystemNamespacesToRancherSystemProject(rancherS
 			}
 			_, rancherProjectIDAnnotationExists := namespaceList.Items[i].Annotations[RancherProjectIDLabelKey]
 			if isVerrazzanoManagedNamespace(&(namespaceList.Items[i])) && !rancherProjectIDAnnotationExists {
-				nw.log.Infof("Updating the Labels and Annotations of a Namespace %v with Rancher System Project ID %v", namespaceList.Items[i].Namespace, rancherSystemProjectID)
+				nw.log.Debugf("Updating the Labels and Annotations of a Namespace %v with Rancher System Project ID %v", namespaceList.Items[i].Namespace, rancherSystemProjectID)
 				namespaceList.Items[i].Annotations[RancherProjectIDLabelKey] = rancherSystemProjectIDAnnotation
 				namespaceList.Items[i].Labels[RancherProjectIDLabelKey] = rancherSystemProjectID
 				if err = nw.client.Update(context.TODO(), &(namespaceList.Items[i]), &clipkg.UpdateOptions{}); err != nil {
