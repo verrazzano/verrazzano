@@ -31,6 +31,7 @@ fi
 #For admin cluster only, enable Argo CD
 if [ "${CLUSTER_COUNT}" -eq 1  ]; then
   yq -i eval '.spec.components.argoCD.enabled = true' "${VZ_CR_FILE}"
+  yq -i eval '.spec.components.dex.enabled = true' "${VZ_CR_FILE}"
 fi
 echo "VZ CR to be applied:"
 cat "${VZ_CR_FILE}"
