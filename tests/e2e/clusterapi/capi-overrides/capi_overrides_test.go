@@ -25,10 +25,10 @@ const (
 	waitTimeout            = 5 * time.Minute
 	pollingInterval        = 10 * time.Second
 	longWaitTimeout        = 20 * time.Minute
-	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/download/%s/core-components.yaml"
-	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/bootstrap-components.yaml"
-	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/download/%s/control-plane-components.yaml"
-	ociInfraURLFmt         = "https://github.com/oracle/cluster-api-provider-oci/releases/download/%s/infrastructure-components.yaml"
+	coreURLFmt             = "https://github.com/verrazzano/cluster-api/releases/%s/core-components.yaml"
+	ocneBootstrapURLFmt    = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/%s/bootstrap-components.yaml"
+	ocneControlPlaneURLFmt = "https://github.com/verrazzano/cluster-api-provider-ocne/releases/%s/control-plane-components.yaml"
+	ociInfraURLFmt         = "https://github.com/oracle/cluster-api-provider-oci/releases/%s/infrastructure-components.yaml"
 
 	// globalRegistryOverride - format string to override the registry to use for all providers
 	globalRegistryOverride = `
