@@ -10,7 +10,7 @@ config:
   oauth2:
     skipApprovalScreen: true
   frontend:
-    issuer: dex
+    issuer: "Log in to Verrazzano"
     logoURL: theme/logo.svg
     dir: /srv/dex/web
     theme: verrazzano
