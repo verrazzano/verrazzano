@@ -235,6 +235,19 @@ func ensureRancherRegistration(ctx context.Context, r *CAPIClusterReconciler, cl
 		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
 		return ctrl.Result{}, err
 	}
+
+	// get and label the cattle-system namespace
+	ns := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: common.CattleSystem}}
+	if _, err := ctrl.CreateOrUpdate(context.TODO(), workloadClient, ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels[constants.LabelVerrazzanoNamespace] = common.CattleSystem
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	err = r.persistClusterStatus(ctx, cluster, clusterID, registrationInitiated)
 	if err != nil {
 		r.Log.Infof("Failed to perist cluster status")
@@ -325,7 +338,7 @@ func (r *CAPIClusterReconciler) persistClusterStatus(ctx context.Context, cluste
 func (r *CAPIClusterReconciler) getWorkloadClusterKubeconfig(ctx context.Context, cluster *unstructured.Unstructured) ([]byte, error) {
 	// get the cluster kubeconfig
 	kubeconfigSecret := &v1.Secret{}
-	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: "default"}, kubeconfigSecret)
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: cluster.GetNamespace()}, kubeconfigSecret)
 	if err != nil {
 		r.Log.Warn(err, "failed to obtain workload cluster kubeconfig resource. Re-queuing...")
 		return nil, err
