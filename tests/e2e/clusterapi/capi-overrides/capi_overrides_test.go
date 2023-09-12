@@ -234,18 +234,14 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isStatusReconciling, longWaitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue())
 
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, ocneComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, ociComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, coreComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
+			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, ocneComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, ociComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, coreComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 
@@ -262,18 +258,14 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isStatusReconciling, longWaitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue())
 
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, "v1.6.1"); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, "v1.6.1"); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, "v0.11.0"); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, "v1.4.2"); err != nil {
-				t.Fail(err.Error())
-			}
+			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, "v1.6.1")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, "v1.6.1")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, "v0.11.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, "v1.4.2")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 
@@ -307,18 +299,14 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
 
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, ocneComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, ociComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
-			if _, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, coreComp.Version); err != nil {
-				t.Fail(err.Error())
-			}
+			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, ocneComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, ociComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, coreComp.Version)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 })
