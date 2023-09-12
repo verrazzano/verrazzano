@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"os"
 
 	"github.com/verrazzano/verrazzano/authproxy/src/config"
@@ -35,6 +36,7 @@ func main() {
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	opts := ctrl.Options{
 		Scheme: scheme,
 	}
