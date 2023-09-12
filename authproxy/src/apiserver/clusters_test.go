@@ -5,8 +5,10 @@ package apiserver
 
 import (
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +19,8 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+const caCertTestData = "../../internal/testdata/test-ca.crt"
 
 // TestGetClusterName tests that the cluster name can be retrieved from the request path
 func TestGetClusterName(t *testing.T) {
@@ -52,7 +56,9 @@ func TestGetClusterName(t *testing.T) {
 // WHEN the request is reformatted
 // THEN the new request URL contains the correctly formatted path
 func TestReformatClusterPath(t *testing.T) {
-	apiReq := APIRequest{}
+	apiReq := APIRequest{
+		APIServerURL: "https://apiserver.io",
+	}
 	testClusterName := "testName"
 	urlPath, err := url.Parse(fmt.Sprintf("https://apiserver.io/clusters/%s/apidata", testClusterName))
 	assert.NoError(t, err)
@@ -61,11 +67,9 @@ func TestReformatClusterPath(t *testing.T) {
 		URL: urlPath,
 	}
 
-	apiServerURL := "https://apiserver.io"
-
-	err = apiReq.reformatClusterPath(req, apiServerURL, testClusterName, localClusterPrefix)
+	err = apiReq.reformatClusterPath(req, testClusterName, localClusterPrefix)
 	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("%s%s/apidata", apiServerURL, localClusterPrefix), req.URL.String())
+	assert.Equal(t, fmt.Sprintf("%s%s/apidata", apiReq.APIServerURL, localClusterPrefix), req.URL.String())
 }
 
 // TestGetManagedClusterAPIURL tests that the managed cluster API URL can be obtained from the VMC
@@ -75,56 +79,132 @@ func TestGetManagedClusterAPIURL(t *testing.T) {
 	err := v1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err)
 
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&v1alpha1.VerrazzanoManagedCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vmcName,
-				Namespace: constants.VerrazzanoMultiClusterNamespace,
-			},
+	vmc := v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vmcName,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-	).Build()
-
+	}
 	apiReq := APIRequest{
-		K8sClient: cli,
-		Log:       zap.S(),
+		Log: zap.S(),
 	}
 
 	// GIVEN a cluster name
-	// WHEN the VMC does not exist
+	// WHEN the API URL is empty
 	// THEN an error is returned
-	_, err = apiReq.getManagedClusterAPIURL("incorrect-name")
+	err = apiReq.setManagedClusterAPIURL(vmc)
 	assert.Error(t, err)
 
-	// GIVEN a cluster name
-	// WHEN the VMC exists but the API URL is empty
-	// THEN an error is returned
-	_, err = apiReq.getManagedClusterAPIURL(vmcName)
-	assert.Error(t, err)
-
-	testURL := "test-url"
-	cli = fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&v1alpha1.VerrazzanoManagedCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vmcName,
-				Namespace: constants.VerrazzanoMultiClusterNamespace,
-			},
-			Status: v1alpha1.VerrazzanoManagedClusterStatus{
-				APIUrl: testURL,
-			},
+	testURL := "https://apiserver.io"
+	vmc = v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vmcName,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-	).Build()
-
-	apiReq = APIRequest{
-		K8sClient: cli,
-		Log:       zap.S(),
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
+			APIUrl: testURL,
+		},
 	}
 
 	// GIVEN a cluster name
 	// WHEN the VMC exists and has an API URL
 	// THEN the API URL is returned
-	apiURL, err := apiReq.getManagedClusterAPIURL(vmcName)
+	err = apiReq.setManagedClusterAPIURL(vmc)
 	assert.NoError(t, err)
-	assert.Equal(t, testURL, apiURL)
+	assert.Equal(t, testURL, apiReq.APIServerURL)
+}
+
+// TestRewriteClientCACerts tests that the CA certs can be rewritten in the client for managed cluster requests
+func TestRewriteClientCACerts(t *testing.T) {
+	apiReq := APIRequest{
+		Log: zap.S(),
+	}
+	scheme := k8scheme.Scheme
+	err := v1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err)
+
+	emptySecret := v1.Secret{}
+
+	secretName := "test-secret"
+	vmc := v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+			CASecret: secretName,
+		},
+	}
+
+	secretData, err := os.ReadFile(caCertTestData)
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name      string
+		vmc       v1alpha1.VerrazzanoManagedCluster
+		secret    *v1.Secret
+		expectErr bool
+	}{
+		// GIVEN a request to update the client CA
+		// WHEN the vmc does not have the CA secret populated
+		// THEN an error is returned
+		{
+			name:      "test empty VMC",
+			secret:    &emptySecret,
+			expectErr: true,
+		},
+		// GIVEN a request to update the client CA
+		// WHEN the CA secret does not exist
+		// THEN an error is returned
+		{
+			name:      "test secret does not exist",
+			vmc:       vmc,
+			secret:    &emptySecret,
+			expectErr: true,
+		},
+		// GIVEN a request to update the client CA
+		// WHEN the CA data is empty
+		// THEN an error is returned
+		{
+			name: "test secret data empty",
+			vmc:  vmc,
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+			},
+			expectErr: true,
+		},
+		// GIVEN a request to update the client CA
+		// WHEN the CA data is populated
+		// THEN no error is returned
+		{
+			name: "test valid secret",
+			vmc:  vmc,
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+				Data: map[string][]byte{
+					caCertKey: secretData,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiReq.K8sClient = fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.secret).Build()
+
+			err := apiReq.rewriteClientCACerts(tt.vmc)
+			if tt.expectErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
 
 // TestReformatManagedClusterRequest tests that the managed cluster request is reformatted correctly
@@ -137,14 +217,31 @@ func TestReformatManagedClusterRequest(t *testing.T) {
 	err := v1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err)
 	testURL := "https://managed.io"
+
+	secretName := "test-secret"
+	secretData, err := os.ReadFile(caCertTestData)
+	assert.NoError(t, err)
+
 	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&v1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      vmcName,
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
 			},
+			Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+				CASecret: secretName,
+			},
 			Status: v1alpha1.VerrazzanoManagedClusterStatus{
 				APIUrl: testURL,
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+			},
+			Data: map[string][]byte{
+				caCertKey: secretData,
 			},
 		},
 	).Build()
@@ -164,6 +261,56 @@ func TestReformatManagedClusterRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, newReq)
 	assert.Equal(t, fmt.Sprintf("%s/clusters/local/apidata", testURL), newReq.URL.String())
+}
+
+// TestProcessManagedClusterResources tests that the managed cluster resources can be properly processed before the
+// request is sent out
+// GIVEN a request to process the managed cluster resources
+// WHEN the VMC is processed
+// THEN no error is returned and the API resource is updated
+func TestProcessManagedClusterResources(t *testing.T) {
+	vmcName := "testVMC"
+	scheme := k8scheme.Scheme
+	err := v1alpha1.AddToScheme(scheme)
+	assert.NoError(t, err)
+	testURL := "https://managed.io"
+
+	secretName := "test-secret"
+	secretData, err := os.ReadFile(caCertTestData)
+	assert.NoError(t, err)
+
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&v1alpha1.VerrazzanoManagedCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vmcName,
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+			},
+			Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+				CASecret: secretName,
+			},
+			Status: v1alpha1.VerrazzanoManagedClusterStatus{
+				APIUrl: testURL,
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+			},
+			Data: map[string][]byte{
+				caCertKey: secretData,
+			},
+		},
+	).Build()
+
+	apiReq := APIRequest{
+		K8sClient: cli,
+		Log:       zap.S(),
+	}
+
+	err = apiReq.processManagedClusterResources(vmcName)
+	assert.NoError(t, err)
+	assert.Equal(t, testURL, apiReq.APIServerURL)
 }
 
 // TestReformatLocalClusterRequest tests that the local cluster request is formatted correctly

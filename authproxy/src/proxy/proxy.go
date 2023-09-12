@@ -180,14 +180,16 @@ func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, er
 	if len(config.CAData) < 1 {
 		rootCA, err := cert.NewPool(config.CAFile)
 		if err != nil {
-			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+			log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server: %v", err)
+			return nil, err
 		}
 		return rootCA, err
 	}
 
 	rootCA, err := cert.NewPoolFromBytes(config.CAData)
 	if err != nil {
-		log.Errorf("Failed to load CA data from the Kubeconfig")
+		log.Errorf("Failed to load CA data from the Kubeconfig: %v", err)
+		return nil, err
 	}
 	return rootCA, err
 }

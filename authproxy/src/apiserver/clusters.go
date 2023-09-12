@@ -6,11 +6,14 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/cert"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/authproxy/internal/httputil"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,12 +22,13 @@ import (
 const (
 	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
 	localClusterPrefix          = "/clusters/local"
+	caCertKey                   = "cacrt"
 )
 
 // reformatLocalClusterRequest reformats a local cluster request
 func (a *APIRequest) reformatLocalClusterRequest(req *http.Request) (*retryablehttp.Request, error) {
 	req.Host = kubernetesAPIServerHostname
-	err := a.reformatClusterPath(req, a.APIServerURL, "local", "")
+	err := a.reformatClusterPath(req, "local", "")
 	if err != nil {
 		return nil, err
 	}
@@ -46,12 +50,12 @@ func (a *APIRequest) reformatLocalClusterRequest(req *http.Request) (*retryableh
 
 // reformatManagedClusterRequest formats a request to a managed cluster
 func (a *APIRequest) reformatManagedClusterRequest(req *http.Request, clusterName string) (*retryablehttp.Request, error) {
-	apiURL, err := a.getManagedClusterAPIURL(clusterName)
+	err := a.processManagedClusterResources(clusterName)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.reformatClusterPath(req, apiURL, clusterName, localClusterPrefix)
+	err = a.reformatClusterPath(req, clusterName, localClusterPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -65,11 +69,11 @@ func (a *APIRequest) reformatManagedClusterRequest(req *http.Request, clusterNam
 }
 
 // reformatClusterPath reformats the cluster path given request data
-func (a *APIRequest) reformatClusterPath(req *http.Request, apiServerURL, clusterName, newClusterPrefix string) error {
+func (a *APIRequest) reformatClusterPath(req *http.Request, clusterName, newClusterPrefix string) error {
 	req.RequestURI = ""
 
 	path := strings.Replace(req.URL.Path, fmt.Sprintf("/clusters/%s", clusterName), newClusterPrefix, 1)
-	newReq, err := url.JoinPath(apiServerURL, path)
+	newReq, err := url.JoinPath(a.APIServerURL, path)
 	if err != nil {
 		a.Log.Errorf("Failed to format request path for path %s: %v", path, err)
 		return err
@@ -85,20 +89,61 @@ func (a *APIRequest) reformatClusterPath(req *http.Request, apiServerURL, cluste
 	return nil
 }
 
-// getManagedClusterAPIURL returns the API URL for the managed cluster given the cluster name
-func (a *APIRequest) getManagedClusterAPIURL(clusterName string) (string, error) {
+// processManagedClusterResources uses the Verrazzano Managed Cluster object to process and edit the request resources
+func (a *APIRequest) processManagedClusterResources(clusterName string) error {
 	var vmc v1alpha1.VerrazzanoManagedCluster
 	err := a.K8sClient.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}, &vmc)
 	if err != nil {
 		a.Log.Errorf("Failed to get the Verrazzano Managed Cluster resource from the cluster: %v", err)
-		return "", err
+		return err
 	}
 
+	err = a.setManagedClusterAPIURL(vmc)
+	if err != nil {
+		return err
+	}
+
+	return a.rewriteClientCACerts(vmc)
+}
+
+// getManagedClusterAPIURL returns the API URL for the managed cluster given the cluster name
+func (a *APIRequest) setManagedClusterAPIURL(vmc v1alpha1.VerrazzanoManagedCluster) error {
 	if vmc.Status.APIUrl == "" {
-		return "", fmt.Errorf("could not find API URL from the VMC status")
+		return fmt.Errorf("could not find API URL from the VMC status")
+	}
+	a.APIServerURL = vmc.Status.APIUrl
+	return nil
+}
+
+// rewriteClientCACerts generates a new client with the managed CA certs
+// The client CA certs will need to be updated to use the certificates for the managed cluster ingress
+func (a *APIRequest) rewriteClientCACerts(vmc v1alpha1.VerrazzanoManagedCluster) error {
+	if vmc.Spec.CASecret == "" {
+		return fmt.Errorf("could not find CA secret name from the VMC spec")
 	}
 
-	return vmc.Status.APIUrl, nil
+	var caSecret v1.Secret
+	err := a.K8sClient.Get(context.TODO(), types.NamespacedName{Name: vmc.Spec.CASecret, Namespace: constants.VerrazzanoMultiClusterNamespace}, &caSecret)
+	if err != nil {
+		a.Log.Errorf("Failed to get the Verrazzano Managed Cluster resource from the cluster: %v", err)
+		return err
+	}
+
+	caData, ok := caSecret.Data[caCertKey]
+	if !ok {
+		err = fmt.Errorf("CA data empty in the secret %s", caSecret.Name)
+		a.Log.Errorf("Failed to CA data from the cluster: %v", err)
+		return err
+	}
+
+	rootCA, err := cert.NewPoolFromBytes(caData)
+	if err != nil {
+		a.Log.Errorf("Failed to get in cluster Root Certificate for the Kubernetes API server")
+		return err
+	}
+
+	a.Client = httputil.GetHTTPClientWithCABundle(rootCA)
+	return nil
 }
 
 // getClusterName returns the cluster name given an API Server request

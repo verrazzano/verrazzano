@@ -27,7 +27,7 @@ import (
 const (
 	apiPath          = "/api/v1/pods"
 	testAPIServerURL = "https://api-server.io"
-	caCertFile       = "./testdata/test-ca.crt"
+	caCertFile       = "../../internal/testdata/test-ca.crt"
 )
 
 var serverURL string
