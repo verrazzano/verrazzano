@@ -47,6 +47,101 @@ const weblogicDomain = `
    "domainUID": "unit-test-domain"
 }
 `
+const weblogicDomainv9WithPV = `
+{
+  "clusters": [
+    {
+      "name": "cluster-1"
+    }
+  ],
+  "configuration": {
+    "initializeDomainOnPV": {
+      "domain": {
+        "domainCreationImages": [
+          {
+            "image": "phx.ocir.io/devweblogic/sankar-ai:aimiidemov1",
+            "sourceModelHome": "/u01/wdt/models",
+            "sourceWDTInstallHome": "/u01/wdt/weblogic-deploy"
+          }
+        ],
+        "domainType": "WLS"
+      },
+      "persistentVolume": {
+        "metadata": {
+          "name": "unit-test-domain-pv"
+        },
+        "spec": {
+          "capacity": {
+            "storage": "500Gi"
+          },
+          "nfs": {
+            "path": "/shared",
+            "readOnly": false,
+            "server": "100.101.68.92"
+          },
+          "storageClassName": "oci-fss"
+        }
+      },
+      "persistentVolumeClaim": {
+        "metadata": {
+          "name": "unit-test-domain-pvc"
+        },
+        "spec": {
+          "resources": {
+            "requests": {
+              "storage": "100Gi"
+            }
+          },
+          "storageClassName": "oci-fss",
+          "volumeName": "unit-test-domain-pv"
+        }
+      }
+    },
+    "introspectorJobActiveDeadlineSeconds": 900
+  },
+  "domainHome": "/shared/domains/mymii-domain",
+  "domainHomeSourceType": "PersistentVolume",
+  "domainUID": "unit-test-domain",
+  "image": "phx.ocir.io/devweblogic/test-images/weblogic:14.1.1.0-11",
+  "imagePullPolicy": "IfNotPresent",
+  "serverPod": {
+    "env": [
+      {
+        "name": "JAVA_OPTIONS",
+        "value": "-Dweblogic.StdoutDebugEnabled=false -Djava.security.egd=file:/dev/./urandom -Dweblogic.security.SSL.ignoreHostnameVerification=true"
+      },
+      {
+        "name": "USER_MEM_ARGS",
+        "value": "-Xms64m -Xmx256m"
+      }
+    ],
+    "volumeMounts": [
+      {
+        "mountPath": "/shared",
+        "name": "weblogic-domain-storage-volume"
+      },
+      {
+        "mountPath": "/scratch",
+        "name": "weblogic-domain-scratch-volume"
+      }
+    ],
+    "volumes": [
+      {
+        "name": "weblogic-domain-storage-volume",
+        "persistentVolumeClaim": {
+          "claimName": "mymii-domain-pvc"
+        }
+      },
+      {
+        "name": "weblogic-domain-scratch-volume",
+        "persistentVolumeClaim": {
+          "claimName": "mymii-domain-pvc-scratch"
+        }
+      }
+    ]
+  }
+}
+`
 const weblogicDomainv9WithTwoClusters = `
 {
    "domainUID": "unit-test-domain",
@@ -281,6 +376,148 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 
 			// make sure default WDT configMap exists
 			validateDefaultWDTConfigMap(u, t)
+
+			return nil
+		})
+
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(context.TODO(), request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileCreateWebLogicDomainV9WithPV tests the basic happy path of reconciling a VerrazzanoWebLogicWorkload. We
+// expect to write out WebLogic Domain and Cluster CR's, but we aren't adding logging or any other scopes or traits.
+// GIVEN a VerrazzanoWebLogicWorkload resource is created
+// WHEN the controller Reconcile function is called
+// THEN expect WebLogic Domain and Cluster CR's to be written
+func TestReconcileCreateWebLogicDomainV9WithPV(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+
+	// expect call to fetch existing WebLogic Domain
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+		})
+	// expect a call to fetch the VerrazzanoWebLogicWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
+			workload.Spec.Template = buildDomainV9Template(weblogicDomainv9WithPV)
+			workload.Spec.Clusters = []vzapi.VerrazzanoWebLogicWorkloadTemplate{buildClusterTemplate("cluster-1")}
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
+			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			return nil
+		})
+	// expect call to fetch the WDT config Map
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getWDTConfigMapName(weblogicDomainName)}, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap, opts ...client.GetOption) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, getWDTConfigMapName(weblogicDomainName))
+		})
+	// no WDT config maps found, so expect a call to create a WDT config map
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
+			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
+			assert.Equal(weblogicDomainName, configMap.ObjectMeta.Labels[webLogicDomainUIDLabel])
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration, opts ...client.GetOption) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
+			return nil
+		}).Times(2)
+	// expect call to fetch existing WebLogic Cluster cluster-1
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-1"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+		})
+	// expect a call to attempt to get the WebLogic CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured, opts ...client.GetOption) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+	// expect a call to create the WebLogic Cluster CR cluster-1
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
+			assert.Equal(APIVersionV1, u.GetAPIVersion())
+			assert.Equal(ClusterKind, u.GetKind())
+
+			// make sure the OAM component and app name labels were copied
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
+			assert.Equal(labels, specLabels)
+
+			return nil
+		})
+	// expect a call to create the WebLogic domain CR
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
+			assert.Equal(APIVersionV9, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
+
+			// make sure the OAM component and app name labels were copied
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
+			assert.Equal(labels, specLabels)
+
+			// make sure the restartVersion is empty
+			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
+			assert.Equal("", domainRestartVersion)
+
+			// make sure monitoringExporter exists
+			validateDefaultMonitoringExporter(u, t)
+
+			// make sure default WDT configMap exists
+			validatePVWDTConfigMap(u, t)
 
 			return nil
 		})
@@ -1813,6 +2050,14 @@ func validateTestMonitoringExporter(u *unstructured.Unstructured, t *testing.T) 
 // validateDefaultWDTConfigMap validates the default WDT config map in the WebLogic domain spec
 func validateDefaultWDTConfigMap(u *unstructured.Unstructured, t *testing.T) {
 	mapName, found, err := unstructured.NestedString(u.Object, specConfigurationWDTConfigMap...)
+	asserts.Nil(t, err, "Expect no error finding WDTConfigMap in WebLogic domain CR")
+	asserts.True(t, found, "Found WDTConfigMap in WebLogic domain CR")
+	asserts.Equal(t, mapName, getWDTConfigMapName(weblogicDomainName), "mapName should be ")
+}
+
+// validatePVWDTConfigMap validates the default WDT config map in the WebLogic domain spec
+func validatePVWDTConfigMap(u *unstructured.Unstructured, t *testing.T) {
+	mapName, found, err := unstructured.NestedString(u.Object, specConfigurationDomainOnPVConfigMap...)
 	asserts.Nil(t, err, "Expect no error finding WDTConfigMap in WebLogic domain CR")
 	asserts.True(t, found, "Found WDTConfigMap in WebLogic domain CR")
 	asserts.Equal(t, mapName, getWDTConfigMapName(weblogicDomainName), "mapName should be ")
