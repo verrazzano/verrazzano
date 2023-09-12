@@ -62,15 +62,15 @@ while IFS=: read -r imagename imagesize; do
 done <<< "$image_data_filenew"
 
 # Print the contents of the associative arrays for the files
-#echo "Image sizes for ${WORKSPACE}/image-sizes-objectstore.txt:"
-#for imagename in "${!imagename_sizes_fileprev[@]}"; do
-#  echo "$imagename: ${imagename_sizes_fileprev[$imagename]}"
-#done
+echo "Image sizes for ${WORKSPACE}/image-sizes-objectstore.txt:"
+for imagename in "${!imagename_sizes_fileprev[@]}"; do
+  echo "$imagename: ${imagename_sizes_fileprev[$imagename]}"
+done
 
-#echo "Image sizes for ${WORKSPACE}/image-sizes.txt:"
-#for imagename in "${!imagename_sizes_filenew[@]}"; do
-#  echo "$imagename: ${imagename_sizes_filenew[$imagename]}"
-#done
+echo "Image sizes for ${WORKSPACE}/image-sizes.txt:"
+for imagename in "${!imagename_sizes_filenew[@]}"; do
+  echo "$imagename: ${imagename_sizes_filenew[$imagename]}"
+done
 
 # Check if imagenames in filenew are not in fileprev
 for imagename in "${!imagename_sizes_filenew[@]}"; do
