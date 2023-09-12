@@ -32,28 +32,36 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsEnabled(effectiveCR) {
-			continue
-		}
-		if !comp.ShouldUseModule() {
-			continue
+			// If the component is not enabled then check if it is installed.
+			// There is an edge case where a component might be disabled, but installed.
+			// For example in VMO 1.5 -> 1.6 upgrade, VMO.IsEnabled used to return true if
+			// Prometheus was enabled, but for 1.6 it returns false. So 1.6 VMO.IsEnabled might
+			// return false, when VMO is really installed.  In that case, we need to create the
+			// Module CR so that we can uninstall it (see deleteModules in reconciler.go).
+			componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+			if err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+			installed, err := comp.IsInstalled(componentCtx)
+			if err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+			if !installed {
+				continue
+			}
 		}
 
+		// Get the module version from the catalog
 		version := catalog.GetVersion(comp.Name())
 		if version == nil {
 			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
-
-		module := moduleapi.Module{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      comp.Name(),
-				Namespace: vzconst.VerrazzanoInstallNamespace,
-			},
-		}
-		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+		// Create or update the module
+		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
 		})
-		log.Debugf("Module %s update result: %v", module.Name, opResult)
 		if err != nil {
 			if !errors.IsConflict(err) {
 				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
@@ -81,6 +89,7 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion
 
+	// Set the module values and valuesFrom fields
 	return r.setModuleValues(log, actualCR, effectiveCR, module, comp)
 }
 

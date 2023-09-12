@@ -123,7 +123,7 @@ EOF
 
   # optionally create a cluster dump snapshot for verifying uninstalls
   if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
-    ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
+    ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR} false
   fi
 
 

@@ -16,6 +16,21 @@ import (
 
 // GetModuleInstalledWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to installed ready.
 func GetModuleInstalledWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+	return GetModuleWatchesForReason(moduleNames, moduleapi.ReadyReasonInstallSucceeded)
+}
+
+// GetModuleUpdatedWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to update ready.
+func GetModuleUpdatedWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+	return GetModuleWatchesForReason(moduleNames, moduleapi.ReadyReasonUpdateSucceeded)
+}
+
+// GetModuleUpgradedWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to upgrade ready.
+func GetModuleUpgradedWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+	return GetModuleWatchesForReason(moduleNames, moduleapi.ReadyReasonUpgradeSucceeded)
+}
+
+// GetModuleWatchesForReason gets WatchDescriptors for the set a modules that transition to ready for a given reason .
+func GetModuleWatchesForReason(moduleNames []string, reason moduleapi.ModuleConditionReason) []controllerspi.WatchDescriptor {
 	var watches []controllerspi.WatchDescriptor
 	moduleNameSet := vzstring.SliceToSet(moduleNames)
 
@@ -40,7 +55,7 @@ func GetModuleInstalledWatches(moduleNames []string) []controllerspi.WatchDescri
 			if newCond == nil {
 				return false
 			}
-			if newCond.Reason != moduleapi.ReadyReasonInstallSucceeded {
+			if newCond.Reason != reason {
 				return false
 			}
 			if newCond.Status != corev1.ConditionTrue {
