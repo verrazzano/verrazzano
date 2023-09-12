@@ -80,7 +80,7 @@ spec:
                                 protocol: "1"
                                 source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
-                      name: oke-control-plane-endpoint
+                      name: control-plane-endpoint
                       role: control-plane-endpoint
                     - egressRules:
                           - egressRule:
@@ -177,7 +177,7 @@ spec:
                                     destinationPortRange:
                                         max: 32767
                                         min: 30000
-                      name: oke-worker
+                      name: worker
                       role: worker
                     - egressRules:
                           - egressRule:
@@ -220,19 +220,19 @@ spec:
                                     destinationPortRange:
                                         max: 443
                                         min: 443
-                      name: oke-service-lb
+                      name: service-lb
                       role: service-lb
             subnets:
                 - cidr: 10.0.0.8/29
-                  name: oke-control-plane-endpoint
+                  name: control-plane-endpoint
                   role: control-plane-endpoint
                   type: public
                 - cidr: 10.0.0.32/27
-                  name: oke-service-lb
+                  name: service-lb
                   role: service-lb
                   type: public
                 - cidr: 10.0.64.0/20
-                  name: oke-worker
+                  name: worker
                   role: worker
                   type: private
 {{- else }} # Existing VCN
