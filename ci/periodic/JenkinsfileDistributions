@@ -5,7 +5,7 @@ import groovy.transform.Field
 
 @Field def verrazzanoPrefix="verrazzano-"
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-
+en
 pipeline {
     options {
         timeout(time: 4, unit: 'HOURS')
@@ -61,6 +61,8 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
+        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
+        PIPELINE_OWNERS = credentials('lretests-owners')
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
