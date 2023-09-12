@@ -119,10 +119,6 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	return o.HelmComponent.PreInstall(ctx)
 }
 
-// PreUpgrade
-/* Runs pre-upgrade steps
-- Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
-*/
 func (o opensearchOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	log.Debugf("Merging security configs")

@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path"
 	"strings"
@@ -24,7 +25,7 @@ const (
 	securityConfigYaml = "opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml         = "config.yml"
 	usersYaml          = "internal_users.yml"
-	hashSecretName     = "admin-credentials-secret"
+	hashSecName        = "admin-credentials-secret"
 )
 
 // getClient returns a controller runtime client for the Verrazzano resource
@@ -35,6 +36,8 @@ func getClient(ctx spi.ComponentContext) (client.Client, error) {
 // MergeSecretData merges config.yml and internal_users.yml from the security config secret and the
 // helm config present in manifests directory.
 func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
+	// Get the security config yaml from the manifests directory and
+	//extract the config.yml and internals_users.yml data
 	filePath := path.Join(helmManifestsDir, securityConfigYaml)
 	securityYaml, err := os.ReadFile(filePath)
 	if err != nil {
@@ -53,12 +56,16 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 	if err != nil {
 		return err
 	}
+
+	// Get the security config secret and
+	// extract the config.yml and internals_users.yml data
 	var scr corev1.Secret
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr)
-	if err != nil && strings.Contains(err.Error(), "not found") {
-		return nil
-	}
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// Do nothing and return if secret doesn't exist
+			return nil
+		}
 		return err
 	}
 	configYamlSecret, err := getSecretYamlData(&scr, configYaml)
@@ -105,7 +112,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 		return err
 	}
 	var adminSecret corev1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecretName}, &adminSecret); err != nil {
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecName}, &adminSecret); err != nil {
 		return err
 	}
 
@@ -163,6 +170,7 @@ func unmarshalYAML(yamlData []byte) (map[string]interface{}, error) {
 	return data, nil
 }
 
+// getYamlData gets the given data from the helm config yaml
 func getYamlData(helmMap map[string]interface{}, yamlName string) ([]byte, error) {
 	// Check if "stringData" exists and is of the expected type
 	stringData, ok := helmMap["stringData"]
