@@ -38,6 +38,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
     fluentd:
       enabled: false
     fluentOperator:

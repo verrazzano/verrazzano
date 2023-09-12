@@ -16,6 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -160,6 +162,50 @@ func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 	return args, nil
 }
 
+// getAdditionalConfig returns any existing additional config for the given node
+func getAdditionalConfig(ctx spi.ComponentContext, nodeName string) (map[string]string, bool) {
+	client, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		return nil, false
+	}
+
+	resourceClient := client.Resource(clusterGVR)
+	obj, err := resourceClient.Namespace(ComponentNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, false
+		}
+	}
+	value, exists, err := unstructured.NestedFieldNoCopy(obj.Object, "spec", "nodePools")
+	if err != nil {
+		return nil, false
+	}
+	if exists {
+		nodePools, ok := value.([]interface{})
+		if ok {
+			for _, node := range nodePools {
+				n, ok := node.(map[string]interface{})
+				if ok {
+					if n["component"] == nodeName {
+						result := map[string]string{}
+						links, ok := n["additionalConfig"].(map[string]interface{})
+						if !ok {
+							return nil, false
+						}
+						for k := range links {
+							if v, ok := links[k].(string); ok {
+								result[k] = v
+							}
+						}
+						return result, true
+					}
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
 // appendOverrides appends the additional overrides for install
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
@@ -232,6 +278,9 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]N
 			Jvm:       node.JavaOpts,
 		}
 		if node.Replicas != nil {
+			if *node.Replicas == 0 {
+				continue
+			}
 			nodePool.Replicas = *node.Replicas
 		}
 		if node.Resources != nil {
@@ -257,6 +306,9 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]N
 		}
 		for _, role := range node.Roles {
 			nodePool.Roles = append(nodePool.Roles, string(role))
+		}
+		if exisitngAdditionalConfig, ok := getAdditionalConfig(ctx, nodePool.Component); ok {
+			nodePool.AdditionalConfig = exisitngAdditionalConfig
 		}
 		nodePools = append(nodePools, nodePool)
 	}
@@ -327,13 +379,15 @@ func getActualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
 
 // getMasterNode returns the first master node from the list of nodes
 func getMasterNode(ctx spi.ComponentContext) string {
-	for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-		for _, role := range node.Roles {
-			if node.Replicas == nil || *node.Replicas < 1 {
-				continue
-			}
-			if role == "master" {
-				return node.Name
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			for _, role := range node.Roles {
+				if node.Replicas == nil || *node.Replicas < 1 {
+					continue
+				}
+				if role == "master" {
+					return node.Name
+				}
 			}
 		}
 	}
@@ -448,14 +502,16 @@ func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
 
 // IsUpgrade returns true if we are upgrading from <=1.6.x to 2.x
 func IsUpgrade(ctx spi.ComponentContext) bool {
-	for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-		// If PVs with this label exists for any node pool, then it's an upgrade
-		pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, node.Name)
-		if err != nil {
-			return false
-		}
-		if len(pvList) > 0 {
-			return true
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			// If PVs with this label exists for any node pool, then it's an upgrade
+			pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, node.Name)
+			if err != nil {
+				return false
+			}
+			if len(pvList) > 0 {
+				return true
+			}
 		}
 	}
 
