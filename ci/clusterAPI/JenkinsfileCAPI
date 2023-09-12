@@ -381,7 +381,8 @@ pipeline {
                         }
                         failure {
                             script {
-                                dumpK8sCluster('ocne-deploy-failure')
+                                dumpK8sCluster('admin-deploy-failure')
+                                dumpOCNECluster('workload-deploy-failure')
                             }
                         }
                     }
