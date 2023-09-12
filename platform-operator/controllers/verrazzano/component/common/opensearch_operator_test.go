@@ -41,8 +41,8 @@ func TestMergeSecurityConfigs(t *testing.T) {
 		return nil
 	})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: adminSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = adminSecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = hashSecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{"hash": []byte("abcdef")}
 		return nil
@@ -85,7 +85,7 @@ func TestMergeSecurityConfigsGetAdminError(t *testing.T) {
 		return nil
 	})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: adminSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).Return(fmt.Errorf("test-error"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).Return(fmt.Errorf("test-error"))
 	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
 }
@@ -107,8 +107,8 @@ func TestMergeSecurityConfigsUpdateError(t *testing.T) {
 		return nil
 	})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: adminSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = adminSecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = hashSecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{"hash": []byte("test")}
 		return nil
@@ -136,8 +136,8 @@ func TestMergeSecurityConfigsHashError(t *testing.T) {
 		return nil
 	})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: adminSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = adminSecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = hashSecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{"hash1": []byte("test")}
 		return nil

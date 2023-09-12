@@ -24,7 +24,7 @@ const (
 	securityConfigYaml = "opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml         = "config.yml"
 	usersYaml          = "internal_users.yml"
-	adminSecretName    = "admin-credentials-secret"
+	hashSecretName     = "admin-credentials-secret"
 )
 
 // getClient returns a controller runtime client for the Verrazzano resource
@@ -105,7 +105,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 		return err
 	}
 	var adminSecret corev1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: adminSecretName}, &adminSecret); err != nil {
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: hashSecretName}, &adminSecret); err != nil {
 		return err
 	}
 
