@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/onsi/gomega"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/onsi/gomega"
 
 	"github.com/hashicorp/go-retryablehttp"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -44,26 +45,47 @@ func EventuallyGetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
 
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
 func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
+	var err error
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	ingress, err := clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+
+	isDexEnabled := IsDexEnabled(kubeconfigPath)
+	var ingress *networkingv1.Ingress
+
+	if isDexEnabled {
+		ingress, err = clientset.NetworkingV1().Ingresses("dex").Get(context.TODO(), "dex", v1.GetOptions{})
+	} else {
+		ingress, err = clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	keycloakHTTPClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	oidcProviderHTTPClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
 	var ingressRules = ingress.Spec.Rules
-	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
+	var oidcProviderTokenURL string
+	if isDexEnabled {
+		oidcProviderTokenURL = fmt.Sprintf("https://%s/token", ingressRules[0].Host)
+	} else {
+		oidcProviderTokenURL = fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
+	}
+
 	password, err := GetVerrazzanoPassword()
 	if err != nil {
 		return nil, err
 	}
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, password, keycloakAPIClientID)
-	resp, err := doReq(keycloakURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), keycloakHTTPClient)
+
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, password, verrazzanoPgClientID)
+	if isDexEnabled {
+		body = fmt.Sprintf("%s&scope=openid+profile", body)
+	}
+
+	resp, err := doReq(oidcProviderTokenURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), oidcProviderHTTPClient)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +93,7 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	if resp.StatusCode == http.StatusOK {
 		json.Unmarshal([]byte(resp.Body), &api)
 	} else {
-		msg := fmt.Sprintf("error getting API access token from %s: %d", keycloakURL, resp.StatusCode)
+		msg := fmt.Sprintf("error getting API access token from %s: %d", oidcProviderTokenURL, resp.StatusCode)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}

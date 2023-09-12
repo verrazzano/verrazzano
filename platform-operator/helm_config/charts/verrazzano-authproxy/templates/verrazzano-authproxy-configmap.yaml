@@ -849,13 +849,17 @@ data:
     end
 
     function me.oidcGetTokenWithBasicAuth(u, p)
-        return me.oidcTokenRequest({
-                        grant_type = 'password',
-                        scope = 'openid',
-                        client_id = oidcDirectAccessClient,
-                        password = p,
-                        username = u
-                    })
+        local params = {
+                    grant_type = 'password',
+                    scope = 'openid',
+                    client_id = oidcDirectAccessClient,
+                    password = p,
+                    username = u
+                }
+        if me.oidcProvider == "dex" then
+            params.scope = "openid profile"
+        end
+        return me.oidcTokenRequest(params)
     end
 
     function me.oidcGetTokenWithCode(code, verifier, callbackUri)
