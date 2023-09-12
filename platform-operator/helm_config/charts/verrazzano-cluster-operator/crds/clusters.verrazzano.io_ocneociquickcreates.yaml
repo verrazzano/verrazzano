@@ -71,10 +71,12 @@ spec:
                       podCIDR:
                         description: IP range for Kubernetes pods. The default is
                           `10.244.0.0/16`
+                        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$
                         type: string
                       serviceCIDR:
                         description: IP range for Kubernetes service addresses. The
                           default is `10.96.0.0/16`.
+                        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$
                         type: string
                     type: object
                 type: object
@@ -88,6 +90,7 @@ spec:
                     type: array
                   compartment:
                     description: OCI Compartment OCID where the cluster will be created
+                    pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                     type: string
                   controlPlane:
                     description: Control Plane node settings.
@@ -123,6 +126,7 @@ spec:
                   imageId:
                     description: Node image OCID. The default is the latest OL8 image
                       in the provided compartment.
+                    pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                     type: string
                   network:
                     default:
@@ -141,6 +145,7 @@ spec:
                           properties:
                             id:
                               description: The ID of the subnet.
+                              pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                               type: string
                             role:
                               description: Role of subnet within the cluster.
@@ -153,6 +158,7 @@ spec:
                       vcn:
                         description: OCID of an existing VCN to create the cluster
                           inside.
+                        pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                         type: string
                     type: object
                   region:
