@@ -46,7 +46,7 @@ spec:
               ssh_authorized_keys: {{$.OCI.SSHPublicKey}}
       {{- end }}
             shape: {{.Shape}}
-      {{- if contains .Shape "Flex" }}
+      {{- if and (or .OCPUs .MemoryGbs) (contains .Shape "Flex") }}
             shapeConfig:
             {{- if .OCPUs }}
                 ocpus: "{{.OCPUs}}"
