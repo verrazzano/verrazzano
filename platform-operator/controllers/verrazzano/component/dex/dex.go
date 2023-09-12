@@ -85,6 +85,7 @@ const staticClientTemplate = `config:
   staticClients:
 `
 
+//nolint:gosec //#gosec G101
 const clientTemplateWithSecret = `  - id: "{{.ClientID}}"
     name: "{{.ClientName}}"
     secret: {{.ClientSecret}}
@@ -92,6 +93,7 @@ const clientTemplateWithSecret = `  - id: "{{.ClientID}}"
     {{.RedirectURIs}}
 `
 
+//nolint:gosec //#gosec G101
 const clientTemplateWithoutSecret = `  - id: "{{.ClientID}}"
     name: "{{.ClientName}}"
     public: {{.Public}}
