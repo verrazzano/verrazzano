@@ -6,23 +6,25 @@ package common
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
+	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 const (
 	securitySecretName = "securityconfig-secret"
-	securityNamespace  = "verrazzano-logging"
+	securityNamespace  = constants.VerrazzanoLoggingNamespace
 	securityConfigYaml = "opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml         = "config.yml"
 	usersYaml          = "internal_users.yml"
-	adminName          = "admin-credentials-secret"
+	adminSecretName    = "admin-credentials-secret"
 )
 
 // getClient returns a controller runtime client for the Verrazzano resource
@@ -30,9 +32,10 @@ func getClient(ctx spi.ComponentContext) (client.Client, error) {
 	return ctx.Client(), nil
 }
 
-// MergeSecretData merges a security config secret
-func MergeSecretData(ctx spi.ComponentContext, helmChartsDir string) error {
-	filePath := path.Join(helmChartsDir, securityConfigYaml)
+// MergeSecretData merges config.yml and internal_users.yml from the security config secret and the
+// helm config present in manifests directory.
+func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
+	filePath := path.Join(helmManifestsDir, securityConfigYaml)
 	securityYaml, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
@@ -58,7 +61,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmChartsDir string) error {
 	if err != nil {
 		return err
 	}
-	configYamlSecret, err := getSecretData(&scr, configYaml)
+	configYamlSecret, err := getSecretYamlData(&scr, configYaml)
 	if err != nil {
 		return err
 	}
@@ -88,7 +91,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmChartsDir string) error {
 	if err != nil {
 		return err
 	}
-	usersYamlSecret, err := getSecretData(&scr, usersYaml)
+	usersYamlSecret, err := getSecretYamlData(&scr, usersYaml)
 	if err != nil {
 		return err
 	}
@@ -102,7 +105,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmChartsDir string) error {
 		return err
 	}
 	var adminSecret corev1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: adminName}, &adminSecret); err != nil {
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: adminSecretName}, &adminSecret); err != nil {
 		return err
 	}
 
@@ -129,6 +132,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmChartsDir string) error {
 	return nil
 }
 
+// getAdminHash fetches the hash value from the admin secret
 func getAdminHash(secret *corev1.Secret) (string, error) {
 	hashBytes, ok := secret.Data["hash"]
 	if !ok {
@@ -138,7 +142,8 @@ func getAdminHash(secret *corev1.Secret) (string, error) {
 	return string(hashBytes), nil
 }
 
-func getSecretData(secret *corev1.Secret, yamlName string) ([]byte, error) {
+// getSecretYamlData gets the data corresponding to the yaml name
+func getSecretYamlData(secret *corev1.Secret, yamlName string) ([]byte, error) {
 	var byteYaml []byte
 	for key, val := range secret.Data {
 		if key == yamlName {
@@ -148,6 +153,8 @@ func getSecretData(secret *corev1.Secret, yamlName string) ([]byte, error) {
 	}
 	return byteYaml, nil
 }
+
+// unmarshalYAML unmarshals the data into the map
 func unmarshalYAML(yamlData []byte) (map[string]interface{}, error) {
 	var data map[string]interface{}
 	if err := yaml.Unmarshal(yamlData, &data); err != nil {
@@ -183,6 +190,7 @@ func getYamlData(helmMap map[string]interface{}, yamlName string) ([]byte, error
 	return []byte(stringValue), nil
 }
 
+// mergeConfigYamlData merges the config.yml data from the secret and the helm config
 func mergeConfigYamlData(dataSecret, dataFile map[string]interface{}) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
 	authcFile, ok := dataFile["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"].(map[string]interface{})
@@ -209,6 +217,8 @@ func mergeConfigYamlData(dataSecret, dataFile map[string]interface{}) (map[strin
 	dataSecret["config"].(map[string]interface{})["dynamic"].(map[string]interface{})["authc"] = mergedData
 	return dataSecret, nil
 }
+
+// mergeUserYamlData merges the internal_users.yml data from the secret and the helm config
 func mergeUserYamlData(data1, data2 map[string]interface{}, hashFromSecret string) (map[string]interface{}, error) {
 	mergedData := make(map[string]interface{})
 	adminData, ok := data1["admin"].(map[string]interface{})
