@@ -5,6 +5,7 @@ package mysql
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,7 +66,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				StatefulsetNames: []types.NamespacedName{
@@ -111,7 +112,19 @@ func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // PostInstall calls MySQL postInstall function
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
-	return postInstall(ctx)
+	if err := postInstall(ctx); err != nil {
+		return err
+	}
+
+	// For legacy Verrazzano controller, during update, mysqloperator runs both install and upgrade.
+	// For modules, only install is run, so run the post upgrade logic.
+	if config.Get().ModuleIntegration {
+		if err := postUpgrade(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // PostUpgrade creates/updates associated resources after this component is upgraded
