@@ -322,6 +322,8 @@ spec:
       enabled: false
     clusterAPI:
       enabled: true
+    dex:
+      enabled: false
   defaultVolumeSource:
     emptyDir: {}
   environmentName: default

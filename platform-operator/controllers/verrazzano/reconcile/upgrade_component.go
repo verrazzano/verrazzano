@@ -53,10 +53,6 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 	// Loop through all the Verrazzano components and upgrade each one.
 	// Don't move to the next component until the current one has been succcessfully upgraded
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
 		if !comp.IsEnabled(spiCtx.EffectiveCR()) {
 			// Ignore if this component is disabled
 			continue

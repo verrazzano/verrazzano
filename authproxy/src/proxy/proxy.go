@@ -4,46 +4,58 @@
 package proxy
 
 import (
-	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
-	"strings"
+	"os"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/verrazzano/authproxy/src/cors"
+	"github.com/verrazzano/verrazzano/authproxy/internal/httputil"
+	"github.com/verrazzano/verrazzano/authproxy/src/apiserver"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
+	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	localClusterPrefix = "/clusters/local"
-
-	kubernetesAPIServerHostname = "kubernetes.default.svc.cluster.local"
+	callbackPath = "/_authentication_callback"
+	logoutPath   = "/_logout"
 )
 
-var getConfigFunc = k8sutil.GetConfigFromController
+var (
+	getConfigFunc     = k8sutil.GetConfigFromController
+	getOIDCConfigFunc = getOIDCConfiguration
+)
+
+var mutex sync.RWMutex
 
 // AuthProxy wraps the server instance
 type AuthProxy struct {
 	http.Server
 }
 
+type handlerFuncType func(w http.ResponseWriter, r *http.Request)
+
 // Handler performs HTTP handling for the AuthProxy Server
 type Handler struct {
-	URL    string
-	Client *retryablehttp.Client
-	Log    *zap.SugaredLogger
+	URL           string
+	Client        *retryablehttp.Client
+	Log           *zap.SugaredLogger
+	OIDCConfig    map[string]string
+	Authenticator auth.Authenticator
+	K8sClient     client.Client
+	AuthInited    atomic.Bool
+	BearerToken   string
 }
 
-var _ http.Handler = Handler{}
+var _ http.Handler = &Handler{}
 
 // InitializeProxy returns a configured AuthProxy instance
 func InitializeProxy(port int) *AuthProxy {
@@ -57,111 +69,109 @@ func InitializeProxy(port int) *AuthProxy {
 }
 
 // ConfigureKubernetesAPIProxy configures the server handler and the proxy client for the AuthProxy instance
-func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, log *zap.SugaredLogger) error {
-	config, err := getConfigFunc()
+func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, log *zap.SugaredLogger) error {
+	restConfig, err := getConfigFunc()
 	if err != nil {
 		log.Errorf("Failed to get Kubeconfig for the proxy: %v", err)
 		return err
 	}
 
-	rootCA, err := loadCAData(config, log)
+	rootCA, err := loadCAData(restConfig, log)
 	if err != nil {
 		return err
 	}
 
-	transport := http.DefaultTransport
-	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		RootCAs:    rootCA,
-		MinVersion: tls.VersionTLS12,
+	bearerToken, err := loadBearerToken(restConfig, log)
+	if err != nil {
+		return err
 	}
 
-	client := retryablehttp.NewClient()
-	client.HTTPClient.Transport = transport
-
-	authproxy.Handler = Handler{
-		URL:    config.Host,
-		Client: client,
-		Log:    log,
+	httpClient := httputil.GetHTTPClientWithCABundle(rootCA)
+	authproxy.Handler = &Handler{
+		URL:         restConfig.Host,
+		Client:      httpClient,
+		Log:         log,
+		K8sClient:   k8sClient,
+		BearerToken: bearerToken,
 	}
 	return nil
 }
 
+// findPathHandler returns the path handler function given the request path
+func (h *Handler) findPathHandler(req *http.Request) handlerFuncType {
+	switch req.URL.Path {
+	case callbackPath:
+		return h.handleAuthCallback
+	case logoutPath:
+		return h.handleLogout
+	default:
+		return h.handleAPIRequest
+	}
+}
+
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
-func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", obfuscateRequestData(req))
-	err := validateRequest(req)
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	h.Log.Debug("Incoming request: %+v", httputil.ObfuscateRequestData(req))
 
+	err := h.initializeAuthenticator()
 	if err != nil {
-		h.Log.Debugf("Failed to validate request: %s", err.Error())
-		http.Error(rw, err.Error(), http.StatusUnprocessableEntity)
+		h.Log.Errorf("Failed to initialize Authenticator: %v", err)
+		http.Error(rw, "Failed to initialize Authenticator", http.StatusInternalServerError)
 		return
 	}
 
-	ingressHost := getIngressHost(req)
-	if statusCode, err := cors.AddCORSHeaders(req, rw, ingressHost); err != nil {
-		http.Error(rw, err.Error(), statusCode)
-		return
-	}
-
-	if req.Method == http.MethodOptions {
-		rw.Header().Set("Content-Length", "0")
-		rw.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if statusCode, err := handleAuth(req, rw); err != nil {
-		http.Error(rw, err.Error(), statusCode)
-		return
-	}
-
-	reformattedReq, err := h.reformatAPIRequest(req)
-	if err != nil {
-		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
-		return
-	}
-	h.Log.Debug("Outgoing request: %+v", obfuscateRequestData(reformattedReq.Request))
-
-	resp, err := h.Client.Do(reformattedReq)
-	if err != nil {
-		errResponse := fmt.Sprintf("Failed to forward request to the Kubernetes API server: %s", err.Error())
-		http.Error(rw, errResponse, http.StatusBadRequest)
-		return
-	}
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			h.Log.Errorf("Failed to close response body: %v", err)
-		}
-	}()
-
-	var responseBody = io.NopCloser(strings.NewReader(""))
-	if resp != nil {
-		responseBody = resp.Body
-	}
-
-	_, err = io.Copy(rw, responseBody)
-	if err != nil {
-		h.Log.Errorf("Failed to copy server response to read writer: %v", err)
-	}
+	handlerFunc := h.findPathHandler(req)
+	handlerFunc(rw, req)
 }
 
-func handleAuth(req *http.Request, rw http.ResponseWriter) (int, error) {
-	authHeader := req.Header.Get("Authorization")
-	if authHeader == "" {
-		// TODO Handle callback/logout cases and if needed, perform authentication flow
-	}
-	return http.StatusOK, nil
+// handleAuthCallback is the http handler for authentication callback
+func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
+
 }
 
-// getIngressHost determines the ingress host from the request headers
-func getIngressHost(req *http.Request) string {
-	if host := req.Header.Get("x-forwarded-host"); host != "" {
-		return host
+// handleLogout is the http handler for logout
+func (h *Handler) handleLogout(rw http.ResponseWriter, req *http.Request) {
+
+}
+
+// handleAPIRequest is the http handler for API requests
+func (h *Handler) handleAPIRequest(rw http.ResponseWriter, req *http.Request) {
+	apiRequest := apiserver.APIRequest{
+		RW:            rw,
+		Request:       req,
+		Authenticator: h.Authenticator,
+		Client:        h.Client,
+		APIServerURL:  h.URL,
+		CallbackPath:  callbackPath,
+		BearerToken:   h.BearerToken,
+		Log:           h.Log,
 	}
-	if host := req.Header.Get("host"); host != "" {
-		return host
+	apiRequest.ForwardAPIRequest()
+}
+
+// initializeAuthenticator initializes the handler authenticator
+func (h *Handler) initializeAuthenticator() error {
+	if h.AuthInited.Load() {
+		return nil
 	}
-	return "invalid-hostname"
+
+	oidcConfig := getOIDCConfigFunc()
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// double-check the condition in case it changed by the time we acquired the lock
+	if h.AuthInited.Load() {
+		return nil
+	}
+
+	authenticator, err := auth.NewAuthenticator(&oidcConfig, h.Log, h.K8sClient)
+	if err != nil {
+		return err
+	}
+	h.Authenticator = authenticator
+	h.AuthInited.Store(true)
+	return nil
 }
 
 // loadCAData returns the config CA data from the byte array or from the file name
@@ -181,49 +191,29 @@ func loadCAData(config *rest.Config, log *zap.SugaredLogger) (*x509.CertPool, er
 	return rootCA, err
 }
 
-// reformatAPIRequest reformats an incoming HTTP request to be sent to the Kubernetes API Server
-func (h Handler) reformatAPIRequest(req *http.Request) (*retryablehttp.Request, error) {
-	formattedReq := req.Clone(context.TODO())
-	formattedReq.Host = kubernetesAPIServerHostname
-	formattedReq.RequestURI = ""
-
-	path := strings.Replace(req.URL.Path, localClusterPrefix, "", 1)
-	newReq, err := url.JoinPath(h.URL, path)
-	if err != nil {
-		h.Log.Errorf("Failed to format request path for path %s: %v", path, err)
-		return nil, err
+// loadBearerToken loads the bearer token from the config or from the specified file
+func loadBearerToken(config *rest.Config, log *zap.SugaredLogger) (string, error) {
+	if config.BearerToken != "" {
+		return config.BearerToken, nil
 	}
 
-	formattedURL, err := url.Parse(newReq)
-	if err != nil {
-		h.Log.Errorf("Failed to format incoming url: %v", err)
-		return nil, err
-	}
-	formattedReq.URL = formattedURL
-
-	retryableReq, err := retryablehttp.FromRequest(formattedReq)
-	if err != nil {
-		h.Log.Errorf("Failed to convert reformatted request to a retryable request: %v", err)
-		return retryableReq, err
+	if config.BearerTokenFile != "" {
+		data, err := os.ReadFile(config.BearerTokenFile)
+		if err != nil {
+			log.Errorf("Failed to read bearer token file: %v", err)
+			return "", err
+		}
+		return string(data), nil
 	}
 
-	return retryableReq, nil
+	return "", nil
 }
 
-// validateRequest performs request validation before the request is processed
-func validateRequest(req *http.Request) error {
-	if !strings.HasPrefix(req.URL.Path, localClusterPrefix) {
-		return fmt.Errorf("request path: '%v' does not have expected cluster path, i.e. '/clusters/local/api/v1'", req.URL.Path)
+// getOIDCConfiguration returns an OIDC configuration populated from the config package
+func getOIDCConfiguration() auth.OIDCConfiguration {
+	return auth.OIDCConfiguration{
+		ExternalURL: config.GetExternalURL(),
+		ServiceURL:  config.GetServiceURL(),
+		ClientID:    config.GetClientID(),
 	}
-	return nil
-}
-
-// obfuscateRequestData removes the Authorization header data from the request before logging
-func obfuscateRequestData(req *http.Request) *http.Request {
-	hiddenReq := req.Clone(context.TODO())
-	authKey := "Authorization"
-	for i := range hiddenReq.Header[authKey] {
-		hiddenReq.Header[authKey][i] = vzpassword.MaskFunction("")(hiddenReq.Header[authKey][i])
-	}
-	return hiddenReq
 }

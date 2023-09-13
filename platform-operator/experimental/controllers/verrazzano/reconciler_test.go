@@ -5,7 +5,7 @@ package verrazzano
 
 import (
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 )
@@ -20,7 +20,7 @@ func TestIsUpgradeRequired(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		actualCR    *vzapi.Verrazzano
+		actualCR    *vzv1alpha1.Verrazzano
 		testBOMPath string
 		want        bool
 		wantErr     assert.ErrorAssertionFunc
@@ -31,26 +31,26 @@ func TestIsUpgradeRequired(t *testing.T) {
 		},
 		{
 			name: "BothEmpty",
-			actualCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{},
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{},
 			},
 		},
 		{
 			name: "UpdateInstall",
-			actualCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{},
-				Status: vzapi.VerrazzanoStatus{
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{},
+				Status: vzv1alpha1.VerrazzanoStatus{
 					Version: "2.0.2",
 				},
 			},
 		},
 		{
 			name: "UpgradeIsPending",
-			actualCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
 					Version: "2.0.1",
 				},
-				Status: vzapi.VerrazzanoStatus{
+				Status: vzv1alpha1.VerrazzanoStatus{
 					Version: "2.0.1",
 				},
 			},
@@ -58,31 +58,31 @@ func TestIsUpgradeRequired(t *testing.T) {
 		},
 		{
 			name: "UpgradeInProgress",
-			actualCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
 					Version: "2.0.2",
 				},
-				Status: vzapi.VerrazzanoStatus{
+				Status: vzv1alpha1.VerrazzanoStatus{
 					Version: "2.0.1",
 				},
 			},
 		},
 		{
 			name: "UpgradeComplete",
-			actualCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
 					Version: "2.0.2",
 				},
-				Status: vzapi.VerrazzanoStatus{
+				Status: vzv1alpha1.VerrazzanoStatus{
 					Version: "2.0.2",
 				},
 			},
 		},
 		{
 			name: "BOM Error",
-			actualCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{},
-				Status: vzapi.VerrazzanoStatus{
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{},
+				Status: vzv1alpha1.VerrazzanoStatus{
 					Version: "2.0.2",
 				},
 			},

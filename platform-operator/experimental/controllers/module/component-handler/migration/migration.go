@@ -11,6 +11,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"time"
 )
 
 type migrationHandler struct {
@@ -24,8 +25,9 @@ func NewHandler() handlerspi.MigrationHandler {
 	return &migrationHandler{}
 }
 
-// UpdateStatusIfAlreadyInstalled handles the case where Verrazzano has already installed the component without modules, but not using modules.
-// If that is the case, then the module.Status must get updated with installed component condition, version, etc.,
+// UpdateStatusIfAlreadyInstalled handles the case where Verrazzano has already installed the component without modules,
+// but not using module CRs. This happens when updating from 1.4, 1.5, 1.6 to 2.0. If that is the case, then the
+// module.Status must get updated with installed component condition, version, etc.,
 // so that it appears that it was installed by the module controller.
 func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
@@ -46,21 +48,46 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	}
 	compStatus, ok := vzcr.Status.Components[comp.Name()]
 	if !ok {
-		// no status update needed
+		// This is a new component being installed, No status update needed
 		return result.NewResult()
 	}
-	var installed bool
-	for _, compCond := range compStatus.Conditions {
-		if compCond.Type == vzapi.CondInstallComplete {
-			installed = true
-			break
-		}
+
+	// If VZ status indicates that the component was deleted, then don't update the
+	// status.  This can happen in special cases, such as VMO 1.5 -> 1.6 upgrade where
+	// a module CR is created because a component is installed even though the VZ component
+	// API says it is disabled.
+	// Check both disabled and the uninstalled/uninstalling condition to see if is deleted.
+	if compStatus.State == vzapi.CompStateDisabled {
+		return result.NewResult()
 	}
-	if !installed {
-		// no status update needed
+	cond := getLatestVzComponentCondition(ctx, compStatus)
+	if cond == nil || cond.Type == vzapi.CondUninstallComplete || cond.Type == vzapi.CondUninstallStarted {
 		return result.NewResult()
 	}
 
 	// Set the module status condition, installed generation and installed version
 	return modulestatus.UpdateModuleStatusToInstalled(ctx, module, "v0.0.0", 0)
+}
+
+// Get the latest Verrazzano component condition based on the time stamp
+func getLatestVzComponentCondition(ctx handlerspi.HandlerContext, compStatus *vzapi.ComponentStatusDetails) *vzapi.Condition {
+	var latestCond *vzapi.Condition
+	var latestTime *time.Time
+	for i, cond := range compStatus.Conditions {
+		// Sample vz cond time layout "2006-01-02T15:04:15Z"
+		condTime, err := time.Parse(time.RFC3339, cond.LastTransitionTime)
+		if err != nil {
+			// nothing we can do in the case, return nil so an install is triggered
+			ctx.Log.Oncef("Failed parsing Verrazzano condition time %s for component %s", cond.LastTransitionTime, compStatus.Name)
+			return nil
+		}
+		if latestTime == nil {
+			latestTime = &condTime
+		}
+		if latestCond == nil || condTime.After(*latestTime) {
+			latestCond = &compStatus.Conditions[i]
+			latestTime = &condTime
+		}
+	}
+	return latestCond
 }

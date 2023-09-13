@@ -123,10 +123,39 @@ rules:
       - list
       - watch
   - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+    resources:
+      - ociclusteridentities
+    verbs:
+      - get
+  - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+      - controlplane.cluster.x-k8s.io
+      - bootstrap.cluster.x-k8s.io
+      - addons.cluster.x-k8s.io
+    resources:
+      - ocimanagedmachinepools
+      - ociclusters
+      - ocivirtualmachinepools
+      - ocimanagedclusters
+      - ocimanagedcontrolplanes
+      - ocimachinetemplates
+      - ocimanagedmachinepool
+      - ocnecontrolplanes
+      - ocneconfigtemplates
+      - clusterresourcesets
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
       - cluster.x-k8s.io
     resources:
       - clusters
+      - machinedeployments
+      - machinepools
     verbs:
+      - create
       - update
       - get
       - list

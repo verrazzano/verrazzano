@@ -283,3 +283,5 @@ spec:
       enabled: true
     clusterAPI:
       enabled: false
+    dex:
+      enabled: false
