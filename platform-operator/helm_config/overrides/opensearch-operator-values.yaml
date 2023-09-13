@@ -63,7 +63,7 @@ opensearchCluster:
         secret:
           name: opensearch-master-cert
   general:
-    image: "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:experimental"
+    image: "ghcr.io/verrazzano/opensearch:2.3.0-20230913070106-b6247ad8ac8"
     httpPort: 9200
     serviceName: opensearch
     version: 2.3.0
