@@ -92,8 +92,8 @@ pipeline {
             steps {
                 script {
                  // update the description with some meaningful info
-                   currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                   def currentCommitHash = env.GIT_COMMIT
+                 // currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                 // def currentCommitHash = env.GIT_COMMIT
                    def commitList = getCommitList()
                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
@@ -430,4 +430,5 @@ def cleanWorkspaceAndCheckout() {
     storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
     fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
     liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+}
 }
