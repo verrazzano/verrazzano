@@ -217,7 +217,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.12.0",
+      "version": "v0.12.1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -225,7 +225,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.0"
+              "tag": "v0.12.1"
             }
           ]
         }
@@ -271,7 +271,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230828163609-10891b3",
+              "tag": "v2.0.0-20230912070053-2d1883d",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -929,7 +929,7 @@
     },
     {
       "name": "thanos",
-      "version": "v0.30.2",
+      "version": "v0.32.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -937,7 +937,7 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.30.2-20230525123422-4b7a94ea",
+              "tag": "v0.32.2-20230911193410-1e27f1f9",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
