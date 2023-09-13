@@ -223,7 +223,6 @@ pipeline {
 }
 
 // Called in Stage Clean workspace and checkout steps
-@NonCPS
 def getCommitList() {
     echo "Checking for change sets"
     def commitList = []
