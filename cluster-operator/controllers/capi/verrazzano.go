@@ -26,6 +26,7 @@ type VerrazzanoRegistration struct {
 	Log *zap.SugaredLogger
 }
 
+// doReconcile performs the reconciliation of the CAPI cluster to register it with Verrazzano
 func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
 	v.Log.Infof("Registering cluster %s with Verrazzano", cluster.GetName())
 	workloadClient, err := getWorkloadClusterClient(v.Client, v.Log, cluster)
@@ -48,12 +49,12 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 		if errors.IsNotFound(err) {
 			// cluster is trusted
 			v.Log.Infof("Cluster %s is using trusted certs", cluster.GetName())
+		} else {
+			// unexpected error
+			return ctrl.Result{}, err
 		}
-		// unexpected error
-		return ctrl.Result{}, err
 	} else {
 		// need to create a CA secret in admin cluster
-
 		// get the workload cluster API CA cert
 		caCrt, err := v.getWorkloadClusterCACert(workloadClient)
 		if err != nil {
@@ -115,30 +116,34 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 	return ctrl.Result{}, nil
 }
 
+// createWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
 func (v *VerrazzanoRegistration) createWorkloadClusterVMC(ctx context.Context, cluster *unstructured.Unstructured) (*clustersv1alpha1.VerrazzanoManagedCluster, error) {
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.GetName(),
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
-			Labels:    map[string]string{rancher.CreatedByLabel: rancher.CreatedByVerrazzano},
 		},
-		Spec: clustersv1alpha1.VerrazzanoManagedClusterSpec{
+	}
+	if _, err := ctrl.CreateOrUpdate(ctx, v.Client, vmc, func() error {
+		if vmc.Labels == nil {
+			vmc.Labels = make(map[string]string)
+		}
+		vmc.Labels[rancher.CreatedByLabel] = rancher.CreatedByVerrazzano
+		vmc.Spec = clustersv1alpha1.VerrazzanoManagedClusterSpec{
 			CASecret:    fmt.Sprintf("ca-secret-%s", cluster.GetName()),
 			Description: fmt.Sprintf("%s VerrazzanoManagedCluster Resource", cluster.GetName()),
-		},
-	}
-	if err := v.Create(ctx, vmc); err != nil {
-		if !errors.IsAlreadyExists(err) {
-			v.Log.Errorf("Unable to create VMC with name %s: %v", cluster.GetName(), err)
-			return nil, err
 		}
-		v.Log.Debugf("VMC %s already exists", cluster.GetName())
-	} else {
-		v.Log.Infof("Created VMC for cluster %s", cluster.GetName())
+
+		return nil
+	}); err != nil {
+		v.Log.Errorf("Failed to create or update the VMC for cluster %s: %v", cluster.GetName(), err)
+		return nil, err
 	}
+
 	return vmc, nil
 }
 
+// createAdminAccessConfigMap creates the config map required for the creation of the admin accessing kubeconfig
 func (v *VerrazzanoRegistration) createAdminAccessConfigMap(ctx context.Context) error {
 	ep := &v1.Endpoints{}
 	if err := v.Get(ctx, types.NamespacedName{Name: "kubernetes", Namespace: "default"}, ep); err != nil {
@@ -167,6 +172,7 @@ func (v *VerrazzanoRegistration) createAdminAccessConfigMap(ctx context.Context)
 	return nil
 }
 
+// getWorkloadClusterCACert retrieves the API endpoint CA certificate from the workload cluster
 func (v *VerrazzanoRegistration) getWorkloadClusterCACert(workloadClient client.Client) ([]byte, error) {
 	caCrtSecret := &v1.Secret{}
 	err := workloadClient.Get(context.TODO(), types.NamespacedName{
@@ -183,6 +189,7 @@ func (v *VerrazzanoRegistration) getWorkloadClusterCACert(workloadClient client.
 	return caCrt, nil
 }
 
+// isVerrazzanoReady checks to see whether the Verrazzano resource on the workload cluster is ready
 func (v *VerrazzanoRegistration) isVerrazzanoReady(ctx context.Context, workloadClient client.Client) (bool, error) {
 	if err := workloadClient.Get(ctx,
 		types.NamespacedName{Name: constants.Verrazzano, Namespace: constants.VerrazzanoSystemNamespace},
@@ -197,6 +204,7 @@ func (v *VerrazzanoRegistration) isVerrazzanoReady(ctx context.Context, workload
 	return true, nil
 }
 
+// getClusterManifest retrieves the registration manifest for the workload cluster
 func (v *VerrazzanoRegistration) getClusterManifest(cluster *unstructured.Unstructured) ([]byte, error) {
 	// retrieve the manifest for the workload cluster
 	manifestSecret := &v1.Secret{}
@@ -214,7 +222,7 @@ func (v *VerrazzanoRegistration) getClusterManifest(cluster *unstructured.Unstru
 	return manifest, nil
 }
 
-// UnregisterRancherCluster performs the operations required to de-register the cluster from Rancher
+// UnregisterVerrazzanoCluster performs the operations required to de-register the cluster from Verrazzano
 func UnregisterVerrazzanoCluster(ctx context.Context, v *VerrazzanoRegistration, cluster *unstructured.Unstructured) error {
 	workloadClient, err := getWorkloadClusterClient(v.Client, v.Log, cluster)
 	if err != nil {
