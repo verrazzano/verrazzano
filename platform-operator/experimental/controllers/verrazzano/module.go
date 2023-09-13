@@ -70,16 +70,13 @@ func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR
 	// Create or update the module
 	moduleToUpdate := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
 
-	// There seems to be an issue with CreateOrUpdate() returning a false-updated status; if we compare the top-level
-	// fields one-by-one they will be Equal if unchanged, but passing in the full Object for compare returns a diff.
-	//
-	// For now, stash the pre-update version of the Module away, then compare the specs using DeepEqual. That seems to
-	// tell us if things have truly changed or not, at least the things we care about.
-	//
+	// Stash the current state of the module away for comparison after update
 	currentModule := &moduleapi.Module{}
 	if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&moduleToUpdate), currentModule); err != nil && !errors.IsNotFound(err) {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
+	// Create/Update the module if necessary
 	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &moduleToUpdate, func() error {
 		return r.mutateModule(log, actualCR, effectiveCR, &moduleToUpdate, comp, version.ToString())
 	})
@@ -89,6 +86,8 @@ func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR
 		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
+	// Update the status IFF the module has been updated
 	if r.moduleDeepEqual(currentModule, &moduleToUpdate) {
 		opResult = controllerutil.OperationResultNone
 	}
@@ -102,6 +101,11 @@ func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR
 // moduleDeepEqual - Workaround, CreateOrUpdate is returning a false-positive update even when none of the fields change,
 // do a DeepEqual of the before/after relevant module fields to see if anything there changed.
 func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Module) bool {
+	// There seems to be an issue with CreateOrUpdate() returning a false-updated status; if we compare the top-level
+	// fields one-by-one they will be Equal if unchanged, but passing in the full Object for compare returns a diff.
+	//
+	// For now we will use DeepEqual to compare parts of the Module objects we care about directly unless we can
+	// determine why we're getting diffs from the full ObjectCompare
 	/*
 		For debugging DeepEqual
 		if !equality.Semantic.DeepEqual(moduleExisting, module) {
