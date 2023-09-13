@@ -61,8 +61,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
-        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
-        PIPELINE_OWNERS = credentials('lretests-owners')
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -223,6 +221,26 @@ pipeline {
         }
     }
 }
+
+// Called in Stage Clean workspace and checkout steps
+@NonCPS
+def getCommitList() {
+    echo "Checking for change sets"
+    def commitList = []
+    def changeSets = currentBuild.changeSets
+    for (int i = 0; i < changeSets.size(); i++) {
+        echo "get commits from change set"
+        def commits = changeSets[i].items
+        for (int j = 0; j < commits.length; j++) {
+            def commit = commits[j]
+            def id = commit.commitId
+            echo "Add commit id: ${id}"
+            commitList.add(id)
+        }
+    }
+    return commitList
+}
+
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
     def suspectList = []
@@ -413,6 +431,3 @@ def cleanWorkspaceAndCheckout() {
     fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
     liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
 }
-
-
-
