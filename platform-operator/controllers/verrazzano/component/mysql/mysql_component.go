@@ -109,16 +109,15 @@ func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
-// PostInstall calls MySQL postInstall function
-func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
-	if err := postInstall(ctx); err != nil {
+// Upgrade upgrades mysql
+func (c mysqlComponent) Upgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Upgrade(ctx); err != nil {
 		return err
 	}
 
-	// For legacy Verrazzano controller, during update, mysqloperator runs both install and upgrade.
-	// For modules, only install is run, so run the post upgrade logic.
+	// Restart mysql operator if module-integration enabled
 	if config.Get().ModuleIntegration {
-		if err := postUpgrade(ctx); err != nil {
+		if err := restartMySQLOperator(ctx); err != nil {
 			return err
 		}
 	}
@@ -126,9 +125,25 @@ func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// PostInstall calls MySQL postInstall function
+func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
+	return postInstall(ctx)
+}
+
 // PostUpgrade creates/updates associated resources after this component is upgraded
 func (c mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	return postUpgrade(ctx)
+	if err := postUpgrade(ctx); err != nil {
+		return err
+	}
+
+	// Restart mysql operator if module-integration enabled
+	if config.Get().ModuleIntegration {
+		if err := restartMySQLOperator(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // PostUninstall performs additional actions after the uninstall step

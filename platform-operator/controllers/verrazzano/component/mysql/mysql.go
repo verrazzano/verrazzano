@@ -35,8 +35,8 @@ import (
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -597,12 +597,6 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if config.Get().ModuleIntegration {
-		if err := restartMySQLOperator(ctx); err != nil {
-			return err
-		}
-	}
-
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 }
 
@@ -760,8 +754,8 @@ func restartMySQLOperator(ctx spi.ComponentContext) error {
 		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		// Annotate using the generation so we don't restart twice
-		deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
+		// Annotate to trigger a restart
+		deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().String()
 		deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/namespace"] = constants.MySQLOperatorNamespace
 		return nil
 	}); err != nil {
