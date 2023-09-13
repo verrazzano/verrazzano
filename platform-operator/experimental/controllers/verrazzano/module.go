@@ -14,6 +14,7 @@ import (
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,7 +60,12 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 		}
 		// Create or update the module
 		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+
+		moduleExisting := &moduleapi.Module{}
+		if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&module), moduleExisting); err != nil && !errors.IsNotFound(err) {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
 			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
 		})
 		if err != nil {
@@ -67,6 +73,27 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
 			}
 			return result.NewResultShortRequeueDelayWithError(err)
+		}
+		if !equality.Semantic.DeepEqual(moduleExisting, module) {
+			log.Debugf("Full object diff for %s failed", client.ObjectKeyFromObject(&module))
+		}
+		if !equality.Semantic.DeepEqual(moduleExisting.TypeMeta, module.TypeMeta) {
+			log.Debugf("Type metadata diff for %s failed", client.ObjectKeyFromObject(&module))
+		}
+		if !equality.Semantic.DeepEqual(moduleExisting.ObjectMeta, module.ObjectMeta) {
+			log.Infof("Object metadata diff for %s failed", client.ObjectKeyFromObject(&module))
+		}
+		if !equality.Semantic.DeepEqual(moduleExisting.Status, module.Status) {
+			log.Debugf("Status diff for %s failed", client.ObjectKeyFromObject(&module))
+		}
+		// Workaround, CreateOrUpdate is returning a false-positive update even when none of the fields change,
+		// do a DeepEqual of the before/after module specs to see if anything there changed.
+		if equality.Semantic.DeepEqual(moduleExisting.Spec, module.Spec) {
+			opResult = controllerutil.OperationResultNone
+		}
+		// If the copy operation resulted in an update to the target, set the VZ condition to install started/Reconciling
+		if res := r.updateStatusIfNeeded(log, actualCR, opResult); res.ShouldRequeue() {
+			return res
 		}
 	}
 	return result.NewResult()

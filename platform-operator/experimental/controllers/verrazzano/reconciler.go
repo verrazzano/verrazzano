@@ -87,9 +87,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 
 	// Do the actual install, update, and or upgrade.
 	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
-		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
-			return res
-		}
 		return res
 	}
 
