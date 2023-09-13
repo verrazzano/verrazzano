@@ -6,6 +6,7 @@ package mysql
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,7 +67,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName, istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName, istio.ComponentName, verrazzano.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				StatefulsetNames: []types.NamespacedName{
