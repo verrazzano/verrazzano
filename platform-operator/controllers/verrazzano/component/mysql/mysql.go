@@ -751,7 +751,6 @@ func mySQLPod() *v1.Pod {
 	}
 }
 
-
 func restartMySQLOperator(ctx spi.ComponentContext) error {
 	// Annotate the deployment to cause the restart
 	var deployment appsv1.Deployment
