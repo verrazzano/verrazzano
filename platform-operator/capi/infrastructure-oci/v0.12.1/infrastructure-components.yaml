@@ -16980,7 +16980,7 @@ spec:
           env:
             - name: AUTH_CONFIG_DIR
               value: /etc/oci
-          image: ghcr.io/oracle/cluster-api-oci-controller:v0.12.0
+          image: ghcr.io/oracle/cluster-api-oci-controller:v0.12.1
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
