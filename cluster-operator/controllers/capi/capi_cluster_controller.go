@@ -124,11 +124,11 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if r.RancherEnabled {
 		// Is Rancher Deployment ready
-		r.Log.Infof("Attempting cluster regisration with Rancher")
+		r.Log.Debugf("Attempting cluster regisration with Rancher")
 		return r.RancherRegistrar.doReconcile(ctx, cluster)
 	}
 
-	r.Log.Infof("Attempting cluster regisration with Verrazzano")
+	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
 	return r.VerrazzanoRegistrar.doReconcile(ctx, cluster)
 }
 

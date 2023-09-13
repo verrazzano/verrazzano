@@ -28,7 +28,7 @@ type VerrazzanoRegistration struct {
 
 // doReconcile performs the reconciliation of the CAPI cluster to register it with Verrazzano
 func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
-	v.Log.Infof("Registering cluster %s with Verrazzano", cluster.GetName())
+	v.Log.Debugf("Registering cluster %s with Verrazzano", cluster.GetName())
 	workloadClient, err := getWorkloadClusterClient(v.Client, v.Log, cluster)
 	if err != nil {
 		v.Log.Errorf("Error getting workload cluster %s client: %v", cluster.GetName(), err)
@@ -38,7 +38,7 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 	// ensure Verrazzano is installed and ready in workload cluster
 	ready, err := v.isVerrazzanoReady(ctx, workloadClient)
 	if !ready {
-		v.Log.Infof("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
+		v.Log.Debugf("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
 		return vzctrl.LongRequeue(), err
 	}
 
@@ -109,7 +109,7 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
 	err = yamlApplier.ApplyS(string(manifest))
 	if err != nil {
-		v.Log.Infof("Failed applying cluster manifest to workload cluster %s", cluster.GetName())
+		v.Log.Errorf("Failed applying cluster manifest to workload cluster %s", cluster.GetName())
 		return ctrl.Result{}, err
 	}
 
@@ -238,7 +238,7 @@ func UnregisterVerrazzanoCluster(ctx context.Context, v *VerrazzanoRegistration,
 	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
 	err = yamlApplier.DeleteS(string(manifest))
 	if err != nil {
-		v.Log.Infof("Failed deleting resources of cluster manifest from workload cluster %s", cluster.GetName())
+		v.Log.Errorf("Failed deleting resources of cluster manifest from workload cluster %s", cluster.GetName())
 		return err
 	}
 
