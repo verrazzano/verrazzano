@@ -255,10 +255,10 @@ func AssertBearerAuthorized(httpClient *retryablehttp.Client, url string) bool {
 		return false
 	}
 
-	api := EventuallyGetAPIEndpoint(kubeconfigPath)
+	token := EventuallyGetAccessToken(kubeconfigPath, false)
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
-	if api.AccessToken != "" {
-		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
+	if *token != "" {
+		bearer := fmt.Sprintf("Bearer %v", *token)
 		req.Header.Set("Authorization", bearer)
 	}
 	resp, err := httpClient.Do(req)
