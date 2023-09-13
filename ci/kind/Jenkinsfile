@@ -69,6 +69,7 @@ pipeline {
         booleanParam (description: 'Whether to run opensearch-operator based opensearch tests', name: 'RUN_OPENSEARCH_OPERATOR_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to run clusterAPI override tests', name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        booleanParam (description: 'Whether to enable local IdP Dex', name: 'ENABLE_DEX', defaultValue: false)
     }
 
     environment {
@@ -137,6 +138,8 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        ENABLE_DEX = "${params.ENABLE_DEX == true ? true : false}"
     }
 
     stages {

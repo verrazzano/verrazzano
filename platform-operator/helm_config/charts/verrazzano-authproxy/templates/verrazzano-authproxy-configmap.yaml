@@ -25,6 +25,7 @@ data:
     local callbackPath = "{{ .OidcCallbackPath }}"
     local logoutPath = "{{ .OidcLogoutCallbackPath }}"
     local singleLogoutPath = "{{ .OidcSingleLogoutCallbackPath }}"
+    local oidcProviderForConsole = "{{ .OidcProviderForConsole }}"
 
     local auth = require("auth").config({
         hostSuffix = '.'..clusterHostSuffix,
@@ -83,6 +84,12 @@ data:
     auth.debug("Processing request for backend '"..ingressHost.."'")
     if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
         auth.bad_request("Invalid request")
+    end
+
+    if (backend == 'console' or backend == 'verrazzano') then
+        auth.initOidcProvider(oidcProviderForConsole)
+    else
+        auth.initOidcProvider("keycloak")
     end
 
     local authHeader = ngx.req.get_headers()["authorization"]
@@ -165,6 +172,8 @@ data:
     local cjson = require "cjson"
     local jwt = require "resty.jwt"
     local validators = require "resty.jwt-validators"
+    local b64 = ngx.encode_base64
+    local unb64url = require("ngx.base64").decode_base64url
 
     local oidcRealm = "{{ .OidcRealm }}"
     local oidcClient = "{{ .OIDCClientID }}"
@@ -173,9 +182,12 @@ data:
     local requiredRole = "{{ .RequiredRealmRole }}"
 
     local authStateTtlInSec = tonumber("{{ .AuthnStateTTL }}")
-
     local oidcProviderHost = "{{ .OidcProviderHost }}"
     local oidcProviderHostInCluster = "{{ .OidcProviderHostInCluster }}"
+    local oidcProviderHostDex = "{{ .OidcProviderHostDex }}"
+    local oidcProviderHostInClusterDex = "{{ .OidcProviderHostInClusterDex }}"
+    local oidcClientSecret = "{{ .OidcProviderClientSecret }}"
+
 
     local oidcProviderUri = nil
     local oidcProviderInClusterUri = nil
@@ -185,7 +197,11 @@ data:
     function me.getRoles(idToken)
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
-            return table.concat(id_token.payload.realm_access.roles,",")
+            return table.concat(id_token.payload.realm_access.roles, ",")
+        end
+
+        if me.oidcProvider == "dex" then
+            return "offline_access,vz_api_access,vz_opensearch_admin,uma_authorization,default-roles-verrazzano-system"
         end
         return ""
     end
@@ -195,7 +211,6 @@ data:
             me[key] = val
         end
         me.initCookieEncryptor()
-        me.initOidcProviderUris()
         return me
     end
 
@@ -213,21 +228,41 @@ data:
         me.aes256 = encryptor
     end
 
-    function me.initOidcProviderUris()
-        oidcProviderUri = 'https://'..oidcProviderHost..'/auth/realms/'..oidcRealm
-        if oidcProviderHostInCluster and oidcProviderHostInCluster ~= "" then
-            oidcProviderInClusterUri = 'http://'..oidcProviderHostInCluster..'/auth/realms/'..oidcRealm
+    function me.initOidcProvider(oidcProvider)
+        me.oidcProvider = oidcProvider
+        local oidcProviderHostForRequest = ""
+        local oidcProviderHostInClusterForRequest = ""
+        if me.oidcProvider == "dex" then
+            oidcProviderHostForRequest = oidcProviderHostDex
+            oidcProviderHostInClusterForRequest = oidcProviderHostInClusterDex
+        else
+            oidcProviderHostForRequest = oidcProviderHost
+            oidcProviderHostInClusterForRequest = oidcProviderHostInCluster
         end
 
-        local keycloakURL = me.read_file("/api-config/keycloak-url")
-        if keycloakURL and keycloakURL ~= "" then
-            me.debug("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
-            oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
-            oidcProviderInClusterUri = nil
+        me.oidcProviderUri = "https://" .. oidcProviderHostForRequest
+        if oidcProviderHostInClusterForRequest and oidcProviderHostInClusterForRequest ~= "" then
+            me.oidcProviderInClusterUri = "http://" .. oidcProviderHostInClusterForRequest
         end
 
-        oidcIssuerUri = oidcProviderUri
-        oidcIssuerUriLocal = oidcProviderInClusterUri
+        local oidcProviderURL = me.read_file("/api-config/" .. me.oidcProvider .. "-url")
+        if oidcProviderURL and oidcProviderURL ~= "" then
+            me.debug(oidcProviderURL .. "-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+
+            me.oidcProviderUri = oidcProviderURL
+            me.oidcProviderInClusterUri = nil
+        end
+
+        if me.oidcProvider == "keycloak" then
+            me.oidcProviderUri = me.oidcProviderUri .. "/auth/realms/" .. oidcRealm
+            if me.oidcProviderInClusterUri then
+                me.oidcProviderInClusterUri = me.oidcProviderInClusterUri .. "/auth/realms/" .. oidcRealm
+            end
+
+        end
+
+        me.oidcIssuerUri = me.oidcProviderUri
+        me.oidcIssuerUriLocal = me.oidcProviderInClusterUri
     end
 
     function me.log(logLevel, msg, name, value)
@@ -339,20 +374,33 @@ data:
     end
 
     function me.logout()
-        local redirectArgs = ngx.encode_args({
-            redirect_uri = me.hostUri
-        })
         local ck = me.readCookie("vz_authn")
+        local redirectURL = me.hostUri
         if ck then
-            local rft = ck.rt
-            ngx.req.set_header("Content-Type","application/x-www-form-urlencoded")
-            ngx.req.set_method(ngx.HTTP_POST)
-            local redirectURL = me.getOidcProviderUri().."/protocol/openid-connect/logout?"..redirectArgs
-            local postArgs = ngx.encode_args({refresh_token = ck.rt,
-            redirect_uri = redirectURL,
-            client_id = oidcClient})
-            ngx.req.read_body()
-            ngx.req.set_body_data(postArgs)
+            if me.oidcProvider ~= "dex" then
+                local rft = ck.rt
+                local redirectArgs =
+                    ngx.encode_args(
+                    {
+                        redirect_uri = me.hostUri
+                    }
+                )
+                ngx.req.set_header("Content-Type", "application/x-www-form-urlencoded")
+                ngx.req.set_method(ngx.HTTP_POST)
+                redirectURL = me.getOidcProviderUri() .. "/protocol/openid-connect/logout?" .. redirectArgs
+
+                local postArgs =
+                    ngx.encode_args(
+                    {
+                        refresh_token = ck.rt,
+                        redirect_uri = redirectURL,
+                        client_id = oidcClient
+                    }
+                )
+                ngx.req.read_body()
+
+                ngx.req.set_body_data(postArgs)
+            end
             me.deleteCookies("vz_authn", "vz_userinfo")
             ngx.redirect(redirectURL)
         end
@@ -647,31 +695,43 @@ data:
     end
 
     function me.getOidcProviderUri()
-        if oidcProviderUri and oidcProviderUri ~= "" then
-            return oidcProviderUri
+        if me.oidcProviderUri and me.oidcProviderUri ~= "" then
+            return me.oidcProviderUri
         else
-            return oidcProviderInClusterUri
+            return me.oidcProviderInClusterUri
         end
     end
 
     function me.getLocalOidcProviderUri()
-        if oidcProviderInClusterUri and oidcProviderInClusterUri ~= "" then
-            return oidcProviderInClusterUri
+        if me.oidcProviderInClusterUri and me.oidcProviderInClusterUri ~= "" then
+            return me.oidcProviderInClusterUri
         else
-            return oidcProviderUri
+            return me.oidcProviderUri
         end
     end
 
     function me.getOidcTokenUri()
-        return me.getLocalOidcProviderUri().."/protocol/openid-connect/token"
+        if me.oidcProvider == "dex" then
+            return me.getLocalOidcProviderUri() .. "/token"
+        end
+
+        return me.getLocalOidcProviderUri() .. "/protocol/openid-connect/token"
     end
 
     function me.getOidcCertsUri()
-        return me.getLocalOidcProviderUri()..'/protocol/openid-connect/certs'
+        if me.oidcProvider == "dex" then
+            return me.getLocalOidcProviderUri() .. "/keys"
+        end
+
+        return me.getLocalOidcProviderUri() .. "/protocol/openid-connect/certs"
     end
 
     function me.getOidcAuthUri()
-        return me.getOidcProviderUri()..'/protocol/openid-connect/auth'
+        if me.oidcProvider == "dex" then
+            return me.getOidcProviderUri() .. "/auth/local"
+        end
+
+        return me.getOidcProviderUri() .. "/protocol/openid-connect/auth"
     end
 
     function me.oidcAuthenticate()
@@ -690,7 +750,7 @@ data:
             code_challenge = codeChallenge,
             nonce = nonce
         }
-        local redirectArgs = ngx.encode_args({
+        local rawRedirectArgs = {
             client_id = oidcClient,
             response_type = 'code',
             scope = 'openid',
@@ -699,8 +759,16 @@ data:
             state = state,
             nonce = nonce,
             redirect_uri = me.callbackUri
-        })
-        local redirectURL = me.getOidcAuthUri()..'?'..redirectArgs
+        }
+
+        if me.oidcProvider == "dex" then
+            rawRedirectArgs.scope = "openid email profile offline_access"
+        else
+            rawRedirectArgs.scope = "openid"
+        end
+
+        local redirectArgs = ngx.encode_args(rawRedirectArgs)
+        local redirectURL = me.getOidcAuthUri() .. "?" .. redirectArgs
         -- there could be an existing (expired) vz_authn cookie.
         -- delete it (and vz_userinfo) to avoid exceeding max header size
         me.deleteCookies("vz_authn", "vz_userinfo")
@@ -756,43 +824,57 @@ data:
             }
         })
         if err then
-            me.error("Failed requesting token from Keycloak: "..err)
+            me.error("Failed requesting token from " .. me.oidcProvider .. ": " .. err)
             me.unauthorized("Error requesting token", err)
         end
         if not res then
-            me.info("Failed requesting token from Keycloak: response is nil")
+            me.info("Failed requesting token from " .. me.oidcProvider .. ": response is nil")
             me.unauthorized("Error requesting token: response is nil")
         end
         if not (res.status == 200) then
-            me.info("Failed requesting token from Keycloak: response status code is "..res.status.." and response body is "..res.body)
-            me.unauthorized("Error requesting token: response status code is "..res.status.." and response body is "..res.body)
+            me.info(
+                "Failed requesting token from " .. me.oidcProvider .. ": response status code is " ..
+                    res.status .. " and response body is " .. res.body
+            )
+            me.unauthorized(
+                "Error requesting token: response status code is " .. res.status .. " and response body is " .. res.body
+            )
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
-            me.info("Failed requesting token from Keycloak: "..tokenRes.error_description)
-            me.unauthorized("Error requesting token: "..tokenRes.error_description)
+            me.info("Failed requesting token from " .. me.oidcProvider .. ": " .. tokenRes.error_description)
+            me.unauthorized("Error requesting token: " .. tokenRes.error_description)
         end
         return tokenRes
     end
 
     function me.oidcGetTokenWithBasicAuth(u, p)
-        return me.oidcTokenRequest({
-                        grant_type = 'password',
-                        scope = 'openid',
-                        client_id = oidcDirectAccessClient,
-                        password = p,
-                        username = u
-                    })
+        local params = {
+                    grant_type = 'password',
+                    scope = 'openid',
+                    client_id = oidcDirectAccessClient,
+                    password = p,
+                    username = u
+                }
+        if me.oidcProvider == "dex" then
+            params.scope = "openid profile"
+        end
+        return me.oidcTokenRequest(params)
     end
 
     function me.oidcGetTokenWithCode(code, verifier, callbackUri)
-        return me.oidcTokenRequest({
-                        grant_type = 'authorization_code',
-                        client_id = oidcClient,
-                        code = code,
-                        code_verifier = verifier,
-                        redirect_uri = callbackUri
-                    })
+        local params = {
+                grant_type = "authorization_code",
+                client_id = oidcClient,
+                code = code,
+                code_verifier = verifier,
+                redirect_uri = callbackUri
+            }
+        if me.oidcProvider == "dex" then
+            params.client_secret = oidcClientSecret
+            params.scope = "openid offline_access email"
+        end
+        return me.oidcTokenRequest(params)
     end
 
     function me.oidcRefreshToken(rft, callbackUri)
@@ -813,22 +895,30 @@ data:
             clients = { oidcClient, adminClusterOidcClient, oidcDirectAccessClient }
         end
         local claim_spec = {
-            typ = validators.equals_any_of({ "Bearer", "ID" }),
-            iss = validators.equals( oidcIssuerUri ),
-            azp = validators.equals_any_of( clients )
+            typ = validators.equals_any_of({"Bearer", "ID"}),
+            iss = validators.equals(me.oidcIssuerUri),
+            azp = validators.equals_any_of(clients)
         }
+
+        if me.oidcProvider == "dex" then
+            claim_spec = {
+                iss = validators.equals(me.oidcIssuerUri),
+                aud = validators.equals_any_of(clients)
+            }
+        end
+
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end
 
     function me.oidcValidateIDTokenPKCE(token)
-        me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcClient)
+        me.oidcValidateToken(token, "ID", me.oidcIssuerUri, oidcClient)
     end
 
     function me.oidcValidateIDTokenPG(token)
-        if not oidcIssuerUriLocal then
-            me.oidcValidateToken(token, "ID", oidcIssuerUri, oidcDirectAccessClient)
+        if not me.oidcIssuerUriLocal then
+            me.oidcValidateToken(token, "ID", me.oidcIssuerUri, oidcDirectAccessClient)
         else
-            me.oidcValidateToken(token, "ID", oidcIssuerUriLocal, oidcDirectAccessClient)
+            me.oidcValidateToken(token, "ID", me.oidcIssuerUriLocal, oidcDirectAccessClient)
         end
     end
 
@@ -850,6 +940,12 @@ data:
             iss = validators.equals( expectedIssuer ),
             azp = validators.equals( clientName )
         }
+        if me.oidcProvider == "dex" then
+            claim_spec = {
+                iss = validators.equals(me.oidcIssuerUri),
+                aud = validators.equals(clientName)
+            }
+        end
         me.oidcValidateTokenWithClaims(token, claim_spec)
     end
 
@@ -870,7 +966,7 @@ data:
             me.unauthorized("No public key found")
         end
         -- me.debug("TOKEN: iss is "..jwt_obj.payload.iss)
-        -- me.debug("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
+        -- me.debug("TOKEN: oidcIssuerUri is"..me.oidcIssuerUri)
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, default_claim_spec, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
@@ -894,6 +990,13 @@ data:
     function me.usernameFromIdToken(idToken)
         -- me.debug("usernameFromIdToken: fetching preferred_username")
         local id_token = jwt:load_jwt(idToken)
+        if me.oidcProvider == "dex" then
+            if id_token and id_token.payload and id_token.payload.name then
+                return id_token.payload.name
+            end
+            me.unauthorized("nameIdToken: name not found")
+        end
+
         if id_token and id_token.payload and id_token.payload.preferred_username then
             return id_token.payload.preferred_username
         end
@@ -951,7 +1054,11 @@ data:
         }
         local id_token = jwt:load_jwt(tokenRes.id_token)
         local expires_in = tonumber(tokenRes.expires_in)
-        local refresh_expires_in = tonumber(tokenRes.refresh_expires_in)
+        local refresh_expires_in = expires_in
+        if tokenRes.refresh_expires_in then
+            refresh_expires_in = tonumber(tokenRes.refresh_expires_in)
+        end
+
         local now = ngx.time()
         local issued_at = now
         if id_token and id_token.payload then
@@ -973,7 +1080,7 @@ data:
         cookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
         userCookiePairs.expiry = now + expires_in - skew - expiryBuffer
         userCookiePairs.refresh_expiry = now + refresh_expires_in - skew - expiryBuffer
-        local expiresInSec = tonumber(tokenRes.refresh_expires_in)-expiryBuffer
+        local expiresInSec = refresh_expires_in - expiryBuffer
         me.setCookie("vz_authn", cookiePairs, expiresInSec, true)
         me.setCookie("vz_userinfo", userCookiePairs, expiresInSec, false)
     end
@@ -1033,11 +1140,17 @@ data:
     end
 
     local certs = {}
+    local moduli = {}
+    local exponents = {}
 
     function me.realmCerts(kid)
         local pk = certs[kid]
+        local modulus = moduli[kid]
+        local exponent = exponents[kid]
         if pk then
-            return pk
+            return pk, nil, nil
+        elseif modulus and exponent then
+            return nil, modulus, exponent
         end
         local http = require "resty.http"
         local httpc = http.new()
@@ -1055,17 +1168,25 @@ data:
         for i, key in pairs(data.keys) do
             if key.kid and key.x5c then
                 certs[key.kid] = key.x5c
+            elseif key.kty == "RSA" and key.n and key.e then
+                moduli[key.kid] = key.n
+                exponents[key.kid] = key.e
             end
         end
-        return certs[kid]
+        return certs[kid], moduli[kid], exponents[kid]
     end
 
     function me.publicKey(kid)
-        local x5c = me.realmCerts(kid)
-        if (not x5c) or (#x5c == 0) then
-            return nil
+        local x5c, n, e = me.realmCerts(kid)
+        if x5c and #x5c ~= 0 then
+            return "-----BEGIN CERTIFICATE-----\n" .. x5c[1] .. "\n-----END CERTIFICATE-----"
         end
-        return "-----BEGIN CERTIFICATE-----\n"..x5c[1].."\n-----END CERTIFICATE-----"
+
+        if n and e then
+            return me.generate_key(n, e)
+        end
+
+        return nil
     end
 
     -- api-proxy - methods for handling multi-cluster k8s API requests
@@ -1153,6 +1274,14 @@ data:
             me.debug(("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.preferred_username)
         end
+
+        if me.oidcProvider == "dex" and jwt_obj.payload and jwt_obj.payload.name then
+            me.debug(("Adding name as Impersonate-User: " .. jwt_obj.payload.name))
+            ngx.req.set_header("Impersonate-User", jwt_obj.payload.name)
+            me.debug("Adding verrazzano-admins as Impersonate-Group")
+            table.insert(groups, "verrazzano-admins")
+        end
+
         if jwt_obj.payload and jwt_obj.payload.groups then
             for key, grp in pairs(jwt_obj.payload.groups) do
                 table.insert(groups, grp)
@@ -1290,6 +1419,76 @@ data:
             end
         end
         return true
+    end
+
+    -- Implementation of openidc_pem_from_rsa_n_and_e from lua-resty-openidc to generate public key from
+    -- modulus and operand values of token
+    function me.generate_key(n, e)
+        me.debug("getting PEM public key from n and e parameters of json public key")
+        local der_key = {
+            unb64url(n), unb64url(e)
+        }
+        local encoded_key = me.encode_sequence_of_integer(der_key)
+        local pem = me.der2pem(me.encode_sequence({
+            me.encode_sequence({
+            "\6\9\42\134\72\134\247\13\1\1\1" -- OID :rsaEncryption
+                .. "\5\0" -- ASN.1 NULL of length 0
+            }),
+            me.encode_bit_string(encoded_key)
+        }), "PUBLIC KEY")
+        me.debug("Generated pem key from n and e: ", pem)
+        return pem
+    end
+
+    function me.encode_length(length)
+        if length < 0x80 then
+            return string.char(length)
+        elseif length < 0x100 then
+            return string.char(0x81, length)
+        elseif length < 0x10000 then
+            return string.char(0x82, math.floor(length / 0x100), length % 0x100)
+        end
+        me.error("Can't encode lengths over 65535")
+    end
+
+    function me.encode_sequence(array, of)
+        local encoded_array = array
+        if of then
+            encoded_array = {}
+            for i = 1, #array do
+                encoded_array[i] = of(array[i])
+            end
+        end
+        encoded_array = table.concat(encoded_array)
+
+        return string.char(0x30) .. me.encode_length(#encoded_array) .. encoded_array
+    end
+
+    function me.encode_sequence_of_integer(array)
+        return me.encode_sequence(array, me.encode_binary_integer)
+    end
+
+    function me.der2pem(data, typ)
+        local wrap = ('.'):rep(64)
+        local envelope = "-----BEGIN %s-----\n%s\n-----END %s-----\n"
+        typ = typ:upper() or "CERTIFICATE"
+        data = b64(data)
+        return string.format(envelope, typ, data:gsub(wrap, '%0\n', (#data - 1) / 64), typ)
+    end
+
+    function me.encode_bit_string(array)
+        local s = "\0" .. array -- first octet holds the number of unused bits
+        return "\3" .. me.encode_length(#s) .. s
+    end
+
+    function me.encode_binary_integer(bytes)
+        if bytes:byte(1) > 127 then
+            -- We currenly only use this for unsigned integers,
+            -- however since the high bit is set here, it would look
+            -- like a negative signed int, so prefix with zeroes
+            bytes = "\0" .. bytes
+        end
+        return "\2" .. me.encode_length(#bytes) .. bytes
     end
 
     return me
