@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io"
 	"net/http"
 	"strings"
@@ -55,9 +56,9 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	var ingress *networkingv1.Ingress
 
 	if isDexEnabled {
-		ingress, err = clientset.NetworkingV1().Ingresses("dex").Get(context.TODO(), "dex", v1.GetOptions{})
+		ingress, err = clientset.NetworkingV1().Ingresses(constants.DexNamespace).Get(context.TODO(), constants.DexIngress, v1.GetOptions{})
 	} else {
-		ingress, err = clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+		ingress, err = clientset.NetworkingV1().Ingresses(constants.KeycloakNamespace).Get(context.TODO(), constants.KeycloakIngress, v1.GetOptions{})
 	}
 
 	if err != nil {

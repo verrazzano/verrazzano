@@ -92,10 +92,10 @@ var _ = t.Describe("Dex", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure the ingress is created
 		// THEN we successfully find the ingresses in the cluster
 		WhenDexInstalledIt("Dex ingress exists", func() {
-			ing := []string{"dex"}
+			ing := []string{constants.DexIngress}
 			t.Logs.Infof("Expected Dex ingresses %v", ing)
 			Eventually(func() (bool, error) {
-				return pkg.IngressesExist(inClusterVZ, constants.DexIngress, ing)
+				return pkg.IngressesExist(inClusterVZ, constants.DexNamespace, ing)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected Dex Ingress should exist")
 		})
 
@@ -104,9 +104,9 @@ var _ = t.Describe("Dex", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the secret in the cluster
 		WhenDexInstalledIt("PKCE secret exists", func() {
 			Eventually(func() bool {
-				result, err := pkg.DoesSecretExist(constants.DexIngress, pkceClientSecret)
+				result, err := pkg.DoesSecretExist(constants.DexNamespace, pkceClientSecret)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Secret %s does not exist in the namespace: %v, error: %v", pkceClientSecret, constants.DexIngress, err))
+					AbortSuite(fmt.Sprintf("Secret %s does not exist in the namespace: %v, error: %v", pkceClientSecret, constants.DexNamespace, err))
 				}
 				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to find PKCE secret")

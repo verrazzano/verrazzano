@@ -374,7 +374,7 @@ func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
 		return data, nil
 	}
 
-	return nil, fmt.Errorf("client secret not present in %s/%s secret", constants.DexNamespace, adminClusterOidcID)
+	return nil, ctx.Log().ErrorfThrottledNewErr("client secret not present in %s/%s secret", constants.DexNamespace, adminClusterOidcID)
 }
 
 // appendOIDCOverrides appends overrides related to OIDC configuration

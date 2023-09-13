@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"strings"
 	"time"
@@ -142,7 +143,7 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		if strings.HasPrefix(ingressHost, "elasticsearch") ||
 			strings.HasPrefix(ingressHost, "kibana") ||
 			strings.HasPrefix(ingressHost, "thanos-query-store") ||
-			strings.HasPrefix(ingressHost, "dex") {
+			strings.HasPrefix(ingressHost, vzconst.DexHostPrefix) {
 			continue
 		}
 		// Any verrazzano-managed ingresses in the Rancher namespace are created for managed clusters to be
