@@ -111,6 +111,13 @@ func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Upgrade upgrades mysql
 func (c mysqlComponent) Upgrade(ctx spi.ComponentContext) error {
+	// Restart mysql operator if module-integration enabled
+	if config.Get().ModuleIntegration {
+		if err := restartMySQLOperator(ctx); err != nil {
+			return err
+		}
+	}
+
 	if err := c.HelmComponent.Upgrade(ctx); err != nil {
 		return err
 	}
