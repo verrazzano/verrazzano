@@ -118,6 +118,11 @@ EOF
     kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
   fi
 
+  # create verrazzano-github-token secret in verrazzano-install ns
+  if [ -n "${GITHUB_TOKEN}" ]; then
+    ./tests/e2e/config/scripts/create-github-token-secret.sh "verrazzano-github-token" "${GITHUB_TOKEN}" "verrazzano-install"
+  fi
+
   # create secret in verrazzano-install ns
   ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
