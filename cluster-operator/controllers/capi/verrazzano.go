@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -26,15 +27,18 @@ type VerrazzanoRegistration struct {
 }
 
 func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+	v.Log.Infof("Registering cluster %s with Verrazzano", cluster.GetName())
 	workloadClient, err := getWorkloadClusterClient(v.Client, v.Log, cluster)
 	if err != nil {
+		v.Log.Errorf("Error getting workload cluster %s client: %v", cluster.GetName(), err)
 		return ctrl.Result{}, err
 	}
 
 	// ensure Verrazzano is installed and ready in workload cluster
 	ready, err := v.isVerrazzanoReady(ctx, workloadClient)
 	if !ready {
-		return vzctrl.ShortRequeue(), err
+		v.Log.Infof("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
+		return vzctrl.LongRequeue(), err
 	}
 
 	// if verrazzano-tls-ca exists, the cluster is untrusted
@@ -42,30 +46,35 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 		Namespace: constants.VerrazzanoSystemNamespace}, &v1.Secret{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// need to create a CA secret in admin cluster
-
-			// get the workload cluster API CA cert
-			caCrt, err := v.getWorkloadClusterCACert(workloadClient)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			// persist the workload API certificate on the admin cluster
-			adminWorkloadCertSecret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("ca-secret-%s", cluster.GetName()),
-				Namespace: constants.VerrazzanoMultiClusterNamespace}}
-			if _, err := ctrl.CreateOrUpdate(context.TODO(), workloadClient, adminWorkloadCertSecret, func() error {
-				if len(adminWorkloadCertSecret.Data) == 0 {
-					adminWorkloadCertSecret.Data = make(map[string][]byte)
-				}
-				adminWorkloadCertSecret.Data["cacrt"] = caCrt
-
-				return nil
-			}); err != nil {
-				return ctrl.Result{}, err
-			}
+			// cluster is trusted
+			v.Log.Infof("Cluster %s is using trusted certs", cluster.GetName())
 		}
-		return vzctrl.ShortRequeue(), err
+		// unexpected error
+		return ctrl.Result{}, err
+	} else {
+		// need to create a CA secret in admin cluster
+
+		// get the workload cluster API CA cert
+		caCrt, err := v.getWorkloadClusterCACert(workloadClient)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		// persist the workload API certificate on the admin cluster
+		adminWorkloadCertSecret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("ca-secret-%s", cluster.GetName()),
+			Namespace: constants.VerrazzanoMultiClusterNamespace}}
+		if _, err := ctrl.CreateOrUpdate(context.TODO(), v.Client, adminWorkloadCertSecret, func() error {
+			if len(adminWorkloadCertSecret.Data) == 0 {
+				adminWorkloadCertSecret.Data = make(map[string][]byte)
+			}
+			adminWorkloadCertSecret.Data["cacrt"] = caCrt
+
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
+
 	// obtain the API endpoint IP address for the admin cluster
 	err = v.createAdminAccessConfigMap(ctx)
 	if err != nil {
@@ -90,7 +99,7 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 		}
 	}
 
-	manifest, err := v.getClusterManifest(workloadClient, cluster)
+	manifest, err := v.getClusterManifest(cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -111,6 +120,7 @@ func (v *VerrazzanoRegistration) createWorkloadClusterVMC(ctx context.Context, c
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.GetName(),
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Labels:    map[string]string{rancher.CreatedByLabel: rancher.CreatedByVerrazzano},
 		},
 		Spec: clustersv1alpha1.VerrazzanoManagedClusterSpec{
 			CASecret:    fmt.Sprintf("ca-secret-%s", cluster.GetName()),
@@ -131,7 +141,7 @@ func (v *VerrazzanoRegistration) createWorkloadClusterVMC(ctx context.Context, c
 
 func (v *VerrazzanoRegistration) createAdminAccessConfigMap(ctx context.Context) error {
 	ep := &v1.Endpoints{}
-	if err := v.Get(ctx, types.NamespacedName{Name: "kubernetes"}, ep); err != nil {
+	if err := v.Get(ctx, types.NamespacedName{Name: "kubernetes", Namespace: "default"}, ep); err != nil {
 		return err
 	}
 	apiServerIP := ep.Subsets[0].Addresses[0].IP
@@ -147,7 +157,7 @@ func (v *VerrazzanoRegistration) createAdminAccessConfigMap(ctx context.Context)
 		if cm.Data == nil {
 			cm.Data = make(map[string]string)
 		}
-		cm.Data["server"] = apiServerIP
+		cm.Data["server"] = fmt.Sprintf("https://%s:6443", apiServerIP)
 
 		return nil
 	}); err != nil {
@@ -187,10 +197,10 @@ func (v *VerrazzanoRegistration) isVerrazzanoReady(ctx context.Context, workload
 	return true, nil
 }
 
-func (v *VerrazzanoRegistration) getClusterManifest(workloadClient client.Client, cluster *unstructured.Unstructured) ([]byte, error) {
+func (v *VerrazzanoRegistration) getClusterManifest(cluster *unstructured.Unstructured) ([]byte, error) {
 	// retrieve the manifest for the workload cluster
 	manifestSecret := &v1.Secret{}
-	err := workloadClient.Get(context.TODO(), types.NamespacedName{
+	err := v.Get(context.TODO(), types.NamespacedName{
 		Name:      fmt.Sprintf("verrazzano-cluster-%s-manifest", cluster.GetName()),
 		Namespace: constants.VerrazzanoMultiClusterNamespace},
 		manifestSecret)
@@ -211,8 +221,16 @@ func UnregisterVerrazzanoCluster(ctx context.Context, v *VerrazzanoRegistration,
 		return err
 	}
 	// get the list of cluster related resources
-	manifest, err := v.getClusterManifest(workloadClient, cluster)
+	manifest, err := v.getClusterManifest(cluster)
 	if err != nil {
+		return err
+	}
+
+	// remove the resources from workload cluster
+	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
+	err = yamlApplier.DeleteS(string(manifest))
+	if err != nil {
+		v.Log.Infof("Failed deleting resources of cluster manifest from workload cluster %s", cluster.GetName())
 		return err
 	}
 
@@ -228,14 +246,6 @@ func UnregisterVerrazzanoCluster(ctx context.Context, v *VerrazzanoRegistration,
 		if errors.IsNotFound(err) {
 			v.Log.Infof("VMC for cluster %s not found - nothing to do", cluster.GetName())
 		}
-		return err
-	}
-
-	// remove the resources from workload cluster
-	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
-	err = yamlApplier.DeleteS(string(manifest))
-	if err != nil {
-		v.Log.Infof("Failed deleting resources of cluster manifest from workload cluster %s", cluster.GetName())
 		return err
 	}
 
