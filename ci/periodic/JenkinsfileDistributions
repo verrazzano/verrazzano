@@ -414,3 +414,11 @@ def getSuspectList(commitList, userMappings) {
     echo "returning suspect list: ${retValue}"
     return retValue
 }
+@NonCPS
+List extractReleaseTags(final String fileContent) {
+    List releases = []
+    fileContent.eachLine { tag ->
+        releases << tag
+    }
+    return releases
+}
