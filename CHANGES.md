@@ -7,6 +7,8 @@ Component version updates:
 
 Features:
 
+- Added OKEQuickCreate custom resource, to support ease-of-use when creating OKE clusters on OCI.
+- Added OCNEOCIQuickCreate custom resource, to support ease-of-use when creating OCNE clusters on OCI.
 - Enabled status updates for Istio reconciled objects
 - Support for Thanos Ruler and Compactor
 - Prometheus rules in the kube-prometheus-stack and Thanos Helm charts are enabled by default
