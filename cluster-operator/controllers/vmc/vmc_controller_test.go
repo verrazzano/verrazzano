@@ -2017,6 +2017,22 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
+	// Expect a call to get the dex ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-auth", Name: "dex"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "networking.k8s.io/v1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
+				Host: "auth",
+			}}
+			return nil
+		})
+
 	// Expect a call to create the registration secret
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
