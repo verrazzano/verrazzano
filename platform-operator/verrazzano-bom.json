@@ -300,8 +300,8 @@
           "name": "verrazzano-monitoring-operator",
           "images": [
             {
-              "image": "verrazzano-monitoring-operator-jenkins",
-              "tag": "v2.0.0-20230913081800-9806543",
+              "image": "verrazzano-monitoring-operator",
+              "tag": "v2.0.0-20230913103358-6033fa2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -322,12 +322,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230913070106-b6247ad8ac8",
+              "tag": "2.3.0-20230913092409-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230913075125-cc04b43c2b",
+              "tag": "2.3.0-20230913092612-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
