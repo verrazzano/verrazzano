@@ -8,6 +8,7 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -58,22 +59,38 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
-		// Create or update the module
-		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
+		if res := r.createOrUpdateOneModule(log, actualCR, effectiveCR, comp, version); res.ShouldRequeue() {
+			return res
+		}
+	}
+	return result.NewResult()
+}
 
-		moduleExisting := &moduleapi.Module{}
-		if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&module), moduleExisting); err != nil && !errors.IsNotFound(err) {
-			return result.NewResultShortRequeueDelayWithError(err)
+func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, comp componentspi.Component, version *semver.SemVersion) result.Result {
+	// Create or update the module
+	module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
+
+	// There seems to be an issue with CreateOrUpdate() returning a false-updated status; if we compare the top-level
+	// fields one-by-one they will be Equal if unchanged, but passing in the full Object for compare returns a diff.
+	//
+	// For now, stash the pre-update version of the Module away, then compare the specs using DeepEqual. That seems to
+	// tell us if things have truly changed or not, at least the things we care about.
+	//
+	moduleExisting := &moduleapi.Module{}
+	if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&module), moduleExisting); err != nil && !errors.IsNotFound(err) {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
+		return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
+	})
+	if err != nil {
+		if !errors.IsConflict(err) {
+			log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
 		}
-		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
-		})
-		if err != nil {
-			if !errors.IsConflict(err) {
-				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
-			}
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	/*
+		For debugging DeepEqual
 		if !equality.Semantic.DeepEqual(moduleExisting, module) {
 			log.Debugf("Full object diff for %s failed", client.ObjectKeyFromObject(&module))
 		}
@@ -86,15 +103,15 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 		if !equality.Semantic.DeepEqual(moduleExisting.Status, module.Status) {
 			log.Debugf("Status diff for %s failed", client.ObjectKeyFromObject(&module))
 		}
-		// Workaround, CreateOrUpdate is returning a false-positive update even when none of the fields change,
-		// do a DeepEqual of the before/after module specs to see if anything there changed.
-		if equality.Semantic.DeepEqual(moduleExisting.Spec, module.Spec) {
-			opResult = controllerutil.OperationResultNone
-		}
-		// If the copy operation resulted in an update to the target, set the VZ condition to install started/Reconciling
-		if res := r.updateStatusIfNeeded(log, actualCR, opResult); res.ShouldRequeue() {
-			return res
-		}
+	*/
+	// Workaround, CreateOrUpdate is returning a false-positive update even when none of the fields change,
+	// do a DeepEqual of the before/after module specs to see if anything there changed.
+	if equality.Semantic.DeepEqual(moduleExisting.Spec, module.Spec) {
+		opResult = controllerutil.OperationResultNone
+	}
+	// If the copy operation resulted in an update to the target, set the VZ condition to install started/Reconciling
+	if res := r.updateStatusIfNeeded(log, actualCR, opResult); res.ShouldRequeue() {
+		return res
 	}
 	return result.NewResult()
 }
