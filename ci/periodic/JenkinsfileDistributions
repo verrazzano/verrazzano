@@ -5,7 +5,7 @@ import groovy.transform.Field
 
 @Field def verrazzanoPrefix="verrazzano-"
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
-en
+
 pipeline {
     options {
         timeout(time: 4, unit: 'HOURS')
@@ -61,8 +61,8 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
-       // DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
-       // PIPELINE_OWNERS = credentials('lretests-owners')
+        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
+        PIPELINE_OWNERS = credentials('lretests-owners')
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -117,7 +117,7 @@ pipeline {
                     }
                     catch(error){
                         echo"Image Sizes have increased"
-                        slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n" )
+                       slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${DEV_LRE_SUSPECT_LIST} ${PIPELINE_OWNERS}\n" )
                     }
                 }
                 sh """
