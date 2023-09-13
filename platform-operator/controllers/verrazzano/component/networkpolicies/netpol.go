@@ -70,6 +70,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 	{Namespace: vzconst.ArgoCDNamespace, Name: "argocd"},
 	{Namespace: vzconst.VerrazzanoCAPINamespace, Name: "clusterAPI"},
+	{Namespace: constants.DexNamespace, Name: "dex"},
 }
 
 // List of network policies from which we should remove the Helm release of this component,
@@ -151,6 +152,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.ArgoCD = &argoCDValues{Enabled: vzcr.IsArgoCDEnabled(effectiveCR)}
 	overrides.ClusterAPI = &clusterAPIValues{Enabled: vzcr.IsClusterAPIEnabled(effectiveCR)}
 	overrides.FluentOperator = &fluentOperatorValues{Enabled: vzcr.IsFluentOperatorEnabled(effectiveCR)}
+	overrides.Dex = &dexValues{Enabled: vzcr.IsDexEnabled(effectiveCR)}
 	return nil
 }
 

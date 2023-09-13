@@ -696,6 +696,12 @@ spec:
             matchLabels:
               app.kubernetes.io/instance: velero
               app.kubernetes.io/name: velero
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-auth
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dex
     - ports:
         - port: 15017
           protocol: TCP
@@ -877,3 +883,75 @@ spec:
         - port: 9443
           protocol: TCP
 {{- end }}
+{{- if .Values.dex.enabled }}
+---
+# Allow any pod in the dex namespace to have network ingress to any other pod
+# in the dex namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: verrazzano-auth
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+  # Network policy for Dex
+  # Ingress: allow nginx ingress and ingress from pods in the verrazzano-system namespace
+  #          allow connect from Prometheus to scrape Envoy stats on port 15090
+  # Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dex
+  namespace: verrazzano-auth
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dex
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Values.ingressNGINX.namespace }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-auth
+      ports:
+        - protocol: TCP
+          port: 5558
+        - protocol: TCP
+          port: 80
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+---
+{{- end }}
+
