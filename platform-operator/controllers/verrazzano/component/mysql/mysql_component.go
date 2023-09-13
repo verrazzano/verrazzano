@@ -4,8 +4,14 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -103,6 +109,20 @@ func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade updates resources necessary for the MySQL Component upgrade
 func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	var deployment appsv1.Deployment
+	deployment.Namespace = constants.MySQLOperatorNamespace
+	deployment.Name = "mysql-operator"
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &deployment, func() error {
+		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		// Annotate using the generation so we don't restart twice
+		deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
+		deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/namespace"] = ComponentNamespace
+		return nil
+	}); err != nil {
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
 	if err := preUpgrade(ctx); err != nil {
 		return err
 	}
