@@ -119,7 +119,7 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 		return "", err
 	}
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-os-ingest")
+	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "opensearch")
 	if err != nil {
 		return "", err
 	}
@@ -468,13 +468,13 @@ func DisplayHookLogs(log *zap.SugaredLogger) error {
 		return err
 	}
 
-	podSpec, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "vmi-system-es-master-0", metav1.GetOptions{})
+	podSpec, err := clientset.CoreV1().Pods(constants.VerrazzanoLoggingNamespace).Get(context.TODO(), "opensearch-es-master-0", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	cmdLogFileName := []string{"/bin/sh", "-c", "ls -alt --time=ctime /tmp/ | grep verrazzano | head -1"}
-	stdout, _, err := k8sutil.ExecPod(clientset, config, podSpec, "es-master", cmdLogFileName)
+	stdout, _, err := k8sutil.ExecPod(clientset, config, podSpec, "opensearch", cmdLogFileName)
 	if err != nil {
 		log.Errorf("Error = %v", zap.Error(err))
 		return err
@@ -486,7 +486,7 @@ func DisplayHookLogs(log *zap.SugaredLogger) error {
 	var execCmd []string
 	execCmd = append(execCmd, "cat")
 	execCmd = append(execCmd, fmt.Sprintf("/tmp/%s", logFileName))
-	stdout, _, err = k8sutil.ExecPod(clientset, config, podSpec, "es-master", execCmd)
+	stdout, _, err = k8sutil.ExecPod(clientset, config, podSpec, "opensearch", execCmd)
 	if err != nil {
 		log.Errorf("Error = %v", zap.Error(err))
 		return err
