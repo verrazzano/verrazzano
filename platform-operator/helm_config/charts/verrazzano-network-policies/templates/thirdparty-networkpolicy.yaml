@@ -696,12 +696,6 @@ spec:
             matchLabels:
               app.kubernetes.io/instance: velero
               app.kubernetes.io/name: velero
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-auth
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: dex
     - ports:
         - port: 15017
           protocol: TCP
@@ -926,6 +920,10 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+        - protocol: TCP
+          port: 5558
+        - protocol: TCP
+          port: 5556
     - from:
         - namespaceSelector:
             matchLabels:
@@ -933,15 +931,10 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-auth
-      ports:
         - protocol: TCP
           port: 5558
         - protocol: TCP
-          port: 80
+          port: 5556
     - from:
         - namespaceSelector:
             matchLabels:

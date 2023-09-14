@@ -207,8 +207,8 @@ func TestCreateVerrazzanoMultiClusterNamespace(t *testing.T) {
 // WHEN no error occurs
 // THEN no error is returned, the namespace is created, and the proper labels have been added
 func TestCreateDexNamespace(t *testing.T) {
-	runNamespaceTestWithIstioFlag(t, constants.DexNamespace,
-		createVZAndIstioLabels(constants.DexNamespace),
+	runNamespaceTest(t, constants.DexNamespace,
+		createVzLabels(constants.DexNamespace),
 		CreateDexNamespace)
 }
 

@@ -302,6 +302,9 @@ pipeline {
                 }
 
                 stage ('console') {
+                    when {
+                        expression {params.ENABLE_DEX == false}
+                    }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                     }
