@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	netv1 "k8s.io/api/networking/v1"
 	"net/url"
 	"os"
 	"strings"
@@ -45,6 +46,8 @@ const (
 	notDepFound  = "not-deployment-found"
 	notPVCDelete = "not-pvc-deleted"
 	weakPass     = "weakPass"
+	keycloakNS   = "keycloak"
+	mySQLNetpol  = "keycloak-mysql"
 )
 
 var testScheme = runtime.NewScheme()
@@ -360,6 +363,11 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: keycloakNS, Name: mySQLNetpol}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *netv1.NetworkPolicy, opts ...client.GetOption) error {
+			return nil
+		})
+	mock.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
 			assert.Equal(t, dbMigrationSecret, secret.Name)
@@ -575,6 +583,11 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 			assert.Equal(t, dbMigrationSecret, secret.Name)
 			return nil
 		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: keycloakNS, Name: mySQLNetpol}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *netv1.NetworkPolicy, opts ...client.GetOption) error {
+			return nil
+		})
 	// handleLegacyDatabasePreUpgrade
 
 	// isDatabaseMigrationStageCompleted
@@ -649,7 +662,11 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment, opts ...client.GetOption) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
 		})
-
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: keycloakNS, Name: mySQLNetpol}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *netv1.NetworkPolicy, opts ...client.GetOption) error {
+			return nil
+		})
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	err := preUpgrade(ctx)
 	assert.NoError(t, err)
