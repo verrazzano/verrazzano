@@ -92,9 +92,6 @@ pipeline {
         stage('Build Release Distributions') {
             steps {
                 script {
-                 // update the description with some meaningful info
-                 // currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                 // def currentCommitHash = env.GIT_COMMIT
                    def commitList = getCommitList()
                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
@@ -119,7 +116,6 @@ pipeline {
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                 """
                 script {
-                    // IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                     try{
                         IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                     }
