@@ -8,6 +8,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -55,5 +56,5 @@ func (c argoCDComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazza
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c argoCDComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, keycloak.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, keycloak.ComponentName})
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -28,6 +29,7 @@ type valuesConfig struct {
 func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{
+			istio.ComponentName,
 			nginx.ComponentName,
 			cmconstants.CertManagerComponentName,
 			mysql.ComponentName,

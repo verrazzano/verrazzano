@@ -21,7 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -105,8 +105,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	istio := effectiveCR.Spec.Components.Istio
-	if err := namespace.CreateVerrazzanoSystemNamespace(r.Client, istio != nil && istio.IsInjectionEnabled()); err != nil {
+	if err := custom.CreateVerrazzanoSystemNamespace(r.Client, effectiveCR, log); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -205,6 +204,11 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 
 	if err := argocd.ConfigureKeycloakOIDC(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), componentCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
+		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
