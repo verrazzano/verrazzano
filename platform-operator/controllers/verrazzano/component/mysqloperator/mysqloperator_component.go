@@ -124,27 +124,6 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 }
 
 func (c mysqlOperatorComponent) PostInstall(compContext spi.ComponentContext) error {
-	if !config.Get().ModuleIntegration {
-		return nil
-	}
-
-	compContext.Log().Oncef("Restarting MySQL operator so that it picks up Istio proxy sidecar")
-	// Annotate the deployment to cause the restart
-	var deployment appsv1.Deployment
-	deployment.Namespace = ComponentNamespace
-	deployment.Name = ComponentName
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &deployment, func() error {
-		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
-		// Annotate using the generation so we don't restart twice
-		deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
-		deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/namespace"] = ComponentNamespace
-		return nil
-	}); err != nil {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-
 	return c.HelmComponent.PostInstall(compContext)
 }
 
