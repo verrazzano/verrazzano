@@ -41,6 +41,7 @@ const (
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 	adminClusterOidcID   = "verrazzano-pkce"
+	dexProvider          = "dex"
 )
 
 var (
@@ -114,6 +115,20 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		overrides.ManagedClusterRegistered = true
 	} else {
 		overrides.Proxy.OIDCClientID = adminClusterOidcID
+	}
+
+	if vzcr.IsDexEnabled(effectiveCR) {
+		clientSecret, err := getPKCEClientSecret(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		overrides.Proxy.OidcProviderClientSecret = string(clientSecret)
+		overrides.Proxy.OidcProviderForConsole = dexProvider
+		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", constants.DexHostPrefix, overrides.Config.EnvName, dnsSuffix)
+		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, constants.DexNamespace)
+	} else {
+		overrides.Proxy.OidcProviderForConsole = "keycloak"
 	}
 
 	// Image name and version
@@ -356,6 +371,24 @@ func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 		})
 	}
 	return kvs
+}
+
+// getPKCEClientSecret retrieves the client secret for verrazzano-pkce client.
+func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
+	secret := &corev1.Secret{}
+	ctx.Log().Debugf("Retrieving the client secret from %s/%s secret", constants.DexNamespace, adminClusterOidcID)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.DexNamespace, Name: adminClusterOidcID}, secret)
+	if err != nil {
+		errMsg := fmt.Sprintf("Unable to retrieve %s secret from %s namespace, %v", adminClusterOidcID, constants.DexNamespace, err)
+		ctx.Log().Once(errMsg)
+		return nil, fmt.Errorf(errMsg)
+	}
+
+	if data, ok := secret.Data["clientSecret"]; ok {
+		return data, nil
+	}
+
+	return nil, ctx.Log().ErrorfThrottledNewErr("client secret not present in %s/%s secret", constants.DexNamespace, adminClusterOidcID)
 }
 
 // appendOIDCOverrides appends overrides related to OIDC configuration

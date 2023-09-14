@@ -793,6 +793,24 @@
           ]
         }
       ]
+    },
+    {
+      "name": "dex",
+      "version": "v2.37.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "dex",
+          "images": [
+            {
+              "image": "dex",
+              "tag": "v2.37.0-20230817041111-f7ab1c7c",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

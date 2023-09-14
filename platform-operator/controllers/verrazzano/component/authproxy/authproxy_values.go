@@ -35,6 +35,10 @@ type proxyValues struct {
 	AuthnStateTTL                string `json:"AuthnStateTTL,omitempty"`
 	MaxRequestSize               string `json:"MaxRequestSize,omitempty"`
 	ProxyBufferSize              string `json:"ProxyBufferSize,omitempty"`
+	OidcProviderHostDex          string `json:"OidcProviderHostDex,omitempty"`
+	OidcProviderHostInClusterDex string `json:"OidcProviderHostInClusterDex,omitempty"`
+	OidcProviderForConsole       string `json:"OidcProviderForConsole,omitempty"`
+	OidcProviderClientSecret     string `json:"OidcProviderClientSecret,omitempty"`
 }
 
 type configValues struct {

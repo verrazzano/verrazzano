@@ -165,6 +165,9 @@ const VerrazzanoVersion1_5_0 = "1.5.0"
 // VerrazzanoVersion1_6_0 is the Verrazzano version string for 1.6.0
 const VerrazzanoVersion1_6_0 = "1.6.0"
 
+// VerrazzanoVersion2_0_0 is the Verrazzano version string for 2.0.0
+const VerrazzanoVersion2_0_0 = "2.0.0"
+
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
@@ -300,3 +303,12 @@ const VerrazzanoModuleEventLabel = "module.verrazzano.io/event"
 
 // AlertmanagerIngress is the name of the ingress for Alertmanager
 const AlertmanagerIngress = "alertmanager"
+
+// DexNamespace is the Dex namespace name
+const DexNamespace = "verrazzano-auth"
+
+// DexIngress - the name of the ingress for Dex
+const DexIngress = "dex"
+
+// DexHostPrefix - the prefix of the Dex host
+const DexHostPrefix = "auth"

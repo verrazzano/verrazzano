@@ -181,12 +181,13 @@ spec:
           capabilities:
             drop:
               - ALL
+      {{- if .Values.v2.enabled }}
       - image: {{ .Values.v2.image }}
         name: verrazzano-authproxy-v2
         ports:
           - containerPort: {{ .Values.v2.port }}
         args:
-          - --proxy-port={{ .Values.v2.port }}
+          - --port={{ .Values.v2.port }}
         livenessProbe:
           initialDelaySeconds: 30
           periodSeconds: 5
@@ -214,6 +215,7 @@ spec:
         volumeMounts:
         - name: oidc-config-secret
           mountPath: /etc/config
+      {{- end }}
       serviceAccountName: {{ .Values.name }}
       securityContext:
         runAsUser: 101  # nginx container user

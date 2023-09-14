@@ -8,13 +8,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
 	"net/http"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/gomega"
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -45,37 +47,14 @@ func EventuallyGetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
 
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
 func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
-	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	var err error
+	api := APIEndpoint{}
+	token, err := getAccessToken(kubeconfigPath, IsDexEnabled(kubeconfigPath))
 	if err != nil {
 		return nil, err
 	}
-	ingress, err := clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	keycloakHTTPClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	var ingressRules = ingress.Spec.Rules
-	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
-	password, err := GetVerrazzanoPassword()
-	if err != nil {
-		return nil, err
-	}
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, password, keycloakAPIClientID)
-	resp, err := doReq(keycloakURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), keycloakHTTPClient)
-	if err != nil {
-		return nil, err
-	}
-	var api APIEndpoint
-	if resp.StatusCode == http.StatusOK {
-		json.Unmarshal([]byte(resp.Body), &api)
-	} else {
-		msg := fmt.Sprintf("error getting API access token from %s: %d", keycloakURL, resp.StatusCode)
-		Log(Error, msg)
-		return nil, errors.New(msg)
-	}
+
+	api.AccessToken = *token
 	api.APIURL, err = getAPIURL(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -215,4 +194,72 @@ func (api *APIEndpoint) GetVerrazzanoIngressURL() (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
+}
+
+// EventuallyGetAccessToken eventually returns the AccessToken from the OIDC provider in the given cluster
+func EventuallyGetAccessToken(kubeconfigPath string, isOIDCProviderDex bool) *string {
+	var token *string
+	gomega.Eventually(func() (*string, error) {
+		var err error
+		token, err = getAccessToken(kubeconfigPath, isOIDCProviderDex)
+		return token, err
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+	return token
+}
+
+// getAccessToken returns the AccessToken from the OIDC provider in the given cluster
+func getAccessToken(kubeconfigPath string, isOIDCProviderDex bool) (*string, error) {
+	var err error
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var ingress *networkingv1.Ingress
+
+	if isOIDCProviderDex {
+		ingress, err = clientset.NetworkingV1().Ingresses(constants.DexNamespace).Get(context.TODO(), constants.DexIngress, v1.GetOptions{})
+	} else {
+		ingress, err = clientset.NetworkingV1().Ingresses(constants.KeycloakNamespace).Get(context.TODO(), constants.KeycloakIngress, v1.GetOptions{})
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	oidcProviderHTTPClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	var ingressRules = ingress.Spec.Rules
+	var oidcProviderTokenURL string
+	if isOIDCProviderDex {
+		oidcProviderTokenURL = fmt.Sprintf("https://%s/token", ingressRules[0].Host)
+	} else {
+		oidcProviderTokenURL = fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
+	}
+
+	password, err := GetVerrazzanoPassword()
+	if err != nil {
+		return nil, err
+	}
+
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, password, verrazzanoPgClientID)
+	if isOIDCProviderDex {
+		body = fmt.Sprintf("%s&scope=openid+profile", body)
+	}
+
+	resp, err := doReq(oidcProviderTokenURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), oidcProviderHTTPClient)
+	if err != nil {
+		return nil, err
+	}
+	var api APIEndpoint
+	if resp.StatusCode == http.StatusOK {
+		json.Unmarshal([]byte(resp.Body), &api)
+	} else {
+		msg := fmt.Sprintf("error getting API access token from %s: %d", oidcProviderTokenURL, resp.StatusCode)
+		Log(Error, msg)
+		return nil, errors.New(msg)
+	}
+
+	return &api.AccessToken, nil
 }

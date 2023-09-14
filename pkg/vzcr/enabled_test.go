@@ -2107,6 +2107,38 @@ func TestIsAlertmanagerEnabled(t *testing.T) {
 	}
 }
 
+// TestIsDexEnabled tests the IsDexEnabled function
+// GIVEN a call to IsDexEnabled
+//
+//	THEN the value of the enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsDexEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsDexEnabled(nil))
+	asserts.False(IsDexEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsDexEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Dex: &vzapi.DexComponent{},
+			},
+		}}))
+	asserts.True(IsDexEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Dex: &vzapi.DexComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsDexEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Dex: &vzapi.DexComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
 // TestIsOpenSearchOperatorEnabled tests whether the OpenSearchOperator is enabled or not
 // GIVEN a call to IsOpenSearchOperatorEnabled
 // WHEN OpenSearchOperator is explicitly enabled or disabled

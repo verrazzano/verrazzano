@@ -67,7 +67,7 @@ func addOCINodeErrors(ctx *validationContext, n OCINode, field string) {
 	}
 }
 
-func addOCINetworkErrors(ctx *validationContext, ociClient oci.Client, network *Network, field string) {
+func addOCINetworkErrors(ctx *validationContext, ociClient oci.Client, network *Network, countSubnetRoles int, field string) {
 	if network == nil {
 		return
 	}
@@ -80,8 +80,8 @@ func addOCINetworkErrors(ctx *validationContext, ociClient oci.Client, network *
 			ctx.Errors.Addf("%s.subnets should not be specified when creating a new VCN", field)
 		}
 	} else { // If using an existing VCN and subnets, validate that these resources are accessible using the provided credentials.
-		if len(network.Subnets) != 4 {
-			ctx.Errors.Addf("%s.subnets should have 1 subnet each for worker, service-lb, control-plane, and control-plane-endpoint subnet roles.", field)
+		if len(network.Subnets) != countSubnetRoles {
+			ctx.Errors.Addf("%s.subnets should have exactly %d subnets", field, countSubnetRoles)
 		}
 		if _, err := ociClient.GetVCNByID(ctx.Ctx, network.VCN); err != nil {
 			ctx.Errors.Addf("%s.vcn [%s] is not accessible", field, network.VCN)

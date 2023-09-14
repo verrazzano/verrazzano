@@ -285,3 +285,5 @@ spec:
       enabled: false
     opensearchOperator:
       enabled: false
+    dex:
+      enabled: false

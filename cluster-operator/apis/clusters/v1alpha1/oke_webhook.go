@@ -5,7 +5,9 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -21,7 +23,40 @@ func (o *OKEQuickCreate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 func (o *OKEQuickCreate) ValidateCreate() error {
+	ctx, err := NewValidationContext()
+	if err != nil {
+		return fmt.Errorf("failed to create validation context: %w", err)
+	}
+	nsn := o.Spec.IdentityRef.AsNamespacedName()
+	creds, err := ctx.CredentialsLoader.GetCredentialsIfAllowed(ctx.Ctx, ctx.Cli, nsn, o.Namespace)
+	if err != nil {
+		return fmt.Errorf("cannot access OCI credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
+	}
+	ociClient, err := ctx.OCIClientGetter(creds)
+	if err != nil {
+		return fmt.Errorf("failed to create OCI Client: %w", err)
+	}
+	// Validate the OCI Network
+	if o.Spec.OKE.Network != nil {
+		addCNITypeErrors(ctx, o.Spec.OKE.Network.CNIType, "spec.oke.network")
+		addOCINetworkErrors(ctx, ociClient, o.Spec.OKE.Network.Config, 3, "spec.oke.network.config")
+	}
+	for i, np := range o.Spec.OKE.NodePools {
+		addOCINodeErrors(ctx, np.OCINode, fmt.Sprintf("spec.oke.nodePools[%d]", i))
+	}
+	if ctx.Errors.HasError() {
+		return ctx.Errors
+	}
 	return nil
+}
+
+func addCNITypeErrors(ctx *validationContext, cniType CNIType, field string) {
+	switch cniType {
+	case FlannelOverlay, VCNNative:
+		return
+	default:
+		ctx.Errors.Addf("%s.cniType is invalid", field)
+	}
 }
 
 func (o *OKEQuickCreate) ValidateUpdate(old runtime.Object) error {
@@ -29,16 +64,11 @@ func (o *OKEQuickCreate) ValidateUpdate(old runtime.Object) error {
 	if !ok {
 		return errors.New("update resource must be of kind OKEQuickCreate")
 	}
-	if err := o.updateAllowed(oldCluster); err != nil {
-		return err
+	if !reflect.DeepEqual(o.Spec, oldCluster.Spec) {
+		return errors.New("spec updates are not permitted")
 	}
 	return nil
 }
-
-func (o *OKEQuickCreate) updateAllowed(other *OKEQuickCreate) error {
-	return nil
-}
-
 func (o *OKEQuickCreate) ValidateDelete() error {
 	return nil
 }

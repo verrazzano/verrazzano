@@ -116,7 +116,6 @@ func testReconciler(cli clipkg.Client) *ClusterReconciler {
 			Client: cli,
 		},
 		Scheme:            scheme,
-		Logger:            nil,
 		CredentialsLoader: testLoader,
 		OCIClientGetter:   testOCIClientGetter,
 	}

@@ -166,6 +166,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		ArgoCD:                    convertArgoCDFromV1Beta1(in.ArgoCD),
 		ClusterAPI:                convertClusterAPIFromV1Beta1(in.ClusterAPI),
 		ClusterAgent:              convertClusterAgentFromV1Beta1(in.ClusterAgent),
+		Dex:                       convertDexFromV1Beta1(in.Dex),
 		OpenSearchOperator:        convertOpenSearchOperatorFromV1Beta1(in.OpenSearchOperator),
 	}
 }
@@ -692,4 +693,14 @@ func convertValueOverridesFromV1Beta1(in []v1beta1.Overrides) []Overrides {
 		})
 	}
 	return out
+}
+
+func convertDexFromV1Beta1(src *v1beta1.DexComponent) *DexComponent {
+	if src == nil {
+		return nil
+	}
+	return &DexComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(src.InstallOverrides),
+	}
 }
