@@ -25,39 +25,38 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
-func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+// This function initializes the reconcile function
+func (r Reconciler) initReconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) (actualVZCR *vzv1alpha1.Verrazzano, expectedVZCR *vzv1alpha1.Verrazzano, logger vzlog.VerrazzanoLogger, durationMetric *metricsexporter.DurationMetric, errorMetric *metricsexporter.SimpleCounterMetric, result result.Result, fatalerrorfromInit error) {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
 	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
 	if err != nil {
 		zapLogForMetrics.Error(err)
-		return result.NewResult()
+		return actualCR, nil, nil, nil, nil, nil, nil
 	}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		controllerCtx.Log.ErrorfThrottled(err.Error())
 		// This is a fatal error which should never happen, don't requeue
-		return result.NewResult()
+		return actualCR, nil, nil, nil, nil, nil, err
 	}
 	counterMetricObject.Inc()
 
 	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
 	if err != nil {
 		zapLogForMetrics.Error(err)
-		return result.NewResult()
+		return actualCR, nil, nil, reconcileDurationMetricObject, nil, nil, nil
 	}
-	reconcileDurationMetricObject.TimerStart()
-	defer reconcileDurationMetricObject.TimerStop()
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	if err != nil {
 		zapLogForMetrics.Error(err)
-		return result.NewResult()
+		return actualCR, nil, nil, reconcileDurationMetricObject, nil, nil, nil
 	}
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           actualCR.Name,
@@ -69,21 +68,19 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	if err != nil {
 		errorCounterMetricObject.Inc()
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+		return actualCR, nil, nil, reconcileDurationMetricObject, errorCounterMetricObject, nil, nil
 	}
 
 	// Do CR initialization
 	if res := r.initVzResource(log, actualCR); res.ShouldRequeue() {
-		return res
+		return actualCR, nil, log, reconcileDurationMetricObject, errorCounterMetricObject, res, nil
 	}
 
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
 		controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
-		if err != nil {
-			errorCounterMetricObject.Inc()
-		}
-		return result.NewResultShortRequeueDelayIfError(err)
+		return actualCR, nil, log, reconcileDurationMetricObject, errorCounterMetricObject, nil, nil
 	}
 
 	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
@@ -91,28 +88,55 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		errorCounterMetricObject.Inc()
-		return result.NewResultShortRequeueDelayWithError(err)
+		return actualCR, nil, log, reconcileDurationMetricObject, errorCounterMetricObject, nil, nil
 	}
 	effectiveCR.Status = actualCR.Status
+	return actualCR, effectiveCR, log, reconcileDurationMetricObject, errorCounterMetricObject, nil, nil
+}
+
+// Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
+func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	// Delete my notes don't update the error count just for requeue only for real error
+	actualCR, effectiveCR, log, reconcileDurationMetricObject, errorMetricObject, resultFromInit, fatalErrorFromInit := r.initReconcile(controllerCtx, u)
+	defer reconcileDurationMetricObject.TimerStop()
+
+	// return the fatal error and then return result.result when it is a fatal error otherwise requeue
+	if fatalErrorFromInit != nil {
+		return result.NewResult()
+	}
+	if resultFromInit != nil {
+		return resultFromInit
+	}
 
 	// Note: updating the VZ state to reconciling is done by the module shim to
 	// avoid a long delay before the user sees any CR action.
 	// See vzcomponent_status.go, UpdateVerrazzanoComponentStatus
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
-			errorCounterMetricObject.Inc()
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
 
 	// Do global pre-work
 	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		errorToCheck := res.GetError()
+		if errorToCheck != nil && !errors.IsConflict(errorToCheck) {
+			errorMetricObject.Inc()
+		}
 		return res
 	}
 
 	// Do the actual install, update, and or upgrade.
 	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		errorToCheck := res.GetError()
+		if errorToCheck != nil && !errors.IsConflict(errorToCheck) {
+			errorMetricObject.Inc()
+		}
 		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
+			errorToCheck := res.GetError()
+			if errorToCheck != nil && !errors.IsConflict(errorToCheck) {
+				errorMetricObject.Inc()
+			}
 			return res
 		}
 		return res
@@ -120,6 +144,10 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 
 	// Do global post-work
 	if res := r.postWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
+		errorToCheck := res.GetError()
+		if errorToCheck != nil && !errors.IsConflict(errorToCheck) {
+			errorMetricObject.Inc()
+		}
 		return res
 	}
 
