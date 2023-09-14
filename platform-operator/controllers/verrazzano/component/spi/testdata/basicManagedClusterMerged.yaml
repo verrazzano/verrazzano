@@ -283,5 +283,7 @@ spec:
       enabled: false
     clusterAPI:
       enabled: false
+    dex:
+      enabled: false
     opensearchOperator:
       enabled: false

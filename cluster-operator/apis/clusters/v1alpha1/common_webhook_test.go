@@ -206,7 +206,7 @@ func TestAddOCINetworkErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := testValidationContext(nil)
-			addOCINetworkErrors(ctx, ociClient, tt.network, "")
+			addOCINetworkErrors(ctx, ociClient, tt.network, 4, "")
 			assert.Equal(t, tt.hasError, ctx.Errors.HasError())
 		})
 	}

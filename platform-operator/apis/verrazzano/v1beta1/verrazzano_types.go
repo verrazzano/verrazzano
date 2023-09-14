@@ -350,6 +350,10 @@ type ComponentSpec struct {
 	// +optional
 	Console *ConsoleComponent `json:"console,omitempty"`
 
+	// The Dex component configuration.
+	// +optional
+	Dex *DexComponent `json:"dex,omitempty"`
+
 	// The DNS component configuration.
 	// +optional
 	// +patchStrategy=replace
@@ -1106,6 +1110,20 @@ type ThanosComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/thanos/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// DexComponent specifies the Dex configuration.
+type DexComponent struct {
+	// If true, then Dex will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/dex/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`

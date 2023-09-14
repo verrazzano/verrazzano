@@ -66,7 +66,7 @@ type (
 		// The default is false.
 		CreateVCN bool `json:"createVCN"`
 		// +optional
-		// +kubebuilder:validation:pattern:="^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$"
+		// +kubebuilder:validation:Pattern:=`^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$`
 
 		// OCID of an existing VCN to create the cluster inside.
 		VCN string `json:"vcn,omitempty"`

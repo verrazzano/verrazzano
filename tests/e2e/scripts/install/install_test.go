@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"strings"
 	"time"
@@ -138,9 +139,11 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		ingressHost := ingress.Spec.Rules[0].Host
 		// elasticsearch and kibana ingresses are created for permanent redirection when upgraded from older VZ releases to 1.5.0 or later.
 		// The Thanos Store API endpoints are not stored in the Verrazzano instance and can be ignored
+		// The Dex endpoint doesn't need to be exposed as a console URL
 		if strings.HasPrefix(ingressHost, "elasticsearch") ||
 			strings.HasPrefix(ingressHost, "kibana") ||
-			strings.HasPrefix(ingressHost, "thanos-query-store") {
+			strings.HasPrefix(ingressHost, "thanos-query-store") ||
+			strings.HasPrefix(ingressHost, vzconst.DexHostPrefix) {
 			continue
 		}
 		// Any verrazzano-managed ingresses in the Rancher namespace are created for managed clusters to be

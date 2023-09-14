@@ -69,7 +69,7 @@ func main() {
 
 // handleFlags sets up the CLI flags, parses them, and initializes loggers
 func handleFlags() {
-	flag.IntVar(&proxyPort, "proxy-port", 8777, "Port for incoming request to the Auth Proxy.")
+	flag.IntVar(&proxyPort, "port", 8777, "Port the Auth Proxy listens on.")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)

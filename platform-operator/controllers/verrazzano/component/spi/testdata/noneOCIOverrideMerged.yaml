@@ -312,5 +312,7 @@ spec:
       enabled: false
     weblogicOperator:
       enabled: false
+    dex:
+      enabled: false
     opensearchOperator:
       enabled: false

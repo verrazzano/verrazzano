@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,7 +31,6 @@ type ClusterReconciler struct {
 	Scheme            *runtime.Scheme
 	CredentialsLoader oci.CredentialsLoader
 	OCIClientGetter   func(credentials *oci.Credentials) (oci.Client, error)
-	Logger            *zap.SugaredLogger
 }
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -43,6 +41,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return controller.RequeueDelay(), nil
 	}
 	if err != nil {
+		return controller.RequeueDelay(), err
+	}
+	if err := r.SetNewResourceLogger(q); err != nil {
 		return controller.RequeueDelay(), err
 	}
 	return r.reconcile(ctx, q)
@@ -73,6 +74,7 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OKEQ
 		q.Status = vmcv1alpha1.OKEQuickCreateStatus{
 			Phase: vmcv1alpha1.QuickCreatePhaseProvisioning,
 		}
+		r.Log.Oncef("provisioning OKE cluster: %s/%s", q.Namespace, q.Name)
 		return r.UpdateStatus(ctx, q)
 	}
 	// If OCI Network is loaded, create the nodes and update phase to completed
@@ -81,8 +83,10 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OKEQ
 			return controller.RequeueDelay(), err
 		}
 		q.Status.Phase = vmcv1alpha1.QuickCreatePhaseComplete
+		r.Log.Oncef("completed provisioning OKE cluster: %s/%s", q.Namespace, q.Name)
 		return r.UpdateStatus(ctx, q)
 	}
+	r.Log.Progressf("waiting for OKE cluster infrastructure: %s/%s", q.Namespace, q.Name)
 	// Quick Create is not complete yet, requeue
 	return controller.RequeueDelay(), nil
 }

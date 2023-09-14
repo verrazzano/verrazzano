@@ -162,6 +162,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		ClusterAPI:                convertClusterAPIToV1Beta1(src.ClusterAPI),
 		ClusterAgent:              convertClusterAgentToV1Beta1(src.ClusterAgent),
 		OpenSearchOperator:        convertOpenSearchOperatorToV1Beta1(src.OpenSearchOperator),
+		Dex:                       convertDexToV1Beta1(src.Dex),
 	}, nil
 }
 
@@ -870,6 +871,16 @@ func convertThanosToV1Beta1(src *ThanosComponent) *v1beta1.ThanosComponent {
 		return nil
 	}
 	return &v1beta1.ThanosComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
+func convertDexToV1Beta1(src *DexComponent) *v1beta1.DexComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.DexComponent{
 		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
