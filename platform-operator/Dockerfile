@@ -1,18 +1,34 @@
 # Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
-FROM $BASE_IMAGE AS build_base
+
+FROM phx.ocir.io/odx-sre/sauron/oraclelinux-golang:1.20.1 as vpo_image
 
 # Need to use specific WORKDIR to match verrazzano's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano
 COPY . .
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 
-COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
+#ENV GO_LDFLAGS="-extldflags -static"
+
+RUN go mod download -x \
+    && GOMODULE=on GOPRIVATE=github.com/verrazzano GOOS=linux GOARCH=amd64 go build \
+    		-ldflags "-s -w" \
+    		-o out/linux_amd64/verrazzano-platform-operator \
+    		./main.go
+
+FROM $BASE_IMAGE AS build_base
+
+COPY --from=vpo_image /root/go/src/github.com/verrazzano/verrazzano/platform-operator/out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
+
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano
+COPY . .
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/*.sh
+
 # Create the verrazzano-platform-operator image
 FROM $BASE_IMAGE AS final
 

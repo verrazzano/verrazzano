@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	s "strings"
 
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
@@ -36,22 +37,24 @@ func (r *IngressTrait) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &IngressTrait{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for ingress trait type creation.
-func (r *IngressTrait) ValidateCreate() error {
+func (r *IngressTrait) ValidateCreate() (admission.Warnings, error) {
+	warnings := []string{}
 	log.Debugw("Validate create", "name", r.Name)
 	allIngressTraits, err := getAllIngressTraits(r.Namespace)
 	if err != nil {
-		return fmt.Errorf("unable to obtain list of existing IngressTrait's during create validation: %v", err)
+		return warnings, fmt.Errorf("unable to obtain list of existing IngressTrait's during create validation: %v", err)
 	}
-	return r.validateIngressTrait(allIngressTraits.Items)
+	return warnings, r.validateIngressTrait(allIngressTraits.Items)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for ingress trait type update.
-func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
+func (r *IngressTrait) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	warnings := []string{}
 	log.Debugw("Validate update", "name", r.Name)
 
 	existingIngressList, err := getAllIngressTraits(r.Namespace)
 	if err != nil {
-		return fmt.Errorf("unable to obtain list of existing IngressTrait's during update validation: %v", err)
+		return warnings, fmt.Errorf("unable to obtain list of existing IngressTrait's during update validation: %v", err)
 	}
 	// Remove the trait that is being updated from the list
 	updatedTrait := old.(*IngressTrait)
@@ -63,15 +66,15 @@ func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
 			break
 		}
 	}
-	return r.validateIngressTrait(allIngressTraits)
+	return warnings, r.validateIngressTrait(allIngressTraits)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for ingress trait type deletion.
-func (r *IngressTrait) ValidateDelete() error {
+func (r *IngressTrait) ValidateDelete() (admission.Warnings, error) {
 	log.Debugw("Validate delete", "name", r.Name)
 
 	// no validation on delete
-	return nil
+	return []string{}, nil
 }
 
 // validateIngressTrait validates a new or updated ingress trait.

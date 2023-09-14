@@ -12,6 +12,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"strings"
 )
 
@@ -44,76 +45,78 @@ func SetComponentValidator(v ComponentValidator) {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (v *Verrazzano) ValidateCreate() error {
+func (v *Verrazzano) ValidateCreate() (admission.Warnings, error) {
+	warnings := []string{}
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate create")
 
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
-		return nil
+		return warnings, nil
 	}
 
 	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
-		return err
+		return warnings, err
 	}
 
 	runtimeClient, err := getControllerRuntimeClient(newScheme())
 	if err != nil {
-		return err
+		return warnings, err
 	}
 
 	// Verify only one instance of the operator is running
 	if err := validators.VerifyPlatformOperatorSingleton(runtimeClient); err != nil {
-		return err
+		return warnings, err
 	}
 
 	// Validate that only one install is allowed.
 	if err := ValidateActiveInstall(runtimeClient); err != nil {
-		return err
+		return warnings, err
 	}
 
 	if err := validators.ValidateVersion(v.Spec.Version); err != nil {
-		return err
+		return warnings, err
 	}
 
 	if err := ValidateProfile(v.Spec.Profile); err != nil {
-		return err
+		return warnings, err
 	}
 
 	if err := validateOCISecrets(runtimeClient, &v.Spec); err != nil {
-		return err
+		return warnings, err
 	}
 
 	// hand the Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateInstallV1Beta1(v); len(errs) > 0 {
-			return validators.CombineErrors(errs)
+			return warnings, validators.CombineErrors(errs)
 		}
 	}
-	return nil
+	return warnings, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
+func (v *Verrazzano) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	warnings := []string{}
 	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate update")
 
 	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
-		return nil
+		return warnings, nil
 	}
 
 	if err := validators.ValidateKubernetesVersionSupported(); err != nil {
-		return err
+		return warnings, err
 	}
 	client, err := getControllerRuntimeClient(newScheme())
 	if err != nil {
-		return err
+		return warnings, err
 	}
 
 	// Verify only one instance of the operator is running
 	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
-		return err
+		return warnings, err
 	}
 
 	oldResource := old.(*Verrazzano)
@@ -122,11 +125,11 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 
 	// Only enable updates are not allowed when an installation or an upgrade is in progress
 	if err := ValidateInProgress(oldResource); err != nil {
-		return err
+		return warnings, err
 	}
 
 	if err := v.validateProfile(oldResource); err != nil {
-		return err
+		return warnings, err
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
@@ -137,21 +140,21 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
-		return err
+		return warnings, err
 	}
 
 	if err := validateOCISecrets(client, &v.Spec); err != nil {
-		return err
+		return warnings, err
 	}
 
 	// hand the old and new Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateUpdateV1Beta1(oldResource, v); len(errs) > 0 {
-			return validators.CombineErrors(errs)
+			return warnings, validators.CombineErrors(errs)
 		}
 	}
 
-	return nil
+	return warnings, nil
 }
 
 // validateProfile checks that the immutable Profile field has not changed.
@@ -173,10 +176,10 @@ func (v *Verrazzano) validateProfile(oldResource *Verrazzano) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (v *Verrazzano) ValidateDelete() error {
+func (v *Verrazzano) ValidateDelete() (admission.Warnings, error) {
 
 	// Webhook is not configured for deletes so function will not be called.
-	return nil
+	return []string{}, nil
 }
 
 // newScheme creates a new scheme that includes this package's object for use by client

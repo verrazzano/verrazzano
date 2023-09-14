@@ -58,7 +58,7 @@ VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b2
 
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
+GO_LDFLAGS ?= -extldflags -static
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
@@ -126,7 +126,8 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: generate-bom go-build-linux docker-build-common
+#docker-build: generate-bom go-build-linux docker-build-common
+docker-build: generate-bom docker-build-common
 
 .PHONY: docker-build-debug
 docker-build-debug: generate-bom go-build-linux-debug docker-build-common
@@ -139,10 +140,10 @@ docker-build-common:
 	@echo using verrazzano-authproxy image ${VERRAZZANO_AUTHPROXY_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
-	docker build --pull -f Dockerfile \
+	(cd ..; docker build --pull -f platform-operator/Dockerfile \
 		--build-arg VERRAZZANO_PLATFORM_OPERATOR_IMAGE="${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" \
 		--build-arg BASE_IMAGE="${VZ_BASE_IMAGE}" \
-		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
+		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .)
 
 .PHONY: docker-push
 docker-push: docker-build docker-push-common
