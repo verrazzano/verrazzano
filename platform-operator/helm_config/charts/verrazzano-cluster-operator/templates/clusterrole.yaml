@@ -66,6 +66,7 @@ rules:
     resources:
       - serviceaccounts
       - configmaps
+      - endpoints
       - secrets
       - services
       - pods/exec
