@@ -211,7 +211,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.12.0",
+      "version": "v0.12.1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.0"
+              "tag": "v0.12.1"
             }
           ]
         }
