@@ -563,13 +563,7 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL pre upgrade dry run")
 		return nil
 	}
-	// vz > 1.3 uses statefulsets, not deployments
-	// no migration is needed if vz >= 1.4
-	if isLegacyDatabaseUpgrade(ctx) {
-		if err := handleLegacyDatabasePreUpgrade(ctx); err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 
@@ -579,6 +573,15 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL post upgrade dry run")
 		return nil
 	}
+
+	// vz > 1.3 uses statefulsets, not deployments
+	// no migration is needed if vz >= 1.4
+	if isLegacyDatabaseUpgrade(ctx) {
+		if err := handleLegacyDatabasePreUpgrade(ctx); err != nil {
+			return err
+		}
+	}
+	
 	// cleanup db migration job if it exists
 	if err := cleanupDbMigrationJob(ctx); err != nil {
 		return err
