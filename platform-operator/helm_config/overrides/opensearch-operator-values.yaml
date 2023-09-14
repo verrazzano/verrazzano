@@ -4,9 +4,9 @@
 manager:
 
   image:
-    repository: public.ecr.aws/opsterio/opensearch-operator
+    repository: ghcr.io/verrazzano/opensearch-operator-jenkins
     ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
-    tag: "2.3.0"
+    tag: "20230914143935-f9f09a2"
     pullPolicy: "IfNotPresent"
 
 ingress:
