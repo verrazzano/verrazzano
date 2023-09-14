@@ -87,12 +87,6 @@ data:
     end
 
     if (backend == 'console' or backend == 'verrazzano') then
-        auth.initOidcProvider(oidcProviderForConsole)
-    else
-        auth.initOidcProvider("keycloak")
-    end
-
-    if (backend == 'console' or backend == 'verrazzano') then
         local oidcProviderFromMCSecret = auth.read_file("/api-config/oidc-provider")
         if oidcProviderFromMCSecret and oidcProviderFromMCSecret ~= "" then
             auth.debug("oidc-provider specified in multi-cluster secret, will use " .. oidcProviderFromMCSecret .. " as OIDC Provider.")
