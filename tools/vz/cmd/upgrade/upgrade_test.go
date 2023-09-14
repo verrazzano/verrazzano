@@ -764,3 +764,41 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, imageRegistryForUpgrade, imagePrefixForUpgrade)
 }
+
+// TestUpgradeCmdWithSetFlagsNoWait
+// GIVEN a CLI upgrade command with all defaults and --wait==false
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
+func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
+	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmd.PersistentFlags().Set(constants.SetFlag, "spec.components.jaegerOperator.enabled=true")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vzResource := v1beta1.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vzResource)
+	assert.NotNil(t, vzResource.Spec.Components.JaegerOperator.Enabled)
+	assert.Equal(t, "true", vzResource.Spec.Components.JaegerOperator.Enabled)
+	assert.NoError(t, err)
+}

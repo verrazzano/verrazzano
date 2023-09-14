@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,8 +25,6 @@ import (
 	"k8s.io/kubectl/pkg/util/openapi"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
-	"strings"
 	"time"
 )
 
@@ -308,7 +305,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 	}
 
 	// Get the set arguments - returning a list of properties and value
-	pvs, err := getSetArguments(cmd, vzHelper)
+	pvs, err := cmdhelpers.GetSetArguments(cmd, vzHelper)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -333,7 +330,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 	}
 
 	// Generate yaml for the set flags passed on the command line
-	outYAML, err := generateYAMLForSetFlags(pvs)
+	outYAML, err := cmdhelpers.GenerateYAMLForSetFlags(pvs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -347,71 +344,6 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 
 	// Return the merged verrazzano install resource to be created
 	return vz, unstructuredVZObj, nil
-}
-
-// generateYAMLForSetFlags creates a YAML string from a map of property value pairs representing --set flags
-// specified on the install command
-func generateYAMLForSetFlags(pvs map[string]string) (string, error) {
-	yamlObject := map[string]interface{}{}
-	for path, value := range pvs {
-		// replace unwanted characters in the value to avoid splitting
-		ignoreChars := ",[.{}"
-		for _, char := range ignoreChars {
-			value = strings.Replace(value, string(char), "\\"+string(char), -1)
-		}
-
-		composedStr := fmt.Sprintf("%s=%s", path, value)
-		err := strvals.ParseInto(composedStr, yamlObject)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	yamlFile, err := yaml.Marshal(yamlObject)
-	if err != nil {
-		return "", err
-	}
-
-	yamlString := string(yamlFile)
-
-	// Replace any double-quoted strings that are surrounded by single quotes.
-	// These type of strings are problematic for helm.
-	yamlString = strings.ReplaceAll(yamlString, "'\"", "\"")
-	yamlString = strings.ReplaceAll(yamlString, "\"'", "\"")
-
-	return yamlString, nil
-}
-
-// getSetArguments gets all the set arguments and returns a map of property/value
-func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]string, error) {
-	setMap := make(map[string]string)
-	setFlags, err := cmd.PersistentFlags().GetStringArray(constants.SetFlag)
-	if err != nil {
-		return nil, err
-	}
-
-	invalidFlag := false
-	for _, setFlag := range setFlags {
-		pv := strings.Split(setFlag, "=")
-		if len(pv) != 2 {
-			fmt.Fprintf(vzHelper.GetErrorStream(), fmt.Sprintf("Invalid set flag \"%s\" specified. Flag must be specified in the format path=value\n", setFlag))
-			invalidFlag = true
-			continue
-		}
-		if !invalidFlag {
-			path, value := strings.TrimSpace(pv[0]), strings.TrimSpace(pv[1])
-			if !strings.HasPrefix(path, "spec.") {
-				path = "spec." + path
-			}
-			setMap[path] = value
-		}
-	}
-
-	if invalidFlag {
-		return nil, fmt.Errorf("Invalid set flag(s) specified")
-	}
-
-	return setMap, nil
 }
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
