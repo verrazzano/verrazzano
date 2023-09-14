@@ -2253,6 +2253,14 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 			return additionalScrapeConfigsAssertFunc(secret)
 		})
 
+	// Expect a call to get the verrazzano-monitoring namespace - return NotFound error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
+			ns.SetName(vpoconstants.VerrazzanoMonitoringNamespace)
+			return nil
+		})
+
 	// Expect a call to get the managed cluster TLS certs secret - return NotFound error
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil()), gomock.Any()).
@@ -2704,6 +2712,14 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
 			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
 			asserts.Equal("test2", scrapeJobName)
+			return nil
+		})
+
+	// Expect a call to get the verrazzano-monitoring namespace - return NotFound error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
+			ns.SetName(vpoconstants.VerrazzanoMonitoringNamespace)
 			return nil
 		})
 

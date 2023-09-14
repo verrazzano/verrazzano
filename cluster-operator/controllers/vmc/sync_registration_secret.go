@@ -114,13 +114,17 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
 		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	} else {
-		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
-		if err != nil {
+		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, false)
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
-		esCaBundle = adminCaBundle
-		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
-		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
+
+		if len(esSecret.Data) > 0 {
+			esCaBundle = adminCaBundle
+			esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
+			esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
+		}
+
 	}
 
 	// Get the keycloak URL
