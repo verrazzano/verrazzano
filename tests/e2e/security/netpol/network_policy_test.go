@@ -42,17 +42,21 @@ const (
 	istiodMetricsPort            = 15014
 	nodeExporterMetricsPort      = 9100
 
-	kubernetesAppLabel  = "app.kubernetes.io/name"
-	kubernetesCompLabel = "app.kubernetes.io/component"
-	nodeExporter        = "prometheus-node-exporter"
-	defaultBackend      = "default-backend"
-	vzConsole           = "verrazzano-console"
-	grafanaSys          = "system-grafana"
-	kibanaSys           = "system-osd"
-	weblogicOperator    = "weblogic-operator"
-	controlPlane        = "control-plane"
-	controllerManager   = "controller-manager"
-	providerLabel       = "cluster.x-k8s.io/provider"
+	kubernetesAppLabel        = "app.kubernetes.io/name"
+	kubernetesCompLabel       = "app.kubernetes.io/component"
+	kubernetesInstanceLabel   = "app.kubernetes.io/instance"
+	nodeExporter              = "prometheus-node-exporter"
+	defaultBackend            = "default-backend"
+	vzConsole                 = "verrazzano-console"
+	grafanaSys                = "system-grafana"
+	kibanaSys                 = "system-osd"
+	weblogicOperator          = "weblogic-operator"
+	controlPlane              = "control-plane"
+	controllerManager         = "controller-manager"
+	providerLabel             = "cluster.x-k8s.io/provider"
+	ingressControllerInstance = "ingress-controller"
+
+	dexAppLabel = "dex"
 )
 
 // accessCheckConfig is the configuration used for the NetworkPolicy access check
@@ -161,7 +165,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Test rancher ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 443, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 443, true, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesInstanceLabel: ingressControllerInstance}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 443, true, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
 			},
 			func() {
@@ -212,7 +216,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test keycloak ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", 8080, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesInstanceLabel: ingressControllerInstance}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", 8080, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
@@ -252,7 +256,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test verrazzano-authproxy ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, 8775, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesInstanceLabel: ingressControllerInstance}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, 8775, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-authproxy ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "fluentd"}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, 8775, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-authproxy ingress rules failed: reason = %s", err))
@@ -286,7 +290,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
 				/* TODO:
-				The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
+				The following tests only work in Verrazzano prod profile. There is a difference in network policies used in prod and
 				dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
 				*/
 				// err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-data"}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, vzconst.VerrazzanoSystemNamespace, 9300, true)
@@ -295,7 +299,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				// Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
 			},
 			/* TODO:
-			The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
+			The following tests only work in Verrazzano prod profile. There is a difference in network policies used in prod and
 			dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
 			*/
 			// func() {
@@ -384,6 +388,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed for capi-ocne-control-plane-controller-manager: reason = %s", err))
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "infrastructure-oci", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test capi ingress rules failed for capoci-controller-manager: reason = %s", err))
+			},
+			func() {
+				t.Logs.Info("Test Dex ingress rules")
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesInstanceLabel: ingressControllerInstance}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 8080, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Dex ingress rules failed: reason = %s", err))
 			},
 		)
 	})
@@ -517,6 +526,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules failed for capi-ocne-control-plane-controller-manager: reason = %s", err))
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{providerLabel: "infrastructure-oci", controlPlane: controllerManager}}, vzconst.VerrazzanoCAPINamespace, 9440, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test capi ingress rules failed for capoci-controller-manager: reason = %s", err))
+			},
+			func() {
+				t.Logs.Info("Negative test Dex ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 8080, false, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test dex ingress rules failed: reason = %s", err))
 			},
 		}
 

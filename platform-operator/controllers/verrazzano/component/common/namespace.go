@@ -98,7 +98,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 
 	if vzcr.IsDexEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateDexNamespace(ctx.Client()); err != nil {
+		if err := namespace.CreateDexNamespace(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.DexNamespace, err)
 		}
 	}
