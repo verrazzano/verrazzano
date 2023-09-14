@@ -108,6 +108,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
       plugins:
         enabled: false
     fluentOperator:
