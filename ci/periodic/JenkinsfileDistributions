@@ -5,6 +5,7 @@ import groovy.transform.Field
 
 @Field def verrazzanoPrefix="verrazzano-"
 def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def SUSPECT_LIST = ""
 
 pipeline {
     options {
@@ -223,6 +224,7 @@ pipeline {
 }
 
 // Called in Stage Clean workspace and checkout steps
+@NonCPS
 def getCommitList() {
     echo "Checking for change sets"
     def commitList = []
