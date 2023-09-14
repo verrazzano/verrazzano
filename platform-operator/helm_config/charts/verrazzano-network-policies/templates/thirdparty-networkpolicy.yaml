@@ -248,6 +248,9 @@ spec:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: mysql-operator
+        podSelector:
+          matchLabels:
+            name: mysql-operator
       ports:
         - protocol: TCP
           port: 3306

@@ -257,10 +257,10 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	}
 }
 
-// fixKeycloakMySQLNetPolicy fixes the keycloak-mysql network policy after an upgrade. When we apply the new version
+// FixKeycloakMySQLNetPolicy fixes the keycloak-mysql network policy after an upgrade. When we apply the new version
 // of the network policy, the podSelector match labels are merged with the existing policy match labels, but the
 // old label no longer exists on the new MySQL pod. This function removes that label matcher if it exists.
-func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
+func FixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 	netpol := &netv1.NetworkPolicy{}
 	nsn := types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}
 	if err := ctx.Client().Get(context.TODO(), nsn, netpol); err != nil {
