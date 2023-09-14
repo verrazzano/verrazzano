@@ -9,6 +9,11 @@ if [ -z "$GO_REPO_PATH" ]; then
   exit 1
 fi
 
+if [ "${ENABLE_DEX}" == "true" ]; then
+  echo "Skip running console tests, when Dex is enabled"
+  exit 0
+fi
+
 # Temporarily clone the console repo until it is moved to the Verrazzano repo
 cd ${GO_REPO_PATH}
 console_sha=${CONSOLE_REPO_BRANCH}
