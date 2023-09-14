@@ -827,8 +827,6 @@ func (r *Reconciler) GetConfigMapLocation(u *unstructured.Unstructured) ([]strin
 			if fnd {
 				return specConfigurationDomainOnPVConfigMap, err
 			}
-		} else {
-			return specConfigurationWDTConfigMap, err
 		}
 	}
 	return specConfigurationWDTConfigMap, err
