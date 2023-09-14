@@ -14,9 +14,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// GetModuleReadyWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to ready.
-func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor {
-	var watches = []controllerspi.WatchDescriptor{}
+// GetModuleInstalledWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to installed ready.
+func GetModuleInstalledWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+	return GetModuleWatchesForReason(moduleNames, moduleapi.ReadyReasonInstallSucceeded)
+}
+
+// GetModuleUpdatedWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to update ready.
+func GetModuleUpdatedWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+	return GetModuleWatchesForReason(moduleNames, moduleapi.ReadyReasonUpdateSucceeded)
+}
+
+// GetModuleUpgradedWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to upgrade ready.
+func GetModuleUpgradedWatches(moduleNames []string) []controllerspi.WatchDescriptor {
+	return GetModuleWatchesForReason(moduleNames, moduleapi.ReadyReasonUpgradeSucceeded)
+}
+
+// GetModuleWatchesForReason gets WatchDescriptors for the set a modules that transition to ready for a given reason .
+func GetModuleWatchesForReason(moduleNames []string, reason moduleapi.ModuleConditionReason) []controllerspi.WatchDescriptor {
+	var watches []controllerspi.WatchDescriptor
 	moduleNameSet := vzstring.SliceToSet(moduleNames)
 
 	// Just use a single watch that looks up the name in the set for a match
@@ -30,18 +45,21 @@ func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor
 				return false
 			}
 
+			// This is a create or delete event don't trigger reconcile
+			if wev.OldWatchedObject == nil {
+				return false
+			}
+
 			// Get new module Ready condition and return false if not ready
 			newCond := status.GetReadyCondition(newModule)
 			if newCond == nil {
 				return false
 			}
-			if newCond.Status != corev1.ConditionTrue {
+			if newCond.Reason != reason {
 				return false
 			}
-
-			// This is a create or delete event, trigger reconcile because the module is ready
-			if wev.OldWatchedObject == nil {
-				return true
+			if newCond.Status != corev1.ConditionTrue {
+				return false
 			}
 
 			// The new module is ready. get old module Ready condition
@@ -51,8 +69,7 @@ func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor
 				return false
 			}
 
-			// Return true if the module transitioned to Ready.
-			// The old module condition reason doesn't matche the new module AND the old condition was not ready.
+			// Return true if the module transitioned to Ready from a different reason (installing to installed)
 			return oldCond.Reason != newCond.Reason && oldCond.Status != corev1.ConditionTrue
 		},
 	})
@@ -63,7 +80,7 @@ func GetModuleReadyWatches(moduleNames []string) []controllerspi.WatchDescriptor
 // GetVerrazzanoSpecWatch watches for any Verrazzano spec update.
 func GetVerrazzanoSpecWatch() []controllerspi.WatchDescriptor {
 	// Use a single watch that looks up the name in the set for a match
-	var watches = []controllerspi.WatchDescriptor{}
+	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
 		WatchedResourceKind: source.Kind{Type: &vzapiv1beta1.Verrazzano{}},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
@@ -74,4 +91,99 @@ func GetVerrazzanoSpecWatch() []controllerspi.WatchDescriptor {
 		},
 	})
 	return watches
+}
+
+// GetCreateSecretWatch watches for a secret creation with the specified name
+func GetCreateSecretWatch(name, namespace string) []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches []controllerspi.WatchDescriptor
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			if wev.WatchEventType != controllerspi.Created {
+				return false
+			}
+			objectNS := wev.NewWatchedObject.GetNamespace()
+			objectName := wev.NewWatchedObject.GetName()
+			result := objectNS == namespace && objectName == name
+			return result
+		},
+	})
+	return watches
+}
+
+// GetUpdateSecretWatch watches for a secret update with the specified name
+func GetUpdateSecretWatch(name, namespace string) []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches []controllerspi.WatchDescriptor
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			if wev.WatchEventType != controllerspi.Updated {
+				return false
+			}
+			objectNS := wev.NewWatchedObject.GetNamespace()
+			objectName := wev.NewWatchedObject.GetName()
+			result := objectNS == namespace && objectName == name
+			return result
+		},
+	})
+	return watches
+}
+
+// GetDeleteSecretWatch watches for a secret deletion with the specified name
+func GetDeleteSecretWatch(name, namespace string) []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches []controllerspi.WatchDescriptor
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			if wev.WatchEventType != controllerspi.Deleted {
+				return false
+			}
+			return wev.NewWatchedObject.GetNamespace() == namespace && wev.NewWatchedObject.GetName() == name
+		},
+	})
+	return watches
+}
+
+// GetCreateNamespaceWatch watches for a namespace creation with the specified name
+func GetCreateNamespaceWatch(name string) []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches []controllerspi.WatchDescriptor
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &corev1.Namespace{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			if wev.WatchEventType != controllerspi.Created {
+				return false
+			}
+			return wev.NewWatchedObject.GetName() == name
+		},
+	})
+	return watches
+}
+
+// GetUpdateNamespaceWatch watches for a namespace update with the specified name
+func GetUpdateNamespaceWatch(name string) []controllerspi.WatchDescriptor {
+	// Use a single watch that looks up the name in the set for a match
+	var watches []controllerspi.WatchDescriptor
+	watches = append(watches, controllerspi.WatchDescriptor{
+		WatchedResourceKind: source.Kind{Type: &corev1.Namespace{}},
+		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
+			if wev.WatchEventType != controllerspi.Updated {
+				return false
+			}
+			return wev.NewWatchedObject.GetName() == name
+		},
+	})
+	return watches
+}
+
+// CombineWatchDescriptors combines multiple arrays of WatchDescriptors into one array
+func CombineWatchDescriptors(watchDescriptors ...[]controllerspi.WatchDescriptor) []controllerspi.WatchDescriptor {
+	var allWatchDescriptors []controllerspi.WatchDescriptor
+	for i := range watchDescriptors {
+		allWatchDescriptors = append(allWatchDescriptors, watchDescriptors[i]...)
+	}
+	return allWatchDescriptors
 }

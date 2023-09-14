@@ -238,6 +238,23 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 	return false
 }
 
+// doesInnoDBClusterExist returns true if the InnoDBCluster resource exists
+func DoesInnoDBClusterExist(ctx spi.ComponentContext) (bool, error) {
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+
+	// the InnoDBCluster resource name is the helm release name
+	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: helmReleaseName}
+	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+		return false, err
+	}
+	return true, nil
+}
+
 // appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
@@ -268,7 +285,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		}
 	}
 
-	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
+	if isInstallOrUpdate(compContext) {
 		userPwd, err := getOrCreateDBUserPassword(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -320,6 +337,11 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
+}
+
+func isInstallOrUpdate(compContext spi.ComponentContext) bool {
+	operationType := compContext.Init(ComponentName).GetOperation()
+	return operationType == vzconst.InstallOperation || operationType == vzconst.UpdateOperation
 }
 
 func getRegistrySettings(bomFile *bom.Bom) (bom.KeyValue, error) {

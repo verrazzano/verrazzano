@@ -50,15 +50,6 @@ func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha
 	// Don't block uninstalling the next component if the current one has an error.
 	// It is normal for a component to return an error if it is waiting for some condition.
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Requeue until the module is gone
-			if !IsModuleUninstallDone() {
-				requeue = true
-			}
-			// Ignore if this component is being handled by a Module
-			continue
-		}
-
 		uninstallContext := tracker.getComponentUninstallContext(comp.Name())
 		result, err := r.uninstallSingleComponent(spiCtx, uninstallContext, comp)
 		if err != nil || result.Requeue {

@@ -43,38 +43,42 @@ spec:
                 properties:
                   name:
                     description: Name of the ref.
+                    maxLength: 63
+                    minLength: 1
                     type: string
                   namespace:
                     description: Namespace of the ref.
+                    maxLength: 63
+                    minLength: 1
                     type: string
                 required:
                 - name
                 - namespace
                 type: object
               kubernetes:
+                default:
+                  clusterNetwork:
+                    podCIDR: 10.244.0.0/16
+                    serviceCIDR: 10.96.0.0/16
                 description: Kubernetes settings.
                 properties:
                   clusterNetwork:
+                    default:
+                      podCIDR: 10.244.0.0/16
+                      serviceCIDR: 10.96.0.0/16
                     description: Kubernetes network settings.
                     properties:
                       podCIDR:
                         description: IP range for Kubernetes pods. The default is
                           `10.244.0.0/16`
+                        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$
                         type: string
                       serviceCIDR:
                         description: IP range for Kubernetes service addresses. The
                           default is `10.96.0.0/16`.
+                        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))$
                         type: string
-                    required:
-                    - podCIDR
-                    - serviceCIDR
                     type: object
-                  version:
-                    description: Kubernetes version.
-                    type: string
-                required:
-                - clusterNetwork
-                - version
                 type: object
               oci:
                 description: OCI infrastructure settings.
@@ -85,48 +89,63 @@ spec:
                       type: string
                     type: array
                   compartment:
-                    description: OCI Compartment id where the compartment will be
-                      created
+                    description: OCI Compartment OCID where the cluster will be created
+                    pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                     type: string
                   controlPlane:
                     description: Control Plane node settings.
                     properties:
                       bootVolumeGbs:
-                        description: Size of node boot volume, in gigabytes, when
-                          using flex shapes.
+                        description: Size of node boot volume, in gigabytes.
+                        maximum: 32000
+                        minimum: 50
                         type: integer
                       memoryGbs:
                         description: Amount of memory per node, in gigabytes, when
                           using flex shapes.
+                        maximum: 999
+                        minimum: 1
                         type: integer
-                      name:
-                        type: string
                       ocpus:
-                        description: Number of OCPUs per node.
+                        description: Number of OCPUs per node, when using flex shapes.
+                        maximum: 999
+                        minimum: 1
                         type: integer
                       replicas:
                         description: Number of nodes to create.
+                        maximum: 999
+                        minimum: 1
                         type: integer
                       shape:
                         description: Node pool Shape.
                         type: string
                     required:
-                    - name
+                    - replicas
+                    - shape
                     type: object
-                  imageName:
-                    description: Node image id. The default is the latest OL8 image
+                  imageId:
+                    description: Node image OCID. The default is the latest OL8 image
                       in the provided compartment.
+                    pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                     type: string
                   network:
+                    default:
+                      createVCN: false
                     description: OCI Network settings.
                     properties:
-                      string:
-                        type: string
+                      createVCN:
+                        default: false
+                        description: If true, a new VCN is created for the cluster.
+                          The default is false.
+                        type: boolean
                       subnets:
+                        description: List of existing subnets that will be used by
+                          the cluster.
                         items:
                           properties:
                             id:
-                              description: The Id of the subnet.
+                              description: The ID of the subnet.
+                              pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                               type: string
                             role:
                               description: Role of subnet within the cluster.
@@ -136,6 +155,11 @@ spec:
                           - role
                           type: object
                         type: array
+                      vcn:
+                        description: OCID of an existing VCN to create the cluster
+                          inside.
+                        pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
+                        type: string
                     type: object
                   region:
                     description: OCI region where the cluster will be created.
@@ -148,52 +172,58 @@ spec:
                     items:
                       properties:
                         bootVolumeGbs:
-                          description: Size of node boot volume, in gigabytes, when
-                            using flex shapes.
+                          description: Size of node boot volume, in gigabytes.
+                          maximum: 32000
+                          minimum: 50
                           type: integer
                         memoryGbs:
                           description: Amount of memory per node, in gigabytes, when
                             using flex shapes.
+                          maximum: 999
+                          minimum: 1
                           type: integer
                         name:
                           type: string
                         ocpus:
-                          description: Number of OCPUs per node.
+                          description: Number of OCPUs per node, when using flex shapes.
+                          maximum: 999
+                          minimum: 1
                           type: integer
                         replicas:
                           description: Number of nodes to create.
+                          maximum: 999
+                          minimum: 1
                           type: integer
                         shape:
                           description: Node pool Shape.
                           type: string
                       required:
                       - name
+                      - replicas
+                      - shape
                       type: object
                     type: array
                 required:
-                - compartment
                 - controlPlane
-                - imageName
-                - region
                 type: object
               ocne:
                 description: OCNE settings.
                 properties:
                   dependencies:
+                    default:
+                      skipInstall: false
                     description: OCNE dependency settings.
                     properties:
-                      install:
-                        description: Whether to install OCNE dependencies. The default
-                          is `true`.
+                      skipInstall:
+                        default: false
+                        description: Whether to skip OCNE dependency installation.
+                          The default is `false`.
                         type: boolean
-                    required:
-                    - install
                     type: object
                   version:
                     description: OCNE Version.
                     type: string
                 required:
-                - dependencies
                 - version
                 type: object
               privateRegistry:
@@ -204,9 +234,13 @@ spec:
                     properties:
                       name:
                         description: Name of the ref.
+                        maxLength: 63
+                        minLength: 1
                         type: string
                       namespace:
                         description: Namespace of the ref.
+                        maxLength: 63
+                        minLength: 1
                         type: string
                     required:
                     - name
@@ -216,7 +250,6 @@ spec:
                     description: Private registry URL.
                     type: string
                 required:
-                - credentialSecret
                 - url
                 type: object
               proxy:
@@ -234,11 +267,10 @@ spec:
                 required:
                 - httpProxy
                 - httpsProxy
-                - noProxy
                 type: object
             required:
             - identityRef
-            - kubernetes
+            - oci
             - ocne
             type: object
           status:

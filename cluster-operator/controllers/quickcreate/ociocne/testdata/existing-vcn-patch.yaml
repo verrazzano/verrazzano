@@ -1,0 +1,47 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+spec:
+  kubernetes:
+    clusterNetwork:
+      podCIDR: 10.0.0.0/16
+      serviceCIDR: 10.8.0.0/16
+  identityRef:
+    name: test
+    namespace: test
+  ocne:
+    version: 1.7
+    dependencies:
+      skipInstall: false
+  oci:
+    region: us-ashburn-1
+    compartment: abc
+    sshPublicKey: ssh-rsa abc
+    imageId: foo
+    controlPlane:
+      replicas: 1
+      shape: foo
+      bootVolumeGbs: 50
+    workers:
+      - name: np-1
+        replicas: 1
+        shape: a.Flex.v4
+        memoryGbs: 32
+        OCPUs: 4
+        bootVolumeGbs: 50
+      - name: np-2
+        replicas: 1
+        shape: a.Flex.v4
+        bootVolumeGbs: 100
+    network:
+      createVCN: false
+      vcn: xyz
+      subnets:
+        - id: xyz
+          role: control-plane-endpoint
+        - id: xyz
+          role: control-plane
+        - id: xyz
+          role: worker
+        - id: xyz
+          role: service-lb

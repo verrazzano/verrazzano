@@ -6,13 +6,15 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +41,7 @@ const (
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 	adminClusterOidcID   = "verrazzano-pkce"
+	dexProvider          = "dex"
 )
 
 var (
@@ -87,8 +90,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		mgdClusterOidcClient = fmt.Sprintf("verrazzano-%s", clusterName)
 	}
 
+	oidcProviderHost := fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix)
 	overrides.Proxy = &proxyValues{
-		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
+		OidcProviderHost:          oidcProviderHost,
 		OidcProviderHostInCluster: keycloakInClusterURL,
 		PKCEClientID:              adminClusterOidcID,
 	}
@@ -97,6 +101,20 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		overrides.ManagedClusterRegistered = true
 	} else {
 		overrides.Proxy.OIDCClientID = adminClusterOidcID
+	}
+
+	if vzcr.IsDexEnabled(effectiveCR) {
+		clientSecret, err := getPKCEClientSecret(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		overrides.Proxy.OidcProviderClientSecret = string(clientSecret)
+		overrides.Proxy.OidcProviderForConsole = dexProvider
+		overrides.Proxy.OidcProviderHostDex = fmt.Sprintf("%s.%s.%s", constants.DexHostPrefix, overrides.Config.EnvName, dnsSuffix)
+		overrides.Proxy.OidcProviderHostInClusterDex = fmt.Sprintf("%s.%s.svc.cluster.local", dexProvider, constants.DexNamespace)
+	} else {
+		overrides.Proxy.OidcProviderForConsole = "keycloak"
 	}
 
 	// Image name and version
@@ -128,6 +146,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
+	// Append auth proxy v2 overrides
+	kvs = appendOIDCOverrides(kvs, keycloakInClusterURL, oidcProviderHost, vzconst.VerrazzanoOIDCSystemRealm)
 
 	return appendAuthProxyImageOverrides(kvs), nil
 }
@@ -335,5 +356,34 @@ func appendAuthProxyImageOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 			Value: envImageOverride,
 		})
 	}
+	return kvs
+}
+
+// getPKCEClientSecret retrieves the client secret for verrazzano-pkce client.
+func getPKCEClientSecret(ctx spi.ComponentContext) ([]byte, error) {
+	secret := &corev1.Secret{}
+	ctx.Log().Debugf("Retrieving the client secret from %s/%s secret", constants.DexNamespace, adminClusterOidcID)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: constants.DexNamespace, Name: adminClusterOidcID}, secret)
+	if err != nil {
+		errMsg := fmt.Sprintf("Unable to retrieve %s secret from %s namespace, %v", adminClusterOidcID, constants.DexNamespace, err)
+		ctx.Log().Once(errMsg)
+		return nil, fmt.Errorf(errMsg)
+	}
+
+	if data, ok := secret.Data["clientSecret"]; ok {
+		return data, nil
+	}
+
+	return nil, ctx.Log().ErrorfThrottledNewErr("client secret not present in %s/%s secret", constants.DexNamespace, adminClusterOidcID)
+}
+
+// appendOIDCOverrides appends overrides related to OIDC configuration
+func appendOIDCOverrides(kvs []bom.KeyValue, oidcServiceHost, oidcExternalHost, realm string) []bom.KeyValue {
+	oidcServiceURL := fmt.Sprintf("http://%s/auth/realms/%s", oidcServiceHost, realm)
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcServiceURL", Value: oidcServiceURL})
+
+	oidcExternalURL := fmt.Sprintf("https://%s/auth/realms/%s", oidcExternalHost, realm)
+	kvs = append(kvs, bom.KeyValue{Key: "v2.oidcExternalURL", Value: oidcExternalURL})
+
 	return kvs
 }

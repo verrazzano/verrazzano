@@ -104,12 +104,16 @@ func (y *YAMLApplier) ApplyDT(directory string, args any) error {
 	return nil
 }
 
+func (y *YAMLApplier) ApplyBT(b []byte, args any) error {
+	return y.doTemplatedBytesAction(b, y.applyAction, args)
+}
+
 // ApplyF applies a file spec to Kubernetes
 func (y *YAMLApplier) ApplyF(filePath string) error {
 	return y.doFileAction(filePath, y.applyAction)
 }
 
-// ApplyB applies a spec to Kubernetes via a byte slice
+// ApplyS applies a spec to Kubernetes via a string
 func (y *YAMLApplier) ApplyS(spec string) error {
 	return y.doStringAction(spec, y.applyAction)
 }
@@ -136,6 +140,11 @@ func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args any) error {
 // DeleteF deletes a file spec from Kubernetes
 func (y *YAMLApplier) DeleteF(filePath string) error {
 	return y.doFileAction(filePath, y.deleteAction)
+}
+
+// DeleteS deletes resources in a spec from Kubernetes via a string
+func (y *YAMLApplier) DeleteS(spec string) error {
+	return y.doStringAction(spec, y.deleteAction)
 }
 
 // DeleteFWithDependents deletes a file spec from Kubernetes along with other dependent objects in the background
@@ -317,6 +326,21 @@ func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args any)
 		Option("missingkey=error"). // Treat any missing keys as errors
 		Funcs(funcMap).
 		ParseFiles(filePath)
+	if err != nil {
+		return err
+	}
+	buffer := &bytes.Buffer{}
+	if err = tmpl.Execute(buffer, args); err != nil {
+		return err
+	}
+	return y.doAction(bufio.NewReader(buffer), f)
+}
+
+func (y *YAMLApplier) doTemplatedBytesAction(b []byte, f action, args any) error {
+	tmpl, err := template.New("bytetemplate").
+		Option("missingkey=error"). // Treat any missing keys as errors
+		Funcs(funcMap).
+		Parse(string(b))
 	if err != nil {
 		return err
 	}

@@ -139,9 +139,8 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		rel, err = client.Run(releaseName, chart, vals)
 		if err != nil {
-			log.Errorf("Failed running Helm command for release %s",
-				releaseName)
-			return nil, err
+			return nil, log.ErrorfThrottledNewErr("Failed running Helm command for release %s, error: %s",
+				releaseName, err.Error())
 		}
 	} else {
 		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)

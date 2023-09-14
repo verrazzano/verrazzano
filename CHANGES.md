@@ -1,7 +1,14 @@
 ### v2.0.0
+Component version updates:
 
-Feature:
+- WebLogic Kubernetes Operator v4.1.2
+- WebLogic Monitoring Exporter v2.1.5
+- Thanos v0.32.2 (includes support for OKE Workload Identities)
 
+Features:
+
+- Added OKEQuickCreate custom resource to support ease-of-use when creating OKE clusters on OCI.
+- Added OCNEOCIQuickCreate custom resource to support ease-of-use when creating OCNE clusters on OCI.
 - Enabled status updates for Istio reconciled objects
 - Support for Thanos Ruler and Compactor
 - Prometheus rules in the kube-prometheus-stack and Thanos Helm charts are enabled by default

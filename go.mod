@@ -8,6 +8,7 @@ go 1.19
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
 	github.com/cert-manager/cert-manager v1.9.1
+	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3
 	github.com/fluent/fluent-operator/v2 v2.3.0
@@ -28,7 +29,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
-	github.com/verrazzano/verrazzano-modules v0.0.0-20230829191915-358ee75b26a1
+	github.com/verrazzano/verrazzano-modules v0.0.0-20230831133904-1e65b93429f7
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
 	go.uber.org/zap v1.24.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
@@ -166,9 +167,9 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/crypto v0.3.0 // indirect
+	golang.org/x/crypto v0.3.0
 	golang.org/x/net v0.10.0
-	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
+	golang.org/x/oauth2 v0.6.0
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
@@ -197,6 +198,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.7.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 )

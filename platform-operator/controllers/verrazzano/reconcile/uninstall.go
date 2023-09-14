@@ -5,7 +5,6 @@ package reconcile
 
 import (
 	"context"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -141,7 +140,6 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err := r.deleteMCResources(spiCtx); err != nil {
 				return ctrl.Result{}, err
 			}
-			SetLegacyUninstallPreWorkDone(true)
 			tracker.vzState = vzStateUninstallComponents
 
 		case vzStateUninstallComponents:

@@ -6,10 +6,6 @@ package clusterapi
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -18,7 +14,9 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,11 +100,6 @@ func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 // ShouldUseModule returns true if component is implemented using a Module
 func (c clusterAPIComponent) ShouldUseModule() bool {
 	return config.Get().ModuleIntegration
-}
-
-// GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (c clusterAPIComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return nil
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
@@ -270,20 +263,11 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := createOverrides(ctx)
-	if err != nil {
-		return err
-	}
-
-	overridesContext := newOverridesContext(overrides)
-
 	// Set up the delete options for the CAPI delete operation.
 	deleteOptions := clusterapi.DeleteOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overrides.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
-		IncludeNamespace:        true,
+		DeleteAll:        true,
+		IncludeNamespace: true,
+		IncludeCRDs:      false,
 	}
 	return capiClient.Delete(deleteOptions)
 }
@@ -301,7 +285,6 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-
 	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
@@ -316,6 +299,19 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
+		// get all the resource that will be deleted and recreated
+		components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Error generating cluster-api provider components to be upgraded")
+			return err
+		}
+
+		// delete the RBAC resources that Rancher puts finalizers on and keep requeuing until they're gone
+		if err = deleteRBACComponents(ctx, components); err != nil {
+			return err
+		}
+
+		// then apply the upgrade
 		return capiClient.ApplyUpgrade(applyUpgradeOptions)
 	}
 	return nil

@@ -155,15 +155,15 @@
               "image": "rancher",
               "dashboard": "v2.7.5-20230818161107-07044c506",
               "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.23.0",
-              "ocneDriverChecksum": "e410fd9b7ac5533b656277e82f1a321a995a5cd5e0329c2e79091e26e2516313",
-              "tag": "v2.7.5-20230818162112-c6f745626",
+              "ocneDriverVersion": "v0.24.0",
+              "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
+              "tag": "v2.7.5-20230831191011-c6f745626",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.5-20230818162112-c6f745626"
+              "tag": "v2.7.5-20230831191011-c6f745626"
             }
           ]
         },
@@ -217,7 +217,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.12.0",
+      "version": "v0.12.1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -225,7 +225,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.0"
+              "tag": "v0.12.1"
             }
           ]
         }
@@ -271,7 +271,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230828163609-10891b3",
+              "tag": "v2.0.0-20230912070053-2d1883d",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -301,7 +301,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230825101211-f2937ea",
+              "tag": "v2.0.0-20230913103358-6033fa2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -322,12 +322,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230529152058-071cbb2e727",
+              "tag": "2.3.0-20230914055551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230914060539-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -443,7 +443,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.1.0",
+      "version": "4.1.2",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -451,12 +451,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.1.0",
+              "tag": "4.1.2",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.4",
+              "tag": "2.1.5",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -929,7 +929,7 @@
     },
     {
       "name": "thanos",
-      "version": "v0.30.2",
+      "version": "v0.32.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -937,8 +937,26 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.30.2-20230525123422-4b7a94ea",
+              "tag": "v0.32.2-20230911193410-1e27f1f9",
               "helmRegKey": "image.registry",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dex",
+      "version": "v2.37.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "dex",
+          "images": [
+            {
+              "image": "dex",
+              "tag": "v2.37.0-20230911122845-caabc629",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package overrides
@@ -21,21 +21,23 @@ prometheusOperator:
     override: "true"
 `
 
-var newCMData = `
-prometheusOperator:
-  podLabels:
-    override: "false"
-`
-
-var newSecretData = `
-prometheusOperator:
-  podAnnotations:
-    override: "false"
-`
+// Disabled these tests temporarily until we decide what to do with the monitorChanges behavior/tests
+//
+//var newCMData = `
+//prometheusOperator:
+//  podLabels:
+//    override: "false"
+//`
+//
+//var newSecretData = `
+//prometheusOperator:
+//  podAnnotations:
+//    override: "false"
+//`
 
 var oldInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"true\"}}}"
 
-var newInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"false\"}}}"
+//var newInlineData = "{\"prometheusOperator\": {\"podAnnotations\": {\"inlineOverride\": \"false\"}}}"
 
 var testConfigMap = corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{

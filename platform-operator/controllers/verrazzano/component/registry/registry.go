@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
@@ -90,6 +91,7 @@ func InitRegistry() {
 		opensearchdashboards.NewComponent(),
 		grafana.NewComponent(),
 		grafanadashboards.NewComponent(),
+		dex.NewComponent(),
 		authproxy.NewComponent(),
 		coherence.NewComponent(),
 		mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql

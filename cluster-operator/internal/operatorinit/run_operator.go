@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/ociocne"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/oke"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
@@ -38,14 +40,14 @@ const (
 )
 
 type Properties struct {
-	Scheme                        *runtime.Scheme
-	CertificateDir                string
-	MetricsAddress                string
-	ProbeAddress                  string
-	IngressHost                   string
-	EnableLeaderElection          bool
-	EnableQuickCreate             bool
-	EnableCAPIRancherRegistration bool
+	Scheme                         *runtime.Scheme
+	CertificateDir                 string
+	MetricsAddress                 string
+	ProbeAddress                   string
+	IngressHost                    string
+	EnableLeaderElection           bool
+	EnableQuickCreate              bool
+	DisableCAPIRancherRegistration bool
 }
 
 // StartClusterOperator Cluster operator execution entry point
@@ -109,13 +111,25 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 	}
 
 	// only start the CAPI cluster controller if the clusters CRD is installed and the controller is enabled
-	if capiCrdInstalled && props.EnableCAPIRancherRegistration {
-		log.Infof("Starting CAPI Cluster controller")
-		if err = (&capi.CAPIClusterReconciler{
+	if capiCrdInstalled && !props.DisableCAPIRancherRegistration {
+		rancherRegistration := &capi.RancherRegistration{
 			Client:             mgr.GetClient(),
 			Log:                log,
-			Scheme:             mgr.GetScheme(),
 			RancherIngressHost: props.IngressHost,
+		}
+		vzRegistration := &capi.VerrazzanoRegistration{
+			Client: mgr.GetClient(),
+			Log:    log,
+		}
+		log.Infof("Starting CAPI Cluster controller")
+		if err = (&capi.CAPIClusterReconciler{
+			Client:              mgr.GetClient(),
+			Log:                 log,
+			Scheme:              mgr.GetScheme(),
+			RancherRegistrar:    rancherRegistration,
+			RancherIngressHost:  props.IngressHost,
+			RancherEnabled:      crdInstalled,
+			VerrazzanoRegistrar: vzRegistration,
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create CAPI cluster controller: %v", err)
 			os.Exit(1)
@@ -133,17 +147,27 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 	}
 	if props.EnableQuickCreate {
 		if err = (&ociocne.ClusterReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-			Logger: log,
+			Base: &controller.Base{
+				Client: mgr.GetClient(),
+			},
+			Scheme:            mgr.GetScheme(),
+			CredentialsLoader: oci.CredentialsLoaderImpl{},
+			OCIClientGetter: func(credentials *oci.Credentials) (oci.Client, error) {
+				return oci.NewClient(credentials)
+			},
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "Failed to setup controller OCNEOCIQuickCreate")
 			os.Exit(1)
 		}
 		if err = (&oke.ClusterReconciler{
-			Client: mgr.GetClient(),
+			Base: &controller.Base{
+				Client: mgr.GetClient(),
+			},
+			CredentialsLoader: oci.CredentialsLoaderImpl{},
+			OCIClientGetter: func(credentials *oci.Credentials) (oci.Client, error) {
+				return oci.NewClient(credentials)
+			},
 			Scheme: mgr.GetScheme(),
-			Logger: log,
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "Failed to setup controller OKEQuickCreate")
 			os.Exit(1)
