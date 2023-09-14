@@ -54,6 +54,8 @@ type (
 		Network *OKENetwork `json:"network,omitempty"`
 	}
 	OKENetwork struct {
+		// +optional
+
 		// VCN and subnet settings for existing networks.
 		Config *Network `json:"config"`
 		// CNI Type for cluster networking. May be FLANNEL_OVERLAY or OCI_VCN_IP_NATIVE.

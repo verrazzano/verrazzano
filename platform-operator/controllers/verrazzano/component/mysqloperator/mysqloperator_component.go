@@ -6,8 +6,6 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"path/filepath"
 	"strconv"
 
@@ -18,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -71,7 +70,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName, istio.ComponentName, verrazzano.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   getOverrides,
 			InstallBeforeUpgrade:      true,
 			AvailabilityObjects: &ready.AvailabilityObjects{
@@ -123,10 +122,6 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 	return c.HelmComponent.PreInstall(compContext)
 }
 
-func (c mysqlOperatorComponent) PostInstall(compContext spi.ComponentContext) error {
-	return c.HelmComponent.PostInstall(compContext)
-}
-
 // PreUpgrade recycles the MySql operator pods to make sure the latest Istio sidecar exists.
 // This needs to be done since MySQL operator is installed before upgrade
 func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) error {
@@ -146,7 +141,6 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-
 	return c.HelmComponent.PreUpgrade(compContext)
 }
 

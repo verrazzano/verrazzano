@@ -31,6 +31,7 @@ ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
 ENABLE_THANOS_COMPACTOR=${ENABLE_THANOS_COMPACTOR:-false}
 ENABLE_THANOS_RULER=${ENABLE_THANOS_RULER:-false}
 INSTALL_EXTERNAL_CERT_MANAGER=${INSTALL_EXTERNAL_CERT_MANAGER:-false}
+ENABLE_DEX=${ENABLE_DEX:-false}
 
 clusterNames=$(kind get clusters)
 if [[ $clusterNames == *"${CLUSTER_NAME}"* ]]; then
@@ -115,6 +116,11 @@ else
 EOF
     # deploy MySQL instance
     kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+  fi
+
+  # create verrazzano-github-token secret in verrazzano-install ns
+  if [ -n "${GITHUB_TOKEN}" ]; then
+    ./tests/e2e/config/scripts/create-github-token-secret.sh "verrazzano-github-token" "${GITHUB_TOKEN}" "verrazzano-install"
   fi
 
   # create secret in verrazzano-install ns

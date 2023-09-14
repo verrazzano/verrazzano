@@ -112,12 +112,24 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 
 	// only start the CAPI cluster controller if the clusters CRD is installed and the controller is enabled
 	if capiCrdInstalled && !props.DisableCAPIRancherRegistration {
-		log.Infof("Starting CAPI Cluster controller")
-		if err = (&capi.CAPIClusterReconciler{
+		rancherRegistration := &capi.RancherRegistration{
 			Client:             mgr.GetClient(),
 			Log:                log,
-			Scheme:             mgr.GetScheme(),
 			RancherIngressHost: props.IngressHost,
+		}
+		vzRegistration := &capi.VerrazzanoRegistration{
+			Client: mgr.GetClient(),
+			Log:    log,
+		}
+		log.Infof("Starting CAPI Cluster controller")
+		if err = (&capi.CAPIClusterReconciler{
+			Client:              mgr.GetClient(),
+			Log:                 log,
+			Scheme:              mgr.GetScheme(),
+			RancherRegistrar:    rancherRegistration,
+			RancherIngressHost:  props.IngressHost,
+			RancherEnabled:      crdInstalled,
+			VerrazzanoRegistrar: vzRegistration,
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create CAPI cluster controller: %v", err)
 			os.Exit(1)
@@ -139,7 +151,6 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 				Client: mgr.GetClient(),
 			},
 			Scheme:            mgr.GetScheme(),
-			Logger:            log,
 			CredentialsLoader: oci.CredentialsLoaderImpl{},
 			OCIClientGetter: func(credentials *oci.Credentials) (oci.Client, error) {
 				return oci.NewClient(credentials)
@@ -157,7 +168,6 @@ func StartClusterOperator(log *zap.SugaredLogger, props Properties) error {
 				return oci.NewClient(credentials)
 			},
 			Scheme: mgr.GetScheme(),
-			Logger: log,
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "Failed to setup controller OKEQuickCreate")
 			os.Exit(1)

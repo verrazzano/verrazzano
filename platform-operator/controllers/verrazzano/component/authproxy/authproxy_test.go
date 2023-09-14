@@ -219,6 +219,14 @@ func TestAppendOverrides(t *testing.T) {
 			numKeyValues: 1,
 			expectedErr:  fmt.Errorf("path error"),
 		},
+		{
+			name:         "EnableDex",
+			description:  "Test AppendOverrides when dex component is enabled",
+			expectedYAML: "testdata/dexEnabledOverrideValues.yaml",
+			actualCR:     "testdata/dexEnabledOverrideVz.yaml",
+			numKeyValues: 1,
+			expectedErr:  fmt.Errorf("path error"),
+		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {
@@ -233,7 +241,7 @@ func TestAppendOverrides(t *testing.T) {
 			err = yaml.Unmarshal(yamlFile, &testCR)
 			asserts.NoError(err)
 
-			fakeClient := createFakeClientWithIngress()
+			fakeClient := createFakeClientWithIngressAndClientSecret()
 			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
 
 			setWriteFileFunc(test.expectedErr, asserts, test.expectedYAML)
@@ -471,23 +479,28 @@ func TestGetOverrides(t *testing.T) {
 	}
 }
 
-func createFakeClientWithIngress() client.Client {
-	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
-			Spec: corev1.ServiceSpec{
-				Type: corev1.ServiceTypeLoadBalancer,
-			},
-			Status: corev1.ServiceStatus{
-				LoadBalancer: corev1.LoadBalancerStatus{
-					Ingress: []corev1.LoadBalancerIngress{
-						{IP: "11.22.33.44"},
-					},
+func createFakeClientWithIngressAndClientSecret() client.Client {
+	fakeService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
+		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{IP: "11.22.33.44"},
 				},
 			},
 		},
-	).Build()
-	return fakeClient
+	}
+
+	fakeSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: adminClusterOidcID, Namespace: dexProvider},
+		Data: map[string][]byte{
+			"clientSecret": []byte("blahblah"),
+		},
+	}
+	return fake.NewClientBuilder().WithObjects(fakeService, fakeSecret).Build()
 }
 
 // cleanTempFiles - Clean up the override temp files in the temp dir

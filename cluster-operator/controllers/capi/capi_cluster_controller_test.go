@@ -29,7 +29,7 @@ const (
 // GIVEN a CAPI cluster resource is created
 // WHEN  the reconciler runs
 // THEN  a rancher registration and associated artifacts are created
-func TestClusterRegistration(t *testing.T) {
+func TestClusterRancherRegistration(t *testing.T) {
 	asserts := assert.New(t)
 
 	rancherDeployment := &appsv1.Deployment{
@@ -47,11 +47,11 @@ func TestClusterRegistration(t *testing.T) {
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
-	SetClusterRegistrationFunction(func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) (ctrl.Result, error) {
-		r.persistClusterStatus(ctx, cluster, "capi1Id", registrationInitiated)
+	SetClusterRancherRegistrationFunction(func(ctx context.Context, r *RancherRegistration, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+		persistClusterStatus(ctx, reconciler.Client, cluster, reconciler.Log, "capi1Id", registrationInitiated)
 		return ctrl.Result{}, nil
 	})
-	defer SetDefaultClusterRegistrationFunction()
+	defer SetDefaultClusterRancherRegistrationFunction()
 
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
@@ -101,10 +101,10 @@ func TestClusterUnregistration(t *testing.T) {
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
-	SetClusterUnregistrationFunction(func(ctx context.Context, r *CAPIClusterReconciler, cluster *unstructured.Unstructured) error {
+	SetClusterRancherUnregistrationFunction(func(ctx context.Context, r *RancherRegistration, cluster *unstructured.Unstructured) error {
 		return nil
 	})
-	defer SetDefaultClusterUnregistrationFunction()
+	defer SetDefaultClusterRancherUnregistrationFunction()
 
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
@@ -131,10 +131,16 @@ func newCAPICluster(name string) *unstructured.Unstructured {
 }
 
 func newCAPIClusterReconciler(c client.Client) CAPIClusterReconciler {
-	return CAPIClusterReconciler{
+	rancherRegistrar := &RancherRegistration{
 		Client: c,
-		Scheme: newScheme(),
 		Log:    zap.S(),
+	}
+	return CAPIClusterReconciler{
+		Client:           c,
+		Scheme:           newScheme(),
+		Log:              zap.S(),
+		RancherEnabled:   true,
+		RancherRegistrar: rancherRegistrar,
 	}
 }
 

@@ -1976,3 +1976,37 @@ func VzReadyV1beta1() (bool, error) {
 	}
 	return false, fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 }
+
+// IsDexEnabled returns true if the Dex component is enabled, false otherwise
+func IsDexEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Dex == nil || vz.Spec.Components.Dex.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Dex.Enabled
+}
+
+func ValidateDeploymentContainerImage(namespace, deploymentName, containerName, version string) (bool, error) {
+	// Get the deployment
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		return false, fmt.Errorf("deployment %s not found in the namespace: %s, error: %v", deploymentName, namespace, err)
+	}
+
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if containerName == container.Name {
+			split := strings.Split(container.Image, ":")
+			if !strings.HasPrefix(split[len(split)-1], version) {
+				errStr := fmt.Sprintf("namespace %v deployment %v container %v image %v does not contain correct image version %v",
+					namespace, deploymentName, containerName, container.Name, version)
+				Log(Error, errStr)
+			}
+			break
+		}
+	}
+	return true, nil
+}
