@@ -336,6 +336,9 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 func TestPostUpgrade(t *testing.T) {
 	a := assert.New(t)
 
+	callCreateNamespaces = func(ctx spi.ComponentContext) error {
+		return nil
+	}
 	comp := istioComponent{}
 
 	// Setup fake client to provide workloads for restart platform testing
