@@ -100,6 +100,7 @@ pipeline {
                         def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
                         SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
+                    }
                     try {
                         sh """
                              echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
@@ -452,5 +453,4 @@ def cleanWorkspaceAndCheckout() {
     storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
     fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
     liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
-}
 }
